@@ -33518,3 +33518,86 @@ estimated) and dropping the entrance data the page discards (about 117 KB
 Brotli, estimated) are not started. All of these save fewer raw bytes than this
 change. By compressed size only the roof and tower sharing and the entrance data
 would save more than this change's 66 KB.
+
+## September 30, 2026 - Apartment finder answers
+
+The hidden finder preview (`?livehere=1`) now gives only answers it can stand
+behind. The city and the preview's look are unchanged. Code: `js/wayfind.js`,
+`js/walkgraph.js`, `js/live-here-core.js`, `js/schedconfirm.js`, plus a Node-only
+check, `scripts/verify/finder-correctness.mjs` (helper in
+`scripts/verify/lib/finder-runtime.mjs`). Branch: `claude/finder-answers`
+(opened as a draft).
+
+What changed in the answers:
+- A quiet route answer needs an exact building or apartment name. "Icon" no
+  longer answers as "Ion Austin", and "Jester West Hall" no longer answers as
+  "Jester East Hall".
+- The schedule check counts the door links at both ends and merges the runtime
+  entrance points. Its "does not fit" floor is a separate fastest-walk search.
+- A same-building outdoor walk is zero only when the building has usable doors.
+- An imported class that was uncertain, or had a malformed or conflicting time,
+  weekday, location or calendar field (exceptions, cancellations, foreign time
+  zones, unsupported recurrences, unclosed calendar files), stays marked for
+  review through saving and reloading instead of becoming a clean weekly class.
+
+Evidence, `node scripts/verify/finder-correctness.mjs`, Node v25.0.0, synthetic
+schedules and the public local JSON only, no browser: 78 of 78 groups pass.
+The matrix is 81 housing names x 21 class codes x 2 walking profiles (normal,
+mapped step-free) x both directions = 6,804 queries: 2,146 answered and 4,658
+explicitly unavailable (4,368 not found, 232 no door, 58 no mapped step-free
+route). On the comparable 6,468-query set, measured before the fixes, 148
+answers named the wrong apartment; now none do. Across 90 ordered campus pairs
+the schedule check had 18 missing and 6 overstated floors (1-2 min); now 0 and
+0. Independent Floyd-Warshall searches (seed 420930, 40 graphs of 7 nodes,
+tolerances 0.02 m and 0.02 s) match on 480 preferred-cost and 240 fast-time
+queries. Reversing the input order of meetings and apartments changes none of
+162 apartment/profile answers. `node scripts/verify/live-here-core.cjs` passes.
+The walk graph file is byte-identical (366,419 bytes).
+
+Still open: 52 of 81 housing names have no exact usable door and 72 of 230 known
+class codes have no route coverage; the graph and its bake were not touched.
+One mapped step-free pair (San Jacinto Hall to Patton Hall) is flagged at
+661.35 m walking against 216.37 m straight (ratio 3.06) and needs an entrance
+and accessibility review. Not proven: real-world entrance access, indoor travel,
+phone behaviour, or how accurately an uploaded schedule image is read. The preview
+has not yet been loaded in a browser after these changes, and the existing browser
+suites that touch these files (schedconfirm, schedimg, img-import, live-here) were
+not run locally; they run in CI on the pull request, which is the browser gate.
+
+## September 30, 2026 - East Mall staircase correction (claude/east-mall-stairs)
+
+The site east of the Tower is an outdoor staircase, not a building. Retired
+the stale Computation Center / COM footprint through the existing building
+overrides, keyed by its Overture ID and OSM way. Scene loading, detail, labels,
+entrances, roofs, roofscape and walking obstacles consume that exclusion.
+Removed its label, 148 entrance pieces, five graph doors/code, roof cap and
+13 rooftop pieces. The original source outline also masks stale rooftop
+tiles, so default tiled detail cannot leave floating equipment behind.
+Historical snapshots and offline massing/survey caches remain source records.
+
+Cached East Mall steps and footways already exist and remain connected. No
+path coordinates were invented or changed; surviving graph nodes/edges and
+door values remain unchanged. Frozen walk-pair references shift only for the
+five retired doors, preserving their existing physical-door choices. Other
+unregistered campus candidates are listed separately and were not removed.
+
+Matched daylight views with labels on show the building and floating rooftop
+pieces gone. Labels have zero coverage gaps; a full entrance replay, detailed
+bake replay, 19 walk-bake gates, exclusion regression and idempotent migrations
+pass. Full verification is NOT green: two existing night unit tests, 14 frozen
+walk pairs and the existing wallplane ceiling remain red. Existing stale
+walkmeter oracle fixtures are also reported, not guessed into passing.
+The reviewing lane retains the local comparison/report and commits the
+explicit file list; this correction is not a claim of globally green checks.
+
+## September 30, 2026 - Facade texture preparation
+
+js/facades.js now blends each mottle cell once per horizontal span instead of once per pixel, and the paint worker's final full-resolution tier reuses the buffer it was handed instead of copying it. Fractional cell widths still take the old per-pixel path, and earlier tiers keep their own buffers. Materials, geometry, texture sizes and repaint pacing are unchanged.
+
+Proven without a browser: across 350 size, scale, cell and amplitude combinations (25,267,480 bytes) the new mottle output equals the old byte for byte; five worker tier orders give identical images and premultiplied copies; the 24-drawing, 48-tier facade repaint check passes.
+
+Speed: an isolated mottle benchmark, node only and not the app (512 x 512 RGBA, scale 2, 4-pixel cells, amplitude 0.05, five warmups, seven interleaved repetitions, eight calls per sample, minimum per call, both functions run in the same JavaScript realm as a browser worker would run them) measured about 6.4 ms per tile before and 4.2 ms after in one run, and 7.8 and 5.6 ms in a second: roughly 1.4 to 1.5 times faster, about 2 ms saved per tile. An earlier version of this benchmark ran both functions inside a node:vm sandbox and showed a much larger gap; that sandbox inflates the absolute cost about 20 times and the ratio with it, so those figures are not used. The isolated saving is small. In the real city the hour-change repaint took 20.6% less at best on an integrated AMD GPU (three runs each, median 11.5% less) and showed no win on an NVIDIA GPU (two baseline runs, four candidate runs). Those timings drifted between runs and the machine could not be certified quiet (pre-run CPU load was 3.9 to 11.9 percent, and candidate rounds ran progressively slower without a matching baseline), so pair results are not attributable to this patch. An earlier NVIDIA set (1280 x 800, two before and two after, main-thread instrumentation on) was mixed: the hour-change paced job took 9.0 and 5.0 s before against 9.3 and 7.1 s after, and the worst frame gap during a 12 s flight was 197 ms before against 288 ms after (minimums), while load-time facade drawing and the worst turn frame gap were lower after. Treat all of this as a first look, not a result.
+
+Appearance: day frames differ from the unchanged build by at most 2 of 255 per channel. Night frames differ by at most 56 of 255 (campus) and 48 of 255 (West Campus), with 232 and 21 pixels beyond 12; a repeat of the unchanged build gave 230 and 43 for the same two views, so that is scene noise (stars, ground lights). Downtown night and the hour change reached 16 and 17 of 255, with 19 and 15 pixels beyond 12 against 2 and 3 for the repeat, which is not fully accounted for by that noise.
+
+Still open: fresh walking-height and day/night comparisons, a console check on load and after moving the camera, and a quiet-machine timing with at least three interleaved pairs. Until then, do not claim faster turns, hour changes or flight.

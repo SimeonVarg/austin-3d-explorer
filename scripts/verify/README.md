@@ -9,6 +9,40 @@ real hours. It is in the repo now on purpose.
 It is dev-only tooling. It adds no build step and no runtime dependency to the
 site — the site is still plain static HTML/CSS/JS served from the repo root.
 
+## Finder correctness (Node only)
+
+`finder-correctness.mjs` runs the production route/schedule code in an isolated
+VM with synthetic schedules, empty storage and fetches restricted to public
+local graph/register JSON. It reads the public apartment catalog, exercises
+normal and mapped-step-free walks in both directions, checks route arithmetic,
+and compares synthetic graph searches with independent path-cost and fast-time
+oracles. Imported review state is checked across parser, confirmation, minimal
+storage and reload seams, including conflicting identities, clocks and calendar
+fields. The suite also reverses schedule and apartment order in fresh VMs.
+It never reads schedule images, private fixtures or browser storage.
+
+From the repo root, with a recent Node supporting `Object.groupBy`:
+
+```bash
+node scripts/verify/finder-correctness.mjs --output <local-scratch>/finder.json
+```
+
+No npm install, browser, server or GPU slot is required. Omitting `--output`
+prints the summary without saving the detailed matrix. Keep full JSON evidence
+in local scratch, not tracked screenshot/output folders. To keep a timing run
+undisturbed, set `FINDER_QUIET_PATH` to a marker file: the suite then pauses
+between batches for as long as that file exists. Unset, it never waits.
+
+Wrong identities, straight-line fallbacks, unit mistakes, omitted links and
+regression failures cause a nonzero exit. Unavailable buildings/apartments and
+walking/straight ratio outliers are reported separately: passing does not mean
+all apartment entrances are mapped or current real-world access is verified.
+The report records the graph hash and fails if it changes during verification.
+
+A few groups pin today's coverage on purpose: SMC must be unroutable, HLB must
+have no baked doors, and `wayfindSearch('Icon')` must contain `Ion Austin`.
+When a bake adds SMC or HLB doors, update those assertions in the same change.
+
 ## Setup
 
 ```bash
@@ -59,6 +93,10 @@ void if `_harness.html` and `index.html` have drifted apart.
 CRASHES / FAILS / NEEDS-ARGS / PASSES / REACHES-BROWSER. Read its header for
 what each bucket does and does not claim. **REACHES-BROWSER is not a pass** —
 it means "still alive at the budget", nothing more.
+
+To run these checks on a rented NVIDIA GPU instead of this one GPU browser (up
+to four at once, frames brought back, session always stopped), see
+`scripts/colab/README.md`.
 
 ### CI: the checks on every pull request
 
