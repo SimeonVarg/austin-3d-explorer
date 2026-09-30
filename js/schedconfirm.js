@@ -1604,7 +1604,13 @@ export async function prepare(opts = {}) {
   if (opts.routeMinutes === undefined && CONF.walk.on) {
     try {
       const wg = await import('./walkgraph.js');
-      const probe = await wg.walkProbe();
+      const router = typeof window === 'undefined' ? null : window;
+      const probe = await wg.walkProbe({
+        codes: router && typeof router.wayfindScheduleCodes === 'function'
+          ? (await router.wayfindScheduleCodes()).map(entry => entry.code) : [],
+        doorsForCode: router && typeof router.wayfindDoors === 'function'
+          ? code => router.wayfindDoors(code, false) : undefined,
+      });
       if (probe) {
         out.routeMinutes = (a, b) => probe.minutes(a, b);
         out.walkSource = 'walk_graph.json' + (probe.asOf ? ' @ ' + probe.asOf : '');
