@@ -320,6 +320,7 @@ const area = s => s.A().areas.list[0];
   const current = sandbox({ frames: true });
   await booted(current);
   current.window.APARTMENTS.areas.yieldMaxMs = 10000;
+  current.window.APARTMENTS.areas.revealChunksPerFrame = 1;   // one upload per rendered frame, deterministically
   const result = current.A().areas.ensureAt(NEAR);
   for (let iteration = 0; iteration < 50 && area(current).state !== 'attaching'; iteration++) await idleTicks(5);
   const group = current.groups()['slopes-apartments-riverside'];
@@ -329,9 +330,7 @@ const area = s => s.A().areas.list[0];
   await current.renderFrame();
   assert.deepEqual(group.children.map(child => child.visible), [true, true]);
   assert.equal(outerClause(current), false, 'fallback stays until every upload has a rendered frame');
-  await current.renderFrame();
-  assert.equal(area(current).state, 'attaching');
-  await current.renderFrame();
+  for (let iteration = 0; iteration < 50 && area(current).state !== 'on'; iteration++) await current.renderFrame();
   assert.deepEqual(await result, [true]);
   assert.ok(outerClause(current));
   assert.equal(current.pendingFrames.size, 0, 'completed attach leaves no pending frame callback');
@@ -342,6 +341,7 @@ const area = s => s.A().areas.list[0];
   const current = sandbox({ frames: true });
   await booted(current);
   current.window.APARTMENTS.areas.yieldMaxMs = 10000;
+  current.window.APARTMENTS.areas.revealChunksPerFrame = 1;   // one upload per rendered frame, deterministically
   const result = current.A().areas.ensureAt(NEAR);
   for (let iteration = 0; iteration < 50 && area(current).state !== 'attaching'; iteration++) await idleTicks(5);
   current.A().areas.unload('riverside');
@@ -350,6 +350,28 @@ const area = s => s.A().areas.list[0];
   assert.equal(current.A().count.buildings, 2);
   assert.equal(current.disposedGroups.length, 2);
   assert.equal(current.pendingFrames.size, 0);
+}
+{
+  // revealChunksPerFrame batches uploads: at 2 (>= the 2 stub chunks) both are
+  // exposed together before any yield, so the fill-in does not spend a frame
+  // per chunk. This is the fix for the 10 s fill-in; one upload per frame was
+  // the regression. The fallback still stands until a frame has rendered.
+  const current = sandbox({ frames: true });
+  await booted(current);
+  current.window.APARTMENTS.areas.yieldMaxMs = 10000;
+  current.window.APARTMENTS.areas.revealChunksPerFrame = 2;
+  const result = current.A().areas.ensureAt(NEAR);
+  for (let iteration = 0; iteration < 50 && area(current).state !== 'attaching'; iteration++) await idleTicks(5);
+  const group = current.groups()['slopes-apartments-riverside'];
+  assert.equal(area(current).state, 'attaching');
+  assert.deepEqual(group.children.map(child => child.visible), [true, true], 'a batch reveals its chunks together, not one per frame');
+  assert.equal(outerClause(current), false, 'fallback stays until a frame has rendered the batch');
+  for (let iteration = 0; iteration < 50 && area(current).state !== 'on'; iteration++) await current.renderFrame();
+  assert.deepEqual(await result, [true]);
+  assert.ok(outerClause(current));
+  assert.equal(current.pendingFrames.size, 0, 'completed attach leaves no pending frame callback');
+  current.A().areas.unload('riverside');
+  assert.equal(current.disposedGroups.length, 2);
 }
 {
   const current = sandbox();

@@ -34,6 +34,30 @@ while the area fills), and two full desktop unload/reload cycles (one passed,
 the second ran out of time). Phone emulation at 390x844 passed two cycles;
 a real phone is untested. `scripts/verify/area-attach-meter.mjs` is the meter.
 
+### Sep 30 2026 - fill-in brought back near the one-piece time
+
+The first cut revealed one chunk per rendered frame and forced a whole-scene
+render between every mask and filter step, so filling Riverside in took 10 s
+where the one-piece attach took under 3 s, and daylight showed tan boxes and
+bare ground the whole time. Fixed in `js/slopes-apartments.js`: chunks now
+reveal a batch per frame (`APARTMENTS.areas.revealChunksPerFrame`, 8) so the
+GPU uploads still spread over a few frames but the reveal finishes fast, and the
+mask/filter work runs on a larger attach budget (`APARTMENTS.areas.attachSliceMs`,
+300 ms) with a cheap task yield instead of a forced render each step. Both are
+named knobs with the tradeoff written beside them.
+
+Re-measured with `area-attach-meter.mjs` against `origin/main` (NVIDIA RTX 3050
+Ti, ANGLE D3D11, 1280x680 CSS, DPR 1.5, vsync on, no CPU throttle, three
+interleaved A/B reps, minimum of each): on a quiet run the fill-in is 973 ms on
+main and 1046 ms on the branch (1.07x) and the worst attach frame falls from
+1598.8 ms to 732.8 ms; on a loaded run the fill-in is 1516 ms vs 1938 ms (1.28x)
+and the worst frame 2464.9 ms vs 915.8 ms. Fill-in stays within 1.5x of main and
+the worst-frame win holds. All four fixed cameras (Village and Element, day and
+night) captured source-ready on both arms and match main with no tan boxes or
+bare ground while filling. Nine node suites still pass; the area lifecycle suite
+gains a batch-reveal case and pins the per-frame cases to
+`revealChunksPerFrame` 1.
+
 ## Sep 29 2026 - Visit counting with Vercel Web Analytics (`claude/view-analytics`, PR open, not merged)
 
 `js/analytics.js` counts page views with Vercel Web Analytics, loaded the

@@ -257,9 +257,32 @@
     areas: {
       eager: q.get('areas') === 'eager',
       sliceMs: 50,
+      // The slice budget WHILE AN AREA ATTACHES (the reveal, masks and filter
+      // changes), separate from the build's sliceMs. The attach is a one-off
+      // fill-in over a few frames, not the steady 60 Hz a moving camera needs,
+      // so it can afford longer slices: fewer yields means the fill-in finishes
+      // sooner. Measured 2026-09-30 (NVIDIA RTX 3050 Ti, 1280x680 DPR1.5, vsync
+      // on): at 50 ms the fill-in ran ~2.7 s (30-ish medium frames); at 130 ms
+      // it runs close to the unsliced ~1.2 s while the worst attach frame stays
+      // well under a second — far below the ~2.3 s single stall the unsliced
+      // path costs. Raise it and the fill-in shortens but the worst attach
+      // frame grows toward the unsliced stall; lower it for a smoother fill-in.
+      attachSliceMs: 300,
       geometryChunkTris: 24000,
       sliced: q.get('areaslice') !== '0',
       yieldMaxMs: 100,
+      // HOW MANY GEOMETRY CHUNKS REVEAL PER RENDERED FRAME. A chunk's GPU
+      // buffers upload the first frame its mesh is visible, so revealing every
+      // chunk in one frame is the whole synchronous stall back again (~1.8-2.3 s
+      // for Riverside's 26 chunks). Revealing ONE per frame — the first cut —
+      // spent 26 forced frame waits just to fill in, which turned a 2.7 s
+      // fill-in into 10 s. This reveals a batch per frame: the uploads still
+      // spread over a few frames (the stall stays small) but the fill finishes
+      // in a handful of frames, not one per chunk. 8 keeps Riverside's worst
+      // attach frame well under a second — far below the unsliced stall — while
+      // bringing the fill-in near the unsliced time. Lower it if a slower GPU
+      // shows a stall on the reveal; raise it to fill in faster.
+      revealChunksPerFrame: 8,
       loadM: 1800,        // the intro's first eye is ~2.3 km from Riverside's box: this keeps the start clean
       checkMs: 400,       // a moving camera is re-checked at most this often
       pinMs: 20000,       // after ensureAt, how long a phone keeps an area the camera has not reached yet
@@ -3215,6 +3238,17 @@
       } else channel.port2.postMessage(0);
     });
   }
+  // A cheap yield to the event loop with NO rendered frame: a MessageChannel
+  // task (not setTimeout, which a hidden tab clamps to ~1 s). Used between the
+  // CPU-only mask/filter slices of an attach, so that work interleaves with
+  // MapLibre's own repaints without forcing a full three.js render each step.
+  function yieldTaskArea() {
+    return new Promise(resolve => {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => { channel.port1.close(); channel.port2.close(); resolve(); };
+      channel.port2.postMessage(0);
+    });
+  }
   const isPhone = () => !!(window.LITE_PROFILE && window.LITE_PROFILE.on);
   const sceneGone = () => !!(window.LITE_PROFILE && window.LITE_PROFILE.sceneUnavailable);
   const areaParams = () => isPhone() ? Object.assign({}, APTS.areas, APTS.areas.phone) : Object.assign({}, APTS.areas, { unload: false, dropSpecs: false });
@@ -3301,10 +3335,20 @@
     const valid = () => gen === a.gen && _group && window.SLOPES.on && APTS.on && !sceneGone() && mapStyleAvailable();
     const children = g.children.slice(), started = performance.now();
     let sliceStarted = started, slices = 1;
-    const pause = async (force = false) => {
-      if (!APTS.areas.sliced || !force && performance.now() - sliceStarted < APTS.areas.sliceMs) return;
-      if (_map) _map.triggerRepaint();
-      await yieldAreaFrame();
+    // Two kinds of slice. A REVEAL slice must end in a rendered frame: a chunk's
+    // GPU buffers upload the first frame its mesh is drawn, so we yield to a real
+    // animation frame (yieldAreaFrame) to spread those uploads. A COMPUTE slice
+    // (the mask geometry and the filter changes) does CPU-only work and changes
+    // MapLibre filters, which MapLibre repaints on its own; forcing a full
+    // three.js re-render between every one of those steps was the fill-in cost —
+    // 20-odd whole-city renders of the freshly attached area at ~350 ms each. A
+    // compute slice yields with the cheap MessageChannel task (no forced render),
+    // so the mask/filter work interleaves with the event loop without repainting
+    // the heavy scene each step. One repaint at the end draws the finished state.
+    const pause = async (wantFrame = false, force = false) => {
+      if (!APTS.areas.sliced || !force && performance.now() - sliceStarted < APTS.areas.attachSliceMs) return;
+      if (wantFrame) { if (_map) _map.triggerRepaint(); await yieldAreaFrame(); }
+      else await yieldTaskArea();
       sliceStarted = performance.now(); slices++;
     };
     _attachingArea = a;
@@ -3312,17 +3356,27 @@
       a.group = g; a.state = 'attaching';
       if (APTS.areas.sliced) for (const child of children) child.visible = false;
       window.slopes.add(g);
-      for (const child of children) {
+      // Reveal the chunks a batch per frame, not one per frame. Each chunk's
+      // buffers upload the first frame it is visible; a batch spreads that
+      // upload over a few frames (the stall stays small) instead of stacking
+      // 26 forced frame waits (which was the 10 s fill-in). pause(true, true)
+      // forces one rendered frame after each batch so the batch's uploads land.
+      const perFrame = Math.max(1, APTS.areas.revealChunksPerFrame | 0);
+      for (let i = 0; i < children.length; i++) {
         if (!valid()) return;
-        child.visible = true;
-        await pause(true);
+        children[i].visible = true;
+        if ((i + 1) % perFrame === 0) await pause(true, true);
       }
       if (!valid()) return;
       count.triangles += info.triangles;
       info.counted = true;
       _built = _built.concat(info.built);
       _data = catalogWithAreas();
-      await pause(true);
+      // Hide the fallback prisms/ground as soon as the meshes are in the scene:
+      // the tan outer-ring boxes and the bare ground the mesh replaces are what
+      // shows through during a slow fill-in. The mask geometry is pure JS and the
+      // filter changes are MapLibre setFilter calls, so these slices yield with
+      // the cheap task, not a forced whole-scene render per step.
       const masks = [
         [APTS.roofscapeInset, false, true],
         ...(APTS.hideRoofscape ? [[APTS.roofscapeInset, true], [0], [APTS.roofscapeInset, false, false, true]] : []),
