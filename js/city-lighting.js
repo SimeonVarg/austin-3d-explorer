@@ -841,8 +841,8 @@
       if(surface===2)stats.solidLightDraws++;
       // Per layer, like the surface: a program is shared across layers.
       if(u.u_cityThin){
-        const thin=activeThin,key=thin+'|'+thinLines.minPx+'|'+thinLines.maxGrow;
-        if(p.thin!==key){gl.uniform3f(u.u_cityThin,thin,thinLines.minPx,thinLines.maxGrow);p.thin=key;}
+        const thin=activeThin;
+        if(p.thin!==thin||p.thinPx!==thinLines.minPx||p.thinGrow!==thinLines.maxGrow){gl.uniform3f(u.u_cityThin,thin,thinLines.minPx,thinLines.maxGrow);p.thin=thin;p.thinPx=thinLines.minPx;p.thinGrow=thinLines.maxGrow;}
         if(thin>0){gl.uniform2f(u.u_cityViewport,gl.drawingBufferWidth,gl.drawingBufferHeight);stats.thinDraws=(stats.thinDraws||0)+1;}
       }
       if(p.serial!==serial) {
