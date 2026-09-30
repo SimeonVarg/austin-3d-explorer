@@ -249,7 +249,7 @@
   window.ROOF_CAP = ROOF_CAP;
 
   async function loadScene(date) {
-    const [buildings, parts, signs, extraNames, roofs, facadeGrids] = await Promise.all([
+    const [buildings, parts, signs, extraNames, roofs, facadeGrids, overrides] = await Promise.all([
       getJSON(snapshotUrlFor(date), { type:'FeatureCollection', features: [] }),
       getJSON(`data/snapshots/${date}/parts.detailed.geojson`, { type:'FeatureCollection', features: [] }),
       getJSON('data/signs.json', { type:'FeatureCollection', features: [] }),
@@ -274,7 +274,14 @@
       // height-class templates, which is exactly the behaviour before this file
       // existed.
       getJSON('data/facade_grids.json', { buildings: [] }),
+      getJSON('data/building_overrides.json', { buildings: {} }),
     ]);
+
+    const excludedIds = new Set(Object.entries(overrides.buildings).filter(([, override]) => override.exclude === true).map(([id]) => id));
+    const excludedWays = new Set(Object.values(overrides.buildings).filter(override => override.exclude === true && override.osm_way_id != null).map(override => String(override.osm_way_id)));
+    const excluded = properties => ['id', 'bid', 'pid', 'building_id'].some(key => excludedIds.has(String(properties[key])))
+      || ['osm', 'osm_id', 'osm_way_id'].some(key => excludedWays.has(String(properties[key] || '').replace(/^(way\/|w)/, '')));
+    for (const collection of [buildings, parts, roofs]) collection.features = collection.features.filter(feature => !excluded(feature.properties || {}));
 
     // The Capitol Complex, south of the snapshot's own bbox, is spliced in
     // HERE — before quantisation and before the label pass — so it earns

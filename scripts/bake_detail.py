@@ -29,6 +29,7 @@ import colorsys
 import hashlib
 import sys
 import os
+from building_exclusions import EXCLUDED_GEOMETRIES, is_excluded
 
 DATE = sys.argv[1] if len(sys.argv) > 1 else '2026-07-10'
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -195,6 +196,10 @@ buildings = load(f'data/snapshots/{DATE}/buildings.enriched.geojson')
 if not buildings:
     sys.exit('base buildings missing')
 parts = load('data/parts.geojson', {'features': []})
+parts['features'] = [feature for feature in parts['features']
+                     if not is_excluded(feature.get('properties', {}))
+                     and not any(centroid(feature['geometry']) and point_in_poly(centroid(feature['geometry']), geometry)
+                                 for geometry in EXCLUDED_GEOMETRIES)]
 btags = load('data/building_tags.geojson', {'features': []})
 designs = load('data/hero_designs.json', {'buildings': {}, 'classes': {}})
 signs = load('data/signs.json', {'features': []})
@@ -245,7 +250,8 @@ for f in signs.get('features', []):
         sign_pts.append((lbl, f['geometry']['coordinates']))
 
 # ---------------------------------------------------------------- index buildings
-feats = buildings['features']
+feats = [feature for feature in buildings['features'] if not is_excluded(feature['properties'])]
+buildings['features'] = feats
 bboxes = [bbox(f['geometry']) for f in feats]
 
 # ------------------------------------------------------- QUEUE J2/J3 height fix

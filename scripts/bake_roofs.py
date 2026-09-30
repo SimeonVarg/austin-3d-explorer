@@ -89,6 +89,7 @@ from PIL import Image, ImageDraw
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bake_facades  # noqa: E402
+from building_exclusions import is_excluded
 
 # THE SNAPSHOT THE ROOFS SIT ON IS THE ONE THE APP DRAWS. This was pinned to
 # 2026-07-30 until 2026-09-02, nineteen snapshots behind `manifest.latest`,
@@ -3809,6 +3810,16 @@ def augment_shipped(out, rig, gables, caps, meta):
     return ship
 
 def main():
+    if "--retire-excluded-only" in sys.argv:
+        with open(OUT, encoding="utf-8") as source:
+            document = json.load(source)
+        document["features"] = [feature for feature in document["features"] if not is_excluded(feature.get("properties", {}))]
+        for key in ("caps", "rig"):
+            document[key] = {building_id: value for building_id, value in document.get(key, {}).items() if not is_excluded({"id": building_id})}
+        with open(OUT, "w", encoding="utf-8") as target:
+            json.dump(document, target, separators=(",", ":"))
+        print("Excluded roof records retired; other roofs unchanged")
+        return
     report = "--report" in sys.argv
     # Probing 2,400 footprints against the imagery takes minutes; the geometry
     # takes seconds. Splitting the two means the shape can be iterated on — which
@@ -3818,6 +3829,7 @@ def main():
     cache = {} if remeasure else json.load(open(MEAS, encoding="utf-8"))
     feats = json.load(open(SNAP, encoding="utf-8"))["features"]
     overrides = load_overrides()
+    feats = [feature for feature in feats if not is_excluded(feature["properties"])]
     tile_base, tile_base_n = campus_tile_base(feats, cache)
     retinted = {}            # building id -> the tile triple its cap must take
     # THE RIG. Everything below is computed per roof and was thrown away once

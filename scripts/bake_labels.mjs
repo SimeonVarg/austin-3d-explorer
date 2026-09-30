@@ -25,7 +25,13 @@ const apartmentUse=(name,type='',height=0)=>/(?:^|;)\s*(?:apartments|dormitory)\
   ||/\b(?:apartments|condominiums|residences|amli)\b/i.test(name)&&!/\boffice\b/i.test(name);
 const snapshot = read('data/manifest.json').latest;
 const sourcePath = `data/snapshots/${snapshot}/buildings.detailed.geojson`;
-const features = read(sourcePath).features;
+const exclusions = Object.entries(read('data/building_overrides.json').buildings).filter(([, override]) => override.exclude === true);
+const excludedIds = new Set(exclusions.map(([id]) => id));
+const excludedWays = new Set(exclusions.filter(([, override]) => override.osm_way_id != null).map(([, override]) => String(override.osm_way_id)));
+const isExcluded = properties => excludedIds.has(properties.id) || excludedWays.has(String(properties.osm || properties.osm_id || properties.osm_way_id || '').replace(/^(way\/|w)/, ''));
+const sourceFeatures = read(sourcePath).features;
+const excludedFeatures = sourceFeatures.filter(feature => isExcluded(feature.properties));
+const features = sourceFeatures.filter(feature => !isExcluded(feature.properties));
 const byId = new Map(features.map(f => [f.properties.id,f]));
 const graph = read('data/walk_graph.json');
 const register = new Map(read('data/ut_buildings.json').buildings.map(b=>[b.ref,b.name]));
@@ -141,6 +147,7 @@ function authoredTop(b) {
   return top;
 }
 function add({name,kind,p,height=0,code,buildingIds=[],source,aliases=[],fullName,geometry,area:region}) {
+  if(buildingIds.some(id=>excludedIds.has(id)))return;
   name=clean(name); if(!name||!p||!p.every(Number.isFinite))return;
   const parts=unique(name.split(';').map(clean));
   if(parts.length>1){name=[...parts].sort((a,b)=>a.length-b.length)[0];aliases=unique([...aliases,...parts]).filter(n=>n!==name);}
@@ -186,7 +193,7 @@ for(const file of ['neighborhood_apartments.json','campus_buildings.json','speed
 
 let finder, finderSource;
 if(exists('data/finder/homes.json')){finder=read('data/finder/homes.json');finderSource='data/finder/homes.json';}
-else for(const ref of ['origin/claude/finder','claude/finder']) {
+else if(!process.argv.includes('--no-git')) for(const ref of ['origin/claude/finder','claude/finder']) {
   try{finder=JSON.parse(execFileSync('git',['show',`${ref}:data/finder/homes.json`],{cwd:ROOT,encoding:'utf8',stdio:['ignore','pipe','pipe']}));finderSource=`${ref}:data/finder/homes.json`;break;}catch{}
 }
 // Preserve the small finder-only public inventory on machines where the reviewed
@@ -245,6 +252,8 @@ const tags=read('data/osm_cache/outer_tags.json');
 for(const t of tags) {
   if(!t.n)continue;
   const p=[t.x,t.y],b=buildingAt(p,t.n),code=codeAt(t.n,p);
+  if(exclusions.some(([, override])=>override.center && norm(t.n)===norm(override.name) && dist(p,override.center)<25))continue;
+  if(excludedFeatures.some(feature=>inGeometry(p,feature.geometry)))continue;
   if(disputedSites.some(site=>dist(p,[site.lng,site.lat])<25))continue;
   const ext=!b?outerIndex.find(x=>dist(x.p,p)<160&&inGeometry(p,x.f.geometry))?.f:null;
   const h=b?.properties.final_height||ext?.properties.h||Number(t.h)||Number(t.lv||0)*3.3;
