@@ -389,7 +389,7 @@ check('sky canvas is a band, not a full-screen buffer',
 const skyCvRoll = await page.evaluate(async () => {
   const m = window.__map;
   const supported = !!m.getRoll;
-  let cssH = null, viewH = m.getCanvas().clientHeight;
+  let cssH = null, viewH = m.getCanvas().clientHeight, needLow = null, rollSeen = null;
   if (supported) {
     // The controller self-heals roll to 0 on idle frames (controls.js), so
     // force it and shadow setRoll to a no-op to HOLD it — the same way
@@ -403,12 +403,21 @@ const skyCvRoll = await page.evaluate(async () => {
     await new Promise(r => setTimeout(r, 700));
     const c = document.getElementById('sky-canvas');
     cssH = parseFloat(c.style.height);
+    // Where the pass NEEDS rows down to: the lowest end of the tilted clip
+    // edge (horizon + half the fade), at the frame's left or right edge. The
+    // canvas height is quantised and only shrinks after two steps of slack, so
+    // cssH alone can be a high-water mark from an earlier, steeper pitch; the
+    // coverage check below is what proves the bank is actually accommodated.
+    const F = window.skyFrame;
+    const fade = window.SKY_TUNE.HORIZON_FADE * F.H;
+    needLow = F.H / 2 + ((F.horizonPx + 0.5 * fade - F.H / 2) + (F.W / 2) * Math.abs(F.rotSin)) / F.rotCos;
+    rollSeen = F.rollDeg;
     m.setRoll = real;
     m.setRoll(0);
     m.triggerRepaint();
     await new Promise(r => setTimeout(r, 300));
   }
-  return { supported, cssH, viewH };
+  return { supported, cssH, viewH, needLow, rollSeen };
 });
 
 check('sky canvas stays under half the viewport at max bank',
@@ -417,6 +426,13 @@ check('sky canvas stays under half the viewport at max bank',
     ? `roll 15: ${skyCvRoll.cssH} css px of ${skyCvRoll.viewH} px ` +
       `(${(100 * skyCvRoll.cssH / skyCvRoll.viewH).toFixed(0)}%)`
     : 'build has no getRoll — sky is permanently level, nothing to grow');
+
+check('sky canvas reaches the low end of the banked horizon',
+  !skyCvRoll.supported || (skyCvRoll.rollSeen === 15 && skyCvRoll.cssH >= skyCvRoll.needLow),
+  skyCvRoll.supported
+    ? `sky pass saw roll ${skyCvRoll.rollSeen}; needs rows to ${skyCvRoll.needLow.toFixed(1)} css px, ` +
+      `canvas is ${skyCvRoll.cssH} css px`
+    : 'build has no getRoll');
 
 // ── persistence ───────────────────────────────────────────────────────
 
