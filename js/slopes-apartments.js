@@ -256,6 +256,10 @@
     // area at start, the old behaviour, for an A/B.
     areas: {
       eager: q.get('areas') === 'eager',
+      sliceMs: 50,
+      geometryChunkTris: 24000,
+      sliced: q.get('areaslice') !== '0',
+      yieldMaxMs: 100,
       loadM: 1800,        // the intro's first eye is ~2.3 km from Riverside's box: this keeps the start clean
       checkMs: 400,       // a moving camera is re-checked at most this often
       pinMs: 20000,       // after ensureAt, how long a phone keeps an area the camera has not reached yet
@@ -2616,47 +2620,63 @@
     // A phone builds in chunks (js/mobile.js LITE.budget.geometryChunkTris,
     // js/slopes.js buildChunked): same triangles, a fraction of the peak.
     const BUD = (window.LITE_PROFILE && window.LITE_PROFILE.budget) || {};
-    const B = BUD.geometryChunkTris && S.buildChunked ? S.buildChunked(BUD.geometryChunkTris, !!BUD.packVertices) : S.build();
+    const chunkTris = area && APTS.areas.sliced ? Math.min(BUD.geometryChunkTris || Infinity, APTS.areas.geometryChunkTris) : BUD.geometryChunkTris;
+    const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices) : S.build();
     B.filtered=[];
     B.filterPending=[];
     const built = area ? [] : (_built = []);
+    const cancelled = () => area && area.gen !== gen;
+    const discard = () => {
+      untally(tallySince());
+      for (const geometry of B.geometries ? B.geometries() : [B.geometry()]) geometry.dispose();
+      for (const mesh of B.filtered) { mesh.geometry.dispose(); mesh.userData.disposeFacade(); }
+    };
     let sliceT0 = performance.now(), slices = 1;
     // Yield through a MessageChannel, not setTimeout: a hidden or background
     // tab clamps setTimeout to ~1 s per call, and measured 2026-09-16 a
     // rebuild after load (6 ms slices) took 58 MINUTES that way. A message
     // task is not clamped. And when nothing is being watched (the veil is up,
     // or the tab is hidden) the slices are long — there is no frame to protect.
-    const yieldTask = () => new Promise(r => { const ch = new MessageChannel(); ch.port1.onmessage = () => r(); ch.port2.postMessage(0); });
+    const yieldTask = () => new Promise(resolve => {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => { channel.port1.close(); channel.port2.close(); resolve(); };
+      channel.port2.postMessage(0);
+    });
     const pause = async () => {
       const quiet = document.getElementById('veil') || document.hidden;
       const budget = quiet ? APTS.buildSliceMs : APTS.buildSliceMsLive;
       if (performance.now() - sliceT0 < budget) return;
-      await yieldTask();
+      await (area && APTS.areas.sliced ? yieldAreaFrame() : yieldTask());
       sliceT0 = performance.now(); slices++;
     };
     // APTS.cull: where each building's triangles start in the index (the
     // builder writes three indices per triangle and nothing else).
-    const cull = cullAvailable(B, T, S) ? [] : null;
+    const cull = cullAvailable(area && APTS.areas.sliced && !BUD.geometryChunkTris && !BUD.packVertices ? {} : B, T, S) ? [] : null;
     for (const spec of specs || _data.buildings) {
       // An area whose build was superseded (dropped, or the core rebuilding)
       // stops here and takes back what it had counted.
-      if (area && area.gen !== gen) { untally(tallySince()); return null; }
+      if (cancelled()) { discard(); return null; }
       if (cull) cull.push(B.triangles * 3);
       const pendingStart=B.filterPending.length;
       B.allowFilter=APTS.facadeFilter.on&&APTS.facadeFilter.buildings.includes(spec.name)&&!!window.FacadeFilter;
       try {
         const it = buildingOne(B, spec);          // generator: yields per block
         let r = it.next();
-        while (!r.done) { await pause(); r = it.next(); }
+        while (!r.done) {
+          await pause();
+          if (cancelled()) { discard(); return null; }
+          r = it.next();
+        }
         built.push(r.value);
       }
       catch (e) { B.filterPending.length=pendingStart; console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); if (area) area.failed.push(spec.id || spec.name); }
       await pause();
     }
+    if (cancelled()) { discard(); return null; }
     if (cull) cull.push(B.triangles * 3);   // anything after this is a range of its own
     const C = area ? {} : count;       // an area's slice and filter tallies are its own
     C.buildSlices = slices;
-    let geom;
+    let geom, mat;
     try {
       C.filterCandidates=B.filterPending.length;
       const plan=window.FacadeFilter?.planFaces({faces:B.filterPending,options:APTS.facadeFilter});
@@ -2675,33 +2695,42 @@
       geom = B.geometries ? B.geometries() : [B.geometry()];
       // One bounding sphere per building's index range (APTS.cull). Any
       // triangles after the last building are a range of their own.
-      let ranges = null;
-      if (cull && geom.length === 1 && geom[0].index && geom[0].attributes && geom[0].attributes.position) {
-        const idx = geom[0].index.array, pos = geom[0].attributes.position.array, bounds = cull.concat(idx.length);
-        const start = [], cnt = [], sph = [];
-        for (let i = 0; i + 1 < bounds.length; i++) {
-          const s = bounds[i], e = Math.min(bounds[i + 1], idx.length);
-          if (e <= s) continue;
-          start.push(s); cnt.push(e - s); sph.push(...rangeSphere(idx, pos, s, e, APTS.cull.marginM));
-          await pause();
+      const geometryRanges = [];
+      let indexOffset = 0;
+      for (const geometry of geom) {
+        let ranges = null;
+        if (cull && geometry.index && geometry.attributes && geometry.attributes.position) {
+          const index = geometry.index.array, positions = geometry.attributes.position.array;
+          const bounds = [0, ...cull.filter(bound => bound > indexOffset && bound < indexOffset + index.length).map(bound => bound - indexOffset), index.length];
+          const start = [], counts = [], spheres = [];
+          for (let range = 0; range + 1 < bounds.length; range++) {
+            const first = bounds[range], end = Math.min(bounds[range + 1], index.length);
+            if (end <= first) continue;
+            start.push(first); counts.push(end - first); spheres.push(...rangeSphere(index, positions, first, end, APTS.cull.marginM));
+            await pause();
+          }
+          ranges = { n: start.length, start, count: counts, sph: Float64Array.from(spheres), total: index.length, pool: [] };
         }
-        ranges = { n: start.length, start, count: cnt, sph: Float64Array.from(sph), total: idx.length, pool: [] };
+        geometryRanges.push(ranges);
+        indexOffset += geometry.index ? geometry.index.count : 0;
+        await pause();
       }
-      const mat = S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide});
+      mat = S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide});
       const g = new T.Group();
       g.userData.lod = APTS.lod;
       g.userData.minzoom = APTS.minzoom;
       g.name = area ? 'slopes-apartments-' + area.name : 'slopes-apartments';
       if (!area) _builtFrame = S.frames;
-      geom.forEach((gm, i) => {
-        const mesh = new T.Mesh(gm, ranges ? [mat] : mat);
-        mesh.name = i ? 'apartments-' + (i + 1) : 'apartments';
+      geom.forEach((geometry, index) => {
+        const ranges = geometryRanges[index];
+        const mesh = new T.Mesh(geometry, ranges ? [mat] : mat);
+        mesh.name = index ? 'apartments-' + (index + 1) : 'apartments';
         if (ranges) { mesh.userData.cull = ranges; fullGroups(mesh); watchCull(mesh); }
         g.add(mesh);
       });
       for(const m of B.filtered)g.add(m);
       if (area) {
-        g.userData.area = Object.assign(tallySince(), { name: area.name, built, triangles: B.triangles, ms: +(performance.now() - t0).toFixed(1) });
+        g.userData.area = Object.assign(tallySince(), { name: area.name, built, triangles: B.triangles, material: mat, ms: +(performance.now() - t0).toFixed(1) });
         return g;
       }
       count.triangles = B.triangles;
@@ -2713,6 +2742,7 @@
       // FacadeFilter's live allocation set. The shared slopes material stays.
       for (const gm of geom || []) gm.dispose();
       for(const m of B.filtered) { m.geometry.dispose();m.userData.disposeFacade(); }
+      if (area) { mat?.dispose?.(); untally(tallySince()); }
       throw e;
     }
   }
@@ -2730,7 +2760,7 @@
    * boundary, on the positive side.
    */
   const _hideGeo = {};              // inset -> the MultiPolygon, per list of buildings
-  function hideGeometry(inset, roofscapeOnly = false, frontageOnly = false, outerOnly = false) {
+  function* hideGeometrySteps(inset, roofscapeOnly = false, frontageOnly = false, outerOnly = false) {
     // cached per inset and list of buildings: a building added at runtime (a builder's console, the gate) gets its clause on the next apply
     inset = inset == null ? APTS.roofscapeInset : inset;
     const buildings = okBuildings().filter(b => (!roofscapeOnly || !b.preserveRoofscape) && (!frontageOnly || b.replaceFrontage) && (!outerOnly || b.replaceOuter));
@@ -2752,9 +2782,17 @@
       const ll = off.map(q => [+(lng0 + q[0] / mx).toFixed(7), +(lat0 + q[1] / my).toFixed(7)]);
       ll.push(ll[0]);
       polys.push([ll]);
+      yield;
     }
     _hideGeo[key] = polys.length ? { type: 'MultiPolygon', coordinates: polys } : null;
     return _hideGeo[key];
+  }
+
+  function hideGeometry(inset, roofscapeOnly = false, frontageOnly = false, outerOnly = false) {
+    const steps = hideGeometrySteps(inset, roofscapeOnly, frontageOnly, outerOnly);
+    let result;
+    do { result = steps.next(); } while (!result.done);
+    return result.value;
   }
 
   /**
@@ -2932,15 +2970,36 @@
    * snapshot taken between them can only put back the wrong state.
    */
   const sameJSON = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  function sameFilter(left, right) {
+    if (left === right) return true;
+    if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false;
+    if (Array.isArray(left) !== Array.isArray(right)) return false;
+    if (Array.isArray(left)) {
+      if (left.length !== right.length) return false;
+      for (let index = 0; index < left.length; index++) if (!sameFilter(left[index], right[index])) return false;
+      return true;
+    }
+    const keys = Object.keys(left);
+    if (keys.length !== Object.keys(right).length) return false;
+    for (const key of keys) if (!Object.prototype.hasOwnProperty.call(right, key) || !sameFilter(left[key], right[key])) return false;
+    return true;
+  }
+  function containsClause(filter, clause) {
+    if (!Array.isArray(filter)) return false;
+    if (sameFilter(filter, clause)) return true;
+    if (filter[0] === 'literal') return false;
+    return filter.some(value => Array.isArray(value) && containsClause(value, clause));
+  }
   function stripClause(f, clause) {
     if (!Array.isArray(f)) return f;
-    if (sameJSON(f, clause)) return null;
-    if (f[0] === 'all' && f.length === 3 && sameJSON(f[2], clause)) return stripClause(f[1], clause);
+    if (sameFilter(f, clause)) return null;
+    if (f[0] === 'literal') return f;
+    if (f[0] === 'all' && f.length === 3 && sameFilter(f[2], clause)) return stripClause(f[1], clause);
     const out = f.map(x => Array.isArray(x) ? stripClause(x, clause) : x);
     if (out[0] === 'all') { const rest = out.slice(1).filter(x => x !== null); return rest.length === 0 ? null : (rest.length === 1 ? rest[0] : ['all'].concat(rest)); }
     return out;
   }
-  function setFilters(on) {
+  function* filterChanges(on) {
     const map = _map;
     if (!mapStyleAvailable(map)) { _pendingApply = true; return; }
     _pendingApply = false;
@@ -2955,34 +3014,43 @@
       for (const id of Object.keys(_clauses)) {
         if (planned.has(id)) continue;
         if (map.getLayer(id)) {
-          const f = map.getFilter(id) || null, g = stripClause(f, _clauses[id]);
-          if (!sameJSON(f, g)) {
+          const layer = map.getLayer(id), f = ('filter' in layer ? layer.filter : map.getFilter(id)) || null, g = stripClause(f, _clauses[id]);
+          if (!sameFilter(f, g)) {
             try { map.setFilter(id, g); }
             catch (e) { console.warn('[slopes-apartments] restore filter', id, e); continue; }
           }
         }
         delete _clauses[id];
+        yield;
       }
       for (const [id, clause] of plan) {
         if (!map.getLayer(id)) continue;
-        let f = map.getFilter(id) || null;
-        if (JSON.stringify(f).indexOf(JSON.stringify(clause)) >= 0) { _clauses[id] = clause; continue; }   // already ours (a re-apply)
+        const layer = map.getLayer(id);
+        let f = ('filter' in layer ? layer.filter : map.getFilter(id)) || null;
+        if (containsClause(f, clause)) { _clauses[id] = clause; yield; continue; }
         if (_clauses[id]) f = stripClause(f, _clauses[id]);                              // a clause of ours that has since changed (a building added at runtime)
         try { map.setFilter(id, f ? ['all', f, clause] : clause); _clauses[id] = clause; } catch (e) { console.warn('[slopes-apartments] filter', id, e); }
+        yield;
       }
+      yield;
       stashRigs(true);
       _filtered = true;
     } else if (_filtered) {
       for (const id of Object.keys(_clauses)) {
         if (map.getLayer(id)) {
           const f = map.getFilter(id) || null, g = stripClause(f, _clauses[id]);
-          if (!sameJSON(f, g)) { try { map.setFilter(id, g); } catch (e) {} }
+          if (!sameFilter(f, g)) { try { map.setFilter(id, g); } catch (e) {} }
         }
         delete _clauses[id];
+        yield;
       }
       stashRigs(false);
       _filtered = false;
     }
+  }
+  function setFilters(on) {
+    if (_attachingArea) return;
+    for (const change of filterChanges(on)) void change;
   }
 
   /**
@@ -3117,7 +3185,7 @@
           return a.state === 'on' ? true : (_group && !_building && !sceneGone() ? loadArea(a) : false);
         }));
       },
-      get list() { return [..._areas.values()].map(a => ({ name: a.name, state: a.state, distanceM: a.distanceM, buildings: a.group ? a.group.userData.area.built.length : 0, triangles: a.group ? a.group.userData.area.triangles : 0, specs: a.specs ? a.specs.length : 0 })); },
+      get list() { return [..._areas.values()].map(a => ({ name: a.name, state: a.state, distanceM: a.distanceM, buildings: a.group ? a.group.userData.area.built.length : 0, triangles: a.group ? a.group.userData.area.triangles : 0, specs: a.specs ? a.specs.length : 0, attachMs: a.group?.userData.area.attachMs ?? null, attachSlices: a.group?.userData.area.attachSlices ?? 0 })); },
       check() { checkAreas(); },
       unload(name) { const a = _areas.get(name); if (a) unloadArea(a); },
     },
@@ -3126,7 +3194,27 @@
   // ── on-demand areas (APTS.areas) ─────────────────────────────────────
   // Area builds run one at a time, and never beside a core build.
   let _areaChain = Promise.resolve();
+  let _attachingArea = null;
   let _areaCheckT = 0, _areaTimer = null;
+  function yieldAreaFrame() {
+    return new Promise(resolve => {
+      const channel = new MessageChannel();
+      let frame = null, timer = null, done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        if (frame !== null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(frame);
+        channel.port1.close(); channel.port2.close();
+        resolve();
+      };
+      channel.port1.onmessage = finish;
+      if (!document.hidden && typeof requestAnimationFrame === 'function') {
+        frame = requestAnimationFrame(() => channel.port2.postMessage(0));
+        timer = setTimeout(finish, APTS.areas.yieldMaxMs);
+      } else channel.port2.postMessage(0);
+    });
+  }
   const isPhone = () => !!(window.LITE_PROFILE && window.LITE_PROFILE.on);
   const sceneGone = () => !!(window.LITE_PROFILE && window.LITE_PROFILE.sceneUnavailable);
   const areaParams = () => isPhone() ? Object.assign({}, APTS.areas, APTS.areas.phone) : Object.assign({}, APTS.areas, { unload: false, dropSpecs: false });
@@ -3155,14 +3243,18 @@
     return pts;
   }
   function catalogWithAreas() {
-    const on = [..._areas.values()].filter(a => a.state === 'on' && a.group && a.specs);
+    const on = [..._areas.values()].filter(a => (a.state === 'on' || a.state === 'attaching' && a.group?.userData.area.counted) && a.group && a.specs);
     if (!_core || !on.length) return _core;
     const extra = on.flatMap(a => a.specs);
     return { buildings: _core.buildings.concat(extra),
       replacedBuildingIds: [...new Set((_core.replacedBuildingIds || []).concat(extra.map(b => b.id).filter(Boolean)))],
       replacedNames: [...new Set((_core.replacedNames || []).concat(extra.flatMap(b => [b.name, ...(b.aliases || [])]).filter(Boolean)))] };
   }
-  function disposeGroup(g) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.userData?.disposeFacade) o.userData.disposeFacade(); }); }
+  function disposeGroup(g) {
+    if (g.userData.area) g.userData.area.disposed = true;
+    g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.userData?.disposeFacade) o.userData.disposeFacade(); });
+    g.userData.area?.material?.dispose?.();
+  }
   function untally(info) {
     for (const k of RESET_KEYS) count[k] -= info.tally[k] || 0;
     for (const n of info.names) { const i = count.names.lastIndexOf(n); if (i >= 0) count.names.splice(i, 1); }
@@ -3189,33 +3281,82 @@
       let g = null;
       const run = _areaChain.then(async () => {
         if (gen !== a.gen || !_group || sceneGone()) return;
-        try { g = await build(a.specs, a); } catch (e) { console.error('[slopes-apartments] area', a.name, e); }
+        try {
+          g = await build(a.specs, a);
+          if (gen === a.gen && g && _group && window.SLOPES.on && APTS.on && !sceneGone()) await attachArea(a, g, gen);
+        } catch (e) { console.error('[slopes-apartments] area', a.name, e); }
       });
       _areaChain = run.catch(() => {});
       await run;
-      if (gen !== a.gen) { if (g) { untally(g.userData.area); disposeGroup(g); } return false; }
-      if (!g || !_group || !(window.SLOPES.on && APTS.on)) { if (g) { untally(g.userData.area); disposeGroup(g); } a.state = g ? 'idle' : 'failed'; return false; }
-      attachArea(a, g);
-      return true;
+      if (gen !== a.gen) { if (g && !g.userData.area.disposed) { untally(g.userData.area); disposeGroup(g); } return false; }
+      if (a.state === 'on') return true;
+      if (g && !g.userData.area.disposed) { untally(g.userData.area); disposeGroup(g); }
+      a.state = g ? 'idle' : 'failed';
+      return false;
     })();
     return a.ready;
   }
-  function attachArea(a, g) {
+  async function attachArea(a, g, gen) {
     const info = g.userData.area;
-    a.group = g; a.state = 'on';
-    count.triangles += info.triangles;
-    _built = _built.concat(info.built);
-    window.slopes.add(g);
-    _data = catalogWithAreas();     // the mesh is in: now its boxes may go
-    setFilters(true); setLabels(true);
-    if (_map) _map.triggerRepaint();
-    console.log('[slopes-apartments] area', a.name + ':', info.built.length, 'building(s),', info.triangles, 'triangles, built in', info.ms, 'ms');
+    const valid = () => gen === a.gen && _group && window.SLOPES.on && APTS.on && !sceneGone() && mapStyleAvailable();
+    const children = g.children.slice(), started = performance.now();
+    let sliceStarted = started, slices = 1;
+    const pause = async (force = false) => {
+      if (!APTS.areas.sliced || !force && performance.now() - sliceStarted < APTS.areas.sliceMs) return;
+      if (_map) _map.triggerRepaint();
+      await yieldAreaFrame();
+      sliceStarted = performance.now(); slices++;
+    };
+    _attachingArea = a;
+    try {
+      a.group = g; a.state = 'attaching';
+      if (APTS.areas.sliced) for (const child of children) child.visible = false;
+      window.slopes.add(g);
+      for (const child of children) {
+        if (!valid()) return;
+        child.visible = true;
+        await pause(true);
+      }
+      if (!valid()) return;
+      count.triangles += info.triangles;
+      info.counted = true;
+      _built = _built.concat(info.built);
+      _data = catalogWithAreas();
+      await pause(true);
+      const masks = [
+        [APTS.roofscapeInset, false, true],
+        ...(APTS.hideRoofscape ? [[APTS.roofscapeInset, true], [0], [APTS.roofscapeInset, false, false, true]] : []),
+      ];
+      for (const settings of masks) {
+        const steps = hideGeometrySteps(...settings);
+        while (valid()) {
+          if (steps.next().done) break;
+          await pause();
+        }
+        if (!valid()) return;
+      }
+      const changes = filterChanges(true);
+      while (valid()) {
+        if (changes.next().done) break;
+        await pause();
+      }
+      if (!valid()) return;
+      setLabels(true);
+      info.attachMs = +(performance.now() - started).toFixed(1);
+      info.attachSlices = slices;
+      a.state = 'on';
+      if (_map) _map.triggerRepaint();
+      console.log('[slopes-apartments] area', a.name + ':', info.built.length, 'building(s),', info.triangles, 'triangles, built in', info.ms, 'ms');
+    } finally {
+      if (_attachingArea === a) _attachingArea = null;
+      if ((!valid() || a.state !== 'on') && a.group === g) unloadArea(a);
+    }
   }
   function detachArea(a) {
     const g = a.group, info = g.userData.area;
     a.group = null;
     window.slopes.remove(g); disposeGroup(g);
-    untally(info); count.triangles -= info.triangles;
+    untally(info); if (info.counted) count.triangles -= info.triangles;
     _built = _built.filter(b => !info.built.includes(b));
     for (const id of a.failed) _failed.delete(id);
     a.failed = [];
@@ -3223,6 +3364,7 @@
   function unloadArea(a) {
     a.gen++;
     a.ready = null;
+    if (_attachingArea === a) _attachingArea = null;
     if (a.group) {
       a.state = 'idle';
       _data = catalogWithAreas();     // the boxes come back first...
@@ -3237,6 +3379,7 @@
   // The core is going (a rebuild, the switch, the map): its areas go with it
   // and come back through checkAreas once the core is back.
   function dropAreas() {
+    _attachingArea = null;
     for (const a of _areas.values()) {
       a.gen++;
       if (a.group) detachArea(a);
@@ -3385,6 +3528,7 @@
         if (n > 120 + 240) return;
         _lateTimer = setTimeout(tick, n < 120 ? 500 : 1000);
         if (!mapStyleAvailable(map)) return;
+        if (_attachingArea) return;
         if (_pendingApply) window.applySlopesApartments(map);
         if (!_filtered || !(window.SLOPES.on && APTS.on)) return;
         setLabels(true);
