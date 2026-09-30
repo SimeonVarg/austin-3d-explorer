@@ -1176,7 +1176,7 @@
     ]
   },
   "todo": [
-    "The cornice arches are STEPPED, not curved: four 0.60 m bands whose opening narrows 5.51 / 5.15 / 4.34 / 2.71 m up an ellipse of 5.55 m span and 2.40 m rise (S3's blueprint). At the oblique that reads as the arch; at walking height the four steps are visible as steps. A true arc would need a polygon-per-bay plan or an arc primitive in js/slopes-apartments.js, which this lane does not edit.",
+    "The cornice arches are STEPPED, not curved: four 0.60 m bands whose opening narrows 5.51 / 5.15 / 4.34 / 2.71 m up an ellipse of 5.55 m span and 2.40 m rise (S3's blueprint). At the oblique that reads as the arch; at walking height the four steps are visible as steps. A true arc would need a polygon-per-bay plan or an arc primitive in js/slopes-apartments.js, which this file does not edit.",
     "The pierced solar block itself is not drawn and cannot be at this app's cameras: a 12-inch block is 0.30 m, under a pixel at the oblique and about six at walking height. What is drawn is the balustrade line it forms, in the tone the screen reads as from a distance.",
     "The pool, the semi-circular open-air cabana, the cooling tower in its brick solar-block screen and the one-storey brick-faced office blocks that protrude east are all real (S2) and all OUTSIDE this snapshot polygon, to the south and east. Nothing here draws them.",
     "The ground floor's 1.9 m mullion pitch and its glass colour are looks, not measurements -- every photograph of the ground floor is behind a wood privacy fence or street trees.",

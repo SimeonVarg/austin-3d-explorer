@@ -1188,12 +1188,12 @@
     {
       "what": "campus-storeys draws four flat cream plates through this building",
       "detail": "js/facades.js's campus-storeys pass extrudes one 'course' polygon per storey line from data/campus_storeys.geojson, keyed by `host`. This building's host id has four of them, at dbase 8.34, 12.50, 16.66 and 20.82, each 0.24 m tall and each on the WHOLE footprint polygon - so they cross the open courts, and the top one at 20.82 stands above the authored roof at 19.65 and reads as a cream lid over the entire complex (LOOK 2's first frame). Those heights are the snapshot's 25.1 m divided into six, so they are Overture's guess restated, not a measurement. setFilters() in js/slopes-apartments.js should hide campus-storeys for a replaced id the way it hides buildings-3d - the clause is ['!', ['in', ['get','host'], [literal, gone]]], since the feature carries the replaced building's id in `host` rather than in `id`.",
-      "owner": "js/slopes-apartments.js (or js/facades.js) - not editable from a data-only lane"
+      "where": "js/slopes-apartments.js (or js/facades.js) - not editable from a data-only change"
     },
     {
       "what": "roofscape-deck draws a lid over this building",
       "detail": "js/roofs.js draws one flat 'deck' polygon per building from data/roofscape.geojson between b and h. This building's is b=26.1 (S9: the snapshot's 25.1 plus a 1.0 lift), 6.5 m ABOVE the authored roof at 19.65, so it hangs over the whole complex as a grey plane and hides every roof, parapet and rooftop item in this file - see the first frame of LOOK 1. js/slopes-apartments.js's setFilters() hides buildings-3d, buildings-roof and the four wc-* layers for a replaced id; it does not hide roofscape-deck / roofscape-major / roofscape-minor. The same clause on those three layers, or a re-seat of the deck on to the authored top, would fix it. It bites any building whose authored height comes in under Overture's guess: of the files in data/apartments today, this one, the-villas-on-guadalupe (deck at 27.3) and 2706-rio-grande (30.7) have a deck above their own roof.",
-      "owner": "js/slopes-apartments.js (or js/roofs.js) - not editable from a data-only lane"
+      "where": "js/slopes-apartments.js (or js/roofs.js) - not editable from a data-only change"
     }
   ],
   "_open": [
