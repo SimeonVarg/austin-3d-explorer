@@ -40,6 +40,10 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SETUP = os.path.join(HERE, "setup.py")
+LAUNCH = os.path.join(HERE, "launch.py")
+POLL = os.path.join(HERE, "poll.py")
+POLL_SECONDS = 30      # how often to ask the VM for the run's state
+POLL_MISSES = 10       # consecutive failed polls before giving up on the VM
 
 # The CLI is a single command word by default ("colab"), or a full command line
 # in COLAB_CLI for environments where it is reached through a wrapper (WSL, a
@@ -47,9 +51,10 @@ SETUP = os.path.join(HERE, "setup.py")
 COLAB_CLI = os.environ.get("COLAB_CLI", "colab")
 
 
-def cli(*args, timeout=None, capture=True):
+def cli(*args, timeout=None, capture=True, quiet=False):
     cmd = shlex.split(COLAB_CLI) + list(args)
-    print("+ " + " ".join(shlex.quote(c) for c in cmd), flush=True)
+    if not quiet:
+        print("+ " + " ".join(shlex.quote(c) for c in cmd), flush=True)
     if capture:
         return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     return subprocess.run(cmd, timeout=timeout)
@@ -146,25 +151,59 @@ def main():
         print(r.stdout, r.stderr, flush=True)
         sys.exit("upload failed")
 
-    print("== running checks on the VM (this includes toolchain + driver install) ==", flush=True)
-    r = cli("exec", "-s", session, "-f", SETUP,
-            "--timeout", str(args.exec_timeout),
+    # Start the run detached, then poll it with short execs. One long exec held
+    # a single connection for the whole run, and a dropped connection lost
+    # every output (see launch.py). Now a drop costs one poll.
+    print("== starting the checks on the VM (toolchain + driver install first) ==", flush=True)
+    r = cli("exec", "-s", session, "-f", LAUNCH, "--timeout", "120",
             "--env", "REPO=%s" % repo,
             "--env", "REF=%s" % args.ref,
             "--env", "CHECKS=%s" % json.dumps(checks),
             "--env", "CONCURRENCY=%d" % args.parallel,
-            timeout=args.exec_timeout + 300)
-    print(r.stdout, flush=True)
-    if r.stderr:
-        print(r.stderr, flush=True)
+            timeout=420)
+    print(r.stdout, r.stderr, flush=True)
+    if "LAUNCHED" not in (r.stdout or ""):
+        stop_session()
+        sys.exit("failed to start the checks on the VM")
 
     manifest = None
-    for line in (r.stdout or "").splitlines():
-        if line.startswith("MANIFEST "):
-            try:
-                manifest = json.loads(line[len("MANIFEST "):])
-            except Exception:
-                pass
+    deadline = time.time() + args.exec_timeout
+    misses, last_tail = 0, ""
+    while True:
+        time.sleep(POLL_SECONDS)
+        late = time.time() > deadline
+        try:
+            pr = cli("exec", "-s", session, "-f", POLL, "--timeout", "60",
+                     *(["--env", "PACK=1"] if late else []), timeout=240, quiet=True)
+            text, ok = pr.stdout or "", pr.returncode == 0
+        except subprocess.TimeoutExpired:
+            text, ok = "", False
+        if not ok or "STATE " not in text:
+            misses += 1
+            print("poll failed (%d in a row)" % misses, flush=True)
+            if misses >= POLL_MISSES:
+                print("warning: the VM stopped answering; downloading what exists", flush=True)
+                break
+            continue
+        misses = 0
+        for line in text.splitlines():
+            if line.startswith("MANIFEST "):
+                try:
+                    manifest = json.loads(line[len("MANIFEST "):])
+                except Exception:
+                    pass
+            elif line.startswith("TAIL ") and line != last_tail:
+                last_tail = line
+                print(line[5:], flush=True)
+        if "STATE done" in text:
+            break
+        if "STATE died" in text:
+            print("warning: the run on the VM died; its log tail:")
+            print(text, flush=True)
+            break
+        if late:
+            print("warning: --exec-timeout reached; downloading what exists", flush=True)
+            break
 
     print("== downloading outputs ==", flush=True)
     tar_local = os.path.join(out_dir, "out.tar")

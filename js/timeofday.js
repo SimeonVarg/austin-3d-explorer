@@ -194,8 +194,31 @@
       const warm=clamp01(1-elevation/study.warmElevation);
       const t=clamp01((elevation-study.nightFadeEnd)/(study.nightFadeStart-study.nightFadeEnd));
       const presence=t*t*(3-2*t);
+      // THE COLD BAND UNDER THE SUNSET. The study's day/low HORIZON colours are
+      // both cool (dayHorizon #c4d8e5, lowHorizon #a0b6c8), chosen so that glass
+      // reflects a believable blue sky. But `presence` is already 1 the moment
+      // the sun clears the horizon (nightFadeStart 0), so at golden hour this
+      // line REPLACED the route's warm #ffb45e horizon with that cool blue-grey
+      // outright. Where sky.js feathers its warm wash out at the horizon the
+      // cool colour showed through as a pale, cold band between the orange wash
+      // and the city — measured on the owner's near-level sunset view: the
+      // near-horizon sky read 232,161,115 (pale, blue lifted to 115) where the
+      // route alone gives a saturated 255,138,53. At sunset the sky just above
+      // the horizon is the WARMEST part, never a cold stripe.
+      //
+      // The fix keeps the study's blue for a high sun (windows reflect blue by
+      // day) but swings its own near-horizon colour toward the warm `sunset`
+      // hue it already defines as the sun drops, on the SAME `warm` weight the
+      // reflections use — so sky and glass still agree and there is no new
+      // schedule. HORIZON_WARM_AT_SUNSET is the one taste knob: 0 restores the
+      // old cool horizon, 1 goes fully to `sunset` at the horizon.
+      const HORIZON_WARM_AT_SUNSET = (study.horizonWarmAtSunset != null) ? study.horizonWarmAtSunset : 1;
+      const studyHorizon = lerpHex(
+        lerpHex(study.dayHorizon, study.lowHorizon, warm),
+        study.sunset,
+        HORIZON_WARM_AT_SUNSET * warm);
       out.sky=lerpHex(out.sky,lerpHex(study.dayZenith,study.lowZenith,warm),presence);
-      out.horizon=lerpHex(out.horizon,lerpHex(study.dayHorizon,study.lowHorizon,warm),presence);
+      out.horizon=lerpHex(out.horizon,studyHorizon,presence);
       out.fog=lerpHex(out.fog,out.horizon,presence);
       out.skyBlend=lerpNum(out.skyBlend,study.skyBlend,presence);
       out.saturation=lerpNum(out.saturation,study.saturation,presence);

@@ -110,3 +110,11 @@ kernel, so its event loop does not fight Colab's.
   on an L4, and expect a T4 to fall over with the full city.
 - **The session is stopped in a `finally`/`atexit`/signal path.** If you add
   code, keep it that way. A rented GPU left running bills by the hour.
+- **Never run the whole job inside one `colab exec`.** That holds a single
+  websocket for the entire run; on 2026-09-30 it dropped after 39 minutes of an
+  eight-check run, and because `setup.py` packs its outputs only at the end,
+  nothing came back. `launch.py` now starts `setup.py` in its own process group
+  and returns at once; `run.py` then asks `poll.py` for the state every 30
+  seconds. A dropped connection costs one poll. If the run dies, or
+  `--exec-timeout` (now the deadline for the whole run) passes, `poll.py` packs
+  whatever outputs exist so they still download.
