@@ -42,6 +42,10 @@ The report records the graph hash and fails if it changes during verification.
 A few groups pin today's coverage on purpose: SMC must be unroutable, HLB must
 have no baked doors, and `wayfindSearch('Icon')` must contain `Ion Austin`.
 When a bake adds SMC or HLB doors, update those assertions in the same change.
+Jester West must resolve only to its own supported doors, not Jester East.
+The ACS register alias is explicit and keeps the existing field-source door;
+AF1 remains unavailable with its recorded reason. Identity recovery must not
+accept a door away from its wall or a link cutting through its building.
 
 ## Setup
 

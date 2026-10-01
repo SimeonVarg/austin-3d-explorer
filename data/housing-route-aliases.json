@@ -1,0 +1,1391 @@
+{
+  "aliases": [
+ {
+      "name": "The Standard",
+      "building_ids": [
+        "36365d18-2eb6-43c5-b042-6197e7767e17"
+      ],
+      "sources": [
+        "data/apartments/the-standard.json#/name",
+        "data/apartments/the-standard.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1012",
+        "data/entrances.geojson#/features/2934/properties",
+        "data/entrances.geojson#/features/2967/properties",
+        "data/westcampus.geojson#/features/368/properties/name",
+        "data/walk_graph.json#/wc/The Standard"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "The Callaway House Austin",
+      "building_ids": [
+        "11b2bb80-d577-4da7-8b10-d27385f80c4b"
+      ],
+      "sources": [
+        "data/apartments/the-callaway-house-austin.json#/name",
+        "data/apartments/the-callaway-house-austin.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/951",
+        "data/entrances.geojson#/features/686/properties",
+        "data/entrances.geojson#/features/718/properties",
+        "data/westcampus.geojson#/features/160/properties/name",
+        "data/walk_graph.json#/wc/The Callaway House Austin"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "The Castilian",
+      "building_ids": [
+        "307878e3-63d2-471c-83d1-6b405de9e7b7"
+      ],
+      "sources": [
+        "data/apartments/the-castilian.json#/name",
+        "data/apartments/the-castilian.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/887",
+        "data/entrances.geojson#/features/2677/properties",
+        "data/entrances.geojson#/features/2680/properties",
+        "data/entrances.geojson#/features/2730/properties",
+        "data/westcampus.geojson#/features/180/properties/name",
+        "data/walk_graph.json#/wc/The Castilian"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "San Jacinto Hall",
+      "building_ids": [
+        "93cc2567-aa16-4909-ace6-fa13ff385bde"
+      ],
+      "sources": [
+        "data/apartments/san-jacinto-hall.json#/name",
+        "data/apartments/san-jacinto-hall.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1794",
+        "data/entrances.geojson#/features/7808/properties",
+        "data/entrances.geojson#/features/7841/properties",
+        "data/entrances.geojson#/features/7874/properties",
+        "data/entrances.geojson#/features/7901/properties",
+        "data/entrances.geojson#/features/7934/properties"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity."
+    },
+    {
+      "name": "The Villas on Guadalupe",
+      "building_ids": [
+        "84a96de1-f96c-453d-9b87-b49b0579af73"
+      ],
+      "sources": [
+        "data/apartments/the-villas-on-guadalupe.json#/name",
+        "data/apartments/the-villas-on-guadalupe.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/814"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Union on 24th",
+      "building_ids": [
+        "0a6d10a2-a664-4049-9ea2-83ce692103ef"
+      ],
+      "sources": [
+        "data/apartments/union-on-24th.json#/name",
+        "data/apartments/union-on-24th.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1051",
+        "data/apartment-approaches.json#/approaches/0",
+        "data/walk_graph.json#/wc/Union on 24th"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The existing approach is explicitly tagged with the same bid but is a frontage estimate, not a surveyed lobby door; retain role=approach and src=frontage-estimate."
+    },
+    {
+      "name": "Skyloft Austin",
+      "building_ids": [
+        "4c485eb1-3a42-4633-9f67-df5e1c155b5a"
+      ],
+      "sources": [
+        "data/apartments/skyloft-austin.json#/name",
+        "data/apartments/skyloft-austin.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/895",
+        "data/entrances.geojson#/features/4173/properties",
+        "data/entrances.geojson#/features/4200/properties",
+        "data/westcampus.geojson#/features/228/properties/name",
+        "data/walk_graph.json#/wc/Skyloft Austin"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+ {
+      "name": "26 West",
+      "building_ids": [
+        "9363b194-9c98-4d84-a3a5-2e8cce340bba"
+      ],
+      "sources": [
+        "data/apartments/26-west.json#/name",
+        "data/apartments/26-west.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/667"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "21 Rio",
+      "building_ids": [
+        "73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5"
+      ],
+      "sources": [
+        "data/apartments/21-rio.json#/name",
+        "data/apartments/21-rio.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/958",
+        "data/entrances.geojson#/features/6446/properties",
+        "data/entrances.geojson#/features/6473/properties",
+        "data/westcampus.geojson#/features/28/properties/name",
+        "data/walk_graph.json#/wc/21 Rio"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "Moontower",
+      "building_ids": [
+        "b423d7a9-4059-44b3-8fed-3d088563c870"
+      ],
+      "sources": [
+        "data/apartments/moontower.json#/name",
+        "data/apartments/moontower.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/896",
+        "data/entrances.geojson#/features/9623/properties",
+        "data/entrances.geojson#/features/9656/properties",
+        "data/westcampus.geojson#/features/247/properties/name",
+        "data/walk_graph.json#/wc/Moontower"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "The Block on Rio",
+      "building_ids": [
+        "583f3864-f044-4c2c-9d5b-8af47112562b"
+      ],
+      "sources": [
+        "data/apartments/2819-rio-grande.json#/name",
+        "data/apartments/2819-rio-grande.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/752"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Cambridge Tower",
+      "building_ids": [
+        "b0101452-d54c-4dff-a8a2-e582ddda29d6"
+      ],
+      "sources": [
+        "data/apartments/cambridge-tower.json#/name",
+        "data/apartments/cambridge-tower.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1701",
+        "data/entrances.geojson#/features/9529/properties",
+        "data/entrances.geojson#/features/9569/properties",
+        "data/entrances.geojson#/features/9572/properties",
+        "data/westcampus.geojson#/features/286/properties/name",
+        "data/walk_graph.json#/wc/Cambridge Tower"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "Signature 1909",
+      "building_ids": [
+        "4d0b4ea1-f597-4bc0-9a75-0c7aeb9ed328"
+      ],
+      "sources": [
+        "data/apartments/signature-1909.json#/name",
+        "data/apartments/signature-1909.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1001",
+        "data/entrances.geojson#/features/4226/properties",
+        "data/entrances.geojson#/features/4258/properties",
+        "data/westcampus.geojson#/features/129/properties/name",
+        "data/walk_graph.json#/wc/Signature 1909"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "2706 Rio Grande Street Apartments",
+      "building_ids": [
+        "ec1b4af2-ca22-449a-a9a2-a3bcb1efe198"
+      ],
+      "sources": [
+        "data/apartments/2706-rio-grande.json#/name",
+        "data/apartments/2706-rio-grande.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/768"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+ {
+      "name": "Regents West at 24th",
+      "building_ids": [
+        "70dcc366-e0b1-482d-aadf-937cbe06724e"
+      ],
+      "sources": [
+        "data/apartments/regents-west-at-24th.json#/name",
+        "data/apartments/regents-west-at-24th.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1098"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "The Mark Austin",
+      "building_ids": [
+        "6dfb0958-b416-416a-868d-e45f2bd4e703"
+      ],
+      "sources": [
+        "data/apartments/the-mark-austin.json#/name",
+        "data/apartments/the-mark-austin.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1061"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Ion Austin",
+      "building_ids": [
+        "dd38bf46-46cc-4ea9-b1ac-138fc2a56019"
+      ],
+      "sources": [
+        "data/apartments/ion-austin.json#/name",
+        "data/apartments/ion-austin.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/946",
+        "data/entrances.geojson#/features/12498/properties",
+        "data/entrances.geojson#/features/12531/properties",
+        "data/entrances.geojson#/features/12544/properties",
+        "data/westcampus.geojson#/features/202/properties/name",
+        "data/walk_graph.json#/wc/Ion Austin"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "Sparq on Rio",
+      "building_ids": [
+        "3b8f0f69-4456-4840-8eff-e23a39b1ac92"
+      ],
+      "sources": [
+        "data/apartments/2623-salado-street-apartments.json#/name",
+        "data/apartments/2623-salado-street-apartments.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/678"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Kinsolving Dormitory",
+      "building_ids": [
+        "71504854-4c08-49db-9cca-f888f8114174"
+      ],
+      "sources": [
+        "data/apartments/kinsolving-dormitory.json#/name",
+        "data/apartments/kinsolving-dormitory.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/465",
+        "data/entrances.geojson#/features/6316/properties",
+        "data/entrances.geojson#/features/6333/properties",
+        "data/entrances.geojson#/features/6346/properties",
+        "data/entrances.geojson#/features/6359/properties"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity."
+    },
+    {
+      "name": "GrandMarc Austin",
+      "building_ids": [
+        "41f43559-0029-4257-8501-01b682e916aa"
+      ],
+      "sources": [
+        "data/apartments/grandmarc-austin.json#/name",
+        "data/apartments/grandmarc-austin.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/839"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "2400 Nueces",
+      "building_ids": [
+        "01b885c4-03ff-45d4-b394-707735cb6958"
+      ],
+      "sources": [
+        "data/apartments/2400-nueces.json#/name",
+        "data/apartments/2400-nueces.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/880",
+        "data/entrances.geojson#/features/204/properties",
+        "data/entrances.geojson#/features/244/properties",
+        "data/westcampus.geojson#/features/697/properties/name",
+        "data/walk_graph.json#/wc/2400 Nueces"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+ {
+      "name": "Jester West Hall",
+      "building_ids": [
+        "165236c4-c518-419b-a55a-87d5aedd45ce"
+      ],
+      "sources": [
+        "data/apartments/jester-west-hall.json#/name",
+        "data/apartments/jester-west-hall.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1782",
+        "data/entrances.geojson#/features/755/properties",
+        "data/entrances.geojson#/features/768/properties",
+        "data/entrances.geojson#/features/781/properties"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity."
+    },
+    {
+      "name": "Jester East Hall",
+      "building_ids": [
+        "1161f877-68fe-4754-8c2b-3a52e2ecf2ed"
+      ],
+      "sources": [
+        "data/apartments/jester-east-hall.json#/name",
+        "data/apartments/jester-east-hall.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1784",
+        "data/entrances.geojson#/features/451/properties",
+        "data/entrances.geojson#/features/477/properties",
+        "data/entrances.geojson#/features/503/properties",
+        "data/entrances.geojson#/features/529/properties",
+        "data/entrances.geojson#/features/561/properties",
+        "data/entrances.geojson#/features/587/properties",
+        "data/entrances.geojson#/features/617/properties",
+        "data/entrances.geojson#/features/647/properties"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity."
+    },
+    {
+      "name": "Dobie Twenty21",
+      "building_ids": [
+        "0e189df9-9783-442e-be10-5ad33510e9d9"
+      ],
+      "sources": [
+        "data/apartments/dobie-twenty21.json#/name",
+        "data/apartments/dobie-twenty21.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/920",
+        "data/entrances.geojson#/features/331/properties",
+        "data/entrances.geojson#/features/334/properties",
+        "data/entrances.geojson#/features/361/properties",
+        "data/westcampus.geojson#/features/0/properties/name",
+        "data/walk_graph.json#/wc/Dobie Twenty21"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "Villas on Rio",
+      "building_ids": [
+        "e6abe8cf-5a15-4d11-9b04-f0a5c629d59a"
+      ],
+      "sources": [
+        "data/apartments/villas-on-rio.json#/name",
+        "data/apartments/villas-on-rio.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/955",
+        "data/apartment-approaches.json#/approaches/1",
+        "data/walk_graph.json#/wc/Villas on Rio"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The existing approach is explicitly tagged with the same bid but is a frontage estimate, not a surveyed lobby door; retain role=approach and src=frontage-estimate."
+    },
+    {
+      "name": "Union on San Antonio",
+      "building_ids": [
+        "87f9cf87-79b7-46e5-803c-2936c8d98fbf"
+      ],
+      "sources": [
+        "data/apartments/union-on-san-antonio.json#/name",
+        "data/apartments/union-on-san-antonio.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/931"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Villas on 24th",
+      "building_ids": [
+        "4e5f2b29-dd92-4232-82c9-fa8ef81c6e77"
+      ],
+      "sources": [
+        "data/apartments/villas-on-24th.json#/name",
+        "data/apartments/villas-on-24th.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1039"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Inspire on 22nd",
+      "building_ids": [
+        "ebb4403e-5abd-4284-808b-f25fb8d310d3"
+      ],
+      "sources": [
+        "data/apartments/inspire-on-22nd.json#/name",
+        "data/apartments/inspire-on-22nd.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1026",
+        "data/entrances.geojson#/features/12945/properties",
+        "data/entrances.geojson#/features/12972/properties",
+        "data/westcampus.geojson#/features/268/properties/name",
+        "data/walk_graph.json#/wc/Inspire on 22nd"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+ {
+      "name": "Pointe on Rio",
+      "building_ids": [
+        "176b7e6b-f1d0-432c-a185-130948f9a3e1"
+      ],
+      "sources": [
+        "data/apartments/pointe-on-rio.json#/name",
+        "data/apartments/pointe-on-rio.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/981",
+        "data/entrances.geojson#/features/826/properties",
+        "data/entrances.geojson#/features/867/properties",
+        "data/westcampus.geojson#/features/1215/properties/name",
+        "data/walk_graph.json#/wc/Pointe on Rio"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "Rambler",
+      "building_ids": [
+        "3ad3da38-9563-4eb1-a359-e06ac5848178"
+      ],
+      "sources": [
+        "data/apartments/rambler.json#/name",
+        "data/apartments/rambler.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/840",
+        "data/entrances.geojson#/features/3116/properties",
+        "data/entrances.geojson#/features/3157/properties",
+        "data/westcampus.geojson#/features/555/properties/name",
+        "data/walk_graph.json#/wc/Rambler"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "Yugo Austin Waterloo",
+      "building_ids": [
+        "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a"
+      ],
+      "sources": [
+        "data/apartments/yugo-austin-waterloo.json#/name",
+        "data/apartments/yugo-austin-waterloo.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1041"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Yugo Austin Rio",
+      "building_ids": [
+        "762122e3-8b0c-4bd5-9795-dcf61325b854"
+      ],
+      "sources": [
+        "data/apartments/yugo-austin-rio.json#/name",
+        "data/apartments/yugo-austin-rio.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1043"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Yugo Austin Nueces",
+      "building_ids": [
+        "5453ffd2-7119-4e67-ba04-603bde7f10b4"
+      ],
+      "sources": [
+        "data/apartments/yugo-austin-nueces.json#/name",
+        "data/apartments/yugo-austin-nueces.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/841"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Block on 25th West",
+      "building_ids": [
+        "3d9f61df-03ab-4b6f-8f47-8cd7463827be"
+      ],
+      "sources": [
+        "data/apartments/block-on-25th-west.json#/name",
+        "data/apartments/block-on-25th-west.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/646"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Crest at Pearl",
+      "building_ids": [
+        "ee8c58ee-b1ac-41b1-be75-dc307bcde8a0"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/0/name",
+        "data/neighborhood_apartments.json#/buildings/0/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1328",
+        "data/entrances.geojson#/features/13079/properties",
+        "data/entrances.geojson#/features/13129/properties",
+        "data/entrances.geojson#/features/13142/properties",
+        "data/westcampus.geojson#/features/1329/properties/name",
+        "data/walk_graph.json#/wc/Crest at Pearl"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+ {
+      "name": "Rio House Apartments",
+      "building_ids": [
+        "aa286e15-f82c-406e-a845-5d0631d80395"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/1/name",
+        "data/neighborhood_apartments.json#/buildings/1/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1519"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Envoy Apartments West Campus",
+      "building_ids": [
+        "1bffa6bb-92ee-4e4a-ac7c-945125792c7d"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/2/name",
+        "data/neighborhood_apartments.json#/buildings/2/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1187"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "West Campus Flats",
+      "building_ids": [
+        "d88dd7df-dbd1-4a5d-87ae-ccd6ff33ba25"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/3/name",
+        "data/neighborhood_apartments.json#/buildings/3/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1188"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Diplomat West Campus",
+      "building_ids": [
+        "41e34c24-65d8-4bcc-96ae-b1b527649f04"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/4/name",
+        "data/neighborhood_apartments.json#/buildings/4/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1306"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "21 Pearl West Campus",
+      "building_ids": [
+        "fa083239-119f-44f1-9a4c-9e106e84c94a"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/5/name",
+        "data/neighborhood_apartments.json#/buildings/5/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1310"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "The Texan Shoal Creek",
+      "building_ids": [
+        "6bae1b04-356d-4b98-801e-b9614dfaf36b"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/6/name",
+        "data/neighborhood_apartments.json#/buildings/6/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/594"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Waterford Condominiums",
+      "building_ids": [
+        "3f64e7ea-5a96-4028-a3be-c9318d9b4e7f"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/7/name",
+        "data/neighborhood_apartments.json#/buildings/7/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1104"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+ {
+      "name": "HillTop",
+      "building_ids": [
+        "9f8dbbd9-260d-4588-b76f-bfb254b08897"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/8/name",
+        "data/neighborhood_apartments.json#/buildings/8/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1100"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Yugo The Corner",
+      "building_ids": [
+        "3de7a448-64eb-450d-94ad-76489525c634"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/9/name",
+        "data/neighborhood_apartments.json#/buildings/9/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/616"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Texan26",
+      "building_ids": [
+        "c3c6a75c-c28c-4e0b-a989-c544152425ed"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/10/name",
+        "data/neighborhood_apartments.json#/buildings/10/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/618"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Barranca Square Student Apartments",
+      "building_ids": [
+        "0b9217ea-ae66-438b-9487-74b61a94b581"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/11/name",
+        "data/neighborhood_apartments.json#/buildings/11/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/629"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Avia Apartments",
+      "building_ids": [
+        "447eb759-4dfd-47b7-9e29-cb60d87cf695"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/12/name",
+        "data/neighborhood_apartments.json#/buildings/12/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/587"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "The Nine at West Campus",
+      "building_ids": [
+        "5087a362-0908-4863-a94b-6d7cf6e87d92"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/13/name",
+        "data/neighborhood_apartments.json#/buildings/13/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/600",
+        "data/entrances.geojson#/features/4344/properties",
+        "data/entrances.geojson#/features/4370/properties",
+        "data/westcampus.geojson#/features/806/properties/name",
+        "data/walk_graph.json#/wc/The Nine at West Campus"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "The Block",
+      "building_ids": [
+        "bddea10c-167d-4394-9cd8-5af5cc7d853f"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/14/name",
+        "data/neighborhood_apartments.json#/buildings/14/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/589",
+        "data/entrances.geojson#/features/10266/properties",
+        "data/entrances.geojson#/features/10279/properties",
+        "data/westcampus.geojson#/features/881/properties/name",
+        "data/walk_graph.json#/wc/The Block"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+ {
+      "name": "Rio Grande Square Student Housing",
+      "building_ids": [
+        "b1d15ed5-5a69-4a0b-a60b-195ca933a79f"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/15/name",
+        "data/neighborhood_apartments.json#/buildings/15/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/766"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Montage Apartments West Campus",
+      "building_ids": [
+        "b07e7bf4-6140-45fe-9327-995a8d45b084"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/16/name",
+        "data/neighborhood_apartments.json#/buildings/16/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/760"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "The Venue on Guadalupe",
+      "building_ids": [
+        "5d3a4e03-f525-4037-917c-4c4b56584fc4"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/17/name",
+        "data/neighborhood_apartments.json#/buildings/17/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/810",
+        "data/entrances.geojson#/features/5320/properties",
+        "data/entrances.geojson#/features/5346/properties",
+        "data/westcampus.geojson#/features/1245/properties/name",
+        "data/walk_graph.json#/wc/The Venue on Guadalupe"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "Block on 25th East",
+      "building_ids": [
+        "c039e065-3c15-4a26-a402-4589f1c7857d"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/18/name",
+        "data/neighborhood_apartments.json#/buildings/18/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/648",
+        "data/entrances.geojson#/features/10502/properties",
+        "data/entrances.geojson#/features/10543/properties",
+        "data/westcampus.geojson#/features/964/properties/name",
+        "data/walk_graph.json#/wc/Block on 25th East"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "Twenty Two 15",
+      "building_ids": [
+        "7a5984d8-919c-405c-afe5-cd31ba969b63"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/19/name",
+        "data/neighborhood_apartments.json#/buildings/19/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1023",
+        "data/entrances.geojson#/features/6585/properties",
+        "data/entrances.geojson#/features/6611/properties",
+        "data/entrances.geojson#/features/6624/properties",
+        "data/westcampus.geojson#/features/836/properties/name",
+        "data/walk_graph.json#/wc/Twenty Two 15"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "The Quarters Grayson House",
+      "building_ids": [
+        "41627514-f0ac-4268-8e08-b123aec9cac1"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/20/name",
+        "data/neighborhood_apartments.json#/buildings/20/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1064",
+        "data/entrances.geojson#/features/3626/properties",
+        "data/entrances.geojson#/features/3652/properties",
+        "data/entrances.geojson#/features/3665/properties",
+        "data/westcampus.geojson#/features/723/properties/name",
+        "data/walk_graph.json#/wc/The Quarters Grayson House"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "The Quarters Sterling House",
+      "building_ids": [
+        "1aa1bea6-6381-4929-a0e2-6615011b45e5"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/21/name",
+        "data/neighborhood_apartments.json#/buildings/21/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1319",
+        "data/entrances.geojson#/features/1034/properties",
+        "data/entrances.geojson#/features/1045/properties",
+        "data/westcampus.geojson#/features/768/properties/name",
+        "data/walk_graph.json#/wc/The Quarters Sterling House"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+ {
+      "name": "The Nine at Rio",
+      "building_ids": [
+        "899a97bb-3643-4cf0-b894-9f1720ef491b"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/22/name",
+        "data/neighborhood_apartments.json#/buildings/22/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/998",
+        "data/entrances.geojson#/features/7336/properties",
+        "data/entrances.geojson#/features/7368/properties",
+        "data/westcampus.geojson#/features/1349/properties/name",
+        "data/walk_graph.json#/wc/The Nine at Rio"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). The cited entrance groups explicitly carry this same bid; only their existing doors belong to this identity. The exact housing name also appears in the legacy West Campus collection."
+    },
+    {
+      "name": "Palmetto Apartment Complex",
+      "building_ids": [
+        "eaea8038-5158-4675-ac47-8bc71b3f5853"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/23/name",
+        "data/neighborhood_apartments.json#/buildings/23/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1003"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Rise at West Campus",
+      "building_ids": [
+        "65e5a9ce-377b-4eac-928e-c9634ce2c4da"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/24/name",
+        "data/neighborhood_apartments.json#/buildings/24/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1027"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door. Another snapshot feature has the same name but a different ID and different footprint; it is deliberately excluded, so this is an ID-and-footprint join, not a name-wide join."
+    },
+    {
+      "name": "Villas on Nueces",
+      "building_ids": [
+        "02bbe7f3-6d8e-404d-beff-1f9b6fc92807"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/25/name",
+        "data/neighborhood_apartments.json#/buildings/25/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1028"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Torre Student Living",
+      "building_ids": [
+        "90cfca73-6957-41b4-bd3a-1a3f3f91a93e"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/26/name",
+        "data/neighborhood_apartments.json#/buildings/26/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/959"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Lark Austin",
+      "building_ids": [
+        "dad49016-2331-4a81-8d6d-78da02dc8092"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/27/name",
+        "data/neighborhood_apartments.json#/buildings/27/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/957"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Legacy on Rio",
+      "building_ids": [
+        "b6857217-7bcb-42a4-9a72-a08bdaf960b1"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/28/name",
+        "data/neighborhood_apartments.json#/buildings/28/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/671",
+        "data/neighborhood_apartments.json#/buildings/28/sources/observations"
+      ],
+      "basis": "The authored housing spec and current snapshot feature explicitly carry the identical building ID. The authored envelope differs from the historical snapshot outline; no footprint-equality claim is made. The spec documents replacement of an outdated small-building outline within its original extents. No entrance currently carries this ID; a future entrance must be checked against the updated building rather than accepted by proximity. No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+ {
+      "name": "Noble 2500",
+      "building_ids": [
+        "ffb87957-520e-4340-bdd2-e331c2c51046"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/29/name",
+        "data/neighborhood_apartments.json#/buildings/29/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/611"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "The Block on 23rd",
+      "building_ids": [
+        "df278986-012c-47f9-850c-c4aab874ac91"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/30/name",
+        "data/neighborhood_apartments.json#/buildings/30/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1071"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "The Block on Pearl North",
+      "building_ids": [
+        "064e7194-b486-44f4-a1a4-f786fb3d61ea"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/31/name",
+        "data/neighborhood_apartments.json#/buildings/31/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1065"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "The Block on Pearl South",
+      "building_ids": [
+        "044b203e-2d36-4321-adc9-eea56d0ddc4e"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/32/name",
+        "data/neighborhood_apartments.json#/buildings/32/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1066"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "1883 at Montgomery House",
+      "building_ids": [
+        "2f29f563-e852-4039-a1dc-157ad75a9b1a"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/33/name",
+        "data/neighborhood_apartments.json#/buildings/33/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/835"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "The Quarters Karnes House",
+      "building_ids": [
+        "24e04326-a7f3-42cc-bad0-76c3427e389c"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/34/name",
+        "data/neighborhood_apartments.json#/buildings/34/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1013"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Axis West Campus",
+      "building_ids": [
+        "59a378f0-820e-496f-9b18-58aab0b81607"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/35/name",
+        "data/neighborhood_apartments.json#/buildings/35/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/592"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+ {
+      "name": "Texan Pearl",
+      "building_ids": [
+        "4c13313f-3749-4b9b-8437-b52695f4cf47"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/36/name",
+        "data/neighborhood_apartments.json#/buildings/36/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/639"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "1883 Cameron House",
+      "building_ids": [
+        "658b9dd1-7096-4396-9d03-e063b1abee55"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/37/name",
+        "data/neighborhood_apartments.json#/buildings/37/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/674"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "Camino Flats",
+      "building_ids": [
+        "062e1ec3-434b-46cf-97b1-6c8405d07770"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/38/name",
+        "data/neighborhood_apartments.json#/buildings/38/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/705"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "West 24th Street Apartments",
+      "building_ids": [
+        "74715fc8-d197-4ddb-9571-dfacda8bdbc4"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/39/name",
+        "data/neighborhood_apartments.json#/buildings/39/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/104"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "The Quarters Nueces House",
+      "building_ids": [
+        "5e94c2db-4245-4db3-b5c0-9ed631bcd658"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/40/name",
+        "data/neighborhood_apartments.json#/buildings/40/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1031"
+      ],
+      "basis": "The authored housing name and ID match this current snapshot feature by identical ID; the authored exterior footprint ring is exactly the snapshot exterior ring (cyclic start and orientation ignored, coordinates unchanged). No existing entrance or approach carries this ID; adding an identity alias must not create or borrow a door."
+    },
+    {
+      "name": "The G",
+      "building_ids": [
+        "f1d2f1fb-0159-4378-8c84-2613c2e75213"
+      ],
+      "sources": [
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1593",
+        "data/walk_graph.json#/wc/The G",
+        "data/entrances.geojson#/features/13314/properties",
+        "data/entrances.geojson#/features/13358/properties",
+        "data/westcampus.geojson#/features/1296/properties/name"
+      ],
+      "basis": "The graph-only housing name is exactly the current snapshot name on one unique building ID and exactly the West Campus feature name. All cited entrance groups carry this ID as bid and this exact nm; no proximity matching is used."
+    },
+    {
+      "name": "Estates at East Riverside",
+      "building_ids": [
+        "riverside-osm-382485744",
+        "riverside-osm-382485726",
+        "riverside-osm-382485741",
+        "riverside-osm-382485779",
+        "riverside-osm-382485731",
+        "riverside-osm-382485747",
+        "riverside-osm-382485782",
+        "riverside-osm-382485722",
+        "riverside-osm-382485615",
+        "riverside-osm-382485789",
+        "riverside-osm-382485809",
+        "riverside-osm-382485755",
+        "riverside-osm-382485711",
+        "riverside-osm-382485783",
+        "riverside-osm-382485611",
+        "riverside-osm-382485614",
+        "riverside-osm-382485773",
+        "riverside-osm-382485436",
+        "riverside-osm-382485797",
+        "riverside-osm-382485613",
+        "riverside-osm-382485736",
+        "riverside-osm-382485810",
+        "riverside-osm-382485727",
+        "riverside-osm-382485612",
+        "riverside-osm-382485738",
+        "riverside-osm-382485766",
+        "riverside-osm-382485752",
+        "riverside-osm-382485763",
+        "riverside-osm-382485776",
+        "riverside-osm-382485804",
+        "riverside-osm-382485807",
+        "riverside-osm-382485725",
+        "riverside-osm-382485616",
+        "riverside-osm-382485729",
+        "riverside-osm-382485721",
+        "riverside-osm-382485808",
+        "riverside-osm-382485720",
+        "riverside-osm-382485733",
+        "riverside-osm-382485759"
+      ],
+      "sources": [
+        "scripts/verify/finder-correctness.mjs:20",
+        "data/apartments/index.json#/areas/riverside/collections",
+        "data/apartments/estates-at-east-riverside.json#/buildings/2",
+        "data/apartments/estates-at-east-riverside.json#/buildings/3",
+        "data/apartments/estates-at-east-riverside.json#/buildings/4",
+        "data/apartments/estates-at-east-riverside.json#/buildings/6",
+        "data/apartments/estates-at-east-riverside.json#/buildings/7",
+        "data/apartments/estates-at-east-riverside.json#/buildings/8",
+        "data/apartments/estates-at-east-riverside.json#/buildings/11",
+        "data/apartments/estates-at-east-riverside.json#/buildings/14",
+        "data/apartments/estates-at-east-riverside.json#/buildings/15",
+        "data/apartments/estates-at-east-riverside.json#/buildings/16",
+        "data/apartments/estates-at-east-riverside.json#/buildings/18",
+        "data/apartments/estates-at-east-riverside.json#/buildings/19",
+        "data/apartments/estates-at-east-riverside.json#/buildings/20",
+        "data/apartments/estates-at-east-riverside.json#/buildings/22",
+        "data/apartments/estates-at-east-riverside.json#/buildings/23",
+        "data/apartments/estates-at-east-riverside.json#/buildings/25",
+        "data/apartments/estates-at-east-riverside.json#/buildings/26",
+        "data/apartments/estates-at-east-riverside.json#/buildings/27",
+        "data/apartments/estates-at-east-riverside.json#/buildings/28",
+        "data/apartments/estates-at-east-riverside.json#/buildings/29",
+        "data/apartments/estates-at-east-riverside.json#/buildings/34",
+        "data/apartments/estates-at-east-riverside.json#/buildings/35",
+        "data/apartments/estates-at-east-riverside.json#/buildings/36",
+        "data/apartments/estates-at-east-riverside.json#/buildings/39",
+        "data/apartments/estates-at-east-riverside.json#/buildings/41",
+        "data/apartments/estates-at-east-riverside.json#/buildings/43",
+        "data/apartments/estates-at-east-riverside.json#/buildings/46",
+        "data/apartments/estates-at-east-riverside.json#/buildings/49",
+        "data/apartments/estates-at-east-riverside.json#/buildings/50",
+        "data/apartments/estates-at-east-riverside.json#/buildings/51",
+        "data/apartments/estates-at-east-riverside.json#/buildings/52",
+        "data/apartments/estates-at-east-riverside.json#/buildings/53",
+        "data/apartments/estates-at-east-riverside.json#/buildings/55",
+        "data/apartments/estates-at-east-riverside.json#/buildings/56",
+        "data/apartments/estates-at-east-riverside.json#/buildings/58",
+        "data/apartments/estates-at-east-riverside.json#/buildings/59",
+        "data/apartments/estates-at-east-riverside.json#/buildings/60",
+        "data/apartments/estates-at-east-riverside.json#/buildings/61",
+        "data/apartments/estates-at-east-riverside.json#/buildings/62"
+      ],
+      "basis": "The verifier explicitly pairs this housing query with this local collection. Only objects explicitly named as this property's residential buildings are included, using their authored IDs and exact stored footprint rings. Pools, parking canopies, service structures, ancillary buildings and clubhouses are excluded. These residential IDs have no match in manifest.latest footprints or entrances.geojson and the collection is outside the existing walk-graph node bounds; this is identity membership only, not a door or route assertion."
+    },
+ {
+      "name": "The Element Austin",
+      "building_ids": [
+        "riverside-osm-382484111",
+        "riverside-osm-382484127",
+        "riverside-osm-382484170",
+        "riverside-osm-382484172",
+        "riverside-osm-382484114",
+        "riverside-osm-382484167",
+        "riverside-osm-382484143",
+        "riverside-osm-382484102",
+        "riverside-osm-382484088",
+        "riverside-osm-382484105",
+        "riverside-osm-382484162",
+        "riverside-osm-382484142",
+        "riverside-osm-382484100",
+        "riverside-osm-382484169",
+        "riverside-osm-382484085",
+        "riverside-osm-382484148",
+        "riverside-osm-382484108",
+        "riverside-osm-382484163",
+        "riverside-osm-382484032",
+        "riverside-osm-382484161",
+        "riverside-osm-382484166",
+        "riverside-osm-382484090",
+        "riverside-osm-382484173",
+        "riverside-osm-382484086",
+        "riverside-osm-382484171",
+        "riverside-osm-382484092"
+      ],
+      "sources": [
+        "scripts/verify/finder-correctness.mjs:20",
+        "data/apartments/index.json#/areas/riverside/collections",
+        "data/apartments/the-element-austin.json#/buildings/0",
+        "data/apartments/the-element-austin.json#/buildings/2",
+        "data/apartments/the-element-austin.json#/buildings/3",
+        "data/apartments/the-element-austin.json#/buildings/4",
+        "data/apartments/the-element-austin.json#/buildings/5",
+        "data/apartments/the-element-austin.json#/buildings/6",
+        "data/apartments/the-element-austin.json#/buildings/7",
+        "data/apartments/the-element-austin.json#/buildings/12",
+        "data/apartments/the-element-austin.json#/buildings/13",
+        "data/apartments/the-element-austin.json#/buildings/15",
+        "data/apartments/the-element-austin.json#/buildings/17",
+        "data/apartments/the-element-austin.json#/buildings/18",
+        "data/apartments/the-element-austin.json#/buildings/20",
+        "data/apartments/the-element-austin.json#/buildings/22",
+        "data/apartments/the-element-austin.json#/buildings/24",
+        "data/apartments/the-element-austin.json#/buildings/25",
+        "data/apartments/the-element-austin.json#/buildings/27",
+        "data/apartments/the-element-austin.json#/buildings/29",
+        "data/apartments/the-element-austin.json#/buildings/31",
+        "data/apartments/the-element-austin.json#/buildings/33",
+        "data/apartments/the-element-austin.json#/buildings/34",
+        "data/apartments/the-element-austin.json#/buildings/35",
+        "data/apartments/the-element-austin.json#/buildings/36",
+        "data/apartments/the-element-austin.json#/buildings/37",
+        "data/apartments/the-element-austin.json#/buildings/38",
+        "data/apartments/the-element-austin.json#/buildings/39"
+      ],
+      "basis": "The verifier explicitly pairs this housing query with this local collection. Only objects explicitly named as this property's residential buildings are included, using their authored IDs and exact stored footprint rings. Pools, parking canopies, service structures, ancillary buildings and clubhouses are excluded. These residential IDs have no match in manifest.latest footprints or entrances.geojson and the collection is outside the existing walk-graph node bounds; this is identity membership only, not a door or route assertion."
+    },
+    {
+      "name": "Town Lake Student Apartments",
+      "building_ids": [
+        "riverside-osm-382447791",
+        "riverside-osm-382447787",
+        "riverside-osm-382447776",
+        "riverside-osm-382447785",
+        "riverside-osm-382447789",
+        "riverside-osm-382447788",
+        "riverside-osm-382447779",
+        "riverside-osm-382447790",
+        "riverside-osm-382447778"
+      ],
+      "sources": [
+        "scripts/verify/finder-correctness.mjs:20",
+        "data/apartments/index.json#/areas/riverside/collections",
+        "data/apartments/town-lake-student-apartments.json#/buildings/0",
+        "data/apartments/town-lake-student-apartments.json#/buildings/6",
+        "data/apartments/town-lake-student-apartments.json#/buildings/8",
+        "data/apartments/town-lake-student-apartments.json#/buildings/12",
+        "data/apartments/town-lake-student-apartments.json#/buildings/17",
+        "data/apartments/town-lake-student-apartments.json#/buildings/23",
+        "data/apartments/town-lake-student-apartments.json#/buildings/29",
+        "data/apartments/town-lake-student-apartments.json#/buildings/40",
+        "data/apartments/town-lake-student-apartments.json#/buildings/46"
+      ],
+      "basis": "The verifier explicitly pairs this housing query with this local collection. Only objects explicitly named as this property's residential buildings are included, using their authored IDs and exact stored footprint rings. Pools, parking canopies, service structures, ancillary buildings and clubhouses are excluded. These residential IDs have no match in manifest.latest footprints or entrances.geojson and the collection is outside the existing walk-graph node bounds; this is identity membership only, not a door or route assertion."
+    },
+    {
+      "name": "Village at East Riverside",
+      "building_ids": [
+        "riverside-osm-382485706",
+        "riverside-osm-382485811",
+        "riverside-osm-382485813",
+        "riverside-osm-382485708",
+        "riverside-osm-382485429",
+        "riverside-osm-382485431",
+        "riverside-osm-382485430",
+        "riverside-osm-382485428",
+        "riverside-osm-382485705",
+        "riverside-osm-382485710",
+        "riverside-osm-382485439",
+        "riverside-osm-382485437",
+        "riverside-osm-382485434",
+        "riverside-osm-382485440",
+        "riverside-osm-382485703",
+        "riverside-osm-382485704",
+        "riverside-osm-382485441",
+        "riverside-osm-382485438",
+        "riverside-osm-382485709",
+        "riverside-osm-382485435"
+      ],
+      "sources": [
+        "scripts/verify/finder-correctness.mjs:20",
+        "data/apartments/index.json#/areas/riverside/collections",
+        "data/apartments/village-at-east-riverside.json#/buildings/6",
+        "data/apartments/village-at-east-riverside.json#/buildings/12",
+        "data/apartments/village-at-east-riverside.json#/buildings/16",
+        "data/apartments/village-at-east-riverside.json#/buildings/23",
+        "data/apartments/village-at-east-riverside.json#/buildings/27",
+        "data/apartments/village-at-east-riverside.json#/buildings/29",
+        "data/apartments/village-at-east-riverside.json#/buildings/33",
+        "data/apartments/village-at-east-riverside.json#/buildings/34",
+        "data/apartments/village-at-east-riverside.json#/buildings/40",
+        "data/apartments/village-at-east-riverside.json#/buildings/46",
+        "data/apartments/village-at-east-riverside.json#/buildings/50",
+        "data/apartments/village-at-east-riverside.json#/buildings/52",
+        "data/apartments/village-at-east-riverside.json#/buildings/57",
+        "data/apartments/village-at-east-riverside.json#/buildings/58",
+        "data/apartments/village-at-east-riverside.json#/buildings/59",
+        "data/apartments/village-at-east-riverside.json#/buildings/64",
+        "data/apartments/village-at-east-riverside.json#/buildings/65",
+        "data/apartments/village-at-east-riverside.json#/buildings/80",
+        "data/apartments/village-at-east-riverside.json#/buildings/84",
+        "data/apartments/village-at-east-riverside.json#/buildings/93"
+      ],
+      "basis": "The verifier explicitly pairs this housing query with this local collection. Only objects explicitly named as this property's residential buildings are included, using their authored IDs and exact stored footprint rings. Pools, parking canopies, service structures, ancillary buildings and clubhouses are excluded. These residential IDs have no match in manifest.latest footprints or entrances.geojson and the collection is outside the existing walk-graph node bounds; this is identity membership only, not a door or route assertion."
+    },
+    {
+      "name": "Waterloo",
+      "catalog": false,
+      "building_ids": [
+        "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a"
+      ],
+      "sources": [
+        "data/apartments/yugo-austin-waterloo.json#/aliases/0",
+        "data/apartments/yugo-austin-waterloo.json#/name",
+        "data/apartments/yugo-austin-waterloo.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1041"
+      ],
+      "basis": "The authored housing spec explicitly lists this alternate name in aliases on the identical building ID used by its canonical housing name. No textual similarity or neighboring building is used. This identity link does not supply a missing door."
+    },
+    {
+      "name": "Waterloo Tower",
+      "catalog": false,
+      "building_ids": [
+        "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a"
+      ],
+      "sources": [
+        "data/apartments/yugo-austin-waterloo.json#/aliases/1",
+        "data/apartments/yugo-austin-waterloo.json#/name",
+        "data/apartments/yugo-austin-waterloo.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1041"
+      ],
+      "basis": "The authored housing spec explicitly lists this alternate name in aliases on the identical building ID used by its canonical housing name. No textual similarity or neighboring building is used. This identity link does not supply a missing door."
+    },
+    {
+      "name": "Yugo Waterloo",
+      "catalog": false,
+      "building_ids": [
+        "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a"
+      ],
+      "sources": [
+        "data/apartments/yugo-austin-waterloo.json#/aliases/2",
+        "data/apartments/yugo-austin-waterloo.json#/name",
+        "data/apartments/yugo-austin-waterloo.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1041"
+      ],
+      "basis": "The authored housing spec explicitly lists this alternate name in aliases on the identical building ID used by its canonical housing name. No textual similarity or neighboring building is used. This identity link does not supply a missing door."
+    },
+    {
+      "name": "The Block on 25th",
+      "catalog": false,
+      "building_ids": [
+        "3d9f61df-03ab-4b6f-8f47-8cd7463827be"
+      ],
+      "sources": [
+        "data/apartments/block-on-25th-west.json#/aliases/0",
+        "data/apartments/block-on-25th-west.json#/name",
+        "data/apartments/block-on-25th-west.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/646"
+      ],
+      "basis": "The authored housing spec explicitly lists this alternate name in aliases on the identical building ID used by its canonical housing name. No textual similarity or neighboring building is used. This identity link does not supply a missing door."
+    },
+ {
+      "name": "The Block on 25th West",
+      "catalog": false,
+      "building_ids": [
+        "3d9f61df-03ab-4b6f-8f47-8cd7463827be"
+      ],
+      "sources": [
+        "data/apartments/block-on-25th-west.json#/aliases/1",
+        "data/apartments/block-on-25th-west.json#/name",
+        "data/apartments/block-on-25th-west.json#/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/646"
+      ],
+      "basis": "The authored housing spec explicitly lists this alternate name in aliases on the identical building ID used by its canonical housing name. No textual similarity or neighboring building is used. This identity link does not supply a missing door."
+    },
+    {
+      "name": "The Quarters Montgomery House",
+      "catalog": false,
+      "building_ids": [
+        "2f29f563-e852-4039-a1dc-157ad75a9b1a"
+      ],
+      "sources": [
+        "data/neighborhood_apartments.json#/buildings/33/aliases/0",
+        "data/neighborhood_apartments.json#/buildings/33/name",
+        "data/neighborhood_apartments.json#/buildings/33/id",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/835"
+      ],
+      "basis": "The authored housing spec explicitly lists this alternate name in aliases on the identical building ID used by its canonical housing name. No textual similarity or neighboring building is used. This identity link does not supply a missing door."
+    },
+    {
+      "name": "Kinsolving Residence Hall",
+      "catalog": false,
+      "building_ids": [
+        "71504854-4c08-49db-9cca-f888f8114174"
+      ],
+      "sources": [
+        "data/apartments/kinsolving-dormitory.json#/id",
+        "data/apartments/kinsolving-dormitory.json#/sources/S2",
+        "data/ut_buildings.json#/buildings/114",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/465",
+        "data/entrances.geojson#/features/6316/properties",
+        "data/entrances.geojson#/features/6333/properties",
+        "data/entrances.geojson#/features/6346/properties",
+        "data/entrances.geojson#/features/6359/properties"
+      ],
+      "basis": "The authored dorm spec explicitly identifies official register code KIN and its building number on this single building ID; the register supplies the Residence Hall name. The current snapshot and cited entrance bids identify the same dorm. Jester Residence Hall/JCD is deliberately not included because that code is documented for both East and West."
+    },
+    {
+      "name": "San Jacinto Residence Hall",
+      "catalog": false,
+      "building_ids": [
+        "93cc2567-aa16-4909-ace6-fa13ff385bde"
+      ],
+      "sources": [
+        "data/apartments/san-jacinto-hall.json#/id",
+        "data/apartments/san-jacinto-hall.json#/sources/S3",
+        "data/ut_buildings.json#/buildings/161",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson#/features/1794",
+        "data/entrances.geojson#/features/7808/properties",
+        "data/entrances.geojson#/features/7841/properties",
+        "data/entrances.geojson#/features/7874/properties",
+        "data/entrances.geojson#/features/7901/properties",
+        "data/entrances.geojson#/features/7934/properties"
+      ],
+      "basis": "The authored dorm spec explicitly identifies official register code SJH and its building number on this single building ID; the register supplies the Residence Hall name. The current snapshot and cited entrance bids identify the same dorm. Jester Residence Hall/JCD is deliberately not included because that code is documented for both East and West."
+    }
+  ]
+}
