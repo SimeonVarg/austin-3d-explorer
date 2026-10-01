@@ -18,7 +18,7 @@ def build():
  return refine(build_base())
 def main():
  s=build()
- (ROOT/'data/apartments/battle-hall.json').write_text(json.dumps(s,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
+ (ROOT/'data/apartments/battle-hall.json').write_text(json.dumps(s,separators=(',',':'),ensure_ascii=False),encoding='utf-8')
  print('battle-hall',len(s['blocks']),'blocks')
  return s
 if __name__=='__main__':main()

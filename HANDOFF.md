@@ -33533,6 +33533,50 @@ mobile.js header is pre-#310 main; that line is now dated.
 Looks, 390x844: main vs main again 0 px; main vs branch 0.30% spawn, 2.6%
 flight, all on shadow edges (shots/phone-memory/*-before-after-diff.jpg).
 
+## Sep 30 2026 - first-load transport: no whitespace in the 45 core models
+
+The 45 core authored models listed in `data/apartments/index.json` no longer
+carry whitespace between JSON tokens. Only whitespace outside quoted strings is
+removed: every file parses to exactly the same content as before, numbers keep
+their spelling, and coordinates and property order are untouched. Committed
+files, raw bytes: 12,192,177 -> 6,147,815 (-6,044,362). Text-compression
+estimates on the same files (gzip level 6 / Brotli quality 6): -151,410 /
+-66,372 bytes. Production already sends Brotli, so the wire saving there is
+small; a host that sends bodies uncompressed (the local static server) sees the
+full raw saving.
+
+An earlier commit in the same change rewords the provenance notes (`_src`,
+`_readme`, `sources`, `todo`, `open`) in 14 of these models so they no longer
+name a local project path, a person, or photo folders and file names.
+Text only, 296 raw bytes: nothing numeric changed and nothing under `js/` reads
+those notes. A to-do field that names the file a fix belongs in is now called
+`where`.
+
+`python scripts/compact_models.py` compacts (`--check` only reports), and
+`scripts/verify/model-compaction.mjs` fails the check run if a rebake puts
+whitespace back. Five authoring scripts now write compact output. Details in
+`docs/load-path-cuts.md`.
+
+Looks: local first-view capture, cache off, worker requests included, went from
+52.56 MB to 45.97 MB (that baseline was a Windows checkout with CRLF line
+endings, which is about 0.5 MB of the difference). Six fixed camera pairs
+(campus, West Campus, downtown, day and night) differ in 0.040 to 0.102 percent
+of pixels, scattered shadow and raster edges, nothing visible. That is not a
+zero-pixel result.
+
+Open: no faster load is shown. Two timing checks on a busy machine measured the
+changed build no faster (bar full at 57.7 s against 49.1 s, two runs each, load
+drifting), so treat this as a transfer-size change only.
+
+Not in this change: sharing the duplicate roof and tower downloads was tried
+and saved 1,956,489 raw bytes in a local cache-off load (about 203 KB Brotli,
+estimated), but the West Campus and downtown camera checks did not finish, so it
+was left out. Sharing the art and dome downloads (about 57 KB and 10 KB Brotli,
+estimated) and dropping the entrance data the page discards (about 117 KB
+Brotli, estimated) are not started. All of these save fewer raw bytes than this
+change. By compressed size only the roof and tower sharing and the entrance data
+would save more than this change's 66 KB.
+
 ## September 30, 2026 - Apartment finder answers
 
 The hidden finder preview (`?livehere=1`) now gives only answers it can stand
