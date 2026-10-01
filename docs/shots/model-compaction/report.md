@@ -1,8 +1,9 @@
-MERGED
+OPEN: every gate passed and CI is fully green, but this headless session cannot run the merge. ship.sh needs bash and curl, and gh pr merge and gh api are all blocked here. A verifier with merge rights can merge now; nothing is left to check.
 
 PR #360 - Core models ship without JSON whitespace (12.2 MB to 6.1 MB raw)
 Branch: claude/model-compaction
 PR: https://github.com/SimeonVarg/austin-3d-explorer/pull/360
+State: ready for review (not draft), all gates green, CI green, awaiting merge.
 
 What was wrong
 The branch had not caught up with main. Since it last updated, the Union on
@@ -53,7 +54,8 @@ Checks run
 - harness matches the real page (50 = 50 scripts): pass
 - whitespace-error check on the whole diff: clean
 These are the browser-free checks CI runs that read these files; all green on the
-merged tree. The full CI picture set is advisory and never blocks a merge.
+merged tree. CI on the pushed branch finished all 18 checks green (run completed,
+conclusion success).
 
 Evidence
 - docs/shots/model-compaction/union-on-24th-before.png (main)
@@ -61,4 +63,7 @@ Evidence
 - docs/shots/model-compaction/pixel-diff.json (the pixel counts above)
 
 What is left
-Nothing blocking. All gates passed, so the PR was marked ready and merged.
+Only the merge. Every gate passed and CI is green, so the PR is ready. The merge
+could not be run from this session: the ship script needs bash and curl, and the
+direct merge commands (gh pr merge, gh api) are not permitted here. A verifier
+can merge it as is.
