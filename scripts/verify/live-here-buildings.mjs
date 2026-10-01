@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright-core';
 import {launch,BASE} from './chrome.mjs';
+import {waitForApartmentBuild} from './lib/apartment-ready.mjs';
 const out=process.env.VERIFY_OUT;
 // Freeze the comparison before PR #242; origin/main already includes the fix.
 const baseline='4493d54';
@@ -10,13 +11,14 @@ const index=JSON.parse(fs.readFileSync(new URL('../../data/apartments/index.json
 const registered=index.buildings.length+(index.collections||[]).reduce((n,f)=>n+JSON.parse(fs.readFileSync(new URL('../../'+f,import.meta.url))).buildings.length,0);
 const previous=['the-standard','villas-on-rio'].map(n=>JSON.parse(execFileSync('git',['show',baseline+':data/apartments/'+n+'.json'],{maxBuffer:1000000}).toString()));
 const oldGraph=execFileSync('git',['show',baseline+':data/walk_graph.json'],{maxBuffer:2000000});
-const browser=await launch(chromium,{gl:'hardware'});
+const browser=await launch(chromium,{gl:'hardware',maxMs:300000});
 try {
  const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{const t=setInterval(()=>{if(window.cancelGraphicsAutoDetect){window.cancelGraphicsAutoDetect();clearInterval(t);}},50);});
  await page.goto(BASE+'/index.html?intro=0&drift=0&livehere=1',{waitUntil:'domcontentloaded',timeout:180000});
  await page.waitForFunction(()=>slopesApartments?.count.done&&liveHereState?.().ready&&__fly?.indexed(),null,{timeout:180000});
+ await waitForApartmentBuild(page);
  const after=await page.evaluate(()=>slopesApartments.data.buildings.filter(b=>['The Standard','Villas on Rio'].includes(b.name)));
  const camera=async name=>page.evaluate(name=>{
   document.querySelector('#live-here').hidden=true;for(const el of document.querySelectorAll('.lh-map-label'))el.hidden=true;
@@ -32,7 +34,7 @@ try {
   }else __map.jumpTo({center,zoom:19.4,pitch:0,bearing:185,padding:0});
  },name);
  const shot=async name=>{if(!out)return;await page.waitForTimeout(4000);await page.screenshot({path:out+'/'+name+'.jpg',quality:90});await page.waitForTimeout(900);await page.screenshot({path:out+'/'+name+'.jpg',quality:90});};
- const swap=async specs=>page.evaluate(specs=>{for(const s of specs){const i=slopesApartments.data.buildings.findIndex(b=>b.name===s.name);slopesApartments.data.buildings[i]=s;}slopesApartments.rebuild();},specs);
+ const swap=async specs=>{await page.evaluate(specs=>{for(const s of specs){const i=slopesApartments.data.buildings.findIndex(b=>b.name===s.name);slopesApartments.data.buildings[i]=s;}slopesApartments.rebuild();},specs);await waitForApartmentBuild(page);};
  const rays=()=>page.evaluate(()=>{
   const g=slopesApartments.group;g.updateMatrixWorld(true);
   return [[43,22],[47,31],[35,22]].map(([u,v])=>{
