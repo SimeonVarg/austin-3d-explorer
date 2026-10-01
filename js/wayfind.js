@@ -14020,14 +14020,18 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       impState.err = SAY_IMP.errImgBig(Math.round(f.size / 1048576));
       impRender(); return null;
     }
+    // SAY SO FIRST. The panel speaks before anything is awaited: even the
+    // 12-byte format sniff below waits for a free main thread, and on a phone
+    // still drawing the city that left the panel blank for 1-3 s (measured).
+    impState.busy = true; impState.busyNote = SAY_IMP.imgLoading; impRender();
     // THE FORMAT GATE, AND IT ONLY RUNS FOR THE FORMAT IT IS ABOUT. See
     // IMP.image.heicBrands: a HEIC that this browser cannot decode is the
     // single likeliest total failure of this feature on a real iPhone, and
     // before this it arrived as the generic read error five megabytes later.
     if (await impLooksHeic(f) && !(await impCanDecode(f))) {
+      impState.busy = false; impState.busyNote = null;
       impState.err = SAY_IMP.errImgHeic; impRender(); return null;
     }
-    impState.busy = true; impState.busyNote = SAY_IMP.imgLoading; impRender();
     return impFinishImage(f);
   }
 

@@ -931,7 +931,7 @@
     window.__flyRebuildCollision({
       buildings,
       parts: { type: 'FeatureCollection', features: ((parts && parts.features) || []).concat(extra) },
-    });
+    }, 'westcampus');
     return 'rebuilt with ' + extra.length + ' corrected heights';
   }
 
