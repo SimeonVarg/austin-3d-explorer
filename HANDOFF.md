@@ -33659,3 +33659,20 @@ Speed: an isolated mottle benchmark, node only and not the app (512 x 512 RGBA, 
 Appearance: day frames differ from the unchanged build by at most 2 of 255 per channel. Night frames differ by at most 56 of 255 (campus) and 48 of 255 (West Campus), with 232 and 21 pixels beyond 12; a repeat of the unchanged build gave 230 and 43 for the same two views, so that is scene noise (stars, ground lights). Downtown night and the hour change reached 16 and 17 of 255, with 19 and 15 pixels beyond 12 against 2 and 3 for the repeat, which is not fully accounted for by that noise.
 
 Still open: fresh walking-height and day/night comparisons, a console check on load and after moving the camera, and a quiet-machine timing with at least three interleaved pairs. Until then, do not claim faster turns, hour changes or flight.
+
+
+## September 30, 2026 - Local walking evidence (claude/gpx-import)
+
+Added an offline standard-library GPX importer in scripts/gpx. Raw inputs, privacy
+circles and all generated outputs stay outside the repository. Privacy filtering
+happens before matching; redactions break trips and generated lines are checked
+again. Existing door geometry is grouped by eid; the importer reports provisional
+door confirmations, new wall points, shortcuts, through-links and real-versus-graph
+walking times. It does not modify the graph, entrances, app or access rules.
+
+Verification: 20 synthetic-only tests pass with Python 3.12 (site packages
+disabled) and with Python 3.9. A full synthetic day creates all four outputs; the labelled SVG was
+rasterised locally and visually inspected. Its outdoor graph walk is within 1%
+of the reference time; noisy building and quality-gap walks remain excluded.
+No browser, server or external upload was used. Real phone tracks, confidence calibration, exact door
+positions and access/locked-door facts remain unverified.
