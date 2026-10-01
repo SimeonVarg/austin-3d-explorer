@@ -353,7 +353,20 @@ await test('same-building finder leg is zero distance/time', async () => {
 await test('quiet routing never treats Icon as Ion Austin', async () => assert.equal((await app.wayfindStairs('Icon', 'WEL')).ok, false));
 await test('quiet routing never treats Jester West as Jester East', async () => {
   const answer = await app.wayfindStairs('Jester West Hall', 'WEL');
-  assert.equal(answer.ok, false);
+  assert.equal(answer.ok, true);
+  assert.equal(seam.resolve('Jester West Hall').display, 'Jester West Hall');
+  assert.ok(answer.fromDoor != null);
+  assert.equal(graph.doors[answer.fromDoor][7], 'Jester West Hall');
+});
+await test('explicit class identity retains its source doorway and unavailable reasons', async () => {
+  const answer = await app.wayfindStairs('ACS', 'WEL');
+  assert.equal(answer.ok, true);
+  assert.equal(graph.doors[answer.fromDoor][7], 'Engineering Discovery Building');
+  assert.equal(graph.doors[answer.fromDoor][5], 'field');
+  const absent = await app.wayfindStairs('AF1', 'WEL');
+  assert.equal(absent.ok, false);
+  assert.ok(absent.reason);
+  assert.equal(raw.availability.AF1.cause, 'outer_footprint_without_entrance');
 });
 await test('quiet routing accepts exact codes and names', async () => {
   const answer = await tiny.app.wayfindStairs('Synthetic Hall', 'TST');

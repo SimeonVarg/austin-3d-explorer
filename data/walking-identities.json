@@ -1,0 +1,643 @@
+{
+  "code_aliases": [
+    {
+      "code": "ACS",
+      "register_name": "AUTRY C. STEPHENS ENGR DISC BLDG",
+      "door_name": "Engineering Discovery Building",
+      "bid": "3e434b17-f437-4b0d-b00e-bfb10df8509a",
+      "sources": [
+        "data/ut_buildings.json#/buildings/0",
+        "data/labels.json#/labels/865",
+        "data/entrances.geojson#eid=148",
+        "data/osm_cache/construction.json#way=1512154085"
+      ],
+      "basis": "The unique Engineering Discovery Building in the local footprint and register. ENGR DISC BLDG expands to Engineering Discovery Building. Donor-name identity is an explicit inference, not a tagged OSM rename. Existing main/field provenance is retained; cached construction, opening and public access remain unverified."
+    }
+  ],
+  "authored_doors": [
+    {
+      "model": "data/apartments/battle-hall.json",
+      "assembly": "battleEast",
+      "bid": "283f5992-bc72-411a-80ba-25d0314544d0",
+      "ref": "BTL",
+      "nm": "Battle Hall",
+      "sources": [
+        "data/apartments/battle-hall.json#/battleEast/doorCourseNotch",
+        "data/entrances.geojson#/battleEastEntryRetirement"
+      ],
+      "basis": "The authored east face replaced two old arched entrance assemblies with a rectangular central doorway. Derive its position from its real doorway course notch and frame, not the retired assemblies."
+    }
+  ],
+  "unavailable_codes": {
+    "AF1": {
+      "reason": "Rehab label and outer feature 6339 exist. AF1, AF2 Eastside and AFP are distinct register numbers/positions; AFP or AF2 doors are not AF1 evidence.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[2]",
+        "data/labels.json:labels[237]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[6339]"
+      ]
+    },
+    "BE1": {
+      "reason": "Real J.J. Pickle Research Campus destination, 11.83 km north of MAI. Preserve offmap, not notfound; UT survey does not imply a connected main-campus walk.",
+      "cause": "surveyed_satellite_campus_off_map",
+      "sources": [
+        "js/wayfind.js:OFF_MAP BE1",
+        "js/wayfind.js:2833-2843 OFF_MAP",
+        "js/wayfind.js:UT_CELEBRATED"
+      ]
+    },
+    "BEG": {
+      "reason": "Real J.J. Pickle Research Campus destination, 11.76 km north of MAI. Preserve offmap, not notfound; UT survey does not imply a connected main-campus walk.",
+      "cause": "surveyed_satellite_campus_off_map",
+      "sources": [
+        "js/wayfind.js:OFF_MAP BEG",
+        "js/wayfind.js:2833-2843 OFF_MAP",
+        "js/wayfind.js:UT_CELEBRATED"
+      ]
+    },
+    "BOT": {
+      "reason": "Unnamed greenhouse candidates and Agricultural Greenhouse exist, but no local ref/name identifies one as BOT; BIO is Biological Laboratories, not this building.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[22]"
+      ]
+    },
+    "BSB": {
+      "reason": "Distinct register from BBR (Basketball & Rowing Training Fac, 9717) and RSC; do not reuse their doors for BSB (0145).",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[25]"
+      ]
+    },
+    "CCG": {
+      "reason": "Garage-specific register code 0028; no exact garage entrance evidence. ATT and TCC are different named destinations.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[31]"
+      ]
+    },
+    "CDA": {
+      "reason": "Exact CDA seed and named label exist, but label point lies in neither detailed nor outer footprints; no entrance or surveyed fallback.",
+      "cause": "named_point_without_verified_footprint",
+      "sources": [
+        "data/ut_buildings.json:buildings[33]",
+        "data/labels.json:labels[264]",
+        "data/osm_cache/outer_tags.json",
+        "scripts/bake_entrances.py:2742",
+        "scripts/bake_entrances.py:2742 frozen building ref CDA"
+      ]
+    },
+    "CML": {
+      "reason": "Correct building identity exists locally, but no emitted entrance for this code/host and no UT surveyed fallback; a label/centroid is not a wall door.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[38]",
+        "data/labels.json:labels[263]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[882]",
+        "scripts/bake_entrances.py:2740",
+        "scripts/bake_entrances.py:2740 frozen building ref CML"
+      ]
+    },
+    "CPC": {
+      "reason": "CPC register name versus OFPC cached name is a candidate equivalence, not an exact proven ref join; no door exists, so do not route it.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[39]",
+        "data/labels.json:labels[1240]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[7186]"
+      ]
+    },
+    "DEV": {
+      "reason": "Frozen OSM building rows identify DEV as Development Center; label and 17.8m outer footprint agree. No emitted door exists; nearest frozen surveyed entrance is 763m away and nearest original graph door 255m away. This is a host/source omission, not a usable alias-only route.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[44]",
+        "scripts/bake_entrances.py:2859",
+        "data/labels.json:labels[273]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[512]",
+        "scripts/bake_entrances.py:2859 frozen building ref DEV"
+      ]
+    },
+    "DFF": {
+      "reason": "Named field/stadium/recreation polygon exists, but no exact class-code wall door or gate is emitted. Field geometry/centroid is not entrance evidence.",
+      "cause": "identified_sports_area_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[46]",
+        "data/osm_cache/landuse.json:elements[33], way/181382909"
+      ]
+    },
+    "E11": {
+      "reason": "Only register identity for storehouse 11; not arbitrary Building 11 or a fire station.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[48]"
+      ]
+    },
+    "E13": {
+      "reason": "Only register identity for storehouse 13; Electric 13 is unrelated.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[49]"
+      ]
+    },
+    "E15": {
+      "reason": "Only register identity for storehouse 15; Twenty Two 15 is unrelated.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[50]"
+      ]
+    },
+    "E27": {
+      "reason": "Only register identity for storehouse 27; do not match by number alone.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[52]"
+      ]
+    },
+    "EME": {
+      "reason": "Real J.J. Pickle Research Campus destination, 11.58 km north of MAI. Preserve offmap, not notfound; UT survey does not imply a connected main-campus walk.",
+      "cause": "surveyed_satellite_campus_off_map",
+      "sources": [
+        "js/wayfind.js:OFF_MAP EME",
+        "js/wayfind.js:2833-2843 OFF_MAP",
+        "js/wayfind.js:UT_CELEBRATED"
+      ]
+    },
+    "FC1": {
+      "reason": "Correct building identity exists locally, but no emitted entrance for this code/host and no UT surveyed fallback; a label/centroid is not a wall door.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[59]",
+        "data/labels.json:labels[288]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[456]",
+        "scripts/bake_entrances.py:2785 frozen building ref FC1"
+      ]
+    },
+    "FC2": {
+      "reason": "Correct building identity exists locally, but no emitted entrance for this code/host and no UT surveyed fallback; a label/centroid is not a wall door.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[60]",
+        "data/labels.json:labels[289]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[536]",
+        "scripts/bake_entrances.py:2768 frozen building ref FC2"
+      ]
+    },
+    "FC3": {
+      "reason": "Correct building identity exists locally, but no emitted entrance for this code/host and no UT surveyed fallback; a label/centroid is not a wall door.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[61]",
+        "data/labels.json:labels[290]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[478]",
+        "scripts/bake_entrances.py:2787 frozen building ref FC3"
+      ]
+    },
+    "FC4": {
+      "reason": "Correct building identity exists locally, but no emitted entrance for this code/host and no UT surveyed fallback; a label/centroid is not a wall door.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[62]",
+        "data/labels.json:labels[291]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[458]",
+        "scripts/bake_entrances.py:2779 frozen building ref FC4"
+      ]
+    },
+    "FC5": {
+      "reason": "Correct building identity exists locally, but no emitted entrance for this code/host and no UT surveyed fallback; a label/centroid is not a wall door.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[63]",
+        "data/labels.json:labels[292]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[1632]",
+        "scripts/bake_entrances.py:2761 frozen building ref FC5"
+      ]
+    },
+    "FC6": {
+      "reason": "Correct building identity exists locally, but no emitted entrance for this code/host and no UT surveyed fallback; a label/centroid is not a wall door.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[64]",
+        "data/labels.json:labels[293]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[695]",
+        "scripts/bake_entrances.py:2756 frozen building ref FC6"
+      ]
+    },
+    "FC7": {
+      "reason": "Correct 3.1 m-high footprint exists; existing entrance policy explicitly excludes FC7 for height. No emitted door. Do not relax policy or invent a wall door in this diagnosis.",
+      "cause": "identified_footprint_entrance_height_exclusion",
+      "sources": [
+        "data/ut_buildings.json:buildings[65]",
+        "data/labels.json:labels[294]",
+        "data/osm_cache/outer_tags.json",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson",
+        "scripts/bake_entrances.py:199-201",
+        "scripts/bake_entrances.py:2753",
+        "scripts/bake_entrances.py:2753 frozen building ref FC7"
+      ]
+    },
+    "FC8": {
+      "reason": "Correct building identity exists locally, but no emitted entrance for this code/host and no UT surveyed fallback; a label/centroid is not a wall door.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[66]",
+        "data/labels.json:labels[295]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[967]",
+        "scripts/bake_entrances.py:2806 frozen building ref FC8"
+      ]
+    },
+    "FC9": {
+      "reason": "Correct building identity exists locally, but no emitted entrance for this code/host and no UT surveyed fallback; a label/centroid is not a wall door.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[67]",
+        "data/labels.json:labels[270]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[5233]"
+      ]
+    },
+    "FDG": {
+      "reason": "FDG garage 0610 and FDH house 0606 are distinct register entries; no garage door evidence.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[68]"
+      ]
+    },
+    "FS1": {
+      "reason": "Real J.J. Pickle Research Campus destination, 11.24 km north of MAI. Preserve offmap, not notfound; UT survey does not imply a connected main-campus walk.",
+      "cause": "surveyed_satellite_campus_off_map",
+      "sources": [
+        "js/wayfind.js:OFF_MAP FS1",
+        "js/wayfind.js:2833-2843 OFF_MAP",
+        "js/wayfind.js:UT_CELEBRATED"
+      ]
+    },
+    "FSL": {
+      "reason": "Real J.J. Pickle Research Campus destination, 11.3 km north of MAI. Preserve offmap, not notfound; UT survey does not imply a connected main-campus walk.",
+      "cause": "surveyed_satellite_campus_off_map",
+      "sources": [
+        "js/wayfind.js:OFF_MAP FSL",
+        "js/wayfind.js:2833-2843 OFF_MAP",
+        "js/wayfind.js:UT_CELEBRATED"
+      ]
+    },
+    "FTC": {
+      "reason": "Named football-training construction area exists; register says occupied 2026, but there is no completed-complex door evidence. Construction polygon is not a wall door.",
+      "cause": "construction_site_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[71]",
+        "data/osm_cache/construction.json:elements[65], way/1426037233"
+      ]
+    },
+    "FTG": {
+      "reason": "Garage-specific register 9719 has no identified entrance; adjacent football-training construction area does not prove a garage host or shared access.",
+      "cause": "construction_site_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[72]",
+        "data/osm_cache/construction.json:elements[65], way/1426037233"
+      ]
+    },
+    "GHA": {
+      "reason": "Unit A, register 0586; no spatial/door evidence for this individual housing unit.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[77]"
+      ]
+    },
+    "GHB": {
+      "reason": "Unit B, register 0587; no spatial/door evidence for this individual housing unit.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[78]"
+      ]
+    },
+    "GHC": {
+      "reason": "Unit C, register 0588; no spatial/door evidence for this individual housing unit.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[79]"
+      ]
+    },
+    "GHD": {
+      "reason": "Unit D, register 0589; no spatial/door evidence for this individual housing unit.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[80]"
+      ]
+    },
+    "GHE": {
+      "reason": "Unit E, register 0590; no spatial/door evidence for this individual housing unit.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[81]"
+      ]
+    },
+    "GHF": {
+      "reason": "Unit F, register 0591; no spatial/door evidence for this individual housing unit.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[82]"
+      ]
+    },
+    "GRC": {
+      "reason": "Pool control building 0275 is not Gregory Gym GRE; no identified control-building door.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[85]"
+      ]
+    },
+    "GRF": {
+      "reason": "Aquatic food-service building 0274 is not Gregory Gym GRE; no identified food-service door.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[87]"
+      ]
+    },
+    "GRP": {
+      "reason": "Pool equipment building 0277 is not Gregory Gym GRE; no identified equipment-building door.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[88]"
+      ]
+    },
+    "GRS": {
+      "reason": "Pool storage building 0276 is not Gregory Gym GRE; no identified storage-building door.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[89]"
+      ]
+    },
+    "GSM": {
+      "reason": "Housing maintenance building 0592 has no spatial/door evidence; not GSB.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[91]"
+      ]
+    },
+    "HS4": {
+      "reason": "Only register identity for HSS support building 4; no exact local spatial/door evidence.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[100]"
+      ]
+    },
+    "IC2": {
+      "reason": "Register supplies exact address 2815 San Gabriel and IC2 Institute name, but no matching cached address/ref or entrance host; cannot select a nearby house.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[103]"
+      ]
+    },
+    "ICB": {
+      "reason": "Intramural control building 0446 has no exact spatial/door identity; not a bar named Control Room.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[104]"
+      ]
+    },
+    "IMA": {
+      "reason": "Intramural maintenance A, 0443; no exact spatial/door identity.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[105]"
+      ]
+    },
+    "IMB": {
+      "reason": "Intramural maintenance B, 0444; no exact spatial/door identity.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[106]"
+      ]
+    },
+    "KEY": {
+      "reason": "University Key Building 0986 has no spatial/door identity; Key Bar is unrelated.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[113]"
+      ]
+    },
+    "LAC": {
+      "reason": "Exact LAC named point falls inside outer feature 2884, but no local door/survey exists. Rendered outer geometry is not route coverage and does not prove off-map status.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[115]",
+        "data/labels.json:labels[1113]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[2884]"
+      ]
+    },
+    "LNA": {
+      "reason": "Correct building identity exists locally, but no emitted entrance for this code/host and no UT surveyed fallback; a label/centroid is not a wall door.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[120]",
+        "data/labels.json:labels[329]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[1149]"
+      ]
+    },
+    "LS1": {
+      "reason": "Footprint is named exactly LS1, but has no emitted entrance and no surveyed fallback. Neither SW7 nor CPE nearby doors belongs to LS1.",
+      "cause": "identified_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[121]",
+        "data/labels.json:labels[1144]",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson"
+      ]
+    },
+    "MER": {
+      "reason": "Real J.J. Pickle Research Campus destination, 11.09 km north of MAI. Preserve offmap, not notfound; UT survey does not imply a connected main-campus walk.",
+      "cause": "surveyed_satellite_campus_off_map",
+      "sources": [
+        "js/wayfind.js:OFF_MAP MER",
+        "js/wayfind.js:2833-2843 OFF_MAP",
+        "js/wayfind.js:UT_CELEBRATED"
+      ]
+    },
+    "MMS": {
+      "reason": "Named field/stadium/recreation polygon exists, but no exact class-code wall door or gate is emitted. Field geometry/centroid is not entrance evidence.",
+      "cause": "identified_sports_area_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[131]",
+        "data/osm_cache/sport.json:elements[15], way/665454575"
+      ]
+    },
+    "MSB": {
+      "reason": "Correct building identity exists locally, but no emitted entrance for this code/host and no UT surveyed fallback; a label/centroid is not a wall door.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[134]",
+        "data/labels.json:labels[1155]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[5799]",
+        "scripts/bake_entrances.py:2732",
+        "scripts/bake_entrances.py:2732 frozen building ref MSB"
+      ]
+    },
+    "NUG": {
+      "reason": "Nueces Garage 9091 is not 2400 Nueces N24 or The Quarters Nueces House; no garage-specific door evidence.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[139]"
+      ]
+    },
+    "PRH": {
+      "reason": "Dobie Paisano Ranch House 0979 is not J. Frank Dobie House FDH 0606; no local ranch footprint/door identity. Do not infer off-map location without a coordinate.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[150]"
+      ]
+    },
+    "PX3": {
+      "reason": "Real J.J. Pickle Research Campus destination, 11.31 km north of MAI. Preserve offmap, not notfound; UT survey does not imply a connected main-campus walk.",
+      "cause": "surveyed_satellite_campus_off_map",
+      "sources": [
+        "js/wayfind.js:OFF_MAP PX3",
+        "js/wayfind.js:2833-2843 OFF_MAP",
+        "js/wayfind.js:UT_CELEBRATED"
+      ]
+    },
+    "RHG": {
+      "reason": "RHG garage 0111 and RRH hall 0108 are distinct entries; no garage door evidence.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[152]"
+      ]
+    },
+    "ROC": {
+      "reason": "Real J.J. Pickle Research Campus destination, 11.7 km north of MAI. Preserve offmap, not notfound; UT survey does not imply a connected main-campus walk.",
+      "cause": "surveyed_satellite_campus_off_map",
+      "sources": [
+        "js/wayfind.js:OFF_MAP ROC",
+        "js/wayfind.js:2833-2843 OFF_MAP",
+        "js/wayfind.js:UT_CELEBRATED"
+      ]
+    },
+    "SBS": {
+      "reason": "Red and Charline McCombs Field 9832 is not Red McCombs Red Zone NEZ; no identified field gate.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[157]"
+      ]
+    },
+    "SMC": {
+      "reason": "Correct hospital label falls inside outer hospital feature 136 and overlapping feature 17487. No SMC entrance exists. HDB, HTB and Ascension Seton Medical Center are different buildings; do not substitute their doors. Frozen host ref DSMC is a possible SMC name/host alias only, with no doorway to join. Preserve unavailable pinned behavior.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[162]",
+        "data/labels.json:labels[793]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[136]",
+        "data/outer_ring.geojson:features[17487]",
+        "scripts/bake_entrances.py:_BUILDING_ROWS DSMC",
+        "scripts/bake_entrances.py:2610 frozen host ref DSMC"
+      ]
+    },
+    "SSC": {
+      "reason": "Silver Spurs Center 9720, occupied 2026 in register; no local footprint/entrance identity. Year alone cannot establish open or closed.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[165]"
+      ]
+    },
+    "SV1": {
+      "reason": "Real J.J. Pickle Research Campus destination, 10.81 km north of MAI. Preserve offmap, not notfound; UT survey does not imply a connected main-campus walk.",
+      "cause": "surveyed_satellite_campus_off_map",
+      "sources": [
+        "js/wayfind.js:OFF_MAP SV1",
+        "js/wayfind.js:2833-2843 OFF_MAP",
+        "js/wayfind.js:UT_CELEBRATED"
+      ]
+    },
+    "TCB": {
+      "reason": "Real J.J. Pickle Research Campus destination, 11.32 km north of MAI. Preserve offmap, not notfound; UT survey does not imply a connected main-campus walk.",
+      "cause": "surveyed_satellite_campus_off_map",
+      "sources": [
+        "js/wayfind.js:OFF_MAP TCB",
+        "js/wayfind.js:2833-2843 OFF_MAP",
+        "js/wayfind.js:UT_CELEBRATED"
+      ]
+    },
+    "TLB": {
+      "reason": "Texas Longhorns Boathouse 2230 is not Waller Creek Boathouse; no local identity match.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[173]"
+      ]
+    },
+    "TSB": {
+      "reason": "Tennis Support Building 0445 is not Texas Tennis Center TTC 9825; no support-building entrance evidence.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[177]"
+      ]
+    },
+    "TSP": {
+      "reason": "Pump house 0414 and Swimming Center TSC 0419 are distinct register entries; no pump-house door evidence.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[180]"
+      ]
+    },
+    "TTC": {
+      "reason": "Named field/stadium/recreation polygon exists, but no exact class-code wall door or gate is emitted. Field geometry/centroid is not entrance evidence.",
+      "cause": "identified_sports_area_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[181]",
+        "data/osm_cache/landuse.json:elements[100], way/596248952"
+      ]
+    },
+    "UIL": {
+      "reason": "Correct building identity exists locally, but no emitted entrance for this code/host and no UT surveyed fallback; a label/centroid is not a wall door.",
+      "cause": "outer_footprint_without_entrance",
+      "sources": [
+        "data/ut_buildings.json:buildings[183]",
+        "data/labels.json:labels[385]",
+        "data/osm_cache/outer_tags.json",
+        "data/outer_ring.geojson:features[757]",
+        "scripts/bake_entrances.py:2752",
+        "scripts/bake_entrances.py:2752 frozen building ref UIL"
+      ]
+    },
+    "WAT": {
+      "reason": "Exact WAT ref/name/footprint already agree; entrance source explicitly identifies WAT as no mapped approach and expected empty. This is not an alias problem.",
+      "cause": "identified_footprint_no_mapped_approach",
+      "sources": [
+        "data/ut_buildings.json:buildings[189]",
+        "data/labels.json:labels[233]",
+        "data/osm_cache/outer_tags.json",
+        "data/snapshots/2026-09-27/buildings.detailed.geojson",
+        "data/osm_cache/capitol_north_tags.json:elements[217]",
+        "scripts/bake_entrances.py:190-191",
+        "scripts/bake_entrances.py:2653",
+        "scripts/bake_entrances.py:2653 frozen building ref WAT"
+      ]
+    },
+    "WGB": {
+      "reason": "Whitaker Gateway Building 0447 has no local coordinate/door identity; do not guess another campus from name alone.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[193]"
+      ]
+    },
+    "Z02": {
+      "reason": "Register supplies exact address 2007 Guadalupe, but no matching cached address/name/ref or entrance host; Sixth and Guadalupe and Co-op are not proof.",
+      "cause": "register_only_no_identified_door",
+      "sources": [
+        "data/ut_buildings.json:buildings[197]"
+      ]
+    }
+  }
+}
