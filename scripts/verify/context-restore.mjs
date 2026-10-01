@@ -106,7 +106,19 @@ try {
     await page.waitForTimeout(4000);
     await page.waitForFunction(() => !document.getElementById('veil') || document.getElementById('veil').classList.contains('lift'), null, { timeout: 60000 });
     await page.waitForTimeout(1200);
-    await page.waitForFunction(() => !window.CityLighting?.stats.shadowProxyBuilding, null, { timeout: 90000 });
+    // The shadow model is built from the tiles MapLibre is drawing. After a
+    // restore those tiles return over several frames, and on CI's SwiftShader
+    // (about one frame a second) the model can sit idle between two partial
+    // builds: CI once compared a 368k-triangle model against the 401k one it
+    // replaced. Wait until two readings 4 s apart agree.
+    let last = null;
+    for (let i = 0; i < 30; i++) {
+      await page.waitForFunction(() => !window.CityLighting?.stats.shadowProxyBuilding, null, { timeout: 90000 });
+      const now = await page.evaluate(() => JSON.stringify(window.CityLighting?.proxyHash()));
+      if (now === last) break;
+      last = now;
+      await page.waitForTimeout(4000);
+    }
     await page.waitForTimeout(1500);
   };
   // CI renders on SwiftShader (no GPU): one 1440x900 frame of the full city
