@@ -15,7 +15,10 @@ let browser;
 
 try {
   if (output) await mkdir(output, { recursive: true });
-  browser = await launch(chromium, { gl: 'hardware', maxMs: 300000 });
+  // No maxMs here: the watchdog then takes VERIFY_MAX_MS, which CI sets from
+  // this check's ceiling (SwiftShader needs more than 5 min), and defaults to
+  // 5 min on a GPU, where a run takes about 1.
+  browser = await launch(chromium, { gl: 'hardware' });
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     const device = viewport.width === 390 ? 'phone' : 'desktop';
     const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
