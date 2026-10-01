@@ -33817,5 +33817,8 @@ the image calls and setSky/setLight do nothing while there is no style,
 `applyTimeOfDay` only records the time there, and js/slopes.js re-applies the
 current time through the full wrapper chain once the real style is back. The
 check moves the clock inside the gap on purpose, so every machine exercises it.
+The restore re-applies the time only when it differs from the moment of the
+loss: an unconditional repaint made the name labels re-test what hides them,
+and on CI's slow renderer two were still fading back in at the after frame.
 Laptop GPU, 1440 x 900: restore difference 0.004% against a 0.01% noise
 floor, no page errors; phone profile passes.
