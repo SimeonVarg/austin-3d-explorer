@@ -162,6 +162,7 @@ node movement.mjs      # camera: symmetry, vertical control, momentum, stuck key
 node collision.mjs     # never inside a building, streets stay flyable, joystick+look (8 assertions)
 node walk.mjs          # a scripted walk really walks, at 1.7 m, and can be watched failing
 node sky.mjs           # one-sun coherence, disc projection, blend invariants (12 assertions)
+node sunset-band.mjs --url=<origin>  # composited phone/desktop sunset horizon: coolest clear column R-B >= 90
 node dusk.mjs          # the dusk handover is continuous, measured in PIXELS across a p sweep
 node night-silhouette.mjs   # the skyline reads DARK against the sky at dusk and night
 node banding.mjs       # the sky gradient is still a gradient + updateSky cost

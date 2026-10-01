@@ -33615,3 +33615,26 @@ Speed: an isolated mottle benchmark, node only and not the app (512 x 512 RGBA, 
 Appearance: day frames differ from the unchanged build by at most 2 of 255 per channel. Night frames differ by at most 56 of 255 (campus) and 48 of 255 (West Campus), with 232 and 21 pixels beyond 12; a repeat of the unchanged build gave 230 and 43 for the same two views, so that is scene noise (stars, ground lights). Downtown night and the hour change reached 16 and 17 of 255, with 19 and 15 pixels beyond 12 against 2 and 3 for the repeat, which is not fully accounted for by that noise.
 
 Still open: fresh walking-height and day/night comparisons, a console check on load and after moving the camera, and a quiet-machine timing with at least three interleaved pairs. Until then, do not claim faster turns, hour changes or flight.
+
+
+## September 30, 2026 - Standalone warm sunset horizon proof (claude/sunset-horizon)
+
+The committed js/timeofday.js and js/slopes.js fix remains untouched. Added
+scripts/verify/sunset-band.mjs and its README entry. The check uses the normal
+application, production time-of-day control, live FOV, second composited frame
+and clear-column selection independent of warmth. Early auto-detect cancellation,
+fixed exposure, fresh contexts and hardware rendering keep the two arms matched.
+Two interleaved final runs each: main fails at phone R-B 51.40 and desktop -13.40;
+the branch passes at 148.20 and 122.40, threshold 90. The existing graphics suite
+passes 27/27. Served application sources match the parent/main and branch commits.
+Syntax, harness parity and whitespace checks pass. Edits remain uncommitted.
+
+The cold band is gone in both matched views, but sky-only visual acceptance is
+NOT established: the linked haze and distant city also visibly warm, exceeding
+unchanged-build repeat noise. The reviewing lane must resolve that scope point;
+do not claim that only clear sky changed. Initial selector drafts rejected a
+vertical sky gradient and included a smooth tower; the final selector excludes
+those independently of color warmth and was rerun unchanged in both arms.
+Labelled images, raw measurements, full graphics output and the report are held
+in the local pipeline task output/scratch, not tracked screenshot directories.
+No unrelated task, server, git write or continuation was started.
