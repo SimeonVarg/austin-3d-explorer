@@ -11,27 +11,31 @@ caught some half-faded (0.5% of pixels, every one of them label text).
 `namelabels=0` and symbol layers hidden, and waits for the shadow model's
 hash to hold still across two readings 4 s apart before it compares.
 
-**Buildings from street photographs (draft PRs, waiting for the owner's look):**
-#379 Ion Austin, #380 Moontower, #381 21 Rio, #382 Villas on 24th,
-#383 2400 Nueces, #384 Signature 1909, #385 The Mark (parking level only),
-#386 The Otis Hotel. Each changes only
-`data/apartments/<slug>.json`. Method, so the next pass can repeat it:
-render the candidate from cameras matched to the photographs (a camera that
-does not line up with its photograph is dropped before judging), compare it
-blind against the current version with the labels shuffled, and pass a
-building only when the change is visible, it wins most photographs and it
-loses none. A version that "wins" by making a light material darker, or by
-adding a colour or feature the photographs do not show, counts as worse.
-Every pass is then checked by eye; one blind pass (Villas on Rio: windows
-closer, but the white upper tower turned mid-grey) was rejected there.
-The Mark's blind pass also re-clad a brick apartment wing and a tower face
-in windowless metal; only the parking-level change, which a photograph shows
-up close, was kept. Union on 24th passed blind but was held: its one change
-was lobby glass, too small to judge. Pointe on Rio, The Callaway House,
-Union on San Antonio, Yugo Austin Waterloo, The Standard and The Castilian
-did not pass. Never write photo ids,
-who took a photo, or camera positions into a building file: the repo is
-public.
+**Buildings from street photographs: the owner's verdict.** Only two
+changes passed his look: #383 2400 Nueces (merged) and #379 Ion Austin
+(merge once its CI is green). #380 Moontower, #381 21 Rio, #382 Villas on
+24th, #384 Signature 1909, #385 The Mark and #386 The Otis Hotel were
+closed. His reasons: they did not capture the building's depth or colour,
+and the cameras did not match the photographs. The bar is "looks like the
+building in the photograph", not "closer than before".
+
+**The cameras were wrong, and that is fixed upstream of this repo.** The
+render cameras came from an old fitter that guessed the tilt from a coarse
+grid (21 Rio: 25 degrees, the photograph's own vertical lines say 35), and
+the renderer faked looking up with MapLibre's top padding at pitch 88. That
+is a shift lens: verticals stay parallel and roughly the top 12 degrees of
+the photograph's view is cut off, so an upper-floor photograph was compared
+with storefronts. The fix renders one tall, centred frame from the
+photograph's eye that holds its whole view, then warps it into the
+photograph's camera (same eye, pure rotation, so the warp is exact).
+Padding is not used: MapLibre draws its sky from the unpadded centre
+(`skyUniformValues` uses `height / 2`), so a padded frame shows a dark band
+above the horizon. Tilt and roll now come from the photograph's vertical
+lines. Position and heading are searched by rendering the app and scoring
+long straight edges and the sky outline against the photograph. Method,
+unchanged: a camera that does not line up is dropped, then a blind compare.
+Never write photo ids, who took a photo, or camera positions into a
+building file: the repo is public.
 
 ## Sep 30 2026 - Riverside attach in slices (`claude/area-slice` branch, draft PR)
 
