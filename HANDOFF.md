@@ -33734,3 +33734,17 @@ those independently of color warmth and was rerun unchanged in both arms.
 Labelled images, raw measurements, full graphics output and the report are held
 in the local pipeline task output/scratch, not tracked screenshot directories.
 No unrelated task, server, git write or continuation was started.
+
+## September 30, 2026 - Photo import speaks before it waits (claude/import-says-at-once)
+
+Picking a schedule photo now shows "Getting the reader ready…" at once. Before,
+the panel stayed blank until the iPhone-HEIC format sniff finished, and that
+12-byte read waits for a free main thread: on the phone profile, with the city
+still drawing, that was 1-3 s (measured on the laptop: the first status at
+1.3-3.2 s after the pick, blank before it). The same race made
+`img-import.mjs` step 4 ("while it reads, the panel is up and says what it is
+doing") fail on CI for two unrelated PRs (#354, #369) while it passed on
+others. Code: `impFromImage` in js/wayfind.js sets the busy note before the
+format gate and clears it when a HEIC is refused. Laptop GPU: img-import 67/67;
+two timing runs saw the note on the very first observation. Not fixed: the
+main thread still stalls ~2.2-2.6 s right after a pick on the phone profile.
