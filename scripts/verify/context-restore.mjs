@@ -66,7 +66,10 @@ function difference(first, second) {
 
 const report = { profile, base: BASE, viewport: profile === 'phone' ? { width: 390, height: 844 } : { width: 1440, height: 900 }, checks: [], pageErrors: [], consoleErrors: [], reloads: 0, recoveryRequests: [] };
 const check = (name, pass, detail) => report.checks.push({ name, pass: !!pass, detail });
-const browser = await launch(chromium, { gl: 'hardware', maxMs: 300000 });
+// No maxMs here: the watchdog then takes VERIFY_MAX_MS, which CI sets from
+// this check's ceiling (SwiftShader needs more than 5 min), and defaults to
+// 5 min on a GPU, where a run takes about 1.
+const browser = await launch(chromium, { gl: 'hardware' });
 try {
   const context = await browser.newContext({ viewport: report.viewport, screen: report.viewport, isMobile: profile === 'phone', hasTouch: profile === 'phone', deviceScaleFactor: 1 });
   const page = await context.newPage();
