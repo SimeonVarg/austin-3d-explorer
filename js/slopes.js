@@ -1661,7 +1661,7 @@
     // CPU meshes/materials/textures and let a fresh renderer upload everything.
     // Only where the CPU copies were kept; a phone reloads instead (js/mobile.js).
     if (!FREE_CPU) {
-      let restorePending = false, restoreLight = null;
+      let restorePending = false, restoreLight = null, restoreP = null;
       const restoreLayer = () => {
         if (!restorePending || !map.style?._loaded || !map.getLayer('buildings-3d') || map.painter.context.gl.isContextLost()) return;
         // MapLibre's loss snapshot also omits its live time-of-day light.
@@ -1669,13 +1669,16 @@
         if (!map.getLayer(SLOPES.layerId)) map.addLayer(layer, beforeId(map));
         // The clock may have moved while the style was gone (js/app.js, THE
         // STYLELESS GAP); the snapshot only knows the moment of the loss.
-        // Re-apply the CURRENT time through the full wrapper chain.
-        if (typeof window.applyTimeOfDay === 'function' && window.__todCurrentP != null)
+        // Re-apply the CURRENT time through the full wrapper chain, but only
+        // then: a needless repaint makes the name labels re-test what hides
+        // them, and on CI's slow renderer they were still fading back in.
+        if (typeof window.applyTimeOfDay === 'function' && window.__todCurrentP != null &&
+            window.__todCurrentP !== restoreP)
           window.applyTimeOfDay(map, window.__todCurrentP, true);
         restorePending = false;
         map.triggerRepaint();
       };
-      map.getCanvas().addEventListener('webglcontextlost', () => { restoreLight = map.getLight(); restorePending = true; }, true);
+      map.getCanvas().addEventListener('webglcontextlost', () => { restoreLight = map.getLight(); restoreP = window.__todCurrentP; restorePending = true; }, true);
       map.on('webglcontextrestored', restoreLayer);
       map.on('styledata', restoreLayer);
       map.on('style.load', restoreLayer);
