@@ -33676,3 +33676,28 @@ rasterised locally and visually inspected. Its outdoor graph walk is within 1%
 of the reference time; noisy building and quality-gap walks remain excluded.
 No browser, server or external upload was used. Real phone tracks, confidence calibration, exact door
 positions and access/locked-door facts remain unverified.
+
+## September 30, 2026 - GPU check refresh (claude/gpu-checks-refresh)
+
+Refreshed the seven quarantined browser checks against 509bbba, with no changes
+to the app, authored data or CI list. Boot completion is not mesh completion:
+checks now wait for attachment, rendered frames and replacement filters. Campus
+membership follows the current collection; walking probes follow the structural
+ground split and test geometry independently of camera culling. Ground texture
+readback waits for the actual rendered filter update. Pitch checks wait until
+the map can receive their input. Mobile scenarios use fresh bounded browsers.
+
+Completed October 1: campus-everywhere, campus-walking, live-here-buildings,
+lookup and all eleven mobile scenarios pass twice consecutively on hardware GL.
+The mobile sets each pass 51 assertions; their old whole-suite timeout was too
+short, not a hanging load. These are desktop mobile profiles, not physical-phone
+acceptance. Screenshot pairs retain the second frame; evidence and the complete
+report remain with the reviewing lane. No performance improvement is claimed.
+
+Two checks stay red deliberately: campus-apartment measures Icon's 87.12 m roof
+with a 0 m collision envelope (d017e58 removed the sole collision-rebuild call).
+Campus-repairs reports 19 out-of-wall balcony warnings from GrandMarc Austin and
+The Block on Rio; malformed spans predate the bounds guard. All original
+thresholds and clean-console assertions remain. Later assertions blocked by the
+Icon failure are not claimed green. Changes are uncommitted for review and no
+new queued pass or continuation was started.
