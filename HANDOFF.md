@@ -1,5 +1,38 @@
 # Austin 3D Explorer — Full Handoff
 
+## Oct 1 2026 - night pass: restore check, desktop memory, buildings from street photos
+
+**Merged.** #369 (the city comes back after the browser loses its graphics
+context, no reload) and #354 (desktop memory: packed appearance attributes,
+input copies dropped). #369's CI failure was the check, not the city: names
+fade back in by time after a restore, and at SwiftShader's ~1 fps a frame
+caught some half-faded (0.5% of pixels, every one of them label text).
+`scripts/verify/context-restore.mjs` now compares the city with
+`namelabels=0` and symbol layers hidden, and waits for the shadow model's
+hash to hold still across two readings 4 s apart before it compares.
+
+**Buildings from street photographs (draft PRs, waiting for the owner's look):**
+#379 Ion Austin, #380 Moontower, #381 21 Rio, #382 Villas on 24th,
+#383 2400 Nueces, #384 Signature 1909, #385 The Mark (parking level only),
+#386 The Otis Hotel. Each changes only
+`data/apartments/<slug>.json`. Method, so the next pass can repeat it:
+render the candidate from cameras matched to the photographs (a camera that
+does not line up with its photograph is dropped before judging), compare it
+blind against the current version with the labels shuffled, and pass a
+building only when the change is visible, it wins most photographs and it
+loses none. A version that "wins" by making a light material darker, or by
+adding a colour or feature the photographs do not show, counts as worse.
+Every pass is then checked by eye; one blind pass (Villas on Rio: windows
+closer, but the white upper tower turned mid-grey) was rejected there.
+The Mark's blind pass also re-clad a brick apartment wing and a tower face
+in windowless metal; only the parking-level change, which a photograph shows
+up close, was kept. Union on 24th passed blind but was held: its one change
+was lobby glass, too small to judge. Pointe on Rio, The Callaway House,
+Union on San Antonio, Yugo Austin Waterloo, The Standard and The Castilian
+did not pass. Never write photo ids,
+who took a photo, or camera positions into a building file: the repo is
+public.
+
 ## Sep 30 2026 - Riverside attach in slices (`claude/area-slice` branch, draft PR)
 
 When the camera reaches Riverside the area used to arrive in one long frame.
