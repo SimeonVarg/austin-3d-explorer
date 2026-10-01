@@ -33735,6 +33735,54 @@ Labelled images, raw measurements, full graphics output and the report are held
 in the local pipeline task output/scratch, not tracked screenshot directories.
 No unrelated task, server, git write or continuation was started.
 
+## Sep 30 2026 - Far-detail fade for moire: two tries measured, neither on by default (`claude/moire-fade`, PR #352 closed unmerged; the branch is kept)
+
+The brief after #332/#341: fade (a) the authored apartments' sub-pixel detail
+and (b) the dashed downtown floor lines. Measured with `moire.mjs` (NVIDIA RTX
+3050 Ti, 1280x680 CSS at DPR 1.5, balanced, Smooth edges on, 4 samples,
+auto-exposure held, sunset p 0.50), both sides drawn in ONE page with
+`--variants` and scored against the unmodified city at 3x (lower is better).
+
+**(a) Filtered sheet on every authored building: rejected, not committed.**
+`APARTMENTS.facadeFilter` (#294) was widened from five buildings to all 196
+(1,672 faces, 13.4 MB at half resolution). Its p fade (.4-.5) already hides it
+at the sunset default, so it was moved to the lamps. Result: WORSE everywhere
+it drew. West campus moire 0.206 -> 0.322 (visible-band pixels 0.01% ->
+0.69%), campus low 0.196 -> 0.246, downtown 0.216 -> 0.222; west-glide flight
+0.205 -> 0.368. The sheet reads each wall's area average BEFORE lighting and
+glass reflection, so far walls come out a flat, brighter wash that the 3x
+reference does not have, and the proud geometry (balconies, fins) still draws
+on top. The frame-to-frame crawl did drop (shimmer +0.120 -> -0.083), which is
+the half #294 measured; the still-frame error is the half it did not. With
+Smooth edges on, #341 already found the authored fine parts at <0.004 of the
+score. A fix for (a) needs the sheet lit like the geometry, not a wider list.
+
+**(b) Thin-line coverage: committed, OFF by default (`?thinlines=1`).**
+`CityLighting.thinLines` in `js/city-lighting.js`: in `outer-detail` (<=0.42 m
+thick) and the two landmark layers (<=0.9 m), a wall whose projected thickness
+is under `minPx` 1.25 is drawn that tall (base moved down, top unchanged) at
+coverage alpha = true / drawn, so a 0.2 px floor band is a steady faint line.
+Results: downtown still 0.216 -> 0.218, landing start 0.172 -> 0.175, landing
+crest and west campus unchanged; downtown pan (40 frames) shimmer 0.120 ->
+0.113. Close-ups unchanged (near-downtown 17 px moved, near-west untouched).
+Frame time, downtown pan, 3 interleaved reps, loaded machine (CPU 78-89%):
+NVIDIA medians too noisy to read (branch -9.5 to +23 ms per rep); AMD iGPU
+(Edge, `VERIFY_GPU=low`) +1.7/+7.7/+2.8 ms, slower in 3 of 3. Not worth a
+default. The floor bands also are a small share of what still reads as dashes
+downtown: their opaque roof ledges and the balcony decks' tops (0.6-2.4 m deep)
+are untouched by a wall-only fix.
+
+Also: `moire.mjs` / `moire-fps.mjs` gain a `west-glide` flight past the West
+Campus towers. Evidence (scratch, not committed): `postlaunch/moire-fade/evidence/`.
+
+
+**Closed, not merged (Sep 30 2026).** Neither try earned a default, (b) was
+slower on the AMD iGPU in 3 of 3 reps, and the branch had drifted into a
+conflict with main plus a failing `landmark-material-contract.mjs`. Merging
+off-by-default code that measured no win only adds a path to maintain. The
+code stays on `origin/claude/moire-fade` if a lit facade sheet (the fix (a)
+needs) is ever built.
+
 ## September 30, 2026 - Photo import speaks before it waits (claude/import-says-at-once)
 
 Picking a schedule photo now shows "Getting the reader ready…" at once. Before,
