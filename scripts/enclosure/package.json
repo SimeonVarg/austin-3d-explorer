@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Offline-only enclosure bake; neither dependency is shipped to browsers",
+  "dependencies": {"three": "0.159.0", "three-mesh-bvh": "0.7.6"}
+}
