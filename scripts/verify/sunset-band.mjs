@@ -55,9 +55,11 @@ try {
     await page.waitForTimeout(5000);
     await page.evaluate(camera => window.__map.jumpTo(camera), pose);
     await page.waitForTimeout(2500);
-    await page.screenshot({ timeout: 20000 });
+    // A software-rendered full-city frame (CI has no GPU) can take far longer
+    // than 20 s to capture; the colour it measures is the same either way.
+    await page.screenshot({ timeout: 90000 });
     await page.waitForTimeout(1000);
-    const frame = await page.screenshot({ timeout: 20000 });
+    const frame = await page.screenshot({ timeout: 90000 });
     const measurement = await page.evaluate(async base64 => {
       const bytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0));
       const image = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
