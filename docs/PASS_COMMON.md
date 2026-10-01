@@ -9,7 +9,7 @@ of it is theory — every rule here is a bug that already shipped once.
 
 ## 0. The app
 
-**Austin 3D Explorer**, `C:\Users\simip\Projects\austin-3d-explorer`. A MapLibre GL JS
+**Austin 3D Explorer**, the `austin-3d-explorer` repo. A MapLibre GL JS
 5.24 flyover of UT Austin and West Campus going out on AWS Kiro's channels. Plain
 static HTML/CSS/JS, **no build step**. Serve the repo root:
 

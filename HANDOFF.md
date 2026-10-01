@@ -33533,6 +33533,50 @@ mobile.js header is pre-#310 main; that line is now dated.
 Looks, 390x844: main vs main again 0 px; main vs branch 0.30% spawn, 2.6%
 flight, all on shadow edges (shots/phone-memory/*-before-after-diff.jpg).
 
+## Sep 30 2026 - first-load transport: no whitespace in the 45 core models
+
+The 45 core authored models listed in `data/apartments/index.json` no longer
+carry whitespace between JSON tokens. Only whitespace outside quoted strings is
+removed: every file parses to exactly the same content as before, numbers keep
+their spelling, and coordinates and property order are untouched. Committed
+files, raw bytes: 12,192,177 -> 6,147,815 (-6,044,362). Text-compression
+estimates on the same files (gzip level 6 / Brotli quality 6): -151,410 /
+-66,372 bytes. Production already sends Brotli, so the wire saving there is
+small; a host that sends bodies uncompressed (the local static server) sees the
+full raw saving.
+
+An earlier commit in the same change rewords the provenance notes (`_src`,
+`_readme`, `sources`, `todo`, `open`) in 14 of these models so they no longer
+name a local project path, a person, or photo folders and file names.
+Text only, 296 raw bytes: nothing numeric changed and nothing under `js/` reads
+those notes. A to-do field that names the file a fix belongs in is now called
+`where`.
+
+`python scripts/compact_models.py` compacts (`--check` only reports), and
+`scripts/verify/model-compaction.mjs` fails the check run if a rebake puts
+whitespace back. Five authoring scripts now write compact output. Details in
+`docs/load-path-cuts.md`.
+
+Looks: local first-view capture, cache off, worker requests included, went from
+52.56 MB to 45.97 MB (that baseline was a Windows checkout with CRLF line
+endings, which is about 0.5 MB of the difference). Six fixed camera pairs
+(campus, West Campus, downtown, day and night) differ in 0.040 to 0.102 percent
+of pixels, scattered shadow and raster edges, nothing visible. That is not a
+zero-pixel result.
+
+Open: no faster load is shown. Two timing checks on a busy machine measured the
+changed build no faster (bar full at 57.7 s against 49.1 s, two runs each, load
+drifting), so treat this as a transfer-size change only.
+
+Not in this change: sharing the duplicate roof and tower downloads was tried
+and saved 1,956,489 raw bytes in a local cache-off load (about 203 KB Brotli,
+estimated), but the West Campus and downtown camera checks did not finish, so it
+was left out. Sharing the art and dome downloads (about 57 KB and 10 KB Brotli,
+estimated) and dropping the entrance data the page discards (about 117 KB
+Brotli, estimated) are not started. All of these save fewer raw bytes than this
+change. By compressed size only the roof and tower sharing and the entrance data
+would save more than this change's 66 KB.
+
 ## September 30, 2026 - Apartment finder answers
 
 The hidden finder preview (`?livehere=1`) now gives only answers it can stand
@@ -33615,3 +33659,44 @@ Speed: an isolated mottle benchmark, node only and not the app (512 x 512 RGBA, 
 Appearance: day frames differ from the unchanged build by at most 2 of 255 per channel. Night frames differ by at most 56 of 255 (campus) and 48 of 255 (West Campus), with 232 and 21 pixels beyond 12; a repeat of the unchanged build gave 230 and 43 for the same two views, so that is scene noise (stars, ground lights). Downtown night and the hour change reached 16 and 17 of 255, with 19 and 15 pixels beyond 12 against 2 and 3 for the repeat, which is not fully accounted for by that noise.
 
 Still open: fresh walking-height and day/night comparisons, a console check on load and after moving the camera, and a quiet-machine timing with at least three interleaved pairs. Until then, do not claim faster turns, hour changes or flight.
+
+
+## September 30, 2026 - Local walking evidence (claude/gpx-import)
+
+Added an offline standard-library GPX importer in scripts/gpx. Raw inputs, privacy
+circles and all generated outputs stay outside the repository. Privacy filtering
+happens before matching; redactions break trips and generated lines are checked
+again. Existing door geometry is grouped by eid; the importer reports provisional
+door confirmations, new wall points, shortcuts, through-links and real-versus-graph
+walking times. It does not modify the graph, entrances, app or access rules.
+
+Verification: 20 synthetic-only tests pass with Python 3.12 (site packages
+disabled) and with Python 3.9. A full synthetic day creates all four outputs; the labelled SVG was
+rasterised locally and visually inspected. Its outdoor graph walk is within 1%
+of the reference time; noisy building and quality-gap walks remain excluded.
+No browser, server or external upload was used. Real phone tracks, confidence calibration, exact door
+positions and access/locked-door facts remain unverified.
+
+## September 30, 2026 - Graphics context restoration (claude/context-restore)
+
+When the browser loses and restores its graphics (a driver reset, sleep/wake),
+the 3D city now comes back in place on desktop instead of vanishing. The CPU
+scene survives; a new renderer uploads it again, shadow maps and pending shader
+compiles are reset, the shared lighting hooks are re-installed and the current
+sunlight is kept. Code: js/slopes.js, js/city-lighting.js, js/mobile.js. Check:
+scripts/verify/context-restore.mjs.
+
+Phones are deliberately unchanged. A phone drops each mesh's CPU copy after it
+reaches the GPU (about 260 MB saved), so it cannot re-upload in place and keeps
+its existing recovery: the reload in js/mobile.js. Keeping that copy would let a
+phone restore in place but costs the 260 MB all the time, which is the wrong
+trade on the device most likely to be killed for memory. window.slopes
+.canRestoreContext is false there, and the phone profile of the check asserts
+exactly that contract instead of forcing a loss.
+
+Evidence: on main the desktop city loses 39% of its pixels after a forced loss
+and the custom layer does not return. On the branch, two fresh desktop runs at
+1440 x 900 recover to within 71-74 pixels (0.006%) of the settled frame, with the
+same camera, light and scene, both shadow maps rebuilt, no reload, no city data
+fetched and no page errors. graphics.mjs passes 27/27. Not verified: native tab
+switching, real driver resets, repeated losses in one page and physical phones.

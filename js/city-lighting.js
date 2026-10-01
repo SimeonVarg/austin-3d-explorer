@@ -825,13 +825,20 @@
       }
     }
     for(const name of ['drawElements','drawArrays'])wrap(name,native=>(...args)=>draw(native,args));
+    const imageMethods={};
     for(const method of ['addImage','updateImage']) {
+      imageMethods[method]=map[method];
       const native=map[method].bind(map);
       map[method]=function(id,image,...rest){
         return native(id,bandGlassImage(id,image),...rest);
       };
     }
-    map.on('remove',()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;});
+    // The restored map owns a new painter, while the WebGL JS object survives.
+    // Remove old hooks/resources before installing on that replacement painter.
+    const cleanup=()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;for(const [name,native] of Object.entries(imageMethods))map[name]=native;if(!gl.isContextLost())gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;gl.__cityLighting=false;};
+    const removed=()=>{map.off('webglcontextlost',lost);cleanup();};
+    const lost=()=>{map.off('remove',removed);cleanup();map.once('webglcontextrestored',()=>install(map));};
+    map.once('webglcontextlost',lost);map.once('remove',removed);
   }
   window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,proxyHash,patternFilter,
     setBuildings(features){buildings=features;proxyDirty=true;},

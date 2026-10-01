@@ -2249,8 +2249,8 @@ that is `clone:true, guard:pass` is a real, silent bypass. Run it with
  * A shape that is `clone:true, guard:pass` is a real, silent bypass.
  */
 import net from 'node:net';
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const SINK_PORT = Number(process.env.SINK_PORT || 8962);
@@ -2556,8 +2556,8 @@ and varies only the walk.
  *
  * Minimum of interleaved reps, in-page timing, never wall clock.
  */
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const label = process.argv[2] || 'run';
@@ -2643,8 +2643,8 @@ walk. `--shot` takes the frame at `shots/si/privacy/r7-map-guarded.jpg`.
  * One reading is not a result: the caller interleaves labels and takes the
  * minimum (scripts/verify/README.md).
  */
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const label = process.argv[2] || 'run';
@@ -2765,8 +2765,8 @@ put the canary on the socket.
  * the negative control that makes the armed column mean anything.
  */
 import net from 'node:net';
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const SINK_PORT = Number(process.env.SINK_PORT || 8963);
@@ -3082,8 +3082,8 @@ real one. `--shot` takes the frame at `shots/si/privacy/r8-map-guarded.jpg`.
  * likely to cost something.
  */
 import fs from 'node:fs';
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const label = process.argv[2] || 'run';
@@ -3216,8 +3216,8 @@ three reps. Run once plain and once with `--baseline` and compare the tables.
  * Run it once with and once without and compare the two tables.
  */
 import fs from 'node:fs';
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const baseline = process.argv.includes('--baseline')
@@ -3348,8 +3348,8 @@ and a genuinely fresh document rather than a reload of the page that seeded it.
  *
  * Exit 1 on any failure, per scripts/verify/README.md §142.
  */
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const C = { title: 'Thaumaturgical Marimba Rhetoric', instructor: 'Prof. Ottoline Quennevire' };

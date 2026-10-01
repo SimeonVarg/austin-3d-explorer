@@ -20,7 +20,7 @@ snippet in its docs for Simeon to paste.
 
 ```
 You are upgrading the LIGHT of the Austin 3D Explorer
-(C:\Users\simip\Projects\austin-3d-explorer) — a MapLibre GL 2.5D flyover of UT Austin
+(the austin-3d-explorer repo) — a MapLibre GL 2.5D flyover of UT Austin
 and West Campus that is going to be featured on AWS Kiro's socials.
 
 Geometry is being handled by other agents. YOUR JOB IS THE SINGLE BIGGEST REMAINING
@@ -74,7 +74,7 @@ This is going on a public feed, shot as a flyover. Concretely, chase:
 Never ask permission. Web research on sky/atmosphere models, real sun-position math for
 30.28 N, and reference PHOTOGRAPHY of Austin at golden hour and at night (find real
 photos and match them — do not invent a palette). A Google Maps API key exists at
-C:\Users\simip\Projects\utx-diorama\.env for Street View reference; read it in-script,
+the local reference project (utx-diorama) .env file for Street View reference; read it in-script,
 NEVER print or commit it.
 
 == VERIFY BY LOOKING ==
@@ -103,7 +103,7 @@ on look/atmosphere explaining the model you implemented and why.
 
 ```
 You are building the ROOFSCAPE of the Austin 3D Explorer
-(C:\Users\simip\Projects\austin-3d-explorer) — a MapLibre GL 2.5D flyover of UT Austin
+(the austin-3d-explorer repo) — a MapLibre GL 2.5D flyover of UT Austin
 and West Campus that is going to be featured on AWS Kiro's socials.
 
 HERE IS THE INSIGHT THAT MAKES THIS PASS WORTH RUNNING: this product is a FLYOVER. The
@@ -123,7 +123,7 @@ roofs are currently produced and drawn before changing anything.
                         nothing — that is a gap worth understanding and filling.
   data/parts.geojson    23 features only — sub-volumes are barely used.
   Reference of what "done" looks like: the Union on 24th hero build in
-  C:\Users\simip\Projects\utx-diorama documented a real Level-29 roof in detail —
+  The local reference project (utx-diorama) documented a real Level-29 roof in detail —
   a covered grill pavilion, a mechanical plant deck with dense condenser grids behind a
   louvre screen, a pool with a sun shelf, planters, paving. Read docs/U24_ROOFTOP_SPEC.md
   there for the flavour of what real roofs carry. You cannot port its geometry (wrong
@@ -161,7 +161,7 @@ VARIETY IS THE POINT — identical grey boxes on every roof is worse than nothin
 == GETTING WHAT YOU NEED — PRE-AUTHORISED ==
 Never ask permission. Aerial/satellite imagery (Esri, Google, NAIP), OSM/Overpass roof
 tags, City of Austin open data, and Google Street View for tall-building context. A Google
-Maps API key exists at C:\Users\simip\Projects\utx-diorama\.env — read it in-script, NEVER
+Maps API key exists at the local reference project (utx-diorama) .env file — read it in-script, NEVER
 print or commit it. Probe /streetview/metadata for panorama dates before trusting imagery.
 
 == VERIFY BY LOOKING ==
@@ -190,7 +190,7 @@ commit on look/roofscape explaining the vocabulary you built.
 ## PASS E — THE FILM: ROUTE, CINEMATOGRAPHY AND LABELS
 
 ```
-You are making the Austin 3D Explorer (C:\Users\simip\Projects\austin-3d-explorer)
+You are making the Austin 3D Explorer (the austin-3d-explorer repo)
 into something that can be POSTED. It is a MapLibre GL 2.5D flyover of UT Austin and West
 Campus, and it is going to be featured on AWS Kiro's socials.
 
@@ -251,7 +251,7 @@ roofs, better light and triple the radius.
 == GETTING WHAT YOU NEED — PRE-AUTHORISED ==
 Never ask permission. Study real drone-flyover cinematography, look at how city flyovers
 are cut for social, research MapLibre camera APIs and any recording approach that works
-here. A Google Maps API key exists at C:\Users\simip\Projects\utx-diorama\.env if you want
+here. A Google Maps API key exists at the local reference project (utx-diorama) .env file if you want
 Street View for framing reference; read it in-script, NEVER print or commit it.
 
 == VERIFY BY LOOKING ==
