@@ -905,7 +905,7 @@
     window.__flyRebuildCollision({
       buildings,
       parts: { type: 'FeatureCollection', features: ((parts && parts.features) || []).concat(extra) },
-    });
+    }, 'heroes');
     return 'rebuilt with ' + extra.length + ' hero volumes';
   }
 

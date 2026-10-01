@@ -33782,3 +33782,23 @@ conflict with main plus a failing `landmark-material-contract.mjs`. Merging
 off-by-default code that measured no win only adds a path to maintain. The
 code stays on `origin/claude/moire-fade` if a lit facade sheet (the fix (a)
 needs) is ever built.
+
+## October 1, 2026 - Flight collision keeps every module's heights; Icon is solid again (claude/icon-collision)
+
+Three modules raise the flight-collision field after boot (js/westcampus.js,
+js/heroes.js, js/slopes-apartments.js). Each rebuilt the whole field from its
+own list, so the last one silently erased the others. And d017e58 (the
+time-sliced apartment build) dropped the apartments' call with the boot log it
+sat in. Measured on main, laptop GPU: Icon's collision 0 m under an 87 m roof,
+and the 54.6 m West Campus tower back to 20.5 m because heroes rebuilt after
+west campus. Now `__flyRebuildCollision(scene, owner)` in js/controls.js keeps
+each owner's latest volumes and builds from all of them (cells stamp a MAX, so
+that is exactly everyone's raise); a call with no owner is still a full
+replacement, which campus-everywhere-check's raster test relies on. The
+apartments rebuild again when their build lands. After: Icon 93.6 m, the West
+Campus tower 58.2 m, hero volumes unchanged, the tallest apartment 101.19 m.
+campus-apartment-check (from PR #374) and campus-everywhere-check pass.
+
+Not fixed, and NOT caused by this: `collision.mjs` fails on main and on this
+branch identically, "Collision pose did not settle within 60 s" (the fly
+controller never leaves `driving`). It needs its own look.
