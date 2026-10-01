@@ -33659,3 +33659,40 @@ Speed: an isolated mottle benchmark, node only and not the app (512 x 512 RGBA, 
 Appearance: day frames differ from the unchanged build by at most 2 of 255 per channel. Night frames differ by at most 56 of 255 (campus) and 48 of 255 (West Campus), with 232 and 21 pixels beyond 12; a repeat of the unchanged build gave 230 and 43 for the same two views, so that is scene noise (stars, ground lights). Downtown night and the hour change reached 16 and 17 of 255, with 19 and 15 pixels beyond 12 against 2 and 3 for the repeat, which is not fully accounted for by that noise.
 
 Still open: fresh walking-height and day/night comparisons, a console check on load and after moving the camera, and a quiet-machine timing with at least three interleaved pairs. Until then, do not claim faster turns, hour changes or flight.
+
+
+## September 30, 2026 - Exact walking coverage (claude/route-coverage)
+
+Audited every uncovered housing name and class code from the existing local
+sources. Exact, source-backed name/ID lists now expose Jester West's own wall
+doors and the existing Engineering Discovery door for ACS. Icon is still not
+Ion; West is still not East. The ACS donor-name expansion is recorded as an
+identity inference, not a verified rename or current public-access claim.
+The walk bake regenerates Battle Hall's current authored rectangular doorway
+instead of reviving retired entrance assemblies. Recovered doors must sit
+against their own wall; alternate links through buildings and Jester West's
+offset secondary point are excluded. Existing walkway geometry is retained.
+Unavailable class codes keep specific reasons in the graph and route answers.
+
+Same 81 housing names and 6,804-query matrix: usable housing rises 29 to 30,
+class coverage 157 to 158 of 229 currently known codes, answered queries 2,146
+to 2,220. COM was already retired, so the earlier 230-code count is historical.
+There are zero wrong housing identities and zero missing or overstated
+schedule floors. All 79 finder groups, housing-comparison core checks and
+19 walk-bake gates pass. Two final graph re-bakes are byte-identical. The live
+housing-comparison browser suite passes after the wall-link correction.
+Walkmeter stays red but does not worsen: drift failures 18 before, 7 after,
+zero route errors and interaction gate passing; oracle door indices are stale.
+
+The schedule-confirmation browser suite passes 108/108 against this branch
+(run outside the sandboxed job, which could not open its privacy-canary port).
+The recorded unavailable reasons are developer notes, so they stay in the
+graph and the programmatic route answers only; what a student sees is the
+existing plain sentence.
+
+Still open: 51 housing and 71 class-code gaps, mostly missing source doors or
+identities, plus out-of-area destinations; no private apartment doorway was
+invented. 46 of the housing gaps are major West Campus apartments whose exact
+footprint is known but no source carries a door. Walked GPS tracks
+(scripts/gpx) plus one door photo per building are the planned source for
+those doors.
