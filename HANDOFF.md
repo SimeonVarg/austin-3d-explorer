@@ -33677,6 +33677,42 @@ of the reference time; noisy building and quality-gap walks remain excluded.
 No browser, server or external upload was used. Real phone tracks, confidence calibration, exact door
 positions and access/locked-door facts remain unverified.
 
+## September 30, 2026 - Exact walking coverage (claude/route-coverage)
+
+Audited every uncovered housing name and class code from the existing local
+sources. Exact, source-backed name/ID lists now expose Jester West's own wall
+doors and the existing Engineering Discovery door for ACS. Icon is still not
+Ion; West is still not East. The ACS donor-name expansion is recorded as an
+identity inference, not a verified rename or current public-access claim.
+The walk bake regenerates Battle Hall's current authored rectangular doorway
+instead of reviving retired entrance assemblies. Recovered doors must sit
+against their own wall; alternate links through buildings and Jester West's
+offset secondary point are excluded. Existing walkway geometry is retained.
+Unavailable class codes keep specific reasons in the graph and route answers.
+
+Same 81 housing names and 6,804-query matrix: usable housing rises 29 to 30,
+class coverage 157 to 158 of 229 currently known codes, answered queries 2,146
+to 2,220. COM was already retired, so the earlier 230-code count is historical.
+There are zero wrong housing identities and zero missing or overstated
+schedule floors. All 79 finder groups, housing-comparison core checks and
+19 walk-bake gates pass. Two final graph re-bakes are byte-identical. The live
+housing-comparison browser suite passes after the wall-link correction.
+Walkmeter stays red but does not worsen: drift failures 18 before, 7 after,
+zero route errors and interaction gate passing; oracle door indices are stale.
+
+The schedule-confirmation browser suite passes 108/108 against this branch
+(run outside the sandboxed job, which could not open its privacy-canary port).
+The recorded unavailable reasons are developer notes, so they stay in the
+graph and the programmatic route answers only; what a student sees is the
+existing plain sentence.
+
+Still open: 51 housing and 71 class-code gaps, mostly missing source doors or
+identities, plus out-of-area destinations; no private apartment doorway was
+invented. 46 of the housing gaps are major West Campus apartments whose exact
+footprint is known but no source carries a door. Walked GPS tracks
+(scripts/gpx) plus one door photo per building are the planned source for
+those doors.
+
 ## September 30, 2026 - Standalone warm sunset horizon proof (claude/sunset-horizon)
 
 The committed js/timeofday.js and js/slopes.js fix remains untouched. Added
