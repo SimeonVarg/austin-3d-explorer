@@ -12,7 +12,9 @@ caught some half-faded (0.5% of pixels, every one of them label text).
 hash to hold still across two readings 4 s apart before it compares.
 
 **Buildings from street photographs (draft PRs, waiting for the owner's look):**
-#379 Ion Austin, #380 Moontower, #381 21 Rio. Each changes only
+#379 Ion Austin, #380 Moontower, #381 21 Rio, #382 Villas on 24th,
+#383 2400 Nueces, #384 Signature 1909, #385 The Mark (parking level only),
+#386 The Otis Hotel. Each changes only
 `data/apartments/<slug>.json`. Method, so the next pass can repeat it:
 render the candidate from cameras matched to the photographs (a camera that
 does not line up with its photograph is dropped before judging), compare it
@@ -22,7 +24,12 @@ loses none. A version that "wins" by making a light material darker, or by
 adding a colour or feature the photographs do not show, counts as worse.
 Every pass is then checked by eye; one blind pass (Villas on Rio: windows
 closer, but the white upper tower turned mid-grey) was rejected there.
-Pointe on Rio and The Callaway House did not pass. Never write photo ids,
+The Mark's blind pass also re-clad a brick apartment wing and a tower face
+in windowless metal; only the parking-level change, which a photograph shows
+up close, was kept. Union on 24th passed blind but was held: its one change
+was lobby glass, too small to judge. Pointe on Rio, The Callaway House,
+Union on San Antonio, Yugo Austin Waterloo, The Standard and The Castilian
+did not pass. Never write photo ids,
 who took a photo, or camera positions into a building file: the repo is
 public.
 
