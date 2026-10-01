@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright-core';
 import {launch,BASE,HW_ARGS} from './chrome.mjs';
+import {waitForApartmentBuild} from './lib/apartment-ready.mjs';
 const root=new URL('../../',import.meta.url),out=process.env.VERIFY_OUT;
 const read=f=>JSON.parse(fs.readFileSync(new URL(f,root)));
 const old=f=>JSON.parse(execFileSync('git',['show','8ba4920:'+f],{cwd:root,maxBuffer:4000000}));
 const idx=old('data/apartments/index.json'),bundle=read('data/campus_buildings.json');
 const before={buildings:idx.buildings.map(f=>old('data/apartments/'+f)),replacedBuildingIds:idx.replacedBuildingIds,replacedNames:idx.replacedNames};
-assert.equal(bundle.buildings.length,36);
 const currentIndex=read('data/apartments/index.json'),registered=currentIndex.buildings.length+(currentIndex.collections||[]).reduce((n,f)=>n+read(f).buildings.length,0);
 const snapshot=read('data/snapshots/2026-09-12/buildings.detailed.geojson').features;
 for(const b of bundle.buildings){
@@ -17,7 +17,7 @@ for(const b of bundle.buildings){
  assert.deepEqual(b.footprint.ring,f.geometry.coordinates[0],b.name+' retains footprint');
  assert.deepEqual(b.footprint.holes,f.geometry.coordinates.slice(1),b.name+' retains all courts');
 }
-const browser=await launch(chromium,{gl:'hardware',args:[...HW_ARGS,'--disable-gpu-vsync','--disable-frame-rate-limit'],maxMs:600000});
+const browser=await launch(chromium,{gl:'hardware',args:[...HW_ARGS,'--disable-gpu-vsync','--disable-frame-rate-limit'],maxMs:300000});
 try{
  const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
@@ -25,7 +25,9 @@ try{
  await page.addInitScript(()=>{const t=setInterval(()=>{if(window.cancelGraphicsAutoDetect){cancelGraphicsAutoDetect();clearInterval(t)}},50)});
  await page.goto(BASE+'/index.html?intro=0&drift=0',{waitUntil:'domcontentloaded',timeout:180000});
  await page.waitForFunction(()=>window.slopesApartments?.count.done&&window.campusLandscape?.count.done&&window.slopesRoofs?.data&&window.__fly?.indexed(),null,{timeout:180000});
+ await waitForApartmentBuild(page);
  const after=await page.evaluate(()=>structuredClone(slopesApartments.data));
+ assert.equal(after.buildings.filter(building=>bundle.buildings.some(hall=>hall.id===building.id)).length,bundle.buildings.length,'every hall in the current campus collection is loaded');
  const info=await page.evaluate(()=>({halls:slopesApartments.count.buildings,planting:campusLandscape.count,hidden:slopesApartments.hidden}));
  assert.equal(info.halls,registered);assert.ok(info.planting.trees>1500);assert.ok(info.planting.gardens>30);assert.ok(info.planting.triangles>300000);
  assert.deepEqual(info.hidden.missing,[]);assert.deepEqual(info.hidden.rigsMissing,[]);
@@ -66,17 +68,20 @@ try{
  });
  assert.equal(disposal.disposed,disposal.expected,'old planting/building GPU buffers are released on rebuild');
  assert.equal(await page.evaluate(()=>!!campusLandscape.group),false);
+ await waitForApartmentBuild(page);
  await page.waitForTimeout(4000);assert.ok(await retired()>0,'fallback restores old crowns');
  await page.evaluate(()=>{CAMPUS_LANDSCAPE.on=true;applyCampusLandscape()});
  await page.waitForTimeout(4000);assert.equal(await retired(),0,'mesh replacement restores');
  const counts=[];
  for(const preset of ['performance','cinematic']){
   await page.evaluate(p=>__usePreset(p),preset);
+  await waitForApartmentBuild(page);
   counts.push(await page.evaluate(()=>campusLandscape.count.trees));
   assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),registered);
  }
  assert.ok(counts[0]<counts[1],'tree density follows graphics preset');
  await page.evaluate(()=>{__usePreset('balanced');applyTimeOfDay(__map,.12,true)});
+ await waitForApartmentBuild(page);
  const frames=[];
  if(process.env.CAMPUS_PERF){
   for(const state of ['after','before','before','after','before','after']){
@@ -84,6 +89,7 @@ try{
     Object.assign(slopesApartments.data,data);slopesApartments.rebuild();CAMPUS_LANDSCAPE.on=on;applyCampusLandscape();
     GFX.autoExposure=false;__map.jumpTo({center:[-97.7396,30.2881],zoom:17.2,pitch:58,bearing:15,padding:0});applyTimeOfDay(__map,.12,true);
    },{data:state==='before'?before:after,on:state==='after'});
+   await waitForApartmentBuild(page);
    await page.waitForTimeout(2500);
    const median=await page.evaluate(async()=>{
     const samples=[];let last=performance.now();await new Promise(resolve=>{function step(t){samples.push(t-last);last=t;__map.setBearing(15+samples.length*.12);if(samples.length<150)requestAnimationFrame(step);else resolve()}requestAnimationFrame(step)});
@@ -108,5 +114,5 @@ try{
  assert.deepEqual(raster,[0,6,12],'hole, separate courtyard pavilion and outer wing');
  assert.deepEqual(errors,[]);
  if(out)fs.writeFileSync(out+'/campus-everywhere-gates.json',JSON.stringify({info,presetCounts:counts,frames,errors},null,2));
- console.log('PASS 36 halls, all footprint holes, open roof court, whole trees, gardens, fallback, presets'+(frames.length?', interleaved frame budget':''));
+ console.log('PASS',bundle.buildings.length,'halls, all footprint holes, open roof court, whole trees, gardens, fallback, presets'+(frames.length?', interleaved frame budget':''));
 }finally{await browser.__done()}

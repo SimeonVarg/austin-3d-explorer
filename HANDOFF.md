@@ -33783,6 +33783,31 @@ off-by-default code that measured no win only adds a path to maintain. The
 code stays on `origin/claude/moire-fade` if a lit facade sheet (the fix (a)
 needs) is ever built.
 
+## September 30, 2026 - GPU check refresh (claude/gpu-checks-refresh)
+
+Refreshed the seven quarantined browser checks against 509bbba, with no changes
+to the app, authored data or CI list. Boot completion is not mesh completion:
+checks now wait for attachment, rendered frames and replacement filters. Campus
+membership follows the current collection; walking probes follow the structural
+ground split and test geometry independently of camera culling. Ground texture
+readback waits for the actual rendered filter update. Pitch checks wait until
+the map can receive their input. Mobile scenarios use fresh bounded browsers.
+
+Completed October 1: campus-everywhere, campus-walking, live-here-buildings,
+lookup and all eleven mobile scenarios pass twice consecutively on hardware GL.
+The mobile sets each pass 51 assertions; their old whole-suite timeout was too
+short, not a hanging load. These are desktop mobile profiles, not physical-phone
+acceptance. Screenshot pairs retain the second frame; evidence and the complete
+report remain with the reviewing lane. No performance improvement is claimed.
+
+Two checks stay red deliberately: campus-apartment measures Icon's 87.12 m roof
+with a 0 m collision envelope (d017e58 removed the sole collision-rebuild call).
+Campus-repairs reports 19 out-of-wall balcony warnings from GrandMarc Austin and
+The Block on Rio; malformed spans predate the bounds guard. All original
+thresholds and clean-console assertions remain. Later assertions blocked by the
+Icon failure are not claimed green. Changes are uncommitted for review and no
+new queued pass or continuation was started.
+
 ## September 30, 2026 - Photo import speaks before it waits (claude/import-says-at-once)
 
 Picking a schedule photo now shows "Getting the reader ready…" at once. Before,
@@ -33796,3 +33821,83 @@ others. Code: `impFromImage` in js/wayfind.js sets the busy note before the
 format gate and clears it when a HEIC is refused. Laptop GPU: img-import 67/67;
 two timing runs saw the note on the very first observation. Not fixed: the
 main thread still stalls ~2.2-2.6 s right after a pick on the phone profile.
+
+## September 30, 2026 - Graphics context restoration (claude/context-restore)
+
+When the browser loses and restores its graphics (a driver reset, sleep/wake),
+the 3D city now comes back in place on desktop instead of vanishing. The CPU
+scene survives; a new renderer uploads it again, shadow maps and pending shader
+compiles are reset, the shared lighting hooks are re-installed and the current
+sunlight is kept. Code: js/slopes.js, js/city-lighting.js, js/mobile.js. Check:
+scripts/verify/context-restore.mjs.
+
+Phones are deliberately unchanged. A phone drops each mesh's CPU copy after it
+reaches the GPU (about 260 MB saved), so it cannot re-upload in place and keeps
+its existing recovery: the reload in js/mobile.js. Keeping that copy would let a
+phone restore in place but costs the 260 MB all the time, which is the wrong
+trade on the device most likely to be killed for memory. window.slopes
+.canRestoreContext is false there, and the phone profile of the check asserts
+exactly that contract instead of forcing a loss.
+
+Evidence: on main the desktop city loses 39% of its pixels after a forced loss
+and the custom layer does not return. On the branch, two fresh desktop runs at
+1440 x 900 recover to within 71-74 pixels (0.006%) of the settled frame, with the
+same camera, light and scene, both shadow maps rebuilt, no reload, no city data
+fetched and no page errors. graphics.mjs passes 27/27. Not verified: native tab
+switching, real driver resets, repeated losses in one page and physical phones.
+
+**The styleless gap (found by CI, fixed).** Between the loss and the restore,
+MapLibre has destroyed its style (`map.style` is null). On CI's slow renderer a
+texture refresh on a timer landed there and threw "reading 'getImage'". Worse,
+a time-of-day change in that gap painted into an EMPTY style that MapLibre
+builds on demand, and the restore then put back the light from the moment of
+the loss: 17% of the frame came back in the wrong colours. Now js/app.js makes
+the image calls and setSky/setLight do nothing while there is no style,
+`applyTimeOfDay` only records the time there, and js/slopes.js re-applies the
+current time through the full wrapper chain once the real style is back. The
+check moves the clock inside the gap on purpose, so every machine exercises it.
+The restore re-applies the time only when it differs from the moment of the
+loss: an unconditional repaint made the name labels re-test what hides them,
+and on CI's slow renderer two were still fading back in at the after frame.
+Laptop GPU, 1440 x 900: restore difference 0.004% against a 0.01% noise
+floor, no page errors; phone profile passes.
+
+## October 1, 2026 - Flight collision keeps every module's heights; Icon is solid again (claude/icon-collision)
+
+Three modules raise the flight-collision field after boot (js/westcampus.js,
+js/heroes.js, js/slopes-apartments.js). Each rebuilt the whole field from its
+own list, so the last one silently erased the others. And d017e58 (the
+time-sliced apartment build) dropped the apartments' call with the boot log it
+sat in. Measured on main, laptop GPU: Icon's collision 0 m under an 87 m roof,
+and the 54.6 m West Campus tower back to 20.5 m because heroes rebuilt after
+west campus. Now `__flyRebuildCollision(scene, owner)` in js/controls.js keeps
+each owner's latest volumes and builds from all of them (cells stamp a MAX, so
+that is exactly everyone's raise); a call with no owner is still a full
+replacement, which campus-everywhere-check's raster test relies on. The
+apartments rebuild again when their build lands. After: Icon 93.6 m, the West
+Campus tower 58.2 m, hero volumes unchanged, the tallest apartment 101.19 m.
+campus-apartment-check (from PR #374) and campus-everywhere-check pass.
+
+Not fixed, and NOT caused by this: `collision.mjs` fails on main and on this
+branch identically, "Collision pose did not settle within 60 s" (the fly
+controller never leaves `driving`). It needs its own look.
+
+## October 1, 2026 - Balcony stacks listed only on walls that hold them (claude/balcony-spans)
+
+Campus-repairs-check failed on 19 "Balcony outside its wall piece" warnings.
+GrandMarc's north, south and southS ranges listed their balcony stacks, measured
+along the LONG wall, at block level, so the short end walls (20.3, 12.2 and 8 m)
+wore the same list and every stack past their length was skipped with a
+warning. The Block on Rio's south-elevation override also reaches the u0 end
+wall over v 30.0..44.7 (14.7 m), where two of its three stacks do not fit. Now
+each long wall carries its stacks as its own face, the block bands keep only
+what an end wall holds, and Rio gets a region that touches u0 alone, ahead of
+the override. Nothing drawn changes: with main's two files against these, the
+city builds the same 2,134 balconies and 3,106,943 triangles, the warnings go
+19 to 0, and four matched frames of the two buildings are pixel-identical on
+the buildings (55-236 differing pixels, all on far background towers).
+campus-repairs-check passes on hardware GL.
+
+Not decided here, for the photo pass: whether the end walls really carry the
+stacks that were drawn there (GrandMarc's ends hold 3, 1 and 1; Rio's u0 holds
+1). They were drawn before this change and still are.
