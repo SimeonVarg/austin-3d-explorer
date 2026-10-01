@@ -85,10 +85,14 @@ try {
     };
     cancel();
   });
-  await page.goto(BASE + '/index.html?intro=0&drift=0', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  // Names fade in by time after a restore; on CI's ~1 fps SwiftShader a frame can
+  // catch them half-faded (2026-10-01: 0.5% of pixels, all of them label text).
+  // This check is about the city, so it runs without names.
+  await page.goto(BASE + '/index.html?intro=0&drift=0&namelabels=0', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => window.__map?.isStyleLoaded() && window.slopes?.renderer && window.slopesApartments?.count.done, null, { timeout: 150000 });
   await page.evaluate(() => {
     window.cancelGraphicsAutoDetect();
+    for (const layer of window.__map.getStyle().layers) if (layer.type === 'symbol') window.__map.setLayoutProperty(layer.id, 'visibility', 'none');
     const slider = document.getElementById('tod-slider');
     if (slider) {
       slider.value = '0.5';
