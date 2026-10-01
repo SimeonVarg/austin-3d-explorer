@@ -103,13 +103,15 @@ try {
     await page.waitForTimeout(4000);
     await page.waitForFunction(() => !document.getElementById('veil') || document.getElementById('veil').classList.contains('lift'), null, { timeout: 60000 });
     await page.waitForTimeout(1200);
-    await page.waitForFunction(() => !window.CityLighting?.stats.shadowProxyBuilding, null, { timeout: 30000 });
+    await page.waitForFunction(() => !window.CityLighting?.stats.shadowProxyBuilding, null, { timeout: 90000 });
     await page.waitForTimeout(1500);
   };
+  // CI renders on SwiftShader (no GPU): one 1440x900 frame of the full city
+  // took over 15 s there, so a screenshot gets 90 s. On a GPU it takes < 1 s.
   const capture = async name => {
-    await page.screenshot({ timeout: 15000 });
+    await page.screenshot({ timeout: 90000 });
     await page.waitForTimeout(700);
-    return page.screenshot({ path: path.join(output, name + '.png'), timeout: 15000 });
+    return page.screenshot({ path: path.join(output, name + '.png'), timeout: 90000 });
   };
   const state = () => page.evaluate(() => ({
     layer: !!window.__map?.getLayer('slopes-mesh'), renderer: !!window.slopes?.renderer,
@@ -165,7 +167,7 @@ try {
     await page.waitForTimeout(1000);
     const started = Date.now();
     await page.evaluate(() => window.__restoreCheck.extension.restoreContext());
-    await page.waitForFunction(() => window.__restoreCheck?.restored, null, { timeout: 30000 }).catch(error => check('restored original document', false, error.message));
+    await page.waitForFunction(() => window.__restoreCheck?.restored, null, { timeout: 90000 }).catch(error => check('restored original document', false, error.message));
     await settle();
     const after = await capture('after-restore');
     report.restoreMs = Date.now() - started;
