@@ -79,6 +79,7 @@ SNAP_MAX_ACCEPTED = 80
 # Doors.
 DOOR_LINK_MAX_M = 30.0     # beyond this the route ends at the outline
 DOOR_ANCHORS = 3           # candidate anchors per door, so a profile can re-anchor
+DOOR_WALL_TOL_M = 2.0
 ANCHOR_SPLIT_MIN_M = 2.0   # closer than this to an existing node, reuse it
 POI_LINK_MAX_M = 40.0
 
@@ -1218,6 +1219,25 @@ def build_doors():
         out.append({k: approach[k] for k in
                     ("lon", "lat", "ref", "nm", "role", "src", "bid")})
     out.sort(key=lambda x: (x["ref"], x["nm"], x["lon"]))
+    identities = load("data/walking-identities.json")
+    for entry in identities.get("authored_doors", []):
+        model = load(entry["model"])
+        frame = model["frame"]["obb"]
+        assembly = model[entry["assembly"]]
+        notch = assembly["doorCourseNotch"]
+        along = (notch["s0"] + notch["s1"]) / 2
+        across = assembly["parameters"]["plan"][1]
+        lon = frame["o"][0] + (frame["ax"] * across - frame["ay"] * along) / frame["mx"]
+        lat = frame["o"][1] + (frame["ay"] * across + frame["ax"] * along) / frame["my"]
+        assert model["id"] == entry["bid"] and model["name"] == entry["nm"]
+        ring = model["footprint"]["ring"]
+        px, py = xy(lon, lat)
+        wall_distance = min(seg_point(px, py, *xy(*first), *xy(*second))[0]
+                            for first, second in zip(ring, ring[1:] + ring[:1]))
+        assert wall_distance <= DOOR_WALL_TOL_M, "Authored doorway is not on its building wall"
+        out.append(dict(lon=lon, lat=lat, bid=entry["bid"], ref=entry["ref"],
+                        nm=entry["nm"], role="main", src="authored"))
+    out.sort(key=lambda door: (door["ref"], door["nm"], door["lon"]))
     return out
 
 
@@ -1500,11 +1520,51 @@ def bake(verbose=True):
 
     an = anchor_doors(G, doors, main, bgrid, road_keys=road_keys,
                       bclass=bclass, chord_keys=chord_keys)
+    identities = load("data/walking-identities.json")
+    recovery_bids = {alias["bid"] for alias in identities["code_aliases"]}
+    recovery_bids.update(entry["bid"] for entry in identities.get("authored_doors", []))
+    existing_housing = {feature["properties"].get("name")
+                        for feature in load("data/westcampus.geojson")["features"]}
+    for alias in load("data/housing-route-aliases.json")["aliases"]:
+        matched = [door for door in doors if door["bid"] in alias["building_ids"]]
+        if alias["name"] not in existing_housing and matched and not any(door["ref"] for door in matched):
+            recovery_bids.update(alias["building_ids"])
+    for door in doors:
+        if door["bid"] not in recovery_bids:
+            continue
+        rings = polys.get(door["bid"]) or []
+        px, py = xy(door["lon"], door["lat"])
+        wall_distance = min((seg_point(px, py, *first, *second)[0]
+                             for ring in rings for first, second in zip(ring, ring[1:] + ring[:1])),
+                            default=float("inf"))
+        retained = []
+        if wall_distance <= DOOR_WALL_TOL_M:
+            for anchor, link in zip(door["anchors"], door["links"]):
+                if edge_clips_building(bgrid, polys, bclass, px, py, nx[anchor], ny[anchor]):
+                    continue
+                samples = max(2, math.ceil(link / 0.25))
+                inside = sum(any(point_in_ring(ring, px + (nx[anchor] - px) * step / samples,
+                                               py + (ny[anchor] - py) * step / samples) for ring in rings)
+                             for step in range(samples + 1)) * link / samples
+                if inside <= 0.5:
+                    retained.append((anchor, link))
+        door["anchors"] = [anchor for anchor, link in retained]
+        door["links"] = [link for anchor, link in retained]
     through, clip_events = find_through_edges(edges, nx, ny, bgrid, polys, bclass)
 
     # --- code index: refs (split on ';'), nm aliases, then ref joins -------
     reg = load("data/ut_buildings.json")["buildings"]
     reg_codes = [b["ref"] for b in reg]
+    identities = load("data/walking-identities.json")
+    register_by_code = {building["ref"]: building for building in reg}
+    for alias in identities["code_aliases"]:
+        assert register_by_code[alias["code"]]["name"] == alias["register_name"]
+        assert alias["sources"] and alias["basis"]
+        matched = [door for door in doors if door["bid"] == alias["bid"]]
+        assert matched and all(door["nm"] == alias["door_name"] for door in matched)
+        for door in matched:
+            assert not door["ref"] or door["ref"] == alias["code"]
+            door["ref"] = alias["code"]
     code_doors = defaultdict(list)
     alias_hits = defaultdict(int)
     alias_bids = defaultdict(set)
@@ -1665,6 +1725,17 @@ def bake(verbose=True):
     for i, dr in enumerate(doors):
         if dr["nm"] in wc_names:
             wc_doors[dr["nm"]].append(i)
+    seen_housing = set()
+    for alias in load("data/housing-route-aliases.json")["aliases"]:
+        assert alias["name"] not in seen_housing, "Duplicate exact housing name"
+        seen_housing.add(alias["name"])
+        assert alias["sources"] and alias["basis"] and alias["building_ids"]
+        if not alias.get("catalog", True):
+            continue
+        indices = [index for index, door in enumerate(doors)
+                   if door["bid"] in alias["building_ids"] and door.get("anchors")]
+        if indices:
+            wc_doors[alias["name"]] = indices
 
     # --- FINDABLE MUST MEAN ROUTABLE (gates S and T) -----------------------
     #
@@ -1832,6 +1903,7 @@ def bake(verbose=True):
         "code": {k: v for k, v in sorted(code_doors.items())},
         "name": name_ix,
         "wc": {k: v for k, v in sorted(wc_doors.items())},
+        "availability": identities["unavailable_codes"],
         "poi": [[int(round(p["lon"] / COORD_Q)), int(round(p["lat"] / COORD_Q)),
                  p["node"], p["cat"], p["name"], p["hours"]] for p in pois],
         "tune": {
