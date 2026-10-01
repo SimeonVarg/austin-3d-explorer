@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {chromium} from 'playwright-core';
 import {launch,BASE} from './chrome.mjs';
+import {waitForApartmentBuild} from './lib/apartment-ready.mjs';
 const read=f=>JSON.parse(fs.readFileSync(new URL('../../'+f,import.meta.url)));
 const index=read('data/apartments/index.json');
 const expected=index.buildings.length+index.collections.reduce((n,f)=>n+read(f).buildings.length,0);
-const browser=await launch(chromium,{gl:'hardware',maxMs:600000});
+const browser=await launch(chromium,{gl:'hardware',maxMs:300000});
 try{
  const page=await browser.newPage({viewport:{width:1440,height:960}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
@@ -18,6 +19,7 @@ try{
  await page.addInitScript(()=>{const t=setInterval(()=>{if(window.cancelGraphicsAutoDetect){cancelGraphicsAutoDetect();clearInterval(t)}},50)});
  await page.goto(BASE+'/index.html?intro=0&drift=0&livehere=1',{waitUntil:'domcontentloaded',timeout:180000});
  await page.waitForFunction(()=>window.slopesApartments?.count.done&&window.roofscapeAnchors&&window.__map?.getLayer('roofscape-deck')&&window.__fly?.indexed(),null,{timeout:180000});
+ await waitForApartmentBuild(page);
  assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),expected);
  assert.deepEqual(await page.evaluate(()=>slopesApartments.hidden.missing),[]);
  assert.ok(await page.evaluate(()=>{
@@ -78,6 +80,7 @@ try{
  const routes=await page.evaluate(async()=>Promise.all([['UTC','GSB'],['UTC','PCL'],['JES','GDC'],['BUR','CBA']].map(async p=>({pair:p,route:await wayfindStairs(...p)}))));
  assert.ok(routes.every(r=>r.route.ok),'campus routes remain usable');
  await page.evaluate(()=>{__usePreset('performance');applyTimeOfDay(__map,1,true)});
+ await waitForApartmentBuild(page);
  assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),expected);
  await page.waitForTimeout(2000);
  assert.deepEqual(errors,[]);

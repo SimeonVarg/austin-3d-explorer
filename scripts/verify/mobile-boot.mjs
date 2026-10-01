@@ -51,7 +51,7 @@
  *
  * Exit code: 0 all asserted scenarios passed, 1 any failed.
  * Every browser launch in a shared session must be wrapped in the lane's
- * gpu-run.mjs; this script launches exactly one.
+ * gpu-run.mjs; this script launches a fresh browser per scenario, serially.
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -64,7 +64,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, '..', '..');
 const argv = process.argv.slice(2);
 const oi = argv.indexOf('--out');
-const OUT = oi >= 0 ? argv[oi + 1] : (process.env.OUT || path.join(os.tmpdir(), 'mobile-boot'));
+const OUT = oi >= 0 ? argv[oi + 1] : (process.env.OUT || process.env.VERIFY_OUT || path.join(os.tmpdir(), 'mobile-boot'));
 const picked = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--out');
 const ALL = ['probe', 'returning', 'interrupt', 'background', 'crash', 'crashloop', 'legacy', 'landscape', 'desktop', 'contextloss', 'ctxintro'];
 const SCEN = picked.length ? picked : ALL;
@@ -86,7 +86,8 @@ const WANT = ['The Standard', 'The Otis Hotel', 'Moody Center', '21 Rio', 'Icon'
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const log = (...a) => console.log(...a);
 
-const browser = await launch(chromium, { gl: 'hardware', maxMs: +(process.env.VERIFY_MAX_MS || 3600000) });
+const SCENARIO_MAX_MS = 300000;
+let browser;
 
 function snap(page) {
   return page.evaluate(() => {
@@ -124,21 +125,16 @@ async function waitReveal(page) {
   // LITE.lateAuthored). Judge what the visit ends up showing, not the frame
   // the veil lifted on.
   //
-  // WAIT FOR `readyToReveal()`, NOT FOR `.group`. The group object appears when
-  // the time-sliced build STARTS; `readyToReveal()` is false while `_building`
-  // is in flight and until the filters, rigs and sources have caught up. Those
-  // are not the same instant: on 2026-09-20, with three other GPU lanes on this
-  // machine, one apartment build took 223 s, and `legacy: a reload after
-  // recovery stays normal` read the scene 18 s after `.group` appeared, found
-  // 5 of the 7 named buildings and called it a fallback. It was not one — the
-  // same scenario is 3/3 green on reps of the same code — the instrument had
-  // simply looked too early. `readyToReveal()` is also what the round's brief
-  // says to wait on, and it returns true (rather than hanging) when the fetch
-  // genuinely failed, so a real failure still reaches the assertion.
+  // WAIT FOR `readyToReveal()`, NOT FOR `count.done` OR `.group`. Boot can set
+  // count.done once the time-sliced build has STARTED; the group stays absent
+  // until that build lands. readyToReveal() also waits for the filters, rigs
+  // and sources to catch up. An early reading on 2026-09-20 found only 5 of
+  // the 7 named buildings and misclassified a healthy build as a fallback.
+  // Genuine fetch failure makes readyToReveal() return true, so the missing
+  // buildings still reach the assertions rather than being hidden by a wait.
   await page.waitForFunction(() => !(window.SLOPES && window.SLOPES.on) || !(window.APARTMENTS && window.APARTMENTS.on) ||
-    (window.slopesApartments && (window.slopesApartments.readyToReveal
-      ? window.slopesApartments.readyToReveal()
-      : !!window.slopesApartments.group)), null, { timeout: REVEAL_MS, polling: 500 }).catch(() => {});
+    (window.slopesApartments && typeof window.slopesApartments.readyToReveal === 'function' &&
+      window.slopesApartments.readyToReveal()), null, { timeout: REVEAL_MS, polling: 500 });
   return Date.now() - t0;
 }
 
@@ -185,11 +181,17 @@ const clean = s => !/(^|[?&])(lite|slopes|campuslandscape|preset)=/.test(s.searc
 const results = [];
 function check(name, ok, detail) {
   results.push({ name, ok: !!ok });
+  fs.writeFileSync(path.join(OUT, 'mobile-boot-results.json'), JSON.stringify(results, null, 1));
   log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`);
 }
 async function withCtx(opts, fn) {
   const ctx = await browser.newContext(opts);
-  try { return await fn(ctx); } finally { await ctx.close().catch(() => {}); }
+  try {
+    await ctx.addInitScript(() => {
+      window.addEventListener('DOMContentLoaded', () => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect(), { once: true });
+    });
+    return await fn(ctx);
+  } finally { await ctx.close().catch(() => {}); }
 }
 function errsOf(page) {
   const e = [];
@@ -593,15 +595,38 @@ S.shots = () => withCtx(PHONE, async ctx => {
   }
 });
 
+const browserEvents = ['exit', 'SIGINT', 'SIGTERM', 'uncaughtException', 'unhandledRejection'];
 for (const name of SCEN) {
   if (!S[name]) { console.error('unknown scenario', name); process.exitCode = 2; continue; }
   log(`\n=== ${name} ===`);
   const t0 = Date.now();
-  try { await S[name](); } catch (e) { check(`${name}: ran`, false, String(e.message || e).slice(0, 200)); }
+  const previousListeners = new Map(browserEvents.map(event => [event, process.rawListeners(event)]));
+  browser = await launch(chromium, { gl: 'hardware', maxMs: SCENARIO_MAX_MS });
+  const browserListeners = browserEvents.flatMap(event => process.rawListeners(event)
+    .filter(listener => !previousListeners.get(event).includes(listener)).map(listener => [event, listener]));
+  try {
+    await S[name]();
+  } catch (e) { check(`${name}: ran`, false, String(e.message || e).slice(0, 200)); }
+  finally {
+    try {
+      if (browser) {
+        let closeTimer;
+        try {
+          await Promise.race([
+            browser.close(),
+            new Promise((resolve, reject) => { closeTimer = setTimeout(() => reject(new Error('browser.close timed out after 5000 ms')), 5000); }),
+          ]);
+        }
+        catch (e) { check(`${name}: browser closed`, false, String(e.message || e).slice(0, 200)); }
+        finally { clearTimeout(closeTimer); browser.__done(); browser = null; }
+      }
+    } finally {
+      for (const [event, listener] of browserListeners) process.removeListener(event, listener);
+    }
+  }
   log(`(${name} took ${Math.round((Date.now() - t0) / 1000)} s)`);
 }
 const bad = results.filter(r => !r.ok);
 log(`\n${results.length - bad.length}/${results.length} passed`);
 fs.writeFileSync(path.join(OUT, 'mobile-boot-results.json'), JSON.stringify(results, null, 1));
-browser.__done();
 process.exit(bad.length ? 1 : 0);
