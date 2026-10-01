@@ -1661,6 +1661,11 @@
         // MapLibre's loss snapshot also omits its live time-of-day light.
         if (restoreLight) map.setLight(restoreLight, { duration: 0 });
         if (!map.getLayer(SLOPES.layerId)) map.addLayer(layer, beforeId(map));
+        // The clock may have moved while the style was gone (js/app.js, THE
+        // STYLELESS GAP); the snapshot only knows the moment of the loss.
+        // Re-apply the CURRENT time through the full wrapper chain.
+        if (typeof window.applyTimeOfDay === 'function' && window.__todCurrentP != null)
+          window.applyTimeOfDay(map, window.__todCurrentP, true);
         restorePending = false;
         map.triggerRepaint();
       };

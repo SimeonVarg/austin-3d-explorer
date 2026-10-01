@@ -167,6 +167,16 @@ try {
       extension.loseContext();
     });
     await page.waitForFunction(() => window.__restoreCheck?.lost, null, { timeout: 15000 });
+    // THE STYLELESS GAP. Until the restore, MapLibre has destroyed the style
+    // (map.style is null). On CI's slow renderer a texture refresh on a timer
+    // landed in that gap and threw "reading 'getImage'". Move the clock in the
+    // gap on purpose, from timers as the app's own refreshes run, so every
+    // machine exercises it; then put it back so the light check below holds.
+    await page.evaluate(() => {
+      const p = window.__todCurrentP;
+      setTimeout(() => window.applyTimeOfDay(window.__map, (p + 0.08) % 1, true), 0);
+      setTimeout(() => window.applyTimeOfDay(window.__map, p, true), 300);
+    });
     await page.waitForTimeout(1000);
     const started = Date.now();
     await page.evaluate(() => window.__restoreCheck.extension.restoreContext());

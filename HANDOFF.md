@@ -33736,3 +33736,16 @@ and the custom layer does not return. On the branch, two fresh desktop runs at
 same camera, light and scene, both shadow maps rebuilt, no reload, no city data
 fetched and no page errors. graphics.mjs passes 27/27. Not verified: native tab
 switching, real driver resets, repeated losses in one page and physical phones.
+
+**The styleless gap (found by CI, fixed).** Between the loss and the restore,
+MapLibre has destroyed its style (`map.style` is null). On CI's slow renderer a
+texture refresh on a timer landed there and threw "reading 'getImage'". Worse,
+a time-of-day change in that gap painted into an EMPTY style that MapLibre
+builds on demand, and the restore then put back the light from the moment of
+the loss: 17% of the frame came back in the wrong colours. Now js/app.js makes
+the image calls and setSky/setLight do nothing while there is no style,
+`applyTimeOfDay` only records the time there, and js/slopes.js re-applies the
+current time through the full wrapper chain once the real style is back. The
+check moves the clock inside the gap on purpose, so every machine exercises it.
+Laptop GPU, 1440 x 900: restore difference 0.004% against a 0.01% noise
+floor, no page errors; phone profile passes.
