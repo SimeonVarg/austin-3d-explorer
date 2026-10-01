@@ -454,6 +454,21 @@
       ...(PHONE_BUDGET && PHONE_BUDGET.tileCacheSize != null ? { maxTileCacheSize: PHONE_BUDGET.tileCacheSize } : {}),
     });
     window.__map = map;
+    // THE STYLELESS GAP. When the graphics context is lost, MapLibre destroys
+    // its style (map.style is null) until the restore. On CI's slow renderer a
+    // texture refresh on a timer landed in that gap and threw "reading
+    // 'getImage'". The paint writes are worse than the throw: setSky/setLight/
+    // addImage quietly build an EMPTY style there, so the time of day is spent
+    // on nothing. Skip them in the gap (applyTimeOfDay skips itself too); the
+    // restore re-applies the current time of day once the real style is back
+    // (js/slopes.js restoreLayer).
+    for (const name of ['hasImage', 'getImage', 'addImage', 'updateImage', 'removeImage', 'setSky', 'setLight']) {
+      const original = map[name];
+      map[name] = function () {
+        if (this.style) return original.apply(this, arguments);
+        return name === 'hasImage' ? false : name === 'getImage' ? null : this;
+      };
+    }
 window.CityLighting.install(map);
     // Y12. Before the first frame is drawn, and again once the style has
     // swapped the transform out from under us. A no-op above WALK_NEAR.ALT_HI.

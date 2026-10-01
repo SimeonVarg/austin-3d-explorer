@@ -402,6 +402,10 @@
 
   function applyTimeOfDay(map, p, force) {
     if (!map) return;
+    // THE STYLELESS GAP (js/app.js): after a graphics loss there is no style to
+    // paint until the restore. Remember the time; the restore re-applies it
+    // (js/slopes.js restoreLayer). The wrappers' own retints are try-wrapped.
+    if (!map.style) { window.__todCurrentP = p; return; }
     const s = presetAt(p);
     window.__todCurrentP = p;
 

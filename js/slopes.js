@@ -950,7 +950,7 @@
   // recovers from that by reloading; nothing reads it after add() (raycast()
   // above is an unwired helper). onUpload is three's own hook for exactly this.
   // Bounding spheres are computed before the first upload and kept. Desktop
-  // (no budget) keeps every copy, unchanged.
+  // (no budget) keeps every copy, so it can re-upload in place after a loss.
   const FREE_CPU = !!(window.LITE_PROFILE && window.LITE_PROFILE.budget && window.LITE_PROFILE.budget.freeGeometryCpu);
   function dropArray() { this.array = null; }
   function freeOnUpload(obj) {
@@ -1339,6 +1339,8 @@
     onAdd(map, gl) { _gl = gl; },
     onRemove() {
       releaseSunShadows();
+      _pc.pending.clear();
+      _pc.next = 0;
       try { if (renderer) renderer.dispose(); } catch (e) {}
       renderer = null; _frames = 0;
     },
@@ -1654,6 +1656,34 @@
 
     map.addLayer(layer, beforeId(map));
 
+    // MapLibre serializes its style without custom layers when the context is
+    // lost. Wait for its replacement style, then re-add ONLY the layer: keep
+    // CPU meshes/materials/textures and let a fresh renderer upload everything.
+    // Only where the CPU copies were kept; a phone reloads instead (js/mobile.js).
+    if (!FREE_CPU) {
+      let restorePending = false, restoreLight = null, restoreP = null;
+      const restoreLayer = () => {
+        if (!restorePending || !map.style?._loaded || !map.getLayer('buildings-3d') || map.painter.context.gl.isContextLost()) return;
+        // MapLibre's loss snapshot also omits its live time-of-day light.
+        if (restoreLight) map.setLight(restoreLight, { duration: 0 });
+        if (!map.getLayer(SLOPES.layerId)) map.addLayer(layer, beforeId(map));
+        // The clock may have moved while the style was gone (js/app.js, THE
+        // STYLELESS GAP); the snapshot only knows the moment of the loss.
+        // Re-apply the CURRENT time through the full wrapper chain, but only
+        // then: a needless repaint makes the name labels re-test what hides
+        // them, and on CI's slow renderer they were still fading back in.
+        if (typeof window.applyTimeOfDay === 'function' && window.__todCurrentP != null &&
+            window.__todCurrentP !== restoreP)
+          window.applyTimeOfDay(map, window.__todCurrentP, true);
+        restorePending = false;
+        map.triggerRepaint();
+      };
+      map.getCanvas().addEventListener('webglcontextlost', () => { restoreLight = map.getLight(); restoreP = window.__todCurrentP; restorePending = true; }, true);
+      map.on('webglcontextrestored', restoreLayer);
+      map.on('styledata', restoreLayer);
+      map.on('style.load', restoreLayer);
+    }
+
     // Join the retint chain (js/timeofday.js's retint comment says why the
     // wrapper, not a poll, is the only correct way).
     if (!window.__slopesHooked && typeof window.applyTimeOfDay === 'function') {
@@ -1746,6 +1776,7 @@
   }
 
   window.slopes = {
+    canRestoreContext: !FREE_CPU,
     toLocal, toLngLat, project, raycast, material, facadeMaterial, colour, add, remove, detail,
     onSwitch, build, buildChunked, packGeometry, frame, stats, fetchJSON,
     light: () => ({ enu: _light.enu.slice(), colour: _light.colour.slice(), intensity: _light.intensity }),
