@@ -630,6 +630,8 @@ Kept here so nobody restores them from history thinking they were lost.
 
 ## Graphics / post-process suite (added July 29 2026)
 
+- `node context-restore.mjs --profile desktop|phone --out <local-scratch>`: desktop forces a map-canvas WebGL loss and restore, then checks the city pixels, a new bound renderer, the same scene, camera and light, rebuilt shadow maps, no reload and no city data fetched, plus a headless hide/show. Phone asserts its contract instead: CPU copies freed and the reload recovery kept (`slopes.canRestoreContext === false`). Hardware GL; run through the shared browser queue.
+
 - `node graphics.mjs` — the post-process stack and its menu (27 assertions).
   Every effect is asserted by requiring pixels to CHANGE, not by checking that a
   style property was written.

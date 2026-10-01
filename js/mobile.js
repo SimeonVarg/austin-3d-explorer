@@ -139,7 +139,8 @@
       // js/slopes.js: once three.js has put a mesh's vertices on the GPU, drop
       // the CPU copy (~260 MB for the authored buildings). It is only needed to
       // upload again after a lost WebGL context, and a phone recovers from that
-      // by reloading (below). Nothing on a phone raycasts the meshes.
+      // by reloading (below). Nothing on a phone raycasts the meshes. Keeping it
+      // would let a phone restore in place, but costs that 260 MB all the time.
       freeGeometryCpu: true,
       // js/slopes-apartments.js via js/slopes.js buildChunked: build the
       // authored buildings in pieces of at most this many triangles instead of
@@ -509,6 +510,13 @@
       if (!isMapCanvas(e)) return;
       lostAt = Date.now(); restored = false;
       window.LITE_PROFILE.contextLost = (window.LITE_PROFILE.contextLost | 0) + 1;
+      // The layer retains its upload data and owns in-document restoration.
+      // Leave the legacy reload fallback for scenes without that capability.
+      if (window.slopes?.canRestoreContext && window.slopes.root) {
+        lostAt = 0;
+        if (timer) { clearTimeout(timer); timer = null; }
+        return;
+      }
       if (!struck && visible() && window.SLOPES && window.SLOPES.on && (!B.revealed || introFlying())) struck = strike('ctx');
       // CPU buffers may already have been released after their first upload.
       // Restoration cannot make that scene usable; only a new document can.

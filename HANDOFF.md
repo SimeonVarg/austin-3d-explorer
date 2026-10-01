@@ -33659,3 +33659,27 @@ Speed: an isolated mottle benchmark, node only and not the app (512 x 512 RGBA, 
 Appearance: day frames differ from the unchanged build by at most 2 of 255 per channel. Night frames differ by at most 56 of 255 (campus) and 48 of 255 (West Campus), with 232 and 21 pixels beyond 12; a repeat of the unchanged build gave 230 and 43 for the same two views, so that is scene noise (stars, ground lights). Downtown night and the hour change reached 16 and 17 of 255, with 19 and 15 pixels beyond 12 against 2 and 3 for the repeat, which is not fully accounted for by that noise.
 
 Still open: fresh walking-height and day/night comparisons, a console check on load and after moving the camera, and a quiet-machine timing with at least three interleaved pairs. Until then, do not claim faster turns, hour changes or flight.
+
+## September 30, 2026 - Graphics context restoration (claude/context-restore)
+
+When the browser loses and restores its graphics (a driver reset, sleep/wake),
+the 3D city now comes back in place on desktop instead of vanishing. The CPU
+scene survives; a new renderer uploads it again, shadow maps and pending shader
+compiles are reset, the shared lighting hooks are re-installed and the current
+sunlight is kept. Code: js/slopes.js, js/city-lighting.js, js/mobile.js. Check:
+scripts/verify/context-restore.mjs.
+
+Phones are deliberately unchanged. A phone drops each mesh's CPU copy after it
+reaches the GPU (about 260 MB saved), so it cannot re-upload in place and keeps
+its existing recovery: the reload in js/mobile.js. Keeping that copy would let a
+phone restore in place but costs the 260 MB all the time, which is the wrong
+trade on the device most likely to be killed for memory. window.slopes
+.canRestoreContext is false there, and the phone profile of the check asserts
+exactly that contract instead of forcing a loss.
+
+Evidence: on main the desktop city loses 39% of its pixels after a forced loss
+and the custom layer does not return. On the branch, two fresh desktop runs at
+1440 x 900 recover to within 71-74 pixels (0.006%) of the settled frame, with the
+same camera, light and scene, both shadow maps rebuilt, no reload, no city data
+fetched and no page errors. graphics.mjs passes 27/27. Not verified: native tab
+switching, real driver resets, repeated losses in one page and physical phones.
