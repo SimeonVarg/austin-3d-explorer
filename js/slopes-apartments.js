@@ -3080,8 +3080,11 @@
    * Teach the flight controls the real height: js/controls.js rasterises its
    * collision grid once at init from final_height (20.5 m for The Standard),
    * so without this you fly through the top 38 m of the tower. The same
-   * route js/heroes.js and js/westcampus.js take; theirs are carried along so
-   * the rebuild does not drop Rambler's corrected height.
+   * route js/heroes.js and js/westcampus.js take; js/controls.js keeps each
+   * owner's volumes, so no rebuild drops another's. Called when the
+   * time-sliced build lands (startBuild): d017e58 moved the build off boot
+   * and dropped this call with the boot log it sat in, so Icon (87 m) had no
+   * collision at all.
    */
   function extendCollision(map) {
     if (typeof window.__flyRebuildCollision !== 'function') return 'no collision api';
@@ -3105,7 +3108,7 @@
       if (h) extra.push({ type: 'Feature', geometry, properties: { h } });
     }
     if (!extra.length) return 'no matching footprints';
-    window.__flyRebuildCollision({ buildings, parts: { type: 'FeatureCollection', features: ((parts && parts.features) || []).concat(extra) } });
+    window.__flyRebuildCollision({ buildings, parts: { type: 'FeatureCollection', features: ((parts && parts.features) || []).concat(extra) } }, 'apartments');
     return 'rebuilt with ' + extra.length + ' corrected heights';
   }
 
@@ -3149,8 +3152,9 @@
       if (!want) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); }); return; }
       _group = g; S.add(_group);
       setFilters(true); setLabels(true);
+      count.collision = extendCollision(map || _map);
       (map || _map).triggerRepaint();
-      console.log('[slopes-apartments]', count.buildings, 'building(s) built in', count.ms, 'ms over', count.buildSlices, 'slice(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.triangles, 'triangles');
+      console.log('[slopes-apartments]', count.buildings, 'building(s) built in', count.ms, 'ms over', count.buildSlices, 'slice(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.triangles, 'triangles; collision:', count.collision);
       checkAreas(map || _map);   // a camera that is already near an area
     }).catch(e => { if (_building === p) _building = null; console.error('[slopes-apartments] build failed', e); });
     return p;

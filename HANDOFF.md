@@ -33677,6 +33677,151 @@ of the reference time; noisy building and quality-gap walks remain excluded.
 No browser, server or external upload was used. Real phone tracks, confidence calibration, exact door
 positions and access/locked-door facts remain unverified.
 
+## September 30, 2026 - Exact walking coverage (claude/route-coverage)
+
+Audited every uncovered housing name and class code from the existing local
+sources. Exact, source-backed name/ID lists now expose Jester West's own wall
+doors and the existing Engineering Discovery door for ACS. Icon is still not
+Ion; West is still not East. The ACS donor-name expansion is recorded as an
+identity inference, not a verified rename or current public-access claim.
+The walk bake regenerates Battle Hall's current authored rectangular doorway
+instead of reviving retired entrance assemblies. Recovered doors must sit
+against their own wall; alternate links through buildings and Jester West's
+offset secondary point are excluded. Existing walkway geometry is retained.
+Unavailable class codes keep specific reasons in the graph and route answers.
+
+Same 81 housing names and 6,804-query matrix: usable housing rises 29 to 30,
+class coverage 157 to 158 of 229 currently known codes, answered queries 2,146
+to 2,220. COM was already retired, so the earlier 230-code count is historical.
+There are zero wrong housing identities and zero missing or overstated
+schedule floors. All 79 finder groups, housing-comparison core checks and
+19 walk-bake gates pass. Two final graph re-bakes are byte-identical. The live
+housing-comparison browser suite passes after the wall-link correction.
+Walkmeter stays red but does not worsen: drift failures 18 before, 7 after,
+zero route errors and interaction gate passing; oracle door indices are stale.
+
+The schedule-confirmation browser suite passes 108/108 against this branch
+(run outside the sandboxed job, which could not open its privacy-canary port).
+The recorded unavailable reasons are developer notes, so they stay in the
+graph and the programmatic route answers only; what a student sees is the
+existing plain sentence.
+
+Still open: 51 housing and 71 class-code gaps, mostly missing source doors or
+identities, plus out-of-area destinations; no private apartment doorway was
+invented. 46 of the housing gaps are major West Campus apartments whose exact
+footprint is known but no source carries a door. Walked GPS tracks
+(scripts/gpx) plus one door photo per building are the planned source for
+those doors.
+
+## September 30, 2026 - Standalone warm sunset horizon proof (claude/sunset-horizon)
+
+The committed js/timeofday.js and js/slopes.js fix remains untouched. Added
+scripts/verify/sunset-band.mjs and its README entry. The check uses the normal
+application, production time-of-day control, live FOV, second composited frame
+and clear-column selection independent of warmth. Early auto-detect cancellation,
+fixed exposure, fresh contexts and hardware rendering keep the two arms matched.
+Two interleaved final runs each: main fails at phone R-B 51.40 and desktop -13.40;
+the branch passes at 148.20 and 122.40, threshold 90. The existing graphics suite
+passes 27/27. Served application sources match the parent/main and branch commits.
+Syntax, harness parity and whitespace checks pass. Edits remain uncommitted.
+
+The cold band is gone in both matched views, but sky-only visual acceptance is
+NOT established: the linked haze and distant city also visibly warm, exceeding
+unchanged-build repeat noise. The reviewing lane must resolve that scope point;
+do not claim that only clear sky changed. Initial selector drafts rejected a
+vertical sky gradient and included a smooth tower; the final selector excludes
+those independently of color warmth and was rerun unchanged in both arms.
+Labelled images, raw measurements, full graphics output and the report are held
+in the local pipeline task output/scratch, not tracked screenshot directories.
+No unrelated task, server, git write or continuation was started.
+
+## Sep 30 2026 - Far-detail fade for moire: two tries measured, neither on by default (`claude/moire-fade`, PR #352 closed unmerged; the branch is kept)
+
+The brief after #332/#341: fade (a) the authored apartments' sub-pixel detail
+and (b) the dashed downtown floor lines. Measured with `moire.mjs` (NVIDIA RTX
+3050 Ti, 1280x680 CSS at DPR 1.5, balanced, Smooth edges on, 4 samples,
+auto-exposure held, sunset p 0.50), both sides drawn in ONE page with
+`--variants` and scored against the unmodified city at 3x (lower is better).
+
+**(a) Filtered sheet on every authored building: rejected, not committed.**
+`APARTMENTS.facadeFilter` (#294) was widened from five buildings to all 196
+(1,672 faces, 13.4 MB at half resolution). Its p fade (.4-.5) already hides it
+at the sunset default, so it was moved to the lamps. Result: WORSE everywhere
+it drew. West campus moire 0.206 -> 0.322 (visible-band pixels 0.01% ->
+0.69%), campus low 0.196 -> 0.246, downtown 0.216 -> 0.222; west-glide flight
+0.205 -> 0.368. The sheet reads each wall's area average BEFORE lighting and
+glass reflection, so far walls come out a flat, brighter wash that the 3x
+reference does not have, and the proud geometry (balconies, fins) still draws
+on top. The frame-to-frame crawl did drop (shimmer +0.120 -> -0.083), which is
+the half #294 measured; the still-frame error is the half it did not. With
+Smooth edges on, #341 already found the authored fine parts at <0.004 of the
+score. A fix for (a) needs the sheet lit like the geometry, not a wider list.
+
+**(b) Thin-line coverage: committed, OFF by default (`?thinlines=1`).**
+`CityLighting.thinLines` in `js/city-lighting.js`: in `outer-detail` (<=0.42 m
+thick) and the two landmark layers (<=0.9 m), a wall whose projected thickness
+is under `minPx` 1.25 is drawn that tall (base moved down, top unchanged) at
+coverage alpha = true / drawn, so a 0.2 px floor band is a steady faint line.
+Results: downtown still 0.216 -> 0.218, landing start 0.172 -> 0.175, landing
+crest and west campus unchanged; downtown pan (40 frames) shimmer 0.120 ->
+0.113. Close-ups unchanged (near-downtown 17 px moved, near-west untouched).
+Frame time, downtown pan, 3 interleaved reps, loaded machine (CPU 78-89%):
+NVIDIA medians too noisy to read (branch -9.5 to +23 ms per rep); AMD iGPU
+(Edge, `VERIFY_GPU=low`) +1.7/+7.7/+2.8 ms, slower in 3 of 3. Not worth a
+default. The floor bands also are a small share of what still reads as dashes
+downtown: their opaque roof ledges and the balcony decks' tops (0.6-2.4 m deep)
+are untouched by a wall-only fix.
+
+Also: `moire.mjs` / `moire-fps.mjs` gain a `west-glide` flight past the West
+Campus towers. Evidence (scratch, not committed): `postlaunch/moire-fade/evidence/`.
+
+
+**Closed, not merged (Sep 30 2026).** Neither try earned a default, (b) was
+slower on the AMD iGPU in 3 of 3 reps, and the branch had drifted into a
+conflict with main plus a failing `landmark-material-contract.mjs`. Merging
+off-by-default code that measured no win only adds a path to maintain. The
+code stays on `origin/claude/moire-fade` if a lit facade sheet (the fix (a)
+needs) is ever built.
+
+## September 30, 2026 - GPU check refresh (claude/gpu-checks-refresh)
+
+Refreshed the seven quarantined browser checks against 509bbba, with no changes
+to the app, authored data or CI list. Boot completion is not mesh completion:
+checks now wait for attachment, rendered frames and replacement filters. Campus
+membership follows the current collection; walking probes follow the structural
+ground split and test geometry independently of camera culling. Ground texture
+readback waits for the actual rendered filter update. Pitch checks wait until
+the map can receive their input. Mobile scenarios use fresh bounded browsers.
+
+Completed October 1: campus-everywhere, campus-walking, live-here-buildings,
+lookup and all eleven mobile scenarios pass twice consecutively on hardware GL.
+The mobile sets each pass 51 assertions; their old whole-suite timeout was too
+short, not a hanging load. These are desktop mobile profiles, not physical-phone
+acceptance. Screenshot pairs retain the second frame; evidence and the complete
+report remain with the reviewing lane. No performance improvement is claimed.
+
+Two checks stay red deliberately: campus-apartment measures Icon's 87.12 m roof
+with a 0 m collision envelope (d017e58 removed the sole collision-rebuild call).
+Campus-repairs reports 19 out-of-wall balcony warnings from GrandMarc Austin and
+The Block on Rio; malformed spans predate the bounds guard. All original
+thresholds and clean-console assertions remain. Later assertions blocked by the
+Icon failure are not claimed green. Changes are uncommitted for review and no
+new queued pass or continuation was started.
+
+## September 30, 2026 - Photo import speaks before it waits (claude/import-says-at-once)
+
+Picking a schedule photo now shows "Getting the reader ready…" at once. Before,
+the panel stayed blank until the iPhone-HEIC format sniff finished, and that
+12-byte read waits for a free main thread: on the phone profile, with the city
+still drawing, that was 1-3 s (measured on the laptop: the first status at
+1.3-3.2 s after the pick, blank before it). The same race made
+`img-import.mjs` step 4 ("while it reads, the panel is up and says what it is
+doing") fail on CI for two unrelated PRs (#354, #369) while it passed on
+others. Code: `impFromImage` in js/wayfind.js sets the busy note before the
+format gate and clears it when a HEIC is refused. Laptop GPU: img-import 67/67;
+two timing runs saw the note on the very first observation. Not fixed: the
+main thread still stalls ~2.2-2.6 s right after a pick on the phone profile.
+
 ## September 30, 2026 - Graphics context restoration (claude/context-restore)
 
 When the browser loses and restores its graphics (a driver reset, sleep/wake),
@@ -33700,3 +33845,59 @@ and the custom layer does not return. On the branch, two fresh desktop runs at
 same camera, light and scene, both shadow maps rebuilt, no reload, no city data
 fetched and no page errors. graphics.mjs passes 27/27. Not verified: native tab
 switching, real driver resets, repeated losses in one page and physical phones.
+
+**The styleless gap (found by CI, fixed).** Between the loss and the restore,
+MapLibre has destroyed its style (`map.style` is null). On CI's slow renderer a
+texture refresh on a timer landed there and threw "reading 'getImage'". Worse,
+a time-of-day change in that gap painted into an EMPTY style that MapLibre
+builds on demand, and the restore then put back the light from the moment of
+the loss: 17% of the frame came back in the wrong colours. Now js/app.js makes
+the image calls and setSky/setLight do nothing while there is no style,
+`applyTimeOfDay` only records the time there, and js/slopes.js re-applies the
+current time through the full wrapper chain once the real style is back. The
+check moves the clock inside the gap on purpose, so every machine exercises it.
+The restore re-applies the time only when it differs from the moment of the
+loss: an unconditional repaint made the name labels re-test what hides them,
+and on CI's slow renderer two were still fading back in at the after frame.
+Laptop GPU, 1440 x 900: restore difference 0.004% against a 0.01% noise
+floor, no page errors; phone profile passes.
+
+## October 1, 2026 - Flight collision keeps every module's heights; Icon is solid again (claude/icon-collision)
+
+Three modules raise the flight-collision field after boot (js/westcampus.js,
+js/heroes.js, js/slopes-apartments.js). Each rebuilt the whole field from its
+own list, so the last one silently erased the others. And d017e58 (the
+time-sliced apartment build) dropped the apartments' call with the boot log it
+sat in. Measured on main, laptop GPU: Icon's collision 0 m under an 87 m roof,
+and the 54.6 m West Campus tower back to 20.5 m because heroes rebuilt after
+west campus. Now `__flyRebuildCollision(scene, owner)` in js/controls.js keeps
+each owner's latest volumes and builds from all of them (cells stamp a MAX, so
+that is exactly everyone's raise); a call with no owner is still a full
+replacement, which campus-everywhere-check's raster test relies on. The
+apartments rebuild again when their build lands. After: Icon 93.6 m, the West
+Campus tower 58.2 m, hero volumes unchanged, the tallest apartment 101.19 m.
+campus-apartment-check (from PR #374) and campus-everywhere-check pass.
+
+Not fixed, and NOT caused by this: `collision.mjs` fails on main and on this
+branch identically, "Collision pose did not settle within 60 s" (the fly
+controller never leaves `driving`). It needs its own look.
+
+## October 1, 2026 - Balcony stacks listed only on walls that hold them (claude/balcony-spans)
+
+Campus-repairs-check failed on 19 "Balcony outside its wall piece" warnings.
+GrandMarc's north, south and southS ranges listed their balcony stacks, measured
+along the LONG wall, at block level, so the short end walls (20.3, 12.2 and 8 m)
+wore the same list and every stack past their length was skipped with a
+warning. The Block on Rio's south-elevation override also reaches the u0 end
+wall over v 30.0..44.7 (14.7 m), where two of its three stacks do not fit. Now
+each long wall carries its stacks as its own face, the block bands keep only
+what an end wall holds, and Rio gets a region that touches u0 alone, ahead of
+the override. Nothing drawn changes: with main's two files against these, the
+city builds the same 2,134 balconies and 3,106,943 triangles, the warnings go
+19 to 0, and four matched frames of the two buildings are pixel-identical on
+the buildings (55-236 differing pixels, all on far background towers).
+campus-repairs-check passes on hardware GL.
+
+Not decided here, for the photo pass: whether the end walls really carry the
+stacks that were drawn there (GrandMarc's ends hold 3, 1 and 1; Rio's u0 holds
+1). They were drawn before this change and still are.

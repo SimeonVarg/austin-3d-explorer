@@ -1957,7 +1957,21 @@ function initControls(map, scene) {
            bearing: map.getBearing(), pitch: map.getPitch() };
   buildHeightField(scene);
 
-  window.__flyRebuildCollision = sc => { buildHeightField(sc); };
+  // Three modules raise the field after init (js/westcampus.js, js/heroes.js,
+  // js/slopes-apartments.js), each handing over the whole scene plus its own
+  // volumes. A rebuild used to keep ONLY the latest call, so the last module
+  // erased the others' (measured 2026-10-01: heroes put The Standard's 54.6 m
+  // back to 20.5 m). Cells stamp a MAX, so building from every owner's latest
+  // parts is exactly everyone's raise; an owner that calls again replaces only
+  // its own. A call with no owner is a full replacement, as before.
+  const raisedBy = new Map();
+  window.__flyRebuildCollision = (sc, owner) => {
+    if (!owner) { raisedBy.clear(); buildHeightField(sc); return; }
+    raisedBy.set(owner, (sc.parts && sc.parts.features) || []);
+    const seen = new Set(), features = [];
+    for (const list of raisedBy.values()) for (const f of list) if (!seen.has(f)) { seen.add(f); features.push(f); }
+    buildHeightField({ buildings: sc.buildings, parts: { type: 'FeatureCollection', features } });
+  };
   window.__fly = {
     eye: () => ({ lng: eye.lng, lat: eye.lat, alt, altUser, altFloor,
                   vE: vel.e, vN: vel.n, bearing, pitch, driving: wasDriving }),

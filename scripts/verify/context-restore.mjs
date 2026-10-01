@@ -66,7 +66,10 @@ function difference(first, second) {
 
 const report = { profile, base: BASE, viewport: profile === 'phone' ? { width: 390, height: 844 } : { width: 1440, height: 900 }, checks: [], pageErrors: [], consoleErrors: [], reloads: 0, recoveryRequests: [] };
 const check = (name, pass, detail) => report.checks.push({ name, pass: !!pass, detail });
-const browser = await launch(chromium, { gl: 'hardware', maxMs: 300000 });
+// No maxMs here: the watchdog then takes VERIFY_MAX_MS, which CI sets from
+// this check's ceiling (SwiftShader needs more than 5 min), and defaults to
+// 5 min on a GPU, where a run takes about 1.
+const browser = await launch(chromium, { gl: 'hardware' });
 try {
   const context = await browser.newContext({ viewport: report.viewport, screen: report.viewport, isMobile: profile === 'phone', hasTouch: profile === 'phone', deviceScaleFactor: 1 });
   const page = await context.newPage();
@@ -82,10 +85,14 @@ try {
     };
     cancel();
   });
-  await page.goto(BASE + '/index.html?intro=0&drift=0', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  // Names fade in by time after a restore; on CI's ~1 fps SwiftShader a frame can
+  // catch them half-faded (2026-10-01: 0.5% of pixels, all of them label text).
+  // This check is about the city, so it runs without names.
+  await page.goto(BASE + '/index.html?intro=0&drift=0&namelabels=0', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => window.__map?.isStyleLoaded() && window.slopes?.renderer && window.slopesApartments?.count.done, null, { timeout: 150000 });
   await page.evaluate(() => {
     window.cancelGraphicsAutoDetect();
+    for (const layer of window.__map.getStyle().layers) if (layer.type === 'symbol') window.__map.setLayoutProperty(layer.id, 'visibility', 'none');
     const slider = document.getElementById('tod-slider');
     if (slider) {
       slider.value = '0.5';
@@ -103,13 +110,27 @@ try {
     await page.waitForTimeout(4000);
     await page.waitForFunction(() => !document.getElementById('veil') || document.getElementById('veil').classList.contains('lift'), null, { timeout: 60000 });
     await page.waitForTimeout(1200);
-    await page.waitForFunction(() => !window.CityLighting?.stats.shadowProxyBuilding, null, { timeout: 30000 });
+    // The shadow model is built from the tiles MapLibre is drawing. After a
+    // restore those tiles return over several frames, and on CI's SwiftShader
+    // (about one frame a second) the model can sit idle between two partial
+    // builds: CI once compared a 368k-triangle model against the 401k one it
+    // replaced. Wait until two readings 4 s apart agree.
+    let last = null;
+    for (let i = 0; i < 30; i++) {
+      await page.waitForFunction(() => !window.CityLighting?.stats.shadowProxyBuilding, null, { timeout: 90000 });
+      const now = await page.evaluate(() => JSON.stringify(window.CityLighting?.proxyHash()));
+      if (now === last) break;
+      last = now;
+      await page.waitForTimeout(4000);
+    }
     await page.waitForTimeout(1500);
   };
+  // CI renders on SwiftShader (no GPU): one 1440x900 frame of the full city
+  // took over 15 s there, so a screenshot gets 90 s. On a GPU it takes < 1 s.
   const capture = async name => {
-    await page.screenshot({ timeout: 15000 });
+    await page.screenshot({ timeout: 90000 });
     await page.waitForTimeout(700);
-    return page.screenshot({ path: path.join(output, name + '.png'), timeout: 15000 });
+    return page.screenshot({ path: path.join(output, name + '.png'), timeout: 90000 });
   };
   const state = () => page.evaluate(() => ({
     layer: !!window.__map?.getLayer('slopes-mesh'), renderer: !!window.slopes?.renderer,
@@ -162,10 +183,20 @@ try {
       extension.loseContext();
     });
     await page.waitForFunction(() => window.__restoreCheck?.lost, null, { timeout: 15000 });
+    // THE STYLELESS GAP. Until the restore, MapLibre has destroyed the style
+    // (map.style is null). On CI's slow renderer a texture refresh on a timer
+    // landed in that gap and threw "reading 'getImage'". Move the clock in the
+    // gap on purpose, from timers as the app's own refreshes run, so every
+    // machine exercises it; then put it back so the light check below holds.
+    await page.evaluate(() => {
+      const p = window.__todCurrentP;
+      setTimeout(() => window.applyTimeOfDay(window.__map, (p + 0.08) % 1, true), 0);
+      setTimeout(() => window.applyTimeOfDay(window.__map, p, true), 300);
+    });
     await page.waitForTimeout(1000);
     const started = Date.now();
     await page.evaluate(() => window.__restoreCheck.extension.restoreContext());
-    await page.waitForFunction(() => window.__restoreCheck?.restored, null, { timeout: 30000 }).catch(error => check('restored original document', false, error.message));
+    await page.waitForFunction(() => window.__restoreCheck?.restored, null, { timeout: 90000 }).catch(error => check('restored original document', false, error.message));
     await settle();
     const after = await capture('after-restore');
     report.restoreMs = Date.now() - started;

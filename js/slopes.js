@@ -194,6 +194,12 @@
       lowZenith: '#6c91b3', lowHorizon: '#a0b6c8', sunset: '#ff963b',
       ground: '#484e51', groundBlend: .08,
       nightFadeStart: 0, nightFadeEnd: -6, warmElevation: 20,
+      // How far the atmosphere study's near-horizon colour swings toward its
+      // warm `sunset` hue as the sun drops (0..1, on the same `warm` weight the
+      // window reflections use). 1 keeps the sky just above the horizon warm at
+      // sunset so the golden wash meets a warm horizon, not a cold blue-grey
+      // band; 0 restores the old cool horizon. See js/timeofday.js presetAt.
+      horizonWarmAtSunset: 1,
       atmosphere: true, skyBlend: .72, saturation: 1.0,
       // shadowSize: texels per side of each of the two sun shadow maps. A phone
       // takes js/mobile.js LITE.budget.shadowSize instead (desktop: no budget,
@@ -1655,16 +1661,24 @@
     // CPU meshes/materials/textures and let a fresh renderer upload everything.
     // Only where the CPU copies were kept; a phone reloads instead (js/mobile.js).
     if (!FREE_CPU) {
-      let restorePending = false, restoreLight = null;
+      let restorePending = false, restoreLight = null, restoreP = null;
       const restoreLayer = () => {
         if (!restorePending || !map.style?._loaded || !map.getLayer('buildings-3d') || map.painter.context.gl.isContextLost()) return;
         // MapLibre's loss snapshot also omits its live time-of-day light.
         if (restoreLight) map.setLight(restoreLight, { duration: 0 });
         if (!map.getLayer(SLOPES.layerId)) map.addLayer(layer, beforeId(map));
+        // The clock may have moved while the style was gone (js/app.js, THE
+        // STYLELESS GAP); the snapshot only knows the moment of the loss.
+        // Re-apply the CURRENT time through the full wrapper chain, but only
+        // then: a needless repaint makes the name labels re-test what hides
+        // them, and on CI's slow renderer they were still fading back in.
+        if (typeof window.applyTimeOfDay === 'function' && window.__todCurrentP != null &&
+            window.__todCurrentP !== restoreP)
+          window.applyTimeOfDay(map, window.__todCurrentP, true);
         restorePending = false;
         map.triggerRepaint();
       };
-      map.getCanvas().addEventListener('webglcontextlost', () => { restoreLight = map.getLight(); restorePending = true; }, true);
+      map.getCanvas().addEventListener('webglcontextlost', () => { restoreLight = map.getLight(); restoreP = window.__todCurrentP; restorePending = true; }, true);
       map.on('webglcontextrestored', restoreLayer);
       map.on('styledata', restoreLayer);
       map.on('style.load', restoreLayer);
