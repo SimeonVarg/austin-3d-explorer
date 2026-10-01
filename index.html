@@ -119,6 +119,10 @@
   </div>
   <!-- First, and before anything that can block: it owns the load screen. -->
   <script src="js/loader.js"></script>
+  <!-- Starts fetching the recorded shader list now; js/app.js hands it the map's
+       GL context the moment the Map exists (js/shader-prewarm.js header).
+       KEEP IN SYNC WITH _harness.html. -->
+  <script src="js/shader-prewarm.js"></script>
   <script src="js/explore.js"></script>
   <script src="js/graphics.js"></script>
   <script src="js/sky.js"></script>

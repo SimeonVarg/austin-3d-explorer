@@ -454,6 +454,9 @@
       ...(PHONE_BUDGET && PHONE_BUDGET.tileCacheSize != null ? { maxTileCacheSize: PHONE_BUDGET.tileCacheSize } : {}),
     });
     window.__map = map;
+    // Replays every recorded shader program in parallel now, so the links
+    // below find the GPU process's cache warm (js/shader-prewarm.js).
+    if (window.ShaderPrewarm) window.ShaderPrewarm.start(map);
 window.CityLighting.install(map);
     // Y12. Before the first frame is drawn, and again once the style has
     // swapped the transform out from under us. A no-op above WALK_NEAR.ALT_HI.
