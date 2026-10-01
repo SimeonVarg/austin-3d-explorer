@@ -33712,3 +33712,25 @@ invented. 46 of the housing gaps are major West Campus apartments whose exact
 footprint is known but no source carries a door. Walked GPS tracks
 (scripts/gpx) plus one door photo per building are the planned source for
 those doors.
+
+## September 30, 2026 - Standalone warm sunset horizon proof (claude/sunset-horizon)
+
+The committed js/timeofday.js and js/slopes.js fix remains untouched. Added
+scripts/verify/sunset-band.mjs and its README entry. The check uses the normal
+application, production time-of-day control, live FOV, second composited frame
+and clear-column selection independent of warmth. Early auto-detect cancellation,
+fixed exposure, fresh contexts and hardware rendering keep the two arms matched.
+Two interleaved final runs each: main fails at phone R-B 51.40 and desktop -13.40;
+the branch passes at 148.20 and 122.40, threshold 90. The existing graphics suite
+passes 27/27. Served application sources match the parent/main and branch commits.
+Syntax, harness parity and whitespace checks pass. Edits remain uncommitted.
+
+The cold band is gone in both matched views, but sky-only visual acceptance is
+NOT established: the linked haze and distant city also visibly warm, exceeding
+unchanged-build repeat noise. The reviewing lane must resolve that scope point;
+do not claim that only clear sky changed. Initial selector drafts rejected a
+vertical sky gradient and included a smooth tower; the final selector excludes
+those independently of color warmth and was rerun unchanged in both arms.
+Labelled images, raw measurements, full graphics output and the report are held
+in the local pipeline task output/scratch, not tracked screenshot directories.
+No unrelated task, server, git write or continuation was started.
