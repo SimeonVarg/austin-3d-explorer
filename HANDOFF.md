@@ -33807,3 +33807,23 @@ The Block on Rio; malformed spans predate the bounds guard. All original
 thresholds and clean-console assertions remain. Later assertions blocked by the
 Icon failure are not claimed green. Changes are uncommitted for review and no
 new queued pass or continuation was started.
+
+## October 1, 2026 - Balcony stacks listed only on walls that hold them (claude/balcony-spans)
+
+Campus-repairs-check failed on 19 "Balcony outside its wall piece" warnings.
+GrandMarc's north, south and southS ranges listed their balcony stacks, measured
+along the LONG wall, at block level, so the short end walls (20.3, 12.2 and 8 m)
+wore the same list and every stack past their length was skipped with a
+warning. The Block on Rio's south-elevation override also reaches the u0 end
+wall over v 30.0..44.7 (14.7 m), where two of its three stacks do not fit. Now
+each long wall carries its stacks as its own face, the block bands keep only
+what an end wall holds, and Rio gets a region that touches u0 alone, ahead of
+the override. Nothing drawn changes: with main's two files against these, the
+city builds the same 2,134 balconies and 3,106,943 triangles, the warnings go
+19 to 0, and four matched frames of the two buildings are pixel-identical on
+the buildings (55-236 differing pixels, all on far background towers).
+campus-repairs-check passes on hardware GL.
+
+Not decided here, for the photo pass: whether the end walls really carry the
+stacks that were drawn there (GrandMarc's ends hold 3, 1 and 1; Rio's u0 holds
+1). They were drawn before this change and still are.
