@@ -103,11 +103,15 @@ memory and is never written here, in any tracked file, or in a commit message.
       frame a doc actually CITES as evidence belongs in the repo. A prune on
       2026-08-23 found **1,546 of 2,127 committed screenshots that nothing
       referenced** — 1.4 GB of pure multiplier.
-    - **`git worktree remove` and `git worktree prune` UNREGISTER without
-      deleting.** The worktree list can read clean while the bytes are still
-      there; it had read clean for two days. Sweep the directory itself
-      between rounds: `rmdir /s /q .claude\worktrees` then
-      `git worktree prune`, and delete the orphan `worktree-wf_*` branches.
+    - **A clean worktree list does not mean the bytes are gone.** On Windows a
+      `git worktree remove` that hits a locked file can leave the folder
+      behind, and `git worktree prune` only cleans git's records. The list
+      read clean for two days while the folders still filled the disk. Check
+      the folders themselves between rounds, and delete them ONE AT A TIME,
+      only after checking each is clean, pushed and not in use; then
+      `git worktree prune` and delete the orphan `worktree-wf_*` branches.
+      **Never delete the whole `.claude\worktrees` folder:** some worktrees in
+      it are long-lived tools. A worktree with a `.keep-worktree` file stays.
     - **Check free space before launching a wide round.** Going wide is fine —
       Simeon asked for it — but the debris is the lane's problem, not his.
     - If a doc cites a frame, commit that frame. 149 citations already point at
