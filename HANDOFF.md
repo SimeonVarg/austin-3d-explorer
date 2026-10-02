@@ -1,5 +1,16 @@
 # Austin 3D Explorer — Full Handoff
 
+## Oct 2 2026 - compact wall material proof (`codex/burdine-wall-material`, not shipped)
+
+Built an opt-in ordinary-brick material experiment, preserving structural and
+raised detail geometry. The shared renderer files are untouched: two existing
+open PRs modify them, so a fail-closed browser-only adapter supplies the proof
+hooks. No runtime script tag or building file changed. See
+`docs/wall-pattern-prototype.md` for the contract, limits and verification.
+Owner photos and comparison artifacts remain private local files. Production
+integration and broad migration wait for the owner's visual review.
+
+
 ## Oct 1 2026 - night pass: restore check, desktop memory, buildings from street photos
 
 **Merged.** #369 (the city comes back after the browser loses its graphics
