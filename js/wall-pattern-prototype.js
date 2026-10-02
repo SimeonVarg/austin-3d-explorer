@@ -53,14 +53,16 @@
         put(2,[module[0],module[1],gap,gap]);
         put(6,[...filter,0,0]);
         const total = tones.reduce((a,t) => a+t.weight,0), means = Array.from({length:3},()=>[0,0,0]);
-        let cdf=0;
+        let cdf=0; const thresholds=Array(8).fill(1);
         tones.forEach((t,i) => {
           cdf+=t.weight/total;
+          thresholds[i]=cdf;
           for(let j=0;j<3;j++) {
             put(8+i*3+j,[...t.colours[j],cdf]);
             for(let c=0;c<3;c++) means[j][c]+=t.colours[j][c]*t.weight/total;
           }
         });
+        put(7,thresholds.slice(0,4));put(29,thresholds.slice(4,8));
         const mortar=palette[p.joint.tone].map(rgb);
         for(let j=0;j<3;j++) {put(3+j,[...mortar[j],0]);put(26+j,[...means[j],0]);}
         texture && (texture.needsUpdate=true);
@@ -96,18 +98,24 @@
       vec2 footprint=fwidth(uv)/M.xy;
       vec2 filterRange=wpRead(row,6.).xy;
       float resolved=1.-smoothstep(filterRange.x,filterRange.y,max(footprint.x,footprint.y));
-      float h=wpHash(floor(cell),O.z);
-      day=wpRead(row,8.).rgb;gold=wpRead(row,9.).rgb;dark=wpRead(row,10.).rgb;
-      for(int i=0;i<6;i++) {
-        if(float(i)<O.w && h<=wpRead(row,8.+float(i)*3.).a) {
-          day=wpRead(row,8.+float(i)*3.).rgb;
-          gold=wpRead(row,9.+float(i)*3.).rgb;
-          dark=wpRead(row,10.+float(i)*3.).rgb;break;
-        }
+      vec3 mortarDay=wpRead(row,3.).rgb,mortarGold=wpRead(row,4.).rgb,mortarDark=wpRead(row,5.).rgb;
+      if(resolved<1.) {
+        day=mix(mortarDay,wpRead(row,26.).rgb,meanCoverage);
+        gold=mix(mortarGold,wpRead(row,27.).rgb,meanCoverage);
+        dark=mix(mortarDark,wpRead(row,28.).rgb,meanCoverage);
       }
-      day=mix(mix(wpRead(row,3.).rgb,wpRead(row,26.).rgb,meanCoverage),mix(wpRead(row,3.).rgb,day,coverage),resolved);
-      gold=mix(mix(wpRead(row,4.).rgb,wpRead(row,27.).rgb,meanCoverage),mix(wpRead(row,4.).rgb,gold,coverage),resolved);
-      dark=mix(mix(wpRead(row,5.).rgb,wpRead(row,28.).rgb,meanCoverage),mix(wpRead(row,5.).rgb,dark,coverage),resolved);
+      if(resolved>0.) {
+        // One threshold vector lookup replaces a divergent per-tone texture loop.
+        float h=wpHash(floor(cell),O.z);
+        float index=dot(vec4(greaterThan(vec4(h),wpRead(row,7.))),vec4(1.))+
+          dot(vec2(greaterThan(vec2(h),wpRead(row,29.).xy)),vec2(1.));
+        float col=8.+index*3.;
+        vec3 selectedDay=mix(mortarDay,wpRead(row,col).rgb,coverage);
+        vec3 selectedGold=mix(mortarGold,wpRead(row,col+1.).rgb,coverage);
+        vec3 selectedDark=mix(mortarDark,wpRead(row,col+2.).rgb,coverage);
+        if(resolved>=1.) {day=selectedDay;gold=selectedGold;dark=selectedDark;}
+        else {day=mix(day,selectedDay,resolved);gold=mix(gold,selectedGold,resolved);dark=mix(dark,selectedDark,resolved);}
+      }
     }
   `;
   const apply = `

@@ -79,6 +79,14 @@ first pattern appear speckled and partly absent. Half-integer classification
 and rounded table selection remove that failure. The comparison retained the
 original geometric model; no colour tuning was used to conceal the fault.
 
+The first timing matrix established cheaper active building construction but
+included slower close-view frame distributions and no whole-page startup gain.
+A follow-up replaces the per-tone texture loop with packed thresholds and
+skips unused near/far palette reads. Its comparison image is pixel-identical;
+interleaved GPU queries show a lower Three.js pass cost than the first material
+version. This does not establish an end-to-end speedup over the original
+geometric bricks. Keep startup, construction, and rendering claims separate.
+
 Before production integration, finish the owner's visual review, coordinate
 the two shared-file hooks with the existing PRs, exercise actual target phones,
 and establish table capacity and lifecycle behaviour for the intended scale.
