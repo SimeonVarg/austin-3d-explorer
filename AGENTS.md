@@ -343,3 +343,24 @@ shape; make glazing darker with restrained reflected shine. Brick character
 should remain visible at the photographed viewing distance. Find other visible
 mismatches independently from the full reference, rather than correcting only
 the owner's list. Metric dimensions remain estimates until measured.
+
+
+## Photo inference and Cockrell follow-up — October 3, 2026
+
+Unseen, tree-obscured or otherwise occluded parts reconstructed from patterns
+in the owner's photos must be labeled `inference`, with `derivedFrom` pointing
+to the supporting photo evidence. They are not directly observed owner-photo
+features. Keep them provisional until actual evidence is obtained; preserve the
+old inferred version and record which measured/observed fields supersede it.
+The same applies to repeated architecture projected around unphotographed
+angles, including existing NHB detail. Unknown architecture may be inferred
+when useful, but the derivation and uncertainty must stay explicit.
+
+Cockrell's lower inscription is narrower than its upper line; do not enlarge it
+to a guessed width. The bottom three stairs flare outward. Follow the resulting
+side-rail bends, including the perpendicular segment visible at the flare; do
+not mirror a generic straight rail onto both sides. Brick bond must resolve
+properly on projecting pier returns and stair-wing sides/caps, rather than
+stretching one facade pattern around them. Photo/GPX location and lens metadata
+are initial camera constraints; verify the camera fit with image landmarks and
+report its uncertainty rather than claiming an exact match from GPS alone.
