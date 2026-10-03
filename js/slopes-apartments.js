@@ -2204,6 +2204,7 @@
     const ring = spec.footprint.ring;
     const obb = spec.frame && spec.frame.obb ? spec.frame.obb : obbOf(ring);
     const F = frameFor(obb);
+    window.WallPatterns.register(P,spec,F);
     window.CityNight?.registerFixtures(spec,F);
     const ringUV = ring.slice(0, ring.length - 1).map(F.toUV);
     console.log('[slopes-apartments] ' + spec.name + ': obb L=' + F.L.toFixed(1) + ' W=' + F.W.toFixed(1) + ', +u at bearing ' + F.bearing.toFixed(1) + '°');
@@ -2858,7 +2859,9 @@
   // in the ground. `_aptfloat` (scripts/verify/aptfloat.mjs) is the sweep
   // that finds a new one: a nadir over every authored footprint, every
   // fill-extrusion layer queried, anything that answers named.
-  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'], parts: ['parts-3d', 'parts-roof'], precinct: ['moody-wall', 'moody-roof', 'moody-plant', 'moody-cap'] };
+  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'], parts: ['parts-3d', 'parts-roof'], precinct: ['moody-wall', 'moody-roof', 'moody-plant', 'moody-cap'], hero: ['heroes-solid', 'heroes-lime', 'heroes-brick', 'heroes-nbrick', 'heroes-glass', 'heroes-glassb', 'heroes-glassc', 'heroes-gdc-glass', 'heroes-lattice', 'heroes-cap'] };
+  /** js/heroes.js keys its bands by a short code (`b`), not the building id, so a model that replaces a hero names it: `replaceHero: 'nhb'`. */
+  const heroCodes = () => [...new Set(okBuildings().map(b => b.replaceHero).filter(Boolean))];
   /**
    * The tiled roofs js/slopes-roofs.js draws from data/roofs.geojson's rig
    * were baked on the SNAPSHOT prism too: San Jacinto Hall's hip sits on
@@ -2908,6 +2911,8 @@
     if (gone.length) for (const id of HIDE_LAYERS.prism) plan.push([id, ['!', ['in', ['get', 'id'], ['literal', gone]]]]);
     if (names.length) for (const id of HIDE_LAYERS.bands) plan.push([id, ['!', ['in', ['get', 'name'], ['literal', names]]]]);
     if (gone.length && APTS.hideStoreys) for (const id of HIDE_LAYERS.storeys) plan.push([id, ['!', ['in', ['get', 'host'], ['literal', gone]]]]);
+    const heroes = heroCodes();
+    if (heroes.length) for (const id of HIDE_LAYERS.hero) plan.push([id, ['!', ['in', ['get', 'b'], ['literal', heroes]]]]);
     // Every complete authored model replaces older Drag facade/cap geometry.
     // Restricting this to the new street shops left PCL and Texas Union drawing
     // two different elevations and roofs in the same place.
@@ -3057,6 +3062,7 @@
       }
       yield;
       stashRigs(true);
+      window.heroesHideUndersides?.(heroCodes());
       _filtered = true;
     } else if (_filtered) {
       for (const id of Object.keys(_clauses)) {
@@ -3068,6 +3074,7 @@
         yield;
       }
       stashRigs(false);
+      window.heroesHideUndersides?.([]);
       _filtered = false;
     }
   }
@@ -3478,7 +3485,12 @@
   // in the same apply. The data is fetched once, through the layer's cache.
   let _fetching = null;
   function replacementCatalog(idx, individual, bundles) {
-    const buildings = individual.filter(Boolean), collected = bundles.flat();
+    // A building rebuilt in its own file supersedes its entry in a collection
+    // (Burdine Hall is also one of data/campus_buildings.json's halls), or two
+    // meshes stand in one footprint. Only a file that downloaded supersedes,
+    // so a failed one still leaves the collection's version drawn.
+    const buildings = individual.filter(Boolean), own = new Set(buildings.map(b=>b.id).filter(Boolean));
+    const collected = bundles.flat().filter(b => !own.has(b.id));
     // Index-wide aliases can name a file that failed to download. Only retire
     // those extra legacy pieces when every individual model is available.
     const complete = individual.every(Boolean);
