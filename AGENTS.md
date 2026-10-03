@@ -330,3 +330,16 @@ and measure both downloaded bytes and rendered geometry against the existing
 pixel lettering. Do not claim vectors make the tiny text instructions smaller: a
 shared glyph library adds bytes but can reduce generated geometry. Match the
 real inscription or sign; a generic font remains an approximation.
+
+## Cockrell photo review — October 3, 2026
+
+The owner rates the current private Cockrell trial 5.5/10; it is not accepted.
+Two paired handrail assemblies trisect the entrance stairs, with four pairs
+of vertical legs supporting each assembly. The two outer window bays have
+three lights each; the two middle bays have four. The masonry piers need
+stronger depth and must finish at the roof line without projecting above it.
+Restore the sloped brick apron below each window and the actual window-border
+shape; make glazing darker with restrained reflected shine. Brick character
+should remain visible at the photographed viewing distance. Find other visible
+mismatches independently from the full reference, rather than correcting only
+the owner's list. Metric dimensions remain estimates until measured.
