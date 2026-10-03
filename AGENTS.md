@@ -320,3 +320,13 @@ the intended scene state takes priority. Do not label an entire building
 provenance stays unknown. Private photo identifiers, camera positions and
 original files stay in the private evidence store. Reuse existing `sources`
 and field-level `_src` records; see `docs/photo-source-provenance.md`.
+
+## More faithful lettering — October 3, 2026
+
+The owner prefers defined vector lettering over pixelated letters, while
+keeping or lowering its size. Use the existing outline-sign geometry where
+appropriate. Reuse glyph contours for repeated text, retain counters and curves,
+and measure both downloaded bytes and rendered geometry against the existing
+pixel lettering. Do not claim vectors make the tiny text instructions smaller: a
+shared glyph library adds bytes but can reduce generated geometry. Match the
+real inscription or sign; a generic font remains an approximation.
