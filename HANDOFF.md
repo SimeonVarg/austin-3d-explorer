@@ -1,5 +1,33 @@
 # Austin 3D Explorer — Full Handoff
 
+## Oct 2 2026 - Burdine Hall, the Norman Hackerman Building and the compact wall material (`acer/wall-pattern`, PR #388)
+
+**What landed.** `js/wall-patterns.js` draws a running-bond brick wall as
+one flat face in the shader instead of a triangle per brick
+(`docs/wall-patterns.md`). It loads before `js/slopes.js` and is hooked in
+directly; draft #387's test-only adapter is closed as superseded. Burdine
+Hall and the Norman Hackerman Building are the first two files that use
+it, both rebuilt from reference photographs.
+
+**Two runtime rules came with them.**
+- A building in its own file supersedes its entry in a collection
+  (`replacementCatalog`). Burdine is also one of `campus_buildings.json`'s
+  halls and was drawn twice without this. The bake still writes Burdine
+  into that collection; nothing needs to change there, the file wins.
+- `replaceHero: '<code>'` hides a hero's bands by its short code (`b`) and
+  drops that code's roof underside (`window.heroesHideUndersides`), and
+  puts both back when the mesh stops. NHB uses `'nhb'`.
+
+**Checked in the real app** (no data swaps, branch vs main, balanced and
+performance presets): 0 errors, each building built once, 0 rendered NHB
+hero features, the NHB deck underside gone. Door light pools
+(`entrances-pool`) still show at the old door positions, as for every
+`replaceFrontage` building.
+
+**Known, for the owner's look.** Burdine's front reads pale grey-beige and
+its back block is still the old red brick; the real building is tan all
+round. The back was never photographed. NHB's heights are estimates.
+
 ## Oct 1 2026 - night pass: restore check, desktop memory, buildings from street photos
 
 **Merged.** #369 (the city comes back after the browser loses its graphics

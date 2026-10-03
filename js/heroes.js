@@ -939,6 +939,7 @@
       const B = S.build();
       for (const f of roofs) {
         const p = f.properties;
+        if (_undersideHidden.has(p.b)) continue;
         const points = f.geometry.coordinates[0].slice(0, -1).map(ll => {
           const v = S.toLocal(ll[0], ll[1], p.base);
           return [v.x, v.y, v.z];
@@ -963,10 +964,30 @@
         return;
       }
       window.slopes.onSwitch(apply);
+      _undersideRebuild = () => {
+        if (removed) return;
+        if (group) {
+          window.slopes.remove(group);
+          group.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); });
+          group = null;
+        }
+        apply();
+      };
       apply();
     };
     boot();
   }
+
+  // Hero codes whose underside an authored model has taken over. js/slopes-
+  // apartments.js hides that hero's bands by `b` while its mesh draws, and
+  // calls this with the same codes, and with [] when the mesh stops.
+  let _undersideHidden = new Set(), _undersideRebuild = null;
+  window.heroesHideUndersides = codes => {
+    const next = new Set(codes || []);
+    if (next.size === _undersideHidden.size && [...next].every(c => _undersideHidden.has(c))) return;
+    _undersideHidden = next;
+    if (_undersideRebuild) _undersideRebuild();
+  };
 
   let _added = false;
 

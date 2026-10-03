@@ -515,6 +515,7 @@
     ${window.CityLighting.uniforms}
     #include <packing>
     ${window.CityLighting.glsl}
+${window.WallPatterns.glsl}
     float hashCell(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
     float surfaceNoise(vec2 p) {
       vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
@@ -524,6 +525,7 @@
     void main() {
       vec4 baseColor=v_color, surface=v_surface;
       vec3 albedo=v_albedo, night=v_night;
+${window.WallPatterns.apply}
       float faceMix=1.0;
       #ifdef FACADE_FILTER
       #ifdef FACADE_FILTER_ARRAY
@@ -887,6 +889,7 @@
       side: o.side != null ? o.side : T.FrontSide,
       depthTest: true, depthWrite: true, transparent: false, blending: T.NoBlending,
     });
+    window.WallPatterns.attach(mat);
     // Builder meshes have no wall gradient. A constant vertex attribute is
     // exactly the old all-zero buffer, without eight CPU/GPU bytes per vertex.
     // colour() still supplies an attribute for meshes that need a gradient.
