@@ -38,3 +38,31 @@ HANDOFF.md overlaps other open PRs (#348, #312, #307, #189, #164); this separate
 pass record avoids writing over their lane work. The old Mac queue names only
 DKR, so new photo candidates remain private until an explicit bake/output
 ownership addition or Acer integration.
+
+## Scalable lettering decision and Cockrell refinement
+
+Use shared glyph contours and cached triangulation for ordinary text, keyed by
+font/asset identity and contour version. Preserve whole-sign contours for logos,
+joined script and distinctive wordmarks; one generic alphabet must not replace
+checked typography. Append transformed geometry to the existing building buffers
+rather than making one mesh per letter. Keep inline outlines and bitmap records
+compatible. Verify lighting, vertical layout and backing-strip behavior before
+conversion: the current outline renderer bypasses those legacy text features.
+
+The indexed core contains 20 text recipes with 15 distinct strings and 25
+bitmap recipes with 15 distinct shapes across 198 building recipes. Most
+outline entries are rectangular facade/vent detail, so a raw sign count is not
+a lettering count. The existing outline asset library already contains seven
+font variants plus custom forms. Reuse that workflow for checked typography.
+
+The next private Cockrell candidate removes the false horizontal wall bands,
+uses the existing filtered brick shader, aligns door frames and handles with
+the recessed entrance glass, adds an attached fascia/soffit and restores
+masonry landing piers, a bronze plaque shape and tubular handrail returns.
+Front and oblique views are retained at matched cameras. Metric entrance
+dimensions, exact glass appearance and camera calibration remain provisional.
+The refined east facade and connected engineering ground are not accepted.
+
+Public integration still belongs to the Acer bake/renderer lane. Private
+comparison images, candidates and camera metadata remain outside the repo.
+This continuation stays on `codex/campus-photo-pilot`.
