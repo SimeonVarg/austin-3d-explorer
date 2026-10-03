@@ -66,3 +66,41 @@ The refined east facade and connected engineering ground are not accepted.
 Public integration still belongs to the Acer bake/renderer lane. Private
 comparison images, candidates and camera metadata remain outside the repo.
 This continuation stays on `codex/campus-photo-pilot`.
+
+
+## Cockrell correction after the owner’s 5.5/10 review
+
+The owner’s review exposed errors visible in the supplied photos. The prior
+pass should have caught them before showing the trial. It is retained as a
+control and is not accepted. The next private candidate uses two paired rail
+assemblies at the stair thirds, four paired post stations per assembly, and
+3/4/4/3 window lights with narrower outer openings. It restores stronger piers
+below continuous roof coping, dark projecting window heads, sloped brick sill
+aprons, substantial separators and lower framed sashes.
+
+Additional independent misses: separate wall-attached side rails, broad
+landing-pier fronts and plaque placement, coarse concrete treads with projecting
+nosings, sparse plaza joints, narrow center fixed panel between double doors,
+door pulls attached at both ends and lights under the canopy.
+
+Regular wall brick and upright sill coursing use compact shared material
+descriptions; piers, recesses and slopes remain geometry. The private candidate
+and all appearance parameters stay outside the repo. Glass uses darker varied
+panes with the existing view-dependent reflection response. Exact reflected
+surroundings, concrete aggregate, camera fit, metric entrance dimensions,
+lettering identity, unphotographed faces and connected ground remain unresolved.
+
+Review the whole facade and stair topology against photos before accepting any
+material or lettering improvement. The correction is pending the owner’s
+visual review. This pass stays on `codex/campus-photo-pilot`; shared owner
+feedback was recorded in AGENTS.md and fetched on the Acer.
+
+The completed correction uses 78 blocks and 1,049 detail records, including
+compact strip geometry for nested pane borders. Whole-scene triangles are
+3,194,403–3,194,405 across the final roof-cap variant; this is not an FPS claim.
+The complete corrected recipe is about 29.3 KiB gzip, compared with about
+12.8 KiB for the rated control. Upright sill joints initially cost 84 KiB
+when emitted individually; the shared material removed that avoidable cost.
+Hardware GL verification on Intel Iris Plus 655 cancels graphics autodetect,
+waits for the final building, and retains the second screenshot of four views.
+No page errors or missing model were reported.
