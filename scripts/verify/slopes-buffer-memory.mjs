@@ -42,7 +42,7 @@ class ShaderMaterial {
 }
 const THREE = { BufferAttribute, Float32BufferAttribute, BufferGeometry, ShaderMaterial,
   Vector2: class { constructor(x, y) { Object.assign(this, { x, y }); } }, FrontSide: 0, NoBlending: 0 };
-const context = vm.createContext({ window: { THREE }, U: {}, VERT: '', FRAG: '',
+const context = vm.createContext({ window: { THREE, WallPatterns: { attach() {} } }, U: {}, VERT: '', FRAG: '',
   Float32Array: trackedArray(Float32Array), Uint8Array: trackedArray(Uint8Array), Uint32Array: trackedArray(Uint32Array),
   hexToRgb01: hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255) });
 const start = source.indexOf('  function build(');
