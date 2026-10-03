@@ -298,3 +298,25 @@ The user requested deletion of the hourly continuation and completion of the
 current window-coverage pass only. The automation has been deleted. Finish and
 verify that bounded pass, then stop; do not recreate scheduled continuation or
 start another queued pass without a new request.
+
+## Photo evidence and construction context — October 3, 2026
+
+The current photo pass should model permanent campus features. Omit the big
+black construction barriers captured in the owner's photos. The UT Tower is
+undergoing a transformation: retain the last approved permanent appearance
+until its intended finished design is established from evidence or the owner.
+Omit the temporary tapestry covering EER's window and retain the permanent
+window. An occluded feature remains unknown; a cover is not evidence of a flat
+wall. These are specific exceptions, not a blanket exclusion of construction.
+
+Record the evidence for each modeled feature or parameter: owner photo, online
+photo, survey/LiDAR, map, or inference; include source/date, confidence, the
+field it supports, and superseded/conflicting evidence. Prefer clear owner
+photos and direct observations for visible appearance and stair counts over
+older online imagery or maps. Prefer surveyed measurements for metric heights
+over estimates from photos or phone altitude. An explicit owner decision about
+the intended scene state takes priority. Do not label an entire building
+"photo-built" when only some parts were checked against photos. Unknown
+provenance stays unknown. Private photo identifiers, camera positions and
+original files stay in the private evidence store. Reuse existing `sources`
+and field-level `_src` records; see `docs/photo-source-provenance.md`.
