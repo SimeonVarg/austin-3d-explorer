@@ -27,7 +27,12 @@
  *             renderScale 0.01, treeDensity "lots", shadows "yes", preset "bogus"
  *   garbage   the key holds text that is not JSON
  *   expired   `performance` stamped as an automatic downgrade 30 days ago
- *   fresh     the same stamp, one hour old: must NOT be undone
+ *   fresh     the same stamp, one hour old, already judged for the weak tier:
+ *             must NOT be undone, and the probe is not armed
+ *   unjudged  the same stamp and age but never judged for the weak tier (a save
+ *             from before the tier, or a first visit closed between the two probe
+ *             steps): stays Performance, nothing rebuilt, probe armed for the weak
+ *             step alone
  *   oldauto   a real browser's save from before the stamp existed (rev 3):
  *             `performance`, autoDetected, no stamp. Goes back to `balanced`
  *             with the probe armed, once (REV_UNSTAMPED_AUTO in js/graphics.js)
@@ -89,6 +94,10 @@ const SCENARIOS = {
   expired: { raw: JSON.stringify({ preset: 'performance', autoDetected: true, custom: false,
     autoDownAt: Date.now() - 30 * DAY, rev: 3 }) },
   fresh: { raw: JSON.stringify({ preset: 'performance', autoDetected: true, custom: false,
+    autoDownAt: Date.now() - 3600 * 1000, weakChecked: true, rev: 3 }) },
+  // The same stamped Performance, never judged for the weak tier (a save from before the tier
+  // existed, or a first visit closed between the two probe steps).
+  unjudged: { raw: JSON.stringify({ preset: 'performance', autoDetected: true, custom: false,
     autoDownAt: Date.now() - 3600 * 1000, rev: 3 }) },
   // The saved value of a real desktop browser that was stuck on Performance:
   // every key, rev 3, no autoDownAt. Verbatim.
@@ -120,6 +129,9 @@ const EXPECT = {
   oldauto: { preset: 'balanced', autoDetected: false, armed: true, draws: true,
              values: { renderDistance: 700, outerDensity: 1, renderScale: 1, rev: 4 } },
   fresh:   { preset: 'performance', autoDetected: true, armed: false },
+  // Kept as Performance, nothing rebuilt, and the probe armed for the weak step alone.
+  unjudged: { preset: 'performance', autoDetected: true, armed: true, recheck: false, far: null,
+              values: { fullDetailM: ALL_M, weakChecked: false } },
   chosen:  { preset: 'performance', autoDetected: true, armed: false, values: { fullDetailM: ALL_M } },
   // `far`: what the apartments report once built (null = blocks not built). `recheck`: the saved tier waits to be measured.
   weakfresh:   { preset: 'performance', autoDetected: true, armed: false, recheck: false, far: WEAK_M,
