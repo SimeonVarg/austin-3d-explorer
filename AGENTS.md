@@ -366,3 +366,9 @@ properly on projecting pier returns and stair-wing sides/caps, rather than
 stretching one facade pattern around them. Photo/GPX location and lens metadata
 are initial camera constraints; verify the camera fit with image landmarks and
 report its uncertainty rather than claiming an exact match from GPS alone.
+
+The next owner review still rejects the inscription and plaque-side rail match.
+The rail begins on the stair-facing side of the wall, then wraps outside and
+runs farther than the previous trial. Check the complete path and attachments
+against the close photo. A line-width ratio alone does not verify the rendered
+inscription: compare visible glyph endpoints, letterforms and spacing too.
