@@ -994,12 +994,14 @@
     // depth; cleared sky is exactly 1.0.
     z: 0.999999,
     // THE ONE SWITCH for how the sky band is drawn:
-    //   'canvas'  the 2D canvas, redrawn on every camera move and copied into a texture
-    //             (today's look, the default)
     //   'gl'      drawn in this same GL pass from textures uploaded once; a camera turn
-    //             changes uniforms only. Also `?sky=gl` in the URL, or at run time
-    //             `SKY_COMP.mode = 'gl'`. Falls back to 'canvas' if it cannot compile.
-    mode: (new URLSearchParams(window.location.search).get('sky') === 'gl') ? 'gl' : 'canvas',
+    //             changes uniforms only (the default since 2026-10-04, with the
+    //             photographed clouds of SKY_TUNE.cloudSet 'A'). Falls back to 'canvas'
+    //             by itself if it cannot compile.
+    //   'canvas'  the 2D canvas, redrawn on every camera move and copied into a texture
+    //             (the look before). `?sky=canvas` in the URL, or at run time
+    //             `SKY_COMP.mode = 'canvas'`, brings it back in one line.
+    mode: (new URLSearchParams(window.location.search).get('sky') === 'canvas') ? 'canvas' : 'gl',
   };
   window.SKY_COMP = SKY_COMP;
 

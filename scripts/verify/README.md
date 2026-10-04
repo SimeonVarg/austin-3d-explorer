@@ -1666,7 +1666,7 @@ Through the GPU queue; about 5 minutes.
 ## The GL sky against the canvas sky: `sky-gl.mjs` (added October 4 2026)
 
 `SKY_COMP.mode = 'gl'` draws the sky in the map's own pass from textures uploaded
-once; `'canvas'` (the default) is the 2D canvas it replaces. `sky-gl.mjs` is the gate
+once, and is the default; `'canvas'` (`?sky=canvas`) is the 2D canvas it replaced. `sky-gl.mjs` is the gate
 for the two claims that matter: the atmosphere did not move, and a camera turn costs
 no 2D draw and no upload. It reads pixels of the **finished map frame** (the harness
 page, `readPixels`), never a number the sky code reports about itself.

@@ -1,7 +1,7 @@
 # The GL sky: a sky drawn from uniforms, not a canvas (2026-10-04)
 
-**Status: built, off by default.** `SKY_COMP.mode` is `'canvas'` (today's sky) unless you ask for
-`'gl'`. Nothing a visitor sees changes until someone flips the default.
+**Status: the default since 2026-10-04**, with cloud look A (the owner chose it from the three
+pictures below). `SKY_COMP.mode` is `'gl'` unless you ask for `'canvas'`, the sky before.
 
 The Intel Mac in Safari spends about 58 ms of a 195 ms frame copying the sky's 2D canvas into a GL
 texture (`docs/perf/safari-frame-floor.md`). Nothing in the sky depends on where the camera is, only
@@ -9,13 +9,14 @@ on its bearing, pitch and field of view and on the hour. So the GL sky draws the
 own pass from textures that are uploaded once. A camera turn changes uniforms and nothing else:
 no 2D draw, no canvas, no upload.
 
-## How to turn it on
+## How to switch
 
 | Way | Effect |
 |---|---|
-| `?sky=gl` in the URL | the GL sky for that page load |
-| `SKY_COMP.mode = 'gl'` in the console | switches live (the next frame rebuilds for the new mode) |
-| `?set=SKY_COMP.mode="gl"` | the same, through the Safari timing harness's override |
+| nothing | the GL sky, cloud look A |
+| `?sky=canvas` in the URL | the canvas sky for that page load |
+| `SKY_COMP.mode = 'canvas'` (or `'gl'`) in the console | switches live (the next frame rebuilds for the new mode) |
+| `?set=SKY_COMP.mode="canvas"` | the same, through the Safari timing harness's override |
 | `SKY_TUNE.cloudSet = 'A'` or `'B'` | which cloud picture (below), live |
 
 If the GL sky cannot compile or draw it retires itself for the session and the canvas sky comes back
@@ -116,7 +117,7 @@ same camera and hour, twinkle and drift frozen):
 At noon and sunset look A is the one that earns the change: real cumulus with lit tops and shaded bases, warm at
 golden hour. At night clouds are faint in all three, as they are today; look A keeps a few dark shapes near the horizon.
 
-### The existing sky checks, in canvas mode (the default)
+### The existing sky checks, in canvas mode (measured before the default changed)
 
 Once each, hardware GL through the GPU slot, after the change: `graphics.mjs` 27 of 27, `banding.mjs` 9 of 9,
 `light-sky2.mjs` 11 of 11, `skycolour.mjs` prints its colour table and exits 0, `sky.mjs` 10 of 12. The two
@@ -127,7 +128,10 @@ the load, not the sky.
 
 ## What it does not do
 
-- It is **off by default**; the default flip is a separate decision and needs a look at the live site.
+- Three older checks have the 2D sky canvas as their subject (`sky.mjs`, `night-sky.mjs`,
+  `light-sky2.mjs`). They now open the page with `?sky=canvas`, so they still guard the fallback path
+  and say nothing about the default. `sky-gl.mjs` guards the default, and it needs a GPU, so it does
+  not run on the build server.
 - The clouds are a different picture, not a copy of the canvas's 88 lobes. Atmosphere and horizon match
   the canvas; clouds are the point of the change.
 - No camera roll (the canvas path has none either).
