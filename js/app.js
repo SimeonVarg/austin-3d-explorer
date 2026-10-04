@@ -268,12 +268,25 @@
   //     right). It was 60 m first; that refused the two worst cases in the
   //     city, a 12 m apartment block carried at 97.5 m and a courts building
   //     at 7 m that stands 70 m, and those are exactly what this is for.
+  //   maxLower: the scan is from early 2021 and West Campus has built towers
+  //     ever since, so a scan that reads LOWER than the app may simply be old.
+  //     The scan alone never lowers a building by more than this many metres;
+  //     the bigger cases sit in the bake's review list (`rv` in the data), with
+  //     a guess at why, and are not applied. Raising has no such limit.
+  //   Only the plain prism is changed. A building drawn some other way (an
+  //   authored mesh, West Campus bands, a hero, parts, a pitched roof) carries
+  //   `x` in the data and is left alone: its `final_height` is not the height
+  //   on screen, and the roofs and bands drawn from it would not follow. The
+  //   Capitol Complex's hand-set heights (data/capitol_overrides.json) are `x`
+  //   too: js/capitol.js overwrites `final_height` after this runs, so a scan
+  //   number would be replaced a moment later and change nothing.
   const LIDAR_HEIGHTS = {
     on: /[?&]lidarheights=1\b/.test(location.search),
     skipSources: ['hero_override'],
     skipFlags: ['sparse', 'low_class6', 'few_cells', 'off_raster'],
     minAbsDiff: 0.5,
     maxAbsDiff: 100,
+    maxLower: 3,
   };
   window.LIDAR_HEIGHTS = LIDAR_HEIGHTS;
   function applyLidarHeights(buildings, lidar) {
@@ -283,11 +296,13 @@
       const p = f.properties || {};
       const m = table[p.id];
       if (!m || typeof m.h !== 'number' || typeof p.final_height !== 'number') continue;
-      if (m.x) continue;   // drawn as a hand model, from parts, or as a hero: not this extrusion
+      if (m.x) continue;   // drawn some other way (mesh, bands, hero, parts, pitched roof): not this extrusion
+      if (m.rv) continue;  // the scan reads far lower than the app: review list, never applied
       if (LIDAR_HEIGHTS.skipSources.includes(p.source_height)) continue;
       if (String(m.q || '').split(',').some(q => LIDAR_HEIGHTS.skipFlags.includes(q))) continue;
       const d = Math.abs(m.h - p.final_height);
       if (d < LIDAR_HEIGHTS.minAbsDiff || d > LIDAR_HEIGHTS.maxAbsDiff) continue;
+      if (m.h < p.final_height - LIDAR_HEIGHTS.maxLower) continue;   // the scan is from early 2021: it does not lower by much
       p.final_height_prior = p.final_height;
       p.final_height = m.h;
       p.source_height = 'lidar_2021';

@@ -12,6 +12,23 @@ WHY
     laser can. The 2021 StratMap scan of Travis County is public domain (CC0)
     and about 12 points per square metre.
 
+DRAWN HEIGHT
+    `final_height` is only the plain prism's height. Many buildings are drawn
+    some other way (authored meshes, West Campus bands, heroes, parts, pitched
+    roofs) and the prism is hidden or buried, so comparing the scan with
+    `final_height` compares it with something that is not on screen. With
+    --drawn <file> (written by scripts/lidar_drawn.py from a dump of the
+    running app, scripts/verify/drawn-heights.mjs) every row also carries
+    `drawn_height`, the highest thing the renderer really draws on that
+    footprint, and `path`, which way it is drawn. Every count is recomputed
+    against it. The knob changes only buildings whose path is the plain prism.
+
+THE GUARD
+    The scan is early 2021. Where it reads lower than the app draws by more than
+    MAX_LOWER_M, the building is NOT lowered; it goes to review_lower.csv with a
+    guess (built after 2021, footprint artifact, tree canopy, app error) and
+    carries `rv` in the data so the knob skips it.
+
 WHAT IT DOES
     Reads the height-above-ground raster that scripts/lidar_raster.py builds
     (the raster is large and lives OUTSIDE the repo; name its folder with
@@ -43,6 +60,10 @@ USAGE
     python scripts/bake_lidar_heights.py --raster <dir> --table-dir <dir>
         also writes heights_table.csv and heights_table.json there, with the
         app's height today beside each lidar number (the audit table).
+    python scripts/bake_lidar_heights.py --reuse --drawn drawn.json --table-dir <dir>
+        skip the (slow) measuring: re-read heights_table.json in <dir>, join the
+        drawn heights, and write the table, counts.json, review_lower.csv and
+        data/lidar_heights.json.
 """
 import argparse
 import csv
@@ -72,6 +93,18 @@ FLAT_SPREAD_M = 1.2         # top-class p90 - p10 at or under this = flat roof
 CANOPY_GAP_M = 2.0          # first-return p90 above class-6 p90 by this = trees
 SKEW_GAP_M = 3.0            # p90 - median beyond this = a tall part dominates
 YEAR = 2021
+FLOWN = '2021-01-26 to 2021-03-07'
+# THE ASYMMETRIC GUARD. The scan is from early 2021, so anything finished since
+# (West Campus has been building towers the whole time) is not in it, and a
+# scan that reads LOWER than the app may simply be old. The scan alone therefore
+# never lowers a building by more than this; a bigger "scan lower" case goes to
+# review_lower.csv with a guess and is not applied. Raising has no such limit:
+# a building cannot be taller in 2021 than it is now unless it was demolished.
+MAX_LOWER_M = 3.0
+# review guesses (see guess_for): the thresholds, one line each
+TALL_TINY_M, TALL_TINY_AREA = 25.0, 400.0   # this tall on a footprint this small = an app error
+NEW_BUILD_MIN_M, NEW_BUILD_GAP_M = 18.0, 8.0  # app multi-storey, scan reads a low-rise
+PLAIN = 'plain prism'       # the one drawing path the knob may change
 # ------------------------------------------------------------------------------
 
 FLAGS = {
@@ -269,7 +302,8 @@ def scene_sets():
 
 def drawn_otherwise(r):
     """Why the extrusion of this footprint's `final_height` is NOT what the
-    scene shows for it. The number is still measured and kept (it is the
+    scene shows for it. Used only when no --drawn file is given (the drawn file
+    names the real path). The number is still measured and kept (it is the
     audit's answer for that building); `x` tells the renderer's knob to leave
     the footprint alone, because changing `final_height` there would move a
     block nobody sees or double up with the real drawing."""
@@ -282,79 +316,266 @@ def drawn_otherwise(r):
     return ''
 
 
+def join_drawn(rows, drawn):
+    """Put `drawn_height` and `path` on every row. `diff` is then the scan minus
+    what the renderer draws, not minus the prism's number."""
+    db = (drawn or {}).get('buildings', {})
+    for r in rows:
+        r['prism_height'] = r.get('app_height')
+        e = db.get(r['id'])
+        if e is not None:
+            r['drawn_height'] = e['drawn_h']
+            r['path'] = e['path']
+            r['paths'] = e.get('paths', [])
+        else:
+            # no drawn file, or a footprint it did not list: the old rule
+            r['drawn_height'] = r['hero_height'] if r.get('hero_height') is not None else r.get('app_height')
+            r['path'] = drawn_otherwise(r) or PLAIN
+            r['paths'] = []
+        if 'p90' in r and r['drawn_height'] is not None:
+            r['diff'] = round(r['p90'] - r['drawn_height'], 2)
+        else:
+            r.pop('diff', None)
+
+
+def guess_for(r):
+    """A guess, with its reason, at why the scan reads LOWER than the renderer
+    draws by more than MAX_LOWER_M. Four causes were named; the first that fits
+    wins, and `unclear` is a real answer."""
+    dh, p90, mx = r['drawn_height'], r['p90'], r.get('max', r['p90'])
+    area = r.get('area_m2') or 0
+    flags = set(r.get('flags', []))
+    first = r.get('p90_first')
+    # something on the footprint reaches the app's height: p90 measured the bulk
+    # and missed the tall part (the UT Tower's crown on the Main Building's
+    # footprint, a stadium bowl, a spire). A real part (a height class holding
+    # a share of the footprint) counts at any size; a lone highest cell counts
+    # only on a footprint big enough to hold a tower, because a single cell on a
+    # 178 m2 shed is a mast or a neighbour's wall, not a building part.
+    steps = r.get('steps') or []
+    if any(s[0] >= dh - MAX_LOWER_M for s in steps):
+        return 'footprint_artifact', 'a height class holding %.0f%% of the footprint reaches the drawn height; p90 reads the bulk' % (
+            100 * max(s[1] for s in steps if s[0] >= dh - MAX_LOWER_M))
+    if mx >= dh - MAX_LOWER_M and area >= TALL_TINY_AREA:
+        return 'footprint_artifact', 'a part of the footprint reaches %.0f m (max) but p90 reads the bulk' % mx
+    # tall and tiny: a 178 m2 shed at 50 m is not a building, it is a bad height.
+    # Not for an authored mesh: its footprint here is only the id the mesh replaces
+    # (the Icon tower hangs off a 165 m2 church footprint), not its own outline.
+    meshy = r.get('path') in ('apartment mesh', 'campus hand model')
+    if dh >= TALL_TINY_M and area < TALL_TINY_AREA and not meshy and not flags & {'sparse', 'low_class6'}:
+        return 'app_error', '%.0f m on only %.0f m2: a height from a bad tag or floor guess' % (dh, area)
+    # trees: the app's number is a tree-top reading if the first-return surface reaches it
+    if 'canopy' in flags and first is not None and first >= dh - MAX_LOWER_M:
+        return 'tree_canopy', 'first returns (trees included) reach %.0f m; the building class reads %.0f m' % (first, p90)
+    # an app tower over a scan low-rise: built after the flight
+    if dh >= NEW_BUILD_MIN_M and p90 <= dh - NEW_BUILD_GAP_M and not flags & {'sparse', 'low_class6'}:
+        return 'built_after_2021', 'app draws %.0f m, scan reads a %.0f m roof: probably finished after early 2021' % (dh, p90)
+    return 'unclear', 'scan %.1f m lower than drawn and no named cause fits' % (dh - p90)
+
+
+def knob_applies(e, final_height, source_height, skip_sources=('hero_override',),
+                 skip_flags=('sparse', 'low_class6', 'few_cells', 'off_raster'), min_abs=0.5, max_abs=100.0):
+    """The same rule js/app.js applyLidarHeights follows, so the bake can count
+    what the knob would change without a browser."""
+    if e is None or final_height is None:
+        return False
+    if e.get('x') or e.get('rv'):
+        return False
+    if source_height in skip_sources:
+        return False
+    if set(filter(None, str(e.get('q') or '').split(','))) & set(skip_flags):
+        return False
+    d = abs(e['h'] - final_height)
+    if d < min_abs or d > max_abs:
+        return False
+    if e['h'] < final_height - MAX_LOWER_M:
+        return False
+    return True
+
+
+def capitol_override_ids():
+    """Footprints whose height js/capitol.js overwrites AFTER the knob runs
+    (data/capitol_overrides.json, hand-set from OSM levels). The knob's number
+    would be replaced a moment later, so these are left alone and reported:
+    where the scan disagrees with such an override, the override is what is drawn."""
+    p = os.path.join(ROOT, 'data', 'capitol_overrides.json')
+    if not os.path.exists(p):
+        return set()
+    return {k for k, v in json.load(open(p, encoding='utf-8')).items() if isinstance(v, dict) and v.get('final_height')}
+
+
+def build_entries(rows):
+    """data/lidar_heights.json entries. `d` = what the renderer draws today,
+    `x` = drawn some way the knob must not touch, `rv` = scan-lower review case."""
+    out = {}
+    cap = capitol_override_ids()
+    for r in rows:
+        if 'p90' not in r or 'few_cells' in r.get('flags', []) or r['excluded']:
+            continue
+        e = {'h': round(r['p90'], 1), 'max': round(r['max'], 1),
+             'steps': r['steps'], 'roof': r['roof'], 'q': ','.join(r.get('flags', []))}
+        if r.get('drawn_height') is not None:
+            e['d'] = round(r['drawn_height'], 1)
+        x = r['path'] if r['path'] != PLAIN else drawn_otherwise(r)
+        if not x and r['id'] in cap:
+            x = 'capitol override'
+            r['path'] = x
+        if x:
+            e['x'] = x
+        if r.get('review_guess'):
+            e['rv'] = r['review_guess']
+        out[r['id']] = e
+    return out
+
+
+def summarise(rows, entries):
+    """Every count the report quotes, computed from the DRAWN height."""
+    have = [r for r in rows if 'p90' in r and r.get('drawn_height') is not None]
+    well = [r for r in have if not set(r.get('flags', [])) & {'low_class6', 'sparse'}]
+
+    def cnt(S):
+        d = [abs(r['p90'] - r['drawn_height']) for r in S]
+        return {'n': len(S), 'gt2': sum(x > 2 for x in d), 'gt5': sum(x > 5 for x in d), 'gt10': sum(x > 10 for x in d)}
+    applied = [r for r in rows if r['id'] in entries and
+               knob_applies(entries[r['id']], r.get('prism_height'), r.get('source_height'))]
+    review = [r for r in rows if r.get('review_guess')]
+    prism_diffs = [abs(r['p90'] - r['prism_height']) for r in rows if 'p90' in r and r.get('prism_height') is not None]
+    by_path, applied_by_path = {}, {}
+    for r in rows:
+        by_path[r['path']] = by_path.get(r['path'], 0) + 1
+    for r in applied:
+        applied_by_path[r['path']] = applied_by_path.get(r['path'], 0) + 1
+    out = {
+        'footprints': len(rows),
+        'with_lidar_number': sum(1 for r in rows if 'p90' in r),
+        'with_drawn_height': len(have),
+        'by_path': dict(sorted(by_path.items(), key=lambda kv: -kv[1])),
+        'against_drawn_all': cnt(have),
+        'against_drawn_well_seen': cnt(well),
+        'against_prism_all (the old, wrong comparison)': {
+            'n': len(prism_diffs), 'gt2': sum(x > 2 for x in prism_diffs),
+            'gt5': sum(x > 5 for x in prism_diffs), 'gt10': sum(x > 10 for x in prism_diffs)},
+        'scan_higher_than_drawn_gt2': sum(1 for r in have if r['p90'] > r['drawn_height'] + 2),
+        'scan_lower_than_drawn_gt2': sum(1 for r in have if r['p90'] < r['drawn_height'] - 2),
+        'scan_lower_than_drawn_gt3 (the guard)': sum(1 for r in have if r['p90'] < r['drawn_height'] - MAX_LOWER_M),
+        'median_scan_minus_drawn_well_seen': round(float(np.median([r['p90'] - r['drawn_height'] for r in well])), 2) if well else None,
+        'knob_changes': len(applied),
+        'knob_raises': sum(1 for r in applied if r['p90'] > r['prism_height']),
+        'knob_lowers': sum(1 for r in applied if r['p90'] < r['prism_height']),
+        'knob_changes_by_path': applied_by_path,
+        # a plain prism that is the highest thing on its footprint but shares it with a
+        # lower drawing (storefront bands, a shop, a Drag cornice): the knob still
+        # changes the prism, and the lower piece will sit inside it or poke out of it
+        'knob_changes_with_a_lower_drawing_too': sum(1 for r in applied if len(r.get('paths') or []) > 1),
+        'review_lower': len(review),
+        'review_by_guess': {},
+        'no_lidar_number': sum(1 for r in rows if 'p90' not in r),
+    }
+    for r in review:
+        out['review_by_guess'][r['review_guess']] = out['review_by_guess'].get(r['review_guess'], 0) + 1
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--raster', default=os.environ.get('LIDAR_RASTER_DIR'))
     ap.add_argument('--out', default=os.path.join(ROOT, 'data', 'lidar_heights.json'))
-    ap.add_argument('--table-dir', help='also write the audit table (csv + json) here')
+    ap.add_argument('--table-dir', help='also write the audit table (csv + json), counts.json and review_lower.csv here')
     ap.add_argument('--no-bake', action='store_true', help='measure only; do not write data/lidar_heights.json')
+    ap.add_argument('--drawn', help='the join written by scripts/lidar_drawn.py: what the renderer really draws')
+    ap.add_argument('--reuse', action='store_true', help='re-read heights_table.json in --table-dir instead of measuring')
     a = ap.parse_args()
-    if not a.raster:
-        sys.exit('name the raster folder: --raster <dir> or LIDAR_RASTER_DIR')
     snap_dir, snap = latest_snapshot()
-    feats = load_app_buildings(snap_dir)
-    heroes = hero_heights()
-    excluded, campus = scene_sets()
-    raster = Raster(a.raster)
-    rows = []
-    for i, f in enumerate(feats):
-        p = f['properties']
-        r = measure(raster, f['geometry'])
-        app_h = p.get('final_height')
-        hh = heroes.get(p['id'])
-        row = {
-            'id': p['id'], 'name': p.get('name') or '', 'class': p.get('building_class') or '',
-            'source_height': p.get('source_height'), 'app_height': app_h,
-            'hero_height': hh,
-            'excluded': p['id'] in excluded, 'campus_model': p['id'] in campus,
-            'has_parts': bool(p.get('has_parts')),
-        }
-        row.update(r)
-        if 'p90' in r and app_h is not None:
-            row['diff'] = round(r['p90'] - (hh if hh is not None else app_h), 2)
-        ring = f['geometry']['coordinates'][0] if f['geometry']['type'] == 'Polygon' else f['geometry']['coordinates'][0][0]
-        row['lon'] = round(sum(c[0] for c in ring) / len(ring), 6)
-        row['lat'] = round(sum(c[1] for c in ring) / len(ring), 6)
-        rows.append(row)
-        if (i + 1) % 400 == 0:
-            print('  measured %d / %d' % (i + 1, len(feats)), flush=True)
+    drawn = json.load(open(a.drawn, encoding='utf-8')) if a.drawn else None
+    if a.reuse:
+        if not a.table_dir:
+            sys.exit('--reuse needs --table-dir')
+        rows = json.load(open(os.path.join(a.table_dir, 'heights_table.json'), encoding='utf-8'))['rows']
+        for r in rows:       # a re-join starts from the measured columns only
+            for k in ('drawn_height', 'path', 'paths', 'prism_height', 'diff', 'review_guess', 'review_why'):
+                r.pop(k, None)
+            if 'p90' in r and r.get('app_height') is not None:
+                r['diff'] = round(r['p90'] - (r['hero_height'] if r.get('hero_height') is not None else r['app_height']), 2)
+    else:
+        if not a.raster:
+            sys.exit('name the raster folder: --raster <dir> or LIDAR_RASTER_DIR')
+        feats = load_app_buildings(snap_dir)
+        heroes = hero_heights()
+        excluded, campus = scene_sets()
+        raster = Raster(a.raster)
+        rows = []
+        for i, f in enumerate(feats):
+            p = f['properties']
+            r = measure(raster, f['geometry'])
+            app_h = p.get('final_height')
+            hh = heroes.get(p['id'])
+            row = {
+                'id': p['id'], 'name': p.get('name') or '', 'class': p.get('building_class') or '',
+                'source_height': p.get('source_height'), 'app_height': app_h,
+                'hero_height': hh,
+                'excluded': p['id'] in excluded, 'campus_model': p['id'] in campus,
+                'has_parts': bool(p.get('has_parts')),
+            }
+            row.update(r)
+            ring = f['geometry']['coordinates'][0] if f['geometry']['type'] == 'Polygon' else f['geometry']['coordinates'][0][0]
+            row['lon'] = round(sum(c[0] for c in ring) / len(ring), 6)
+            row['lat'] = round(sum(c[1] for c in ring) / len(ring), 6)
+            rows.append(row)
+            if (i + 1) % 400 == 0:
+                print('  measured %d / %d' % (i + 1, len(feats)), flush=True)
+    join_drawn(rows, drawn)
+    # the guard: scan lower than the renderer draws by more than MAX_LOWER_M
+    for r in rows:
+        if 'p90' in r and r.get('drawn_height') is not None and not r.get('excluded') \
+                and 'few_cells' not in r.get('flags', []) and r['p90'] < r['drawn_height'] - MAX_LOWER_M:
+            r['review_guess'], r['review_why'] = guess_for(r)
+    entries = build_entries(rows)
+    counts = summarise(rows, entries)
     if a.table_dir:
         os.makedirs(a.table_dir, exist_ok=True)
-        json.dump({'snapshot': snap, 'year': YEAR, 'rows': rows},
+        json.dump({'snapshot': snap, 'year': YEAR, 'drawn_from': ('the running app' if drawn else None), 'rows': rows},
                   open(os.path.join(a.table_dir, 'heights_table.json'), 'w'), indent=0)
-        cols = ['id', 'name', 'class', 'source_height', 'app_height', 'hero_height', 'p90', 'max', 'median', 'p90_first',
-                'steps', 'roof', 'top_spread_m', 'diff', 'surface', 'cover_class6', 'area_m2', 'flags',
-                'excluded', 'campus_model', 'has_parts', 'lon', 'lat']
+        json.dump(counts, open(os.path.join(a.table_dir, 'counts.json'), 'w'), indent=1)
+        cols = ['id', 'name', 'class', 'source_height', 'app_height', 'drawn_height', 'path', 'hero_height',
+                'p90', 'max', 'median', 'p90_first', 'steps', 'roof', 'top_spread_m', 'diff', 'surface',
+                'cover_class6', 'area_m2', 'flags', 'review_guess', 'excluded', 'campus_model', 'has_parts', 'lon', 'lat']
         with open(os.path.join(a.table_dir, 'heights_table.csv'), 'w', newline='', encoding='utf-8') as fh:
             w = csv.writer(fh)
             w.writerow(cols)
             for r in rows:
                 w.writerow([(json.dumps(r['steps']) if 'steps' in r else '') if c == 'steps' else
                             (';'.join(r.get('flags', [])) if c == 'flags' else r.get(c, '')) for c in cols])
+        rv_cols = ['id', 'name', 'path', 'drawn_height', 'p90', 'max', 'median', 'p90_first', 'diff', 'area_m2',
+                   'source_height', 'flags', 'guess', 'why', 'lon', 'lat']
+        rv_rows = sorted((r for r in rows if r.get('review_guess')), key=lambda r: (r['review_guess'], r['diff']))
+        with open(os.path.join(a.table_dir, 'review_lower.csv'), 'w', newline='', encoding='utf-8') as fh:
+            w = csv.writer(fh)
+            w.writerow(rv_cols)
+            for r in rv_rows:
+                w.writerow([r['review_guess'] if c == 'guess' else r['review_why'] if c == 'why' else
+                            (';'.join(r.get('flags', [])) if c == 'flags' else r.get(c, '')) for c in rv_cols])
     if not a.no_bake:
-        out = {}
-        for r in rows:
-            if 'p90' not in r or 'few_cells' in r.get('flags', []) or r['excluded']:
-                continue
-            out[r['id']] = {'h': round(r['p90'], 1), 'max': round(r['max'], 1),
-                            'steps': r['steps'], 'roof': r['roof'], 'q': ','.join(r.get('flags', []))}
-            x = drawn_otherwise(r)
-            if x:
-                out[r['id']]['x'] = x
         doc = {
             '_what': 'Roof heights measured from the 2021 airborne laser scan. Read only '
                      'when the page URL carries ?lidarheights=1 (default OFF).',
-            '_source': 'StratMap 2021 Bexar & Travis Counties Lidar, flown Jan-Mar 2021, '
-                       'published by TxGIO. Licence CC0-1.0.',
+            '_source': 'StratMap 2021 Bexar & Travis Counties Lidar, flown %s, '
+                       'published by TxGIO. Licence CC0-1.0.' % FLOWN,
             '_method': 'p90 of surface above bare earth inside the footprint shrunk %.1f m; '
                        'surface = building-class points (class 6); see scripts/bake_lidar_heights.py.' % SHRINK_M,
-            '_snapshot': snap, 'year': YEAR,
-            'buildings': out,
+            '_fields': 'h = scan roof height (m above ground); max; steps = [height, area share]; roof; '
+                       'q = quality flags; d = height the renderer drew for it when baked; '
+                       'x = drawn some way this knob must not change (a mesh, bands, hero, parts, pitched roof); '
+                       'rv = scan reads lower than d by more than lower_limit_m: NOT applied, kept for review '
+                       '(value is the guess: built_after_2021, footprint_artifact, tree_canopy, app_error, unclear).',
+            '_snapshot': snap, 'year': YEAR, 'flown': FLOWN,
+            'lower_limit_m': MAX_LOWER_M,
+            'buildings': entries,
         }
         with open(a.out, 'w', encoding='utf-8') as fh:
             json.dump(doc, fh, separators=(',', ':'))
-        print('wrote %s: %d buildings' % (a.out, len(out)))
+        print('wrote %s: %d buildings' % (a.out, len(entries)))
     print('measured %d buildings, %d with a lidar number' % (len(rows), sum(1 for r in rows if 'p90' in r)))
+    print(json.dumps(counts, indent=1))
 
 
 if __name__ == '__main__':

@@ -263,6 +263,8 @@
     "_o4-seedlag.mjs": "probe",
     "_o4-treecount.mjs": "probe",
     "downtown-preset.mjs": "measurement: Performance against Balanced at three downtown cameras, hardware GL, needs an output folder; exits 0",
+    "drawn-heights.mjs": "dump of what the renderer draws per footprint, hardware GL, needs an output file; feeds scripts/lidar_drawn.py; no verdict of its own",
+    "lidar-shots.mjs": "shots: before/after frames of the lidar height knob from one camera, hardware GL, needs an output folder and a shot list",
     "aptfloat.mjs": "shots",
     "apts-shots.mjs": "shots",
     "apts-sweep.mjs": "shots",

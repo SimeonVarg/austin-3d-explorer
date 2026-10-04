@@ -32,7 +32,7 @@ build step for the site itself; data and tiles are baked by scripts in `scripts/
 
 | PR | Branch | State |
 |---|---|---|
-| #395 | `acer/lidar-heights` | draft, do not merge yet: roof heights from the 2021 lidar behind `?lidarheights=1` (default off); read `docs/lidar-heights.md`, final-settings pictures still owed |
+| #395 | `acer/lidar-heights` | draft, do not merge yet: roof heights from the 2021 lidar behind `?lidarheights=1` (default off); read `docs/lidar-heights.md` (counts are against the DRAWN height; the knob changes plain prisms only and never lowers by more than 3 m; Capitol overrides beat it; final-settings before/after pictures are in `docs/shots/lidar-before-after.jpg`) |
 | #366 | `claude/aws-gpu-runner` | draft: AWS GPU runner for the browser checks |
 | #348 | `claude/sky-roll` | open: sunset sky glow follows camera bank |
 | #347 | `claude/loading-fit` | open: loading screen fits one phone screen |
