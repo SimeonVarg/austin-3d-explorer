@@ -372,3 +372,6 @@ The rail begins on the stair-facing side of the wall, then wraps outside and
 runs farther than the previous trial. Check the complete path and attachments
 against the close photo. A line-width ratio alone does not verify the rendered
 inscription: compare visible glyph endpoints, letterforms and spacing too.
+Use a shared baseline and capital-height metric for the inscription's lines;
+including the comma descender in per-line scaling made the upper capitals
+smaller. Verify that the entire inscription clears the projecting masonry.
