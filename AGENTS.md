@@ -399,3 +399,13 @@ can raise a poor match to high fidelity. Compare total reconstruction cost,
 including unique preparation and review, and report reusable setup separately.
 Measure any improvement before claiming that guidelines or more retries solve
 the photo-modeling problem.
+
+## Authorized reconstruction comparison — October 3, 2026
+
+The owner said "go" for the two-Sol method comparison. Build private candidates
+for a different building using the same source group, policies, model effort
+and bounded allowance: direct photo-to-code estimation versus measured image
+features with reusable geometry. Count preparation and review in the cost.
+Freeze both candidates before serial application renders and one blind review;
+do not add repeated corrective passes or treat the winner as public acceptance.
+This tests reconstruction methods, not a blank-context prompt experiment.
