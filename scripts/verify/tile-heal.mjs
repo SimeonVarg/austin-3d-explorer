@@ -64,6 +64,12 @@ const PROPS_POSE = { center: [-97.7394, 30.2862], zoom: 17, pitch: 55, bearing: 
 const DELTA = 24;
 const MIN_SHARE = { outer: 10, roads: 1 };
 const MIN_FEATURES = 100;
+// The frame with the far ring hidden against the frame with the roads hidden:
+// two different layers gone, so two different frames. Measured 63.5% with the
+// heal on and exactly 0.0% with it off, where neither source draws and both
+// frames are the same bare ground (the all-vs-hidden shares were 13.2% for both
+// layers alike there, from the page still settling, which they cannot tell apart).
+const MIN_BETWEEN = 5;
 const MAX_NOISE = 0.5;
 
 const browser = await launch(chromium);
@@ -197,7 +203,7 @@ await snap('all');
 await snap('all2');                       // the same state twice: the noise floor
 await setHidden('austin-outer', true);  await snap('noOuter');  await setHidden('austin-outer', false);
 await setHidden('austin-roads', true);  await snap('noRoads');  await setHidden('austin-roads', false);
-const share = { noise: await moved('all', 'all2'), outer: await moved('all', 'noOuter'), roads: await moved('all', 'noRoads') };
+const share = { noise: await moved('all', 'all2'), outer: await moved('all', 'noOuter'), roads: await moved('all', 'noRoads'), between: await moved('noOuter', 'noRoads') };
 if (OUT) {
   for (const k of ['all', 'noOuter', 'noRoads']) {
     fs.writeFileSync(path.join(OUT, (BREAK ? 'tile-heal-break-' : 'tile-heal-') + k + '.png'), Buffer.from(frames[k], 'base64'));
@@ -250,6 +256,7 @@ ok('props are in the tile cache (at the campus pose)', propFeatures > 0, 'prop f
 const net = k => +(share[k] - share.noise).toFixed(3);
 ok(`the far ring is DRAWN: hiding it moves >= ${MIN_SHARE.outer}% of the frame beyond the noise`, net('outer') >= MIN_SHARE.outer, net('outer') + '%');
 ok(`the roads are DRAWN: hiding them moves >= ${MIN_SHARE.roads}% of the frame beyond the noise`, net('roads') >= MIN_SHARE.roads, net('roads') + '%');
+ok(`hiding the far ring and hiding the roads leave different frames (>= ${MIN_BETWEEN}% apart)`, share.between >= MIN_BETWEEN, share.between + '%');
 ok(`the instrument is steady: the same state twice moves under ${MAX_NOISE}% of the frame`, share.noise < MAX_NOISE, share.noise + '%');
 
 console.log(JSON.stringify({ break: BREAK, share, features: { ...state.features, props: propFeatures }, headersSeen: [...headersSeen], urls: state.urls, store: state.store,

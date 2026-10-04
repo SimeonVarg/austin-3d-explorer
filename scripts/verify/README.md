@@ -446,9 +446,15 @@ features in the far ring's and the roads' tile caches AND the frame moves when
 the layers of that source are hidden, beyond the noise floor of the same state
 shot twice (a downtown pose; screenshots, counted in the page). Measured on the
 SwiftShader laptop run of 2026-10-04: noise 0.003%, far ring 60.4%, roads 8.1%
-(floors 10% and 1%); the 15 assertions pass, and with the heal off (`--break`,
-`?tileheal=0`, exit 1) six of 15 pass: the frame is bare ground, no buildings,
-zero decoded features. Three traps in it:
+(floors 10% and 1%); all 15 passed, twice, and with the heal off (`--break`,
+`?tileheal=0`, exit 1) 7 of 15 passed: the frame is bare ground, no buildings,
+zero decoded features. The two "drawn" shares still passed there (13.2% for both
+alike: the page was still settling, and a hidden layer that never drew cannot be
+told from that), so a 16th assertion compares the two hidden frames with each
+other: 63.5% apart with the heal on, exactly 0.0% with it off. That one was
+computed from the saved frames of those two runs (the same pixels the script
+counts; it reproduced 60.399, 8.114 and 13.209 to the digit) and the 16-assertion
+script has not been through the browser queue yet. Three traps in it:
 Playwright's interception sits above the HTTP cache, so the `Cache-Control:
 no-cache` / `Pragma: no-cache` Chrome adds to a `cache: 'reload'` fetch are not on
 the request the route is shown (a one-line shim copies the page's own `cache`
