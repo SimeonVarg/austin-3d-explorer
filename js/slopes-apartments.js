@@ -103,6 +103,19 @@
     // building's bounding sphere so float rounding can never cull a building
     // that is a hair inside the view.
     cull: { on: q.get('aptcull') !== '0', marginM: 1 },
+    // FAR BLOCKS, for a GPU that cannot afford the full mesh. The distance is
+    // the graphics setting GFX.fullDetailM (js/graphics.js: WEAK_TIER holds the
+    // value the weak tier sets; the slider's own maximum, `unlimitedAt`,
+    // means "all of it", which is what every ordinary machine runs). Beyond it
+    // a building is drawn as plain blocks in the average colour of its own
+    // walls and roofs, from its own footprint and heights, in place of its
+    // windows, panels and balconies. `on` is the switch (?farblocks=0 for an
+    // A/B). Nothing here is built, and nothing about the draw changes, while the
+    // distance is unlimited. See "THE FAR BLOCKS" below for why the basemap's
+    // own boxes cannot stand in.
+    far: { on: q.get('farblocks') !== '0', unlimitedAt: 2000,
+           // a wall counts as a wall below this much of its normal pointing up, a roof above it
+           roofNz: 0.7 },
     fetchTimeoutMs: 45000,
     // Geometry density per graphics preset (0..1) — the sign dots and the
     // window reveals go first when it drops; the massing never does.
@@ -292,7 +305,7 @@
   window.APARTMENTS = APTS;
 
   // ── state ────────────────────────────────────────────────────────────
-  let _map = null, _group = null, _data = null, _lastDetail = null;
+  let _map = null, _group = null, _data = null, _lastDetail = null, _lastFar = false;
   let _filtered = false;
   // The catalog that loads at start, and the on-demand areas (APTS.areas).
   // `_data` is always the core plus every area whose mesh is attached, so
@@ -2586,20 +2599,35 @@
       _cullMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
       planes = _cullFrustum.setFromProjectionMatrix(_cullMatrix).planes;
     }
-    let ranges = 0, drawnRanges = 0, drawn = 0, total = 0;
+    // FAR BLOCKS: the camera's own pass only (the sun-shadow passes keep every
+    // detailed building and no block), and only when a distance is set.
+    const reach = on && camera === window.slopes.camera ? farReach() : Infinity;
+    const eye = reach < Infinity ? window.slopes.uniforms().u_eye.value : null;
+    let ranges = 0, drawnRanges = 0, drawn = 0, total = 0, farRanges = 0, farTris = 0;
     for (const mesh of _cullMeshes) {
-      const c = mesh.userData.cull;
+      const c = mesh.userData.cull, far = c.far;
+      if (far) far.mesh.geometry.groups.length = 0;
       if (!on) { fullGroups(mesh); continue; }
       if (!shownInScene(mesh)) continue;            // not drawn by this pass: leave it be
       const groups = mesh.geometry.groups, S = c.sph, e = mesh.matrixWorld.elements, sc = mesh.matrixWorld.getMaxScaleOnAxis();
       groups.length = 0;
-      let run = null, used = 0;
+      const fg = eye && far && shownInScene(far.mesh) ? far.mesh.geometry.groups : null;
+      let run = null, used = 0, fused = 0, frun = null;
       for (let i = 0; i < c.n; i++) {
         const j = i * 4, x = S[j], y = S[j + 1], z = S[j + 2], r = -S[j + 3] * sc;
         const wx = e[0] * x + e[4] * y + e[8] * z + e[12], wy = e[1] * x + e[5] * y + e[9] * z + e[13], wz = e[2] * x + e[6] * y + e[10] * z + e[14];
         let inside = true;
         for (let p = 0; p < 6; p++) { const P = planes[p], n = P.normal; if (n.x * wx + n.y * wy + n.z * wz + P.constant < r) { inside = false; break; } }
         if (!inside) { run = null; continue; }
+        // beyond the distance: this building's block stands in for it (a building with no block draws in full)
+        if (fg && far.count[i] > 0 && Math.hypot(wx - eye.x, wy - eye.y, wz - eye.z) + r > reach) {
+          farRanges++; farTris += far.count[i]; run = null;
+          if (frun && frun.start + frun.count === far.start[i]) { frun.count += far.count[i]; continue; }   // neighbours in the block mesh are one draw
+          frun = far.pool[fused] || (far.pool[fused] = { start: 0, count: 0, materialIndex: 0 });
+          frun.start = far.start[i]; frun.count = far.count[i]; fg.push(frun); fused++;
+          continue;
+        }
+        frun = null;
         drawnRanges++; drawn += c.count[i];
         if (run && run.start + run.count === c.start[i]) { run.count += c.count[i]; continue; }
         run = c.pool[used] || (c.pool[used] = { start: 0, count: 0, materialIndex: 0 });
@@ -2607,7 +2635,7 @@
       }
       ranges += c.n; total += c.total;
     }
-    Object.assign(_cullStats, { passes: _cullStats.passes + 1, ranges, drawnRanges, drawnTriangles: drawn / 3, totalTriangles: total / 3 });
+    Object.assign(_cullStats, { passes: _cullStats.passes + 1, ranges, drawnRanges, drawnTriangles: drawn / 3, totalTriangles: total / 3, farRanges, farTriangles: farTris / 3 });
   }
   function watchCull(mesh) {
     const T = window.THREE, sc = window.slopes.scene;
@@ -2630,6 +2658,121 @@
     }
     _cullMeshes.add(mesh);
     mesh.geometry.addEventListener('dispose', () => _cullMeshes.delete(mesh));
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  THE FAR BLOCKS (APTS.far)
+  // ══════════════════════════════════════════════════════════════════════
+  // The authored apartments are 2.2 M triangles at Performance and 2.6-3.2 M
+  // at Balanced, and on an Intel Iris Plus 655 laptop they are the frame: with
+  // the mesh hidden the city draws at 30 fps, with it at 15 (headless Chrome on
+  // Metal, 1233x848 canvas, camera turning). The cost is vertices, so fewer
+  // pixels does not touch it, and the per-building frustum cull above already
+  // spends nothing on what is behind the camera. What is left is distance: a
+  // building 900 m away is a few hundred pixels whose windows are a pixel each.
+  //
+  // WHY NOT JUST DRAW LESS. A building this file authors has its basemap prism
+  // taken out by a style filter (setFilters), so a building not drawn here is
+  // a hole in the skyline, and the filter cannot follow the camera: changing it
+  // re-tiles the layer. So the far version has to come from this file too.
+  //
+  // WHAT IT IS. For every building, a second, tiny mesh: each block's plan
+  // walked once, a quad per wall and a cap, in the average colour of that
+  // block's own walls and roofs as the detailed build emitted them (area
+  // weighted, windows included, in all three of the day / golden / night
+  // palettes). Its triangles are recorded per building, in step with the
+  // detailed ranges above, and cullFor swaps one for the other by distance from
+  // the eye in the camera's own pass. Shadow passes see the detailed building
+  // only, so shadows do not change. It is built with the detailed mesh (so a
+  // changed distance rebuilds, like a changed preset does) and only when
+  // GFX.fullDetailM is below its maximum: an ordinary machine never builds it.
+  //
+  // WHAT IT LEAVES OUT: windows, balconies, signs, fins, parapets, rooftop
+  // items, the deck, pitched roofs (the cap is flat at the eave) and raked
+  // faces (drawn as a plain wall). Those are the point.
+  function farReach() {
+    const m = window.GFX && window.GFX.fullDetailM;
+    return APTS.far.on && m > 0 && m < APTS.far.unlimitedAt ? m : Infinity;
+  }
+  /** will the next build make blocks? (not on the phone path, which has no per-building ranges) */
+  const farOn = () => farReach() < Infinity && !_cullBroken && !(window.LITE_PROFILE && window.LITE_PROFILE.on) &&
+                      !!(window.THREE && window.THREE.REVISION === CULL_REVISION && window.slopes && window.slopes.scene);
+  const hexOf = v => '#' + v.map(x => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('');
+
+  /**
+   * The average wall and roof colour of triangles [t0, t1) of `geometry`, as
+   * [day, golden, night] hex pairs, or null for a part with no such triangles.
+   */
+  function blockTones(geometry, t0, t1) {
+    const a = geometry.attributes, pos = a.position.array, nrm = a.normal.array, idx = geometry.index.array;
+    const cols = [a.cDay.array, a.cGold.array, a.cNight.array];
+    const wall = new Float64Array(10), roof = new Float64Array(10);   // [area, 3 x rgb]
+    for (let t = t0; t < t1; t++) {
+      const i = idx[t * 3] * 3, j = idx[t * 3 + 1] * 3, k = idx[t * 3 + 2] * 3;
+      const ux = pos[j] - pos[i], uy = pos[j + 1] - pos[i + 1], uz = pos[j + 2] - pos[i + 2];
+      const vx = pos[k] - pos[i], vy = pos[k + 1] - pos[i + 1], vz = pos[k + 2] - pos[i + 2];
+      const area = 0.5 * Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx);
+      if (!(area > 0)) continue;
+      const nz = nrm[i + 2], into = nz > APTS.far.roofNz ? roof : Math.abs(nz) < APTS.far.roofNz ? wall : null;
+      if (!into) continue;                                              // a face turned down: never seen from above
+      into[0] += area;
+      for (let s = 0; s < 3; s++) for (let c = 0; c < 3; c++) into[1 + s * 3 + c] += area * cols[s][i + c];
+    }
+    const hex = acc => acc[0] > 0 ? [0, 1, 2].map(s => hexOf([0, 1, 2].map(c => acc[1 + s * 3 + c] / acc[0]))) : null;
+    return { wall: hex(wall), roof: hex(roof) };
+  }
+
+  /** One building's blocks: each plan's walls from its floor to its top, and a cap. */
+  function farOne(B, spec, tones, fallback) {
+    const ring = spec.footprint.ring;
+    const F = frameFor(spec.frame && spec.frame.obb ? spec.frame.obb : obbOf(ring));
+    const ringUV = ring.slice(0, ring.length - 1).map(F.toUV);
+    (spec.blocks || []).forEach((blk, bi) => {
+      const t = tones[bi];
+      if (!t) return;                                                   // the detailed build drew nothing for it
+      const wallCol = t.wall || fallback.wall, roofCol = t.roof || fallback.roof;
+      if (!wallCol || !roofCol) return;
+      const planSpec = blk.plan && !Array.isArray(blk.plan) && typeof blk.plan === 'object' && blk.plan.ring != null ? blk.plan : null;
+      const planIn = planSpec ? planSpec.ring : blk.plan;
+      const isRect = Array.isArray(planIn) && planIn.length === 4 && typeof planIn[0] === 'number';
+      let planUV = planIn === 'footprint' ? ringUV : (isRect ? rectRing(planIn) : planIn);
+      if (isRect && blk.chamfer) planUV = chamferRect(planIn, blk.chamfer).ring;
+      const holesUV = planSpec ? (planSpec.holes || []).map(h => (Array.isArray(h) && h.length === 4 && typeof h[0] === 'number') ? rectRing(h) : h).filter(h => Array.isArray(h) && h.length >= 3) : [];
+      const z0 = blk.z0 || 0, z1 = blk.z1;
+      if (!(z1 > z0) || !Array.isArray(planUV)) return;
+      for (const w of ringWallsKeyed(F, planUV, null, false)) faceQuad(B, w.W, 0, w.W.L, z0, z1, 0, wallCol);
+      for (const h of holesUV) for (const w of ringWallsKeyed(F, h, null, true)) faceQuad(B, w.W, 0, w.W.L, z0, z1, 0, wallCol);
+      if (blk.cap === false) return;
+      if (holesUV.length) capWithHoles(B, F, planUV, holesUV, z1, roofCol);
+      else B.polygon(planUV.map(p => F.at(p[0], p[1], z1)), roofCol, [0, 0, 1], 'xy');
+    });
+  }
+
+  /**
+   * The blocks for the detailed geometry `geometry` (one mesh, one range per
+   * building, `ranges` as build() records them). `marks[k]` is where each of
+   * building k's blocks starts in the builder's triangle count, and where its
+   * last one ends. Returns { mesh, start, count } with one entry per range.
+   */
+  async function buildFar(specs, geometry, ranges, marks, mat, pause) {
+    const T = window.THREE, B = window.slopes.build(1 << 14);
+    const start = new Int32Array(ranges.n), count = new Int32Array(ranges.n);
+    for (let i = 0; i < ranges.n; i++) {
+      const k = ranges.bld[i], spec = specs[k], m = marks[k];
+      if (!spec || !m || m.length < 2) continue;
+      const tones = [];
+      for (let b = 0; b + 1 < m.length; b++) tones.push(m[b + 1] > m[b] ? blockTones(geometry, m[b], m[b + 1]) : null);
+      const all = blockTones(geometry, m[0], m[m.length - 1]);
+      const t0 = B.triangles;
+      try { farOne(B, spec, tones, all); } catch (e) { console.warn('[slopes-apartments] far block', spec.name, e); }
+      start[i] = t0 * 3; count[i] = (B.triangles - t0) * 3;
+      await pause();
+    }
+    const geom = B.geometry();
+    const mesh = new T.Mesh(geom, [mat]);
+    mesh.name = 'apartments-far';
+    mesh.geometry.groups.length = 0;                                    // cullFor writes them, per pass
+    return { mesh, start, count, pool: [], triangles: B.triangles };
   }
 
   // `specs` defaults to the catalog; `area` (an APTS.areas entry) builds that
@@ -2676,21 +2819,29 @@
     // APTS.cull: where each building's triangles start in the index (the
     // builder writes three indices per triangle and nothing else).
     const cull = cullAvailable(area && APTS.areas.sliced && !BUD.geometryChunkTris && !BUD.packVertices ? {} : B, T, S) ? [] : null;
-    for (const spec of specs || _data.buildings) {
+    // FAR BLOCKS: where each building's blocks start in the triangle count (one
+    // mark per block, as the generator yields, and one at the end).
+    const wantFar = !!cull && farOn();
+    const farMarks = wantFar ? [] : null;
+    const buildList = specs || _data.buildings;
+    for (const spec of buildList) {
       // An area whose build was superseded (dropped, or the core rebuilding)
       // stops here and takes back what it had counted.
       if (cancelled()) { discard(); return null; }
       if (cull) cull.push(B.triangles * 3);
       const pendingStart=B.filterPending.length;
       B.allowFilter=APTS.facadeFilter.on&&APTS.facadeFilter.buildings.includes(spec.name)&&!!window.FacadeFilter;
+      const marks = farMarks ? (farMarks[farMarks.length] = []) : null;
       try {
         const it = buildingOne(B, spec);          // generator: yields per block
         let r = it.next();
         while (!r.done) {
+          if (marks) marks.push(B.triangles);
           await pause();
           if (cancelled()) { discard(); return null; }
           r = it.next();
         }
+        if (marks) marks.push(B.triangles);
         built.push(r.value);
       }
       catch (e) { B.filterPending.length=pendingStart; console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); if (area) area.failed.push(spec.id || spec.name); }
@@ -2734,12 +2885,22 @@
             await pause();
           }
           ranges = { n: start.length, start, count: counts, sph: Float64Array.from(spheres), total: index.length, pool: [] };
+          // which building each range is (the non-empty ones, in order; a range after the last building is -1)
+          ranges.bld = [];
+          for (let k = 0; k < buildList.length; k++) if (cull[k + 1] > cull[k]) ranges.bld.push(k);
+          while (ranges.bld.length < ranges.n) ranges.bld.push(-1);
         }
         geometryRanges.push(ranges);
         indexOffset += geometry.index ? geometry.index.count : 0;
         await pause();
       }
       mat = S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide});
+      // FAR BLOCKS (see "THE FAR BLOCKS"): one mesh of plain blocks beside the detailed one
+      let far = null;
+      if (wantFar && geom.length === 1 && geometryRanges[0] && farMarks.length === buildList.length) {
+        far = await buildFar(buildList, geom[0], geometryRanges[0], farMarks, mat, pause);
+        C.farTriangles = far.triangles;
+      }
       const g = new T.Group();
       g.userData.lod = APTS.lod;
       g.userData.minzoom = APTS.minzoom;
@@ -2749,9 +2910,10 @@
         const ranges = geometryRanges[index];
         const mesh = new T.Mesh(geometry, ranges ? [mat] : mat);
         mesh.name = index ? 'apartments-' + (index + 1) : 'apartments';
-        if (ranges) { mesh.userData.cull = ranges; fullGroups(mesh); watchCull(mesh); }
+        if (ranges) { if (far) ranges.far = far; mesh.userData.cull = ranges; fullGroups(mesh); watchCull(mesh); }
         g.add(mesh);
       });
+      if (far) g.add(far.mesh);
       for(const m of B.filtered)g.add(m);
       if (area) {
         g.userData.area = Object.assign(tallySince(), { name: area.name, built, triangles: B.triangles, material: mat, ms: +(performance.now() - t0).toFixed(1) });
@@ -2760,6 +2922,7 @@
       count.triangles = B.triangles;
       count.ms = +(performance.now() - t0).toFixed(1);
       _lastDetail = detailNow();
+      _lastFar = wantFar && !!far;
       return g;
     } catch(e) {
       // A failed final mesh/group assembly must not strand face textures in
@@ -3172,7 +3335,7 @@
     const S = window.slopes;
     const want = !!(window.SLOPES.on && APTS.on);
     if (want && !_group && !_building) { startBuild(map); }
-    else if (want && _group && _lastDetail !== detailNow()) { dropGroup(); startBuild(map); }
+    else if (want && _group && (_lastDetail !== detailNow() || _lastFar !== farOn())) { dropGroup(); startBuild(map); }
     else if (!want && _group) { dropGroup(); }
     // Keep ownership while an off-state build finishes. Its completion checks
     // the latest intent and disposes when still off; an off/on toggle must not
@@ -3197,6 +3360,10 @@
     get count() { return Object.assign({}, count, { names: count.names.slice() }); },
     /** APTS.cull as of the last renderer.render (each frame's main pass is its last) */
     get cull() { return Object.assign({ on: APTS.cull.on && !_cullBroken, meshes: _cullMeshes.size }, _cullStats); },
+    /** can a distance setting do anything here? (the per-building ranges exist: not a phone's chunked build) */
+    farAvailable: () => APTS.far.on && APTS.cull.on && !_cullBroken && !(window.LITE_PROFILE && window.LITE_PROFILE.on) && !!(window.THREE && window.THREE.REVISION === CULL_REVISION),
+    /** are the blocks built right now (the core's)? */
+    get far() { return { built: _lastFar, reachM: farReach() === Infinity ? null : farReach() }; },
     get group() { return _group; },
     get data() { return _data; },
     get filtered() { return _filtered; },

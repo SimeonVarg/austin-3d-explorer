@@ -27,12 +27,31 @@
  *             renderScale 0.01, treeDensity "lots", shadows "yes", preset "bogus"
  *   garbage   the key holds text that is not JSON
  *   expired   `performance` stamped as an automatic downgrade 30 days ago
- *   fresh     the same stamp, one hour old: must NOT be undone
+ *   fresh     the same stamp, one hour old, already judged for the weak tier:
+ *             must NOT be undone, and the probe is not armed
+ *   unjudged  the same stamp and age but never judged for the weak tier (a save
+ *             from before the tier, or a first visit closed between the two probe
+ *             steps): stays Performance, nothing rebuilt, probe armed for the weak
+ *             step alone
  *   oldauto   a real browser's save from before the stamp existed (rev 3):
  *             `performance`, autoDetected, no stamp. Goes back to `balanced`
  *             with the probe armed, once (REV_UNSTAMPED_AUTO in js/graphics.js)
  *   chosen    the same shape written by the current code (rev 4): a hand pick,
- *             must NOT be undone
+ *             must NOT be undone, and the probe must NOT be armed for it (the
+ *             weak step needs the stamp: a hand pick never gets one)
+ *
+ * The weak tier (js/graphics.js WEAK_TIER) is the second automatic step, so it
+ * follows the same rules; each of these loads the real page and reads the
+ * apartments' own report of what they drew (`slopesApartments.far`):
+ *   weakfresh    Performance + weak tier, stamped an hour ago: stays, blocks built
+ *                at 700 m, probe NOT armed
+ *   weakexpired  the same, stamped 30 days ago: the tier is KEPT (no climb back
+ *                to Balanced), blocks built, and the probe is armed to MEASURE it
+ *   weaknostamp  the tier with no stamp (a hand-picked Performance): put back to
+ *                "all", no blocks, probe not armed
+ *   weakbad      a fresh stamp but a nonsense tier value: dropped to "all", the
+ *                judged flag voided, so the probe is armed to judge it again
+ *   weakcustom   the tier set by hand (a moved slider): stays, and never expires
  *
  * --break  sabotages inside the page only: after the corrupt load it writes
  *          outerDensity 0 into the live GFX and re-applies the outer layer,
@@ -51,6 +70,10 @@ import { BASE, launch } from './chrome.mjs';
 const OUT = process.argv[2];
 if (!OUT) { console.error('usage: stored-state.mjs <outDir> [--break]'); process.exit(2); }
 const BREAK = process.argv.includes('--break');
+// --only=a,b runs just those scenarios (and `clean`, the baseline): the --break proof needs only `corrupt`.
+const onlyArg = process.argv.find(a => a.startsWith('--only='));
+const ONLY = onlyArg ? new Set(['clean', ...onlyArg.slice(7).split(',')]) : null;
+const ran = n => !ONLY || ONLY.has(n);
 fs.mkdirSync(OUT, { recursive: true });
 
 const KEY = 'austin3d.gfx.v1';
@@ -59,6 +82,8 @@ const LAYERS = ['outer-tower', 'outer-midrise', 'outer-3d'];
 const PROBE_DELAY_MS = 11000;   // = PROBE_DELAY_MS in js/graphics.js: how the probe's timer is told from the rest
 const POSE = { center: [-97.7420, 30.2760], zoom: 15.2, pitch: 55, bearing: 200 };
 const TOL = 0.9;     // a scenario must draw at least this share of the clean baseline
+const WEAK_M = 700;  // = WEAK_TIER.fullDetailM in js/graphics.js
+const ALL_M = 2000;  // = WEAK_TIER.unlimitedAt: the slider's maximum, "all of it"
 
 const SCENARIOS = {
   clean: { raw: null },
@@ -69,6 +94,10 @@ const SCENARIOS = {
   expired: { raw: JSON.stringify({ preset: 'performance', autoDetected: true, custom: false,
     autoDownAt: Date.now() - 30 * DAY, rev: 3 }) },
   fresh: { raw: JSON.stringify({ preset: 'performance', autoDetected: true, custom: false,
+    autoDownAt: Date.now() - 3600 * 1000, weakChecked: true, rev: 3 }) },
+  // The same stamped Performance, never judged for the weak tier (a save from before the tier
+  // existed, or a first visit closed between the two probe steps).
+  unjudged: { raw: JSON.stringify({ preset: 'performance', autoDetected: true, custom: false,
     autoDownAt: Date.now() - 3600 * 1000, rev: 3 }) },
   // The saved value of a real desktop browser that was stuck on Performance:
   // every key, rev 3, no autoDownAt. Verbatim.
@@ -78,6 +107,16 @@ const SCENARIOS = {
     fov: 58, treeDensity: 0.52, outerDensity: 0.45, preset: 'performance', custom: false,
     autoDetected: true, rev: 3 }) },
   chosen: { raw: JSON.stringify({ preset: 'performance', autoDetected: true, custom: false, rev: 4 }) },
+  weakfresh: { raw: JSON.stringify({ preset: 'performance', autoDetected: true, custom: false, rev: 4,
+    autoDownAt: Date.now() - 3600 * 1000, fullDetailM: WEAK_M, weakChecked: true }) },
+  weakexpired: { raw: JSON.stringify({ preset: 'performance', autoDetected: true, custom: false, rev: 4,
+    autoDownAt: Date.now() - 30 * DAY, fullDetailM: WEAK_M, weakChecked: true }) },
+  weaknostamp: { raw: JSON.stringify({ preset: 'performance', autoDetected: true, custom: false, rev: 4,
+    fullDetailM: WEAK_M, weakChecked: true }) },
+  weakbad: { raw: JSON.stringify({ preset: 'performance', autoDetected: true, custom: false, rev: 4,
+    autoDownAt: Date.now() - 3600 * 1000, fullDetailM: 'far', weakChecked: true }) },
+  weakcustom: { raw: JSON.stringify({ preset: 'performance', autoDetected: true, custom: true, rev: 4,
+    autoDownAt: Date.now() - 30 * DAY, fullDetailM: 400, weakChecked: true }) },
 };
 
 // What each scenario must end with. `healed` ones also owe the downtown frame.
@@ -90,7 +129,21 @@ const EXPECT = {
   oldauto: { preset: 'balanced', autoDetected: false, armed: true, draws: true,
              values: { renderDistance: 700, outerDensity: 1, renderScale: 1, rev: 4 } },
   fresh:   { preset: 'performance', autoDetected: true, armed: false },
-  chosen:  { preset: 'performance', autoDetected: true, armed: false },
+  // Kept as Performance, nothing rebuilt, and the probe armed for the weak step alone.
+  unjudged: { preset: 'performance', autoDetected: true, armed: true, recheck: false, far: null,
+              values: { fullDetailM: ALL_M, weakChecked: false } },
+  chosen:  { preset: 'performance', autoDetected: true, armed: false, values: { fullDetailM: ALL_M } },
+  // `far`: what the apartments report once built (null = blocks not built). `recheck`: the saved tier waits to be measured.
+  weakfresh:   { preset: 'performance', autoDetected: true, armed: false, recheck: false, far: WEAK_M,
+                 values: { fullDetailM: WEAK_M, weakChecked: true } },
+  weakexpired: { preset: 'performance', autoDetected: true, armed: true, recheck: true, far: WEAK_M,
+                 values: { fullDetailM: WEAK_M, weakChecked: true } },
+  weaknostamp: { preset: 'performance', autoDetected: true, armed: false, recheck: false, far: null,
+                 values: { fullDetailM: ALL_M, weakChecked: false } },
+  weakbad:     { preset: 'performance', autoDetected: true, armed: true, recheck: false, far: null,
+                 values: { fullDetailM: ALL_M, weakChecked: false } },
+  weakcustom:  { preset: 'performance', autoDetected: true, armed: false, recheck: false, far: WEAK_M - 300,
+                 values: { fullDetailM: 400, custom: true } },
 };
 
 let failures = 0;
@@ -127,8 +180,17 @@ async function load(name) {
   // The probe is a correctness hazard in a test (README): it would downgrade a
   // balanced load mid-measurement. Boot-time state is already decided by now.
   const armed = await page.evaluate(() => window.__probeArmed > 0);
+  const recheck = await page.evaluate(() => !!(window.__gfxWeakRecheck && window.__gfxWeakRecheck()));
   await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
-  return { ctx, page, armed };
+  return { ctx, page, armed, recheck };
+}
+
+// What the apartments drew, as they report it: wait for the build to finish, then ask.
+async function farReach(page) {
+  const ready = await page.waitForFunction(() => window.slopesApartments && window.slopesApartments.readyToReveal(),
+    null, { timeout: 280000 }).then(() => true, () => false);
+  const far = await page.evaluate(() => window.slopesApartments ? window.slopesApartments.far : null);
+  return { ready, built: !!(far && far.built), reachM: far ? far.reachM : null };
 }
 
 async function downtown(page, sabotage) {
@@ -177,20 +239,21 @@ async function downtown(page, sabotage) {
 }
 
 const results = {};
-for (const name of Object.keys(SCENARIOS)) {
+for (const name of Object.keys(SCENARIOS).filter(ran)) {
   const t0 = Date.now();
-  const { ctx, page, armed } = await load(name);
+  const { ctx, page, armed, recheck } = await load(name);
   const snap = await page.evaluate(() => ({ ...window.GFX }));
   const ex = EXPECT[name];
   let drawn = null;
+  const far = ex.far !== undefined ? await farReach(page) : null;
   if (ex.draws) {
     drawn = await downtown(page, BREAK && name === 'corrupt');
     if (name === 'clean') await page.screenshot({ path: path.join(OUT, 'clean-downtown.png') });
     if (name === 'corrupt') await page.screenshot({ path: path.join(OUT, `corrupt-downtown${BREAK ? '-broken' : ''}.png`) });
   }
-  results[name] = { snap, drawn, armed };
-  report.scenarios[name] = { preset: snap.preset, autoDetected: snap.autoDetected, armed, outerDensity: snap.outerDensity,
-    renderDistance: snap.renderDistance, drawn, seconds: Math.round((Date.now() - t0) / 1000) };
+  results[name] = { snap, drawn, armed, recheck, far };
+  report.scenarios[name] = { preset: snap.preset, autoDetected: snap.autoDetected, armed, recheck, outerDensity: snap.outerDensity,
+    renderDistance: snap.renderDistance, fullDetailM: snap.fullDetailM, far, drawn, seconds: Math.round((Date.now() - t0) / 1000) };
   console.log(`  [${name}] ${JSON.stringify(report.scenarios[name])}`);
   await ctx.close();
 }
@@ -198,11 +261,14 @@ for (const name of Object.keys(SCENARIOS)) {
 const base = results.clean.drawn;
 check('baseline draws the three downtown layers', LAYERS.every(l => base.counts[l] > 0) && base.towerPixels > 500,
   { counts: base.counts, towerPixels: base.towerPixels });
-for (const [name, ex] of Object.entries(EXPECT)) {
-  const { snap, drawn, armed } = results[name];
+for (const [name, ex] of Object.entries(EXPECT).filter(([n]) => ran(n))) {
+  const { snap, drawn, armed, recheck, far } = results[name];
   check(`${name}: preset ${ex.preset}, autoDetected ${ex.autoDetected}`,
     snap.preset === ex.preset && !!snap.autoDetected === ex.autoDetected, { preset: snap.preset, autoDetected: snap.autoDetected });
   check(`${name}: probe ${ex.armed ? 'armed' : 'not armed'}`, armed === ex.armed, { armed });
+  if (ex.recheck !== undefined) check(`${name}: saved tier ${ex.recheck ? 'is' : 'is not'} waiting to be measured`, recheck === ex.recheck, { recheck });
+  if (ex.far !== undefined) check(`${name}: apartments ${ex.far === null ? 'all drawn in full (no far blocks)' : 'far blocks built from ' + ex.far + ' m'}`,
+    far.ready && far.built === (ex.far !== null) && far.reachM === ex.far, far);
   for (const [k, v] of Object.entries(ex.values || {})) {
     const got = snap[k];
     const ok = v === null ? (typeof got === 'number' && got >= 0.5 && got <= 2) : got === v;

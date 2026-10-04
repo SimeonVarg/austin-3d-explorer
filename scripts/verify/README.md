@@ -1561,15 +1561,21 @@ or model-detail knob changes with area slicing.
 
 A hard refresh does not clear localStorage. `stored-state.mjs <outDir>` seeds
 `austin3d.gfx.v1` with an out-of-range/wrong-type save, unparsable text, an
-expired automatic downgrade, a fresh one, a hand-chosen `performance` and a real
+expired automatic downgrade, a fresh one, one never judged for the weak tier (kept,
+nothing rebuilt, probe armed for that step alone), a hand-chosen `performance` and a real
 old unstamped automatic `performance` save (rev 3; healed to `balanced` once, with
-the probe armed: read off the page by counting the probe's own timer), each in
+the probe armed: read off the page by counting the probe's own timer), and the
+weak tier (js/graphics.js `WEAK_TIER`, the second automatic step) saved five ways: fresh
+(kept, the far blocks built, probe not armed), expired (kept, probe armed to MEASURE it
+where it stands), with no stamp (a hand pick: put back to all, no blocks), with a
+nonsense value (dropped, judged again) and set by hand (kept, never expires), reading
+the apartments' own report of what they drew, each in
 its own browser context before the page's scripts run, and asserts the settings
 the page ends with plus that the downtown outer-ring layers still return rendered
 features (and change pixels) against a clean-profile load. `--break` writes
 `outerDensity 0` into the live page and must come back red: that is also the
 proof the bad value hides the low-rise ring (towers and mid-rise stay). Run it
-through the GPU queue; about 6 minutes.
+through the GPU queue; about 13 minutes (`--only=corrupt,weakexpired` runs a subset).
 
 ### Does a preset hide downtown? `downtown-preset.mjs`
 

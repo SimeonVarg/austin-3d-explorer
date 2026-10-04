@@ -167,6 +167,11 @@
     { key: 'renderDistance', label: 'Detail distance', min: 150, max: 1500, step: 25, group: 'speed',
       fmt: v => v >= 1500 ? 'unlimited' : v.toFixed(0) + ' m',
       hint: 'Clutter only — buildings stay.' },
+    // The weak tier's lever. Every preset sits at the maximum (all of it); the
+    // probe moves it on a machine that is still slow at Performance (WEAK_TIER).
+    { key: 'fullDetailM', label: 'Apartments in full detail', min: 300, max: 2000, step: 50, group: 'speed',
+      fmt: v => v >= 2000 ? 'all' : v.toFixed(0) + ' m',
+      hint: 'Farther ones draw as plain blocks.' },
     // RANGE SET BY WHAT THE CAMERA CAN REACH, not by what sounds generous.
     // The first version ran 400..4000 m and did nothing on any preset except
     // `performance`, because ALT_MIN/ALT_MAX in js/controls.js cap the camera at
@@ -421,7 +426,7 @@
       } catch (e) {}
     }
     // debug/test hook: what the MSAA default was decided on, where from, and what reading it cost
-    window.__gfxGpu = { renderer: gpuRenderer, full: EDGE_SMOOTHING.fullDefaultGpu.test(gpuRenderer), from,
+    window.__gfxGpu = { renderer: gpuRenderer, full: EDGE_SMOOTHING.fullDefaultGpu.test(gpuRenderer), weak: WEAK_GPU.gpu.test(gpuRenderer), from,
                         ms: +(gpuClock() - t0).toFixed(1) };
     return gpuRenderer;
   }
@@ -434,6 +439,95 @@
       if (r && r !== localStorage.getItem(GPU_RENDERER_KEY)) localStorage.setItem(GPU_RENDERER_KEY, r);
     } catch (e) {}
   }
+  // WEAK INTEGRATED GPUS GET A PIXEL BUDGET. Every number here is a taste/config
+  // value (CLAUDE.md rule 11): change one, or open the page with ?pixelbudget=0
+  // to switch the whole thing off for an A/B.
+  //
+  // WHY. On an Intel Iris Plus 655 laptop (a 1121x914 window at
+  // devicePixelRatio 2, Balanced, headless Chrome on Metal) the city drew at about 10 fps, 4.1 million
+  // canvas pixels a frame. The 3-million-triangle apartment mesh costs about
+  // 35 ms of every frame whatever the resolution (it is vertex-bound: the
+  // pixels never reach it), so the pixels are the one cost this file owns.
+  // Measured there, one load, rendering scale only, best of three interleaved
+  // reps: 1.00 -> 10.5 fps, 0.75 -> 11.7, 0.60 -> 12.7, 0.50 -> 13.7.
+  //
+  // WHO. Intel's older integrated chips only (Iris Plus, UHD, HD Graphics),
+  // the family measured here. NOT Intel Arc or Iris Xe, not a discrete card,
+  // not Apple silicon, not an unknown renderer: those keep exactly the scale
+  // their preset names, so a strong GPU draws the same city as before. Only the two everyday
+  // presets are budgeted; Cinematic and Ultra are somebody choosing quality on purpose, and a moved slider (custom) is
+  // never overruled.
+  //
+  //   gpu         renderer strings that get the budget
+  //   maxPixels   canvas pixels a frame at the budgeted presets (window x ratio^2)
+  //   minScale    never go below this render scale (the slider's own floor)
+  const WEAK_GPU = {
+    gpu: /\bintel\b(?!.*\b(arc|xe)\b).*\b(iris|uhd|hd graphics)\b/i,
+    maxPixels: 1.2e6,
+    minScale: 0.5,
+  };
+  const PRESET_SCALE = { performance: 0.75, balanced: 1.0 };   // what each budgeted preset asks for
+  const isWeakGpu = () => Q.get('pixelbudget') !== '0' && !window.LITE_PROFILE?.on &&
+                          WEAK_GPU.gpu.test(readGpuRenderer());
+  // The scale a preset asking for `scale` draws at on this machine.
+  function budgetScale(scale) {
+    if (!isWeakGpu()) return scale;
+    const ratio = (window.devicePixelRatio || 1) * scale;
+    const pixels = window.innerWidth * window.innerHeight * ratio * ratio;
+    if (!(pixels > WEAK_GPU.maxPixels)) return scale;
+    return Math.max(WEAK_GPU.minScale, Math.floor(scale * Math.sqrt(WEAK_GPU.maxPixels / pixels) * 20) / 20);
+  }
+  // The probe's own numbers (they were literals).
+  //   measureMs    how long one probe watches frames
+  //   slowMs       median frame at Balanced above this steps to Performance (21.5 ms = 46 fps)
+  //   afterStepMs  after a step, wait this long before measuring the next one:
+  //                the apartments rebuild at the new tier first, and a frame
+  //                timed during that is not the tier's frame
+  const PROBE = { measureMs: 1400, slowMs: 21.5, afterStepMs: 6000 };
+  // THE WEAK TIER, the second measured step. The pixel budget above only helps
+  // a machine whose renderer string we recognise, and Safari reports a generic
+  // name, so the app also asks the machine itself: the probe (runProbe) steps
+  // Balanced -> Performance when a median frame is slow, and then, still on
+  // Performance, once more -> the weak tier when the machine is STILL slow.
+  // Any browser, any GPU: the trigger is a measured frame time.
+  //
+  // It is an AUTOMATIC downgrade, so it follows the rules of the automatic
+  // Performance one (see AUTO_DOWNGRADE_TTL_MS): it carries the same time stamp
+  // (`autoDownAt`, renewed whenever the machine decides something about itself),
+  // it expires with it, a bad saved value is dropped, and a preset or slider
+  // chosen by hand is never overruled and never carries it. A tier with no
+  // stamp that is not custom is not the probe's, so it is put back to "all".
+  //
+  //   fullDetailM   the weak tier draws authored apartment buildings in full
+  //                 detail only this close to the camera, and as plain blocks
+  //                 beyond it (js/slopes-apartments.js, THE FAR BLOCKS). WHY:
+  //                 that mesh, 2.2 M triangles, is half of every frame on an
+  //                 Intel Iris Plus 655 (30 fps with it hidden, 15 with it) and
+  //                 it is vertex-bound, so fewer pixels do not help it.
+  //   weakMs        median frame at Performance above this steps to the tier
+  //                 (45 ms is 22 fps: under it a screen still shows 30)
+  //   unlimitedAt   the slider's own maximum, which means "all of it"
+  //   keepAboveMs   WHEN THE STAMP RUNS OUT, a saved weak tier is NOT thrown back
+  //                 to Balanced (that would cost a truly weak machine the whole
+  //                 descent again: a Balanced load, two probe steps and two
+  //                 apartment rebuilds of 6 to 21 s each). The page loads in
+  //                 the tier it saved, in one build, and measures THAT first.
+  //                 Above this line the machine is still slow, and Balanced,
+  //                 which draws everything the weak tier draws and more, can only
+  //                 be slower: keep the tier, renew the stamp, rebuild nothing.
+  //                 At or under it the machine has recovered: climb to Balanced
+  //                 (one rebuild) and let the ordinary probe judge it from there.
+  //                 It is the same line that stepped the machine down in the
+  //                 first place (PROBE.slowMs), so one number decides both ways.
+  //                 The cost, accepted: a machine measuring between this line
+  //                 and its Performance-only speed stays in the tier for
+  //                 another window; the next expiry measures it again.
+  const WEAK_TIER = {
+    fullDetailM: 700,
+    weakMs: 45,
+    unlimitedAt: 2000,
+    keepAboveMs: PROBE.slowMs,
+  };
   function defaultMSAA(scale) {
     if (window.LITE_PROFILE?.on) return false;
     const ratio=(window.devicePixelRatio||1)*scale;
@@ -444,23 +538,23 @@
   }
   const PRESETS = {
     performance: {
-      renderScale: 0.75, msaa: defaultMSAA(0.75), bloom: 0, godRays: 0, flare: 0, dof: 0,
-      ...GRADE, autoExposure: false, grain: 0, renderDistance: 350,
+      renderScale: budgetScale(PRESET_SCALE.performance), msaa: defaultMSAA(budgetScale(PRESET_SCALE.performance)), bloom: 0, godRays: 0, flare: 0, dof: 0,
+      ...GRADE, autoExposure: false, grain: 0, renderDistance: 350, fullDetailM: WEAK_TIER.unlimitedAt,
       ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58, treeDensity: 0.52, outerDensity: 0.45,
     },
     balanced: {
-      renderScale: 1.0, msaa: defaultMSAA(1.0), bloom: 0.40, godRays: 0.5, flare: 0.3, dof: 0,
-      ...GRADE, autoExposure: true, grain: 0, renderDistance: 700,
+      renderScale: budgetScale(PRESET_SCALE.balanced), msaa: defaultMSAA(budgetScale(PRESET_SCALE.balanced)), bloom: 0.40, godRays: 0.5, flare: 0.3, dof: 0,
+      ...GRADE, autoExposure: true, grain: 0, renderDistance: 700, fullDetailM: WEAK_TIER.unlimitedAt,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 58, treeDensity: 0.675, outerDensity: 1,
     },
     cinematic: {
       renderScale: 1.0, msaa: defaultMSAA(1.0), bloom: 0.62, godRays: 0.78, flare: 0.55, dof: 0,
-      ...GRADE, autoExposure: true, grain: 0, renderDistance: 1100,
+      ...GRADE, autoExposure: true, grain: 0, renderDistance: 1100, fullDetailM: WEAK_TIER.unlimitedAt,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1, outerDensity: 1,
     },
     ultra: {
       renderScale: 1.5, msaa: true, bloom: 0.72, godRays: 0.9, flare: 0.65, dof: 0,
-      ...GRADE, autoExposure: true, grain: 0, renderDistance: 1500,
+      ...GRADE, autoExposure: true, grain: 0, renderDistance: 1500, fullDetailM: WEAK_TIER.unlimitedAt,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1, outerDensity: 1,
     },
   };
@@ -517,7 +611,7 @@
   // code as preset 'custom' comes back as custom on top of `balanced` — which is
   // exactly the density those readers were already falling back to for it, so
   // nobody's scene changes on the upgrade.
-  const GFX = Object.assign({}, PRESETS.balanced, { preset: 'balanced', custom: false, autoDetected: false, rev: SETTINGS_REV });
+  const GFX = Object.assign({}, PRESETS.balanced, { preset: 'balanced', custom: false, autoDetected: false, weakChecked: false, rev: SETTINGS_REV });
   window.GFX = GFX;
 
   // ── Saved settings are a hint, never an authority ──────────────────
@@ -543,15 +637,19 @@
     return typeof v === 'number' && isFinite(v) && v >= s.min && v <= s.max;
   };
 
+  // Set at boot when the saved weak tier's stamp has run out: the page keeps the
+  // tier it saved and the first probe MEASURES it instead (see WEAK_TIER.keepAboveMs).
+  let weakRecheck = false;
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
   if (!saved || typeof saved !== 'object' || Array.isArray(saved)) saved = null;
   let migrated = false;
   if (saved) {
+    let weakValueBad = false;
     for (const s of SCHEMA) {
       if (saved[s.key] === undefined) continue;
       if (validSaved(s, saved[s.key])) GFX[s.key] = saved[s.key];
-      else { migrated = true; }
+      else { migrated = true; if (s.key === 'fullDetailM') weakValueBad = true; }
     }
     // A downgrade the machine made on its own has run out: take it back.
     //
@@ -570,16 +668,36 @@
     const stale = autoPerf && at && !(Date.now() - at >= 0 && Date.now() - at < AUTO_DOWNGRADE_TTL_MS);
     // Not on the phone profile: Performance is that device's design (PHONE_PRESET), and
     // a phone's memory ceiling is the reason, so it never gets a Balanced load to probe.
-    const oldUnstamped = autoPerf && !at && wasRev < REV_UNSTAMPED_AUTO && !(window.LITE_PROFILE && window.LITE_PROFILE.on);
-    if (stale || oldUnstamped) {
-      saved.preset = 'balanced'; saved.autoDetected = false; saved.autoDownAt = 0;
+    const phone = !!(window.LITE_PROFILE && window.LITE_PROFILE.on);
+    const oldUnstamped = autoPerf && !at && wasRev < REV_UNSTAMPED_AUTO && !phone;
+    // A weak tier whose stamp has run out is measured where it is, not thrown away
+    // (WEAK_TIER.keepAboveMs): it is the one saved state for which going back to
+    // Balanced first would cost a slow machine its whole descent again.
+    const keepToMeasure = stale && !phone && !weakValueBad && GFX.fullDetailM < WEAK_TIER.unlimitedAt;
+    if ((stale && !keepToMeasure) || oldUnstamped) {
+      saved.preset = 'balanced'; saved.autoDetected = false; saved.autoDownAt = 0; saved.weakChecked = false;
       Object.assign(GFX, PRESETS.balanced);
       migrated = true;
     }
     if (saved.preset && PRESETS[saved.preset]) GFX.preset = saved.preset;
     GFX.custom = !!saved.custom || (!!saved.preset && !PRESETS[saved.preset]);
     GFX.autoDetected = !!saved.autoDetected;
+    // `weakChecked` says the probe has already judged this Performance for the weak
+    // step. Strictly a boolean; a bad weak value saved beside it voids it.
+    GFX.weakChecked = saved.weakChecked === true && !weakValueBad;
     GFX.autoDownAt = (+saved.autoDownAt > 0 && GFX.preset === 'performance' && !GFX.custom) ? +saved.autoDownAt : 0;
+    // The weak tier is the probe's, and only the probe's: it needs the stamp, like
+    // the automatic Performance step it sits on. One saved without the stamp, on a
+    // preset chosen by hand, or on the phone profile (which has no per-building
+    // ranges) goes back to "all". A moved slider (custom) keeps whatever it was set to.
+    if (!GFX.custom && GFX.fullDetailM < WEAK_TIER.unlimitedAt) {
+      if (GFX.preset === 'performance' && GFX.autoDownAt > 0 && !phone) {
+        // The tier follows today's constant, as the pixel budget follows today's window.
+        if (GFX.fullDetailM !== WEAK_TIER.fullDetailM) { GFX.fullDetailM = WEAK_TIER.fullDetailM; migrated = true; }
+        GFX.weakChecked = true;
+        weakRecheck = !!keepToMeasure;
+      } else { GFX.fullDetailM = WEAK_TIER.unlimitedAt; GFX.weakChecked = false; migrated = true; }
+    }
     const was = wasRev;
     for (let r = was + 1; r <= SETTINGS_REV; r++) {
       for (const k of (REV_RESET[r] || [])) {
@@ -593,6 +711,10 @@
     // those alone. Inherited preset defaults follow the current viewport budget
     // on every boot, including a later reload on a larger display.
     if (!GFX.custom) {
+      // A weak integrated GPU follows its pixel budget on every boot, like the
+      // edge smoothing below: a stored scale from before the budget, or from a
+      // bigger window, does not outlive it. Everyone else is untouched.
+      if (isWeakGpu() && PRESET_SCALE[GFX.preset] != null) GFX.renderScale = budgetScale(PRESET_SCALE[GFX.preset]);
       const msaa=GFX.preset==='ultra'||defaultMSAA(GFX.renderScale);
       if(GFX.msaa!==msaa){GFX.msaa=msaa;migrated=true;}
     }
@@ -644,6 +766,9 @@
     Object.assign(GFX, PRESETS[urlPreset]);
     GFX.preset = urlPreset;
     GFX.custom = false;
+    // A preset named in the URL is chosen, not measured: no saved stamp lets the
+    // probe's weak step or a recheck change it.
+    GFX.autoDownAt = 0; weakRecheck = false;
   } else if (URL_PRESET && !urlPreset) {
     console.warn(`[graphics] ?preset=${URL_PRESET} is not a preset — keeping ${GFX.preset}. ` +
                  `Try: ${Object.keys(PRESETS).join(', ')}`);
@@ -655,6 +780,7 @@
   // kept; asking for it only when bloom is actually wanted means the performance
   // preset stops paying for it on the next load.
   window.GFX_MSAA = !!GFX.msaa;
+  window.__gfxWeakRecheck = () => weakRecheck;   // test hook: is the saved weak tier waiting to be measured?
   window.GFX_PDB = GFX.bloom > 0.01 || !!GFX.autoExposure;  // auto-exposure meters the same buffer
   // Does this browser draw with a graphics card? The same test as the Smooth
   // edges default (EDGE_SMOOTHING.fullDefaultGpu). js/city-lighting.js keeps
@@ -787,7 +913,10 @@
       cancelAutoDetect();
       console.log(`[graphics] capture mode: auto-detect off, preset ${GFX.preset}` +
                   (urlPreset ? ' (from ?preset=)' : ''));
-    } else if (!GFX.autoDetected) {
+    } else if (!GFX.autoDetected || weakStepWanted() || weakRecheck) {
+      // Also a browser that stepped to Performance on an earlier visit and was
+      // not judged for the weak step yet, and one whose saved weak tier ran out
+      // of time and is to be measured where it stands (all three need the stamp).
       scheduleAutoDetect();
     }
 
@@ -1856,28 +1985,73 @@
     });
   }
 
+  // Can the weak tier do anything on this page? It needs the apartments' own
+  // per-building ranges (not a phone's chunked build); on a page without them
+  // there is nothing to switch to and no claim to make.
+  const weakTierAvailable = () => !!(window.slopesApartments && window.slopesApartments.farAvailable &&
+                                     window.slopesApartments.farAvailable());
+  // The probe judges an AUTOMATIC Performance once: when the next step has not
+  // been tried. It needs the stamp (`autoDownAt`): a Performance picked by hand
+  // has none and is never stepped further. `Wanted` is what is known at boot
+  // (the apartments' script may not have run yet, and a phone never has this
+  // step); `Due` is asked when the probe runs.
+  const weakStepWanted = () => GFX.preset === 'performance' && !GFX.custom && !GFX.weakChecked && GFX.autoDownAt > 0 &&
+                               GFX.fullDetailM >= WEAK_TIER.unlimitedAt && !(window.LITE_PROFILE && window.LITE_PROFILE.on);
+  const weakStepDue = () => weakStepWanted() && weakTierAvailable();
+
   async function runProbe() {
-    const med = await measureFrames(1400);
+    const med = await measureFrames(PROBE.measureMs);
     if (med == null || autoCancelled) {
       console.log('[graphics] auto-detect: not enough frames to judge, keeping ' + GFX.preset);
       return null;
     }
     const fps = 1000 / med;
     GFX.autoDetected = true;
+    let recheck = null;
+    if (weakRecheck) {
+      // A saved weak tier whose stamp ran out, measured where it stands (WEAK_TIER.keepAboveMs).
+      weakRecheck = false;
+      if (med > WEAK_TIER.keepAboveMs) {
+        recheck = 'kept';
+        GFX.autoDownAt = Date.now();   // still slow: renewed, nothing rebuilt
+        save();
+      } else {
+        recheck = 'climbed';
+        usePreset('balanced', true);   // all apartments again (one rebuild); resets the tier and the judged flag
+        GFX.autoDetected = false; GFX.autoDownAt = 0;   // the ordinary probe judges Balanced from here
+        save();
+        toast(`${fps.toFixed(0)} fps measured — this machine is faster now, back to the Balanced preset. Press G to change.`,
+          TOAST_PROBE_MS);
+        if (!autoCancelled) scheduleAutoDetect(PROBE.afterStepMs);
+      }
     // Downgrade only — see the note above on why an upgrade is unmeasurable.
-    if (med > 21.5 && GFX.preset === 'balanced' && !GFX.custom) {
+    } else if (med > PROBE.slowMs && GFX.preset === 'balanced' && !GFX.custom) {
       usePreset('performance', true);
       GFX.autoDownAt = Date.now();   // expires: see AUTO_DOWNGRADE_TTL_MS
       save();
       toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`,
         TOAST_PROBE_MS);
+      // Still slow at Performance? Look once more after the city has rebuilt at it.
+      if (weakTierAvailable() && !autoCancelled) scheduleAutoDetect(PROBE.afterStepMs);
+    } else if (weakStepDue()) {
+      // The second measured step. Whatever it finds, it is judged once.
+      GFX.weakChecked = true;
+      if (med > WEAK_TIER.weakMs) {
+        GFX.fullDetailM = WEAK_TIER.fullDetailM;
+        GFX.autoDownAt = Date.now();   // the tier carries the stamp too: it expires the same way
+        applyGraphics();
+        syncMenu();
+        toast(`${fps.toFixed(0)} fps even at Performance — far apartments now draw as plain blocks. Press G to change.`,
+          TOAST_PROBE_MS * 2);
+      } else save();
     } else {
       // Changed nothing -> say nothing. The old confirmation toast sat over the
       // hero frame for 5.2 s on every first visit, announcing a no-op.
       save();
     }
-    console.log(`[graphics] auto-detect median frame ${med.toFixed(1)} ms (${fps.toFixed(0)} fps) -> ${GFX.preset}`);
-    return { med, fps, preset: GFX.preset };
+    console.log(`[graphics] auto-detect median frame ${med.toFixed(1)} ms (${fps.toFixed(0)} fps) -> ${GFX.preset}` +
+                (GFX.fullDetailM < WEAK_TIER.unlimitedAt ? ` + weak tier (${GFX.fullDetailM} m)` : ''));
+    return { med, fps, preset: GFX.preset, weak: GFX.fullDetailM < WEAK_TIER.unlimitedAt, recheck };
   }
   window.__gfxProbe = runProbe;
 
@@ -1902,7 +2076,11 @@
       // fast, and this probe only ever steps DOWN. The veil is removed at
       // reveal, so this retries until it is.
       const veiled = !!document.getElementById('veil');
-      if (easing || veiled) { scheduleAutoDetect(PROBE_RETRY_MS); return; }
+      // The weak step judges the city WITH its apartments, so not while they
+      // are (re)building: a frame timed then is a lighter scene's frame.
+      const A = window.slopesApartments;
+      const building = !!(A && typeof A.readyToReveal === 'function' && GFX.preset === 'performance' && !A.readyToReveal());
+      if (easing || veiled || building) { scheduleAutoDetect(PROBE_RETRY_MS); return; }
       runProbe();
     }, delay == null ? PROBE_DELAY_MS : delay);
   }
@@ -1928,6 +2106,7 @@
     Object.assign(GFX, p);
     GFX.preset = name;
     GFX.custom = false;
+    GFX.weakChecked = false;   // a new preset starts a new descent: the weak step is not judged for it yet
     if (!keepAuto) { GFX.autoDetected = true; GFX.autoDownAt = 0; }
     applyGraphics();
     syncMenu();
