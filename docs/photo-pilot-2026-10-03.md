@@ -152,3 +152,26 @@ The camera fit is a separate experiment. A direct-perspective custom-layer
 render is used to inspect the full ultrawide frustum because the map camera
 clamps upward pitch and large principal-point shifts. Do not substitute its
 simplified background for public-city rendering or label it exact calibration.
+
+## Rail and inscription review after the rejected follow-up
+
+The owner correctly identified that the plaque-side rail was wholly outside
+and too short. The private revision now starts on the stair-facing side,
+turns across the plaque front with two mounting plates, wraps outside and
+continues to the free pavement post. The upper attachment is partly hidden
+in the photo and remains inference. Visual checks also exposed a wing/pier
+junction burying the plaque and crossing; the private front-pier depth was
+adjusted to expose them. This is an estimated dimensional correction, not a
+surveyed match. Previous candidates are retained for comparison.
+
+The inscription used per-line contour height. The comma's descender made
+the upper capitals about18% smaller than the lower capitals. Both lines now
+use one capital-height and baseline metric, with the comma below the baseline,
+and horizontal visible-ink bounds. The active signs and glyph-library placement
+records agree. The lower line remains longer in the reference, but that width
+relationship alone does not verify the match. Overall size was reduced to
+avoid the projecting masonry; letterforms, spacing and positioning remain
+approximate. The source photo and revised close-ups are shown together.
+
+Branch: `codex/campus-photo-pilot`. Shared review was pushed in AGENTS.md and
+fetched on the Acer. All photo assets and modeling changes remain private.
