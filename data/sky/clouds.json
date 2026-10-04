@@ -1,0 +1,29 @@
+{
+  "elevMax": 45.0,
+  "layout": "rows: elevation ELEV_MAX at the top to 0 at the bottom; columns: azimuth 0..360, wraps",
+  "channels": {
+    "r": "coverage",
+    "g": "self-shade (0 lit .. 1 shaded)",
+    "b": "unused, 0"
+  },
+  "looks": {
+    "A": {
+      "file": "clouds-a.jpg",
+      "width": 4096,
+      "height": 512,
+      "bytes": 411079,
+      "rotDeg": 0,
+      "sunAzDeg": 180.0,
+      "sunElevDeg": 47.9,
+      "sunAzInSource": 214.2
+    },
+    "B": {
+      "file": "clouds-b.jpg",
+      "width": 4096,
+      "height": 512,
+      "bytes": 499638,
+      "rotDeg": 0
+    }
+  },
+  "bakedBy": "scripts/bake_sky.py"
+}
