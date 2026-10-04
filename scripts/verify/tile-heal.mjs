@@ -56,10 +56,13 @@ const RELOAD_REPAIRS = { outer: true, roads: false, props: true };
 const POSE = { center: [-97.7445, 30.2668], zoom: 16.3, pitch: 72, bearing: 200 };
 const PROPS_POSE = { center: [-97.7394, 30.2862], zoom: 17, pitch: 55, bearing: 0 };   // the Main Mall
 // Share of the frame (percent of pixels moved by more than DELTA, 0-255 on any
-// channel) that hiding one source must change. Measured, not guessed: see the
-// numbers this prints. A layer that did not load changes none.
+// channel) that hiding one source must change, over and above the noise floor
+// (the same state shot twice). MEASURED on the SwiftShader laptop run of
+// 2026-10-04 with the heal on: noise 0.003%, far ring 60.4%, roads 8.1%. The
+// floors below are about a sixth and an eighth of those, and 300x the noise.
+// A layer that did not load changes none.
 const DELTA = 24;
-const MIN_SHARE = { outer: 3, roads: 0.3 };
+const MIN_SHARE = { outer: 10, roads: 1 };
 const MIN_FEATURES = 100;
 const MAX_NOISE = 0.5;
 
@@ -131,6 +134,19 @@ await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), n
 await page.waitForFunction(() => window.__map.getLayer('outer-3d') && window.__map.getLayer('ground-road-far'), null, { timeout: 120000 })
   .catch(() => {});
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
+// The loading veil sits over the map and animates (a floating tower, a progress
+// bar): a page screenshot would measure that, not the tiles. Take it away; the
+// tile archives are already open under it (the layers were awaited above).
+await page.evaluate(() => { const v = document.getElementById('veil'); if (v) v.remove(); });
+// Freeze what moves on its own so that the same state twice is the same frame
+// (README: auto-exposure meters the previous pose, grain and star twinkle are
+// random per frame). Every pin is optional: a build without one still runs.
+await page.evaluate(() => {
+  if (window.GFX) { window.GFX.autoExposure = false; window.GFX.exposure = 1; window.GFX.grain = 0; }
+  if (window.SKY_TUNE && window.SKY_TUNE.TWINKLE) window.SKY_TUNE.TWINKLE.AMP = 0;
+  if (window.applyGraphics) window.applyGraphics();
+  if (window.__aeReset) window.__aeReset();
+});
 await page.evaluate(pose => { const m = window.__map; if (m.isEasing && m.isEasing()) m.stop(); m.jumpTo(pose); }, POSE);
 await page.waitForTimeout(6000);
 await page.evaluate(() => new Promise(r => { const m = window.__map; if (m.loaded()) return r(); m.once('idle', r); setTimeout(r, 30000); }));
@@ -182,7 +198,11 @@ await snap('all2');                       // the same state twice: the noise flo
 await setHidden('austin-outer', true);  await snap('noOuter');  await setHidden('austin-outer', false);
 await setHidden('austin-roads', true);  await snap('noRoads');  await setHidden('austin-roads', false);
 const share = { noise: await moved('all', 'all2'), outer: await moved('all', 'noOuter'), roads: await moved('all', 'noRoads') };
-if (OUT) fs.writeFileSync(path.join(OUT, BREAK ? 'tile-heal-break.png' : 'tile-heal.png'), Buffer.from(frames.all, 'base64'));
+if (OUT) {
+  for (const k of ['all', 'noOuter', 'noRoads']) {
+    fs.writeFileSync(path.join(OUT, (BREAK ? 'tile-heal-break-' : 'tile-heal-') + k + '.png'), Buffer.from(frames[k], 'base64'));
+  }
+}
 
 // The props archive covers the campus, not downtown: look there for its tiles.
 await page.evaluate(pose => window.__map.jumpTo(pose), PROPS_POSE);
@@ -224,8 +244,12 @@ ok('one console line per healed archive, each naming it, none an error',
 ok(`the far ring is in the tile cache (>= ${MIN_FEATURES} decoded features)`, state.features.outer >= MIN_FEATURES, 'outer features ' + state.features.outer);
 ok(`the roads are in the tile cache (>= ${MIN_FEATURES} decoded features)`, state.features.roads >= MIN_FEATURES, 'road features ' + state.features.roads);
 ok('props are in the tile cache (at the campus pose)', propFeatures > 0, 'prop features ' + propFeatures);
-ok(`the far ring is DRAWN: hiding it moves >= ${MIN_SHARE.outer}% of the frame`, share.outer >= MIN_SHARE.outer, share.outer + '%');
-ok(`the roads are DRAWN: hiding them moves >= ${MIN_SHARE.roads}% of the frame`, share.roads >= MIN_SHARE.roads, share.roads + '%');
+// Net of the noise floor: a frame that is changing by itself (a page that never
+// settled) must not count as "the layer is drawn" (--break measured 13.2% for
+// all three, noise included).
+const net = k => +(share[k] - share.noise).toFixed(3);
+ok(`the far ring is DRAWN: hiding it moves >= ${MIN_SHARE.outer}% of the frame beyond the noise`, net('outer') >= MIN_SHARE.outer, net('outer') + '%');
+ok(`the roads are DRAWN: hiding them moves >= ${MIN_SHARE.roads}% of the frame beyond the noise`, net('roads') >= MIN_SHARE.roads, net('roads') + '%');
 ok(`the instrument is steady: the same state twice moves under ${MAX_NOISE}% of the frame`, share.noise < MAX_NOISE, share.noise + '%');
 
 console.log(JSON.stringify({ break: BREAK, share, features: { ...state.features, props: propFeatures }, headersSeen: [...headersSeen], urls: state.urls, store: state.store,

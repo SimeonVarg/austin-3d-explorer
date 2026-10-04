@@ -443,14 +443,23 @@ repair on a reload, `roads` does not (so it must move to `?cg=1`). Then, from th
 one page: the poison was really served; one navigation; each archive healed the
 way it should and one console line names it; and the DRAWN result: decoded
 features in the far ring's and the roads' tile caches AND the frame moves when
-the layers of that source are hidden (a downtown pose; screenshots, counted in
-the page). `--break` loads `?tileheal=0` and must exit 1. Two traps in it:
+the layers of that source are hidden, beyond the noise floor of the same state
+shot twice (a downtown pose; screenshots, counted in the page). Measured on the
+SwiftShader laptop run of 2026-10-04: noise 0.003%, far ring 60.4%, roads 8.1%
+(floors 10% and 1%); the 15 assertions pass, and with the heal off (`--break`,
+`?tileheal=0`, exit 1) six of 15 pass: the frame is bare ground, no buildings,
+zero decoded features. Three traps in it:
 Playwright's interception sits above the HTTP cache, so the `Cache-Control:
 no-cache` / `Pragma: no-cache` Chrome adds to a `cache: 'reload'` fetch are not on
 the request the route is shown (a one-line shim copies the page's own `cache`
 option into a header); and `route.fetch` opens its own connections, so a burst of
 tile reads through it overflowed the local server's listen queue
 (`ECONNREFUSED`): only the poisoned reads go through it, the rest `continue()`.
+And the loading veil sits over the map and animates, so a page screenshot of an
+un-pinned page measured the veil (97% "noise" on the first run): the script
+removes it, pins auto-exposure, grain and star twinkle, and the drawn checks are
+net of the measured noise (with the heal off, a frame that never settled read
+13.2% for noise and for both layers alike, which a raw floor would have passed).
 
 ### Exit codes mean something
 
