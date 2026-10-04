@@ -392,3 +392,10 @@ Hold sources, starting code, tools and budgets constant; prevent trial notes
 from leaking into the baseline. Evaluate resemblance and omissions before
 owner corrections, and track correction effort and cost. Transfer general
 observation and review methods, not Cockrell-specific dimensions or designs.
+
+The owner's next concern is quality per dollar: more hidden verification and
+correction loops may only increase cost. Do not assume a short lessons brief
+can raise a poor match to high fidelity. Compare total reconstruction cost,
+including unique preparation and review, and report reusable setup separately.
+Measure any improvement before claiming that guidelines or more retries solve
+the photo-modeling problem.
