@@ -175,3 +175,27 @@ approximate. The source photo and revised close-ups are shown together.
 
 Branch: `codex/campus-photo-pilot`. Shared review was pushed in AGENTS.md and
 fetched on the Acer. All photo assets and modeling changes remain private.
+
+## Assessment and proposed transfer test
+
+The owner asked whether the private trial is good enough and proposed two
+fresh Sol runs on the next target: original instructions versus trial lessons.
+The root's subjective photo-resemblance rating is about5.5/10; a separate
+review rated6.5/10. Both consider it an unfinished trial and advise against
+broad unattended rollout. Glazing, window heads, facade/entrance proportions,
+masonry/weathering, wing-wall junctions, concrete, plaque and camera alignment
+remain open. Repairing a reported detail does not establish a complete match.
+
+A private comparison brief and transferable lessons were prepared, not run.
+Hold the building/photo group, tools, code snapshot, reasoning effort and
+budget equal; isolate fresh builders; preserve first and final bounded
+candidates; judge them blindly from full and close application views. Current
+AGENTS.md includes trial lessons and would contaminate a supposedly blank
+baseline, so isolate the common original brief and evidence carefully.
+Compare cost and repair effort alongside appearance; one pair is an initial
+signal and should be repeated on a different target before broad adoption.
+Do not transfer Cockrell dimensions or imply every building uses its design.
+
+Branch: `codex/campus-photo-pilot`. No modeling changes were made this pass.
+HANDOFF.md is touched by other open lanes, so this record remains in the
+existing owned photo-pass document.
