@@ -375,3 +375,20 @@ inscription: compare visible glyph endpoints, letterforms and spacing too.
 Use a shared baseline and capital-height metric for the inscription's lines;
 including the comma descender in per-line scaling made the upper capitals
 smaller. Verify that the entire inscription clears the projecting masonry.
+
+## Photo trial status and transfer review — October 3, 2026
+
+The owner says repeated "finished" results and reliance on his detailed
+corrections waste the trial. Keep a candidate under review until its visible
+differences have been independently checked against the source photos. The
+owner should supply priorities and taste feedback; agents own finding ordinary
+visible omissions, proportion errors and broken connections before presenting
+a result. A passed build or completed edit does not mean visual acceptance.
+
+The owner proposed comparing two fresh Sol runs on the next target: the
+original brief versus a concise account of lessons from this trial. This is
+a proposed transfer experiment, not evidence that the current process scales.
+Hold sources, starting code, tools and budgets constant; prevent trial notes
+from leaking into the baseline. Evaluate resemblance and omissions before
+owner corrections, and track correction effort and cost. Transfer general
+observation and review methods, not Cockrell-specific dimensions or designs.
