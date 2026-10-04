@@ -126,6 +126,21 @@ Once each, hardware GL through the GPU slot, after the change: `graphics.mjs` 27
 style to load on its first run, when the machine was at 99% CPU from other jobs, and passed on the rerun; that is
 the load, not the sky.
 
+## Two things the build server found when it became the default
+
+Both were invisible while the GL sky was an option nobody had on.
+
+- **The clouds move, so two frames of one state were two pictures.** `SKY_TUNE.GL.DRIFT` slides the
+  cloud field 0.6 degrees a minute. `tile-heal.mjs` shoots one state three times and saw 3.5% of the
+  frame move. `?drift=0`, the flag every scripted run already passes to stop the idle camera, now
+  holds the clouds still as well. After: `tile-heal.mjs` 16 of 16 on SwiftShader.
+- **A lost GL context left the sky without clouds.** The programs, the star buffer, the noise texture
+  and the cloud panorama belong to the context that made them. In the restored context they draw
+  nothing and they do not throw, so the sky came back as a bare gradient (`context-restore.mjs`:
+  12.8% of the frame differed). The sky now forgets those objects when its layer is added, removed,
+  or the context is lost or restored (`glForget`), and builds them again on the next frame. The
+  decoded panorama is kept in memory for that, so the clouds return without a second fetch.
+
 ## What it does not do
 
 - Three older checks have the 2D sky canvas as their subject (`sky.mjs`, `night-sky.mjs`,

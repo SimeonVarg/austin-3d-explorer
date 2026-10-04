@@ -240,7 +240,10 @@
       META: 'data/sky/clouds.json',
       ELEV_MAX: 45,          // degrees at the top row of a panorama (clouds.json can override)
       ROT: 0,                // azimuth of the panorama's left edge, degrees
-      DRIFT: 0.6,            // degrees of azimuth the cloud field slides per minute, 0 = still
+      // Degrees of azimuth the cloud field slides per minute, 0 = still. `?drift=0` (the flag
+      // scripted runs already pass to stop the idle camera) holds the clouds still too, so two
+      // frames of one state are the same picture.
+      DRIFT: (new URLSearchParams(window.location.search).get('drift') === '0') ? 0 : 0.6,
       CLOUD_ALPHA: 0.96,     // opacity scale on the baked coverage at full day
       NIGHT_FADE: 0.78,      // share of that opacity lost by deep night
       NIGHT_DIM: 0.30,       // clouds' brightness at deep night (they are moonlit, not lit)
@@ -1323,9 +1326,36 @@
     glSky = g;
   }
 
-  // ── the cloud panoramas: fetched after first paint, uploaded once each ──
+  // ── the cloud panoramas: fetched after first paint, uploaded once per GL context ──
   const cloudSets = {};
   let cloudMeta = null;
+
+  /**
+   * A lost GL context takes the GL sky's objects with it: the two programs, the star
+   * buffer, the edge-noise texture and the cloud panoramas. Used again in the restored
+   * context they draw nothing, and they do not throw, so the sky came back as a bare
+   * gradient with no clouds (`context-restore.mjs` saw 12.8% of the frame differ).
+   * Forget them, and the next frame builds them again in the context it is given.
+   * With `gl` (the layer is being removed and the context is alive) they are deleted too.
+   */
+  function glForget(gl) {
+    if (gl && !(gl.isContextLost && gl.isContextLost())) {
+      try {
+        if (glSky) {
+          gl.deleteProgram(glSky.sky.p); gl.deleteProgram(glSky.stars.p);
+          gl.deleteBuffer(glSky.starBuf); gl.deleteTexture(glSky.detail);
+        }
+        for (const k of Object.keys(cloudSets)) if (cloudSets[k].tex) gl.deleteTexture(cloudSets[k].tex);
+      } catch (e) {}
+    }
+    glSky = null;
+    glFailed = false;   // a new context gets a new try; a real defect fails again, once
+    for (const k of Object.keys(cloudSets)) {
+      const e = cloudSets[k];
+      if (e.state === 'ready') { e.tex = null; e.state = e.img ? 'decoded' : 'idle'; }
+    }
+  }
+  let glForgetHooked = false;
   function cloudEntry(set) {
     return cloudSets[set] || (cloudSets[set] = {
       state: 'idle', tex: null, img: null, elevMax: SKY_TUNE.GL.ELEV_MAX, rot: 0, wrapOk: true,
@@ -1381,7 +1411,8 @@
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
       gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
       SKY_METER.uploads++;
-      e.img = null;
+      // `e.img` is kept on purpose: a lost GL context takes the texture with it, and the
+      // clouds must come back on the next frame, not after a second fetch (see glForget).
       e.state = 'ready';
     }
     return e.state === 'ready' ? e : null;
@@ -1579,6 +1610,13 @@
     renderingMode: '3d',
 
     onAdd(map, gl) {
+      // Whatever the GL sky built belongs to an older context (or to none): start clean.
+      glForget(null);
+      if (!glForgetHooked) {
+        glForgetHooked = true;
+        map.on('webglcontextlost', () => glForget(null));
+        map.on('webglcontextrestored', () => { glForget(null); map.triggerRepaint(); });
+      }
       skyGL = {
         prog: program(gl, VS_TEX, FS_TEX, ['u_rect', 'u_z', 'u_tex', 'u_tint']),
         buf: gl.createBuffer(),
@@ -1593,6 +1631,7 @@
     },
 
     onRemove(map, gl) {
+      glForget(gl);
       if (!skyGL) return;
       try {
         gl.deleteBuffer(skyGL.buf);
