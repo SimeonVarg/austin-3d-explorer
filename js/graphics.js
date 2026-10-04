@@ -491,8 +491,11 @@
   // re-run the probe and can drop a good machine to `performance`.
   //
   //   rev 2 — `dof` off everywhere (the horizon line; see the note on PRESETS).
-  const SETTINGS_REV = 3;
+  //   rev 4 — an unstamped automatic Performance save goes back to `balanced`
+  //           once (REV_UNSTAMPED_AUTO below; it is a preset step, not a key list).
+  const SETTINGS_REV = 4;
   const REV_RESET = { 2: ['dof'] };
+  const REV_UNSTAMPED_AUTO = 4;
 
   // ── `preset` is the preset the settings came FROM; `custom` says they moved ──
   //
@@ -517,15 +520,67 @@
   const GFX = Object.assign({}, PRESETS.balanced, { preset: 'balanced', custom: false, autoDetected: false, rev: SETTINGS_REV });
   window.GFX = GFX;
 
+  // ── Saved settings are a hint, never an authority ──────────────────
+  //
+  // A hard refresh does not clear localStorage, so whatever this key holds
+  // decides the scene on every later visit. Two ways that went wrong quietly:
+  //   1. A value that parses but means nothing (a string where a slider goes,
+  //      0 or -40 where the menu's range starts at 150, an array for a
+  //      boolean) was copied into GFX as-is. Each key is now checked against
+  //      its own SCHEMA row, and one that fails falls back to the default for
+  //      its key alone; the rest of the save survives.
+  //   2. The auto-detect's downgrade to `performance` was permanent: it set
+  //      `autoDetected`, which is what stops the probe, and nothing ever
+  //      cleared it, so one slow first minute (a cold cache, a busy laptop)
+  //      dimmed the scene for good. The downgrade now writes the time it
+  //      happened (`autoDownAt`) and expires after AUTO_DOWNGRADE_TTL_MS: the
+  //      next load goes back to `balanced` with the probe armed, and it
+  //      downgrades again only if the machine is still slow. A preset chosen
+  //      by hand never carries that stamp, so it never expires.
+  const AUTO_DOWNGRADE_TTL_MS = 3 * 24 * 3600 * 1000;
+  const validSaved = (s, v) => {
+    if (s.type === 'bool') return typeof v === 'boolean';
+    return typeof v === 'number' && isFinite(v) && v >= s.min && v <= s.max;
+  };
+
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) saved = null;
   let migrated = false;
-  if (saved && typeof saved === 'object') {
-    for (const s of SCHEMA) if (saved[s.key] !== undefined) GFX[s.key] = saved[s.key];
+  if (saved) {
+    for (const s of SCHEMA) {
+      if (saved[s.key] === undefined) continue;
+      if (validSaved(s, saved[s.key])) GFX[s.key] = saved[s.key];
+      else { migrated = true; }
+    }
+    // A downgrade the machine made on its own has run out: take it back.
+    //
+    // The same step runs ONCE for a save written before the stamp existed (rev
+    // below REV_UNSTAMPED_AUTO): `performance`, not custom, `autoDetected`, no
+    // stamp. Those saves cannot be told apart from a hand pick, because
+    // usePreset() sets `autoDetected` for a hand pick too. That is the accepted
+    // cost: a person who chose Performance by hand before this change gets one
+    // extra probe, and on a slow machine the probe puts them back within
+    // seconds, now with a stamp. On a strong machine it is the fix: that save
+    // was one slow first minute, kept for good. After this load the save is
+    // rev 4, so a hand pick made later has no stamp and stays.
+    const at = +saved.autoDownAt;
+    const wasRev = +saved.rev || 1;
+    const autoPerf = saved.preset === 'performance' && !saved.custom && saved.autoDetected;
+    const stale = autoPerf && at && !(Date.now() - at >= 0 && Date.now() - at < AUTO_DOWNGRADE_TTL_MS);
+    // Not on the phone profile: Performance is that device's design (PHONE_PRESET), and
+    // a phone's memory ceiling is the reason, so it never gets a Balanced load to probe.
+    const oldUnstamped = autoPerf && !at && wasRev < REV_UNSTAMPED_AUTO && !(window.LITE_PROFILE && window.LITE_PROFILE.on);
+    if (stale || oldUnstamped) {
+      saved.preset = 'balanced'; saved.autoDetected = false; saved.autoDownAt = 0;
+      Object.assign(GFX, PRESETS.balanced);
+      migrated = true;
+    }
     if (saved.preset && PRESETS[saved.preset]) GFX.preset = saved.preset;
     GFX.custom = !!saved.custom || (!!saved.preset && !PRESETS[saved.preset]);
     GFX.autoDetected = !!saved.autoDetected;
-    const was = +saved.rev || 1;
+    GFX.autoDownAt = (+saved.autoDownAt > 0 && GFX.preset === 'performance' && !GFX.custom) ? +saved.autoDownAt : 0;
+    const was = wasRev;
     for (let r = was + 1; r <= SETTINGS_REV; r++) {
       for (const k of (REV_RESET[r] || [])) {
         const p = PRESETS[GFX.preset] || PRESETS.balanced;
@@ -1812,6 +1867,8 @@
     // Downgrade only — see the note above on why an upgrade is unmeasurable.
     if (med > 21.5 && GFX.preset === 'balanced' && !GFX.custom) {
       usePreset('performance', true);
+      GFX.autoDownAt = Date.now();   // expires: see AUTO_DOWNGRADE_TTL_MS
+      save();
       toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`,
         TOAST_PROBE_MS);
     } else {
@@ -1871,7 +1928,7 @@
     Object.assign(GFX, p);
     GFX.preset = name;
     GFX.custom = false;
-    if (!keepAuto) GFX.autoDetected = true;
+    if (!keepAuto) { GFX.autoDetected = true; GFX.autoDownAt = 0; }
     applyGraphics();
     syncMenu();
     if (GFX.msaa !== msaaWas) markReload();
