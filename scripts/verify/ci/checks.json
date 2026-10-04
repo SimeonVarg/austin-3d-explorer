@@ -136,6 +136,8 @@
     "stadium-tiles-style-recovery.mjs": {"est_s": 10},
     "stadium-tower-geometry.mjs": {"est_s": 10},
     "suite-lint.mjs": {"est_s": 10},
+    "tile-heal-source.mjs": {"est_s": 10},
+    "tile-heal.mjs": {"est_s": 300},
     "tile-lod-cache.mjs": {"est_s": 10},
     "timeofday-style-recovery.mjs": {"est_s": 10},
     "tour-check.mjs": {"est_s": 120},
