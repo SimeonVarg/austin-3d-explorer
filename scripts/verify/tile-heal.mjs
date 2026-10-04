@@ -57,22 +57,29 @@ const POSE = { center: [-97.7445, 30.2668], zoom: 16.3, pitch: 72, bearing: 200 
 const PROPS_POSE = { center: [-97.7394, 30.2862], zoom: 17, pitch: 55, bearing: 0 };   // the Main Mall
 // Share of the frame (percent of pixels moved by more than DELTA, 0-255 on any
 // channel) that hiding one source must change, over and above the noise floor
-// (the same state shot twice). MEASURED on the SwiftShader laptop run of
-// 2026-10-04 with the heal on: noise 0.003%, far ring 60.4%, roads 8.1%. The
-// floors below are about a sixth and an eighth of those, and 300x the noise.
-// A layer that did not load changes none.
+// (the same state shot first, second and last). MEASURED 2026-10-04 with the
+// heal on, map pixels only, labels off: noise 0.000%, far ring 60.3%, roads
+// 0.261% on the laptop and 0.235% on the build server (at this skyline pose the
+// road layer is thin lines between towers). With the heal off all three are
+// exactly 0.000%. The floors are about a sixth and a third of the measured
+// shares. The first floors here (10 and 1) came from a run whose frame went
+// from soft to sharp between two shots: see the veil render scale note below.
 const DELTA = 24;
-const MIN_SHARE = { outer: 10, roads: 1 };
+const MIN_SHARE = { outer: 10, roads: 0.08 };
 const MIN_FEATURES = 100;
 // The frame with the far ring hidden against the frame with the roads hidden:
-// two different layers gone, so two different frames. Measured 63.5% with the
+// two different layers gone, so two different frames. Measured 60.6% with the
 // heal on and exactly 0.0% with it off, where neither source draws and both
-// frames are the same bare ground (the all-vs-hidden shares were 13.2% for both
-// layers alike there, from the page still settling, which they cannot tell apart).
+// frames are the same bare ground.
 const MIN_BETWEEN = 5;
-const MAX_NOISE = 0.5;
+// Far under the road floor, or the road share could be noise. It measures 0.
+const MAX_NOISE = 0.03;
 
-const browser = await launch(chromium);
+// One load of the whole city plus about ten settled frames: 312 s on the laptop
+// and 314 s on the build server, which is over the harness's 300 s default. A
+// check that cannot finish inside its own watchdog is a dead gate, so it asks
+// for its own ceiling unless the caller set one.
+const browser = await launch(chromium, { maxMs: Number(process.env.VERIFY_MAX_MS) || 720000 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 const logs = [], errors = [];
 let navigations = 0;
@@ -148,10 +155,24 @@ await page.evaluate(() => { const v = document.getElementById('veil'); if (v) v.
 // (README: auto-exposure meters the previous pose, grain and star twinkle are
 // random per frame). Every pin is optional: a build without one still runs.
 await page.evaluate(() => {
+  // The app draws at a reduced scale until its own reveal() (INTRO.veilRenderScale
+  // in js/app.js). Taking the veil element away does not end that, so the frame
+  // went from soft to sharp by itself part-way through the shots: on the laptop
+  // that jump was the whole "8.1% roads" the first floors were set from, and the
+  // build server, where the jump fell elsewhere, measured the true 0.235%.
+  window.__veilRenderScale = 1;
   if (window.GFX) { window.GFX.autoExposure = false; window.GFX.exposure = 1; window.GFX.grain = 0; }
   if (window.SKY_TUNE && window.SKY_TUNE.TWINKLE) window.SKY_TUNE.TWINKLE.AMP = 0;
   if (window.applyGraphics) window.applyGraphics();
   if (window.__aeReset) window.__aeReset();
+  // Only the map's own pixels are the subject. Page furniture arrives late (a
+  // "Switch modes" pill appeared between two shots and moved 0.2-0.5% of the
+  // frame, as much as the roads themselves), and labels cross-fade whenever a
+  // layer is toggled. A rule, not a loop over elements: it also covers what the
+  // page adds afterwards.
+  const st = document.createElement('style');
+  st.textContent = '* { visibility: hidden !important; } canvas { visibility: visible !important; }';
+  document.head.appendChild(st);
 });
 await page.evaluate(pose => { const m = window.__map; if (m.isEasing && m.isEasing()) m.stop(); m.jumpTo(pose); }, POSE);
 await page.waitForTimeout(6000);
@@ -180,7 +201,7 @@ async function snap(tag) {
   await page.screenshot();                       // screenshot twice, trust the second
   frames[tag] = (await page.screenshot()).toString('base64');
 }
-const moved = (a, b) => page.evaluate(async ([a, b, D]) => {
+const movedB64 = (a, b) => page.evaluate(async ([a, b, D]) => {
   const pixels = async b64 => {
     const bm = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob());
     const c = document.createElement('canvas'); c.width = bm.width; c.height = bm.height;
@@ -193,17 +214,29 @@ const moved = (a, b) => page.evaluate(async ([a, b, D]) => {
     if (Math.abs(A[i] - B[i]) > D || Math.abs(A[i + 1] - B[i + 1]) > D || Math.abs(A[i + 2] - B[i + 2]) > D) n++;
   }
   return +(100 * n / (A.length / 4)).toFixed(3);
-}, [frames[a], frames[b], DELTA]);
+}, [a, b, DELTA]);
+const moved = (a, b) => movedB64(frames[a], frames[b]);
 const setHidden = (src, hide) => page.evaluate(([src, hide]) => {
   const m = window.__map;
-  for (const l of m.getStyle().layers) if (l.source === src) m.setLayoutProperty(l.id, 'visibility', hide ? 'none' : 'visible');
+  for (const l of m.getStyle().layers) if (l.source === src && l.type !== 'symbol') m.setLayoutProperty(l.id, 'visibility', hide ? 'none' : 'visible');
 }, [src, hide]);
 
+// Labels off for the shots only (put back after: a source that only labels use
+// would stop loading its tiles, and the props count below reads the tile cache).
+const labels = await page.evaluate(() => {
+  const m = window.__map, ids = [];
+  for (const l of m.getStyle().layers) {
+    if (l.type === 'symbol' && m.getLayoutProperty(l.id, 'visibility') !== 'none') { m.setLayoutProperty(l.id, 'visibility', 'none'); ids.push(l.id); }
+  }
+  return ids;
+});
 await snap('all');
 await snap('all2');                       // the same state twice: the noise floor
 await setHidden('austin-outer', true);  await snap('noOuter');  await setHidden('austin-outer', false);
 await setHidden('austin-roads', true);  await snap('noRoads');  await setHidden('austin-roads', false);
-const share = { noise: await moved('all', 'all2'), outer: await moved('all', 'noOuter'), roads: await moved('all', 'noRoads'), between: await moved('noOuter', 'noRoads') };
+await snap('all3');                       // the first state again, last: a frame that changed by itself in between
+await page.evaluate(ids => { const m = window.__map; for (const id of ids) m.setLayoutProperty(id, 'visibility', 'visible'); }, labels);
+const share = { noise: Math.max(await moved('all', 'all2'), await moved('all', 'all3')), outer: await moved('all', 'noOuter'), roads: await moved('all', 'noRoads'), between: await moved('noOuter', 'noRoads') };
 if (OUT) {
   for (const k of ['all', 'noOuter', 'noRoads']) {
     fs.writeFileSync(path.join(OUT, (BREAK ? 'tile-heal-break-' : 'tile-heal-') + k + '.png'), Buffer.from(frames[k], 'base64'));
@@ -257,7 +290,7 @@ const net = k => +(share[k] - share.noise).toFixed(3);
 ok(`the far ring is DRAWN: hiding it moves >= ${MIN_SHARE.outer}% of the frame beyond the noise`, net('outer') >= MIN_SHARE.outer, net('outer') + '%');
 ok(`the roads are DRAWN: hiding them moves >= ${MIN_SHARE.roads}% of the frame beyond the noise`, net('roads') >= MIN_SHARE.roads, net('roads') + '%');
 ok(`hiding the far ring and hiding the roads leave different frames (>= ${MIN_BETWEEN}% apart)`, share.between >= MIN_BETWEEN, share.between + '%');
-ok(`the instrument is steady: the same state twice moves under ${MAX_NOISE}% of the frame`, share.noise < MAX_NOISE, share.noise + '%');
+ok(`the instrument is steady: the same state, shot first, second and last, moves under ${MAX_NOISE}% of the frame`, share.noise < MAX_NOISE, share.noise + '%');
 
 console.log(JSON.stringify({ break: BREAK, share, features: { ...state.features, props: propFeatures }, headersSeen: [...headersSeen], urls: state.urls, store: state.store,
   poisoned: { outer: poisonedBy('outer'), roads: poisonedBy('roads'), props: poisonedBy('props') },

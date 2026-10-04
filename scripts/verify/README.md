@@ -444,17 +444,17 @@ one page: the poison was really served; one navigation; each archive healed the
 way it should and one console line names it; and the DRAWN result: decoded
 features in the far ring's and the roads' tile caches AND the frame moves when
 the layers of that source are hidden, beyond the noise floor of the same state
-shot twice (a downtown pose; screenshots, counted in the page). Measured on the
-SwiftShader laptop run of 2026-10-04: noise 0.003%, far ring 60.4%, roads 8.1%
-(floors 10% and 1%); all 15 passed, twice, and with the heal off (`--break`,
-`?tileheal=0`, exit 1) 7 of 15 passed: the frame is bare ground, no buildings,
-zero decoded features. The two "drawn" shares still passed there (13.2% for both
-alike: the page was still settling, and a hidden layer that never drew cannot be
-told from that), so a 16th assertion compares the two hidden frames with each
-other: 63.5% apart with the heal on, exactly 0.0% with it off. That one was
-computed from the saved frames of those two runs (the same pixels the script
-counts; it reproduced 60.399, 8.114 and 13.209 to the digit) and the 16-assertion
-script has not been through the browser queue yet. Three traps in it:
+shot first, second and last (a downtown pose; screenshots, counted in the page).
+Measured 2026-10-04, map pixels only, labels off: noise 0.000%, far ring 60.3%,
+roads 0.261% on the laptop and 0.235% on the build server (floors 10% and
+0.08%), the two hidden frames 60.6% apart; all 16 pass. With the heal off
+(`--break`, `?tileheal=0`, exit 1) 5 of 16 pass: bare ground, zero decoded
+features, and every share is exactly 0.000%. **The first version of this check
+was wrong and the build server caught it:** it reported roads 8.1% and set a 1%
+floor from that, and with the heal off it "measured" 13.2% for both layers.
+Neither number was the layer (see the last two traps below); the server, where
+the timing fell differently, measured the true 0.235% and failed the floor.
+Five traps in it:
 Playwright's interception sits above the HTTP cache, so the `Cache-Control:
 no-cache` / `Pragma: no-cache` Chrome adds to a `cache: 'reload'` fetch are not on
 the request the route is shown (a one-line shim copies the page's own `cache`
@@ -464,8 +464,17 @@ tile reads through it overflowed the local server's listen queue
 And the loading veil sits over the map and animates, so a page screenshot of an
 un-pinned page measured the veil (97% "noise" on the first run): the script
 removes it, pins auto-exposure, grain and star twinkle, and the drawn checks are
-net of the measured noise (with the heal off, a frame that never settled read
-13.2% for noise and for both layers alike, which a raw floor would have passed).
+net of the measured noise. Fourth: **taking the veil element away does not end
+the veil's reduced render scale.** The app draws soft until its own `reveal()`
+(`INTRO.veilRenderScale`, js/app.js), so the frame went from soft to sharp by
+itself between two shots; the "same state twice" pair was taken before the jump
+and read 0.003%, and the jump was then counted as a layer. Pin
+`window.__veilRenderScale = 1` (then `applyGraphics()`) in any test that removes
+the veil, and shoot the first state again LAST: a noise floor measured only at
+the start cannot see a frame that changes later. Fifth: page furniture arrives
+late (a "Switch modes" pill appeared mid-run and moved 0.2-0.5% of the frame, as
+much as the roads) and labels cross-fade when a layer is toggled, so the shots
+hide everything but the canvas with one CSS rule and switch symbol layers off.
 
 ### Exit codes mean something
 
