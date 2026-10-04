@@ -1570,3 +1570,23 @@ features (and change pixels) against a clean-profile load. `--break` writes
 `outerDensity 0` into the live page and must come back red: that is also the
 proof the bad value hides the low-rise ring (towers and mid-rise stay). Run it
 through the GPU queue; about 6 minutes.
+
+### Does a preset hide downtown? `downtown-preset.mjs`
+
+`downtown-preset.mjs <outDir>` loads the real page twice in one browser, once with
+Performance saved and once on the default, and from three cameras (the spawn
+pose, where the opening flight lands, and an eye over south campus looking at
+the skyline) shoots the same frame twice (keep the second) and measures it: the
+pixels each outer-ring layer covers (layer on against layer off, divided by
+renderScale squared so the two canvases compare), the downtown towers with ink
+standing on their ground point, every downtown name in range and on screen with
+the building it names and whether the preset's own rule draws it, what render
+distance hid at that altitude, and every style layer whose visibility, filter or
+opacity differs between the presets. It is a measurement, not a gate. Measured
+2026-10-04 (two runs, same numbers): Performance and Balanced draw the same
+towers and mid-rise (full-scale pixels 10,407 against 10,531 and 5,307 against
+5,145 at the south-campus camera); Performance draws about half the low-rise ring
+(6,766 against 13,854, `outerDensity` 0.45); render distance 350 hides only the
+clutter tiers in `js/lod.js`; none of the 28 names on screen names a building the
+preset removes. So the preset alone does not leave a name over empty ground.
+Through the GPU queue; about 5 minutes.
