@@ -41,7 +41,7 @@
  *          buildings (the reproduction).
  *
  * Exit: 0 pass, 1 an assertion failed, 2 could not run.
- * Run through the GPU queue: node <astra-pipe>/tools/gpu-run.mjs --label stored-state -- node stored-state.mjs <outDir>
+ * Run through the GPU queue: node <lanes>/gpu-run.mjs --label stored-state -- node stored-state.mjs <outDir>
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';

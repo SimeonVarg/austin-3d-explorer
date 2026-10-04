@@ -41,7 +41,7 @@
  * The screenshot is taken twice and the second is kept. The auto-detect probe
  * is cancelled at the top of each load. A measurement, not a gate: exit 0.
  * Run through the GPU queue:
- *   node <astra-pipe>/tools/gpu-run.mjs --label downtown-preset -- node downtown-preset.mjs <outDir>
+ *   node <lanes>/gpu-run.mjs --label downtown-preset -- node downtown-preset.mjs <outDir>
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
