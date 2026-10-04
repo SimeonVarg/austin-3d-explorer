@@ -12,7 +12,8 @@ const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 900, height: 620 } });
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
-await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+// The subject here is the 2D sky canvas, so the page is pinned to it (the default is 'gl').
+await page.goto(`${BASE}/index.html?drift=0&intro=0&sky=canvas`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForTimeout(4500);
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());

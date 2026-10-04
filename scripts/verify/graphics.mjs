@@ -361,13 +361,15 @@ const skyCv = await page.evaluate(async () => {
   await new Promise(r => setTimeout(r, 600));
   const c = document.getElementById('sky-canvas');
   return { h: c.height, cssH: parseFloat(c.style.height), viewH: m.getCanvas().clientHeight,
-           dpr: window.devicePixelRatio };
+           dpr: window.devicePixelRatio, mode: window.SKY_COMP ? window.SKY_COMP.mode : 'canvas' };
 });
 
+// In 'gl' mode (the default) the sky has no 2D pass at all and this canvas is collapsed
+// to one pixel; in 'canvas' mode it must be a band. Either way it is never the viewport.
 check('sky canvas is a band, not a full-screen buffer',
   skyCv.cssH <= skyCv.viewH * 0.5,
   `${skyCv.cssH} css px tall of a ${skyCv.viewH} px viewport ` +
-  `(${(100 * skyCv.cssH / skyCv.viewH).toFixed(0)}% — was 100%)`);
+  `(${(100 * skyCv.cssH / skyCv.viewH).toFixed(0)}% — was 100%), sky mode '${skyCv.mode}'`);
 
 // ── persistence ───────────────────────────────────────────────────────
 

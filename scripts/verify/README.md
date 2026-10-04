@@ -1683,3 +1683,44 @@ towers and mid-rise (full-scale pixels 10,407 against 10,531 and 5,307 against
 clutter tiers in `js/lod.js`; none of the 28 names on screen names a building the
 preset removes. So the preset alone does not leave a name over empty ground.
 Through the GPU queue; about 5 minutes.
+
+## The GL sky against the canvas sky: `sky-gl.mjs` (added October 4 2026)
+
+`SKY_COMP.mode = 'gl'` draws the sky in the map's own pass from textures uploaded
+once, and is the default; `'canvas'` (`?sky=canvas`) is the 2D canvas it replaced. `sky-gl.mjs` is the gate
+for the two claims that matter: the atmosphere did not move, and a camera turn costs
+no 2D draw and no upload. It reads pixels of the **finished map frame** (the harness
+page, `readPixels`), never a number the sky code reports about itself.
+
+```bash
+python scripts/serve.py 8527                       # from the repo root
+VERIFY_GL=hardware VERIFY_URL=http://127.0.0.1:8527 node <lanes>/gpu-run.mjs --label sky-gl -- \
+  node scripts/verify/sky-gl.mjs --shots <scratch>/frames     # green, plus nine labelled frames
+... sky-gl.mjs --break                                       # one defect per assertion: all must go RED
+... sky-gl.mjs --only c --report                             # iterate on one assertion, never fails
+```
+
+Five assertions (a atmosphere at noon, sunset and night; b no seam where the cloud
+panorama wraps; c the horizon feather sits at the same row; d clouds are really
+drawn and the look knob changes them; e turning costs no 2D draw and no upload) and
+one about the instrument itself (g: the pixels come from the GL path). Every taste
+number is in the `TUNE` block at the top of the file.
+
+Traps this check cost time:
+
+- **It needs a GPU.** On SwiftShader the city draws at 0.2-0.6 frames a second, so
+  the screenshot and the 40-frame turn time out. That is why it is quarantined in
+  `ci/checks.json` and runs on the laptop through the GPU slot.
+- **A tower hides the horizon.** In a fixed column the feather was occluded in both
+  modes and the assertion read 0 against 0. The check now picks the cleanest of 24
+  columns from the *canvas* profile and says which one it used.
+- **Luma is blind to a sunset wash.** At sunset the rose-over-blue changes colour
+  without changing brightness, so the feather is measured as the summed per-channel
+  distance from the same frame with the atmosphere gain at zero, not as luma.
+- **A counter can lie, so there are two.** The turn assertion reads the app's own
+  `SKY_METER` counters *and* a `texImage2D` wrapper this script installs itself. The
+  `'canvas'` control run must show both moving or the instrument is dead.
+- **Each assertion has a break switch** (atmosphere gain 1.6, seam shifted, feather
+  moved 30 px, cloud gain 0, the turn run in canvas mode, the own-output run in canvas
+  mode). Run `--break` after any edit to the check; a break that comes back green
+  means the assertion measures nothing.
