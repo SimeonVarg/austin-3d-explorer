@@ -248,6 +248,54 @@
   const ROOF_CAP = { on: !/[?&]roofcaps=0\b/.test(location.search) };
   window.ROOF_CAP = ROOF_CAP;
 
+  // THE LIDAR HEIGHT KNOB. Default OFF, so the city looks exactly as it did
+  // until the owner has seen before/after pictures. `?lidarheights=1` swaps
+  // each building's `final_height` for the roof height measured off the 2021
+  // airborne laser scan (data/lidar_heights.json, written by
+  // scripts/bake_lidar_heights.py). It is applied ONCE, in loadScene, on the
+  // feature before anything else reads it — so the walls, the parapet cap, the
+  // window grid's height class, the labels and the shadows all see the same
+  // number and there is no second copy to drift.
+  //   skipSources: heights somebody authored on purpose; the scan does not
+  //     overrule those. (`hero_override` is a hand-set landmark height.)
+  //   skipFlags: scan readings the bake itself distrusts: a roof the scan
+  //     could barely see (`sparse`, `low_class6`), or no reading at all. The
+  //     `canopy` and `skewed` flags are information, not a reason to skip:
+  //     the number is taken from the scan's building class, which ignores
+  //     trees, and a tall part on a podium is the point, not an error.
+  //   minAbsDiff / maxAbsDiff: ignore a difference under half a metre (noise),
+  //     and refuse one over 100 m (the scan and the footprint cannot both be
+  //     right). It was 60 m first; that refused the two worst cases in the
+  //     city, a 12 m apartment block carried at 97.5 m and a courts building
+  //     at 7 m that stands 70 m, and those are exactly what this is for.
+  const LIDAR_HEIGHTS = {
+    on: /[?&]lidarheights=1\b/.test(location.search),
+    skipSources: ['hero_override'],
+    skipFlags: ['sparse', 'low_class6', 'few_cells', 'off_raster'],
+    minAbsDiff: 0.5,
+    maxAbsDiff: 100,
+  };
+  window.LIDAR_HEIGHTS = LIDAR_HEIGHTS;
+  function applyLidarHeights(buildings, lidar) {
+    const table = (lidar && lidar.buildings) || {};
+    let changed = 0;
+    for (const f of buildings.features) {
+      const p = f.properties || {};
+      const m = table[p.id];
+      if (!m || typeof m.h !== 'number' || typeof p.final_height !== 'number') continue;
+      if (m.x) continue;   // drawn as a hand model, from parts, or as a hero: not this extrusion
+      if (LIDAR_HEIGHTS.skipSources.includes(p.source_height)) continue;
+      if (String(m.q || '').split(',').some(q => LIDAR_HEIGHTS.skipFlags.includes(q))) continue;
+      const d = Math.abs(m.h - p.final_height);
+      if (d < LIDAR_HEIGHTS.minAbsDiff || d > LIDAR_HEIGHTS.maxAbsDiff) continue;
+      p.final_height_prior = p.final_height;
+      p.final_height = m.h;
+      p.source_height = 'lidar_2021';
+      changed++;
+    }
+    return changed;
+  }
+
   async function loadScene(date) {
     const [buildings, parts, signs, extraNames, roofs, facadeGrids, overrides] = await Promise.all([
       getJSON(snapshotUrlFor(date), { type:'FeatureCollection', features: [] }),
@@ -282,6 +330,13 @@
     const excluded = properties => ['id', 'bid', 'pid', 'building_id'].some(key => excludedIds.has(String(properties[key])))
       || ['osm', 'osm_id', 'osm_way_id'].some(key => excludedWays.has(String(properties[key] || '').replace(/^(way\/|w)/, '')));
     for (const collection of [buildings, parts, roofs]) collection.features = collection.features.filter(feature => !excluded(feature.properties || {}));
+
+    // The lidar knob (see LIDAR_HEIGHTS above). Off: no request, no change.
+    if (LIDAR_HEIGHTS.on) {
+      const lidar = await getJSON('data/lidar_heights.json', { buildings: {} });
+      LIDAR_HEIGHTS.changed = applyLidarHeights(buildings, lidar);
+      console.log('lidar heights: ' + LIDAR_HEIGHTS.changed + ' buildings re-heighted from the 2021 scan');
+    }
 
     // The Capitol Complex, south of the snapshot's own bbox, is spliced in
     // HERE — before quantisation and before the label pass — so it earns
