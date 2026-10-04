@@ -212,11 +212,12 @@
     {
       "code": "PAI",
       "name": "T. S. Painter Hall",
-      "colour": "#ab8062",
+      "colour": "#b9a690",
       "rows": 4,
-      "ground": 3.6,
-      "bay": 3.4,
-      "window": 1.4,
+      "ground": 5.1,
+      "bay": 2.8,
+      "window": 1.3,
+      "windowHeight": 2.0,
       "observations": "Brick academic block above limestone base; short divided sash windows."
     },
     {
@@ -234,11 +235,25 @@
     {
       "code": "WCH",
       "name": "Will C. Hogg Building",
-      "colour": "#b18868",
+      "colour": "#c7ad98",
       "rows": 4,
-      "ground": 3.8,
-      "bay": 3.5,
-      "window": 1.6,
+      "height": 23.4,
+      "ground": 7.93,
+      "bay": 4.3,
+      "window": 2,
+      "windowHeight": 2.7,
+      "groundWindowHeight": 2.7,
+      "ownHip": {
+        "kind": "hip",
+        "pitch": 15,
+        "over": 1,
+        "d": 4,
+        "deck": "roofFlat",
+        "tone": "roof",
+        "lipTone": "trim",
+        "soffitTone": "dark"
+      },
+      "roofColour": "#8c887a",
       "observations": "Warm brick, pale stone ground course and divided windows."
     },
     {
@@ -322,10 +337,10 @@
     {
       "code": "BLD",
       "name": "Blanton Dormitory",
-      "colour": "#bca07a",
-      "rows": 4,
+      "colour": "#c7af93",
+      "rows": 5,
       "ground": 3.5,
-      "bay": 3.1,
+      "bay": 4.3,
       "window": 1.35,
       "observations": "Buff brick residence wing, pale sash surrounds, courtyard-facing windows."
     },
