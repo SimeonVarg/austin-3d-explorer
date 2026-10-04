@@ -184,7 +184,8 @@
    * THE HEAL. Every read an archive makes goes through HealingSource, which
    * checks what came back: the header must be PMTiles spec 3 with its root
    * directory in the first read, and every other read must be the length asked
-   * for and, when the header says the archive is gzip, start with the gzip magic.
+   * for and, when the header says the archive is gzip, start with the gzip magic
+   * and not end in zeros (a gzip member ends with its own size, never 0).
    * A bad read is read again past the cache (`cache: 'reload'`, which also
    * rewrites the bad entry). Then a NORMAL read of the same range is checked
    * once more; if the cache still hands back the bad copy, the archive moves to
@@ -193,9 +194,9 @@
    * load; nothing reloads. One console line per archive says what was wrong and
    * which way it healed; `TILES.heals` keeps the same facts for a bug report.
    *
-   * WHAT IT DOES NOT CATCH: bytes that are wrong in the middle of a range, or a
-   * range that has the right start and a zeroed tail. Those fail to decode in
-   * the library and cost one tile, not a layer. `?tileheal=0` is the old code
+   * WHAT IT DOES NOT CATCH: bytes that are wrong in the middle of a range with a
+   * good start and a good end. Those fail to decode in the library and cost one
+   * tile, not a layer. `?tileheal=0` is the old code
    * path (stock sources, no check), for an A/B and for the verify script's
    * --break.
    */
@@ -258,11 +259,17 @@
           const rootAt = v.getUint32(8, true), rootLen = v.getUint32(16, true);   // low words: a few KB
           if (rootAt + rootLen > b.length) return 'a root directory outside the first read';
           this.gzip = b[97] === TILE_HEAL.gzip && b[98] === TILE_HEAL.gzip;       // directories, tiles
-          return this.gzip && !(b[rootAt] === 0x1f && b[rootAt + 1] === 0x8b) ? 'a root directory that is not gzip' : '';
+          return this.gzip ? this.gzipProblem(b.subarray(rootAt, rootAt + rootLen), 'a root directory') : '';
         }
         if (length && b.length !== length) return b.length + ' bytes where ' + length + ' were asked for';
         if (zero) return 'zero bytes';
-        return this.gzip && !(b[0] === 0x1f && b[1] === 0x8b) ? 'bytes that are not gzip' : '';
+        return this.gzip ? this.gzipProblem(b, 'bytes') : '';
+      }
+
+      /** A gzip member starts 1f 8b and ends with its uncompressed size, which is never 0: a zeroed tail shows. */
+      gzipProblem(b, what) {
+        if (b[0] !== 0x1f || b[1] !== 0x8b) return what + ' without the gzip magic';
+        return b.subarray(-4).every(v => v === 0) ? what + ' with a zeroed end' : '';
       }
 
       async getBytes(offset, length, signal, etag) {

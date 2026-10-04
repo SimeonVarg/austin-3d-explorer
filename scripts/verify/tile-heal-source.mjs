@@ -40,6 +40,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 const REPO = new URL('../../', import.meta.url);
@@ -71,6 +72,7 @@ async function libSource() {
 }
 
 const realFetch = globalThis.fetch;
+const out = console.log.bind(console);      // tiles.js logs through console.log too: that one is muted, this one is ours
 vm.runInThisContext(await libSource(), { filename: 'pmtiles.js' });   // defines global `pmtiles`
 const tilesSource = fs.readFileSync(TILES_JS, 'utf8');
 
@@ -144,7 +146,7 @@ function makeStorage(initial = {}, { blocked = false } = {}) {
 /** One page load of tiles.js: fresh globals, fresh closure, same fake world. */
 function pageLoad({ net, storage, off = BREAK }) {
   const lines = [];
-  const real = { log: console.log, warn: console.warn, error: console.error };
+  const real = { warn: console.warn, error: console.error };
   console.log = () => {};
   console.warn = (...a) => lines.push(['warn', a.join(' ')]);
   console.error = (...a) => lines.push(['error', a.join(' ')]);
@@ -169,7 +171,7 @@ function pageLoad({ net, storage, off = BREAK }) {
 
 // ---- assertions --------------------------------------------------------------
 const results = [];
-const ok = (name, cond, detail = '') => { results.push({ name, pass: !!cond }); console.log((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : (detail ? '   ' + detail : ''))); };
+const ok = (name, cond, detail = '') => { results.push({ name, pass: !!cond }); out((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : (detail ? '   ' + detail : ''))); };
 const same = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)) === 0;
 const bad = lines => lines.filter(([k]) => k === 'warn' || k === 'error');
 // The hooks the shipped file exposes; an older tiles.js has none, and that must read as a failure, not a crash.
@@ -330,8 +332,10 @@ async function opens(p, tile = tiles[0]) {
   const cases = [
     ['a header full of other bytes', HEADER_RANGE, real => Buffer.alloc(real.length, 0xaa), /not a PMTiles header/],
     ['a header of another spec version', HEADER_RANGE, real => { const c = Buffer.from(real); c[7] = 2; return c; }, /spec version 2/],
-    ['a good header over a zero-filled root directory', HEADER_RANGE, real => { const c = Buffer.from(real); c.fill(0, 127, 127 + rootLen); return c; }, /root directory that is not gzip/],
-    ['a tile range full of other bytes', tiles[0].range, real => Buffer.alloc(real.length, 0xaa), /not gzip/],
+    ['a good header over a zero-filled root directory', HEADER_RANGE, real => { const c = Buffer.from(real); c.fill(0, 127, 127 + rootLen); return c; }, /root directory without the gzip magic/],
+    ['a tile range full of other bytes', tiles[0].range, real => Buffer.alloc(real.length, 0xaa), /without the gzip magic/],
+    ['a good header over a root directory whose end is zeros', HEADER_RANGE, real => { const c = Buffer.from(real); c.fill(0, 127 + rootLen - 8, 127 + rootLen); return c; }, /root directory with a zeroed end/],
+    ['a tile range whose second half is zeros', tiles[0].range, real => { const c = Buffer.from(real); c.fill(0, c.length >> 1); return c; }, /with a zeroed end/],
     ['a tile range cut short', tiles[0].range, real => real.subarray(0, real.length - 7), /bytes where/],
   ];
   for (const [what, range, corrupt, why] of cases) {
@@ -344,6 +348,48 @@ async function opens(p, tile = tiles[0]) {
   }
 }
 
+// 11. no false positive: every directory, metadata block and tile of every real archive passes the check
+{
+  const names = Object.keys(pageLoad({ net: makeNet(), storage: makeStorage() }).TILES.layers);
+  const miss = [];
+  let ranges = 0;
+  for (const name of names) {
+    const file = `data/tiles/${name}.pmtiles`;
+    const buf = fs.existsSync(new URL(file, REPO)) ? fs.readFileSync(new URL(file, REPO)) : null;
+    if (!buf) { miss.push(name + ' (no file)'); continue; }
+    buffers[file] = buf;
+    const net = makeNet(), p = pageLoad({ net, storage: makeStorage() });
+    p.restore();
+    const src = p.TILES.archives?.[name];
+    if (!src) { miss.push(name + ' (no healing source)'); continue; }
+    const u64 = o => Number(buf.readBigUInt64LE(o));
+    const range = (what, at, len) => {
+      ranges++;
+      const why = src.check(at, len, buf.subarray(at, at + len));
+      if (why) miss.push(`${name} ${what} ${at}+${len}: ${why}`);
+    };
+    range('header', 0, Math.min(16384, buf.length));
+    range('metadata', u64(24), u64(32));
+    const dir = (at, len) => {            // a v3 directory: count, tile ids, run lengths, lengths, offsets
+      const d = zlib.gunzipSync(buf.subarray(at, at + len));
+      let q = 0;
+      const varint = () => { let v = 0, m = 1, b; do { b = d[q++]; v += (b & 0x7f) * m; m *= 128; } while (b & 0x80); return v; };
+      const n = varint(), run = [], size = [], off = [];
+      for (let i = 0; i < n; i++) varint();
+      for (let i = 0; i < n; i++) run.push(varint());
+      for (let i = 0; i < n; i++) size.push(varint());
+      for (let i = 0; i < n; i++) { const o = varint(); off.push(o === 0 && i > 0 ? off[i - 1] + size[i - 1] : o - 1); }
+      for (let i = 0; i < n; i++) {
+        if (run[i] > 0) range('tile', u64(56) + off[i], size[i]);
+        else { range('leaf directory', u64(40) + off[i], size[i]); dir(u64(40) + off[i], size[i]); }
+      }
+    };
+    dir(u64(8), u64(16));
+  }
+  ok(`11. every directory, metadata block and tile of all ${names.length} real archives passes the check (${ranges} ranges): no false positive`,
+    miss.length === 0 && ranges > 1000, miss.slice(0, 3).join('; ') + (ranges <= 1000 ? ` only ${ranges} ranges` : ''));
+}
+
 const failed = results.filter(r => !r.pass);
-console.log(`${results.length - failed.length}/${results.length} passed` + (BREAK ? ' (--break: the heal is off)' : ''));
+out(`${results.length - failed.length}/${results.length} passed` + (BREAK ? ' (--break: the heal is off)' : ''));
 process.exit(failed.length ? 1 : 0);
