@@ -49,7 +49,7 @@ const ROWS = {
   'Building shadows': 'shadows', 'Shadows at the base': 'ao', 'Glow': 'bloom', 'Sun shafts': 'godRays',
   'Lens flare': 'flare', 'Brightness': 'exposure', 'Auto brightness': 'autoExposure', 'Contrast': 'contrast',
   'Colour strength': 'saturation', 'Darkened corners': 'vignette', 'Film grain': 'grain',
-  'View width': 'fov', 'Clouds': 'clouds', 'Stars': 'stars',
+  'View width': 'fov', 'Clouds': 'clouds', 'Stars': 'stars', 'Apartments in full detail': 'fullDetailM',
 };
 
 const browser = await launch(chromium, { gl: 'hardware', maxMs: 1500000 });
@@ -198,6 +198,7 @@ if (PHASES.includes('A')) {
     const n = parseFloat(String(r.shown).replace(/[^0-9.\-]/g, ''));
     const g = s2.gfx[key];
     const ok = /unlimited/.test(r.shown) ? g >= 1500
+      : /^all$/.test(r.shown) ? g >= 2000
       : /%/.test(r.shown) ? Math.abs(n - Math.round(g * 100)) < 0.6
       : /°/.test(r.shown) ? Math.abs(n - g) < 0.6
       : / m$/.test(r.shown) ? Math.abs(n - g) < 0.6

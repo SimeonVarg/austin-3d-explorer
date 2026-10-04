@@ -32,6 +32,7 @@ build step for the site itself; data and tiles are baked by scripts in `scripts/
 
 | PR | Branch | State |
 |---|---|---|
+| #390 | `acer/intel-mac-speed` | open: older Intel Macs. The frame probe steps Balanced, Performance, then a weak tier (far apartments as plain blocks) |
 | #366 | `claude/aws-gpu-runner` | draft: AWS GPU runner for the browser checks |
 | #348 | `claude/sky-roll` | open: sunset sky glow follows camera bank |
 | #347 | `claude/loading-fit` | open: loading screen fits one phone screen |
