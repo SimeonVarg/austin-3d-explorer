@@ -404,6 +404,78 @@ and 390x844, inside the frame and clear of the title pill and buttons.
 The notice stands down under `navigator.webdriver` on purpose: this suite runs
 SwiftShader for exact pixels, and a card over the city would move every one.
 
+### A broken browser cache must not take a map layer with it (Oct 4 2026)
+
+`node tile-heal-source.mjs` (no browser, no server) runs the real `js/tiles.js`
+against the real pmtiles library (the build `index.html` names, fetched once and
+kept in the temp folder; `PMTILES_JS=<file>` uses a local copy) and the real
+`data/tiles/props.pmtiles`. Only the network is fake, and it models the incident:
+a cache that answers a NORMAL read of a range with a 206 of the right length
+whose bytes are all zero, while a `cache: 'reload'` read gets the file. It
+asserts 35 things: with the heal off the archive fails to open (so the fake
+reproduces the incident); a zero-filled header range is healed by a reload in the
+same load, with the real tile and one console line naming the archive; a cache
+that keeps the bad copy after the reload moves the archive to `?cg=1`, stores the
+generation, and the next load opens on it without a bad read; a stored generation
+is read strictly (integer, 1..99, written as `String(n)`); a bad reload, a
+hopeless archive (one console error, bounded requests, nothing stored), a bad
+tile range, a header of garbage or of another spec version, a zero-filled root
+directory, a root directory or a tile with a zeroed end, a short read, blocked
+storage, three bad reads at once (one move, not three); a healthy archive makes
+exactly the requests it made before; and every directory, metadata block and tile
+of all five real archives (2,944 ranges) passes the check, so it has no false
+positive on what the site serves.
+`--break` loads `tiles.js` with `?tileheal=0` (the code path before the heal) and
+must exit 1 (4/35 pass: the control and the checks that nothing changed);
+`--tiles <file>` runs the same scenarios against another copy of `tiles.js`
+(`origin/main`'s: also red). Ten hand-made breakages of the heal itself (no
+generation when a reload does not stick, lax generation parsing, a generation
+stored on failure, no once-only move, no gzip rule, no zeroed-end rule, no
+gzip-magic rule, no zero rule on the header, a reload that reads from the cache,
+no check at all) were each caught.
+
+`VERIFY_URL=http://127.0.0.1:8442 node tile-heal.mjs [--break] [--out DIR]`
+(laptop, through the browser queue; `_harness.html`, one load) is the same
+incident in a real page. It intercepts the first range of `outer`, `roads` and
+`props` and answers a normal read with a zero-filled copy of the real 206; a
+cache-bypassing read and a `?cg=` URL get the real bytes. `outer` and `props`
+repair on a reload, `roads` does not (so it must move to `?cg=1`). Then, from the
+one page: the poison was really served; one navigation; each archive healed the
+way it should and one console line names it; and the DRAWN result: decoded
+features in the far ring's and the roads' tile caches AND the frame moves when
+the layers of that source are hidden, beyond the noise floor of the same state
+shot first, second and last (a downtown pose; screenshots, counted in the page).
+Measured 2026-10-04, map pixels only, labels off: noise 0.000%, far ring 60.3%,
+roads 0.261% on the laptop and 0.235% on the build server (floors 10% and
+0.08%), the two hidden frames 60.6% apart; all 16 pass. With the heal off
+(`--break`, `?tileheal=0`, exit 1) 5 of 16 pass: bare ground, zero decoded
+features, and every share is exactly 0.000%. **The first version of this check
+was wrong and the build server caught it:** it reported roads 8.1% and set a 1%
+floor from that, and with the heal off it "measured" 13.2% for both layers.
+Neither number was the layer (see the last two traps below); the server, where
+the timing fell differently, measured the true 0.235% and failed the floor.
+Five traps in it:
+Playwright's interception sits above the HTTP cache, so the `Cache-Control:
+no-cache` / `Pragma: no-cache` Chrome adds to a `cache: 'reload'` fetch are not on
+the request the route is shown (a one-line shim copies the page's own `cache`
+option into a header); and `route.fetch` opens its own connections, so a burst of
+tile reads through it overflowed the local server's listen queue
+(`ECONNREFUSED`): only the poisoned reads go through it, the rest `continue()`.
+And the loading veil sits over the map and animates, so a page screenshot of an
+un-pinned page measured the veil (97% "noise" on the first run): the script
+removes it, pins auto-exposure, grain and star twinkle, and the drawn checks are
+net of the measured noise. Fourth: **taking the veil element away does not end
+the veil's reduced render scale.** The app draws soft until its own `reveal()`
+(`INTRO.veilRenderScale`, js/app.js), so the frame went from soft to sharp by
+itself between two shots; the "same state twice" pair was taken before the jump
+and read 0.003%, and the jump was then counted as a layer. Pin
+`window.__veilRenderScale = 1` (then `applyGraphics()`) in any test that removes
+the veil, and shoot the first state again LAST: a noise floor measured only at
+the start cannot see a frame that changes later. Fifth: page furniture arrives
+late (a "Switch modes" pill appeared mid-run and moved 0.2-0.5% of the frame, as
+much as the roads) and labels cross-fade when a layer is toggled, so the shots
+hide everything but the canvas with one CSS rule and switch symbol layers off.
+
 ### Exit codes mean something
 
 `0` the assertions passed. `1` an assertion failed. `2` the script could not
