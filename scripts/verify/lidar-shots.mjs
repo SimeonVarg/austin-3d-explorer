@@ -4,7 +4,7 @@
  *
  * Usage (always through the one-browser gate):
  *   VERIFY_GL=hardware node <gpu-run.mjs> --label lidar -- \
- *     node lidar-shots.mjs <outDir> <shots.json> [--legs "off=,on=lidarheights=1"]
+ *     node lidar-shots.mjs <outDir> <shots.json> [--legs "off=lidarheights=0,on="]
  *
  *   shots.json: [{name, center:[lng,lat], zoom, pitch, bearing, p, probe:[lng,lat], probeId}]
  *     `probe` is a point inside the building the shot is about and `probeId` its
@@ -20,9 +20,10 @@
  *      refuses to run on software unless VERIFY_ALLOW_SOFTWARE=1.
  *   2. The loading veil was still up (the authored apartments build under it).
  *      This waits for the veil to be GONE and the authored group ready.
- *   3. The knob's data file (data/lidar_heights.json) lands after the page; a
- *      frame taken before it is a "before". The `on` leg waits for
- *      LIDAR_HEIGHTS.changed and fails loudly if it is 0.
+ *   3. A leg that is not `lidarheights=0` must really have changed heights:
+ *      it reads LIDAR_HEIGHTS.changed and fails loudly if it is 0. (The raises
+ *      are the default since 2026-10-04, so the "before" leg is the one that
+ *      carries the flag.)
  *   4. No retry. A failed capture is retried with the cause logged (frame time,
  *      veil, tiles pending), not silently.
  * Scratch frames belong in a scratchpad folder, not the repo (CLAUDE.md 12).
@@ -35,7 +36,7 @@ import path from 'node:path';
 const OUT = path.resolve(process.argv[2] || 'lidar-shots');
 const SHOTS = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
 const li = process.argv.indexOf('--legs');
-const LEGS = (li > 0 ? process.argv[li + 1] : 'off=,on=lidarheights=1').split(',').map(s => {
+const LEGS = (li > 0 ? process.argv[li + 1] : 'off=lidarheights=0,on=').split(',').map(s => {
   const i = s.indexOf('=');
   return { name: s.slice(0, i), q: s.slice(i + 1) };
 });
@@ -63,7 +64,7 @@ async function diag(page) {
   return page.evaluate(() => ({
     veil: !!document.getElementById('veil'),
     loaded: window.__map.loaded(), tiles: window.__map.areTilesLoaded(),
-    lidar: window.LIDAR_HEIGHTS ? { on: window.LIDAR_HEIGHTS.on, changed: window.LIDAR_HEIGHTS.changed ?? null } : null,
+    lidar: window.LIDAR_HEIGHTS ? { mode: window.LIDAR_HEIGHTS.mode, raised: window.LIDAR_HEIGHTS.raised ?? null, lowered: window.LIDAR_HEIGHTS.lowered ?? null, changed: window.LIDAR_HEIGHTS.changed ?? null } : null,
     renderer: (() => { try { const g = document.createElement('canvas').getContext('webgl'); const e = g.getExtension('WEBGL_debug_renderer_info'); return g.getParameter(e.UNMASKED_RENDERER_WEBGL); } catch (e) { return '?'; } })(),
   }));
 }
@@ -102,9 +103,9 @@ for (const leg of LEGS) {
   const intro = await page.evaluate(() => window.__intro ? { reason: window.__intro.reason, waitedMs: window.__intro.waitedMs } : null);
   log('veil gone', JSON.stringify(intro));
   await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
-  const lidar = await page.evaluate(() => window.LIDAR_HEIGHTS ? { on: window.LIDAR_HEIGHTS.on, changed: window.LIDAR_HEIGHTS.changed ?? null } : null);
+  const lidar = await page.evaluate(() => window.LIDAR_HEIGHTS ? { mode: window.LIDAR_HEIGHTS.mode, raised: window.LIDAR_HEIGHTS.raised ?? null, lowered: window.LIDAR_HEIGHTS.lowered ?? null, changed: window.LIDAR_HEIGHTS.changed ?? null } : null);
   log('knob', JSON.stringify(lidar));
-  if (/lidarheights=1/.test(leg.q) && !(lidar && lidar.changed > 0)) throw new Error('the `on` leg loaded but the knob changed nothing: ' + JSON.stringify(lidar));
+  if (!/lidarheights=0/.test(leg.q) && !(lidar && lidar.changed > 0)) throw new Error('a leg with the lidar heights on loaded but changed nothing: ' + JSON.stringify(lidar));
   const gl = await diag(page);
   log('renderer', gl.renderer);
   if (/swiftshader|software/i.test(gl.renderer) && process.env.VERIFY_ALLOW_SOFTWARE !== '1') throw new Error('page is on a software renderer: ' + gl.renderer);

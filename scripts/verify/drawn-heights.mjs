@@ -19,7 +19,10 @@
  * so the run does not depend on the compositor.
  *
  * Usage: node drawn-heights.mjs <out.json> [query]
- *   query: extra URL query, e.g. "lidarheights=1" (same contract as SHOT_Q).
+ *   query: extra URL query (same contract as SHOT_Q). The default is
+ *     "lidarheights=0": the dump feeds the bake that decides what the laser scan
+ *     raises, so it must be the height drawn WITHOUT the scan, or the next bake
+ *     would compare the scan with itself and raise nothing.
  * Set VERIFY_GL=hardware for the real GPU (see chrome.mjs); software rendering
  * is far slower on a laptop that is doing anything else.
  */
@@ -28,7 +31,7 @@ import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 
 const OUT = process.argv[2] || 'drawn.json';
-const QUERY = process.argv[3] || process.env.SHOT_Q || '';
+const QUERY = process.argv[3] || process.env.SHOT_Q || 'lidarheights=0';
 const BASE = SERVER + '/_harness.html?intro=0&drift=0' + (QUERY ? '&' + QUERY.replace(/^[?&]/, '') : '');
 
 const t0 = Date.now();
@@ -156,7 +159,7 @@ const dump = await page.evaluate(async (skipSrc) => {
   });
   window.__drawnFeats = feats;
   return { layers, nFeats: feats.length, built, filters, prisms, sourceStats,
-           lidar: { on: !!(window.LIDAR_HEIGHTS && window.LIDAR_HEIGHTS.on), changed: window.LIDAR_HEIGHTS ? window.LIDAR_HEIGHTS.changed : null },
+           lidar: { mode: window.LIDAR_HEIGHTS ? window.LIDAR_HEIGHTS.mode : null, changed: window.LIDAR_HEIGHTS ? window.LIDAR_HEIGHTS.changed : null },
            intro: window.__intro ? { reason: window.__intro.reason, waitedMs: window.__intro.waitedMs } : null };
 }, SKIP_LAYER.source);
 

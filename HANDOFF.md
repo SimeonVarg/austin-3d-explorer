@@ -32,7 +32,7 @@ build step for the site itself; data and tiles are baked by scripts in `scripts/
 
 | PR | Branch | State |
 |---|---|---|
-| #395 | `acer/lidar-heights` | draft, do not merge yet: roof heights from the 2021 lidar behind `?lidarheights=1` (default off); read `docs/lidar-heights.md` (counts are against the DRAWN height; the knob changes plain prisms only and never lowers by more than 3 m; Capitol overrides beat it; final-settings before/after pictures are in `docs/shots/lidar-before-after.jpg`) |
+| #395 | `acer/lidar-heights` | roof heights from the 2021 lidar. The owner chose "raises only" (2026-10-04): by default about a hundred plain prisms the scan reads taller are raised, from `data/lidar_raises.json` (`scripts/bake_lidar_raises.py`: a tower on a podium is raised to the height half its roof reaches). `?lidarheights=0` is off, `?lidarheights=all` adds lowerings of up to 3 m. Read `docs/lidar-heights.md`; `drawn-heights.mjs` must run with the scan OFF (its default) or the next bake raises nothing |
 | #366 | `claude/aws-gpu-runner` | draft: AWS GPU runner for the browser checks |
 | #348 | `claude/sky-roll` | open: sunset sky glow follows camera bank |
 | #347 | `claude/loading-fit` | open: loading screen fits one phone screen |

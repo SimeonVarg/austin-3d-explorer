@@ -3,8 +3,10 @@
 The heights the app draws are second-hand (Overture and City footprints, a floor
 count times a guessed floor height, a hand-typed override). The Gates Dell
 Complex alone has four of them: 28.14, 42.39, 29.5 and 16.8 m. A photograph
-cannot settle metres; a laser can. This branch measures every building's roof
-from the public 2021 scan and ships the numbers behind a knob that is **off**.
+cannot settle metres; a laser can. This measures every building's roof
+from the public 2021 scan. **Since 2026-10-04 the app raises the buildings the
+scan reads taller, by default** (93 of them); the owner chose "raises only" from
+the before/after pictures. Nothing is lowered by default.
 
 ## The data
 
@@ -30,10 +32,18 @@ from the public 2021 scan and ships the numbers behind a knob that is **off**.
   per footprint and the way it is drawn (below).
 - `scripts/verify/lidar-shots.mjs`: before/after frames from one camera on the
   real GPU, with proof of the height the renderer drew.
-- `js/app.js`: the `LIDAR_HEIGHTS` knob. Default OFF. `?lidarheights=1` swaps
-  `final_height` for the measured height once, in `loadScene`, so walls, parapet
-  caps, window grids, labels and shadows all see one number. Every threshold is a
-  field of the knob object.
+- `scripts/bake_lidar_raises.py` cuts the short list the app loads from that
+  measurement. It owns ONE output, `data/lidar_raises.json` (id to height, 93
+  buildings, under 5 KB). The rule for the height lives there and nowhere else.
+- `scripts/verify/lidar-raises.mjs` (no browser, runs in CI): the knob's three
+  modes, that the app's function only ever raises, and that every entry in the
+  list obeys the rule against the whole measurement.
+- `js/app.js`: `LIDAR_HEIGHTS`. Default `'raise'`: on every load a building on the
+  list is raised to the scan's height, once, in `loadScene`, so walls, parapet
+  caps, window grids, labels and shadows all see one number. `?lidarheights=0`
+  is off (no request). `?lidarheights=all` also lets the scan lower a building by
+  up to 3 m, and reads the whole measurement for that. Every threshold is a field
+  of the knob object or a constant at the top of the bake.
 
 ## The drawn height (why `final_height` is the wrong thing to compare with)
 
@@ -69,22 +79,39 @@ with the path beside it.
 | Capitol | 1 |
 | UT Tower parts | 1 |
 
-## The knob, and its guard
+## What is raised, and the guards
 
-- It changes only buildings whose path is the plain prism (2115 footprints).
-  Anything drawn another way carries `x` in the data and is left alone: a hand
-  model, a mesh, bands, a hero, parts or a pitched roof would not follow a new
-  `final_height`, and the pieces built on it would not move.
-- **It never lowers a building by more than 3 m from the scan alone.** The
-  scan is early 2021 and West Campus has built towers ever since, so a scan that
-  reads lower may simply be old. Every larger "scan lower" case is NOT applied;
-  it carries `rv` in the data and is listed with a guess in a private review list
-  (353 buildings): 161 unclear, 96 footprint artifact, 75 tree canopy, 20 built after 2021, 1 app error.
-- Raising has no limit short of 100 m: a building cannot have been taller in 2021
-  than it is now unless it was pulled down.
-- **1357 buildings change: 120 raised, 1237 lowered**, all plain prisms.
-  Most lowerings are small (under 3 m by construction); the raises are
-  where the picture changes.
+- Only buildings whose path is the plain prism (2115 footprints). Anything drawn
+  another way carries `x` in the data and is left alone: a hand model, a mesh,
+  bands, a hero, parts or a pitched roof would not follow a new `final_height`,
+  and the pieces built on it would not move.
+- **Raises only, by default.** The scan is early 2021 and West Campus has built
+  towers ever since, so a scan that reads lower may simply be old. A building
+  cannot have been taller in 2021 than it is now unless it was pulled down, so a
+  raise is safe in a way a lowering is not. Raising has no limit short of 100 m.
+- **A tower on a podium is raised to the height half its roof reaches**, not to
+  the top of the tower. A prism has one height for the whole footprint; the
+  scan's `h` is the 90th percentile, which on a podium tower is the tower, and
+  that drew a block twice as fat as the real one. If the top step covers under
+  half the footprint, the list carries the highest height that at least half the
+  roof reaches (`MIN_TOP_SHARE` in the bake). Ten of the 93 raises use it. Where
+  even that is not above the drawn height the building is left alone (11
+  buildings): its tall part is under half of it, and one prism cannot show that.
+- **No raise for a footprint under 60 m2 or under 4 m wide** (17 left alone).
+  Such a footprint holds a handful of scan cells and they belong as much to what
+  stands beside it. Found by looking: a 2 m by 4 m sliver beside a tower read
+  24 m and would have been drawn as a 24 m pole.
+- A raise is applied only while the list's height is still above the height in
+  the snapshot that loaded, so a snapshot that is corrected later is not pushed
+  back down.
+- **93 buildings are raised**: 13 by more than 10 m, 27 by more than 5 m, 66 by
+  more than 2 m.
+- `?lidarheights=all` adds the lowerings: the scan may lower a plain prism by up
+  to 3 m (1237 buildings, most under 3 m by construction). Not the default.
+  Every larger "scan lower" case is never applied; it carries `rv` in the data
+  and is listed with a guess in a private review list (353 buildings): 161
+  unclear, 96 footprint artifact, 75 tree canopy, 20 built after 2021, 1 app
+  error.
 
 ## What it found
 
@@ -105,27 +132,39 @@ with the path beside it.
 - Three more authored meshes are drawn about 90 to 100 m tall where the scan reads 7 to 12 m: Union on 24th, Union on San Antonio, and the Icon mesh, which sits on the id of a 165 m2 church footprint. Either they were finished after the flight or the mesh is keyed to the wrong footprint id. The guess in the review list is "built after 2021", and it is only a guess. The knob does not touch meshes either way.
 - Four Capitol-area state office buildings carry hand-set heights that `js/capitol.js` writes AFTER the knob runs, so the knob cannot change them (and does not try: they carry `x`). The scan reads 10 to 26 m higher than those hand-set numbers (Barbara Jordan 43.2 m drawn against 69.2 m, William B. Travis 38.4 against 54.1, Stephen F. Austin 39.6 against 52.4, Daniel Price Sr. 32.4 against 42.5). The first set of pictures included two of them and they came back identical before and after, which is how this was found. They are a decision for the owner, not something the knob should do silently.
 
-## Before and after, the final knob
+## Before and after
 
-One browser on the real GPU (discrete NVIDIA card, 1440x900), one camera per pair, the default page against `?lidarheights=1`. For each building the renderer itself was asked which height it drew, in both frames (it matches the table below to the decimetre). The five are the plain-prism buildings in the campus box where the drawn height changes most. They sit in the Capitol complex and downtown corners of that box rather than on the UT campus proper, because much of the campus is drawn from hand models and meshes, which the knob never touches.
+One browser on the real GPU (discrete NVIDIA card, 1440x900), one camera per
+pair: `?lidarheights=0` against the default page. For each building the renderer
+itself was asked which height it drew, in both frames (it matches the table to
+the decimetre). The 14 biggest raises were each looked at this way before the
+default was changed; these six are the largest that are named.
 
-![Five buildings and a skyline, before and after](shots/lidar-before-after.jpg)
+![Six buildings and a skyline, before and after](shots/lidar-before-after.jpg)
 
-| building | drawn today | with the knob |
-|---|---|---|
-| Travis County Civil and Family Courts Facility | 7.3 m | 70.5 m |
-| Lyndon B. Johnson Building | 23.0 m | 56.0 m |
-| 1836 San Jacinto | 7.3 m | 40.2 m |
-| Hampton Inn & Suites Austin at The University/Capitol | 21.6 m | 40.4 m |
-| an unnamed Overture footprint (id starts 59948b) | 14.4 m | 31.4 m |
+| building | drawn before | raised to | the scan's p90 |
+|---|---|---|---|
+| Travis County Civil and Family Courts Facility | 7.3 m | 63.1 m | 70.5 m |
+| South by Southwest | 11.3 m | 48.1 m | 54.3 m |
+| Lyndon B. Johnson Building | 23.0 m | 56.0 m | 56.0 m |
+| 1836 San Jacinto | 7.3 m | 37.1 m | 40.2 m |
+| Hampton Inn & Suites Austin at The University/Capitol | 21.6 m | 36.4 m | 40.4 m |
+| Music Recital Hall | 14.7 m | 24.9 m | 24.9 m |
 
-The last row of the picture is a skyline from the same camera: the visible changes are the raised blocks. Most of the knob's changes are lowerings of under 3 m, which a picture does not show.
-
+The last row of the picture is a skyline from the same camera: the visible
+changes are the raised blocks.
 
 ## Known limits
 
-- One extrusion per footprint: a tower on a podium gets the tall part's height
-  over the whole footprint until the `steps` in the JSON are drawn.
+- One extrusion per footprint. A podium tower is raised to its half-roof height
+  over the whole footprint (above); it is still one block until the `steps` in
+  the JSON are drawn as steps.
+- A curved or sloped roof on a plain prism is drawn as a flat box at the scan's
+  p90, near the ridge. The Indoor Practice Facility goes from 6.7 m to an 18.2 m
+  box; its roof averages 14.3 m.
+- `scripts/verify/drawn-heights.mjs` must dump the heights with the scan OFF (it
+  does by default). A dump taken with the raises on would make the next bake
+  compare the scan with itself and raise nothing.
 - Heights are above local ground; on a sloped site that is a compromise.
 - The scan is from early 2021. Newer buildings and demolitions are not in it, which
   is what the guard and the review list are for.

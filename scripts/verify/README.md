@@ -187,9 +187,10 @@ meshes, West Campus bands, heroes, parts, pitched roofs hide or bury it).
   building, the authored meshes' own tops and the prism hide list, with no
   screenshot. `python scripts/lidar_drawn.py <out.json> <drawn.json>` joins it to
   the footprints: `drawn_h` and `path` per building.
-- `lidar-shots.mjs <outDir> <shots.json>` shoots the same camera knob-off then
-  `?lidarheights=1` in ONE browser, retries a failed capture with the cause
-  logged, waits for the knob's data file, and writes `proof.json` with the
+- `lidar-shots.mjs <outDir> <shots.json>` shoots the same camera with
+  `?lidarheights=0` (the snapshot's heights) then the default page (the scan's
+  raises) in ONE browser, retries a failed capture with the cause logged, fails
+  if the default leg changed no height, and writes `proof.json` with the
   `final_height` the renderer drew for each probed building. It refuses to run on
   SwiftShader (every earlier run of it timed out at 30 s there).
 

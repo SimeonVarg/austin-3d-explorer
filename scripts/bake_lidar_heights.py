@@ -51,9 +51,12 @@ WHAT IT DOES
     returns of any class are used instead and the building is flagged.
 
 THE KNOB
-    js/app.js does NOT read this file unless the page URL carries
-    ?lidarheights=1. Default OFF: the look of the city does not change until
-    the owner has seen before/after pictures. See LIDAR_HEIGHTS in js/app.js.
+    The app's default RAISES buildings the scan reads taller, and for that it
+    reads the short list scripts/bake_lidar_raises.py cuts from this file
+    (data/lidar_raises.json), not this file. js/app.js reads this file only
+    when the page URL carries ?lidarheights=all (raises plus lowerings of up to
+    MAX_LOWER_M). Run bake_lidar_raises.py after this script. See LIDAR_HEIGHTS
+    in js/app.js.
 
 USAGE
     python scripts/bake_lidar_heights.py --raster <dir>
@@ -556,8 +559,9 @@ def main():
                             (';'.join(r.get('flags', [])) if c == 'flags' else r.get(c, '')) for c in rv_cols])
     if not a.no_bake:
         doc = {
-            '_what': 'Roof heights measured from the 2021 airborne laser scan. Read only '
-                     'when the page URL carries ?lidarheights=1 (default OFF).',
+            '_what': 'Roof heights measured from the 2021 airborne laser scan: the whole '
+                     'measurement. The app reads the short list cut from it, data/lidar_raises.json; '
+                     'this file itself only when the page URL carries ?lidarheights=all.',
             '_source': 'StratMap 2021 Bexar & Travis Counties Lidar, flown %s, '
                        'published by TxGIO. Licence CC0-1.0.' % FLOWN,
             '_method': 'p90 of surface above bare earth inside the footprint shrunk %.1f m; '
