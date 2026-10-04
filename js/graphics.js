@@ -695,7 +695,7 @@
         // The tier follows today's constant, as the pixel budget follows today's window.
         if (GFX.fullDetailM !== WEAK_TIER.fullDetailM) { GFX.fullDetailM = WEAK_TIER.fullDetailM; migrated = true; }
         GFX.weakChecked = true;
-        weakRecheck = keepToMeasure;
+        weakRecheck = !!keepToMeasure;
       } else { GFX.fullDetailM = WEAK_TIER.unlimitedAt; GFX.weakChecked = false; migrated = true; }
     }
     const was = wasRev;
