@@ -199,3 +199,28 @@ Do not transfer Cockrell dimensions or imply every building uses its design.
 Branch: `codex/campus-photo-pilot`. No modeling changes were made this pass.
 HANDOFF.md is touched by other open lanes, so this record remains in the
 existing owned photo-pass document.
+
+## Quality-per-dollar method recommendation
+
+The owner challenged the assumption that a short brief could raise a poor
+match to7–8 and observed that repeated hidden self-review may merely cost more.
+The recommendation is to freeze Cockrell as a failure benchmark and test a
+small different facade/entrance group. Compare the current photo-to-code method
+with a measured feature specification plus deterministic component geometry,
+at equal total cost including unique preparation and independent evaluation.
+This changes the tested method rather than isolating prompt wording alone;
+retain the original context-only proposal as a separate possible experiment.
+
+Camera registration, planar image measurements, rail paths, window profiles,
+stair tiers and shared lettering metrics can reduce repeated freehand guessing.
+Model interpretation still needs evidence and uncertainty checks. Rectified photo
+detail is useful for surfaces but can bake temporary shadow/reflection. Multi-view
+reconstruction is conditional on overlap and viewpoint separation; the photograph
+count alone does not establish suitability. Survey/LiDAR is preferable for metric
+height. A stronger model on a bounded interpretation task could be economical,
+but no quality jump or savings has been demonstrated by this recommendation.
+
+No new model, geometry pass or two-arm comparison was launched. The private
+proposal was updated and the owner's quality-per-dollar concern recorded in
+shared AGENTS.md. Branch: `codex/campus-photo-pilot`; HANDOFF.md remains touched
+by other open lanes, so the record stays in this owned pass document.
