@@ -1561,7 +1561,9 @@ or model-detail knob changes with area slicing.
 
 A hard refresh does not clear localStorage. `stored-state.mjs <outDir>` seeds
 `austin3d.gfx.v1` with an out-of-range/wrong-type save, unparsable text, an
-expired automatic downgrade, a fresh one and a hand-chosen `performance`, each in
+expired automatic downgrade, a fresh one, a hand-chosen `performance` and a real
+old unstamped automatic `performance` save (rev 3; healed to `balanced` once, with
+the probe armed: read off the page by counting the probe's own timer), each in
 its own browser context before the page's scripts run, and asserts the settings
 the page ends with plus that the downtown outer-ring layers still return rendered
 features (and change pixels) against a clean-profile load. `--break` writes

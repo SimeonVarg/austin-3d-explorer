@@ -491,8 +491,11 @@
   // re-run the probe and can drop a good machine to `performance`.
   //
   //   rev 2 — `dof` off everywhere (the horizon line; see the note on PRESETS).
-  const SETTINGS_REV = 3;
+  //   rev 4 — an unstamped automatic Performance save goes back to `balanced`
+  //           once (REV_UNSTAMPED_AUTO below; it is a preset step, not a key list).
+  const SETTINGS_REV = 4;
   const REV_RESET = { 2: ['dof'] };
+  const REV_UNSTAMPED_AUTO = 4;
 
   // ── `preset` is the preset the settings came FROM; `custom` says they moved ──
   //
@@ -551,20 +554,33 @@
       else { migrated = true; }
     }
     // A downgrade the machine made on its own has run out: take it back.
+    //
+    // The same step runs ONCE for a save written before the stamp existed (rev
+    // below REV_UNSTAMPED_AUTO): `performance`, not custom, `autoDetected`, no
+    // stamp. Those saves cannot be told apart from a hand pick, because
+    // usePreset() sets `autoDetected` for a hand pick too. That is the accepted
+    // cost: a person who chose Performance by hand before this change gets one
+    // extra probe, and on a slow machine the probe puts them back within
+    // seconds, now with a stamp. On a strong machine it is the fix: that save
+    // was one slow first minute, kept for good. After this load the save is
+    // rev 4, so a hand pick made later has no stamp and stays.
     const at = +saved.autoDownAt;
-    if (saved.preset === 'performance' && !saved.custom && saved.autoDetected && at) {
-      const age = Date.now() - at;
-      if (!(age >= 0 && age < AUTO_DOWNGRADE_TTL_MS)) {
-        saved.preset = 'balanced'; saved.autoDetected = false; saved.autoDownAt = 0;
-        Object.assign(GFX, PRESETS.balanced);
-        migrated = true;
-      }
+    const wasRev = +saved.rev || 1;
+    const autoPerf = saved.preset === 'performance' && !saved.custom && saved.autoDetected;
+    const stale = autoPerf && at && !(Date.now() - at >= 0 && Date.now() - at < AUTO_DOWNGRADE_TTL_MS);
+    // Not on the phone profile: Performance is that device's design (PHONE_PRESET), and
+    // a phone's memory ceiling is the reason, so it never gets a Balanced load to probe.
+    const oldUnstamped = autoPerf && !at && wasRev < REV_UNSTAMPED_AUTO && !(window.LITE_PROFILE && window.LITE_PROFILE.on);
+    if (stale || oldUnstamped) {
+      saved.preset = 'balanced'; saved.autoDetected = false; saved.autoDownAt = 0;
+      Object.assign(GFX, PRESETS.balanced);
+      migrated = true;
     }
     if (saved.preset && PRESETS[saved.preset]) GFX.preset = saved.preset;
     GFX.custom = !!saved.custom || (!!saved.preset && !PRESETS[saved.preset]);
     GFX.autoDetected = !!saved.autoDetected;
     GFX.autoDownAt = (+saved.autoDownAt > 0 && GFX.preset === 'performance' && !GFX.custom) ? +saved.autoDownAt : 0;
-    const was = +saved.rev || 1;
+    const was = wasRev;
     for (let r = was + 1; r <= SETTINGS_REV; r++) {
       for (const k of (REV_RESET[r] || [])) {
         const p = PRESETS[GFX.preset] || PRESETS.balanced;

@@ -15,12 +15,24 @@ function boot({width=651,height=598,dpr=1.5,mobile=false,search='',saved=null,gp
     localStorage:{getItem:key=>key===GPU_KEY?savedGpu:stored,setItem:(key,value)=>{if(key!==GPU_KEY)stored=value;}}});
   return {gfx:window.GFX,msaa:window.GFX_MSAA,stored,gate:window.__gfxGpu,card:window.GFX_GPU_CARD};
 }
-const old={preset:'performance',rev:2,custom:false,autoDetected:true,msaa:false,renderScale:.75,clouds:.22};
+// rev 4: a save the stamp-era code wrote. (A rev below 4 with an automatic, unstamped
+// Performance is healed once; that is asserted at the end of this block.)
+const old={preset:'performance',rev:4,custom:false,autoDetected:true,msaa:false,renderScale:.75,clouds:.22};
 assert.equal(boot({search:'?preset=performance'}).msaa,true,'small desktop default');
 const migrated=boot({saved:old});assert.equal(migrated.msaa,true);assert.equal(migrated.gfx.clouds,.22);assert.equal(migrated.gfx.autoDetected,true);
 assert.equal(boot({saved:{...old,custom:true}}).msaa,false,'manual off survives');
 assert.equal(boot({width:2560,height:1440,saved:{...old,custom:true,msaa:true}}).msaa,true,'manual on survives');
-assert.equal(boot({width:2560,height:1440,saved:{...old,rev:3,msaa:true}}).msaa,false,'inherited setting follows larger viewport');
+assert.equal(boot({width:2560,height:1440,saved:{...old,msaa:true}}).msaa,false,'inherited setting follows larger viewport');
+// js/graphics.js REV_UNSTAMPED_AUTO: an old unstamped automatic Performance save goes back to balanced, once.
+const unstamped=boot({saved:{...old,rev:3}});
+assert.equal(unstamped.gfx.preset,'balanced','old unstamped auto save: back to balanced');
+assert.equal(unstamped.gfx.autoDetected,false,'old unstamped auto save: probe armed');
+assert.equal(unstamped.gfx.rev,4);assert.equal(JSON.parse(unstamped.stored).preset,'balanced','and the heal is saved');
+assert.equal(boot({saved:{...old,rev:3,autoDownAt:Date.now()-3600e3}}).gfx.preset,'performance','a fresh stamp is left alone');
+assert.equal(boot({saved:{...old,rev:3,custom:true}}).gfx.preset,'performance','custom is left alone');
+assert.equal(boot({saved:old}).gfx.preset,'performance','a rev 4 hand pick (no stamp) stays');
+assert.equal(boot({mobile:true,saved:{...old,rev:3}}).gfx.preset,'performance','the phone profile is left on its own default');
+assert.equal(boot({saved:{...old,rev:3,preset:'balanced'}}).gfx.preset,'balanced');
 assert.equal(boot({mobile:true,search:'?lite=1&preset=performance'}).msaa,false,'phone profile unchanged');
 assert.equal(boot({mobile:true,search:'?preset=ultra'}).msaa,true,'explicit ultra unchanged');
 assert.equal(boot({width:2560,height:1440,search:'?preset=performance'}).msaa,false,'large framebuffer default unchanged');
