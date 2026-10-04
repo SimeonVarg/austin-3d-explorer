@@ -477,12 +477,26 @@
     if (!(pixels > WEAK_GPU.maxPixels)) return scale;
     return Math.max(WEAK_GPU.minScale, Math.floor(scale * Math.sqrt(WEAK_GPU.maxPixels / pixels) * 20) / 20);
   }
+  // The probe's own numbers (they were literals).
+  //   measureMs    how long one probe watches frames
+  //   slowMs       median frame at Balanced above this steps to Performance (21.5 ms = 46 fps)
+  //   afterStepMs  after a step, wait this long before measuring the next one:
+  //                the apartments rebuild at the new tier first, and a frame
+  //                timed during that is not the tier's frame
+  const PROBE = { measureMs: 1400, slowMs: 21.5, afterStepMs: 6000 };
   // THE WEAK TIER, the second measured step. The pixel budget above only helps
   // a machine whose renderer string we recognise, and Safari reports a generic
   // name, so the app also asks the machine itself: the probe (runProbe) steps
   // Balanced -> Performance when a median frame is slow, and then, still on
   // Performance, once more -> the weak tier when the machine is STILL slow.
   // Any browser, any GPU: the trigger is a measured frame time.
+  //
+  // It is an AUTOMATIC downgrade, so it follows the rules of the automatic
+  // Performance one (see AUTO_DOWNGRADE_TTL_MS): it carries the same time stamp
+  // (`autoDownAt`, renewed whenever the machine decides something about itself),
+  // it expires with it, a bad saved value is dropped, and a preset or slider
+  // chosen by hand is never overruled and never carries it. A tier with no
+  // stamp that is not custom is not the probe's, so it is put back to "all".
   //
   //   fullDetailM   the weak tier draws authored apartment buildings in full
   //                 detail only this close to the camera, and as plain blocks
@@ -493,18 +507,27 @@
   //   weakMs        median frame at Performance above this steps to the tier
   //                 (45 ms is 22 fps: under it a screen still shows 30)
   //   unlimitedAt   the slider's own maximum, which means "all of it"
+  //   keepAboveMs   WHEN THE STAMP RUNS OUT, a saved weak tier is NOT thrown back
+  //                 to Balanced (that would cost a truly weak machine the whole
+  //                 descent again: a Balanced load, two probe steps and two
+  //                 apartment rebuilds of 6 to 21 s each). The page loads in
+  //                 the tier it saved, in one build, and measures THAT first.
+  //                 Above this line the machine is still slow, and Balanced,
+  //                 which draws everything the weak tier draws and more, can only
+  //                 be slower: keep the tier, renew the stamp, rebuild nothing.
+  //                 At or under it the machine has recovered: climb to Balanced
+  //                 (one rebuild) and let the ordinary probe judge it from there.
+  //                 It is the same line that stepped the machine down in the
+  //                 first place (PROBE.slowMs), so one number decides both ways.
+  //                 The cost, accepted: a machine measuring between this line
+  //                 and its Performance-only speed stays in the tier for
+  //                 another window; the next expiry measures it again.
   const WEAK_TIER = {
     fullDetailM: 700,
     weakMs: 45,
     unlimitedAt: 2000,
+    keepAboveMs: PROBE.slowMs,
   };
-  // The probe's own numbers (they were literals).
-  //   measureMs    how long one probe watches frames
-  //   slowMs       median frame at Balanced above this steps to Performance (21.5 ms = 46 fps)
-  //   afterStepMs  after a step, wait this long before measuring the next one:
-  //                the apartments rebuild at the new tier first, and a frame
-  //                timed during that is not the tier's frame
-  const PROBE = { measureMs: 1400, slowMs: 21.5, afterStepMs: 6000 };
   function defaultMSAA(scale) {
     if (window.LITE_PROFILE?.on) return false;
     const ratio=(window.devicePixelRatio||1)*scale;
@@ -562,8 +585,11 @@
   // re-run the probe and can drop a good machine to `performance`.
   //
   //   rev 2 — `dof` off everywhere (the horizon line; see the note on PRESETS).
-  const SETTINGS_REV = 3;
+  //   rev 4 — an unstamped automatic Performance save goes back to `balanced`
+  //           once (REV_UNSTAMPED_AUTO below; it is a preset step, not a key list).
+  const SETTINGS_REV = 4;
   const REV_RESET = { 2: ['dof'] };
+  const REV_UNSTAMPED_AUTO = 4;
 
   // ── `preset` is the preset the settings came FROM; `custom` says they moved ──
   //
@@ -588,16 +614,91 @@
   const GFX = Object.assign({}, PRESETS.balanced, { preset: 'balanced', custom: false, autoDetected: false, weakChecked: false, rev: SETTINGS_REV });
   window.GFX = GFX;
 
+  // ── Saved settings are a hint, never an authority ──────────────────
+  //
+  // A hard refresh does not clear localStorage, so whatever this key holds
+  // decides the scene on every later visit. Two ways that went wrong quietly:
+  //   1. A value that parses but means nothing (a string where a slider goes,
+  //      0 or -40 where the menu's range starts at 150, an array for a
+  //      boolean) was copied into GFX as-is. Each key is now checked against
+  //      its own SCHEMA row, and one that fails falls back to the default for
+  //      its key alone; the rest of the save survives.
+  //   2. The auto-detect's downgrade to `performance` was permanent: it set
+  //      `autoDetected`, which is what stops the probe, and nothing ever
+  //      cleared it, so one slow first minute (a cold cache, a busy laptop)
+  //      dimmed the scene for good. The downgrade now writes the time it
+  //      happened (`autoDownAt`) and expires after AUTO_DOWNGRADE_TTL_MS: the
+  //      next load goes back to `balanced` with the probe armed, and it
+  //      downgrades again only if the machine is still slow. A preset chosen
+  //      by hand never carries that stamp, so it never expires.
+  const AUTO_DOWNGRADE_TTL_MS = 3 * 24 * 3600 * 1000;
+  const validSaved = (s, v) => {
+    if (s.type === 'bool') return typeof v === 'boolean';
+    return typeof v === 'number' && isFinite(v) && v >= s.min && v <= s.max;
+  };
+
+  // Set at boot when the saved weak tier's stamp has run out: the page keeps the
+  // tier it saved and the first probe MEASURES it instead (see WEAK_TIER.keepAboveMs).
+  let weakRecheck = false;
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) saved = null;
   let migrated = false;
-  if (saved && typeof saved === 'object') {
-    for (const s of SCHEMA) if (saved[s.key] !== undefined) GFX[s.key] = saved[s.key];
+  if (saved) {
+    let weakValueBad = false;
+    for (const s of SCHEMA) {
+      if (saved[s.key] === undefined) continue;
+      if (validSaved(s, saved[s.key])) GFX[s.key] = saved[s.key];
+      else { migrated = true; if (s.key === 'fullDetailM') weakValueBad = true; }
+    }
+    // A downgrade the machine made on its own has run out: take it back.
+    //
+    // The same step runs ONCE for a save written before the stamp existed (rev
+    // below REV_UNSTAMPED_AUTO): `performance`, not custom, `autoDetected`, no
+    // stamp. Those saves cannot be told apart from a hand pick, because
+    // usePreset() sets `autoDetected` for a hand pick too. That is the accepted
+    // cost: a person who chose Performance by hand before this change gets one
+    // extra probe, and on a slow machine the probe puts them back within
+    // seconds, now with a stamp. On a strong machine it is the fix: that save
+    // was one slow first minute, kept for good. After this load the save is
+    // rev 4, so a hand pick made later has no stamp and stays.
+    const at = +saved.autoDownAt;
+    const wasRev = +saved.rev || 1;
+    const autoPerf = saved.preset === 'performance' && !saved.custom && saved.autoDetected;
+    const stale = autoPerf && at && !(Date.now() - at >= 0 && Date.now() - at < AUTO_DOWNGRADE_TTL_MS);
+    // Not on the phone profile: Performance is that device's design (PHONE_PRESET), and
+    // a phone's memory ceiling is the reason, so it never gets a Balanced load to probe.
+    const phone = !!(window.LITE_PROFILE && window.LITE_PROFILE.on);
+    const oldUnstamped = autoPerf && !at && wasRev < REV_UNSTAMPED_AUTO && !phone;
+    // A weak tier whose stamp has run out is measured where it is, not thrown away
+    // (WEAK_TIER.keepAboveMs): it is the one saved state for which going back to
+    // Balanced first would cost a slow machine its whole descent again.
+    const keepToMeasure = stale && !phone && !weakValueBad && GFX.fullDetailM < WEAK_TIER.unlimitedAt;
+    if ((stale && !keepToMeasure) || oldUnstamped) {
+      saved.preset = 'balanced'; saved.autoDetected = false; saved.autoDownAt = 0; saved.weakChecked = false;
+      Object.assign(GFX, PRESETS.balanced);
+      migrated = true;
+    }
     if (saved.preset && PRESETS[saved.preset]) GFX.preset = saved.preset;
     GFX.custom = !!saved.custom || (!!saved.preset && !PRESETS[saved.preset]);
     GFX.autoDetected = !!saved.autoDetected;
-    GFX.weakChecked = !!saved.weakChecked;
-    const was = +saved.rev || 1;
+    // `weakChecked` says the probe has already judged this Performance for the weak
+    // step. Strictly a boolean; a bad weak value saved beside it voids it.
+    GFX.weakChecked = saved.weakChecked === true && !weakValueBad;
+    GFX.autoDownAt = (+saved.autoDownAt > 0 && GFX.preset === 'performance' && !GFX.custom) ? +saved.autoDownAt : 0;
+    // The weak tier is the probe's, and only the probe's: it needs the stamp, like
+    // the automatic Performance step it sits on. One saved without the stamp, on a
+    // preset chosen by hand, or on the phone profile (which has no per-building
+    // ranges) goes back to "all". A moved slider (custom) keeps whatever it was set to.
+    if (!GFX.custom && GFX.fullDetailM < WEAK_TIER.unlimitedAt) {
+      if (GFX.preset === 'performance' && GFX.autoDownAt > 0 && !phone) {
+        // The tier follows today's constant, as the pixel budget follows today's window.
+        if (GFX.fullDetailM !== WEAK_TIER.fullDetailM) { GFX.fullDetailM = WEAK_TIER.fullDetailM; migrated = true; }
+        GFX.weakChecked = true;
+        weakRecheck = keepToMeasure;
+      } else { GFX.fullDetailM = WEAK_TIER.unlimitedAt; GFX.weakChecked = false; migrated = true; }
+    }
+    const was = wasRev;
     for (let r = was + 1; r <= SETTINGS_REV; r++) {
       for (const k of (REV_RESET[r] || [])) {
         const p = PRESETS[GFX.preset] || PRESETS.balanced;
@@ -665,6 +766,9 @@
     Object.assign(GFX, PRESETS[urlPreset]);
     GFX.preset = urlPreset;
     GFX.custom = false;
+    // A preset named in the URL is chosen, not measured: no saved stamp lets the
+    // probe's weak step or a recheck change it.
+    GFX.autoDownAt = 0; weakRecheck = false;
   } else if (URL_PRESET && !urlPreset) {
     console.warn(`[graphics] ?preset=${URL_PRESET} is not a preset — keeping ${GFX.preset}. ` +
                  `Try: ${Object.keys(PRESETS).join(', ')}`);
@@ -676,6 +780,7 @@
   // kept; asking for it only when bloom is actually wanted means the performance
   // preset stops paying for it on the next load.
   window.GFX_MSAA = !!GFX.msaa;
+  window.__gfxWeakRecheck = () => weakRecheck;   // test hook: is the saved weak tier waiting to be measured?
   window.GFX_PDB = GFX.bloom > 0.01 || !!GFX.autoExposure;  // auto-exposure meters the same buffer
   // Does this browser draw with a graphics card? The same test as the Smooth
   // edges default (EDGE_SMOOTHING.fullDefaultGpu). js/city-lighting.js keeps
@@ -808,9 +913,10 @@
       cancelAutoDetect();
       console.log(`[graphics] capture mode: auto-detect off, preset ${GFX.preset}` +
                   (urlPreset ? ' (from ?preset=)' : ''));
-    } else if (!GFX.autoDetected || weakStepWanted()) {
-      // Also a browser that already stepped to Performance on an earlier visit
-      // (autoDetected is saved): the weak step has not been judged for it yet.
+    } else if (!GFX.autoDetected || weakStepWanted() || weakRecheck) {
+      // Also a browser that stepped to Performance on an earlier visit and was
+      // not judged for the weak step yet, and one whose saved weak tier ran out
+      // of time and is to be measured where it stands (all three need the stamp).
       scheduleAutoDetect();
     }
 
@@ -1884,10 +1990,12 @@
   // there is nothing to switch to and no claim to make.
   const weakTierAvailable = () => !!(window.slopesApartments && window.slopesApartments.farAvailable &&
                                      window.slopesApartments.farAvailable());
-  // The probe judges Performance once: when the next step has not been tried.
-  // `Wanted` is what is known at boot (the apartments' script may not have run
-  // yet, and a phone never has this step); `Due` is asked when the probe runs.
-  const weakStepWanted = () => GFX.preset === 'performance' && !GFX.custom && !GFX.weakChecked &&
+  // The probe judges an AUTOMATIC Performance once: when the next step has not
+  // been tried. It needs the stamp (`autoDownAt`): a Performance picked by hand
+  // has none and is never stepped further. `Wanted` is what is known at boot
+  // (the apartments' script may not have run yet, and a phone never has this
+  // step); `Due` is asked when the probe runs.
+  const weakStepWanted = () => GFX.preset === 'performance' && !GFX.custom && !GFX.weakChecked && GFX.autoDownAt > 0 &&
                                GFX.fullDetailM >= WEAK_TIER.unlimitedAt && !(window.LITE_PROFILE && window.LITE_PROFILE.on);
   const weakStepDue = () => weakStepWanted() && weakTierAvailable();
 
@@ -1899,9 +2007,28 @@
     }
     const fps = 1000 / med;
     GFX.autoDetected = true;
+    let recheck = null;
+    if (weakRecheck) {
+      // A saved weak tier whose stamp ran out, measured where it stands (WEAK_TIER.keepAboveMs).
+      weakRecheck = false;
+      if (med > WEAK_TIER.keepAboveMs) {
+        recheck = 'kept';
+        GFX.autoDownAt = Date.now();   // still slow: renewed, nothing rebuilt
+        save();
+      } else {
+        recheck = 'climbed';
+        usePreset('balanced', true);   // all apartments again (one rebuild); resets the tier and the judged flag
+        GFX.autoDetected = false; GFX.autoDownAt = 0;   // the ordinary probe judges Balanced from here
+        save();
+        toast(`${fps.toFixed(0)} fps measured — this machine is faster now, back to the Balanced preset. Press G to change.`,
+          TOAST_PROBE_MS);
+        if (!autoCancelled) scheduleAutoDetect(PROBE.afterStepMs);
+      }
     // Downgrade only — see the note above on why an upgrade is unmeasurable.
-    if (med > PROBE.slowMs && GFX.preset === 'balanced' && !GFX.custom) {
+    } else if (med > PROBE.slowMs && GFX.preset === 'balanced' && !GFX.custom) {
       usePreset('performance', true);
+      GFX.autoDownAt = Date.now();   // expires: see AUTO_DOWNGRADE_TTL_MS
+      save();
       toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`,
         TOAST_PROBE_MS);
       // Still slow at Performance? Look once more after the city has rebuilt at it.
@@ -1911,6 +2038,7 @@
       GFX.weakChecked = true;
       if (med > WEAK_TIER.weakMs) {
         GFX.fullDetailM = WEAK_TIER.fullDetailM;
+        GFX.autoDownAt = Date.now();   // the tier carries the stamp too: it expires the same way
         applyGraphics();
         syncMenu();
         toast(`${fps.toFixed(0)} fps even at Performance — far apartments now draw as plain blocks. Press G to change.`,
@@ -1923,7 +2051,7 @@
     }
     console.log(`[graphics] auto-detect median frame ${med.toFixed(1)} ms (${fps.toFixed(0)} fps) -> ${GFX.preset}` +
                 (GFX.fullDetailM < WEAK_TIER.unlimitedAt ? ` + weak tier (${GFX.fullDetailM} m)` : ''));
-    return { med, fps, preset: GFX.preset, weak: GFX.fullDetailM < WEAK_TIER.unlimitedAt };
+    return { med, fps, preset: GFX.preset, weak: GFX.fullDetailM < WEAK_TIER.unlimitedAt, recheck };
   }
   window.__gfxProbe = runProbe;
 
@@ -1978,7 +2106,8 @@
     Object.assign(GFX, p);
     GFX.preset = name;
     GFX.custom = false;
-    if (!keepAuto) GFX.autoDetected = true;
+    GFX.weakChecked = false;   // a new preset starts a new descent: the weak step is not judged for it yet
+    if (!keepAuto) { GFX.autoDetected = true; GFX.autoDownAt = 0; }
     applyGraphics();
     syncMenu();
     if (GFX.msaa !== msaaWas) markReload();
