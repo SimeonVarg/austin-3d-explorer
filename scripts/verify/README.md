@@ -176,6 +176,27 @@ node shot.mjs <prefix> [shots.json]   # screenshots at named camera poses
 `movement.mjs`, `dusk.mjs` and `banding.mjs` accept `--report` to print the
 table without failing.
 
+### The lidar height knob: what is drawn, and before/after frames
+
+`final_height` is only the height of the plain prism, so a roof height compared
+with it is compared with something that is often not on screen (authored
+meshes, West Campus bands, heroes, parts, pitched roofs hide or bury it).
+
+- `drawn-heights.mjs <out.json> [query]` loads the app (real GPU, veil gone,
+  authored meshes ready) and dumps every extrusion feature that can be a
+  building, the authored meshes' own tops and the prism hide list, with no
+  screenshot. `python scripts/lidar_drawn.py <out.json> <drawn.json>` joins it to
+  the footprints: `drawn_h` and `path` per building.
+- `lidar-shots.mjs <outDir> <shots.json>` shoots the same camera with
+  `?lidarheights=0` (the snapshot's heights) then the default page (the scan's
+  raises) in ONE browser, retries a failed capture with the cause logged, fails
+  if the default leg changed no height, and writes `proof.json` with the
+  `final_height` the renderer drew for each probed building. It refuses to run on
+  SwiftShader (every earlier run of it timed out at 30 s there).
+
+Both want `VERIFY_GL=hardware` and go through `gpu-run.mjs`; frames belong in a
+scratch folder, not the repo.
+
 ### Full-city context recovery
 
 `VERIFY_URL=http://127.0.0.1:8442 node device-recovery.mjs --out <outside-repo-directory>`
