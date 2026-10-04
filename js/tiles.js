@@ -165,8 +165,171 @@
     return;
   }
 
+  /**
+   * A BROKEN BROWSER CACHE MUST NOT TAKE A WHOLE LAYER WITH IT.
+   *
+   * MEASURED 2026-10-04 in a desktop browser on the live site: a plain fetch of
+   * bytes 0-16383 of outer, roads and props came back from the HTTP cache as a
+   * 206 with the right length and the right Content-Range, and every byte was
+   * ZERO. The same fetch with `cache: 'no-store'` returned the real file. Later
+   * ranges, and the other two archives, were fine; there was no service worker
+   * and no Cache Storage. That range holds the PMTiles header and the root
+   * directory, so the archive could not open, the library kept the failed header
+   * promise for the rest of the page, and the layer was simply absent: downtown
+   * with its name labels floating over bare ground, no road detail. No error
+   * anyone would see, and a hard refresh did not help (it revalidates the page,
+   * not a range entry). The likely cause is a cache entry zero-filled by a hard
+   * crash.
+   *
+   * THE HEAL. Every read an archive makes goes through HealingSource, which
+   * checks what came back: the header must be PMTiles spec 3 with its root
+   * directory in the first read, and every other read must be the length asked
+   * for and, when the header says the archive is gzip, start with the gzip magic.
+   * A bad read is read again past the cache (`cache: 'reload'`, which also
+   * rewrites the bad entry). Then a NORMAL read of the same range is checked
+   * once more; if the cache still hands back the bad copy, the archive moves to
+   * a new URL for good (`?cg=N`, N kept in localStorage per archive), which has
+   * no cache entry at all. The read that failed is answered in the same page
+   * load; nothing reloads. One console line per archive says what was wrong and
+   * which way it healed; `TILES.heals` keeps the same facts for a bug report.
+   *
+   * WHAT IT DOES NOT CATCH: bytes that are wrong in the middle of a range, or a
+   * range that has the right start and a zeroed tail. Those fail to decode in
+   * the library and cost one tile, not a layer. `?tileheal=0` is the old code
+   * path (stock sources, no check), for an A/B and for the verify script's
+   * --break.
+   */
+  const TILE_HEAL = {
+    on: new URLSearchParams(location.search).get('tileheal') !== '0',
+    version: 3,          // the PMTiles spec version scripts/tile.sh writes
+    gzip: 2,             // the header's compression code for gzip
+    headerBytes: 127,    // the fixed v3 header
+    zeroProbe: 16,       // a read whose first this-many bytes are all zero is bad
+    maxGen: 99,          // a stored generation outside 1..maxGen is garbage: 0
+    param: 'cg',         // the query parameter that names a generation
+    key: name => 'tiles.cachegen.' + name,
+  };
+  TILES.heals = [];       // one record per archive that healed, for diagnosis
+  TILES.archives = {};    // name -> HealingSource, when healing is on
+
+  /** A stored generation is an integer in 1..maxGen written exactly as String(n). */
+  function readGeneration(name) {
+    let v = null;
+    try { v = localStorage.getItem(TILE_HEAL.key(name)); } catch (e) { /* storage blocked */ }
+    const n = Number(v);
+    return Number.isInteger(n) && n > 0 && n <= TILE_HEAL.maxGen && String(n) === v ? n : 0;
+  }
+
+  /**
+   * The stock FetchSource does the ranges, the etag check and the error cases;
+   * this adds the check on what it returns and the way out when the check fails.
+   */
+  function makeHealingSource() {
+    return class HealingSource extends pmtiles.FetchSource {
+      constructor(name, file) {
+        super(file);
+        this.name = name;
+        this.file = file;
+        this.gzip = false;       // learned from a good header: are dirs and tiles gzip?
+        this.said = {};          // what this archive has already said in the console: heal, fail
+        this.setGeneration(readGeneration(name), false);
+      }
+
+      /** Protocol finds the archive by the URL in `pmtiles://`, which never changes. */
+      getKey() { return this.file; }
+
+      setGeneration(gen, save = true) {
+        this.gen = gen;
+        this.url = gen ? this.file + '?' + TILE_HEAL.param + '=' + gen : this.file;
+        if (!save) return;
+        try { localStorage.setItem(TILE_HEAL.key(this.name), String(gen)); } catch (e) { /* kept in memory */ }
+      }
+
+      /** Why these bytes cannot be what was asked for, or '' when they can. */
+      check(offset, length, data) {
+        const b = new Uint8Array(data);
+        const zero = b.subarray(0, TILE_HEAL.zeroProbe).every(v => v === 0);
+        if (offset === 0) {
+          if (zero) return 'zero bytes';
+          if (b.length < TILE_HEAL.headerBytes
+              || String.fromCharCode(...b.subarray(0, 7)) !== 'PMTiles') return 'bytes that are not a PMTiles header';
+          if (b[7] !== TILE_HEAL.version) return 'PMTiles spec version ' + b[7];
+          const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
+          const rootAt = v.getUint32(8, true), rootLen = v.getUint32(16, true);   // low words: a few KB
+          if (rootAt + rootLen > b.length) return 'a root directory outside the first read';
+          this.gzip = b[97] === TILE_HEAL.gzip && b[98] === TILE_HEAL.gzip;       // directories, tiles
+          return this.gzip && !(b[rootAt] === 0x1f && b[rootAt + 1] === 0x8b) ? 'a root directory that is not gzip' : '';
+        }
+        if (length && b.length !== length) return b.length + ' bytes where ' + length + ' were asked for';
+        if (zero) return 'zero bytes';
+        return this.gzip && !(b[0] === 0x1f && b[1] === 0x8b) ? 'bytes that are not gzip' : '';
+      }
+
+      async getBytes(offset, length, signal, etag) {
+        const got = await super.getBytes(offset, length, signal, etag);
+        const why = this.check(offset, length, got.data);
+        return why ? this.heal(offset, length, signal, etag, why) : got;
+      }
+
+      async heal(offset, length, signal, etag, why) {
+        const startGen = this.gen;
+        const good = r => !this.check(offset, length, r.data);
+        const normal = () => super.getBytes(offset, length, signal, etag);
+        const fresh = () => {      // one read that skips the cache; the stock source reloads when told to
+          const s = new pmtiles.FetchSource(this.url, this.customHeaders);
+          s.mustReload = true;
+          return s.getBytes(offset, length, signal, etag);
+        };
+        // A new URL, unless another heal of this archive already moved it. It is
+        // only written to storage once a read on it has worked.
+        const move = () => {
+          if (this.gen === startGen) this.setGeneration(Math.min(startGen + 1, TILE_HEAL.maxGen), false);
+          return this.gen;
+        };
+
+        let got = await fresh(), how = 'reload', gen = startGen;
+        if (good(got)) {
+          const again = await normal();            // did the reload rewrite the bad entry?
+          if (good(again)) got = again; else { gen = move(); how = 'generation'; }
+        } else {                                   // even a reload came back bad: try an URL the cache has never seen
+          gen = move(); how = 'generation';
+          got = await normal();
+        }
+        const where = this.file + ' bytes ' + offset + '-' + (offset + length - 1);
+        if (!good(got)) {
+          if (this.gen !== startGen) this.setGeneration(startGen, false);
+          const msg = '[tiles] ' + where + ': ' + why + ', and still bad after a fresh read and a new URL; this layer will not draw';
+          if (!this.said.fail) { this.said.fail = true; console.error(msg); }
+          throw new Error(msg);
+        }
+        if (how === 'generation') this.setGeneration(gen);
+        TILES.heals.push({ archive: this.name, offset, length, why, how, gen });
+        if (!this.said.heal) {
+          this.said.heal = true;
+          console.warn('[tiles] ' + where + ': the browser cache held ' + why + '; ' + (how === 'reload'
+            ? 'read it fresh and the cache entry is repaired'
+            : 'read it fresh, and this archive now loads from ?' + TILE_HEAL.param + '=' + gen));
+        }
+        return got;
+      }
+    };
+  }
+
   try {
     const protocol = new pmtiles.Protocol();
+    if (TILE_HEAL.on) {
+      // A broken healing setup must never cost the tiles themselves: the stock
+      // protocol below is still the fallback, exactly as before this existed.
+      try {
+        const HealingSource = makeHealingSource();
+        for (const [name, spec] of Object.entries(TILES.layers)) {
+          TILES.archives[name] = new HealingSource(name, TILES.dir + '/' + spec.file);
+          protocol.add(new pmtiles.PMTiles(TILES.archives[name]));
+        }
+      } catch (e) {
+        console.warn('[tiles] cache healing unavailable:', e.message);
+      }
+    }
     maplibregl.addProtocol('pmtiles', protocol.tile);
   } catch (e) {
     console.warn('[tiles] addProtocol failed:', e.message, '- falling back to GeoJSON');
