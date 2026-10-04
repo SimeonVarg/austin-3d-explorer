@@ -11,7 +11,10 @@
  *   3. the list on disk obeys the bake's rule against the whole measurement
  *      (data/lidar_heights.json): plain prisms only, nothing from the review
  *      list, no distrusted or `small` reading, never above the scan's own p90,
- *      and at least `min_top_share` of the roof reaches the height.
+ *      and at least `min_top_share` of the roof reaches the height;
+ *   4. the list against the snapshot it was cut from: every entry is a building
+ *      the app's function really raises (no hand-set height, still lower than
+ *      the scan), so the list's count IS the number of buildings that change.
  * The list's validator is proved first on three poisoned copies: a validator
  * that cannot fail proves nothing.
  */
@@ -96,5 +99,13 @@ ok(n >= 40 && n <= 300, 'the list is a short list (' + n + ' buildings)');
 const bytes = fs.statSync(new URL('data/lidar_raises.json', root)).size;
 ok(bytes < 20000, 'the list is small enough to load on every visit (' + bytes + ' bytes)');
 ok(list._snapshot === full._snapshot, 'the list was cut from the measurement on disk (snapshot ' + list._snapshot + ')');
+
+// 4. The list against its snapshot, through the app's own function.
+const snap = read('data/snapshots/' + list._snapshot + '/buildings.detailed.geojson');
+const listed = { features: snap.features.filter(f => f.properties && list.buildings[f.properties.id] !== undefined).map(f => ({ properties: { ...f.properties } })) };
+ok(listed.features.length === n, 'every listed building is in snapshot ' + list._snapshot + ' (' + listed.features.length + ' of ' + n + ')');
+const raisedNow = vm.runInNewContext(app.slice(f0, f1) + '\napplyLidarRaises(buildings, raises)', { LIDAR_HEIGHTS: K, buildings: listed, raises: list });
+const refused = listed.features.filter(f => f.properties.source_height !== 'lidar_2021').map(f => f.properties.name || f.properties.id);
+ok(raisedNow === n, 'the app raises every building on the list (' + raisedNow + ' of ' + n + (refused.length ? '; refused: ' + refused.slice(0, 5).join(', ') : '') + ')');
 
 console.log(`PASS ${passed} checks: lidar raises (knob, function, ${n} buildings on the list)`);

@@ -124,7 +124,7 @@ for (const leg of LEGS) {
       }
     }, s);
     await page.waitForTimeout(4000);
-    await page.evaluate(() => new Promise(r => { const m = window.__map; if (m.loaded()) return r(); m.once('idle', r); setTimeout(r, 20000); }));
+    await page.evaluate(() => new Promise(r => { const m = window.__map; if (m.loaded()) return r(); m.once('idle', () => r()); setTimeout(() => r(), 20000); }));
     if (await page.evaluate(() => !!(window.CityLighting && window.CityLighting.stats && window.CityLighting.stats.shadowProxyBuilding))) {
       await page.waitForFunction(() => !(window.CityLighting.stats.shadowProxyBuilding), null, { timeout: 90000, polling: 200 }).catch(() => {});
     }

@@ -5,7 +5,7 @@ count times a guessed floor height, a hand-typed override). The Gates Dell
 Complex alone has four of them: 28.14, 42.39, 29.5 and 16.8 m. A photograph
 cannot settle metres; a laser can. This measures every building's roof
 from the public 2021 scan. **Since 2026-10-04 the app raises the buildings the
-scan reads taller, by default** (93 of them); the owner chose "raises only" from
+scan reads taller, by default** (92 of them); the owner chose "raises only" from
 the before/after pictures. Nothing is lowered by default.
 
 ## The data
@@ -33,7 +33,7 @@ the before/after pictures. Nothing is lowered by default.
 - `scripts/verify/lidar-shots.mjs`: before/after frames from one camera on the
   real GPU, with proof of the height the renderer drew.
 - `scripts/bake_lidar_raises.py` cuts the short list the app loads from that
-  measurement. It owns ONE output, `data/lidar_raises.json` (id to height, 93
+  measurement. It owns ONE output, `data/lidar_raises.json` (id to height, 92
   buildings, under 5 KB). The rule for the height lives there and nowhere else.
 - `scripts/verify/lidar-raises.mjs` (no browser, runs in CI): the knob's three
   modes, that the app's function only ever raises, and that every entry in the
@@ -94,17 +94,21 @@ with the path beside it.
   scan's `h` is the 90th percentile, which on a podium tower is the tower, and
   that drew a block twice as fat as the real one. If the top step covers under
   half the footprint, the list carries the highest height that at least half the
-  roof reaches (`MIN_TOP_SHARE` in the bake). Ten of the 93 raises use it. Where
+  roof reaches (`MIN_TOP_SHARE` in the bake). Ten of the 92 raises use it. Where
   even that is not above the drawn height the building is left alone (11
   buildings): its tall part is under half of it, and one prism cannot show that.
 - **No raise for a footprint under 60 m2 or under 4 m wide** (17 left alone).
   Such a footprint holds a handful of scan cells and they belong as much to what
   stands beside it. Found by looking: a 2 m by 4 m sliver beside a tower read
   24 m and would have been drawn as a 24 m pole.
+- **No raise for a height that was set by hand** (`hero_override` in the
+  snapshot; 1 building, Texan Tower). The app refuses those, and the bake keeps
+  them off the list, so the list's count is the number of buildings that change.
+  `lidar-raises.mjs` runs the app's own function over the list to hold that.
 - A raise is applied only while the list's height is still above the height in
   the snapshot that loaded, so a snapshot that is corrected later is not pushed
   back down.
-- **93 buildings are raised**: 13 by more than 10 m, 27 by more than 5 m, 66 by
+- **92 buildings are raised**: 13 by more than 10 m, 26 by more than 5 m, 65 by
   more than 2 m.
 - `?lidarheights=all` adds the lowerings: the scan may lower a plain prism by up
   to 3 m (1237 buildings, most under 3 m by construction). Not the default.

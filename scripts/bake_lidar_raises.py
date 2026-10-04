@@ -18,6 +18,9 @@ THE RULE (one place, here, so the app has no second copy to drift)
       - it is drawn as the plain prism (no `x` in the table) and is not in the
         review list (no `rv`);
       - the scan reading is not one the measuring bake distrusts (SKIP_FLAGS);
+      - its height in the snapshot was not set by hand (SKIP_SOURCES). The app
+        refuses those too; keeping them off the list keeps the list's count
+        equal to what the app really raises;
       - its footprint is at least MIN_AREA_M2 and at least 4 m wide (not
         flagged `small`). A smaller one holds a handful
         of scan cells, and they belong as much to what stands beside it: a
@@ -63,6 +66,8 @@ OUT = os.path.join(ROOT, 'data', 'lidar_raises.json')
 
 # Scan readings the measuring bake distrusts.
 SKIP_FLAGS = {'sparse', 'low_class6', 'few_cells', 'off_raster'}
+# Snapshot height sources that are a hand-set number: the scan does not overrule them.
+SKIP_SOURCES = {'hero_override'}
 # The share of the footprint that must reach the target height.
 MIN_TOP_SHARE = 0.5
 # A raise smaller than this is noise, not a correction.
@@ -96,9 +101,10 @@ def ring_area_m2(ring):
     return abs(a) / 2.0
 
 
-def footprint_areas(snapshot):
+def footprints(snapshot):
+    """(area in m2 by id, height source by id) from the snapshot the table was baked against."""
     path = os.path.join(ROOT, 'data', 'snapshots', snapshot, 'buildings.detailed.geojson')
-    areas = {}
+    areas, sources = {}, {}
     for f in json.load(open(path, encoding='utf-8'))['features']:
         g = f.get('geometry') or {}
         polys = [g['coordinates']] if g.get('type') == 'Polygon' else (g.get('coordinates') or [])
@@ -107,8 +113,10 @@ def footprint_areas(snapshot):
             total += ring_area_m2([c[:2] for c in poly[0]])
             for hole in poly[1:]:
                 total -= ring_area_m2([c[:2] for c in hole])
-        areas[(f.get('properties') or {}).get('id')] = total
-    return areas
+        props = f.get('properties') or {}
+        areas[props.get('id')] = total
+        sources[props.get('id')] = props.get('source_height')
+    return areas, sources
 
 
 def main():
@@ -116,9 +124,9 @@ def main():
     ap.add_argument('--table', action='store_true', help='print every raise')
     a = ap.parse_args()
     src = json.load(open(SRC, encoding='utf-8'))
-    areas = footprint_areas(src['_snapshot'])
+    areas, sources = footprints(src['_snapshot'])
     raises, rows = {}, []
-    stepped = left_alone = too_small = 0
+    stepped = left_alone = too_small = hand_set = 0
     for bid, m in src['buildings'].items():
         if m.get('x') or m.get('rv') or not isinstance(m.get('h'), (int, float)):
             continue
@@ -127,6 +135,9 @@ def main():
             continue                     # the scan does not read it taller
         flags = set(str(m.get('q') or '').split(','))
         if SKIP_FLAGS & flags:
+            continue
+        if sources.get(bid) in SKIP_SOURCES:
+            hand_set += 1
             continue
         if 'small' in flags or areas.get(bid, 0.0) < MIN_AREA_M2:
             too_small += 1
@@ -164,6 +175,7 @@ def main():
         'of_those_at_the_half_roof_height': stepped,
         'left_alone_tall_part_under_half': left_alone,
         'left_alone_footprint_too_small': too_small,
+        'left_alone_height_set_by_hand': hand_set,
         'over_10_m': sum(1 for r in rows if r[0] > 10),
         'over_5_m': sum(1 for r in rows if r[0] > 5),
         'over_2_m': sum(1 for r in rows if r[0] > 2),
