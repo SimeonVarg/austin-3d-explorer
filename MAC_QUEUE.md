@@ -1,3 +1,5 @@
+> **STALE as of 2026-10-04.** The status below is from 2026-08-03. The Mac lane's last commit on any `mac/` branch was 2026-08-04 (`mac/dkr-south`); nothing has been pushed from `mac/` since. Content is kept as history, not rewritten. Current state: `HANDOFF.md`.
+
 # MAC LANE — DKR, and only DKR
 
 ## STATUS 2026-08-03 — M1-M4 done across four PRs, all merged

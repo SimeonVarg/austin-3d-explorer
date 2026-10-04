@@ -16,7 +16,7 @@ memory and is never written here, in any tracked file, or in a commit message.
    **Why it is drawn that way.** The first split was an ad-hoc list of files and
    it cut straight through a subsystem: the Mac owned `js/facades.js` while the
    Acer needed it for the buildings-on-tiles port, so finished work sat parked
-   and the same discovery was written into `HANDOFF.md` twice from two machines.
+   and the same discovery was written into the handoff twice from two machines.
    A boundary that runs through the middle of one job is worse than no boundary.
    A bake and its output file cannot collide by construction.
 
@@ -48,7 +48,7 @@ memory and is never written here, in any tracked file, or in a commit message.
    defect is visual, lead with the picture. He is not reading the diff. Keep
    written updates in plain words — no jargon, no tables of metrics unless he
    asked for numbers.
-4. **Docs-only commits** (`AGENTS.md`, `HANDOFF.md`, `docs/`, `QUEUE.md`,
+4. **Docs-only commits** (`AGENTS.md`, `HANDOFF.md`, `docs/` (including `docs/journal/`), `QUEUE.md`,
    `MAC_QUEUE.md`) may go straight to `main`. Always pull before pushing.
    **Code goes through branches and PRs** — the PR is the record of why, even
    when you merge it yourself five minutes later.
@@ -57,8 +57,12 @@ memory and is never written here, in any tracked file, or in a commit message.
 6. **When Simeon tells you something both machines should know about the
    project, write it into this file and push immediately** so the other lane
    sees it. Personal context about Simeon goes in local memory, never here.
-7. **When you finish a pass, record what you did and the branch name in
-   `HANDOFF.md`.**
+7. **When you finish a pass, add a dated entry at the top of the current
+   month's journal file** (`docs/journal/2026-MM.md`; say what you did and the
+   branch name), and **update `HANDOFF.md` only when the current state
+   changed** (what is live, open PRs, what is next). `HANDOFF.md` is a short
+   current-state file; history lives in `docs/journal/`, indexed by
+   `docs/JOURNAL.md`. Never append history to `HANDOFF.md`.
 8. **File-ownership lanes.** Before touching a file that another lane's open PR
    touches, say so and pick a different task. With self-merge this matters more,
    not less — the other lane can no longer rely on a human noticing the clash.
