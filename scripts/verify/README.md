@@ -1556,3 +1556,15 @@ the old fallback until the new geometry has rendered.
 The time budget is cooperative: an indivisible MapLibre operation or a
 competing full-city render can still exceed it. No architecture, material
 or model-detail knob changes with area slicing.
+
+## Saved browser state heals itself: `stored-state.mjs`
+
+A hard refresh does not clear localStorage. `stored-state.mjs <outDir>` seeds
+`austin3d.gfx.v1` with an out-of-range/wrong-type save, unparsable text, an
+expired automatic downgrade, a fresh one and a hand-chosen `performance`, each in
+its own browser context before the page's scripts run, and asserts the settings
+the page ends with plus that the downtown outer-ring layers still return rendered
+features (and change pixels) against a clean-profile load. `--break` writes
+`outerDensity 0` into the live page and must come back red: that is also the
+proof the bad value hides the low-rise ring (towers and mid-rise stay). Run it
+through the GPU queue; about 6 minutes.
