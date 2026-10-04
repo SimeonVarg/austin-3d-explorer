@@ -104,3 +104,51 @@ when emitted individually; the shared material removed that avoidable cost.
 Hardware GL verification on Intel Iris Plus 655 cancels graphics autodetect,
 waits for the final building, and retains the second screenshot of four views.
 No page errors or missing model were reported.
+
+
+## Flared stairs, face-aware brick and camera metadata follow-up
+
+The bottom three Cockrell risers now have separate progressively wider plans,
+with rounded noses. The upper six retain the main flight width. The outside
+rails are independent paths: the plaque-side rail has a front wrap and a
+transverse run at the flare; the opposite rail retains its simpler incline.
+The exact flare extensions and elbows remain metric inference.
+
+Brick materials use separate horizontal directions on perpendicular facade,
+pier and wing-wall faces. Small selected cap surfaces use upright courses;
+compound corner phase and slope bond remain provisional. The lower inscription
+is actually longer in the close reference: four approximate planar corrections
+give lower/upper widths 1.115–1.125, so the private trial uses1.12 rather than
+the previous arbitrary1.034. The user's width question and the conflicting
+image measurement are both retained in the private evidence ledger.
+
+The original images provide capture time, focal equivalence, true heading and
+GPS; the horizontal accuracy field reports about14.25m. The GPX has timestamps
+from the same morning despite its filename, but a40-minute gap surrounds the
+Cockrell photos. It cannot supply a contemporaneous position. The wide image
+used14mm-equivalent ultrawide framing; prior56.816-degree horizontal framing
+was incorrect. Metadata indicates about85.67degrees as a starting value.
+A manual ten-landmark camera fit yields about14.3pixel coordinate RMS at
+900x1200 against the estimated model. That is fitting residual, not independent
+validation or proof of exact camera calibration. Surveyed control-point joins,
+eye height, lens crop/distortion and independent residual checks remain open.
+
+The new Cockrell candidate labels unreviewed rear/side completion inference,
+derived from visible owner-photo rhythm. NHB contains no field `_src` stamps
+and no explicit claim of owner-photo sources; it already describes northern
+elevation completion and metric estimates. Four northern-face inference
+annotations were prepared privately, keyed to the current recipe hash. Acer
+integration should attach them to the corresponding fields and audit remaining
+source identities instead of labeling the whole building owner-photo built.
+
+Shared evidence policy was updated and pushed to main. Modeling and camera
+artifacts remain private. Branch: `codex/campus-photo-pilot`.
+
+The final follow-up detail render reports no page errors,78blocks and
+3,194,485 whole-scene triangles; the private recipe is about31.4KiB gzip.
+These are build/data checks, not an FPS improvement or visual acceptance.
+Second entrance and stair-side frames match the final candidate hash.
+The camera fit is a separate experiment. A direct-perspective custom-layer
+render is used to inspect the full ultrawide frustum because the map camera
+clamps upward pitch and large principal-point shifts. Do not substitute its
+simplified background for public-city rendering or label it exact calibration.
