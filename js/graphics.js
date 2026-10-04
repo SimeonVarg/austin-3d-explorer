@@ -421,7 +421,7 @@
       } catch (e) {}
     }
     // debug/test hook: what the MSAA default was decided on, where from, and what reading it cost
-    window.__gfxGpu = { renderer: gpuRenderer, full: EDGE_SMOOTHING.fullDefaultGpu.test(gpuRenderer), from,
+    window.__gfxGpu = { renderer: gpuRenderer, full: EDGE_SMOOTHING.fullDefaultGpu.test(gpuRenderer), weak: WEAK_GPU.gpu.test(gpuRenderer), from,
                         ms: +(gpuClock() - t0).toFixed(1) };
     return gpuRenderer;
   }
@@ -434,6 +434,44 @@
       if (r && r !== localStorage.getItem(GPU_RENDERER_KEY)) localStorage.setItem(GPU_RENDERER_KEY, r);
     } catch (e) {}
   }
+  // WEAK INTEGRATED GPUS GET A PIXEL BUDGET. Every number here is a taste/config
+  // value (CLAUDE.md rule 11): change one, or open the page with ?pixelbudget=0
+  // to switch the whole thing off for an A/B.
+  //
+  // WHY. On an Intel Iris Plus 655 laptop (a 1121x914 window at
+  // devicePixelRatio 2, Balanced, headless Chrome on Metal) the city drew at about 10 fps, 4.1 million
+  // canvas pixels a frame. The 3-million-triangle apartment mesh costs about
+  // 35 ms of every frame whatever the resolution (it is vertex-bound: the
+  // pixels never reach it), so the pixels are the one cost this file owns.
+  // Measured there, one load, rendering scale only, best of three interleaved
+  // reps: 1.00 -> 10.5 fps, 0.75 -> 11.7, 0.60 -> 12.7, 0.50 -> 13.7.
+  //
+  // WHO. Intel's older integrated chips only (Iris Plus, UHD, HD Graphics),
+  // the family measured here. NOT Intel Arc or Iris Xe, not a discrete card,
+  // not Apple silicon, not an unknown renderer: those keep exactly the scale
+  // their preset names, so a strong GPU draws the same city as before. Only the two everyday
+  // presets are budgeted; Cinematic and Ultra are somebody choosing quality on purpose, and a moved slider (custom) is
+  // never overruled.
+  //
+  //   gpu         renderer strings that get the budget
+  //   maxPixels   canvas pixels a frame at the budgeted presets (window x ratio^2)
+  //   minScale    never go below this render scale (the slider's own floor)
+  const WEAK_GPU = {
+    gpu: /\bintel\b(?!.*\b(arc|xe)\b).*\b(iris|uhd|hd graphics)\b/i,
+    maxPixels: 1.2e6,
+    minScale: 0.5,
+  };
+  const PRESET_SCALE = { performance: 0.75, balanced: 1.0 };   // what each budgeted preset asks for
+  const isWeakGpu = () => Q.get('pixelbudget') !== '0' && !window.LITE_PROFILE?.on &&
+                          WEAK_GPU.gpu.test(readGpuRenderer());
+  // The scale a preset asking for `scale` draws at on this machine.
+  function budgetScale(scale) {
+    if (!isWeakGpu()) return scale;
+    const ratio = (window.devicePixelRatio || 1) * scale;
+    const pixels = window.innerWidth * window.innerHeight * ratio * ratio;
+    if (!(pixels > WEAK_GPU.maxPixels)) return scale;
+    return Math.max(WEAK_GPU.minScale, Math.floor(scale * Math.sqrt(WEAK_GPU.maxPixels / pixels) * 20) / 20);
+  }
   function defaultMSAA(scale) {
     if (window.LITE_PROFILE?.on) return false;
     const ratio=(window.devicePixelRatio||1)*scale;
@@ -444,12 +482,12 @@
   }
   const PRESETS = {
     performance: {
-      renderScale: 0.75, msaa: defaultMSAA(0.75), bloom: 0, godRays: 0, flare: 0, dof: 0,
+      renderScale: budgetScale(PRESET_SCALE.performance), msaa: defaultMSAA(budgetScale(PRESET_SCALE.performance)), bloom: 0, godRays: 0, flare: 0, dof: 0,
       ...GRADE, autoExposure: false, grain: 0, renderDistance: 350,
       ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58, treeDensity: 0.52, outerDensity: 0.45,
     },
     balanced: {
-      renderScale: 1.0, msaa: defaultMSAA(1.0), bloom: 0.40, godRays: 0.5, flare: 0.3, dof: 0,
+      renderScale: budgetScale(PRESET_SCALE.balanced), msaa: defaultMSAA(budgetScale(PRESET_SCALE.balanced)), bloom: 0.40, godRays: 0.5, flare: 0.3, dof: 0,
       ...GRADE, autoExposure: true, grain: 0, renderDistance: 700,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 58, treeDensity: 0.675, outerDensity: 1,
     },
@@ -538,6 +576,10 @@
     // those alone. Inherited preset defaults follow the current viewport budget
     // on every boot, including a later reload on a larger display.
     if (!GFX.custom) {
+      // A weak integrated GPU follows its pixel budget on every boot, like the
+      // edge smoothing below: a stored scale from before the budget, or from a
+      // bigger window, does not outlive it. Everyone else is untouched.
+      if (isWeakGpu() && PRESET_SCALE[GFX.preset] != null) GFX.renderScale = budgetScale(PRESET_SCALE[GFX.preset]);
       const msaa=GFX.preset==='ultra'||defaultMSAA(GFX.renderScale);
       if(GFX.msaa!==msaa){GFX.msaa=msaa;migrated=true;}
     }
