@@ -224,3 +224,49 @@ No new model, geometry pass or two-arm comparison was launched. The private
 proposal was updated and the owner's quality-per-dollar concern recorded in
 shared AGENTS.md. Branch: `codex/campus-photo-pilot`; HANDOFF.md remains touched
 by other open lanes, so the record stays in this owned pass document.
+
+## Frozen CPE method comparison result
+
+On the owner's "go", two isolated Sol builders used the same three private
+training views, common rules, renderer, effort and $0.65 soft allowance each.
+One estimated geometry directly; the other recorded manual image-plane measures
+and generated component geometry. Both froze without render feedback. A fourth
+photo was withheld from the builders. All images, positions, measurements and
+candidate files remain in the private evidence store.
+
+One independent reviewer saw anonymous X/Y application views and preferred the
+direct candidate (6/10) over the measured candidate (4.5/10). Neither was accepted
+for the city. The measured candidate had useful inscription ratios but missing
+portal returns, stray projections and weak window-apron profiles. The direct
+candidate had more coherent entrance/gallery depth, but oversized department
+lettering, a thin canopy instead of the substantial brick head, crude glazing
+and approximate masonry. The withheld view supported these observations.
+
+Builders cost approximately $0.325 and $0.314 respectively. Candidate data was
+22.8 KB and16.8 KB gzip respectively; smaller data did not imply better likeness.
+Both exceeded the requested9000 output-token allowance (12569/13980), so this
+is a matched dollar-allowance pilot, not a successfully enforced token-budget
+experiment. Common preparation, compatibility repairs, camera evaluation and
+blind review are included in the private live total, which exceeded $2.
+
+The common format brief omitted mandatory levels.floors. Both evaluation copies
+received the same empty floor list. Builder rounding also changed supplied map
+coordinates, especially the measured arm (about4.1m shift); both render copies
+received the exact common frame. Frozen originals and their hashes were kept.
+No appearance geometry was repaired. Serial hardware application screenshots
+were taken twice and the second retained; both final models built without
+runtime errors. Cameras are identical across candidates; source registration
+remains approximate and its field of view reached a fitting bound. No metric
+accuracy or exact photo match is established.
+
+This pair does not disprove image measurement. It shows that measured observations
+alone did not reliably produce coherent geometry here. The recommended next
+investment is a tested reusable entrance/window/apron component layer with
+previewed measurements and automatic connectivity/registration checks before
+another bounded reconstruction. Preserve precise supplied coordinates. Keep
+camera fit, material shortcomings, occluded inference and appearance scores
+separate; do not silently retry candidates into an apparent method win.
+
+Branch: `codex/campus-photo-pilot`. No public model or renderer changed.
+HANDOFF.md overlaps other open lanes, so this pass is recorded in this owned
+document. Private comparison candidates and review are retained for both machines.
