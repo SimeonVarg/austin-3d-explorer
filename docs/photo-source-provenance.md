@@ -32,3 +32,42 @@ original images without publishing precise camera positions or photo names.
 This is an evidence policy, not a new geometry schema or a quality restriction.
 Details smaller than a threshold, unusual viewpoints and foliage may still be
 important to identity. Let the source evidence determine what matters.
+
+
+## Architecture inferred from owner photos
+
+Inference is allowed and useful for completing a coherent building. Label a
+feature `inference` when it repeats visible architecture onto an unseen face,
+fills an angle without a photo, or reconstructs a part obscured by trees,
+construction or another object. Use `derivedFrom` for the supporting owner-photo
+evidence; the result is not a directly observed owner-photo feature.
+
+Record the proposed pattern, the visible evidence supporting it, the occluded
+or unseen scope, confidence and competing possibilities. Keep appearance
+inference separate from metric inference. A photo can establish a stair count
+while its width and rise remain inferred. A photographed wall does not make
+every face of its block photo-observed.
+
+When direct evidence arrives, update only the fields it establishes and retain
+the prior inferred record under superseded evidence. Clearly supported owner
+observations override pattern completion for those fields. A clear online view
+of the hidden part is direct online evidence, rather than owner-photo evidence.
+Unknown evidence remains unknown until audited; do not retroactively relabel
+existing NHB or other buildings based only on this policy.
+
+Example field record (source identity joins privately):
+
+```json
+{
+  "_src": {
+    "northWindows": {
+      "type": "inference",
+      "derivedFrom": ["reviewed-visible-window-rhythm"],
+      "scope": "unphotographed north window layout",
+      "confidence": "medium",
+      "status": "provisional",
+      "reason": "repeat adjacent visible bay pattern; north face not observed"
+    }
+  }
+}
+```

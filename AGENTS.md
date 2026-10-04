@@ -356,8 +356,10 @@ The same applies to repeated architecture projected around unphotographed
 angles, including existing NHB detail. Unknown architecture may be inferred
 when useful, but the derivation and uncertainty must stay explicit.
 
-Cockrell's lower inscription is narrower than its upper line; do not enlarge it
-to a guessed width. The bottom three stairs flare outward. Follow the resulting
+Measure Cockrell's inscription from the source image rather than guessing line
+widths. The owner's follow-up questioned the longer lower line; a subsequent
+rectified close-photo check finds it about 12% longer than the upper line. Keep
+that measured relationship provisional until a more precise trace confirms it. The bottom three stairs flare outward. Follow the resulting
 side-rail bends, including the perpendicular segment visible at the flare; do
 not mirror a generic straight rail onto both sides. Brick bond must resolve
 properly on projecting pier returns and stair-wing sides/caps, rather than
