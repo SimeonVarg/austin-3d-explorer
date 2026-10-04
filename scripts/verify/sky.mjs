@@ -30,7 +30,8 @@ page.on('pageerror', e => errs.push(e.message));
 // deterministic one.
 const DRIFT_ON = process.argv.includes('--drift');
 if (DRIFT_ON) console.log('*** --drift: the idle cinema is LEFT ON. §2 may fail; it is a RACE, so a clean run proves nothing.\n');
-await page.goto(`${BASE}/index.html?${DRIFT_ON ? '' : 'drift=0&'}intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+// The subject here is the 2D sky canvas, so the page is pinned to it (the default is 'gl').
+await page.goto(`${BASE}/index.html?${DRIFT_ON ? '' : 'drift=0&'}intro=0&sky=canvas`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForTimeout(4500);
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
