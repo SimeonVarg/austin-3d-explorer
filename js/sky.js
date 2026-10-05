@@ -1109,6 +1109,7 @@
     precision highp float;
     varying vec2 v_ndc;
     uniform vec2 u_wh;                   // frame size, CSS px
+    uniform vec2 u_roll;                 // cos, sin of the camera's bank (1, 0 when level)
     uniform vec3 u_f, u_r, u_u;          // camera basis, ENU
     uniform vec2 u_t;                    // tan half-FOV: horizontal, vertical
     uniform vec2 u_fy;                   // feather: first and last CSS row
@@ -1153,7 +1154,15 @@
       return vec4(c * a, a);
     }
     void main() {
-      vec2 p = vec2((v_ndc.x * 0.5 + 0.5) * u_wh.x, (0.5 - v_ndc.y * 0.5) * u_wh.y);
+      // The camera banks into a turn and MapLibre rolls the whole picture about the view axis, so
+      // the horizon, the buildings and the map's own sky gradient all rotate about the frame
+      // centre. Everything below (the washes, the glow rows, the feather, the cloud rays) is built
+      // for a level camera, so it is evaluated at the LEVEL-FRAME pixel this pixel came from.
+      // u_roll is (1, 0) for a level camera, which makes p the pixel itself.
+      vec2 ps = vec2((v_ndc.x * 0.5 + 0.5) * u_wh.x, (0.5 - v_ndc.y * 0.5) * u_wh.y);
+      vec2 q = ps - 0.5 * u_wh;
+      vec2 p = 0.5 * u_wh + vec2(q.x * u_roll.x - q.y * u_roll.y, q.x * u_roll.y + q.y * u_roll.x);
+      vec2 ndc = vec2(p.x / u_wh.x * 2.0 - 1.0, 1.0 - p.y / u_wh.y * 2.0);
       vec4 acc = glow(p.y)
         + lobe(p, u_lA0, u_lC0, u_sBeltT, u_sBeltM) + lobe(p, u_lA1, u_lC1, u_sBeltT, u_sBeltM)
         + lobe(p, u_lA2, u_lC2, u_sWideT, u_sWideM) + lobe(p, u_lA3, u_lC3, u_sWideT, u_sWideM)
@@ -1162,7 +1171,7 @@
       vec4 outc = acc;
 
       if (u_cl.x > 0.0) {
-        vec3 d = normalize(u_f + u_r * (v_ndc.x * u_t.x) + u_u * (v_ndc.y * u_t.y));
+        vec3 d = normalize(u_f + u_r * (ndc.x * u_t.x) + u_u * (ndc.y * u_t.y));
         float el = degrees(asin(clamp(d.z, -1.0, 1.0)));
         float azd = degrees(atan(d.x, d.y));
         float azTex = azd - u_cl.w;
@@ -1200,7 +1209,7 @@
     attribute vec4 a_dm;                 // unit direction, magnitude
     attribute float a_az;
     uniform vec3 u_f, u_r, u_u;
-    uniform vec2 u_t, u_wh;
+    uniform vec2 u_t, u_wh, u_roll;
     uniform float u_z, u_px, u_time, u_str, u_halo, u_haloMag;
     uniform vec3 u_tw;                   // twinkle: magnitude gate, amplitude, speed
     varying float v_a;
@@ -1215,6 +1224,11 @@
       if (u_halo > 0.5 && mag <= u_haloMag) return;
       float x = (0.5 + 0.5 * (dot(a_dm.xyz, u_r) / fd) / u_t.x) * u_wh.x;
       float y = (0.5 - 0.5 * (dot(a_dm.xyz, u_u) / fd) / u_t.y) * u_wh.y;
+      // x, y is where a LEVEL camera would see the star; a banked camera sees the whole picture
+      // turned about the frame centre (the inverse of the turn the sky shader undoes).
+      vec2 q = vec2(x, y) - 0.5 * u_wh;
+      x = 0.5 * u_wh.x + q.x * u_roll.x + q.y * u_roll.y;
+      y = 0.5 * u_wh.y - q.x * u_roll.y + q.y * u_roll.x;
       if (x < -8.0 || x > u_wh.x + 8.0 || y < -8.0 || y > u_wh.y) return;
       float a = u_str * mag;
       if (mag > u_tw.x) a *= 1.0 - u_tw.y * (0.5 + 0.5 * sin(u_time * u_tw.z * (0.6 + mag) + a_az * 7.3));
@@ -1228,7 +1242,7 @@
     varying float v_a;
     varying float v_r;
     uniform float u_halo, u_bufH;
-    uniform vec2 u_wh, u_fy;
+    uniform vec2 u_wh, u_fy, u_roll;
     uniform vec4 u_fT, u_fM, u_dbg;
     float stops(float t, vec4 ts, vec4 ms) {
       if (t <= ts.x) return ms.x;
@@ -1249,6 +1263,9 @@
         col = vec3(238.0, 244.0, 255.0) / 255.0;
       }
       float y = (u_bufH - gl_FragCoord.y) / u_bufH * u_wh.y;
+      // the feather is a row of the LEVEL frame; this fragment's level row, from its screen position
+      float x = gl_FragCoord.x / u_bufH * u_wh.y;
+      y = 0.5 * u_wh.y + (x - 0.5 * u_wh.x) * u_roll.y + (y - 0.5 * u_wh.y) * u_roll.x;
       float ft = clamp((y - u_dbg.z - u_fy.x) / max(u_fy.y - u_fy.x, 0.001), 0.0, 1.0);
       float a = v_a * m * (1.0 - stops(ft, u_fT, u_fM));
       gl_FragColor = vec4(col * a, a);
@@ -1465,6 +1482,7 @@
     const gs = (window.GFX && window.GFX.stars != null) ? window.GFX.stars : 1;
     _glFrame = {
       b: project.basis, W, H, hz: hzPx, fade: fadePx, lobes, glow,
+      roll: rad(map.getRoll ? (map.getRoll() || 0) : 0),
       night: B.night, golden: B.golden, p: M.p,
       cloudsOn: gc > 0.01, cloudCount: gc,
       body: M.body, lit: M.lit, base: M.base, haze: _glHaze.col,
@@ -1492,7 +1510,11 @@
     if (!F) return;
     const S = G.sky, u = S.u, b = F.b;
     const pano = F.cloudsOn ? cloudReady(gl, T.cloudSet) : null;
-    const bandPx = Math.min(H, Math.max(0, F.hz + 0.5 * F.fade));
+    // Lowest row the sky can reach. Banked, the level horizon is turned about the frame centre:
+    // its low end sits (W/2)|tan roll| lower and its offset from the centre is stretched by 1/cos.
+    const rl = F.roll || 0, lowLevel = F.hz + 0.5 * F.fade;
+    const bandPx = Math.min(H, Math.max(0, rl
+      ? 0.5 * H + (lowLevel - 0.5 * H) / Math.cos(rl) + 0.5 * W * Math.abs(Math.tan(rl)) : lowLevel));
     SKY_METER.glDraws++;
     _skyDrawnP = _p;
     if (bandPx <= 0) return;
@@ -1504,6 +1526,7 @@
     gl.uniform4f(u.u_rect, -1, 1 - 2 * bandPx / H, 1, 1);
     gl.uniform1f(u.u_z, SKY_COMP.z);
     gl.uniform2f(u.u_wh, W, H);
+    gl.uniform2f(u.u_roll, Math.cos(rl), Math.sin(rl));
     gl.uniform3f(u.u_f, b.f[0], b.f[1], b.f[2]);
     gl.uniform3f(u.u_r, b.r[0], b.r[1], b.r[2]);
     gl.uniform3f(u.u_u, b.u[0], b.u[1], b.u[2]);
@@ -1577,6 +1600,7 @@
       gl.uniform3f(q.u_u, b.u[0], b.u[1], b.u[2]);
       gl.uniform2f(q.u_t, b.th, b.tv);
       gl.uniform2f(q.u_wh, W, H);
+      gl.uniform2f(q.u_roll, Math.cos(rl), Math.sin(rl));
       gl.uniform1f(q.u_z, SKY_COMP.z);
       gl.uniform1f(q.u_px, gl.drawingBufferWidth / W);
       gl.uniform1f(q.u_bufH, gl.drawingBufferHeight);
@@ -2244,6 +2268,14 @@
     const vis = M.vis;
 
     const pos = pvec(M.vBody);
+    // The GL sky draws the world-fixed picture turned by the camera's bank (see FS_SKYGL), and the
+    // disc is part of it: turn its screen position about the frame centre by the same angle. The
+    // 2D canvas pass is left as it was (the DOM overlay and the canvas path read `pos` as is).
+    const rollR = glMode && map.getRoll ? rad(map.getRoll() || 0) : 0;
+    const dPos = !rollR ? pos : (() => {
+      const qx = pos.x - 0.5 * W, qy = pos.y - 0.5 * H, c = Math.cos(rollR), s = Math.sin(rollR);
+      return { ...pos, x: 0.5 * W + qx * c + qy * s, y: 0.5 * H - qx * s + qy * c };
+    })();
     const showDisc = pos.front && vis > 0.01;
     const discFade = pos.fade;
 
@@ -2264,7 +2296,7 @@
     // `place()` calls above just used — this is the SAME disc drawn in a pass
     // that can be occluded, not a second one.
     _disc = showDisc ? {
-      x: pos.x, y: pos.y,
+      x: dPos.x, y: dPos.y,
       coreR, coreA: vis * discFade,
       bloomR, bloomA,
       col: { core: coreCol, halo: haloCol },
@@ -2549,7 +2581,7 @@
     // after the completed map render keeps bloom synchronized with the scene.
     window.skyFrame = {
       W, H, dpr, horizonPx: hzPx,
-      sun: { x: pos.x, y: pos.y, front: !useMoon && pos.front, fade: pos.fade, elev: B.sun.elev, az: B.sun.az },
+      sun: { x: dPos.x, y: dPos.y, front: !useMoon && pos.front, fade: pos.fade, elev: B.sun.elev, az: B.sun.az },
       moonUp: useMoon, colour: coreCol, haloColour: haloCol,
       golden: B.golden, night: B.night, lamps: B.lamps, stars: B.stars, p,
     };

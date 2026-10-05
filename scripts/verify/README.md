@@ -1724,3 +1724,47 @@ Traps this check cost time:
   moved 30 px, cloud gain 0, the turn run in canvas mode, the own-output run in canvas
   mode). Run `--break` after any edit to the check; a break that comes back green
   means the assertion measures nothing.
+
+## The sky against the world when the camera moves: `skyturn.mjs` (added October 5 2026)
+
+The owner's words: "camera tilt and sky go in opposite directions when turning". `skyturn.mjs` measures it.
+It holds the eye still (the camera is placed from a fixed eye position, so a bearing or pitch change is a pure
+rotation), takes each pose twice (sky on, sky off), and reads two pictures out of the *finished map frame*:
+the sky layer alone (on minus off, only where the world frame shows plain sky) and the world alone. It then
+measures how far each moved, with a masked correlation searched over **both** signs, and compares both against
+a pinhole model of its own whose lens comes from the page (`getVerticalFieldOfView()`), never a number typed in.
+
+```bash
+python scripts/serve.py 8527                       # from the repo root
+VERIFY_URL=http://127.0.0.1:8527 node <lanes>/gpu-run.mjs --label skyturn -- node scripts/verify/skyturn.mjs
+... skyturn.mjs --tier phone --report              # one tier, print the numbers and never fail
+... skyturn.mjs --frames <scratch>/frames          # also write the grey pictures it measured
+... skyturn.mjs --skyjs <old sky.js>               # serve another js/sky.js: this is how a BEFORE run is made
+```
+
+Nine assertions per tier, on the desktop tier (1280 x 800, DPR 1) and the phone tier (390 x 844, DPR 2, the
+LITE profile at 0.75 render scale): a and a2 (the sky layer is drawn by the GL path and has cloud energy in every
+pose), b and b2 (the pinhole model matches the world the app really rendered, and the rendered world rolls by the
+camera's roll), c yaw 4 degrees, d yaw tilted, e pitch 4 degrees, f both together, and g **bank 5 degrees each
+way**. Exit 0 pass, 1 a sky failure, 2 an instrument failure (a and b assertions), so a dead instrument cannot be
+read as a sky bug.
+
+What it found: yaw and pitch were always right (sky and world within a few percent in size and the same sign on
+both tiers). The defect was bank. The flight controller banks the camera into a turn (up to `BANK_MAX` = 5
+degrees, `map.setRoll`), MapLibre turns the whole picture about the frame centre, and the GL sky was built for a
+level camera, so the horizon, buildings and map sky rotated while clouds, stars, horizon feather and sun stayed
+level. On the old code assertion g reads: sky tilt 0.00 degrees against a world tilt of +5.00 and -5.00 (phone
++4.91 and -5.04).
+
+Traps this check cost time:
+
+- **`roll` is the only axis that was wrong.** Looking for "opposite directions" in yaw and pitch finds nothing.
+  Measure the rotation of the picture, not just its shift.
+- **The phone canvas is 1.5x dense, not 2x.** DPR 2 times the 0.75 render scale. Averaging whole-number blocks
+  mis-registered the world by 25 percent and turned a pitch of 57 into 0.12; frames are now sampled at CSS pixel
+  centres.
+- **MapLibre's `setRoll` is called every idle frame by the flight controller** (the self-heal to level), so the
+  page kit blocks it while a pose is held, or the bank is erased before the frame is read.
+- **A per-half translation cannot measure a small rotation** (it gave 2.9 degrees for 5). Bank is found by a
+  rigid-rotation search instead.
+- **This check needs a GPU.** It asks for hardware GL itself and is listed in `ci/checks.json`.

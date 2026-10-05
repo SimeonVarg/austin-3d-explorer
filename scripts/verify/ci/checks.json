@@ -217,7 +217,8 @@
     "audit-dupes-control.mjs": "needs a GPU: hardware-GL duplicate audit; red on the software fallback",
     "dayview.mjs": "red on main, same on the laptop (2026-09-27, 100 ok / 2 failed): 'all eleven are still unroutable' 10/11, the search index no longer carries them",
     "confirm-line.mjs": "needs a GPU: runs past its ceiling at runner frame rates",
-    "sky-gl.mjs": "needs a GPU: written for hardware GL (the GL sky is drawn in the map's pass and read back with readPixels); the city draws at 0.2-0.6 frames a second on SwiftShader, so the screenshots and the 40-frame turn time out on a runner"
+    "sky-gl.mjs": "needs a GPU: written for hardware GL (the GL sky is drawn in the map's pass and read back with readPixels); the city draws at 0.2-0.6 frames a second on SwiftShader, so the screenshots and the 40-frame turn time out on a runner",
+    "skyturn.mjs": "needs a GPU: it asks for hardware GL itself and takes about 40 full-size frames of the real city per tier, which a software rasteriser cannot draw inside the runner's time"
   },
   "_laptop_only": "Timing. Frame times on a shared cloud CPU with a software rasteriser measure the runner, not the code (README: 'right for pixel assertions and useless for timing'). These stay on a quiet laptop.",
   "laptop_only": {
