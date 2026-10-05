@@ -380,6 +380,11 @@
   const EDGE_SMOOTHING = {
     maxDefaultPixels: 2100000,
     integratedMaxPixels: 600000,
+    // The phone profile (js/mobile.js budget.smoothEdges). A phone's GPU is
+    // tile-based: the four samples are resolved inside each tile, so the cost
+    // is memory, not speed, and the budget is the buffer size. 390x844 at
+    // DPR 3 x renderScale 0.75 is 1.67 MP; a tablet (3 MP and up) stays off.
+    phoneMaxPixels: 2100000,
     // NVIDIA; AMD's discrete RX / Pro lines; Intel's discrete Arc A-series
     // ("Intel Arc Graphics" with no model number is Core Ultra's integrated one).
     fullDefaultGpu: /nvidia|geforce|quadro|\b[gr]tx\b|radeon.*\b(rx|pro)\b|\barc.*\ba\d{3}/i,
@@ -435,9 +440,11 @@
     } catch (e) {}
   }
   function defaultMSAA(scale) {
-    if (window.LITE_PROFILE?.on) return false;
     const ratio=(window.devicePixelRatio||1)*scale;
     const pixels=window.innerWidth*window.innerHeight*ratio*ratio;
+    // The phone profile decides from its own budget, and never probes a
+    // renderer: its tier already says what the device survived.
+    if (window.LITE_PROFILE?.on) return !!window.LITE_PROFILE.budget?.smoothEdges && pixels>0 && pixels<=EDGE_SMOOTHING.phoneMaxPixels;
     const budget=EDGE_SMOOTHING.fullDefaultGpu.test(readGpuRenderer())
       ? EDGE_SMOOTHING.maxDefaultPixels : EDGE_SMOOTHING.integratedMaxPixels;
     return pixels>0 && pixels<=budget;
