@@ -516,6 +516,7 @@
     #include <packing>
     ${window.CityLighting.glsl}
 ${window.WallPatterns.glsl}
+${window.RoofTiles.glsl}
     float hashCell(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
     float surfaceNoise(vec2 p) {
       vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
@@ -526,6 +527,7 @@ ${window.WallPatterns.glsl}
       vec4 baseColor=v_color, surface=v_surface;
       vec3 albedo=v_albedo, night=v_night;
 ${window.WallPatterns.apply}
+${window.RoofTiles.apply}
       float faceMix=1.0;
       #ifdef FACADE_FILTER
       #ifdef FACADE_FILTER_ARRAY
@@ -890,6 +892,7 @@ ${window.WallPatterns.apply}
       depthTest: true, depthWrite: true, transparent: false, blending: T.NoBlending,
     });
     window.WallPatterns.attach(mat);
+    window.RoofTiles?.sync(mat.uniforms);
     // Builder meshes have no wall gradient. A constant vertex attribute is
     // exactly the old all-zero buffer, without eight CPU/GPU bytes per vertex.
     // colour() still supplies an attribute for meshes that need a gradient.
@@ -1399,6 +1402,7 @@ ${window.WallPatterns.apply}
       _eye4.set(0,0,1,0).applyMatrix4(camera.projectionMatrixInverse);
       U.u_eye.value.set(_eye4.x/_eye4.w,_eye4.y/_eye4.w,_eye4.z/_eye4.w);
       const surf=SLOPES.surfaces;
+      window.RoofTiles.sync(U);
       U.u_surfaceRange.value.set(surf.on?1:0,surf.near,surf.far);
       U.u_surfaceStyle.value.set(surf.joint,surf.jointShade,surf.grain,surf.reflection);
       U.u_surfaceNoise.value.set(surf.grainScale,surf.tileVariation,surf.reflectionBase);
