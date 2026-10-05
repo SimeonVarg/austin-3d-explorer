@@ -118,5 +118,27 @@ minimum of repeats, and it is not a test on a real phone.
 No photograph pair from a matched camera exists: the reference viewpoint falls
 inside a building model. The comparison with the photograph is by pattern only.
 The optional photo mean and edge treatments remain off.
-The full layer integration suite has not completed within the bounded browser
-session; a dedicated material gate does not establish that broader result.
+The full layer integration suite (`scripts/verify/slopes-layer.mjs`) gives no
+verdict today: it stops with an uncaught error in its apartment section before
+it prints a line. It stops at the same place with the roof code from before
+this material, so the stop is not from the tiles, and the dedicated material
+gate does not establish that broader result.
+
+### Frame cost
+
+The material is a live switch (`SLOPES_ROOFS.tiles.on`), so both states were
+timed in ONE page at the same camera: each timed frame is a synchronous redraw
+followed by a one-pixel read, 12 rounds of 15 frames, the two states in
+alternating order. The figure is the median of the per-round differences.
+
+| screen | graphics | frame | tiles on, difference | rounds slower |
+|---|---|---|---|---|
+| desktop 1280 x 680 at 1.5 | graphics card (RTX 3050 Ti) | 21 ms | -0.4 to +0.8 ms | 4 to 7 of 12 |
+| phone profile 390 x 844 at 0.75 scale | graphics card (RTX 3050 Ti) | 15 to 18 ms | +0.1 ms | 6 to 8 of 12 |
+| desktop 1280 x 680 at 1.5 | built-in chip (AMD Radeon) | 29 to 35 ms | +0.1 to +0.3 ms | 7 to 8 of 12 |
+| phone profile 390 x 844 at 0.75 scale | built-in chip (AMD Radeon) | 28 to 31 ms | +0.1 to +0.5 ms | 6 to 9 of 12 |
+
+Three close views (zoom 18, 19 and 19.4), the range of the flicker table, where
+the tiles show. On the graphics card the difference is inside the noise. On the built-in
+chip it is at most half a millisecond in a 30 ms frame. This is a laptop with
+a phone-sized canvas, not a phone: no real phone was timed.
