@@ -541,7 +541,11 @@
       // 88, not 85: MapLibre 5.24's own hard ceiling is 90 (verified against the
       // running library, scripts/verify/pitch-probe.mjs) and the flycam's
       // eye->pose derivation goes singular there. See js/controls.js PITCH_MAX.
-      maxPitch:88, scrollZoom:false, attributionControl:{ compact:true },
+      // The terms and credits page (terms.html) is linked from the map's own credit
+      // line, the "i" at the bottom right, beside the data credits it belongs with.
+      // The whole link is this one string: reword it or remove it here.
+      maxPitch:88, scrollZoom:false, attributionControl:{ compact:true,
+        customAttribution:'<a href="terms.html" target="_blank" rel="noopener">Terms and credits</a>' },
       // v5: antialias moved into canvasContextAttributes. It defaults OFF here
       // because it is the most expensive single option in the whole app —
       // measured over a 4 s flight at 2560x1400, turning MSAA off took dropped
