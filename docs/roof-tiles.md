@@ -2,6 +2,8 @@
 
 Status: candidate under visual review. Passing numerical checks is not photo acceptance.
 
+![Close view of a campus roof, before and after](shots/roof-tiles-close-before-after.jpg)
+
 The existing pitched roof faces carry a repeated clay barrel pattern. Columns
 follow the fall line. Curved course lips, narrow valleys, clay variation and
 short pale runs are evaluated in the fragment shader. No tile geometry or image
