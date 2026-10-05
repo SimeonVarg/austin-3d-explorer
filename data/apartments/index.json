@@ -47,7 +47,8 @@
     "block-on-25th-west.json",
     "the-otis-hotel.json",
     "burdine-hall.json",
-    "norman-hackerman-building.json"
+    "norman-hackerman-building.json",
+    "robert-b-rowling-hall.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -98,7 +99,8 @@
     "3d9f61df-03ab-4b6f-8f47-8cd7463827be",
     "12126a99-0b70-410e-a37b-cd25080f2036",
     "8b767e28-0d6c-46aa-9d5e-af693151909b",
-    "f8a072d5-4751-4e9b-8939-49239919913a"
+    "f8a072d5-4751-4e9b-8939-49239919913a",
+    "3e41820f-7a63-49d5-950a-b1b46767617e"
   ],
   "replacedNames": [
     "The Standard",
@@ -147,7 +149,8 @@
     "The Otis Hotel, Autograph Collection",
     "AC Hotel Austin-University",
     "Burdine Hall",
-    "Norman Hackerman Building"
+    "Norman Hackerman Building",
+    "Robert B. Rowling Hall"
   ],
   "collections": [
     "data/campus_buildings.json",
