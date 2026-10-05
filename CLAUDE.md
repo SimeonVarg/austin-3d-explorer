@@ -31,6 +31,14 @@ memory and is never written here, in any tracked file, or in a commit message.
    project and wanted 2x progress"*. Two minutes of his setup for hours of
    parallel work is a good trade. Draw the boundary properly and it stays one.)
 
+   **Where the lanes run (2026-10-05).** The main lane now works on the Mac, in
+   its own work copy of `main`. The Acer travels with the owner and must stay
+   free for his own work, so plan no heavy job for it (GPU browser checks, long
+   bakes, overnight chains) unless he says it is free. Heavy picture checks go
+   to the cloud runner (`scripts/colab/run.py`). Read "the Acer" in this file
+   and in `MAC_QUEUE.md` as "the main lane", wherever it runs. The split by bake
+   script is unchanged.
+
 2. **Merge your own PRs. Do not wait for Simeon.** (Changed 2026-08-01, at his
    instruction: *"im a manager who gives feedback not micromanages"*. The old
    rule was "nobody merges their own PRs".) A lane merges its own work once it
