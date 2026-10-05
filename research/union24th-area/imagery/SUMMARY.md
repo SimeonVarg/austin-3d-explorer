@@ -1,5 +1,12 @@
 # Fetched reference imagery summary
 
+> **The pictures themselves are not in this repository.** The `web/` pictures came from leasing and
+> architecture sites and the `aerial/` tiles from a commercial imagery service. They are other people's
+> work, used only as private modelling reference, so they were removed from the repository on 2026-10-05.
+> `INDEX.json` still lists every picture with its source address. The `wikimedia/` pictures stay: they
+> carry open licences. A path under `imagery/web/` or `imagery/aerial/` in a doc or a recipe names the
+> reference that was used; it is not a file here.
+
 Total images: 212
 
 - 2400-nueces: 19
