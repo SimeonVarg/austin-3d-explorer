@@ -389,6 +389,13 @@
     // ("Intel Arc Graphics" with no model number is Core Ultra's integrated one).
     fullDefaultGpu: /nvidia|geforce|quadro|\b[gr]tx\b|radeon.*\b(rx|pro)\b|\barc.*\ba\d{3}/i,
     fillOutlinesWithMSAA: false,
+    // ?smooth=1|0: Smooth edges on or off for THIS VISIT, on any device,
+    // nothing saved. It is how to see a default (the phone's, js/mobile.js
+    // budget.smoothEdges) on a real device before it is turned on. With the
+    // flag a small strip says what the graphics context really has: a setting
+    // that was asked for is not proof of one that was given.
+    urlReadout: { top: 'calc(env(safe-area-inset-top, 0px) + 6px)', z: 70, bg: 'rgba(12,20,34,.84)',
+                  ink: '#f3ead2', size: '11.5px', pad: '5px 10px', radius: '999px' },
   };
   // The renderer this browser draws WebGL with. `antialias` has to be decided
   // before the map's context exists, so a FIRST visit reads it off a throwaway
@@ -661,7 +668,8 @@
   // WebGL context. Bloom needs to read the GL canvas, so it needs the buffer
   // kept; asking for it only when bloom is actually wanted means the performance
   // preset stops paying for it on the next load.
-  window.GFX_MSAA = !!GFX.msaa;
+  const SMOOTH_URL = Q.get('smooth') === '1' ? true : Q.get('smooth') === '0' ? false : null;
+  window.GFX_MSAA = SMOOTH_URL == null ? !!GFX.msaa : SMOOTH_URL;   // the flag is not written to GFX: nothing is saved
   window.GFX_PDB = GFX.bloom > 0.01 || !!GFX.autoExposure;  // auto-exposure meters the same buffer
   // Does this browser draw with a graphics card? The same test as the Smooth
   // edges default (EDGE_SMOOTHING.fullDefaultGpu). js/city-lighting.js keeps
@@ -751,6 +759,36 @@
     sweep();
   }
 
+  // ?smooth=: say what this context really has (EDGE_SMOOTHING.urlReadout).
+  function smoothReadout(map) {
+    if (SMOOTH_URL == null) return;
+    let gl = null;
+    try { gl = map.painter && map.painter.context && map.painter.context.gl; } catch (e) {}
+    if (!gl || !gl.getContextAttributes) return;
+    const R = EDGE_SMOOTHING.urlReadout, lite = window.LITE_PROFILE || {};
+    const on = !!(gl.getContextAttributes() || {}).antialias;
+    let samples = null;
+    try { if (!gl.getParameter(gl.FRAMEBUFFER_BINDING)) samples = gl.getParameter(gl.SAMPLES); } catch (e) {}
+    const info = window.__smoothReadout = { asked: SMOOTH_URL, on, samples, width: 0, height: 0,
+                                            tier: lite.on ? (lite.tierName || 'phone') : null };
+    const el = document.createElement('div');
+    el.id = 'smooth-readout';
+    el.style.cssText = 'position:fixed;top:' + R.top + ';left:50%;transform:translateX(-50%);z-index:' + R.z +
+      ';background:' + R.bg + ';color:' + R.ink + ';font-size:' + R.size + ';line-height:1.2;padding:' + R.pad +
+      ';border-radius:' + R.radius + ';white-space:nowrap;pointer-events:none';
+    // The buffer is resized after this runs (the render scale, a rotation), so
+    // the size is read again every time the map says it changed.
+    const update = () => {
+      info.width = gl.drawingBufferWidth; info.height = gl.drawingBufferHeight;
+      el.textContent = 'Smooth edges ' + (on ? 'ON' + (samples ? ' (' + samples + ' samples)' : '') : 'OFF') +
+        ' · ' + info.width + ' x ' + info.height + (info.tier ? ' · ' + info.tier + ' tier' : '');
+    };
+    update();
+    map.on('resize', update);
+    map.on('idle', update);
+    document.body.appendChild(el);
+  }
+
   window.initGraphics = function initGraphics(map) {
     _map = map;
 
@@ -781,6 +819,7 @@
     if (!bloomOK) console.log('[graphics] bloom unavailable: this context has no preserveDrawingBuffer (reload with bloom > 0)');
     dropFillOutlinesUnderMSAA(map);
     rememberGpuRenderer(map);
+    smoothReadout(map);
 
     buildMenu();
     buildFeedback();

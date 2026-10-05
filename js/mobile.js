@@ -182,20 +182,25 @@
       // every tile it crosses is loaded at the pitch it is flown at.
       intro: true,
       // js/graphics.js defaultMSAA: "Smooth edges" (4 coverage samples a
-      // pixel) by default. Until Oct 4 2026 a phone had every anti-moire tool
-      // off, because none had been timed on one, so anything thinner than a
-      // pixel (floor lines, fins, rails, far road edges) crawled in flight.
-      // Measured on the phone frame (scripts/verify/moire.mjs --width 390
-      // --height 844 --dpr 3 --scale 0.75 --q lite=1, truth at 2x): moire down
-      // 29-53% at five flyover poses, pixels in a visible band 0.9-3.1% ->
-      // 0.1-1.0%, and along a slow flight the frame-to-frame crawl 0.418 ->
-      // 0.095. Cost: the drawing buffer holds 4 samples, about 53 MB at
-      // 390x844 (877x1899 device pixels, colour + depth). NOT timed on a real
-      // phone: a phone GPU resolves the samples inside each tile, so the cost
-      // is expected to be the memory, and the `lighter` tier gives that back.
-      // EDGE_SMOOTHING.phoneMaxPixels caps it, so a tablet's much larger
-      // buffer keeps the old default. false = the old phone.
-      smoothEdges: true,
+      // pixel). OFF, and this one line turns it on. A phone has every
+      // anti-moire tool off, because none had been timed on one, so anything
+      // thinner than a pixel (floor lines, fins, rails, far road edges) crawls
+      // in flight. Measured on the phone frame (scripts/verify/moire.mjs
+      // --width 390 --height 844 --dpr 3 --scale 0.75 --q lite=1, truth at
+      // 2x): with it on, moire is down 29-53% at five flyover poses, pixels in
+      // a visible band 0.9-3.1% -> 0.1-1.0%, and along a slow flight the
+      // frame-to-frame crawl 0.418 -> 0.095.
+      // WHY IT IS STILL OFF. On Oct 4 2026 a current iPhone lost the page twice
+      // in a row in one browser on the build WITHOUT it (the phone tier, then
+      // the lighter tier), so the phone city has no memory to spare there. A
+      // 4-sample drawing buffer is about 53 MB by arithmetic at 390x844
+      // (877x1899 device pixels, colour + depth), and desktop phone emulation
+      // measured about 135-180 MB more in the graphics process
+      // (scripts/verify/mobile-memory.mjs). Neither is a phone. See it on a
+      // real phone with ?smooth=1 (js/graphics.js), and turn this on when the
+      // phone city has that much room. EDGE_SMOOTHING.phoneMaxPixels caps it,
+      // so a tablet's much larger buffer stays off either way.
+      smoothEdges: false,
       // js/city-lighting.js patternFilter: far facade patterns read as a box
       // of taps instead of one. Off: measured on top of smoothEdges it moved
       // the same five poses by 0-2% (a phone's patterns are already built at

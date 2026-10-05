@@ -43,6 +43,14 @@ assert.equal(boot({...PHONE,budget:{smoothEdges:false}}).msaa,false,'the lighter
 assert.equal(boot({...PHONE,width:1024,height:1366,dpr:2,budget:{smoothEdges:true}}).msaa,false,'a tablet framebuffer is over the phone budget');
 assert.equal(boot({...PHONE,budget:{smoothEdges:true},saved:old}).msaa,true,'a phone save from before the change follows the new default');
 assert.equal(boot({...PHONE,budget:{smoothEdges:true},saved:{...old,custom:true}}).msaa,false,'a hand-set off survives on a phone');
+// ?smooth=1|0: this visit only, on any device, and nothing is saved.
+const urlOn=boot({...PHONE,search:PHONE.search+'&smooth=1',budget:{smoothEdges:false}});
+assert.equal(urlOn.msaa,true,'?smooth=1 turns it on for the visit on a phone whose budget says off');
+assert.ok(!urlOn.gfx.msaa,'and the setting itself is not changed');
+assert.ok(!urlOn.stored||JSON.parse(urlOn.stored).msaa!==true,'and nothing is saved');
+assert.equal(boot({...PHONE,search:PHONE.search+'&smooth=0',budget:{smoothEdges:true}}).msaa,false,'?smooth=0 turns it off for the visit');
+assert.equal(boot({search:'?preset=performance&smooth=0'}).msaa,false,'?smooth=0 on a small desktop too');
+assert.equal(boot({width:2560,height:1440,search:'?preset=performance&smooth=1'}).msaa,true,'?smooth=1 on a large desktop too');
 assert.equal(boot({mobile:true,search:'?preset=ultra'}).msaa,true,'explicit ultra unchanged');
 assert.equal(boot({width:2560,height:1440,search:'?preset=performance'}).msaa,false,'large framebuffer default unchanged');
 assert.equal(boot({search:'?preset=performance',saved:{...old,custom:true}}).stored,JSON.stringify({...old,custom:true}),'capture override does not persist');
