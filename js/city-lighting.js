@@ -28,8 +28,8 @@
   // keeps nearly all of the unclamped gain (campus low alias 0.644 unclamped,
   // 0.655 at 2, 0.665 at 1.5, 0.720 with no filter).
   // ?patfilter=0 turns it off, ?patfilter=1 forces it on; CityLighting.patternFilter
-  // is live. offOnPhone: the phone profile keeps the single read (its GPU cost
-  // has not been timed on a phone).
+  // is live. The phone profile decides from its own budget
+  // (js/mobile.js budget.farPatternFilter), never from the card test.
   // cardsOnly: on by default only where js/graphics.js says the browser draws
   // with a graphics card (the Smooth edges test). Timed with each frame's GPU
   // work finished (a synchronous redraw + readPixels, still poses, 10
@@ -42,9 +42,10 @@
   // Screen size needs no budget: a bigger screen gives each pixel fewer texels,
   // so fewer taps per pixel for more pixels.
   const patternFilterQuery=new URLSearchParams(location.search).get('patfilter');
-  const patternFilter={nearM:150,fullM:250,maxTaps:4,maxSpacing:2,offOnPhone:true,cardsOnly:true};
-  patternFilter.on=patternFilterQuery==='1'||(patternFilterQuery!=='0'&&!(patternFilter.offOnPhone&&window.LITE_PROFILE?.on)&&
-    (!patternFilter.cardsOnly||!!window.GFX_GPU_CARD?.()));
+  const patternFilter={nearM:150,fullM:250,maxTaps:4,maxSpacing:2,cardsOnly:true};
+  patternFilter.on=patternFilterQuery==='1'||(patternFilterQuery!=='0'&&(window.LITE_PROFILE?.on
+    ? !!window.LITE_PROFILE.budget?.farPatternFilter
+    : (!patternFilter.cardsOnly||!!window.GFX_GPU_CARD?.())));
   // Compiled in only where it is on at load. Elsewhere the pattern shader is
   // MapLibre's own, exactly as before, so the integrated chip pays nothing,
   // not even the registers. A live `on` switch works only where it compiled.

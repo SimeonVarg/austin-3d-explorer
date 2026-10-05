@@ -6,9 +6,10 @@ const end=source.indexOf('  // ── DOM ');assert.ok(end>0);
 const GPU_KEY='austin3d.gpu.renderer.v1';
 // gpu: the renderer a throwaway WebGL context reports (null: no WebGL at all).
 // savedGpu: the renderer an earlier visit saved.
-function boot({width=651,height=598,dpr=1.5,mobile=false,search='',saved=null,gpu=null,savedGpu=null}={}) {
+// budget: the phone tier's budget (js/mobile.js), as LITE_PROFILE.budget.
+function boot({width=651,height=598,dpr=1.5,mobile=false,search='',saved=null,gpu=null,savedGpu=null,budget=null}={}) {
   let stored=saved===null?null:JSON.stringify(saved);
-  const window={innerWidth:width,innerHeight:height,devicePixelRatio:dpr,LITE_PROFILE:{on:mobile,safe:false}};
+  const window={innerWidth:width,innerHeight:height,devicePixelRatio:dpr,LITE_PROFILE:{on:mobile,safe:false,budget}};
   const document={createElement:()=>({getContext:()=>gpu===null?null:
     {RENDERER:0x1F01,getParameter:()=>gpu,getExtension:()=>null}})};
   vm.runInNewContext(source.slice(0,end)+'})();',{window,document,location:{search},URLSearchParams,console,
@@ -33,7 +34,23 @@ assert.equal(boot({saved:{...old,rev:3,custom:true}}).gfx.preset,'performance','
 assert.equal(boot({saved:old}).gfx.preset,'performance','a rev 4 hand pick (no stamp) stays');
 assert.equal(boot({mobile:true,saved:{...old,rev:3}}).gfx.preset,'performance','the phone profile is left on its own default');
 assert.equal(boot({saved:{...old,rev:3,preset:'balanced'}}).gfx.preset,'balanced');
-assert.equal(boot({mobile:true,search:'?lite=1&preset=performance'}).msaa,false,'phone profile unchanged');
+assert.equal(boot({mobile:true,search:'?lite=1&preset=performance'}).msaa,false,'a phone tier with no smoothEdges budget stays off');
+// The phone tier's own budget turns Smooth edges on (js/mobile.js smoothEdges), inside phoneMaxPixels.
+const PHONE={mobile:true,width:390,height:844,dpr:3,search:'?lite=1&preset=performance'};
+const phoneOn=boot({...PHONE,budget:{smoothEdges:true}});
+assert.equal(phoneOn.msaa,true,'the phone tier: on by its budget');assert.ok(!phoneOn.gate,'and no renderer is probed for it');
+assert.equal(boot({...PHONE,budget:{smoothEdges:false}}).msaa,false,'the lighter tier gives it back');
+assert.equal(boot({...PHONE,width:1024,height:1366,dpr:2,budget:{smoothEdges:true}}).msaa,false,'a tablet framebuffer is over the phone budget');
+assert.equal(boot({...PHONE,budget:{smoothEdges:true},saved:old}).msaa,true,'a phone save from before the change follows the new default');
+assert.equal(boot({...PHONE,budget:{smoothEdges:true},saved:{...old,custom:true}}).msaa,false,'a hand-set off survives on a phone');
+// ?smooth=1|0: this visit only, on any device, and nothing is saved.
+const urlOn=boot({...PHONE,search:PHONE.search+'&smooth=1',budget:{smoothEdges:false}});
+assert.equal(urlOn.msaa,true,'?smooth=1 turns it on for the visit on a phone whose budget says off');
+assert.ok(!urlOn.gfx.msaa,'and the setting itself is not changed');
+assert.ok(!urlOn.stored||JSON.parse(urlOn.stored).msaa!==true,'and nothing is saved');
+assert.equal(boot({...PHONE,search:PHONE.search+'&smooth=0',budget:{smoothEdges:true}}).msaa,false,'?smooth=0 turns it off for the visit');
+assert.equal(boot({search:'?preset=performance&smooth=0'}).msaa,false,'?smooth=0 on a small desktop too');
+assert.equal(boot({width:2560,height:1440,search:'?preset=performance&smooth=1'}).msaa,true,'?smooth=1 on a large desktop too');
 assert.equal(boot({mobile:true,search:'?preset=ultra'}).msaa,true,'explicit ultra unchanged');
 assert.equal(boot({width:2560,height:1440,search:'?preset=performance'}).msaa,false,'large framebuffer default unchanged');
 assert.equal(boot({search:'?preset=performance',saved:{...old,custom:true}}).stored,JSON.stringify({...old,custom:true}),'capture override does not persist');

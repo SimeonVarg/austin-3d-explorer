@@ -181,6 +181,32 @@
       // js/app.js: the opening flight from downtown to campus. It is the peak:
       // every tile it crosses is loaded at the pitch it is flown at.
       intro: true,
+      // js/graphics.js defaultMSAA: "Smooth edges" (4 coverage samples a
+      // pixel). OFF, and this one line turns it on. A phone has every
+      // anti-moire tool off, because none had been timed on one, so anything
+      // thinner than a pixel (floor lines, fins, rails, far road edges) crawls
+      // in flight. Measured on the phone frame (scripts/verify/moire.mjs
+      // --width 390 --height 844 --dpr 3 --scale 0.75 --q lite=1, truth at
+      // 2x): with it on, moire is down 29-53% at five flyover poses, pixels in
+      // a visible band 0.9-3.1% -> 0.1-1.0%, and along a slow flight the
+      // frame-to-frame crawl 0.418 -> 0.095.
+      // WHY IT IS STILL OFF. On Oct 4 2026 a current iPhone lost the page twice
+      // in a row in one browser on the build WITHOUT it (the phone tier, then
+      // the lighter tier), so the phone city has no memory to spare there. A
+      // 4-sample drawing buffer is about 53 MB by arithmetic at 390x844
+      // (877x1899 device pixels, colour + depth), and desktop phone emulation
+      // measured about 135-180 MB more in the graphics process
+      // (scripts/verify/mobile-memory.mjs). Neither is a phone. See it on a
+      // real phone with ?smooth=1 (js/graphics.js), and turn this on when the
+      // phone city has that much room. EDGE_SMOOTHING.phoneMaxPixels caps it,
+      // so a tablet's much larger buffer stays off either way.
+      smoothEdges: false,
+      // js/city-lighting.js patternFilter: far facade patterns read as a box
+      // of taps instead of one. Off: measured on top of smoothEdges it moved
+      // the same five poses by 0-2% (a phone's patterns are already built at
+      // 1x, so they are barely minified), for up to 16 texture reads a pixel.
+      // false = MapLibre's own single read.
+      farPatternFilter: false,
     },
     // The tiers, lightest last. Each is the phone budget with its own changes.
     // `flags` are the URL flags that tier writes for the parse (see above).
@@ -190,9 +216,9 @@
       // buildings and look, minus their balconies (flush walls); no opening
       // flight (the camera starts at West Campus, js/app.js SPAWN) and no
       // out-of-view tile cache.
-      { name: 'lighter', flags: 'profile', budget: { intro: false, tileCacheSize: 0, aptBalconies: false } },
+      { name: 'lighter', flags: 'profile', budget: { intro: false, tileCacheSize: 0, aptBalconies: false, smoothEdges: false, farPatternFilter: false } },
       // After two. No three.js layer: flat prisms, and the notice says so.
-      { name: 'safe', flags: 'safeProfile', budget: { intro: false, tileCacheSize: 0 } },
+      { name: 'safe', flags: 'safeProfile', budget: { intro: false, tileCacheSize: 0, smoothEdges: false, farPatternFilter: false } },
     ],
 
     bootKey: 'flyover.boot',
