@@ -262,6 +262,7 @@
   "tools": {
     "geometry-memory-upload.mjs": "Offline regression requiring separately supplied SHA-pinned THREE r159 sources; codec and lifecycle checks run without those fixtures. Run with --source before merging memory changes.",
     "moire.mjs": "meter: needs --out, writes frames for moire-report.py and prints scores; no verdict of its own",
+    "roof-tiles.mjs": "needs --against, a recorded run of the renderer from before the roof tiles (a second checkout), on hardware GL; see docs/roof-tiles.md",
     "_o4-eastnorth.mjs": "probe",
     "_o4-fieldframe.mjs": "probe",
     "_o4-seedlag.mjs": "probe",

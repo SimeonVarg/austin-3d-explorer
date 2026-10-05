@@ -137,3 +137,137 @@
   `;
   window.WallPatterns={register,glsl,apply,attach(mat){mat.uniforms.u_wallPatterns={value:tex()};},get size(){return keys.size;}};
 })();
+
+// Roof material shares this already-loaded shader module. It adds no request,
+// image texture, table allocation or vertex attribute. Taste: SLOPES_ROOFS.tiles.
+(() => {
+  'use strict';
+  const uniforms={};let signature='';
+  const set=(k,v)=>{if(uniforms[k])uniforms[k].value=v;else uniforms[k]={value:v};};
+  const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255);
+  function sync(U) {
+    const t=window.SLOPES_ROOFS?.tiles;
+    if(!t)return;
+    set('u_rtOn',t.on?1:0);
+    const ratio=t.perScreenPixel?Math.max(1,window.__map?.getPixelRatio?.()||1):1;
+    const key=JSON.stringify(t)+ratio;
+    if(key!==signature){
+      signature=key;
+      const V=window.THREE.Vector4,weights=t.weights,total=weights.reduce((s,x)=>s+x,0),tones=t.tones.map(rgb),mean=[0,1,2].map(c=>tones.reduce((s,x,i)=>s+x[c]*weights[i]/total,0));
+      let cdf=0;
+      set('u_rtTones',tones.map((a,i)=>new V(...a.map((x,c)=>x/mean[c]),cdf+=weights[i]/total)));
+      set('u_rtCell',new V(t.pitchM,t.courseM,t.strength,t.seed));
+      set('u_rtFootprint',new V(...t.axisFilter,...t.clayFilter));
+      set('u_rtFilter',new V(...t.filter,Math.cos(t.slopeDeg[1]*Math.PI/180),Math.cos(t.slopeDeg[0]*Math.PI/180)));
+      set('u_rtShape',new V(t.valleyWidth,t.valley,t.barrel,t.lipCurve));
+      set('u_rtLip',new V(t.lipWidth,t.lip,t.lipLight,t.weather));
+      set('u_rtPale',new V(...t.paleRun,t.paleGrouped,weights.at(-1)/total));
+      set('u_rtWeather',new V(t.weatherShare,...t.weatherScale,ratio));
+      set('u_rtHour',new V(...t.hourContrast,t.meanFrom==='photo'?1:0));
+      set('u_rtPhoto',t.photoMean.map(h=>new window.THREE.Vector3(...rgb(h))));
+      set('u_rtEdges',new V(t.caps?1:0,t.capWidthM,t.capContrast,t.eave?1:0));
+      set('u_rtEave',new V(t.eaveWidthM,t.gutter,0,0));
+    }
+    Object.assign(U,uniforms);
+  }
+  const glsl=`
+    uniform float u_rtOn;
+    uniform vec4 u_rtFootprint;
+    uniform vec4 u_rtTones[5];
+    uniform vec4 u_rtCell,u_rtFilter,u_rtShape,u_rtLip,u_rtPale,u_rtWeather,u_rtHour,u_rtEdges,u_rtEave;
+    uniform vec3 u_rtPhoto[3];
+    float rtWeatherNoise(vec2 p) {
+      vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+      return mix(mix(wpHash(i,u_rtCell.w+5.),wpHash(i+vec2(1,0),u_rtCell.w+5.),f.x),
+        mix(wpHash(i+vec2(0,1),u_rtCell.w+5.),wpHash(i+vec2(1,1),u_rtCell.w+5.),f.x),f.y)*2.-1.;
+    }
+    vec3 rtTone(vec2 cell) {
+      // A column chooses short groups. Some decisions stay independent, so
+      // cream includes singles as well as runs. Its marginal share is fixed.
+      float run=floor(mix(u_rtPale.x,u_rtPale.y+1.,wpHash(vec2(cell.x,0.),u_rtCell.w)));
+      float group=floor((cell.y+floor(wpHash(vec2(cell.x,1.),u_rtCell.w)*run))/run);
+      bool grouped=wpHash(vec2(cell.x,group),u_rtCell.w+1.)<u_rtPale.z;
+      float pale=wpHash(grouped?vec2(cell.x,group):cell,u_rtCell.w+2.);
+      float choice=wpHash(cell,u_rtCell.w+3.)*(1.-u_rtPale.w);
+      int index=0;
+      for(int i=0;i<4;i++){if(choice>u_rtTones[i].w)index=i+1;}
+      if(pale<u_rtPale.w)index=4;
+      vec3 tone=vec3(1);
+      for(int i=0;i<5;i++){if(i==index)tone=u_rtTones[i].rgb;}
+      return tone;
+    }
+    vec3 rtFactor(vec3 p,vec3 n,vec4 surface,vec3 day,vec3 dark) {
+      float h=length(n.xy);
+      vec2 across=vec2(-n.y,n.x)/h;
+      vec3 down=vec3(n.xy*n.z/h,-h);
+      vec2 uv=vec2(dot(p.xy,across),dot(p,down))/u_rtCell.xy;
+      vec2 fw=fwidth(uv);
+      // Fades use cells per SCREEN pixel: a tile must be large enough to see,
+      // not only to sample. Edge smoothing below keeps device pixels.
+      vec2 fv=fw*u_rtWeather.w;
+      vec2 resolvedAxes=1.-smoothstep(vec2(u_rtFilter.x),vec2(u_rtFilter.y),fv);
+      float resolved=1.-smoothstep(u_rtFootprint.z,u_rtFootprint.w,fv.x*fv.y);
+      resolved*=1.-smoothstep(u_rtFootprint.x,u_rtFootprint.y,max(fv.x,fv.y));
+      vec3 mean=vec3(1);
+      if(u_rtHour.w>.5) {
+        vec3 target=u_materialP<=.5?mix(u_rtPhoto[0],u_rtPhoto[1],u_materialP*2.):mix(u_rtPhoto[1],u_rtPhoto[2],(u_materialP-.5)*2.);
+        vec3 source=mix(day,dark,max(0.,u_materialP*2.-1.));
+        mean=target/max(source,vec3(.0001));
+      }
+      if(max(resolved,max(resolvedAxes.x,resolvedAxes.y))<=0.)return mean;
+      float u=fract(uv.x),cover=.5-.5*cos(u*6.28318530718);
+      uv.y+=u_rtShape.w*cover*resolvedAxes.x;
+      vec2 cell=floor(uv);
+      vec3 tone=vec3(0);
+      // Integrate the piecewise-constant clay field over the pixel footprint.
+      // Up to three intersected cells per axis; wider footprints fade to mean.
+      vec2 footprint=clamp(fw,vec2(.00001),vec2(2.));
+      for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){
+        vec2 q=cell+vec2(float(x),float(y));
+        vec2 overlap=max(vec2(0),min(uv+footprint*.5,q+1.)-max(uv-footprint*.5,q));
+        float weight=overlap.x*overlap.y/(footprint.x*footprint.y);
+        if(weight>0.)tone+=rtTone(q)*weight;
+      }
+      float edge=min(u,1.-u),aa=max(fw.x,.00001);
+      float valley=1.-smoothstep(u_rtShape.x*.5-aa*.5,u_rtShape.x*.5+aa*.5,edge);
+      float v=fract(uv.y),ay=max(fw.y,.00001);
+      float lip=1.-smoothstep(u_rtLip.x-ay*.5,u_rtLip.x+ay*.5,v);
+      float highlight=1.-smoothstep(u_rtLip.x-ay*.5,u_rtLip.x+ay*.5,1.-v);
+      // Each relief term has zero area mean. Distant pixels return exactly 1.
+      float relief=1.+u_rtShape.z*(cover-.5)-u_rtShape.y*(valley-u_rtShape.x)
+        -u_rtLip.y*(lip-u_rtLip.x)+u_rtLip.z*(highlight-u_rtLip.x);
+      if(wpHash(cell,u_rtCell.w+4.)<u_rtWeather.x) {
+        float stain=rtWeatherNoise(uv*u_rtWeather.yz);
+        relief+=stain*u_rtLip.w;
+      }
+      float contrast=u_materialP<=.5?mix(u_rtHour.x,u_rtHour.y,u_materialP*2.):mix(u_rtHour.y,u_rtHour.z,(u_materialP-.5)*2.);
+      // Course foreshortening must not erase a still-resolved column field.
+      // Integrated clay uses tile area; relief uses its own axis.
+      // All terms converge to the same mean.
+      float columnRelief=u_rtShape.z*(cover-.5)-u_rtShape.y*(valley-u_rtShape.x);
+      float courseRelief=-u_rtLip.y*(lip-u_rtLip.x)+u_rtLip.z*(highlight-u_rtLip.x);
+      float weatherRelief=relief-1.-columnRelief-courseRelief;
+      vec3 detail=((tone-1.)*resolved+vec3(columnRelief)*resolvedAxes.x
+        +vec3(courseRelief)*resolvedAxes.y+vec3(weatherRelief)*min(resolvedAxes.x,resolvedAxes.y))*contrast;
+      if(u_rtEdges.x>.5) {
+        float crest=1.-smoothstep(0.,u_rtEdges.y,(surface.z-p.z)/h);
+        detail=mix(detail,vec3(u_rtEdges.z*cos(uv.x*6.28318530718)),crest);
+      }
+      if(u_rtEdges.w>.5) {
+        float eave=1.-smoothstep(0.,u_rtEave.x,(p.z-surface.y)/h);
+        detail-=eave*u_rtEave.y*(1.-cover);
+      }
+      return mean*(1.+detail*u_rtCell.z);
+    }
+  `;
+  const apply=`
+      if(surface.x> -2.5 && surface.x< -1.5 && u_rtOn>.5) {
+        vec3 n=normalize(v_normal);
+        if(n.z>u_rtFilter.z && n.z<u_rtFilter.w) {
+          vec3 factor=rtFactor(v_pos,n,surface,albedo,night);
+          baseColor.rgb*=factor;albedo*=factor;night*=factor;
+        }
+      }
+  `;
+  window.RoofTiles={glsl,apply,sync};
+})();
