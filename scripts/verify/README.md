@@ -1724,3 +1724,27 @@ Traps this check cost time:
   moved 30 px, cloud gain 0, the turn run in canvas mode, the own-output run in canvas
   mode). Run `--break` after any edit to the check; a break that comes back green
   means the assertion measures nothing.
+
+## A band's own recess switches: `inset-switches.mjs` (added October 5 2026)
+
+A recessed band closes its recess with a soffit, a floor and a return at each
+open end. A band can now leave each one out for itself
+(`inset: { d, soffit, floor, returns }`, `docs/apartments.md`). The check sets
+one band of The Standard's corner bay 2.0 m back in thirteen variants and counts
+mesh vertices: each switch removes its own surface and nothing else, the
+recessed wall never changes, and taking the inset away restores the count.
+
+```bash
+python scripts/serve.py 8447                       # from the repo root
+VERIFY_URL=http://127.0.0.1:8447 node <lanes>/gpu-run.mjs --label inset-switches --   node scripts/verify/inset-switches.mjs           # about 3.6 minutes
+```
+
+Two traps it met on its first two runs:
+
+- **`slopesApartments.rebuild()` returns before the mesh exists.** It drops the
+  group and builds the new one over the next frames, so `slopesApartments.group`
+  is `null` in the same `page.evaluate`. Change the data and call `rebuild()` in
+  one evaluate, wait for `count.done && group`, read the mesh in a second one.
+- **`APARTMENTS.insetSoffit` is city-wide.** Turning it off takes the soffit and
+  the floor off every recess in the city (1,164 vertices), not off the band
+  under test (12). Compare two variants under the SAME layer default.

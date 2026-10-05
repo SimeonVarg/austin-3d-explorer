@@ -213,6 +213,8 @@
     // Recesses (a band's `inset`): the soffit over a recess and the floor of
     // one that starts above the block's foot are drawn; `insetReturns` draws
     // the side walls where a recess ends against a face that is not recessed.
+    // These are the defaults; one band may overrule them for itself with
+    // `inset: { d, soffit, floor, returns }` (see "recesses" below).
     insetSoffit: true,
     insetReturns: true,
     // The fixtures that stand OFF a wall (2026-09-08): fins and piers (a
@@ -1917,6 +1919,15 @@
   // stand on the face line under the soffit: `{ pitch | at: [s...], w, d,
   // tone }`, one box each from floor to soffit.
   //
+  // A band may switch its own closing surfaces (2026-10-05): `inset: { d,
+  // soffit: false, floor: false, returns: false }`, each one optional and
+  // each overruling the layer default above for that band alone; `returns`
+  // may also be `{ lo, hi }` for one end. The case it is for: ONE recessed
+  // glass wall that a height slice cuts into two stacked bands. Each band
+  // closed its own top and foot, so a ceiling plate ran across the middle
+  // of the glass; the lower band says `soffit: false`, the upper one
+  // `floor: false`, and the wall reads as one again.
+  //
   // The corner arithmetic, for wall i leaving corner O with direction di
   // and outward normal ni after wall p (dp, np), both recessed (d, dN): the
   // point on i's offset line that lies on p's is s along the wall with
@@ -1927,6 +1938,8 @@
   // and the return closes it there.
   const insetOf = band => band && band.inset != null ? (typeof band.inset === 'number' ? band.inset : (band.inset.d || 0)) : 0;
   const insetSpec = band => (band && typeof band.inset === 'object') ? band.inset : {};
+  /** a band's own switch when it gives one, the layer default when it does not */
+  const bandSwitch = (own, dflt) => own == null ? dflt : !!own;
   const sameBand = (a, b) => Math.abs(a.z0 - b.z0) < 1e-3 && Math.abs(a.z1 - b.z1) < 1e-3;
   /** how far the recessed wall's end sits from this end of the piece, and whether a return closes it there */
   function recessEnd(end, band, d, high) {
@@ -1956,16 +1969,13 @@
       tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);
     }
     // the returns: a wall across the recess at either end, where nothing recessed meets it
-    if (APTS.insetReturns) {
-      if (lo.ret) B.quad(W.at(0, -lo.from, z0), W.at(lo.s, -d, z0), W.at(lo.s, -d, z1), W.at(0, -lo.from, z1), tone, T);
-      if (hi.ret) B.quad(W.at(len, -hi.from, z0), W.at(len - hi.s, -d, z0), W.at(len - hi.s, -d, z1), W.at(len, -hi.from, z1), tone, nT);
-    }
+    const R = IS.returns, endwise = R != null && typeof R === 'object';
+    if (lo.ret && bandSwitch(endwise ? R.lo : R, APTS.insetReturns)) B.quad(W.at(0, -lo.from, z0), W.at(lo.s, -d, z0), W.at(lo.s, -d, z1), W.at(0, -lo.from, z1), tone, T);
+    if (hi.ret && bandSwitch(endwise ? R.hi : R, APTS.insetReturns)) B.quad(W.at(len, -hi.from, z0), W.at(len - hi.s, -d, z0), W.at(len - hi.s, -d, z1), W.at(len, -hi.from, z1), tone, nT);
     // the soffit at the top, the floor at the foot when the band starts above the block's foot
-    if (APTS.insetSoffit) {
-      const ring = zz => [W.at(0, 0, zz), W.at(len, 0, zz), W.at(len - hi.s, -d, zz), W.at(lo.s, -d, zz)];
-      B.polygon(ring(z1), tone, [0, 0, -1], 'xy');
-      if (opts.blockZ0 == null || z0 > opts.blockZ0 + 0.01) B.polygon(ring(z0), tone, [0, 0, 1], 'xy');
-    }
+    const ring = zz => [W.at(0, 0, zz), W.at(len, 0, zz), W.at(len - hi.s, -d, zz), W.at(lo.s, -d, zz)];
+    if (bandSwitch(IS.soffit, APTS.insetSoffit)) B.polygon(ring(z1), tone, [0, 0, -1], 'xy');
+    if (bandSwitch(IS.floor, APTS.insetSoffit) && (opts.blockZ0 == null || z0 > opts.blockZ0 + 0.01)) B.polygon(ring(z0), tone, [0, 0, 1], 'xy');
     // the columns, on the face line
     const C = IS.columns || band.columns;
     if (C) {
