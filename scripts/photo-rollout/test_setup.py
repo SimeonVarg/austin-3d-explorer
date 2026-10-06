@@ -18,17 +18,31 @@ class SetupTests(unittest.TestCase):
         return subprocess.run([sys.executable, str(HERE / "setup.py"), *args],
                               capture_output=True, text=True)
 
+    @staticmethod
+    def pins_present():
+        """Does the Python that runs this test already hold the exact pinned packages?"""
+        import importlib.metadata as md
+        try:
+            return all(md.version(name) == version for name, version in setup.pins().items())
+        except md.PackageNotFoundError:
+            return False
+
     def test_reuse_checks_real_features_without_writing_runtime(self):
+        if not self.pins_present():
+            # --reuse-python checks an interpreter that already has the pins. On any other Python
+            # (a CI runner, the system Python) there is nothing to reuse: skip, never fail or install.
+            self.skipTest("this Python does not hold the pinned packages; run it inside the prepared runtime")
         python = Path(sys.executable).absolute()
         parent = python.parent
-        before = {p.name: p.stat().st_mtime_ns for p in parent.iterdir()}
+        # lstat: a system Python folder can hold a dangling link, and stat() on it raises.
+        before = {p.name: p.lstat().st_mtime_ns for p in parent.iterdir()}
         result = self.command("--reuse-python", str(python))
         self.assertEqual(result.returncode, 0, result.stderr)
         receipt = json.loads(result.stdout)
         self.assertTrue(receipt["reused"])
         self.assertEqual(receipt["packages"], setup.pins())
         self.assertIn("polygon-subtraction", receipt["smoke_tests"])
-        self.assertEqual(before, {p.name: p.stat().st_mtime_ns for p in parent.iterdir()})
+        self.assertEqual(before, {p.name: p.lstat().st_mtime_ns for p in parent.iterdir()})
 
     def test_checkout_runtime_refused_before_writing(self):
         unsafe = HERE / "runtime"
