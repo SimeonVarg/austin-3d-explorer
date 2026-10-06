@@ -30,10 +30,12 @@ Status: verified locally on `codex/ground-detail`; publication pending.
   explicitly inferred. These do not represent a survey of individual beds.
 - City sidewalk material attributes distinguish exposed aggregate, brick,
   concrete pavers and asphalt on existing mapped sidewalks. Photo evidence
-  takes precedence in its bounded areas, including an obsolete asphalt classification in the ETC forecourt. Prior material/source is retained
+  takes precedence in its bounded areas. Prior material/source is retained
   in `s0` and `_src.previousS` when a material is changed. Reruns restore the
   prior material/source before reapplying the current regions, so removing an
-  assignment removes its effect; existing polygon splits remain. Original raised
+  assignment removes its effect. Original geometry and feature order stay exact.
+  Existing surfaces change material only when evidence covers at least 90% of
+  the feature; partial coverage retains the current material. Original raised
   walks carrying `walk_z` are kept whole and retain their existing material.
 - Concrete panels, unit pavers and exposed aggregate use three 64×64 alpha
   images generated once. No imagery downloads, individual paver meshes or new
@@ -96,8 +98,9 @@ polygons and no occupied-ground overlap at the audit tolerance. Road, cycleway,
 creek bank and canopy features are unchanged. The crossing regression and
 54-script harness parity checks pass. An independent review script also measures
 zero new overlap with banks, Capitol, stadium and depth geometry. A material
-add/remove/corrected-reapply check confirms source restoration and area preservation. Material cuts retain fragments below
-the new-patch threshold instead of discarding small existing walk surfaces.
+add/remove/corrected-reapply check confirms source restoration and area preservation. All 12,976 original geometries and their order are preserved exactly. With the
+companion `gd` reader exclusion (#407), the campus landscape bake matches
+the shipped output exactly, including generated beds and raised walks.
 Generated patches are display-only: their `u` retains survey meaning, and
 generative ground readers must exclude `gd` before deriving trees or props.
 
@@ -117,8 +120,10 @@ version, three 2.2-second slow-turn samples per view/run, no CPU throttle, and
 minimum mean frame time. Campus: 38.18 → 36.56 ms; West Campus: 33.34 → 35.55 ms.
 The change therefore does not establish a general speed improvement. The
 phone-sized preview (one run, three samples/view) measured 21.04 → 21.12 ms
-and 19.52 → 20.06 ms respectively. These timing/memory samples preceded the final overlap-mask correction, which
-removed eight generated parts and changed no drawing code. The renderer was ANGLE Metal on Intel Iris
+and 19.52 → 20.06 ms respectively. These timing/memory samples used the earlier, larger version of the pass.
+Final review removed overlap and all original-feature splitting; the final
+payload is smaller and the drawing code is the same. These are measurements
+of that earlier version, not a fresh timing claim for the final data. The renderer was ANGLE Metal on Intel Iris
 Plus 655. These are short local comparisons, not Safari or phone hardware FPS.
 
 In the two desktop views, ground texture atlases increased by 57,888 and
@@ -141,7 +146,7 @@ Safari roof/motion-flicker issue.
 
 External data/service charges: **$0 of the $100 ceiling**. This excludes the
 unmetered cost of the Codex conversation itself. The input is a development
-asset, not a runtime fetch. The ground download grows by 173,796 bytes gzip
+asset, not a runtime fetch. The ground download grows by 161,158 bytes gzip
 (Python gzip default level), and the three generated image buffers total
 49,152 bytes before per-tile atlas packing. Measured atlas and frame costs are
 recorded with the final comparison rather than inferred from these file sizes.

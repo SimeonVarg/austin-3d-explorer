@@ -4955,6 +4955,7 @@ GROUND_DETAIL_BUILDINGS = os.path.join(ROOT, 'data', 'snapshots', '2026-10-05',
                                      'buildings.detailed.geojson')
 GROUND_DETAIL_MASKS = tuple(os.path.join(ROOT, 'data', name) for name in
                            ('capitol_ground.geojson', 'stadium.geojson'))
+GROUND_DETAIL_MATERIAL_COVERAGE = 0.90
 GROUND_DETAIL_MIN_M2 = 4.0
 GROUND_DETAIL_SIMPLIFY_M = 0.10
 GROUND_DETAIL_CLEARANCE_M = 0.03
@@ -5076,7 +5077,6 @@ def ground_detail(feats, stats):
     mtree=STRtree(zones)
     hard={'asphalt','concrete','paving','brick','limestone','aggregate','tanpaver','concretepaver'}
     classified=[]
-    extra_original=[]
     generated=[]
     for f in result:
         p=f['properties']
@@ -5086,6 +5086,25 @@ def ground_detail(feats, stats):
             (generated if p.get('gd') else classified).append(f);continue
         g=project(shape(f['geometry'])).buffer(0)
         candidates=sorted(int(i) for i in mtree.query(g))
+        if not p.get('gd'):
+            if not shape(f['geometry']).is_valid:
+                classified.append(f);continue
+            # Original geometry/order also seeds other bakes. Keep it exact;
+            # partial evidence does not justify recolouring an entire surface.
+            props=p
+            for i in candidates:
+                e=materials[i]
+                if g.area==0 or g.intersection(zones[i]).area/g.area < GROUND_DETAIL_MATERIAL_COVERAGE:
+                    continue
+                if props.get('s')==e['s']: continue
+                props=dict(props,s=e['s'],gm=e['id'],s0=props.get('s0',props.get('s')))
+                props['_src']={**props.get('_src',{}),'s':e['_src']['s'],
+                               'materialExtent':'material-extent',
+                               'previousS':props.get('_src',{}).get('previousS',
+                                   {'value':p.get('s'),'source':p.get('_src',{}).get('s','unknown')})}
+                stats['detail_material_regions']+=1
+            classified.append(f if props is p else dict(f,properties=props))
+            continue
         pieces=[(g,p)]
         for i in candidates:
             e=materials[i];z=zones[i];updated=[]
@@ -5106,23 +5125,22 @@ def ground_detail(feats, stats):
             pieces=updated
         # Preserve untouched features byte-for-byte, including existing precision.
         if len(pieces)==1 and pieces[0][1] is p:
-            (generated if p.get('gd') else classified).append(f)
+            generated.append(f)
         else:
             ready=[(compact(g),props) for g,props in pieces]
             ready=[(geometry,props) for geometry,props in ready if geometry is not None]
-            for index,(geometry,props) in enumerate(ready):
-                target=generated if props.get('gd') else (classified if index==0 else extra_original)
-                target.append(dict(f,geometry=geometry,properties=props))
-    # Keep every original feature's first piece at its existing source id.
-    # Extra pieces follow originals, so unrelated surfaces keep their tint.
-    return classified + extra_original + generated
+            for geometry,props in ready:
+                generated.append(dict(f,geometry=geometry,properties=props))
+    # Original source ids, ring order and geometry remain exact.
+    return classified + generated
 
 
 def ground_detail_signature():
     import hashlib, inspect
     with open(GROUND_DETAIL_INPUT, 'rb') as f:
         source=f.read()
-    parameters=(GROUND_DETAIL_MIN_M2, GROUND_DETAIL_SIMPLIFY_M, GROUND_DETAIL_CLEARANCE_M)
+    parameters=(GROUND_DETAIL_MIN_M2, GROUND_DETAIL_SIMPLIFY_M, GROUND_DETAIL_CLEARANCE_M,
+                GROUND_DETAIL_MATERIAL_COVERAGE)
     mask_hash=hashlib.sha256()
     for path in (GROUND_DETAIL_BUILDINGS,)+GROUND_DETAIL_MASKS:
         with open(path, 'rb') as f: mask_hash.update(f.read())
