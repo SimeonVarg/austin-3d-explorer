@@ -433,3 +433,13 @@ data; target 30 fps on the Mac from the reported 15 fps while preserving detail.
 Measure on the Mac and distinguish desktop phone emulation from physical-phone
 acceptance. Coordinate rendering-file ownership through the lane mailbox;
 existing open PRs remain separate until reconciled.
+
+## Ground detail pass — October 5, 2026
+
+Improve ground detail throughout the project, prioritizing campus and West
+Campus. Use area-specific owner-photo or public-data evidence. Record observed
+materials and mapped boundaries separately from inferred dimensions, patterns
+and unobserved areas. Preserve low memory use and provide matched before/after
+views; report raw/compressed data size, geometry and texture memory changes.
+The authorized spending ceiling for this pass is $100. Keep source photos and
+their identities in the private evidence store.

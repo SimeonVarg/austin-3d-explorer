@@ -86,6 +86,16 @@ Full rules: `CLAUDE.md` (same text in `AGENTS.md`). The short version:
     branches and opens its pull requests; nothing of it goes straight to `main`.
   - Everything else is the main lane's.
 
+## Ground pass — PR #408
+
+`codex/ground-detail` has the verified ground pass, evidence records and matched
+before/after pictures in `docs/ground-detail-2026-10.md`. The final review adds
+bank/Capitol/stadium masks and reversible material assignment. Generative readers
+must skip `gd`; the main lane owns that integration. It is not live yet;
+PR #408 is published, with #407 (generated-surface reader exclusions) to merge
+first. Checks and the owner’s visual review precede site publication. The four ground files
+remain reserved to that branch until publication.
+
 ## What is next
 
 `QUEUE.md` is 280 KB and mostly history. Its top-level headings, in order:
