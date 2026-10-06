@@ -63,6 +63,15 @@ memory and is never written here, in any tracked file, or in a commit message.
    changed** (what is live, open PRs, what is next). `HANDOFF.md` is a short
    current-state file; history lives in `docs/journal/`, indexed by
    `docs/JOURNAL.md`. Never append history to `HANDOFF.md`.
+
+   **One writer for the two shared records (2026-10-06).** `HANDOFF.md` and the top of
+   the month's journal file are written by the lane that PUBLISHES a pull request, once,
+   from the builder's result. A builder does not edit either file on its branch: it puts
+   its journal entry and any current-state line in the pull request body (or its mail),
+   and the publishing lane adds them to `main` after the merge. Why: on 2026-10-05/06 four
+   pull requests in a row each added an entry at the top of the same journal file, so every
+   merge made the next ones conflict, and a conflicting pull request gets no checks at all.
+
 8. **File-ownership lanes.** Before touching a file that another lane's open PR
    touches, say so and pick a different task. With self-merge this matters more,
    not less — the other lane can no longer rely on a human noticing the clash.
