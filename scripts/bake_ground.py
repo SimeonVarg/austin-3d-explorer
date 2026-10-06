@@ -5080,7 +5080,8 @@ def ground_detail(feats, stats):
     generated=[]
     for f in result:
         p=f['properties']
-        if p.get('k') not in ('area','patharea','pathslab') or (
+        # Raised walks are consumed whole by the landscape bake; preserve them.
+        if 'walk_z' in p or p.get('k') not in ('area','patharea','pathslab') or (
                 p.get('k')!='pathslab' and p.get('s') not in hard):
             (generated if p.get('gd') else classified).append(f);continue
         g=project(shape(f['geometry'])).buffer(0)

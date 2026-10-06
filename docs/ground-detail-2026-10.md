@@ -33,7 +33,8 @@ Status: verified locally on `codex/ground-detail`; publication pending.
   takes precedence in its bounded areas, including an obsolete asphalt classification in the ETC forecourt. Prior material/source is retained
   in `s0` and `_src.previousS` when a material is changed. Reruns restore the
   prior material/source before reapplying the current regions, so removing an
-  assignment removes its effect; existing polygon splits remain.
+  assignment removes its effect; existing polygon splits remain. Original raised
+  walks carrying `walk_z` are kept whole and retain their existing material.
 - Concrete panels, unit pavers and exposed aggregate use three 64×64 alpha
   images generated once. No imagery downloads, individual paver meshes or new
   rendering layers. Palettes, joint strength and pattern dimensions are in
@@ -140,7 +141,7 @@ Safari roof/motion-flicker issue.
 
 External data/service charges: **$0 of the $100 ceiling**. This excludes the
 unmetered cost of the Codex conversation itself. The input is a development
-asset, not a runtime fetch. The ground download grows by 174,028 bytes gzip
+asset, not a runtime fetch. The ground download grows by 173,796 bytes gzip
 (Python gzip default level), and the three generated image buffers total
 49,152 bytes before per-tile atlas packing. Measured atlas and frame costs are
 recorded with the final comparison rather than inferred from these file sizes.
