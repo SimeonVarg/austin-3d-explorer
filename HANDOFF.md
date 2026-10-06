@@ -19,7 +19,7 @@ build step for the site itself; data and tiles are baked by scripts in `scripts/
   (`.github/workflows/deploy-pages.yml`). Data snapshots arrive from
   `build-data.yml`. So "live" means "what is on `main`". Check `main` before
   saying anything is live.
-- Last things merged (newest first): #388 Burdine Hall and the Norman Hackerman
+- Last things merged (newest first): #409 a local reference-viewer helper (a Mac tool, not part of the site); #408 ground detail across campus and West Campus and #406 campus roof tiles visible at middle distance (both checked on the live site, Oct 6); #407 bakes skip the generated ground patches; #388 Burdine Hall and the Norman Hackerman
   Building with the compact wall material (Oct 2-3); #383 2400 Nueces and #379
   Ion Austin, the two buildings from street photographs that passed the owner's
   look (Oct 1); #369 the city comes back after the browser loses its graphics
@@ -32,8 +32,6 @@ build step for the site itself; data and tiles are baked by scripts in `scripts/
 
 | PR | Branch | State |
 |---|---|---|
-| #407 | `claude/ground-readers-skip-generated` | open (2026-10-05): four bakes that build on `data/ground.geojson` (`shape_trees.py`, `bake_props.py`, `bake_depth.py`, `bake_campus_landscape.py`) skip features the ground-detail stage marks `gd`. Byte-for-byte no change on today's ground |
-| #406 | `codex/mac-roofs-motion` | draft (2026-10-05): campus roof tiles stay visible at middle distance (area-filtered, not faded); the owner chose this look. Also touches every patterned wall in `js/slopes.js` and tracks two texture bindings in `js/city-lighting.js`. Before merge: checks green and one look at the brick walls |
 | #399 | `acer/sky-turn-direction` | draft: the GL sky now banks with the camera when you turn (clouds, stars, horizon haze and the sun's disc used to stay level while the world leaned up to 5 degrees). Yaw and pitch were already right. Gate: `scripts/verify/skyturn.mjs` (GPU slot, 18 assertions, desktop and phone). Overlaps #348 in `updateSky` |
 | #395 | `acer/lidar-heights` | roof heights from the 2021 lidar. The owner chose "raises only" (2026-10-04): by default about a hundred plain prisms the scan reads taller are raised, from `data/lidar_raises.json` (`scripts/bake_lidar_raises.py`: a tower on a podium is raised to the height half its roof reaches). `?lidarheights=0` is off, `?lidarheights=all` adds lowerings of up to 3 m. Read `docs/lidar-heights.md`; `drawn-heights.mjs` must run with the scan OFF (its default) or the next bake raises nothing |
 | #366 | `claude/aws-gpu-runner` | draft: AWS GPU runner for the browser checks |
