@@ -570,8 +570,9 @@ def build_surfaces(buildings):
             of = json.load(open(outer, encoding="utf-8"))["features"]
             S.add("outer building", True, [poly_m(f["geometry"]) for f in of])
 
-    ground = json.load(open(os.path.join(DATA, "ground.geojson"),
-                            encoding="utf-8"))["features"]
+    ground = [f for f in json.load(open(os.path.join(DATA, "ground.geojson"),
+                                        encoding="utf-8"))["features"]
+              if not f["properties"].get("gd")]   # display-only ground-detail patches never move a tree
     by_class = defaultdict(list)
     open_lawn = []
     seeds = [(Point(*to_m(lo, la)), name) for lo, la, name in OPEN_LAWNS]
@@ -780,8 +781,9 @@ def plant_campus(S, standing):
     """
     from shapely.geometry import shape as _shape
 
-    ground = json.load(open(os.path.join(DATA, "ground.geojson"),
-                            encoding="utf-8"))["features"]
+    ground = [f for f in json.load(open(os.path.join(DATA, "ground.geojson"),
+                                        encoding="utf-8"))["features"]
+              if not f["properties"].get("gd")]   # display-only ground-detail patches never move a tree
     near_old = NearestGrid(PLANT["min_gap_m"])
     for lon, lat in standing:
         near_old.add(lon, lat)

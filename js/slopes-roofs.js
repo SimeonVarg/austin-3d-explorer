@@ -185,9 +185,9 @@
       weatherShare: .15,         // fraction of tiles carrying weather deposits
       weather: .16,              // weather contrast, centred around zero
       weatherScale: [3,5],       // broad deposits within one tile
-      filter: [.16,.30],         // relief: full while a column/course spans six pixels, gone near three, before thin lines can crawl
-      clayFilter: [.03,.09],     // clay colours: tile areas per pixel; full at 33 pixels per tile, the roof mean at 11, before tiles turn to grain
-      axisFilter: [.30,.50],     // clay colours also fade when one axis alone falls from three to two pixels per tile
+      filter: [.65,1.25],         // integrated relief: retain detail through a pixel, then converge to the roof mean
+      clayFilter: [.20,.65],     // integrated clay colours: cells per pixel area; preserve readable middle-distance tiles
+      axisFilter: [.60,1.0],     // colour integration supports up to one cell per pixel along either axis
       perScreenPixel: false,     // true measures the fades in screen pixels: a phone then fades tiles at the same apparent size as a desktop (calmer, fewer tiles)
       meanFrom: 'baked',         // 'baked' preserves every roof; 'photo' is an option
       photoMean: ['#b06e42','#c5824e','#16131e'], // optional day/golden/night reference mean

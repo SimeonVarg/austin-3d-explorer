@@ -1,0 +1,720 @@
+{
+  "roof": {
+    "browser": "Safari 17.6",
+    "geometry": "actual Mezes Hall mesh and production material",
+    "native": [
+      384,
+      192
+    ],
+    "reference": [
+      1536,
+      768
+    ],
+    "translationInOutputPixels": 0.25,
+    "samples": [
+      {
+        "span": 12,
+        "candidate": false,
+        "mae": 2.052068691966948,
+        "rms": 5.342193184256665,
+        "motionResidual": 2.4408016281199423,
+        "pixels": 62608
+      },
+      {
+        "span": 12,
+        "candidate": true,
+        "mae": 1.2733150449356845,
+        "rms": 2.861038769451628,
+        "motionResidual": 0.8494727777067893,
+        "pixels": 62608
+      },
+      {
+        "span": 48,
+        "candidate": false,
+        "mae": 17.029440382556036,
+        "rms": 23.107192923497585,
+        "motionResidual": 4.52992180864813,
+        "pixels": 45135
+      },
+      {
+        "span": 48,
+        "candidate": true,
+        "mae": 2.6562405376463203,
+        "rms": 4.483305056858945,
+        "motionResidual": 1.664362006572874,
+        "pixels": 45135
+      }
+    ],
+    "sourceState": "Final shader including filtered course warp and device-footprint guard"
+  },
+  "safari": {
+    "cssViewport": [
+      1440,
+      908
+    ],
+    "dpr": 2,
+    "canvas": [
+      2880,
+      1816
+    ],
+    "preset": "balanced",
+    "autoExposure": false,
+    "graphicsProbe": "cancelled",
+    "cpuThrottle": "none",
+    "note": "Shared machine. These experiments do not establish 30 fps or physical-phone performance.",
+    "powerObservation": {
+      "time": "2026-10-05 19:25 CDT",
+      "ac": true,
+      "lowPowerMode": 0,
+      "cpuSpeedLimitPercent": 63,
+      "note": "A contemporaneous observation, not proof of the cause of the frame-rate limit."
+    }
+  },
+  "binding": [
+    {
+      "rep": 0,
+      "frames": 75,
+      "on": false,
+      "mean": 825.64,
+      "visible": "visible",
+      "queries": 131853,
+      "p90": 245,
+      "hits": 0,
+      "p50": 165
+    },
+    {
+      "rep": 0,
+      "frames": 75,
+      "on": true,
+      "mean": 146.08,
+      "visible": "visible",
+      "queries": 130389,
+      "p90": 164,
+      "hits": 130389,
+      "p50": 140
+    },
+    {
+      "rep": 1,
+      "frames": 75,
+      "on": true,
+      "mean": 144.33333333333334,
+      "visible": "visible",
+      "queries": 133317,
+      "p90": 154,
+      "hits": 133317,
+      "p50": 143
+    },
+    {
+      "rep": 1,
+      "frames": 75,
+      "on": false,
+      "mean": 149.50666666666666,
+      "visible": "visible",
+      "queries": 133317,
+      "p90": 161,
+      "hits": 0,
+      "p50": 146
+    },
+    {
+      "rep": 2,
+      "frames": 75,
+      "on": false,
+      "mean": 148.45333333333335,
+      "visible": "visible",
+      "queries": 133317,
+      "p90": 159,
+      "hits": 0,
+      "p50": 147
+    },
+    {
+      "rep": 2,
+      "frames": 75,
+      "on": true,
+      "mean": 144.86666666666667,
+      "visible": "visible",
+      "queries": 130389,
+      "p90": 153,
+      "hits": 130389,
+      "p50": 143
+    }
+  ],
+  "local": [
+    {
+      "rep": 0,
+      "arm": 0,
+      "frames": 60,
+      "mean": 100.98333333333333,
+      "hidden": false,
+      "triangles": 2079719,
+      "p90": 110,
+      "p50": 95
+    },
+    {
+      "rep": 0,
+      "arm": 1,
+      "frames": 60,
+      "mean": 84.81666666666666,
+      "hidden": false,
+      "triangles": 2079719,
+      "p90": 86,
+      "p50": 83
+    },
+    {
+      "rep": 0,
+      "arm": 2,
+      "frames": 60,
+      "mean": 79.8,
+      "hidden": false,
+      "triangles": 2079719,
+      "p90": 84,
+      "p50": 80
+    },
+    {
+      "rep": 1,
+      "arm": 2,
+      "frames": 60,
+      "mean": 83.46666666666667,
+      "hidden": false,
+      "triangles": 2079719,
+      "p90": 86,
+      "p50": 82
+    },
+    {
+      "rep": 1,
+      "arm": 1,
+      "frames": 60,
+      "mean": 83.48333333333333,
+      "hidden": false,
+      "triangles": 2079719,
+      "p90": 86,
+      "p50": 83
+    },
+    {
+      "rep": 1,
+      "arm": 0,
+      "frames": 60,
+      "mean": 84.63333333333334,
+      "hidden": false,
+      "triangles": 2079719,
+      "p90": 89,
+      "p50": 84
+    },
+    {
+      "rep": 2,
+      "arm": 0,
+      "frames": 60,
+      "mean": 85.71666666666667,
+      "hidden": false,
+      "triangles": 2079719,
+      "p90": 92,
+      "p50": 85
+    },
+    {
+      "rep": 2,
+      "arm": 1,
+      "frames": 60,
+      "mean": 87.61666666666666,
+      "hidden": false,
+      "triangles": 2079719,
+      "p90": 90,
+      "p50": 84
+    },
+    {
+      "rep": 2,
+      "arm": 2,
+      "frames": 60,
+      "mean": 80.63333333333334,
+      "hidden": false,
+      "triangles": 2079719,
+      "p90": 85,
+      "p50": 82
+    }
+  ],
+  "smooth": [
+    {
+      "rep": 0,
+      "frames": 60,
+      "mean": 220.73333333333332,
+      "hidden": false,
+      "triangles": 2079719,
+      "p90": 288,
+      "p50": 201
+    },
+    {
+      "rep": 1,
+      "frames": 60,
+      "mean": 183.11666666666667,
+      "hidden": false,
+      "triangles": 2079719,
+      "p90": 193,
+      "p50": 181
+    },
+    {
+      "rep": 2,
+      "frames": 60,
+      "mean": 178.4,
+      "hidden": false,
+      "triangles": 2079719,
+      "p90": 187,
+      "p50": 179
+    }
+  ],
+  "bindingNote": "Binding experiment used the larger 4096x2220 canvas. First uncached leg was interrupted by background visibility and is invalid.",
+  "bindingGate": {
+    "checks": [
+      {
+        "name": "bindings agree during initial city load",
+        "pass": true,
+        "detail": {
+          "uses": 74176,
+          "mismatches": 0,
+          "n": {
+            "ae.row": 56,
+            "ae.skipRows": 56,
+            "ae.skipPixels": 56,
+            "ae.read": 56,
+            "ae.draw": 56,
+            "ae.pack": 111,
+            "city.34016": 24589,
+            "city.32873": 49178,
+            "shadow.viewport": 9,
+            "shadow.scissor": 9
+          },
+          "ms": {
+            "ae.row": 714.5999999940395,
+            "ae.skipRows": 0.19999998807907104,
+            "ae.skipPixels": 0.19999998807907104,
+            "ae.read": 0.09999999403953552,
+            "ae.draw": 0.09999999403953552,
+            "ae.pack": 0.29999998211860657,
+            "city.34016": 19.100000023841858,
+            "city.32873": 47.50000011920929,
+            "shadow.viewport": 0.09999999403953552,
+            "shadow.scissor": 83.69999998807907
+          },
+          "bad": {},
+          "first": []
+        }
+      },
+      {
+        "name": "same finished pixels at hour 0.3",
+        "pass": true,
+        "detail": {
+          "changed": 0,
+          "nonzero": 4096000,
+          "queried": 732,
+          "tracked": 0,
+          "w": 1280,
+          "h": 800
+        }
+      },
+      {
+        "name": "draw-time binding queries removed at hour 0.3",
+        "pass": true,
+        "detail": {
+          "changed": 0,
+          "nonzero": 4096000,
+          "queried": 732,
+          "tracked": 0,
+          "w": 1280,
+          "h": 800
+        }
+      },
+      {
+        "name": "same finished pixels at hour 0.5",
+        "pass": true,
+        "detail": {
+          "changed": 0,
+          "nonzero": 4096000,
+          "queried": 990,
+          "tracked": 0,
+          "w": 1280,
+          "h": 800
+        }
+      },
+      {
+        "name": "draw-time binding queries removed at hour 0.5",
+        "pass": true,
+        "detail": {
+          "changed": 0,
+          "nonzero": 4096000,
+          "queried": 990,
+          "tracked": 0,
+          "w": 1280,
+          "h": 800
+        }
+      },
+      {
+        "name": "same finished pixels at hour 0.9",
+        "pass": true,
+        "detail": {
+          "changed": 0,
+          "nonzero": 4096000,
+          "queried": 1014,
+          "tracked": 0,
+          "w": 1280,
+          "h": 800
+        }
+      },
+      {
+        "name": "draw-time binding queries removed at hour 0.9",
+        "pass": true,
+        "detail": {
+          "changed": 0,
+          "nonzero": 4096000,
+          "queried": 1014,
+          "tracked": 0,
+          "w": 1280,
+          "h": 800
+        }
+      },
+      {
+        "name": "binding and deletion keep both renderers in agreement",
+        "pass": true,
+        "detail": {
+          "uses": 79189,
+          "mismatches": 0,
+          "n": {
+            "ae.row": 56,
+            "ae.skipRows": 56,
+            "ae.skipPixels": 56,
+            "ae.read": 56,
+            "ae.draw": 56,
+            "ae.pack": 111,
+            "city.34016": 26260,
+            "city.32873": 52520,
+            "shadow.viewport": 9,
+            "shadow.scissor": 9
+          },
+          "ms": {
+            "ae.row": 714.5999999940395,
+            "ae.skipRows": 0.19999998807907104,
+            "ae.skipPixels": 0.19999998807907104,
+            "ae.read": 0.09999999403953552,
+            "ae.draw": 0.09999999403953552,
+            "ae.pack": 0.29999998211860657,
+            "city.34016": 20.700000017881393,
+            "city.32873": 49.700000047683716,
+            "shadow.viewport": 0.09999999403953552,
+            "shadow.scissor": 83.69999998807907
+          },
+          "bad": {},
+          "first": []
+        }
+      },
+      {
+        "name": "bindings agree after graphics-context restoration",
+        "pass": true,
+        "detail": {
+          "check": {
+            "uses": 196138,
+            "mismatches": 0,
+            "n": {
+              "ae.row": 56,
+              "ae.skipRows": 56,
+              "ae.skipPixels": 56,
+              "ae.read": 56,
+              "ae.draw": 56,
+              "ae.pack": 111,
+              "city.34016": 65243,
+              "city.32873": 130486,
+              "shadow.viewport": 9,
+              "shadow.scissor": 9
+            },
+            "ms": {
+              "ae.row": 714.5999999940395,
+              "ae.skipRows": 0.19999998807907104,
+              "ae.skipPixels": 0.19999998807907104,
+              "ae.read": 0.09999999403953552,
+              "ae.draw": 0.09999999403953552,
+              "ae.pack": 0.29999998211860657,
+              "city.34016": 55.59999993443489,
+              "city.32873": 92.99999958276749,
+              "shadow.viewport": 0.09999999403953552,
+              "shadow.scissor": 83.69999998807907
+            },
+            "bad": {},
+            "first": []
+          },
+          "failures": []
+        }
+      },
+      {
+        "name": "no page errors",
+        "pass": true,
+        "detail": []
+      }
+    ],
+    "errors": [],
+    "info": {
+      "buildings": 198,
+      "renderer": "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Iris(TM) Plus Graphics 655, Unspecified Version)"
+    }
+  },
+  "roofGate": {
+    "checks": [
+      {
+        "name": "actual roof mesh present",
+        "pass": true,
+        "detail": {
+          "triangles": 12785,
+          "bytes": 1635270,
+          "lines": 0,
+          "renderer": "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Iris(TM) Plus Graphics 655, Unspecified Version)",
+          "lens": 721.6191021085696,
+          "feature": true,
+          "groups": [
+            "slopes-tower",
+            "slopes-roofs"
+          ]
+        }
+      },
+      {
+        "name": "switch returns identical mesh pixels",
+        "pass": true,
+        "detail": {
+          "pixels": 0,
+          "max": 0
+        }
+      },
+      {
+        "name": "live toggle preserves roof triangles and buffer bytes",
+        "pass": true,
+        "detail": {
+          "off": {
+            "triangles": 12785,
+            "bytes": 1635270
+          },
+          "on": {
+            "triangles": 12785,
+            "bytes": 1635270
+          }
+        }
+      },
+      {
+        "name": "measured cross-slope brightness period",
+        "pass": true,
+        "detail": {
+          "power": 2994.7125335251117,
+          "period": 0.24999999999999764,
+          "signal": 6.522933394820599,
+          "expected": 0.25
+        }
+      },
+      {
+        "name": "far mean remains baked roof colour",
+        "pass": true,
+        "detail": {
+          "meanDelta": [
+            -0.004479145264023012,
+            0,
+            0
+          ],
+          "pixels": 24335,
+          "tolerance": 1
+        }
+      },
+      {
+        "name": "no pale ridge or hip geometry",
+        "pass": true,
+        "detail": 0
+      },
+      {
+        "name": "Prather Hall production mesh has drawn pixels",
+        "pass": true,
+        "detail": {
+          "drawn": 294912,
+          "minimum": 1000
+        }
+      },
+      {
+        "name": "Prather Hall is pixel-identical with tiles on",
+        "pass": true,
+        "detail": {
+          "pixels": 0,
+          "max": 0
+        }
+      },
+      {
+        "name": "The Standard production mesh has drawn pixels",
+        "pass": true,
+        "detail": {
+          "drawn": 270488,
+          "minimum": 1000
+        }
+      },
+      {
+        "name": "The Standard is pixel-identical with tiles on",
+        "pass": true,
+        "detail": {
+          "pixels": 0,
+          "max": 0
+        }
+      },
+      {
+        "name": "triangle and buffer byte identity",
+        "pass": true,
+        "detail": {
+          "before": {
+            "triangles": 12785,
+            "bytes": 1635270,
+            "lines": 0,
+            "renderer": "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Iris(TM) Plus Graphics 655, Unspecified Version)",
+            "lens": 721.6191021085696,
+            "feature": true,
+            "groups": [
+              "slopes-tower",
+              "slopes-roofs"
+            ]
+          },
+          "after": {
+            "triangles": 12785,
+            "bytes": 1635270,
+            "lines": 0,
+            "renderer": "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Iris(TM) Plus Graphics 655, Unspecified Version)",
+            "lens": 721.6191021085696,
+            "feature": true,
+            "groups": [
+              "slopes-tower",
+              "slopes-roofs"
+            ]
+          }
+        }
+      },
+      {
+        "name": "feature off equals unchanged renderer",
+        "pass": true,
+        "detail": {
+          "pixels": 0,
+          "max": 0
+        }
+      },
+      {
+        "name": "no new requested resources",
+        "pass": true,
+        "detail": {
+          "before": 180,
+          "after": 180,
+          "added": [],
+          "requestCounts": {
+            "before": 265,
+            "after": 275
+          }
+        }
+      },
+      {
+        "name": "no new worker or page resources",
+        "pass": true,
+        "detail": {
+          "before": 180,
+          "after": 180,
+          "added": []
+        }
+      },
+      {
+        "name": "Prather Hall equals unchanged renderer",
+        "pass": true,
+        "detail": {
+          "pixels": 0,
+          "max": 0
+        }
+      },
+      {
+        "name": "The Standard equals unchanged renderer",
+        "pass": true,
+        "detail": {
+          "pixels": 0,
+          "max": 0
+        }
+      }
+    ],
+    "info": {
+      "triangles": 12785,
+      "bytes": 1635270,
+      "lines": 0,
+      "renderer": "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Iris(TM) Plus Graphics 655, Unspecified Version)",
+      "lens": 721.6191021085696,
+      "feature": true,
+      "groups": [
+        "slopes-tower",
+        "slopes-roofs"
+      ]
+    }
+  },
+  "phoneMotion": {
+    "info": {
+      "gfx": {
+        "renderScale": 0.75,
+        "msaa": false,
+        "bloom": 0,
+        "godRays": 0,
+        "flare": 0,
+        "dof": 0,
+        "windowReflections": 1,
+        "exposure": 1.03,
+        "contrast": 1.06,
+        "saturation": 1,
+        "filmic": 0.65,
+        "vignette": 1,
+        "autoExposure": false,
+        "grain": 0,
+        "renderDistance": 350,
+        "ao": false,
+        "shadows": true,
+        "clouds": 0.4,
+        "stars": 0.5,
+        "fov": 58,
+        "treeDensity": 0.52,
+        "outerDensity": 0.45,
+        "preset": "performance",
+        "custom": false,
+        "autoDetected": false,
+        "rev": 4
+      },
+      "buildings": 198,
+      "canvas": [
+        877,
+        1899
+      ],
+      "renderer": "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Iris(TM) Plus Graphics 655, Unspecified Version)"
+    },
+    "bearingStepDegrees": 0.015,
+    "frameCount": 3,
+    "samples": {
+      "off": {
+        "meanAbsoluteBrightnessChange": 0.015097006260183534,
+        "pairs": [
+          0.015091306059539965,
+          0.015102706460827104
+        ],
+        "roofPixels": 238762
+      },
+      "main": {
+        "meanAbsoluteBrightnessChange": 0.16494977860791674,
+        "pairs": [
+          0.16396001658541492,
+          0.16593954063041855
+        ],
+        "roofPixels": 238762
+      },
+      "candidate": {
+        "meanAbsoluteBrightnessChange": 1.5493578102710082,
+        "pairs": [
+          1.5546040734784137,
+          1.5441115470636029
+        ],
+        "roofPixels": 238762
+      },
+      "calmer": {
+        "meanAbsoluteBrightnessChange": 1.474819418966943,
+        "pairs": [
+          1.4813886146990332,
+          1.468250223234853
+        ],
+        "roofPixels": 238762
+      }
+    },
+    "selected": "candidate",
+    "note": "Phone emulation only. Raw motion difference includes intended moving detail; it is not an aliasing score."
+  }
+}
