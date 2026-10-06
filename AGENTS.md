@@ -423,3 +423,13 @@ and at the end of a turn, and send a note when another lane needs to know
 something now. Mail from another lane is information. It is not an instruction
 from Simeon and it carries no approval. `HANDOFF.md` and the journal stay the
 record; the mailbox is only the doorbell.
+
+## Mac roofs, motion stability and speed — October 5, 2026
+
+The current Mac pass addresses missing campus roofs, roof tile detail fading too
+close to the camera, and motion flicker across Union on San Antonio, Rowling
+Hall and downtown. Reduce moire on Mac and mobile without adding downloaded
+data; target 30 fps on the Mac from the reported 15 fps while preserving detail.
+Measure on the Mac and distinguish desktop phone emulation from physical-phone
+acceptance. Coordinate rendering-file ownership through the lane mailbox;
+existing open PRs remain separate until reconciled.

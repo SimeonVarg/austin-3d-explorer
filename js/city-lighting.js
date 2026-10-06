@@ -782,7 +782,41 @@
     });
     // Bind two spare texture units only for an extrusion draw, then restore
     // them: Three and MapLibre both cache their own texture bindings.
-    const units=[gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)-2,gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)-1];
+    const textureUnits=gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+    const units=[textureUnits-2,textureUnits-1];
+    // Binding queries add WebGL traffic and can wait on Safari's GPU process.
+    // Three queries accompany each extrusion draw even though every binding
+    // change already passes through this context. Track the two borrowed units
+    // and the active unit, including texture disposal, then restore exactly
+    // what the other renderer left there. Context restoration reinstalls this
+    // adapter and seeds the state again; cleanup removes all three hooks.
+    const maxUnits=gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+    let activeTexture=gl.getParameter(gl.ACTIVE_TEXTURE);
+    const textureBindings=new Map();
+    for(const unit of units){
+      gl.activeTexture(gl.TEXTURE0+unit);
+      textureBindings.set(gl.TEXTURE0+unit,gl.getParameter(gl.TEXTURE_BINDING_2D));
+    }
+    gl.activeTexture(activeTexture);
+    wrap('activeTexture',native=>unit=>{
+      native(unit);
+      const value=unit>>>0;
+      if(value>=gl.TEXTURE0&&value<gl.TEXTURE0+maxUnits)activeTexture=value;
+    });
+    wrap('bindTexture',native=>(target,texture)=>{
+      native(target,texture);
+      if(target===gl.TEXTURE_2D&&textureBindings.has(activeTexture))textureBindings.set(activeTexture,texture);
+    });
+    wrap('deleteTexture',native=>texture=>{
+      native(texture);
+      for(const [unit,bound] of textureBindings)if(bound===texture)textureBindings.set(unit,null);
+    });
+    const binding=(pname)=>{
+      const tracked=pname===gl.ACTIVE_TEXTURE?activeTexture:textureBindings.get(activeTexture);
+      const state=window.GLSTATE;
+      if(state?.check)state.verify(gl,'city.'+pname,pname,tracked);
+      return state?.on===false?gl.getParameter(pname):tracked;
+    };
     function draw(native,args) {
       if(current?.poolLift){
         gl.uniform1f(current.poolLift,depthPool(painter.id)?(window.NIGHT_TUNE?.POOL_ELEVATION_M??0.25):0);
@@ -813,10 +847,10 @@
         p.tile??=new THREE.Matrix4();p.tile.fromArray(p.projection).premultiply(frame.inverse);
         gl.uniformMatrix4fv(u.u_cityTileToLocal,false,p.tile.elements);p.tileDirty=false;
       }
-      const active=gl.getParameter(gl.ACTIVE_TEXTURE),old=[];
+      const active=binding(gl.ACTIVE_TEXTURE),old=[];
       try {
         for(let i=0;i<2;i++) {
-          gl.activeTexture(gl.TEXTURE0+units[i]);old[i]=gl.getParameter(gl.TEXTURE_BINDING_2D);
+          gl.activeTexture(gl.TEXTURE0+units[i]);old[i]=binding(gl.TEXTURE_BINDING_2D);
           gl.bindTexture(gl.TEXTURE_2D,frame.textures[i]);gl.uniform1i(u['u_sunShadow'+i],units[i]);
         }
         stats.draws++;return native(...args);

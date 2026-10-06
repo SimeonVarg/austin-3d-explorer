@@ -638,16 +638,22 @@ ${window.RoofTiles.apply}
           vec2 uv=abs(n.z)>.65?v_pos.xy:vec2(dot(v_pos.xy,normalize(vec2(-n.y,n.x))),v_pos.z);
           vec2 size=max(surface.yz,vec2(.01));
           vec2 cell=uv/size;
+          // Measure the continuous coordinates before the running-bond row
+          // offset. Derivatives of floor/fract measure the discontinuity,
+          // not the pixel footprint, and make lines crawl at shallow angles.
+          vec2 footprint=fwidth(cell);
+          float resolved=1.0-smoothstep(.15,.55,max(footprint.x,footprint.y));
           if(kind<2.5)cell.x+=mod(floor(cell.y),2.0)*.5;
           vec2 edge=(.5-abs(fract(cell)-.5))*size;
-          float d=min(edge.x,edge.y),aa=max(fwidth(d),.0005);
-          float joint=1.0-smoothstep(u_surfaceStyle.x-aa,u_surfaceStyle.x+aa,d);
-          // Subpixel mortar resolves toward the field colour instead of shimmering.
-          float resolved=1.0-smoothstep(.15,.55,max(fwidth(cell.x),fwidth(cell.y)));
+          vec2 aa=max(fwidth(uv),vec2(.0005));
+          vec2 inside=smoothstep(vec2(u_surfaceStyle.x)-aa*.5,vec2(u_surfaceStyle.x)+aa*.5,edge);
+          float joint=1.0-inside.x*inside.y;
           float tile=hashCell(floor(cell))-.5;
           float grain=hashCell(floor(uv*u_surfaceNoise.x))-.5;
           float grainFade=1.0-smoothstep(.2,1.0,max(fwidth(uv.x),fwidth(uv.y))*u_surfaceNoise.x);
-          col*=1.0+strength*nearDetail*(tile*u_surfaceStyle.z*u_surfaceNoise.y+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved);
+          // Random tile colours have the same sampling limit as their joints.
+          // Previously only the mortar faded, leaving unfiltered colour noise.
+          col*=1.0+strength*nearDetail*(tile*u_surfaceStyle.z*u_surfaceNoise.y*resolved+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved);
         }
       }
       gl_FragColor=vec4(col,baseColor.a*faceMix);
