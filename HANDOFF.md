@@ -84,9 +84,13 @@ Full rules: `CLAUDE.md` (same text in `AGENTS.md`). The short version:
     `scripts/gods-eye/README.md` describes launch, offline panorama projection
     and explicit camera conversion; `docs/gods-eye-view-assessment.md` records
     where it helps and what remains a reference. It adds no renderer,
-    credential or dataset to the shipped city. Publishing is pending on
-    `codex/gods-eye-integration`; the main lane has the tested branch and PR
-    description, because this chat cannot access GitHub authentication.
+    credential or dataset to the shipped city. Merged as PR #409 (`8c6483e`).
+    Wednesday preparation on `codex/photo-rollout-prep` adds only
+    `scripts/photo-rollout/` and `docs/photo-rollout-2026-10-07.md`: external
+    Python setup, fresh capture receipts and verified comparison sheets.
+    Its tools pass 25 tests; the detailed shot guide stays private. This is
+    preparation, not a new building rollout or model-training job. The main
+    lane publishes the tested preparation branch through its existing sign-in.
   - The second lane's sandbox cannot reach GitHub. The main lane pushes its
     branches and opens its pull requests; nothing of it goes straight to `main`.
   - Everything else is the main lane's.
