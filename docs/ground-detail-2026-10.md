@@ -16,7 +16,8 @@ Status: verified locally on `codex/ground-detail`; publication pending.
   parking and a few driveway gaps are included. Roof decks, pools, proposed
   sidewalks and arbitrary road geometry are excluded.
 - Existing ground wins coverage conflicts. The bake cuts additions around
-  existing ground, roads, paths, cycleways and building footprints. A 3 cm guard
+  existing ground, roads, paths, cycleways, creek banks, Capitol/stadium surfaces
+  and building footprints. A 3 cm guard
   absorbs coordinate rounding; simplification happens **before** the cut.
 - Three courts absent from the survey receive compact outlines traced from
   the explicit 2025 aerial mosaic: GDC's brick court and planted bed, the ETC
@@ -30,7 +31,9 @@ Status: verified locally on `codex/ground-detail`; publication pending.
 - City sidewalk material attributes distinguish exposed aggregate, brick,
   concrete pavers and asphalt on existing mapped sidewalks. Photo evidence
   takes precedence in its bounded areas, including an obsolete asphalt classification in the ETC forecourt. Prior material/source is retained
-  in `_src.previousS` when a material is changed.
+  in `s0` and `_src.previousS` when a material is changed. Reruns restore the
+  prior material/source before reapplying the current regions, so removing an
+  assignment removes its effect; existing polygon splits remain.
 - Concrete panels, unit pavers and exposed aggregate use three 64×64 alpha
   images generated once. No imagery downloads, individual paver meshes or new
   rendering layers. Palettes, joint strength and pattern dimensions are in
@@ -51,7 +54,7 @@ filename, identifier or camera position is shipped.
 | GDC / ETC material | Reviewed owner photographs, 2026-10-03 | Exact extent, individual joints and model grade |
 | McCombs material | Reviewed owner photographs, 2026-10-03 | East-apron correspondence provisional; application boundary and joints inferred |
 | Planting extent and ground | 2025 aerial review | Borders and grass versus mulch below canopy |
-| Procedural texture | Material appearance and existing site palette | Joint spacing, unit variation, age and stains |
+| Procedural texture | Reviewed material class and existing site palette | Unsampled day/golden/night colours, joint spacing, unit variation, age and stains |
 
 Old features without reliable evidence remain unknown. Being near a reviewed
 photo does not promote an entire building or district to photo-verified status.
@@ -68,7 +71,7 @@ Public references (accessed 2026-10-05):
   The tiled service is titled “2025 Aerials” but retains a stale “2021 Imagery”
   description. This pass used the explicit `Aerials2025` mosaic and the returned
   export extent, rather than assuming the requested bounding box was preserved.
-  No aerial pixels are included in the app.
+  The aerial licence has not been confirmed. No aerial pixels are included in the app.
 
 ## Rebuild and verification
 
@@ -82,15 +85,19 @@ python scripts/verify/bug-pass-crossings.py
 ```
 
 The full bake calls the same final stage. The incremental command records
-input/function, footprint, geometry-library and output-feature hashes. A repeat is a no-op only when both
+input/function, footprint, external ground masks, geometry-library and output-feature hashes. A repeat is a no-op only when both
 match; editing the input or the output invalidates that cache. The added-surface
 building mask is pinned to the tracked 2026-10-05 snapshot.
 
 The audit checks every new/changed polygon, evidence references and intersections
-with existing ground and buildings. The current run has no invalid changed
+with existing ground, banks, Capitol/stadium surfaces and buildings. The current run has no invalid changed
 polygons and no occupied-ground overlap at the audit tolerance. Road, cycleway,
 creek bank and canopy features are unchanged. The crossing regression and
-54-script harness parity checks pass.
+54-script harness parity checks pass. An independent review script also measures
+zero new overlap with banks, Capitol, stadium and depth geometry. A material
+add/remove/corrected-reapply check confirms source restoration and area preservation.
+Generated patches are display-only: their `u` retains survey meaning, and
+generative ground readers must exclude `gd` before deriving trees or props.
 
 An unchanged **full** ground rebuild was tested before editing and differed
 from the shipped file: the geometry-library version and newer building
@@ -108,7 +115,8 @@ version, three 2.2-second slow-turn samples per view/run, no CPU throttle, and
 minimum mean frame time. Campus: 38.18 → 36.56 ms; West Campus: 33.34 → 35.55 ms.
 The change therefore does not establish a general speed improvement. The
 phone-sized preview (one run, three samples/view) measured 21.04 → 21.12 ms
-and 19.52 → 20.06 ms respectively. The renderer was ANGLE Metal on Intel Iris
+and 19.52 → 20.06 ms respectively. These timing/memory samples preceded the final overlap-mask correction, which
+removed nine generated parts and changed no drawing code. The renderer was ANGLE Metal on Intel Iris
 Plus 655. These are short local comparisons, not Safari or phone hardware FPS.
 
 In the two desktop views, ground texture atlases increased by 57,888 and
@@ -119,6 +127,9 @@ preview grew 1.7 MB used heap and 0.7 MB backing storage. File size and image
 buffers alone are not a total-memory measurement.
 
 The existing MapLibre texture system changes pattern scale at integer zooms.
+An eight-second small turn at GDC and southwest campus was also sampled on
+the phone-sized profile; reviewed frames show no obvious new ground bands or
+pattern inversion. This is limited visual evidence, not a general flicker guarantee.
 These new material patterns retain that limitation; unit dimensions are a
 visual approximation, not physical measurements. Soft, restrained joints limit
 high-frequency contrast. This pass does not claim to resolve the separate
@@ -128,7 +139,7 @@ Safari roof/motion-flicker issue.
 
 External data/service charges: **$0 of the $100 ceiling**. This excludes the
 unmetered cost of the Codex conversation itself. The input is a development
-asset, not a runtime fetch. The ground download grows by 174,623 bytes gzip
+asset, not a runtime fetch. The ground download grows by 173,836 bytes gzip
 (Python gzip default level), and the three generated image buffers total
 49,152 bytes before per-tile atlas packing. Measured atlas and frame costs are
 recorded with the final comparison rather than inferred from these file sizes.

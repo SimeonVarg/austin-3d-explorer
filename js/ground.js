@@ -697,8 +697,8 @@
       bikelane:'#12151d', biketrack:'#171a23', bikegreen:'#131a15',
     },
   };
-  // Reviewed materials, with restrained lightness changes for the site's palette.
-  // Dimensions/joint layout remain procedural inference, recorded by the bake.
+  // Material classes are reviewed; these day/golden/night colours are inferred
+  // palette choices, not sampled photo colours. Dimensions/joints are inference.
   const DETAIL_MATERIAL = window.GROUND_DETAIL_MATERIAL = {
     aggregate: ['#c8c0af', '#d0b992', '#191a20'],
     concretepaver: ['#d6d0c5', '#dcc39e', '#1b1b21'],

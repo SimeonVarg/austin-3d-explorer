@@ -4953,6 +4953,8 @@ def walkaudit(pairs=None, where=False, prov=False, coverage=False,
 GROUND_DETAIL_INPUT = os.path.join(ROOT, 'scripts', 'ground-detail-sources.json')
 GROUND_DETAIL_BUILDINGS = os.path.join(ROOT, 'data', 'snapshots', '2026-10-05',
                                      'buildings.detailed.geojson')
+GROUND_DETAIL_MASKS = tuple(os.path.join(ROOT, 'data', name) for name in
+                           ('capitol_ground.geojson', 'stadium.geojson'))
 GROUND_DETAIL_MIN_M2 = 4.0
 GROUND_DETAIL_SIMPLIFY_M = 0.10
 GROUND_DETAIL_CLEARANCE_M = 0.03
@@ -4963,7 +4965,7 @@ def ground_detail(feats, stats):
 
     Existing layers win every coverage tie. Nothing here changes walk routing,
     elevations, roads, creek geometry, or creates individual paver polygons.
-    Reruns replace generated patches and skip already-applied material regions.
+    Reruns replace generated patches and restore prior materials before classifying.
     """
     from shapely.geometry import shape, mapping, box
     from shapely.ops import transform, unary_union, clip_by_rect
@@ -4971,7 +4973,7 @@ def ground_detail(feats, stats):
     with open(GROUND_DETAIL_INPUT, encoding='utf-8') as f:
         spec = json.load(f)
     sx = 111320 * math.cos(math.radians(30.285))
-    sy = 111320
+    sy = 111320  # local approximation: area thresholds are about 0.4% high
     def project(g):
         return transform(lambda x,y: ((x+97.74)*sx,(y-30.285)*sy), g)
     def unproject(g):
@@ -4992,14 +4994,36 @@ def ground_detail(feats, stats):
         if not q.is_valid: q=q.buffer(0)
         if q.is_empty: return None
         return rounded if q.equals_exact(shape(rounded),0) else mapping(q)
-    original=[f for f in feats if not f['properties'].get('gd')]
+    original=[]
+    for f in feats:
+        p=f['properties']
+        if p.get('gd'): continue
+        if p.get('gm'):
+            p=dict(p)
+            src=dict(p.get('_src',{}))
+            prior=src.pop('previousS',{})
+            p['s']=p.pop('s0',prior.get('value'))
+            if p['s'] is None: p.pop('s')
+            p.pop('gm')
+            src.pop('materialExtent',None)
+            if prior.get('source','unknown')=='unknown': src.pop('s',None)
+            else: src['s']=prior['source']
+            if src: p['_src']=src
+            else: p.pop('_src',None)
+            f=dict(f,properties=p)
+        original.append(f)
     occupied=[project(shape(f['geometry'])).buffer(0) for f in original
-              if f['properties'].get('k') in ('area','patharea','roadarea','cyclearea')]
+              if f['properties'].get('k') in ('area','patharea','roadarea','cyclearea','bank')]
     # Pin this mask for repeatable incremental results. Full bakes may use newer
     # footprints earlier; any newly drawn hardscape remains a blocker here.
     with open(GROUND_DETAIL_BUILDINGS, encoding='utf-8') as f:
         buildings=json.load(f)['features']
     occupied += [project(shape(f['geometry'])).buffer(0) for f in buildings]
+    for path in GROUND_DETAIL_MASKS:
+        with open(path, encoding='utf-8') as f:
+            occupied += [project(shape(x['geometry'])).buffer(0)
+                         for x in json.load(f)['features'] if x.get('geometry')
+                         and x['geometry']['type'] in ('Polygon','MultiPolygon')]
     tree=STRtree(occupied)
     added=[]
     def keep_free(g):
@@ -5028,7 +5052,11 @@ def ground_detail(feats, stats):
                    '_src':entry.get('_src',{'geometry':'coa23','s':'surface-default'})}
             if category=='survey':
                 props['oid']=entry['objectId']
-                if entry['class']=='Paved Parking':props['u']='parking'
+                # Semantic use comes from the survey, not its rendering layer.
+                # These gd surfaces are display-only; generative readers skip gd.
+                props['u']={'Sidewalk':'footway','Patio':'patio','Pavement':'paving',
+                            'Paved Parking':'parking','Courtyard':'courtyard',
+                            'Paved Driveway':'driveway'}[entry['class']]
             result.append({'type':'Feature','geometry':geometry,'properties':props})
             if category=='reviewed':
                 props['_src']={**props['_src'],'renderGrade':'panel-form'}
@@ -5067,7 +5095,7 @@ def ground_detail(feats, stats):
                 if hit.area < GROUND_DETAIL_MIN_M2:
                     updated.append((part,props));continue
                 for q in polygons(part.difference(z), .001):updated.append((q,props))
-                changed=dict(props,s=e['s'],gm=e['id'])
+                changed=dict(props,s=e['s'],gm=e['id'],s0=props.get('s0',props.get('s')))
                 changed['_src']={**props.get('_src',{}),'s':e['_src']['s'],
                                  'materialExtent':'material-extent',
                                  'previousS':props.get('_src',{}).get('previousS',
@@ -5094,12 +5122,13 @@ def ground_detail_signature():
     with open(GROUND_DETAIL_INPUT, 'rb') as f:
         source=f.read()
     parameters=(GROUND_DETAIL_MIN_M2, GROUND_DETAIL_SIMPLIFY_M, GROUND_DETAIL_CLEARANCE_M)
-    with open(GROUND_DETAIL_BUILDINGS, 'rb') as f:
-        footprint_hash=hashlib.sha256(f.read()).digest()
+    mask_hash=hashlib.sha256()
+    for path in (GROUND_DETAIL_BUILDINGS,)+GROUND_DETAIL_MASKS:
+        with open(path, 'rb') as f: mask_hash.update(f.read())
     import shapely
     geometry_version=(shapely.__version__,shapely.geos_version_string)
     return hashlib.sha256(source+inspect.getsource(ground_detail).encode()+
-                          repr((parameters,geometry_version)).encode()+footprint_hash).hexdigest()
+                          repr((parameters,geometry_version)).encode()+mask_hash.digest()).hexdigest()
 
 
 def ground_detail_record(data):
@@ -5130,9 +5159,14 @@ def audit_ground_detail():
         assert p['_src']['s'] in spec['sources'], ('Missing surface evidence',p)
     blockers=[project(shape(f['geometry'])).buffer(0) for f in feats
               if not f['properties'].get('gd') and f['properties']['k'] in
-              ('area','roadarea','patharea','cyclearea')]
+              ('area','roadarea','patharea','cyclearea','bank')]
     with open(GROUND_DETAIL_BUILDINGS, encoding='utf-8') as f:
         blockers += [project(shape(x['geometry'])).buffer(0) for x in json.load(f)['features']]
+    for path in GROUND_DETAIL_MASKS:
+        with open(path, encoding='utf-8') as f:
+            blockers += [project(shape(x['geometry'])).buffer(0)
+                         for x in json.load(f)['features'] if x.get('geometry')
+                         and x['geometry']['type'] in ('Polygon','MultiPolygon')]
     tree=STRtree(blockers)
     overlap=0
     for f in new:
