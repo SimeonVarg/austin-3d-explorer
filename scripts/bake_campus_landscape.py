@@ -243,7 +243,8 @@ def compile_gardens():
  from shapely import make_valid
  profiles=json.loads((ROOT/'data/campus_gardens.json').read_text())
  halls=json.loads((ROOT/'data/campus_buildings.json').read_text())['buildings']
- ground=json.loads((ROOT/'data/ground.geojson').read_text())['features']
+ # `gd` marks display-only patches from the ground-detail stage; a garden is never fitted to one.
+ ground=[f for f in json.loads((ROOT/'data/ground.geojson').read_text())['features'] if not f['properties'].get('gd')]
  mx=111320*math.cos(math.radians(30.286));my=111320
  local=lambda g:transform(lambda x,y:((x+97.74)*mx,(y-30.286)*my),g)
  world=lambda g:transform(lambda x,y:(x/mx-97.74,y/my+30.286),g)

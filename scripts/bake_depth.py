@@ -228,7 +228,11 @@ def _signed_area(ring):
 
 
 def load_ground():
-    return json.load(open(GROUND, encoding="utf-8"))
+    # Patches the ground-detail stage of bake_ground.py generated carry `gd`. They are
+    # display-only fills from a public survey: they must never move a step, a bank or a fountain.
+    gj = json.load(open(GROUND, encoding="utf-8"))
+    gj["features"] = [f for f in gj["features"] if not (f.get("properties") or {}).get("gd")]
+    return gj
 
 
 def load_area(g, name):
