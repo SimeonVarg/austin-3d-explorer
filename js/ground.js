@@ -278,6 +278,7 @@
     texOpacity: 0.62,       // master; multiplies every per-class strength
     texStrength: {          // per surface family, 0..1
       grass: 1.0, asphalt: 0.9, water: 0.95, paving: 0.5, canopy: 1.0,
+      panels: 0.65, pavers: 0.72, aggregate: 0.62,
     },
     // ── Waller Creek ──────────────────────────────────────────────────
     //
@@ -498,7 +499,8 @@
   let roadLP = {};
   const TEX_IMG = { grass: 'gnd-tex-grass', asphalt: 'gnd-tex-asphalt',
                     water: 'gnd-tex-water', paving: 'gnd-tex-paving',
-                    canopy: 'gnd-tex-canopy' };
+                    canopy: 'gnd-tex-canopy', panels: 'gnd-tex-panels',
+                    pavers: 'gnd-tex-pavers', aggregate: 'gnd-tex-aggregate' };
   const HERRING_IMG = 'gnd-tex-herringbone';
   // The close-range tiles. Water and canopy families get NOTHING here: the
   // creek already carries its sheen slab and a canopy is overhead, not
@@ -561,13 +563,13 @@
   // as window.GROUND_SOFTEN, same contract as window.DRAG_SOFTEN.
   const GROUND_SOFTEN = {
     RADIUS: {
-      grass: 3, asphalt: 3, water: 2, paving: 3, canopy: 3,     // TEX (far-field)
+      grass: 3, asphalt: 3, water: 2, paving: 3, canopy: 3, panels: 1, pavers: 1, aggregate: 1,     // TEX (far-field)
       closeGrass: 3, closeAsphalt: 3, closePaving: 3,           // CLOSE (walking-height)
       herringbone: 1,                                            // Speedway brick — floor already spent
       walk: 1,                                                   // scored-bar joints — already supersampled once
     },
     AMOUNT: {
-      grass: 1.0, asphalt: 1.0, water: 0.8, paving: 1.0, canopy: 1.0,
+      grass: 1.0, asphalt: 1.0, water: 0.8, paving: 1.0, canopy: 1.0, panels: 1, pavers: 1, aggregate: 1,
       closeGrass: 1.0, closeAsphalt: 1.0, closePaving: 1.0,
       herringbone: 0.5,
       walk: 0.5,
@@ -695,6 +697,18 @@
       bikelane:'#12151d', biketrack:'#171a23', bikegreen:'#131a15',
     },
   };
+  // Reviewed materials, with restrained lightness changes for the site's palette.
+  // Dimensions/joint layout remain procedural inference, recorded by the bake.
+  const DETAIL_MATERIAL = window.GROUND_DETAIL_MATERIAL = {
+    aggregate: ['#c8c0af', '#d0b992', '#191a20'],
+    concretepaver: ['#d6d0c5', '#dcc39e', '#1b1b21'],
+    tanpaver: ['#c6aa83', '#d1ad7a', '#241e18'],
+    panelCells: 4, paverColumns: 4, paverRows: 8,
+    jointAlpha: 0.16, unitVariation: 0.09, aggregateAlpha: 0.13,
+  };
+  for (const k of ['aggregate','tanpaver','concretepaver']) {
+    ['day','golden','night'].forEach((time,i)=>{ SURF[time][k]=DETAIL_MATERIAL[k][i]; });
+  }
   const KEYS = Object.keys(SURF.day);
 
   // Which noise tile each surface wears. Everything paved that is not asphalt
@@ -710,6 +724,7 @@
   // not, so the eye merged them.
   const TEX_FAMILY = {
     grass: 'grass', turf: 'grass', endzone: 'grass', gardenlawn: 'grass',
+    concrete: 'panels', brick: 'pavers', tanpaver: 'pavers', concretepaver: 'pavers', aggregate: 'aggregate',
     // `scrub` takes the CANOPY grain rather than the lawn's, and that is the
     // half of its separation that survives distance. §34's own lesson: the
     // colour was already different from grass and the grain was not, so at
@@ -1044,9 +1059,26 @@
     const ctx = cv.getContext('2d', { willReadFrequently: true });
     ctx.clearRect(0, 0, T, T);
     const rand = rng({ grass: 12345, asphalt: 777, water: 4242, paving: 90210,
-                       canopy: 5150 }[family]);
+                       canopy: 5150, panels: 9178, pavers: 9179, aggregate: 9180 }[family]);
 
-    if (family === 'canopy') {
+    if (family === 'panels' || family === 'pavers') {
+      // One tiny alpha tile per material; no mesh/image per paving unit. Keep
+      // the joints soft and low contrast at minification and grazing angles.
+      const cols=family==='panels'?DETAIL_MATERIAL.panelCells:DETAIL_MATERIAL.paverColumns;
+      const rows=family==='panels'?cols:DETAIL_MATERIAL.paverRows;
+      const w=T/cols,h=T/rows;
+      for(let row=0;row<rows;row++) for(let col=-1;col<=cols;col++) {
+        const x=(col+(family==='pavers'?(row%2)*.5:0))*w,y=row*h;
+        ctx.fillStyle=`rgba(${rand()<.5?'0,0,0':'255,255,255'},${rand()*DETAIL_MATERIAL.unitVariation})`;
+        ctx.fillRect(x,y,w,h);
+        ctx.strokeStyle=`rgba(0,0,0,${DETAIL_MATERIAL.jointAlpha})`;
+        ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w,h);
+      }
+      speckle(ctx,T,rand,600,.045,1);
+    } else if (family === 'aggregate') {
+      speckle(ctx,T,rand,1800,DETAIL_MATERIAL.aggregateAlpha,1);
+      speckle(ctx,T,rand,210,DETAIL_MATERIAL.aggregateAlpha,2);
+    } else if (family === 'canopy') {
       // A CLOSED CANOPY, not a lawn. Same wrap-nine-times rule as everything
       // here; what differs is the statistics. Crowns are big (a live oak is
       // 8-14 m, which at z16's ~66 m tile is 8-14 px), they OVERLAP, and the
@@ -1482,7 +1514,7 @@
     const e = ['match', ['get', 'o']];
     for (let o = 0; o < walkImgCount(); o++) e.push(o, WALK_IMG(o));
     e.push(WALK_IMG(0));
-    return e;
+    return ['match',['get','s'],'brick',TEX_IMG.pavers,'tanpaver',TEX_IMG.pavers,'concretepaver',TEX_IMG.pavers,'aggregate',TEX_IMG.aggregate,e];
   }
   /** ['match', ['get','s'], …, imageName] — one tile per surface family. */
   function texPatternExpr() {
@@ -1544,7 +1576,8 @@
   // ── Close-range grain (QUEUE Y8) ────────────────────────────────────
   /** Which close tile a surface key wears, or null for none (water, canopy). */
   function closeFamilyOf(k) {
-    const fam = TEX_FAMILY[k] || 'paving';
+    let fam = TEX_FAMILY[k] || 'paving';
+    if (['panels','pavers','aggregate'].includes(fam)) fam='paving';
     return CLOSE_IMG[fam] ? fam : null;
   }
   /** Only surfaces that have a close tile — water and canopy stay bare. */

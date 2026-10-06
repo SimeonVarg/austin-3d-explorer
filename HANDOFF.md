@@ -77,6 +77,13 @@ Full rules: `CLAUDE.md` (same text in `AGENTS.md`). The short version:
     lane hands them back in this file.
   - Everything else is the main lane's.
 
+## Ground pass ready locally
+
+`codex/ground-detail` has the verified ground pass, evidence records and matched
+before/after pictures in `docs/ground-detail-2026-10.md`. It is not live yet;
+publishing is pending GitHub authentication on the Mac. The four ground files
+remain reserved to that branch until publication.
+
 ## What is next
 
 `QUEUE.md` is 280 KB and mostly history. Its top-level headings, in order:
