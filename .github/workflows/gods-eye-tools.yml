@@ -1,0 +1,35 @@
+name: God's Eye companion tools
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/gods-eye/**'
+      - '.github/workflows/gods-eye-tools.yml'
+      - '.github/workflows/visual-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  helpers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+      - name: Check camera datum, setup preservation and cleanup
+        run: |
+          python -B scripts/gods-eye/camera_test.py
+          python -B scripts/gods-eye/setup_test.py
+          python -B scripts/gods-eye/setup.py --help
+          node --check scripts/gods-eye/smoke.mjs
+          node scripts/verify/harness-drift.mjs
+          git diff --check

@@ -82,6 +82,13 @@ Full rules: `CLAUDE.md` (same text in `AGENTS.md`). The short version:
     setup, launcher, camera links) and one assessment in `docs/`. It imports no
     outside code into the app and does not touch `index.html`, `js/app.js` or
     the terms page.
+  - The local God's Eye View companion is set up at the reviewed upstream pin.
+    `scripts/gods-eye/README.md` describes launch, offline panorama projection
+    and explicit camera conversion; `docs/gods-eye-view-assessment.md` records
+    where it helps and what remains a reference. It adds no renderer,
+    credential or dataset to the shipped city. Publishing is pending on
+    `codex/gods-eye-integration`; the main lane has the tested branch and PR
+    description, because this chat cannot access GitHub authentication.
   - The second lane's sandbox cannot reach GitHub. The main lane pushes its
     branches and opens its pull requests; nothing of it goes straight to `main`.
   - Everything else is the main lane's.
