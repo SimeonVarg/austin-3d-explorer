@@ -4,7 +4,9 @@ The ground pass restores missing paved areas and separates surfaces which used
 to share the same generic treatment. The focus is campus and West Campus, with
 larger missing courts and parking surfaces elsewhere in the central city.
 
-Status: verified locally on `codex/ground-detail`; publication pending.
+Status: published in [PR #408](https://github.com/SimeonVarg/austin-3d-explorer/pull/408),
+not live yet. Merge the companion reader changes (#407) first; site publication
+follows passing checks and visual review.
 
 ![Before left, after right: southwest campus, West Campus, and GDC](shots/ground-detail-before-after.jpg)
 
