@@ -70,9 +70,11 @@ Full rules: `CLAUDE.md` (same text in `AGENTS.md`). The short version:
     `js/slopes-roofs.js`, `js/slopes.js`, `js/city-lighting.js`. Not merged: the
     roof look at middle distance is a taste call that waits for the owner.
   - The ground bake is lent to that same lane for its ground-detail pass:
-    `scripts/bake_ground.py`, its one output `data/ground.geojson`, and
-    `js/ground.js`. The main lane does not write these three until that lane
-    hands them back in this file.
+    `scripts/bake_ground.py`, its one output `data/ground.geojson`,
+    `js/ground.js`, and one new bake input, `scripts/ground-detail-sources.json`
+    (selected public survey shapes and reviewed surface assignments; no new
+    fetch at run time). The main lane does not write these four until that
+    lane hands them back in this file.
   - Everything else is the main lane's.
 
 ## What is next
