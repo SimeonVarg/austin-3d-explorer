@@ -95,7 +95,8 @@ polygons and no occupied-ground overlap at the audit tolerance. Road, cycleway,
 creek bank and canopy features are unchanged. The crossing regression and
 54-script harness parity checks pass. An independent review script also measures
 zero new overlap with banks, Capitol, stadium and depth geometry. A material
-add/remove/corrected-reapply check confirms source restoration and area preservation.
+add/remove/corrected-reapply check confirms source restoration and area preservation. Material cuts retain fragments below
+the new-patch threshold instead of discarding small existing walk surfaces.
 Generated patches are display-only: their `u` retains survey meaning, and
 generative ground readers must exclude `gd` before deriving trees or props.
 
@@ -116,7 +117,7 @@ minimum mean frame time. Campus: 38.18 → 36.56 ms; West Campus: 33.34 → 35.5
 The change therefore does not establish a general speed improvement. The
 phone-sized preview (one run, three samples/view) measured 21.04 → 21.12 ms
 and 19.52 → 20.06 ms respectively. These timing/memory samples preceded the final overlap-mask correction, which
-removed nine generated parts and changed no drawing code. The renderer was ANGLE Metal on Intel Iris
+removed eight generated parts and changed no drawing code. The renderer was ANGLE Metal on Intel Iris
 Plus 655. These are short local comparisons, not Safari or phone hardware FPS.
 
 In the two desktop views, ground texture atlases increased by 57,888 and
@@ -139,7 +140,7 @@ Safari roof/motion-flicker issue.
 
 External data/service charges: **$0 of the $100 ceiling**. This excludes the
 unmetered cost of the Codex conversation itself. The input is a development
-asset, not a runtime fetch. The ground download grows by 173,836 bytes gzip
+asset, not a runtime fetch. The ground download grows by 174,028 bytes gzip
 (Python gzip default level), and the three generated image buffers total
 49,152 bytes before per-tile atlas packing. Measured atlas and frame costs are
 recorded with the final comparison rather than inferred from these file sizes.

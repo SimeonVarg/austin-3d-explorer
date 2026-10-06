@@ -5100,7 +5100,7 @@ def ground_detail(feats, stats):
                                  'materialExtent':'material-extent',
                                  'previousS':props.get('_src',{}).get('previousS',
                                      {'value':props.get('s'),'source':props.get('_src',{}).get('s','unknown')})}
-                for q in polygons(hit):updated.append((q,changed))
+                for q in polygons(hit, .001):updated.append((q,changed))
                 stats['detail_material_regions']+=1
             pieces=updated
         # Preserve untouched features byte-for-byte, including existing precision.
