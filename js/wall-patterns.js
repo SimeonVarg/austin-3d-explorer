@@ -196,6 +196,11 @@
       for(int i=0;i<5;i++){if(i==index)tone=u_rtTones[i].rgb;}
       return tone;
     }
+    float rtStrip(float x,float width,float footprint) {
+      float phase=fract(x),lo=phase-footprint*.5,hi=phase+footprint*.5;
+      return clamp((floor(hi)*width+min(fract(hi),width)
+        -floor(lo)*width-min(fract(lo),width))/footprint,0.,1.);
+    }
     vec3 rtFactor(vec3 p,vec3 n,vec4 surface,vec3 day,vec3 dark) {
       float h=length(n.xy);
       vec2 across=vec2(-n.y,n.x)/h;
@@ -215,24 +220,42 @@
         mean=target/max(source,vec3(.0001));
       }
       if(max(resolved,max(resolvedAxes.x,resolvedAxes.y))<=0.)return mean;
-      float u=fract(uv.x),cover=.5-.5*cos(u*6.28318530718);
-      uv.y+=u_rtShape.w*cover*resolvedAxes.x;
+      float u=fract(uv.x),aa=max(fw.x,.00001);
+      float sinc=sin(3.14159265359*aa)/(3.14159265359*aa);
+      float cover=.5-.5*cos(u*6.28318530718)*sinc;
+      float warp=u_rtShape.w*resolvedAxes.x;
+      uv.y+=warp*cover;
+      // Filter the scalloped course position too. A neighbour derivative of
+      // its sinusoid can vanish at one period per pixel. The chain rule plus
+      // the discarded displacement amplitude gives a conservative footprint,
+      // without a derivative after the non-uniform early return above.
+      float ay=max(fw.y+abs(warp*3.14159265359*sin(u*6.28318530718)*sinc)*fw.x
+        +abs(warp)*(1.-abs(sinc)),.00001);
+      vec2 coverage=vec2(aa,ay),clayPixels=coverage*u_rtWeather.w;
+      resolved=1.-smoothstep(u_rtFootprint.z,u_rtFootprint.w,clayPixels.x*clayPixels.y);
+      // Include device pixels even when the screen-pixel factor is below one.
+      // The four-cell integral is only valid below one cell along each axis.
+      resolved*=1.-smoothstep(u_rtFootprint.x,min(u_rtFootprint.y,1.),
+        max(max(clayPixels.x,clayPixels.y),max(coverage.x,coverage.y)));
       vec2 cell=floor(uv);
       vec3 tone=vec3(0);
       // Integrate the piecewise-constant clay field over the pixel footprint.
-      // Up to three intersected cells per axis; wider footprints fade to mean.
-      vec2 footprint=clamp(fw,vec2(.00001),vec2(2.));
-      for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){
-        vec2 q=cell+vec2(float(x),float(y));
+      // The colour resolves only below one cell per axis. Such a box
+      // intersects at most four cells; start at its lower corner, not at
+      // the centre cell. No image, mip allocation or extra geometry.
+      vec2 footprint=min(coverage,vec2(1.));
+      vec2 first=floor(uv-footprint*.5);
+      for(int y=0;y<2;y++)for(int x=0;x<2;x++){
+        vec2 q=first+vec2(float(x),float(y));
         vec2 overlap=max(vec2(0),min(uv+footprint*.5,q+1.)-max(uv-footprint*.5,q));
         float weight=overlap.x*overlap.y/(footprint.x*footprint.y);
         if(weight>0.)tone+=rtTone(q)*weight;
       }
-      float edge=min(u,1.-u),aa=max(fw.x,.00001);
-      float valley=1.-smoothstep(u_rtShape.x*.5-aa*.5,u_rtShape.x*.5+aa*.5,edge);
-      float v=fract(uv.y),ay=max(fw.y,.00001);
-      float lip=1.-smoothstep(u_rtLip.x-ay*.5,u_rtLip.x+ay*.5,v);
-      float highlight=1.-smoothstep(u_rtLip.x-ay*.5,u_rtLip.x+ay*.5,1.-v);
+      // Integrate periodic relief instead of smoothing the nearest edge.
+      // This conserves the narrow lip/valley coverage at grazing angles.
+      float valley=rtStrip(uv.x+u_rtShape.x*.5,u_rtShape.x,aa);
+      float lip=rtStrip(uv.y,u_rtLip.x,ay);
+      float highlight=rtStrip(-uv.y,u_rtLip.x,ay);
       // Each relief term has zero area mean. Distant pixels return exactly 1.
       float relief=1.+u_rtShape.z*(cover-.5)-u_rtShape.y*(valley-u_rtShape.x)
         -u_rtLip.y*(lip-u_rtLip.x)+u_rtLip.z*(highlight-u_rtLip.x);
@@ -246,7 +269,8 @@
       // All terms converge to the same mean.
       float columnRelief=u_rtShape.z*(cover-.5)-u_rtShape.y*(valley-u_rtShape.x);
       float courseRelief=-u_rtLip.y*(lip-u_rtLip.x)+u_rtLip.z*(highlight-u_rtLip.x);
-      float weatherRelief=relief-1.-columnRelief-courseRelief;
+      float weatherResolved=1.-smoothstep(.2,1.,max(coverage.x*u_rtWeather.y,coverage.y*u_rtWeather.z));
+      float weatherRelief=(relief-1.-columnRelief-courseRelief)*weatherResolved;
       vec3 detail=((tone-1.)*resolved+vec3(columnRelief)*resolvedAxes.x
         +vec3(courseRelief)*resolvedAxes.y+vec3(weatherRelief)*min(resolvedAxes.x,resolvedAxes.y))*contrast;
       if(u_rtEdges.x>.5) {
