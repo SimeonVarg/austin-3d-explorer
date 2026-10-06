@@ -32,6 +32,8 @@ build step for the site itself; data and tiles are baked by scripts in `scripts/
 
 | PR | Branch | State |
 |---|---|---|
+| #407 | `claude/ground-readers-skip-generated` | open (2026-10-05): four bakes that build on `data/ground.geojson` (`shape_trees.py`, `bake_props.py`, `bake_depth.py`, `bake_campus_landscape.py`) skip features the ground-detail stage marks `gd`. Byte-for-byte no change on today's ground |
+| #406 | `codex/mac-roofs-motion` | draft (2026-10-05): campus roof tiles stay visible at middle distance (area-filtered, not faded); the owner chose this look. Also touches every patterned wall in `js/slopes.js` and tracks two texture bindings in `js/city-lighting.js`. Before merge: checks green and one look at the brick walls |
 | #399 | `acer/sky-turn-direction` | draft: the GL sky now banks with the camera when you turn (clouds, stars, horizon haze and the sun's disc used to stay level while the world leaned up to 5 degrees). Yaw and pitch were already right. Gate: `scripts/verify/skyturn.mjs` (GPU slot, 18 assertions, desktop and phone). Overlaps #348 in `updateSky` |
 | #395 | `acer/lidar-heights` | roof heights from the 2021 lidar. The owner chose "raises only" (2026-10-04): by default about a hundred plain prisms the scan reads taller are raised, from `data/lidar_raises.json` (`scripts/bake_lidar_raises.py`: a tower on a podium is raised to the height half its roof reaches). `?lidarheights=0` is off, `?lidarheights=all` adds lowerings of up to 3 m. Read `docs/lidar-heights.md`; `drawn-heights.mjs` must run with the scan OFF (its default) or the next bake raises nothing |
 | #366 | `claude/aws-gpu-runner` | draft: AWS GPU runner for the browser checks |
@@ -75,6 +77,13 @@ Full rules: `CLAUDE.md` (same text in `AGENTS.md`). The short version:
     (selected public survey shapes and reviewed surface assignments; no new
     fetch at run time). The main lane does not write these four until that
     lane hands them back in this file.
+  - A third task on the Mac evaluates an outside viewer project (MIT) as a
+    separate research tool. It writes NEW files only: `scripts/gods-eye/` (local
+    setup, launcher, camera links) and one assessment in `docs/`. It imports no
+    outside code into the app and does not touch `index.html`, `js/app.js` or
+    the terms page.
+  - The second lane's sandbox cannot reach GitHub. The main lane pushes its
+    branches and opens its pull requests; nothing of it goes straight to `main`.
   - Everything else is the main lane's.
 
 ## Ground pass ready locally
