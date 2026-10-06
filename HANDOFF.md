@@ -63,8 +63,17 @@ Full rules: `CLAUDE.md` (same text in `AGENTS.md`). The short version:
 - Ask the owner about taste; decide everything else and write down why.
 - The repo is public: no personal info, paths, photo ids or camera positions in
   any tracked file or commit.
-- Mac lane: its last commit on any `mac/` branch was 2026-08-04
-  (`mac/dkr-south`). `MAC_QUEUE.md` is stale and says so at its top.
+- `MAC_QUEUE.md` is stale and says so at its top. Who writes what on
+  2026-10-05 (the main lane now runs on the Mac too, in its own work copy):
+  - The second lane on the Mac (branches `codex/*` and `mac/*`) writes the roof
+    and lighting pass on `codex/mac-roofs-motion`: `js/wall-patterns.js`,
+    `js/slopes-roofs.js`, `js/slopes.js`, `js/city-lighting.js`. Not merged: the
+    roof look at middle distance is a taste call that waits for the owner.
+  - The ground bake is lent to that same lane for its ground-detail pass:
+    `scripts/bake_ground.py`, its one output `data/ground.geojson`, and
+    `js/ground.js`. The main lane does not write these three until that lane
+    hands them back in this file.
+  - Everything else is the main lane's.
 
 ## What is next
 
