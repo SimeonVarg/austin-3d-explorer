@@ -19,7 +19,7 @@ build step for the site itself; data and tiles are baked by scripts in `scripts/
   (`.github/workflows/deploy-pages.yml`). Data snapshots arrive from
   `build-data.yml`. So "live" means "what is on `main`". Check `main` before
   saying anything is live.
-- Last things merged (newest first): #409 a local reference-viewer helper (a Mac tool, not part of the site); #408 ground detail across campus and West Campus and #406 campus roof tiles visible at middle distance (both checked on the live site, Oct 6); #407 bakes skip the generated ground patches; #388 Burdine Hall and the Norman Hackerman
+- Last things merged (newest first): #411 round arches on the south part of Welch Hall's east arcade (Oct 7; all 84 CI checks passed; look at the live wall still to be recorded in the journal); #410 photo-rollout tools (not part of the site); #409 a local reference-viewer helper (a Mac tool, not part of the site); #408 ground detail across campus and West Campus and #406 campus roof tiles visible at middle distance (both checked on the live site, Oct 6); #407 bakes skip the generated ground patches; #388 Burdine Hall and the Norman Hackerman
   Building with the compact wall material (Oct 2-3); #383 2400 Nueces and #379
   Ion Austin, the two buildings from street photographs that passed the owner's
   look (Oct 1); #369 the city comes back after the browser loses its graphics
