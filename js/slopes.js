@@ -194,9 +194,41 @@
       lowZenith: '#6c91b3', lowHorizon: '#a0b6c8', sunset: '#ff963b',
       ground: '#484e51', groundBlend: .08,
       nightFadeStart: 0, nightFadeEnd: -6, warmElevation: 20,
+      // How far the atmosphere study's near-horizon colour swings toward its
+      // warm `sunset` hue as the sun drops (0..1, on the same `warm` weight the
+      // window reflections use). 1 keeps the sky just above the horizon warm at
+      // sunset so the golden wash meets a warm horizon, not a cold blue-grey
+      // band; 0 restores the old cool horizon. See js/timeofday.js presetAt.
+      horizonWarmAtSunset: 1,
       atmosphere: true, skyBlend: .72, saturation: 1.0,
-      shadows: true, shadowSize: 1536, shadowRadii: [240, 1400], shadowSnap: 20,
+      // shadowSize: texels per side of each of the two sun shadow maps. A phone
+      // takes js/mobile.js LITE.budget.shadowSize instead (desktop: no budget,
+      // 1536 as before).
+      shadows: true, shadowSize: (window.LITE_PROFILE?.budget?.shadowSize) || 1536, shadowRadii: [240, 1400], shadowSnap: 20,
       shadowDistance: 1500, shadowBias: .10, shadowNormalBias: .09,
+      // shadowSnap is the NEAR map's grid; shadowSnapFar the far map's (null:
+      // the same grid). Each map is redrawn only when ITS snapped centre
+      // moves. A turn swings the look-at point round the camera ~10 m per
+      // degree, so on a 20 m grid both maps redraw every ~2 degrees of turn.
+      // A coarser far grid (?shadowsnapfar=100) cut far-map redraws 10-20 %
+      // but gave no fps change that beat run-to-run noise (NVIDIA, 3+3 runs,
+      // 2026-09-28), and it moves far-shadow edge pixels in a still frame. So
+      // it stays at the near grid, identical to before, until it earns more.
+      shadowSnapFar: isFinite(parseFloat(q.get('shadowsnapfar'))) ? parseFloat(q.get('shadowsnapfar')) : 20,
+    },
+    // ── Turning (TURN-LAG lane, 2026-09-28) ──────────────────────────────
+    // precompile: build every scene material's shader program as soon as the
+    // material exists (under the veil), instead of on the first frame that
+    // draws it. Most of this scene is outside the spawn view, so that first
+    // frame was the first TURN: MEASURED one frame of 0.8-1.4 s on the
+    // owner's NVIDIA, campus spawn, the first 60 deg/s turn, the main thread
+    // waiting on getProgramInfoLog for the big building shader. With
+    // KHR_parallel_shader_compile the driver builds it on its own threads.
+    // Speed only: the same program three would build on that frame.
+    // ?precompile=0 leaves it to the first frame, as before.
+    turn: {
+      precompile: q.get('precompile') !== '0',
+      precompileEveryMs: 1000,   // how often to look for new, unbuilt materials
     },
     surfaces: {on:q.get('surfaces')!=='0', joint:.009, jointShade:.12,
       grain:.035, reflection:.42, near:25, far:120,
@@ -483,6 +515,8 @@
     ${window.CityLighting.uniforms}
     #include <packing>
     ${window.CityLighting.glsl}
+${window.WallPatterns.glsl}
+${window.RoofTiles.glsl}
     float hashCell(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
     float surfaceNoise(vec2 p) {
       vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
@@ -492,6 +526,8 @@
     void main() {
       vec4 baseColor=v_color, surface=v_surface;
       vec3 albedo=v_albedo, night=v_night;
+${window.WallPatterns.apply}
+${window.RoofTiles.apply}
       float faceMix=1.0;
       #ifdef FACADE_FILTER
       #ifdef FACADE_FILTER_ARRAY
@@ -602,16 +638,22 @@
           vec2 uv=abs(n.z)>.65?v_pos.xy:vec2(dot(v_pos.xy,normalize(vec2(-n.y,n.x))),v_pos.z);
           vec2 size=max(surface.yz,vec2(.01));
           vec2 cell=uv/size;
+          // Measure the continuous coordinates before the running-bond row
+          // offset. Derivatives of floor/fract measure the discontinuity,
+          // not the pixel footprint, and make lines crawl at shallow angles.
+          vec2 footprint=fwidth(cell);
+          float resolved=1.0-smoothstep(.15,.55,max(footprint.x,footprint.y));
           if(kind<2.5)cell.x+=mod(floor(cell.y),2.0)*.5;
           vec2 edge=(.5-abs(fract(cell)-.5))*size;
-          float d=min(edge.x,edge.y),aa=max(fwidth(d),.0005);
-          float joint=1.0-smoothstep(u_surfaceStyle.x-aa,u_surfaceStyle.x+aa,d);
-          // Subpixel mortar resolves toward the field colour instead of shimmering.
-          float resolved=1.0-smoothstep(.15,.55,max(fwidth(cell.x),fwidth(cell.y)));
+          vec2 aa=max(fwidth(uv),vec2(.0005));
+          vec2 inside=smoothstep(vec2(u_surfaceStyle.x)-aa*.5,vec2(u_surfaceStyle.x)+aa*.5,edge);
+          float joint=1.0-inside.x*inside.y;
           float tile=hashCell(floor(cell))-.5;
           float grain=hashCell(floor(uv*u_surfaceNoise.x))-.5;
           float grainFade=1.0-smoothstep(.2,1.0,max(fwidth(uv.x),fwidth(uv.y))*u_surfaceNoise.x);
-          col*=1.0+strength*nearDetail*(tile*u_surfaceStyle.z*u_surfaceNoise.y+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved);
+          // Random tile colours have the same sampling limit as their joints.
+          // Previously only the mortar faded, leaving unfiltered colour noise.
+          col*=1.0+strength*nearDetail*(tile*u_surfaceStyle.z*u_surfaceNoise.y*resolved+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved);
         }
       }
       gl_FragColor=vec4(col,baseColor.a*faceMix);
@@ -633,6 +675,36 @@
     if(U){U.u_sunShadow0.value=null;U.u_sunShadow1.value=null;U.u_shadowSettings.value.x=0;}
   }
 
+  // The viewport and scissor box as the shared context last set them, so the
+  // shadow pass can put them back without asking: gl.getParameter(VIEWPORT)
+  // and (SCISSOR_BOX) are synchronous round trips to the GPU process, 354-420 ms
+  // per 12 s on the owner's AMD chip (window.GLSTATE in js/graphics.js has the
+  // measurement and the switches: ?glstate=0 queries as before, ?glstatecheck=1
+  // counts disagreements). gl.viewport/gl.scissor are wrapped once per context,
+  // pass straight through, and record the call as GL stores it: ints as WebIDL
+  // converts them, a negative size ignored (an error that changes nothing), a
+  // viewport clamped to MAX_VIEWPORT_DIMS. Seeded with one query each, and again
+  // after a lost context. null with GLSTATE off.
+  function viewState(gl) {
+    const GS=window.GLSTATE;
+    if(!GS||!GS.on)return null;
+    let S=gl.__vpState;
+    if(!S) {
+      S=gl.__vpState={known:false,viewport:null,scissor:null,max:null};
+      const wrap=(name,rec)=>{const native=gl[name];gl[name]=function(x,y,w,h){const r=native.apply(this,arguments);rec(x|0,y|0,w|0,h|0);return r;};};
+      wrap('viewport',(x,y,w,h)=>{if(w>=0&&h>=0&&S.max)S.viewport=[x,y,Math.min(w,S.max[0]),Math.min(h,S.max[1])];});
+      wrap('scissor',(x,y,w,h)=>{if(w>=0&&h>=0)S.scissor=[x,y,w,h];});
+      gl.canvas.addEventListener('webglcontextlost',()=>{S.known=false;});
+    }
+    if(!S.known&&!gl.isContextLost()) {
+      S.max=Array.from(gl.getParameter(gl.MAX_VIEWPORT_DIMS)||[]);
+      S.viewport=Array.from(gl.getParameter(gl.VIEWPORT)||[]);
+      S.scissor=Array.from(gl.getParameter(gl.SCISSOR_BOX)||[]);
+      S.known=!gl.isContextLost()&&S.max.length===2&&S.viewport.length===4&&S.scissor.length===4;
+    }
+    return S.known?S:null;
+  }
+
   function updateSunShadows() {
     const s=SLOPES.sunlight,T=window.THREE;
     U.u_shadowSettings.value.x=0;
@@ -650,21 +722,30 @@
         side:T.DoubleSide,blending:T.NoBlending,depthTest:true,depthWrite:true,
       });
       const cameras=s.shadowRadii.map(r=>new T.OrthographicCamera(-r,r,r,-r,1,s.shadowDistance*2));
-      _sunShadow={targets,depth,cameras,key:null,size:s.shadowSize,updates:0};
+      _sunShadow={targets,depth,cameras,keys:[null,null],size:s.shadowSize,updates:0,mapRenders:0};
       U.u_sunShadow0.value=targets[0].texture;U.u_sunShadow1.value=targets[1].texture;
     }
-    const centre=toLocal(_map.getCenter().lng,_map.getCenter().lat,30);
-    centre.x=Math.round(centre.x/s.shadowSnap)*s.shadowSnap;
-    centre.y=Math.round(centre.y/s.shadowSnap)*s.shadowSnap;
+    const look=toLocal(_map.getCenter().lng,_map.getCenter().lat,30);
+    // Each map on its own grid (shadowSnap near, shadowSnapFar far) and its
+    // own key: a map is redrawn when its snapped centre or anything common to
+    // both changes, not when only the other map's centre moved.
+    const centres=[0,1].map(i=>{
+      const g=i===1&&s.shadowSnapFar!=null?s.shadowSnapFar:s.shadowSnap;
+      return {x:Math.round(look.x/g)*g,y:Math.round(look.y/g)*g,z:look.z,g};
+    });
     const proxy=window.CityLighting.shadowProxy(_map);
-    const key=[U.u_p.value,window.slopesApartments?.count.triangles,window.slopesApartments?.count.done,s.shadowRadii.join(','),s.shadowDistance,centre.x,centre.y,proxy?.uuid,root.children.map(g=>`${g.uuid}:${g.visible}`).join(',')].join('|');
-    if(_sunShadow.key!==key) {
+    const common=[U.u_p.value,window.slopesApartments?.count.triangles,window.slopesApartments?.count.done,s.shadowRadii.join(','),s.shadowDistance,proxy?.uuid,root.children.map(g=>`${g.uuid}:${g.visible}`).join(',')].join('|');
+    const keys=centres.map(c=>common+'|'+c.g+'|'+c.x+'|'+c.y);
+    const stale=[0,1].filter(i=>_sunShadow.keys[i]!==keys[i]);
+    if(stale.length) {
       const target=renderer.getRenderTarget(),override=scene.overrideMaterial;
       // MapLibre owns canvas sizing. Three's default viewport is stale unless
       // explicitly restored after leaving an offscreen target (setSize is
       // intentionally forbidden in this shared canvas).
-      const viewport=gl.getParameter(gl.VIEWPORT);
-      const scissor=gl.getParameter(gl.SCISSOR_BOX),scissorTest=gl.isEnabled(gl.SCISSOR_TEST);
+      const V=viewState(gl),GS=window.GLSTATE;
+      if(V&&GS.check){GS.verify(gl,'shadow.viewport',gl.VIEWPORT,V.viewport);GS.verify(gl,'shadow.scissor',gl.SCISSOR_BOX,V.scissor);}
+      const viewport=V?V.viewport.slice():gl.getParameter(gl.VIEWPORT);
+      const scissor=V?V.scissor.slice():gl.getParameter(gl.SCISSOR_BOX),scissorTest=gl.isEnabled(gl.SCISSOR_TEST);
       if(!viewport||!scissor)return; // loss can occur during a GL state query
       const clear=renderer.getClearColor(new T.Color()),alpha=renderer.getClearAlpha();
       // Filtering changes coverage, not the building's shadow geometry.
@@ -674,8 +755,8 @@
         scene.overrideMaterial=_sunShadow.depth;
         if(proxy){scene.add(proxy);proxy.visible=true;}
         renderer.setClearColor(0xffffff,1);
-        for(let i=0;i<2;i++) {
-          const c=centre,cam=_sunShadow.cameras[i],radius=s.shadowRadii[i];
+        for(const i of stale) {
+          const c=centres[i],cam=_sunShadow.cameras[i],radius=s.shadowRadii[i];
           cam.left=cam.bottom=-radius;cam.right=cam.top=radius;
           cam.far=s.shadowDistance*2;cam.updateProjectionMatrix();
           cam.up.set(0,0,1);
@@ -683,8 +764,8 @@
           cam.lookAt(c.x,c.y,c.z);cam.updateMatrixWorld(true);
           U[i===0?'u_sunShadowMatrix0':'u_sunShadowMatrix1'].value.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);
           renderer.setRenderTarget(_sunShadow.targets[i]);renderer.clear();renderer.render(scene,cam);
+          _sunShadow.keys[i]=keys[i];_sunShadow.mapRenders++;
         }
-        _sunShadow.key=key;
         _sunShadow.updates++;
       } finally {
         for(const o of filtered)o.visible=true;
@@ -695,6 +776,46 @@
     }
     U.u_shadowSettings.value.set(1,1/s.shadowSize,s.shadowBias/(s.shadowDistance*2-1),s.shadowNormalBias);
   }
+
+  // ── Shader programs built before the frame that first needs them ────────
+  // SLOPES.turn.precompile (header there). Every precompileEveryMs, any scene
+  // material three has not built a program for yet is handed to
+  // renderer.compile() with this scene's own lights, fog and camera, i.e. the
+  // program key the next render would compute. Only the missing ones: an
+  // object stand-in walks just those meshes, so the materials already built
+  // are not re-keyed every second. A program the driver has finished
+  // (isReady, KHR_parallel_shader_compile) has its one-time setup -- the
+  // uniform and attribute tables three reads on first use -- done here too,
+  // on a still frame, rather than on the first frame of a turn.
+  const _pc = { next: 0, pending: new Set(), compiled: 0, warmed: 0, materials: 0, ms: 0 };
+  function precompileTick() {
+    const P = SLOPES.turn;
+    if (!P.precompile || !renderer || !scene || !camera) return;
+    const t = performance.now();
+    if (t < _pc.next) return;
+    _pc.next = t + P.precompileEveryMs;
+    try {
+      for (const p of _pc.pending) if (p.isReady()) { p.getUniforms(); p.getAttributes(); _pc.pending.delete(p); _pc.warmed++; }
+      const missing = [];
+      scene.traverse(o => {
+        const m = o.material; if (!m) return;
+        for (const x of Array.isArray(m) ? m : [m]) if (!renderer.properties.get(x).currentProgram) { missing.push(o); return; }
+      });
+      if (missing.length) {
+        const subset = { traverse: fn => { for (const o of missing) fn(o); }, traverseVisible() {} };
+        for (const m of renderer.compile(subset, camera, scene)) {
+          const p = renderer.properties.get(m).currentProgram;
+          if (p && !p.__slopesPrecompiled) { p.__slopesPrecompiled = true; _pc.pending.add(p); _pc.compiled++; }
+          _pc.materials++;
+        }
+      }
+    } catch (e) {
+      // A failure here only means the program is built on first draw, as before.
+      P.precompile = false; console.warn('[slopes] precompile disabled: ' + e.message);
+    }
+    _pc.ms += performance.now() - t;
+  }
+
   let _mat = null, _loc = null, _s3 = null, _eye4=null;   // per-frame scratch
   let _debugGroup = null, _debugTwinAdded = false;
   const _light = { enu: [0, 0, 1], colour: [1, 1, 1], intensity: 0 };
@@ -770,18 +891,25 @@
     if (!U) throw new Error('[slopes] material() before initSlopes — three.js not ready');
     const T = window.THREE;
     const o = opts || {};
-    return new T.ShaderMaterial({
+    const mat = new T.ShaderMaterial({
       uniforms: U,                    // SHARED, deliberately: one hour, one sun, every mesh
       vertexShader: VERT, fragmentShader: FRAG,
       side: o.side != null ? o.side : T.FrontSide,
       depthTest: true, depthWrite: true, transparent: false, blending: T.NoBlending,
     });
+    window.WallPatterns.attach(mat);
+    window.RoofTiles?.sync(mat.uniforms);
+    // Builder meshes have no wall gradient. A constant vertex attribute is
+    // exactly the old all-zero buffer, without eight CPU/GPU bytes per vertex.
+    // colour() still supplies an attribute for meshes that need a gradient.
+    mat.defaultAttributeValues.aGrad = [0, 0];
+    return mat;
   }
   // Continuous, filtered wall overlay. Close geometry remains the depth
   // source; projected metres per pixel select the representation per fragment.
   function facadeMaterial(face, tune) {
     const T=window.THREE;
-    return new T.ShaderMaterial({
+    const mat = new T.ShaderMaterial({
       defines:face.faces?{FACADE_FILTER:1,FACADE_FILTER_ARRAY:1}:{FACADE_FILTER:1},
       uniforms:{...U,
         u_faceDay:{value:face.textures.day},u_faceGold:{value:face.textures.gold},u_faceNight:{value:face.textures.night},
@@ -792,6 +920,8 @@
       transparent:true,depthTest:true,depthWrite:false,
       polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1
     });
+    mat.defaultAttributeValues.aGrad = [0, 0];
+    return mat;
   }
   /**
    * Fill `geom`'s per-vertex colour triple and, for walls, the gradient
@@ -826,7 +956,25 @@
     geom.setAttribute('aSurface', new T.BufferAttribute(new Float32Array(n*4), 4));
     return geom;
   }
-  function add(obj) { if (root) root.add(obj); if (_map) _map.triggerRepaint(); return obj; }
+  // A phone drops each mesh's CPU copy once three.js has uploaded it (js/mobile.js
+  // LITE.budget.freeGeometryCpu; ~260 MB for the authored buildings). The copy
+  // only matters for a re-upload after a lost WebGL context, and a phone
+  // recovers from that by reloading; nothing reads it after add() (raycast()
+  // above is an unwired helper). onUpload is three's own hook for exactly this.
+  // Bounding spheres are computed before the first upload and kept. Desktop
+  // (no budget) keeps every copy, so it can re-upload in place after a loss.
+  const FREE_CPU = !!(window.LITE_PROFILE && window.LITE_PROFILE.budget && window.LITE_PROFILE.budget.freeGeometryCpu);
+  function dropArray() { this.array = null; }
+  function freeOnUpload(obj) {
+    obj.traverse(o => {
+      const g = o.geometry;
+      if (!g || !g.isBufferGeometry) return;
+      if (!g.boundingSphere && g.attributes.position) g.computeBoundingSphere();
+      for (const k in g.attributes) { const a = g.attributes[k]; if (a && a.isBufferAttribute && typeof a.onUpload === 'function') a.onUpload(dropArray); }
+      if (g.index && typeof g.index.onUpload === 'function') g.index.onUpload(dropArray);
+    });
+  }
+  function add(obj) { if (FREE_CPU && obj && obj.traverse) freeOnUpload(obj); if (root) root.add(obj); if (_map) _map.triggerRepaint(); return obj; }
   function remove(obj) { if (root) root.remove(obj); if (_map) _map.triggerRepaint(); }
 
   // ── The builder: one geometry, one draw call, flat normals ──────────────
@@ -856,14 +1004,16 @@
   //   b.geometry()                      the BufferGeometry (call once)
   //
   // Points are [x, y, z] in local metres. `col` is [day, golden, night] hex.
-  function build() {
+  function build(initialCapacity = 1 << 16) {
     const T = window.THREE;
     // Vertex store: growable Float32Arrays written in place. This used to be
     // seven plain arrays fed one number at a time (170 million push() calls
     // for the apartments alone, plus a per-vertex spread); profiled 2026-09-15
     // that was ~6 s of the 11 s apartment build and 1.6 s of GC. Same API,
     // same bytes out of geometry().
-    let cap = 1 << 16, nV = 0;
+    // Small one-face builders need only four vertices. Bulk generators keep
+    // their existing capacity; growth and the final trimmed geometry agree.
+    let cap = initialCapacity, nV = 0;
     let P = new Float32Array(cap * 3), NM = new Float32Array(cap * 3);
     // ── WHY THE COLOURS ARE BYTES ────────────────────────────────────────
     //
@@ -913,7 +1063,7 @@
     // give both halves one averaged normal and CHANGE THE PIXELS. So `quad`
     // measures the two normals and only welds when they agree; otherwise it
     // emits the same two independent triangles it always did.
-    let icap = 1 << 17, nI = 0;
+    let icap = cap * 2, nI = 0;
     let IDX = new Uint32Array(icap);
     const igrow = () => { icap *= 2; const b = new Uint32Array(icap); b.set(IDX); IDX = b; };
     const emit = (a, b, c) => {
@@ -1084,16 +1234,18 @@
     function geometry() {
       const g = new T.BufferGeometry();
       // slice(): trimmed copies, so the oversized growth buffers can be freed.
-      g.setAttribute('position', new T.Float32BufferAttribute(P.slice(0, nV * 3), 3));
-      g.setAttribute('normal', new T.Float32BufferAttribute(NM.slice(0, nV * 3), 3));
+      // BufferAttribute takes ownership of the trimmed array. The convenience
+      // Float32BufferAttribute constructor would copy that array a second time.
+      g.setAttribute('position', new T.BufferAttribute(P.slice(0, nV * 3), 3));
+      g.setAttribute('normal', new T.BufferAttribute(NM.slice(0, nV * 3), 3));
       // `true` = normalized: the GPU divides by 255 on the way into the
       // shader, so `attribute vec3 cDay` still reads 0..1 and no GLSL changes.
       g.setAttribute('cDay', new T.BufferAttribute(CD.slice(0, nV * 3), 3, true));
       g.setAttribute('cGold', new T.BufferAttribute(CG.slice(0, nV * 3), 3, true));
       g.setAttribute('cNight', new T.BufferAttribute(CN.slice(0, nV * 3), 3, true));
-      g.setAttribute('aGrad', new T.Float32BufferAttribute(new Float32Array(nV * 2), 2));
+      // aGrad is [0,0] for every builder vertex; materials supply the constant.
       g.setAttribute('aFacet', new T.BufferAttribute(FC.slice(0, nV), 1, false));
-      g.setAttribute('aSurface', new T.Float32BufferAttribute(SF.slice(0, nV * 4), 4));
+      g.setAttribute('aSurface', new T.BufferAttribute(SF.slice(0, nV * 4), 4));
       g.setIndex(new T.BufferAttribute(IDX.slice(0, nI), 1));
       g.computeBoundingSphere();
       return g;
@@ -1134,7 +1286,17 @@
   /** One fetch per URL for the whole layer; the browser's cache does the rest. */
   function fetchJSON(url) {
     if (!_fetches.has(url)) {
-      _fetches.set(url, fetch(url).then(r => { if (!r.ok) throw new Error(url + ': ' + r.status); return r.json(); }));
+      try { window.loaderData?.(url, 'start'); } catch (e) {}
+      _fetches.set(url, fetch(url).then(r => {
+        if (!r.ok) throw new Error(url + ': ' + r.status);
+        return r.json();
+      }).then(data => {
+        try { window.loaderData?.(url, 'done'); } catch (e) {}
+        return data;
+      }).catch(e => {
+        try { window.loaderData?.(url, 'error'); } catch (ignored) {}
+        throw e;
+      }));
     }
     return _fetches.get(url);
   }
@@ -1189,6 +1351,8 @@
     onAdd(map, gl) { _gl = gl; },
     onRemove() {
       releaseSunShadows();
+      _pc.pending.clear();
+      _pc.next = 0;
       try { if (renderer) renderer.dispose(); } catch (e) {}
       renderer = null; _frames = 0;
     },
@@ -1198,7 +1362,7 @@
     prerender(gl,args) { this.render(gl,args,true); },
     render(gl, args, prepareOnly=false) {
       // The switch, read LIVE every frame — never cached at onAdd.
-      if (!SLOPES.on || !scene || gl.isContextLost()) return;
+      if (!SLOPES.on || !scene || gl.isContextLost() || window.LITE_PROFILE?.sceneUnavailable) return;
       // Each generator's group carries the minzoom and the LOD tier of the
       // fill-extrusion layer it replaces (userData.minzoom, userData.lod), so
       // the roofs go at the altitude js/lod.js drops `roofs-pitched` while the
@@ -1244,6 +1408,7 @@
       _eye4.set(0,0,1,0).applyMatrix4(camera.projectionMatrixInverse);
       U.u_eye.value.set(_eye4.x/_eye4.w,_eye4.y/_eye4.w,_eye4.z/_eye4.w);
       const surf=SLOPES.surfaces;
+      window.RoofTiles.sync(U);
       U.u_surfaceRange.value.set(surf.on?1:0,surf.near,surf.far);
       U.u_surfaceStyle.value.set(surf.joint,surf.jointShade,surf.grain,surf.reflection);
       U.u_surfaceNoise.value.set(surf.grainScale,surf.tileVariation,surf.reflectionBase);
@@ -1293,6 +1458,7 @@
       if(prepareOnly)return;
       renderer.render(scene, camera);
       _frames++;
+      precompileTick();
     },
   };
 
@@ -1503,6 +1669,34 @@
 
     map.addLayer(layer, beforeId(map));
 
+    // MapLibre serializes its style without custom layers when the context is
+    // lost. Wait for its replacement style, then re-add ONLY the layer: keep
+    // CPU meshes/materials/textures and let a fresh renderer upload everything.
+    // Only where the CPU copies were kept; a phone reloads instead (js/mobile.js).
+    if (!FREE_CPU) {
+      let restorePending = false, restoreLight = null, restoreP = null;
+      const restoreLayer = () => {
+        if (!restorePending || !map.style?._loaded || !map.getLayer('buildings-3d') || map.painter.context.gl.isContextLost()) return;
+        // MapLibre's loss snapshot also omits its live time-of-day light.
+        if (restoreLight) map.setLight(restoreLight, { duration: 0 });
+        if (!map.getLayer(SLOPES.layerId)) map.addLayer(layer, beforeId(map));
+        // The clock may have moved while the style was gone (js/app.js, THE
+        // STYLELESS GAP); the snapshot only knows the moment of the loss.
+        // Re-apply the CURRENT time through the full wrapper chain, but only
+        // then: a needless repaint makes the name labels re-test what hides
+        // them, and on CI's slow renderer they were still fading back in.
+        if (typeof window.applyTimeOfDay === 'function' && window.__todCurrentP != null &&
+            window.__todCurrentP !== restoreP)
+          window.applyTimeOfDay(map, window.__todCurrentP, true);
+        restorePending = false;
+        map.triggerRepaint();
+      };
+      map.getCanvas().addEventListener('webglcontextlost', () => { restoreLight = map.getLight(); restoreP = window.__todCurrentP; restorePending = true; }, true);
+      map.on('webglcontextrestored', restoreLayer);
+      map.on('styledata', restoreLayer);
+      map.on('style.load', restoreLayer);
+    }
+
     // Join the retint chain (js/timeofday.js's retint comment says why the
     // wrapper, not a poll, is the only correct way).
     if (!window.__slopesHooked && typeof window.applyTimeOfDay === 'function') {
@@ -1519,16 +1713,93 @@
                 '— debug', SLOPES.debug ? 'ON' : 'off');
   };
 
+  /**
+   * build(), in chunks of at most `maxTris` triangles (js/mobile.js
+   * LITE.budget.geometryChunkTris; phones only). The same API plus
+   * `geometries()`: every primitive lands whole in one chunk (its indices only
+   * ever point at its own vertices), so the output is the same triangles in the
+   * same order, split across several meshes.
+   *
+   * WHY. One builder holds the whole of a bulk generator in growth buffers
+   * that double, and trims them with a copy at the end. For the authored
+   * buildings that was ~4.2 M vertices in buffers sized for 8.4 M, plus the
+   * trimmed copy, plus the doubling's garbage — the load's peak, ~820 MB of
+   * ArrayBuffers for a result of ~235 MB, measured on the phone profile. A
+   * chunk's buffers never grow past the chunk.
+   */
+  function buildChunked(maxTris, pack) {
+    const done = [];
+    let cur = build(), facetOn = false, before = 0;
+    const finish = () => (pack ? packGeometry(cur.geometry()) : cur.geometry());
+    const roll = () => {
+      if (cur.triangles < maxTris) return;
+      before += cur.triangles;
+      done.push(finish());
+      cur = build();
+      cur.facet(facetOn);
+    };
+    const api = {
+      facet(v) { facetOn = !!v; return cur.facet(v); },
+      geometries() {
+        const out = done.splice(0);
+        if (cur.triangles > 0 || !out.length) out.push(finish());
+        return out;
+      },
+      get triangles() { return before + cur.triangles; },
+    };
+    for (const m of ['tri', 'triN', 'quad', 'polygon', 'extrude']) api[m] = (...a) => { roll(); return cur[m](...a); };
+    return api;
+  }
+
+  /**
+   * A builder geometry at 34 bytes a vertex instead of 50 (js/mobile.js
+   * LITE.budget.packVertices; phones only). The normal becomes signed
+   * normalized BYTES (the shader still reads a vec3 in -1..1; an axis-aligned
+   * wall or roof normal is exact, any other is within half a degree) and
+   * aSurface four half floats (a material index, which is exact, and three
+   * shading scales to ~0.05%). Position and the colours are untouched.
+   *
+   * NOT PIXEL-IDENTICAL, and this is the one place a phone gives up exactness
+   * on purpose: the fine brick-joint grain is anchored in world metres through
+   * the normal and the surface scale, so on a wall hundreds of metres from the
+   * origin it lands a fraction of a brick along. Measured in one page, packed
+   * vs not (SwiftShader, 640x640 close-ups, control 0 px): The Standard by
+   * day 2.7% of pixels, at most 12/255; 21 Rio 1.3%; Moody Center 0. The
+   * same grain, displaced — invisible at a phone's ~0.3 m a pixel.
+   */
+  function packGeometry(g) {
+    const T = window.THREE;
+    const n = g.attributes.normal;
+    if (n && n.array instanceof Float32Array) {
+      // FOUR bytes, the fourth unused: `attribute vec3 normal` reads x, y, z of
+      // a 4-component attribute (legal in WebGL), and a 4-byte stride is one
+      // Metal (iOS) can use as is instead of converting a copy.
+      const a = n.array, nv = a.length / 3, o = new Int8Array(nv * 4);
+      for (let v = 0; v < nv; v++) for (let k = 0; k < 3; k++) o[v * 4 + k] = Math.round(Math.max(-1, Math.min(1, a[v * 3 + k])) * 127);
+      g.setAttribute('normal', new T.BufferAttribute(o, 4, true));
+    }
+    const s = g.attributes.aSurface;
+    if (s && s.array instanceof Float32Array && T.Float16BufferAttribute && T.DataUtils && T.DataUtils.toHalfFloat) {
+      const a = s.array, o = new Uint16Array(a.length), h = T.DataUtils.toHalfFloat;
+      for (let i = 0; i < a.length; i++) o[i] = h(a[i]);
+      const attr = new T.Float16BufferAttribute(o, 4);
+      g.setAttribute('aSurface', attr);
+    }
+    return g;
+  }
+
   window.slopes = {
+    canRestoreContext: !FREE_CPU,
     toLocal, toLngLat, project, raycast, material, facadeMaterial, colour, add, remove, detail,
-    onSwitch, build, frame, stats, fetchJSON,
+    onSwitch, build, buildChunked, packGeometry, frame, stats, fetchJSON,
     light: () => ({ enu: _light.enu.slice(), colour: _light.colour.slice(), intensity: _light.intensity }),
     get scene() { return scene; }, get root() { return root; }, get camera() { return camera; },
     get renderer() { return renderer; }, get layer() { return layer; },
     get origin() { return originMerc; }, get scale() { return originScale; },
     get frames() { return _frames; }, get debugGroup() { return _debugGroup; },
     uniforms: () => U,
-    sunlightStats: () => ({shadowUpdates:_sunShadow?.updates||0,shadowSize:_sunShadow?.size||0,shadowMaps:_sunShadow?2:0}),
+    sunlightStats: () => ({shadowUpdates:_sunShadow?.updates||0,shadowMapRenders:_sunShadow?.mapRenders||0,shadowSize:_sunShadow?.size||0,shadowMaps:_sunShadow?2:0}),
+    precompileStats: () => ({ on: SLOPES.turn.precompile, compiled: _pc.compiled, warmed: _pc.warmed, pending: _pc.pending.size, materials: _pc.materials, ms: +_pc.ms.toFixed(1) }),
   };
 
   // Self-boot, the shape js/roofs.js documents: take the style's own `load`

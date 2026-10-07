@@ -270,8 +270,8 @@
         "wayfind-dark-mark": 0,
         "wayfind-lit-dark": 20
       },
-      "plan": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-agree-plan.png",
-      "eye": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-agree-eye.png"
+      "plan": "shots/walk/lit/wc-agree-plan.png",
+      "eye": "shots/walk/lit/wc-agree-eye.png"
     },
     {
       "key": "disagree",
@@ -297,8 +297,8 @@
         "wayfind-dark-mark": 15,
         "wayfind-lit-dark": 261
       },
-      "plan": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-disagree-plan.png",
-      "eye": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-disagree-eye.png"
+      "plan": "shots/walk/lit/wc-disagree-plan.png",
+      "eye": "shots/walk/lit/wc-disagree-eye.png"
     }
   ]
 }

@@ -13,7 +13,7 @@
       document.documentElement.classList.add('clip');
       if (q.get('drive') === '1') document.documentElement.classList.add('clip-drive'); })();</script>
   <title>Austin 3D Explorer</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23140c04'/%3E%3Crect x='5' y='15' width='7' height='12' fill='%23c9a06a'/%3E%3Crect x='13' y='6' width='7' height='21' fill='%23f5a623'/%3E%3Crect x='21' y='12' width='6' height='15' fill='%23b5522e'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <script>/* HARNESS SHIM: preview tab is hidden, Chrome suspends rAF; drive frames with setTimeout so MapLibre renders */ window.requestAnimationFrame = function(cb){ return setTimeout(function(){ cb(performance.now()); }, 16); }; window.cancelAnimationFrame = clearTimeout; Object.defineProperty(document, "hidden", { get: function(){ return false; } }); Object.defineProperty(document, "visibilityState", { get: function(){ return "visible"; } });</script>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
   <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
@@ -108,6 +108,7 @@
   <script src="js/city-night.js"></script>
 <script src="js/city-lighting.js"></script>
   <script src="js/facades.js"></script>
+  <script src="js/image-memory.js"></script>
   <script src="js/ground.js"></script>
   <!-- KEEP IN SYNC WITH index.html. This list is a hand-maintained duplicate,
        and a module missing here renders a scene that looks correct and is not
@@ -133,7 +134,12 @@
   <!-- Real slopes (js/slopes.js header): the three.js custom layer. Self-
        booting off window.__map; ?slopes=0 leaves it out. After lod.js, which
        lists its layer id. KEEP IN SYNC WITH _harness.html. -->
+  <!-- Compact wall material (js/wall-patterns.js header). Before slopes.js,
+       whose shader and material read it. KEEP IN SYNC WITH _harness.html. -->
+  <script src="js/wall-patterns.js"></script>
   <script src="js/slopes.js"></script>
+  <script src="js/geometry-memory-codec.js"></script>
+  <script src="js/geometry-memory.js"></script>
   <!-- Its three generators, each one shape from baked data (headers in each
        file): the roofs off the rig on roofs.geojson, the arches off the
        `arches` member on entrances.geojson, the dome lathed from its discs.
@@ -189,7 +195,11 @@
   <script src="js/wayfind.js"></script>
   <script src="js/live-here-core.js"></script>
   <script src="js/live-here.js"></script>
+  <script src="js/name-labels.js"></script>
   <script src="js/finder.js" type="module"></script>
   <script src="js/app.js"></script>
+  <!-- Visit counting; inert on localhost, so a harness run sends nothing.
+       KEEP IN SYNC WITH index.html. -->
+  <script src="js/analytics.js"></script>
 </body>
 </html>

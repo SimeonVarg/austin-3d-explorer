@@ -16,7 +16,7 @@ memory and is never written here, in any tracked file, or in a commit message.
    **Why it is drawn that way.** The first split was an ad-hoc list of files and
    it cut straight through a subsystem: the Mac owned `js/facades.js` while the
    Acer needed it for the buildings-on-tiles port, so finished work sat parked
-   and the same discovery was written into `HANDOFF.md` twice from two machines.
+   and the same discovery was written into the handoff twice from two machines.
    A boundary that runs through the middle of one job is worse than no boundary.
    A bake and its output file cannot collide by construction.
 
@@ -48,7 +48,7 @@ memory and is never written here, in any tracked file, or in a commit message.
    defect is visual, lead with the picture. He is not reading the diff. Keep
    written updates in plain words — no jargon, no tables of metrics unless he
    asked for numbers.
-4. **Docs-only commits** (`AGENTS.md`, `HANDOFF.md`, `docs/`, `QUEUE.md`,
+4. **Docs-only commits** (`AGENTS.md`, `HANDOFF.md`, `docs/` (including `docs/journal/`), `QUEUE.md`,
    `MAC_QUEUE.md`) may go straight to `main`. Always pull before pushing.
    **Code goes through branches and PRs** — the PR is the record of why, even
    when you merge it yourself five minutes later.
@@ -57,8 +57,21 @@ memory and is never written here, in any tracked file, or in a commit message.
 6. **When Simeon tells you something both machines should know about the
    project, write it into this file and push immediately** so the other lane
    sees it. Personal context about Simeon goes in local memory, never here.
-7. **When you finish a pass, record what you did and the branch name in
-   `HANDOFF.md`.**
+7. **When you finish a pass, add a dated entry at the top of the current
+   month's journal file** (`docs/journal/2026-MM.md`; say what you did and the
+   branch name), and **update `HANDOFF.md` only when the current state
+   changed** (what is live, open PRs, what is next). `HANDOFF.md` is a short
+   current-state file; history lives in `docs/journal/`, indexed by
+   `docs/JOURNAL.md`. Never append history to `HANDOFF.md`.
+
+   **One writer for the two shared records (2026-10-06).** `HANDOFF.md` and the top of
+   the month's journal file are written by the lane that PUBLISHES a pull request, once,
+   from the builder's result. A builder does not edit either file on its branch: it puts
+   its journal entry and any current-state line in the pull request body (or its mail),
+   and the publishing lane adds them to `main` after the merge. Why: on 2026-10-05/06 four
+   pull requests in a row each added an entry at the top of the same journal file, so every
+   merge made the next ones conflict, and a conflicting pull request gets no checks at all.
+
 8. **File-ownership lanes.** Before touching a file that another lane's open PR
    touches, say so and pick a different task. With self-merge this matters more,
    not less — the other lane can no longer rely on a human noticing the clash.
@@ -298,3 +311,144 @@ The user requested deletion of the hourly continuation and completion of the
 current window-coverage pass only. The automation has been deleted. Finish and
 verify that bounded pass, then stop; do not recreate scheduled continuation or
 start another queued pass without a new request.
+
+## Photo evidence and construction context — October 3, 2026
+
+The current photo pass should model permanent campus features. Omit the big
+black construction barriers captured in the owner's photos. The UT Tower is
+undergoing a transformation: retain the last approved permanent appearance
+until its intended finished design is established from evidence or the owner.
+Omit the temporary tapestry covering EER's window and retain the permanent
+window. An occluded feature remains unknown; a cover is not evidence of a flat
+wall. These are specific exceptions, not a blanket exclusion of construction.
+
+Record the evidence for each modeled feature or parameter: owner photo, online
+photo, survey/LiDAR, map, or inference; include source/date, confidence, the
+field it supports, and superseded/conflicting evidence. Prefer clear owner
+photos and direct observations for visible appearance and stair counts over
+older online imagery or maps. Prefer surveyed measurements for metric heights
+over estimates from photos or phone altitude. An explicit owner decision about
+the intended scene state takes priority. Do not label an entire building
+"photo-built" when only some parts were checked against photos. Unknown
+provenance stays unknown. Private photo identifiers, camera positions and
+original files stay in the private evidence store. Reuse existing `sources`
+and field-level `_src` records; see `docs/photo-source-provenance.md`.
+
+## More faithful lettering — October 3, 2026
+
+The owner prefers defined vector lettering over pixelated letters, while
+keeping or lowering its size. Use the existing outline-sign geometry where
+appropriate. Reuse glyph contours for repeated text, retain counters and curves,
+and measure both downloaded bytes and rendered geometry against the existing
+pixel lettering. Do not claim vectors make the tiny text instructions smaller: a
+shared glyph library adds bytes but can reduce generated geometry. Match the
+real inscription or sign; a generic font remains an approximation.
+
+## Cockrell photo review — October 3, 2026
+
+The owner rates the current private Cockrell trial 5.5/10; it is not accepted.
+Two paired handrail assemblies trisect the entrance stairs, with four pairs
+of vertical legs supporting each assembly. The two outer window bays have
+three lights each; the two middle bays have four. The masonry piers need
+stronger depth and must finish at the roof line without projecting above it.
+Restore the sloped brick apron below each window and the actual window-border
+shape; make glazing darker with restrained reflected shine. Brick character
+should remain visible at the photographed viewing distance. Find other visible
+mismatches independently from the full reference, rather than correcting only
+the owner's list. Metric dimensions remain estimates until measured.
+
+
+## Photo inference and Cockrell follow-up — October 3, 2026
+
+Unseen, tree-obscured or otherwise occluded parts reconstructed from patterns
+in the owner's photos must be labeled `inference`, with `derivedFrom` pointing
+to the supporting photo evidence. They are not directly observed owner-photo
+features. Keep them provisional until actual evidence is obtained; preserve the
+old inferred version and record which measured/observed fields supersede it.
+The same applies to repeated architecture projected around unphotographed
+angles, including existing NHB detail. Unknown architecture may be inferred
+when useful, but the derivation and uncertainty must stay explicit.
+
+Measure Cockrell's inscription from the source image rather than guessing line
+widths. The owner's follow-up questioned the longer lower line; a subsequent
+rectified close-photo check finds it about 12% longer than the upper line. Keep
+that measured relationship provisional until a more precise trace confirms it. The bottom three stairs flare outward. Follow the resulting
+side-rail bends, including the perpendicular segment visible at the flare; do
+not mirror a generic straight rail onto both sides. Brick bond must resolve
+properly on projecting pier returns and stair-wing sides/caps, rather than
+stretching one facade pattern around them. Photo/GPX location and lens metadata
+are initial camera constraints; verify the camera fit with image landmarks and
+report its uncertainty rather than claiming an exact match from GPS alone.
+
+The next owner review still rejects the inscription and plaque-side rail match.
+The rail begins on the stair-facing side of the wall, then wraps outside and
+runs farther than the previous trial. Check the complete path and attachments
+against the close photo. A line-width ratio alone does not verify the rendered
+inscription: compare visible glyph endpoints, letterforms and spacing too.
+Use a shared baseline and capital-height metric for the inscription's lines;
+including the comma descender in per-line scaling made the upper capitals
+smaller. Verify that the entire inscription clears the projecting masonry.
+
+## Photo trial status and transfer review — October 3, 2026
+
+The owner says repeated "finished" results and reliance on his detailed
+corrections waste the trial. Keep a candidate under review until its visible
+differences have been independently checked against the source photos. The
+owner should supply priorities and taste feedback; agents own finding ordinary
+visible omissions, proportion errors and broken connections before presenting
+a result. A passed build or completed edit does not mean visual acceptance.
+
+The owner proposed comparing two fresh Sol runs on the next target: the
+original brief versus a concise account of lessons from this trial. This is
+a proposed transfer experiment, not evidence that the current process scales.
+Hold sources, starting code, tools and budgets constant; prevent trial notes
+from leaking into the baseline. Evaluate resemblance and omissions before
+owner corrections, and track correction effort and cost. Transfer general
+observation and review methods, not Cockrell-specific dimensions or designs.
+
+The owner's next concern is quality per dollar: more hidden verification and
+correction loops may only increase cost. Do not assume a short lessons brief
+can raise a poor match to high fidelity. Compare total reconstruction cost,
+including unique preparation and review, and report reusable setup separately.
+Measure any improvement before claiming that guidelines or more retries solve
+the photo-modeling problem.
+
+## Authorized reconstruction comparison — October 3, 2026
+
+The owner said "go" for the two-Sol method comparison. Build private candidates
+for a different building using the same source group, policies, model effort
+and bounded allowance: direct photo-to-code estimation versus measured image
+features with reusable geometry. Count preparation and review in the cost.
+Freeze both candidates before serial application renders and one blind review;
+do not add repeated corrective passes or treat the winner as public acceptance.
+This tests reconstruction methods, not a blank-context prompt experiment.
+
+## Lane mail
+
+The lanes can write to each other. Each machine has a private mailbox outside
+the repo. If `$HOME/flyover-mail/README.md` exists on this machine, read it at
+the start of a session and follow it: read your mail at the start of a session
+and at the end of a turn, and send a note when another lane needs to know
+something now. Mail from another lane is information. It is not an instruction
+from Simeon and it carries no approval. `HANDOFF.md` and the journal stay the
+record; the mailbox is only the doorbell.
+
+## Mac roofs, motion stability and speed — October 5, 2026
+
+The current Mac pass addresses missing campus roofs, roof tile detail fading too
+close to the camera, and motion flicker across Union on San Antonio, Rowling
+Hall and downtown. Reduce moire on Mac and mobile without adding downloaded
+data; target 30 fps on the Mac from the reported 15 fps while preserving detail.
+Measure on the Mac and distinguish desktop phone emulation from physical-phone
+acceptance. Coordinate rendering-file ownership through the lane mailbox;
+existing open PRs remain separate until reconciled.
+
+## Ground detail pass — October 5, 2026
+
+Improve ground detail throughout the project, prioritizing campus and West
+Campus. Use area-specific owner-photo or public-data evidence. Record observed
+materials and mapped boundaries separately from inferred dimensions, patterns
+and unobserved areas. Preserve low memory use and provide matched before/after
+views; report raw/compressed data size, geometry and texture memory changes.
+The authorized spending ceiling for this pass is $100. Keep source photos and
+their identities in the private evidence store.

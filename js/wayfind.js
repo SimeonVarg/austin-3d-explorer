@@ -1358,6 +1358,7 @@
   async function loadGraph() {
     if (G) return G;
     if (loadPromise) return loadPromise;
+    try { window.loaderGraph?.('start'); } catch (e) {}
     loadPromise = (async () => {
       const t0 = performance.now();
       // The register rides along so the 85 codes the graph lacks can still be
@@ -1387,8 +1388,12 @@
         SIGNAL_WAIT_HIGH_S: 'signalWaitHighS', CROSSING_PENALTY_M: 'crossingPenaltyM',
         DOOR_LINK_MAX_M: 'doorLinkMaxM' };
       for (const k in map) if (raw.tune && raw.tune[k] != null) WAYFIND[map[k]] = raw.tune[k];
+      try { window.loaderGraph?.('done'); } catch (e) {}
       return G;
-    })();
+    })().catch(e => {
+      try { window.loaderGraph?.('error'); } catch (ignored) {}
+      throw e;
+    });
     return loadPromise;
   }
 
@@ -1689,7 +1694,7 @@
       m.stairSets * WAYFIND.stairFixedS +
       m.signals * WAYFIND.signalWaitHighS;
     let lo = Math.floor(lowS / 60), hi = Math.ceil(highS / 60);
-    if (hi <= lo) hi = lo + 1;
+    if (hi <= lo && highS > 0) hi = lo + 1;
     return { lo, hi, lowS, highS };
   }
 
@@ -2278,7 +2283,8 @@
       for (const b of reg.buildings) {
         if (!b || !b.ref || byCode.has(b.ref)) continue;
         const e = { kind: 'reg', reg: true, code: b.ref, name: norm(b.name),
-          number: b.number || '', display: titleCase(norm(b.name)), doors: [] };
+          number: b.number || '', display: titleCase(norm(b.name)), doors: [],
+          unavailable: g.raw?.availability?.[b.ref] || null };
         byCode.set(b.ref, e);
         entries.push(e);
       }
@@ -2538,6 +2544,19 @@
     if (!str) return null;
     const r = search(str);
     return r.length ? r[0] : null;
+  }
+
+  function resolveExact(str) {
+    if (!G || !str) return null;
+    const name = norm(str);
+    const code = name.toUpperCase().replace(/ /g, '');
+    if (G.byCode.has(code)) return G.byCode.get(code);
+    const matches = search(str).filter(entry => norm(entry.display) === name || entry.name === name ||
+      (/^[0-9]+$/.test(name) && entry.number && Number(entry.number) === Number(name)));
+    if (!matches.length) return null;
+    const doors = matches[0].doors.slice().sort((left, right) => left - right).join(',');
+    return matches.every(entry => entry.doors.slice().sort((left, right) => left - right).join(',') === doors)
+      ? matches[0] : null;
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -3461,7 +3480,8 @@
     // extra one, so the same call serves both pickers.
     const fromDoors = pickDoors(g, from, opts.avoidStairs),
       toDoors = pickDoors(g, to, opts.avoidStairs);
-    if (!fromDoors.length || !toDoors.length) return { ok: false, why: 'nodoor' };
+    if (!fromDoors.length || !toDoors.length) return { ok: false, why: 'nodoor',
+      reason: (!fromDoors.length ? from.unavailable : to.unavailable)?.reason || null };
 
     let legs, viaPoi = null;
     if (opts.via != null) {
@@ -3476,6 +3496,11 @@
       viaPoi = { i: opts.via, name: p[4], cat: p[3], hours: p[5], ll: [p[0] * g.q, p[1] * g.q] };
       legs.fromDoor = a.fromDoor; legs.toDoor = b.toDoor;
       legs.fromLinkM = a.fromLinkM; legs.toLinkM = b.toLinkM;
+    } else if (from === to) {
+      legs = [{ cost: 0, edges: [], nodes: [], fromDoor: fromDoors[0],
+        toDoor: fromDoors[0], fromLinkM: 0, toLinkM: 0 }];
+      legs.fromDoor = fromDoors[0]; legs.toDoor = fromDoors[0];
+      legs.fromLinkM = 0; legs.toLinkM = 0;
     } else {
       // INTEGRATION (acer/w-integrate): the door lane passes the two ENTRIES so
       // legBetween can refuse to widen an end UT surveyed; the stairs lane
@@ -3508,7 +3533,9 @@
     // a surveyed path, not because they are free.
     m.flat += legs.fromLinkM + legs.toLinkM;
 
-    const geom = geometryOf(g, legs, legs.fromDoor, legs.toDoor);
+    const geom = from === to && opts.via == null
+      ? { line: [doorLL(g, legs.fromDoor)], startLeg: null, endLeg: null }
+      : geometryOf(g, legs, legs.fromDoor, legs.toDoor);
     const dist = m.flat + m.stair;
     const t = timeRange(m);
 
@@ -8356,7 +8383,7 @@
     run({ fit: !!opts.fit });
     if (opts.expand) { state.expanded = true; renderPill(); }
     const r = state.route;
-    if (!r || !r.ok) return { ok: false, why: r ? r.why : 'noroute' };
+    if (!r || !r.ok) return { ok: false, why: r ? r.why : 'noroute', reason: r?.reason || null };
     // The bbox and a point-on-route come back with the answer so a verify
     // script can pose a camera from the route itself rather than from a guess.
     const pts = r.geom.line.concat([doorLL(G, r.fromDoor), doorLL(G, r.toDoor)]);
@@ -8498,10 +8525,10 @@
     if (from == null) return stairAnswer(state.route);
     return (async () => {
       const g = await loadGraph();
-      const f = resolve(from), t = resolve(to);
+      const f = resolveExact(from), t = resolveExact(to);
       if (!f || !t) return { ok: false, why: 'notfound' };
       const r = computeRoute(g, f, t, { avoidStairs: !!(opts && opts.avoidStairs) });
-      if (!r.ok) return { ok: false, why: r.why, from: f.code, to: t.code };
+      if (!r.ok) return { ok: false, why: r.why, reason: r.reason || null, from: f.code, to: t.code };
       const a = stairAnswer(r);
       a.ok = true;
       // Re-derive the step-free claim straight from the graph rather than
@@ -11012,6 +11039,14 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
   WAYFIND.schedule = SCHEDULE;
 
   const SCHED_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+  const SCHED_DAY_NAMES = {
+    SU: ['SU', 'SUN', 'SUNDAY'], MO: ['MO', 'MON', 'MONDAY'], TU: ['TU', 'TUE', 'TUESDAY'],
+    WE: ['WE', 'WED', 'WEDNESDAY'], TH: ['TH', 'THU', 'THURSDAY'],
+    FR: ['FR', 'FRI', 'FRIDAY'], SA: ['SA', 'SAT', 'SATURDAY'],
+  };
+  function schedConfidenceNeedsReview(value) {
+    return value != null && (!Number.isFinite(value) || value !== WF_DAY.confidenceSure);
+  }
   // A date, or a date-time, with an optional trailing Z for UTC. Deliberately
   // strict: `2026O826T140000` (letter O for zero) must FAIL rather than be
   // silently coerced, because a wrong class time is worse than a missing one.
@@ -11214,23 +11249,44 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
 
   /** RRULE -> the only three fields a class schedule needs from it. */
   function schedRRule(v) {
-    const out = { freq: '', interval: 1, byday: [], until: null, count: null, raw: String(v || '') };
+    const out = { freq: '', interval: 1, byday: [], until: null, count: null, needsReview: false, raw: String(v || '') };
+    const seen = new Set();
     for (const part of out.raw.split(';')) {
       const eq = part.indexOf('=');
-      if (eq < 0) continue;
+      if (eq <= 0) { out.needsReview = true; continue; }
       const k = part.slice(0, eq).toUpperCase(), val = part.slice(eq + 1);
+      if (seen.has(k)) out.needsReview = true;
+      seen.add(k);
       if (k === 'FREQ') out.freq = val.toUpperCase();
-      else if (k === 'INTERVAL') out.interval = Math.max(1, parseInt(val, 10) || 1);
-      else if (k === 'COUNT') out.count = parseInt(val, 10) || null;
-      else if (k === 'UNTIL') { const d = schedDT(val, {}); out.until = d.ok ? d.date : null; }
+      else if (k === 'INTERVAL') {
+        out.interval = Number(val);
+        if (!/^\d+$/.test(val) || !Number.isSafeInteger(out.interval) || out.interval < 1) out.needsReview = true;
+      }
+      else if (k === 'COUNT') {
+        out.count = Number(val);
+        if (!/^\d+$/.test(val) || !Number.isSafeInteger(out.count) || out.count < 1) out.needsReview = true;
+      }
+      else if (k === 'UNTIL') {
+        const d = schedDT(val, {});
+        out.until = d.ok ? d.date : null;
+        if (!d.ok) out.needsReview = true;
+      }
       else if (k === 'BYDAY') {
-        out.byday = val.toUpperCase().split(',')
+        const tokens = val.toUpperCase().split(',').map(token => token.trim());
+        if (tokens.some(token => !SCHED_DAYS.includes(token))) out.needsReview = true;
+        out.byday = tokens
           // `2SU` (second Sunday) is an ordinal form VTIMEZONE uses; the
           // ordinal is dropped, the weekday kept.
           .map(s => s.replace(/^[-+]?\d+/, '').trim())
           .filter(s => SCHED_DAYS.indexOf(s) >= 0);
       }
+      else if (k === 'WKST') {
+        if (!SCHED_DAYS.includes(val.toUpperCase())) out.needsReview = true;
+      }
+      else out.needsReview = true;
     }
+    if (seen.has('COUNT') && seen.has('UNTIL')) out.needsReview = true;
+    if (out.freq !== 'WEEKLY' || out.interval !== 1 || out.count === 1) out.needsReview = true;
     return out;
   }
 
@@ -11300,6 +11356,16 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     if (!lines.length) return { empty: true, text: '', lines: [], raw: whole };
     const head = lines[0];
     const out = { empty: false, code: null, room: '', text: head, lines: lines, raw: whole };
+    const candidates = new Set([...whole.matchAll(new RegExp(SCHED_PARENS_RE.source, 'g'))]
+      .map(match => match[1].toUpperCase()));
+    for (const line of lines) {
+      const stripped = line.replace(new RegExp(SCHED_PARENS_RE.source, 'g'), ' ')
+        .replace(/\s*,\s*Austin\b.*$/i, '').replace(/[,;]/g, ' ').trim().toUpperCase();
+      const candidate = SCHED_CODE_ROOM_RE.exec(stripped);
+      if (candidate && SCHED_ROOM_DIGIT_RE.test(candidate[2])) candidates.add(candidate[1]);
+      else if (/^[A-Z]{2,4}[0-9]?$/.test(stripped)) candidates.add(stripped);
+    }
+    out.needsReview = candidates.size > 1;
 
     const par = SCHED_PARENS_RE.exec(whole);
     if (par) {
@@ -11472,6 +11538,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       }
       if (p.name === 'END') {
         const comp = p.value.toUpperCase().trim();
+        if (stack[stack.length - 1] !== comp) cal.truncated = true;
         if (comp === 'VEVENT' && cur) { events.push(cur); cur = null; }
         const at = stack.lastIndexOf(comp);
         if (at >= 0) stack.length = at; else stack.pop();
@@ -11486,6 +11553,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       if (cur && stack[stack.length - 1] === 'VEVENT') cur.props.push({ p: p, line: L.line });
     }
     if (cur) { cur.truncated = true; cal.truncated = true; events.push(cur); }
+    if (stack.length) cal.truncated = true;
     return { cal: cal, events: events };
   }
 
@@ -11503,6 +11571,12 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       raw: { line: raw.line, uid: '', summary: '', location: '', rrule: '' },
     };
     const at = (field, line) => ({ event: idx, line: line || raw.line, field: field || '' });
+    const answerFields = new Set();
+    for (const property of raw.props) {
+      if (!['DTSTART', 'DTEND', 'RRULE', 'LOCATION'].includes(property.p.name)) continue;
+      if (answerFields.has(property.p.name)) ev.needsReview = true;
+      answerFields.add(property.p.name);
+    }
 
     const uid = first('UID');
     ev.id = uid ? schedUnescape(uid.p.value).trim() : ('row-' + idx);
@@ -11528,6 +11602,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
         schedSay('timeMissing', { n: idx, title: ev.title || 'untitled' }), at('DTSTART')));
     } else {
       ev.tz = ds.p.params.TZID || defTz || SCHEDULE.tz;
+      if (ev.tz !== SCHEDULE.tz) ev.needsReview = true;
       const d = schedDT(ds.p.value, ds.p.params);
       if (!d.ok) {
         ev.status = 'failed';
@@ -11541,12 +11616,17 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     }
     const de = first('DTEND');
     if (de) {
+      const endTz = de.p.params.TZID || defTz || SCHEDULE.tz;
+      if (endTz !== SCHEDULE.tz) ev.needsReview = true;
       const d2 = schedDT(de.p.value, de.p.params);
       if (!d2.ok) {
         ev.problems.push(schedProblem('warning', 'DATE_MALFORMED',
           schedSay('dateMalformed', { n: idx, title: ev.title || 'untitled', field: 'end date', raw: d2.raw }),
           at('DTEND', de.line), 'The class still imports; only its length is unknown.'));
-      } else ev.endMin = d2.min;
+      } else {
+        ev.endMin = d2.min;
+        if (ev.firstDate && d2.date !== ev.firstDate) ev.needsReview = true;
+      }
     }
 
     const rr = first('RRULE');
@@ -11555,12 +11635,19 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       ev.raw.rrule = r.raw;
       ev.days = r.byday.slice();
       ev.lastDate = r.until;
+      ev.needsReview = !!ev.needsReview || r.needsReview || !!(ds && /Z$/i.test(ds.p.value));
+      if (r.until && ev.firstDate && r.until < ev.firstDate) ev.needsReview = true;
     }
+    else ev.needsReview = true;
     if (!ev.days.length && ev.firstDate) {
       const d = schedDow(ev.firstDate);
       if (d) ev.days = [d];
     }
     for (const q of raw.props) {
+      if (['EXDATE', 'RDATE', 'RECURRENCE-ID'].includes(q.p.name) ||
+          (q.p.name === 'STATUS' && String(q.p.value).trim().toUpperCase() === 'CANCELLED')) {
+        ev.needsReview = true;
+      }
       if (q.p.name !== 'EXDATE') continue;
       for (const one of String(q.p.value).split(',')) {
         const d = schedDT(one, q.p.params);
@@ -11571,6 +11658,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     const loc = first('LOCATION');
     ev.raw.location = loc ? loc.p.value : '';
     const parsed = schedLocation(loc ? loc.p.value : '');
+    ev.needsReview = !!ev.needsReview || !!parsed.needsReview;
     ev.locationText = parsed.empty ? '' : parsed.text;
     const res = schedResolve(parsed);
     ev.resolved = res;
@@ -11588,7 +11676,9 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
 
   /** Minutes past midnight for `h:mm` with UT's afternoon convention. */
   function schedClock(h, m, ap) {
-    let hh = h % 24;
+    if (!Number.isInteger(h) || !Number.isInteger(m) || m < 0 || m > 59 ||
+        h < (ap ? 1 : 0) || h > (ap ? 12 : 23)) return null;
+    let hh = h;
     if (ap === 'p') { if (hh !== 12) hh += 12; }
     else if (ap === 'a') { if (hh === 12) hh = 0; }
     else if (hh < SCHEDULE.pmCutoffHour) hh += 12;      // "TTh 2:00" is 14:00
@@ -11614,12 +11704,13 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     // printed.
     const out = [];
     for (const f of found) {
-      if (typeof f === 'number') { out.push(f); continue; }
+      if (f == null || typeof f === 'number') { out.push(f); continue; }
       let v = schedClock(f.h, f.m, '');
-      if (out.length && v < out[out.length - 1] && v + 720 <= 1439) v += 720;
+      if (v != null && out.length && out[out.length - 1] != null &&
+          v < out[out.length - 1] && v + 720 <= 1439) v += 720;
       out.push(v);
     }
-    return { times: out, masked: masked };
+    return { times: out, masked: masked, needsReview: out.some(time => time == null) };
   }
 
   /**
@@ -11633,14 +11724,17 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
    * than a one-letter token, so length decides and position only breaks ties.
    */
   function schedDaysOf(line) {
-    const toks = line.split(/[\s,;|–—]+/);
+    const course = SCHED_COURSE_RE.exec(line.toUpperCase());
+    const patterns = new Set();
     let best = null;
-    for (let i = 0; i < toks.length; i++) {
-      const up = toks[i].toUpperCase().replace(/[^A-Z]/g, '');
+    for (const token of line.matchAll(/[^\s,;|–—]+/g)) {
+      if (course && token.index >= course.index && token.index < course.index + course[0].length) continue;
+      const up = token[0].toUpperCase().replace(/[^A-Z]/g, '');
       if (!up) continue;
       for (const [word, days] of SCHEDULE.dayWords) {
         if (up !== word) continue;
-        if (!best || word.length > best.word.length) best = { word: word, days: days, tok: toks[i] };
+        patterns.add(days.slice().sort().join(','));
+        if (!best || word.length > best.word.length) best = { word: word, days: days, tok: token[0] };
         break;
       }
     }
@@ -11648,6 +11742,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     const esc = best.tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return {
       days: best.days.slice(),
+      needsReview: patterns.size > 1,
       masked: line.replace(new RegExp('\\b' + esc + '\\b'), ' '.repeat(best.tok.length)),
     };
   }
@@ -11676,8 +11771,10 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     const t = schedTimesOf(flat);
     ev.startMin = t.times.length ? t.times[0] : null;
     ev.endMin = t.times.length > 1 ? t.times[1] : null;
+    ev.needsReview = t.needsReview || t.times.length > 2;
     const d = schedDaysOf(t.masked);
     ev.days = d.days;
+    ev.needsReview = ev.needsReview || !!d.needsReview;
 
     const known = schedCodes();
     const cands = [];
@@ -11715,6 +11812,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       const tail = cands[cands.length - 1];
       if (!(cands.length === 1 && tail.text === ev.course)) pick = tail;
     }
+    if (pick && cands.indexOf(pick) < cands.length - 1) ev.needsReview = true;
     // DOES THIS LINE CARRY ANY SIGNAL AT ALL that it is about a class? A
     // building candidate, a course number, a clock time, or a day word will
     // do. `schedParseRows` uses this to tell "a schedule with a broken row"
@@ -11829,6 +11927,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     if (source && scan.cal.name) source.label = source.label || scan.cal.name;
     if (source) source.producer = scan.cal.prodId || '';
     const events = raws.map((r, i) => schedEventFromICS(r, i + 1, scan.cal.tz || SCHEDULE.tz));
+    if (scan.cal.truncated) for (const event of events) event.needsReview = true;
     if (!events.length) {
       problems.push(schedProblem('error', 'NO_EVENTS', schedSay('fileEmpty', {}), null,
         'Check you exported the calendar your classes are on.'));
@@ -12060,26 +12159,46 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
         firstDate: r.firstDate || null, lastDate: r.lastDate || null, exDates: r.exDates || [],
         tz: r.tz || SCHEDULE.tz, status: 'ok', problems: [], resolved: null,
         confidence: (r.confidence == null ? null : r.confidence),
+        needsReview: !!r.needsReview || schedConfidenceNeedsReview(r.confidence) || !!r.problems?.length ||
+          !!(r.tz && r.tz !== SCHEDULE.tz) ||
+          !!(r.exDates && r.exDates.length) ||
+          ['FAILED', 'CANCELLED'].includes(String(r.status || '').toUpperCase()),
         raw: r.raw || { line: idx },
       };
       const at = { event: idx, line: idx, field: 'location' };
-      if (Array.isArray(r.days)) ev.days = r.days.map(d => String(d).toUpperCase().slice(0, 2))
-        .filter(d => SCHED_DAYS.indexOf(d) >= 0);
+      if (Array.isArray(r.days)) {
+        const normalizedDays = r.days.map(day => {
+          const token = String(day).trim().toUpperCase();
+          return SCHED_DAYS.find(code => SCHED_DAY_NAMES[code].includes(token)) || '';
+        });
+        ev.days = normalizedDays.filter(day => SCHED_DAYS.indexOf(day) >= 0);
+        if (normalizedDays.length !== ev.days.length) ev.needsReview = true;
+      }
       else if (r.days) {
         const up = String(r.days).toUpperCase().replace(/[^A-Z]/g, '');
         for (const [w, ds] of SCHEDULE.dayWords) if (up === w) { ev.days = ds.slice(); break; }
       }
-      if (r.startMin != null) ev.startMin = +r.startMin;
-      if (r.endMin != null) ev.endMin = +r.endMin;
-      if (ev.startMin == null && r.start) {
-        const t = schedTimesOf(String(r.start));
-        ev.startMin = t.times.length ? t.times[0] : null;
+      for (const field of ['startMin', 'endMin']) {
+        if (r[field] == null) continue;
+        const value = r[field];
+        const numeric = typeof value === 'number' ||
+          (typeof value === 'string' && /^\d+$/.test(value.trim()));
+        ev[field] = numeric ? Number(value) : null;
+        if (!Number.isInteger(ev[field])) ev.needsReview = true;
       }
-      if (ev.endMin == null && r.end) {
-        const t = schedTimesOf(String(r.end));
-        ev.endMin = t.times.length ? t.times[0] : null;
+      for (const [field, clock] of [['startMin', 'start'], ['endMin', 'end']]) {
+        if (r[clock] == null) continue;
+        const text = String(r[clock]).trim();
+        const t = /^\d{1,2}:\d{2}$/.test(text)
+          ? { times: [impMinOf(text)], needsReview: impMinOf(text) == null }
+          : schedTimesOf(text);
+        const minutes = t.times.length ? t.times[0] : null;
+        const conflicting = ev[field] != null && ev[field] !== minutes;
+        if (ev[field] == null) ev[field] = minutes;
+        ev.needsReview = ev.needsReview || t.needsReview || t.times.length !== 1 || conflicting;
       }
       const parsed = schedLocation(String(r.location == null ? '' : r.location));
+      ev.needsReview = ev.needsReview || !!parsed.needsReview;
       ev.locationText = parsed.empty ? '' : parsed.text;
       if (!ev.title) ev.title = ev.course || ('row ' + idx);
       const res = schedResolve(parsed);
@@ -12112,14 +12231,16 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     const usable = schedule.events.filter(e => e.status === 'ok' && e.code);
     const seen = new Map();
     for (const e of usable) {
-      if (seen.has(e.code)) { e.resolved.routable = seen.get(e.code); continue; }
-      let ok = false;
-      try {
-        const r = await window.wayfindStairs(e.code, e.code === 'PCL' ? 'MAI' : 'PCL',
-          { avoidStairs: !!opts.avoidStairs });
-        ok = !!(r && r.ok);
-      } catch (err) { ok = false; }
-      seen.set(e.code, ok);
+      let ok = seen.get(e.code);
+      if (!seen.has(e.code)) {
+        ok = false;
+        try {
+          const r = await window.wayfindStairs(e.code, e.code === 'PCL' ? 'MAI' : 'PCL',
+            { avoidStairs: !!opts.avoidStairs });
+          ok = !!(r && r.ok);
+        } catch (err) { ok = false; }
+        seen.set(e.code, ok);
+      }
       e.resolved.routable = ok;
       if (!ok) {
         e.status = 'failed';
@@ -12153,6 +12274,8 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
         if (r && r.ok) {
           leg.ok = true;
           leg.distM = r.distM != null ? r.distM : null;
+          leg.lo = r.lo != null ? r.lo : null;
+          leg.hi = r.hi != null ? r.hi : null;
         } else {
           leg.why = (r && r.why) || 'noroute';
         }
@@ -12164,8 +12287,14 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       }
     }
     schedule.legs = legs;
-    schedule.counts.legs = legs.length;
-    schedule.counts.legsOk = legs.filter(l => l.ok).length;
+    const eventProblems = new Set(schedule.events.flatMap(event => event.problems));
+    const checked = schedAssemble(schedule.source, schedule.events,
+      schedule.problems.filter(problem => !eventProblems.has(problem)), schedule.summary);
+    schedule.summary = checked.summary;
+    schedule.routable = checked.routable;
+    schedule.counts = Object.assign(checked.counts, {
+      legs: legs.length, legsOk: legs.filter(leg => leg.ok).length,
+    });
     return schedule;
   };
 
@@ -12712,6 +12841,9 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
   }
   function impTo24(h, m, ap) {
     let hh = Number(h);
+    const minute = Number(m);
+    if (!Number.isInteger(hh) || !Number.isInteger(minute) || minute < 0 || minute > 59 ||
+        hh < (ap ? 1 : 0) || hh > (ap ? 12 : 23)) return null;
     if (/p/i.test(ap) && hh !== 12) hh += 12;
     if (/a/i.test(ap) && hh === 12) hh = 0;
     return String(hh).padStart(2, '0') + ':' + m;
@@ -12861,7 +12993,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
    *  strings; every surface downstream of it speaks minutes. */
   function impMinOf(hm) {
     const m = /^(\d{1,2}):(\d{2})$/.exec(String(hm == null ? '' : hm).trim());
-    if (!m) return null;
+    if (!m || +m[1] > 23 || +m[2] > 59) return null;
     const v = (+m[1]) * 60 + (+m[2]);
     return (v >= 0 && v < 1440) ? v : null;
   }
@@ -12897,6 +13029,8 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       endMin: ev.endMin == null ? null : Number(ev.endMin),
       firstDate: ev.firstDate || null,
       unique: ev.unique || null,
+      needsReview: !!ev.needsReview || ev.status === 'failed' || !!(ev.problems && ev.problems.length),
+      confidence: ev.confidence == null ? 1 : Number(ev.confidence),
       // What the file actually said, kept verbatim, because a reject row
       // prints it and "we could not read THIS" is the only useful failure.
       raw: String(ev.locationText || loc || ev.title || ''),
@@ -12927,6 +13061,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       tz: IMP.tz, status: p.status === 'ok' ? 'ok' : 'failed',
       problems: Array.isArray(r.problems) ? r.problems.slice() : [],
       confidence: r.confidence == null ? 1 : Number(r.confidence),
+      needsReview: !!r.needsReview || !!p.needsReview,
       // ...AND `provenance` RIDES WITH IT, for the same reason `confidence`
       // does. `confidence` is what makes the day view MARK a class nobody
       // checked; `provenance` is the only thing that makes the mark answerable,
@@ -12992,7 +13127,8 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
    */
   function impRowFromRead(c, idx) {
     const r = c || {};
-    const days = (Array.isArray(r.days) && r.days.length ? r.days : [r.day])
+    const readDays = Array.isArray(r.days) && r.days.length ? r.days : [r.day];
+    const days = readDays
       .map(d => IMP_READ_DAY[d] || null).filter(Boolean);
     const loc = r.building ? (r.room ? r.building + ' ' + r.room : r.building) : '';
     // `needsConfirm` AND NOT `!confirmed`, and the difference is a real one this
@@ -13002,7 +13138,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     // reading `!confirmed` marked every clean class on a clean table as
     // unchecked. `needsConfirm` is the field that means what it says: something
     // about this class was left open.
-    const unchecked = !!r.needsConfirm;
+    const unchecked = !!r.needsConfirm || readDays.length !== days.length;
     const problems = [];
     // The screen's own sentence about what was not settled, carried in the
     // shape the day view already prints for a class it could not place.
@@ -13140,6 +13276,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       confidence: row.confidence == null ? 1 : Number(row.confidence),
       provenance: row.provenance || null,
       problems: Array.isArray(row.problems) ? row.problems.slice() : [],
+      needsReview: !!row.needsReview || schedConfidenceNeedsReview(row.confidence),
     };
     if (!code) return Object.assign(base, { status: 'nolocation', name: null });
     // ── ASK THE ROUTER; DO NOT REPEAT WHAT IT SAID LAST WEEK (SI5) ─────────
@@ -13202,7 +13339,9 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       // ONE CLASS, NOT ONE MEETING. A weekly class is one VEVENT with an
       // RRULE, but a hand-pasted block can repeat a room on three lines; the
       // key is what makes the count on screen the number of classes.
-      const key = p.code + '|' + p.room + '|' + p.start + '|' + (p.days || []).join('');
+      const key = JSON.stringify([p.code, p.room, p.startMin, p.endMin,
+        [...new Set(p.days || [])].sort(), p.status, p.confidence, p.needsReview,
+        !!(p.problems && p.problems.length)]);
       if (seen.has(key)) continue;
       seen.add(key);
       if (p.status === 'ok') classes.push(p); else rejects.push(p);
@@ -13894,14 +14033,18 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       impState.err = SAY_IMP.errImgBig(Math.round(f.size / 1048576));
       impRender(); return null;
     }
+    // SAY SO FIRST. The panel speaks before anything is awaited: even the
+    // 12-byte format sniff below waits for a free main thread, and on a phone
+    // still drawing the city that left the panel blank for 1-3 s (measured).
+    impState.busy = true; impState.busyNote = SAY_IMP.imgLoading; impRender();
     // THE FORMAT GATE, AND IT ONLY RUNS FOR THE FORMAT IT IS ABOUT. See
     // IMP.image.heicBrands: a HEIC that this browser cannot decode is the
     // single likeliest total failure of this feature on a real iPhone, and
     // before this it arrived as the generic read error five megabytes later.
     if (await impLooksHeic(f) && !(await impCanDecode(f))) {
+      impState.busy = false; impState.busyNote = null;
       impState.err = SAY_IMP.errImgHeic; impRender(); return null;
     }
-    impState.busy = true; impState.busyNote = SAY_IMP.imgLoading; impRender();
     return impFinishImage(f);
   }
 
@@ -14057,6 +14200,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       // An .ics still stores 1 and no provenance, exactly as before.
       confidence: c.confidence == null ? 1 : Number(c.confidence),
       provenance: c.provenance || null,
+      needsReview: !!c.needsReview || !!(c.problems && c.problems.length),
     });
     for (const c of (res.classes || [])) put(c, null);
     for (const r of (res.rejects || [])) put(r, r.status || 'unknown');
@@ -14316,6 +14460,63 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
      *  on its own is not the private part. `MAI 220`, a course title and an
      *  instructor's name all clear the bar. */
     minTokenLen: 4,
+    /**
+     * THE PARTS OF THE STORED DOC THAT ARE THE APP'S WORDS, NOT THE STUDENT'S,
+     * and so are never a needle. Keyed by where the field lives.
+     *
+     * Found on a phone on 2026-09-28. The watchlist used to be EVERY string
+     * leaf of the doc, so `provenance.confirmedBy: 'student'` (written the
+     * moment a class is confirmed) became a needle. The byte scan then found it
+     * inside a vector tile's "Student Activity Center", and the guard refused
+     * MapLibre's own tile: 7 refusals and an uncaught error in one short walk
+     * round campus. `read: 'photo'` did the same thing, and
+     * `unconfirmedFields: ['building']` would have refused every tile that has
+     * a building in it, because `building` is a layer name inside the tile.
+     * None of these is the schedule. They are values this file writes the same
+     * way on every student's device.
+     *
+     * A LIST OF WHAT TO SKIP, NOT A LIST OF WHAT TO WATCH, on purpose. A field
+     * added next year is watched until somebody decides it is app vocabulary
+     * and adds it here. That is the guard's rule everywhere else: it may
+     * over-refuse, it may never under-refuse.
+     */
+    appOwnedFields: {
+      doc: ['v', 'savedAt', 'tz', 'sources'],
+      cls: ['id', 'days', 'startMin', 'endMin', 'unroutableWhy', 'confidence', 'src'],
+      // `why` and `correctedFrom` are NOT here. `correctedFrom` is what the
+      // photo said, which is the student's data. `why` is a whole sentence, so
+      // it can only match a whole sentence, and it names the student's codes.
+      provenance: ['read', 'confirmed', 'confirmedBy', 'unconfirmedFields'],
+    },
+    /**
+     * THE SAME VOCABULARY AS WORDS, dropped wherever it turns up in the doc.
+     * The field list above is the real fix; this is the second line, for a
+     * value the app writes into a field nobody listed yet. The source kinds and
+     * labels in `SCHEDULE_SOURCES` are added to it at build time.
+     *
+     * The cost, said plainly: a class whose WHOLE title is one of these words
+     * is not watched. A one-word title like "Photo" is not what identifies a
+     * student; the room and the code-room pair on the same class still are.
+     * `staff` and `online` are what a registrar prints where a name or a room
+     * would go, so they carry nothing about the student either.
+     */
+    appVocabulary: [
+      'photo', 'student', 'manual',
+      'building', 'room', 'code', 'title', 'time', 'days', 'instructor',
+      'unknown', 'offmap', 'nodoor', 'nolocation', 'failed', 'missing',
+      'staff', 'online',
+    ],
+    /**
+     * A VALUE MADE ONLY OF DIGITS AND PUNCTUATION IS NOT WATCHED ON ITS OWN.
+     * The needle test is a substring test, and a bare room number is a
+     * substring of every decimal the map carries. Found 2026-09-28: a class in
+     * room `0.130` refused the campus landscape layer, whose tree records read
+     * `"0.1308|pecan|8.19|0"`. A room number alone is not the private part —
+     * the building code alone is not watched either (see `minTokenLen`) — and
+     * the pair is: `RLP 0.130` and `RLP-0.130` are still needles, and so is the
+     * serialised doc. A value with a letter in it (`2.216A`) is still watched.
+     */
+    bareNumberPattern: /^[\d\s.,:;\-\/#]+$/,
     /** Ring buffer for the guard's log. */
     logCap: 400,
     /**
@@ -14406,8 +14607,18 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
      * MESSAGE totals 999,424 bytes. 4 MB is four times that worst case and
      * still a hard ceiling: past it the payload is refused, not waved on, so
      * padding a leak past the budget buys nothing.
+     *
+     * 4 MB WAS OUTGROWN, and nothing said so. Re-measured 2026-09-28 on a
+     * phone (390x844, DPR 1), walking five campus views: MapLibre's replies to
+     * a worker's image request carry up to 10,199,040 bytes of facade
+     * pattern pixels, and every one over 4 MB was refused unread. The facade
+     * images are drawn at `devicePixelRatio` (capped at 2, js/facades.js
+     * SCALE), so a 2x screen sends more: measured on a 1440x900 DPR 2 page
+     * over the same walk, the largest was 33,685,504 bytes. 64 MB is about
+     * twice that. It is still a hard ceiling with the same rule: past it,
+     * refused.
      */
-    binaryScanBytes: 4 * 1024 * 1024,
+    binaryScanBytes: 64 * 1024 * 1024,
     /**
      * How far into ONE payload the structured walk goes. The old value was
      * 4,000 and running out SILENTLY gave up — measured, 21 of this app's own
@@ -14579,6 +14790,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
         unroutableWhy: o.unroutableWhy == null ? null : String(o.unroutableWhy),
         // Reserved for OCR. An .ics sets 1; a photo will not.
         confidence: Number.isFinite(o.confidence) ? o.confidence : 1,
+        needsReview: !!o.needsReview || schedConfidenceNeedsReview(o.confidence),
         // Reserved for OCR and for a future API: which source, and where in it.
         src: o.src == null ? (sources[0] ? sources[0].id : null) : String(o.src),
         provenance: o.provenance == null ? null : o.provenance,
@@ -14656,15 +14868,24 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     [EGRESS_OPAQUE_HEADERS]: 'request headers the guard could not read',
   };
 
-  /** Every string leaf in the schedule, long enough to be distinctive, plus
-   *  the serialised blob itself and the `CODE ROOM` composites the router will
-   *  be handed. Lowercased once here so the hot path is a plain indexOf. */
+  /** Every string leaf in the schedule that the STUDENT supplied, long enough
+   *  to be distinctive, plus the serialised blob itself and the `CODE ROOM`
+   *  composites the router will be handed. The app's own words are skipped
+   *  (`SCHEDULE_STORE.appOwnedFields`), and so is a bare number
+   *  (`bareNumberPattern`). Lowercased once here so the hot path is a plain
+   *  indexOf. */
   function buildWatchlist(doc) {
     const out = new Set();
+    const stop = new Set(SCHEDULE_STORE.appVocabulary.concat(
+      Object.keys(SCHEDULE_SOURCES), Object.values(SCHEDULE_SOURCES),
+    ).map(s => String(s).trim().toLowerCase()));
+    const own = SCHEDULE_STORE.appOwnedFields;
     const add = (s) => {
       if (typeof s !== 'string') return;
       const t = s.trim().toLowerCase();
-      if (t.length >= SCHEDULE_STORE.minTokenLen) out.add(t);
+      if (t.length < SCHEDULE_STORE.minTokenLen || stop.has(t)) return;
+      if (SCHEDULE_STORE.bareNumberPattern.test(t)) return;
+      out.add(t);
     };
     const walk = (v) => {
       if (v == null) return;
@@ -14672,7 +14893,20 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       if (Array.isArray(v)) return v.forEach(walk);
       if (typeof v === 'object') return Object.keys(v).forEach(k => walk(v[k]));
     };
-    walk(doc);
+    /** Walk every key of `o` except the ones listed as the app's. */
+    const walkExcept = (o, skip, deeper) => {
+      if (o == null || typeof o !== 'object' || Array.isArray(o)) return walk(o);
+      for (const k of Object.keys(o)) {
+        if (skip.indexOf(k) !== -1) continue;
+        if (deeper && deeper[k]) deeper[k](o[k]); else walk(o[k]);
+      }
+    };
+    const walkClass = (c) => walkExcept(c, own.cls, {
+      provenance: (p) => walkExcept(p, own.provenance),
+    });
+    walkExcept(doc, own.doc, {
+      classes: (cs) => (Array.isArray(cs) ? cs.forEach(walkClass) : walk(cs)),
+    });
     for (const c of (doc && doc.classes) || []) {
       if (c.code && c.room) { add(c.code + ' ' + c.room); add(c.code + '-' + c.room); }
     }
@@ -15876,6 +16110,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
         tz: d.tz || SCHEDULE.tz,
         status: c.unroutableWhy ? 'failed' : 'ok',
         problems: [], confidence: c.confidence == null ? 1 : c.confidence,
+        needsReview: !!c.needsReview,
         // REPUBLISHED, not just stored. `confidence` already came back after a
         // reload, which is what kept the "check this one" mark alive across
         // sessions — but the mark alone is a dead end. `provenance` is what the
@@ -15943,7 +16178,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       // has just made an unroutable class routable, and a student who corrects
       // GDC to MER has done the opposite; leaving `unroutableWhy` alone would
       // have the day view explaining last week's building.
-      const now = c.code ? (n.code ? (n.room ? n.code + ' ' + n.room : n.code) : '') : '';
+      const now = n.code ? (n.room ? n.code + ' ' + n.room : n.code) : '';
       let placed = null;
       try {
         placed = impPlace({
@@ -15960,6 +16195,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       // and it goes away because a person looked at it, which is the only
       // thing that was ever going to settle a reading of a photograph.
       n.confidence = WF_FIX.confirmedConfidence;
+      n.needsReview = false;
       n.provenance = Object.assign({}, c.provenance || { read: 'photo' }, {
         confirmed: true,
         confirmedBy: 'student',

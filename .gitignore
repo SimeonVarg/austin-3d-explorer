@@ -68,3 +68,8 @@ scripts/verify/schedule-images/real/
 # Regenerable (the script records the exact query), 16 MB, and it is an INPUT
 # to a bake, never something the site loads.
 data/gis_cache/
+
+# Daily location records and local redaction configuration are never public.
+*.gpx
+*.GPX
+privacy-circles.json

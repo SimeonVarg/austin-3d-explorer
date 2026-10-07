@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+<!-- Tab icon: the UT Tower rising out of the Main Building, drawn in the
+     loading screen's palette so the tab matches the first screen.
+     Colours are the ART keys in js/loader.js (and the load-bg colour in style.css):
+     tile #101b23 = load-bg ; glow #bf5700 = halo ; shaft #d6ae77/#807157 =
+     crown-lit/crown-shade ; crown #e07a2a/#8a3f00 = win-top/win-shade ;
+     roof #b2613c/#9c4a2f = tile-lit/tile-mid ; cap #f1d6a6 = crown-top ;
+     clock #fff0c7 = clock ; cupola #8fa596 = copper-top ; mast #f6b85e = accent.
+     apple-touch-icon.png is this drawing at 180 px with square corners. -->
+
+<defs><radialGradient id="h" cx="16" cy="6" r="12" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#bf5700" stop-opacity=".6"/><stop offset="1" stop-color="#bf5700" stop-opacity="0"/></radialGradient></defs>
+<rect width="32" height="32" rx="7" fill="#101b23"/>
+<rect width="32" height="32" rx="7" fill="url(#h)"/>
+<path d="M3.5 22 16 28.25V31L3.5 24.75z" fill="#d6ae77"/>
+<path d="M16 28.25 28.5 22v2.75L16 31z" fill="#807157"/>
+<path d="M3.5 22 16 15.75V28.25z" fill="#b2613c"/>
+<path d="M16 15.75 28.5 22 16 28.25z" fill="#9c4a2f"/>
+<path d="M12.5 8.5 16 10.25V24l-3.5-1.75z" fill="#d6ae77"/>
+<path d="M16 10.25 19.5 8.5v13.75L16 24z" fill="#807157"/>
+<path d="M13.7 11.5v9.4M15 12.1v9.4" stroke="#66584a" stroke-width=".5"/>
+<path d="M17 12.1v9.4M18.3 11.5v9.4" stroke="#56492f" stroke-width=".5"/>
+<path d="M12.5 4.5 16 6.25v4l-3.5-1.75z" fill="#e07a2a"/>
+<path d="M16 6.25 19.5 4.5v4L16 10.25z" fill="#8a3f00"/>
+<path d="M12.5 4.5 16 2.75l3.5 1.75L16 6.25z" fill="#f1d6a6"/>
+<circle cx="14.25" cy="7.4" r=".95" fill="#fff0c7"/>
+<path d="M14.6 2.5 16 3.2v1.5l-1.4-.7zM16 3.2l1.4-.7v1.5l-1.4.7z" fill="#8fa596"/>
+<path d="M16 3.2V.9" stroke="#f6b85e" stroke-width=".7" stroke-linecap="round"/>
+</svg>

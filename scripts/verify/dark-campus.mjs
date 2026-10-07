@@ -103,13 +103,19 @@ try {
       m.triggerRepaint();
     });
     if (BREAK) {
-      // The pre-fix proxy: it never read the display filter.
-      const m = window.__map, gs = m.getStyle.bind(m);
+      // The pre-fix proxy: it never read the display filter. Since 2026-09-28
+      // the proxy reads the live layer (getLayer), before that getStyle().
+      // The live layer is wrapped, never edited: MapLibre draws from it.
+      const m = window.__map, gs = m.getStyle.bind(m), gl = m.getLayer.bind(m);
       m.getStyle = () => { const s = gs(); for (const l of s.layers) if (l.id === 'buildings-3d') delete l.filter; return s; };
+      m.getLayer = id => { const l = gl(id); return id === 'buildings-3d' && l ? Object.create(l, { filter: { value: undefined } }) : l; };
     }
   }, BREAK);
   // 1. The proxy leaves out what buildings-3d hides.
   await page.evaluate(() => new Promise(r => { __map.fire('moveend'); __map.triggerRepaint(); setTimeout(() => { __map.triggerRepaint(); setTimeout(r, 1500); }, 600); }));
+  // Since 2026-09-28 the rebuild runs in slices (PROXY_PACE.budgetMs): wait
+  // for it to land, or a stale count from the previous proxy is read.
+  await page.waitForFunction(() => !window.CityLighting.stats.shadowProxyBuilding, null, { timeout: 60000 });
   const proxy = await page.evaluate(() => ({ hidden: window.CityLighting.stats.shadowProxyHidden, failures: window.CityLighting.stats.failures.slice(0, 3) }));
   check(proxy.hidden > 0 && !proxy.failures.length, `shadow proxy leaves out ${proxy.hidden} hidden legacy prisms (failures: ${JSON.stringify(proxy.failures)})`);
 

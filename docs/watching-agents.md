@@ -7,7 +7,7 @@ counter. Here is how.
 
 Open File Explorer.
 
-Go to `C:\Users\simip\Projects\austin-3d-explorer\scripts`.
+Go to the `scripts` folder in the repo.
 
 Double-click **`watch.cmd`**.
 
@@ -16,7 +16,7 @@ A black window opens and starts printing. That is it. Nothing else to set up.
 If you would rather type it, this is the whole command:
 
 ```
-C:\Users\simip\Projects\austin-3d-explorer\scripts\watch.cmd
+scripts\watch.cmd
 ```
 
 Right-click `watch.cmd` and pick "Pin to Start" if you want it one click away.
@@ -55,7 +55,7 @@ you assume the commands are the thinking.
 You can switch it on. Run this:
 
 ```
-C:\Users\simip\Projects\austin-3d-explorer\scripts\watch.cmd thinking on
+scripts\watch.cmd thinking on
 ```
 
 Then start a new workflow. Runs already going keep the setting they started
@@ -64,7 +64,7 @@ with.
 To switch it back off:
 
 ```
-C:\Users\simip\Projects\austin-3d-explorer\scripts\watch.cmd thinking off
+scripts\watch.cmd thinking off
 ```
 
 Two honest warnings about this.

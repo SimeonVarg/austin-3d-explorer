@@ -8,6 +8,7 @@
     materialStart:0,materialFull:-12,emissionGain:1.12,
     bloomWidth:512,bloomBrightness:.64,bloomBlur:1.2,
     residential:[.24,.54],office:[.16,.38],unitBays:2,
+    windowScatter:new URLSearchParams(location.search).get('windowScatter')!=='0',
     floorOccupancy:[.72,1.12],commercialOccupancy:.88,storefrontMaxBase:8,fixtureSize:.18,
     tones:['#eed8b4','#e5ddc9','#cbdde2','#f7e8cd'],unlitGlass:'#101823',
     brightness:[.62,1],glassThreshold:[.26,.48],wallAmbient:.22,fixtureLimit:8,fixtureGain:1,downlightCone:[-.05,.25]};
@@ -29,10 +30,11 @@
     const id=spec.id||spec.name,range=spec.category==='office'?tune.office:tune.residential;
     profiles.set(id,{occupancy:range[0]+(range[1]-range[0])*hash(id,'occupancy'),unitBays:tune.unitBays,...spec.night});
   }
-  function room(key,floor,bay){
+  function room(key,floor,bay,pane=0){
     const id=key.split('|')[0],profile=profiles.get(id)||{occupancy:tune.residential[0]+(tune.residential[1]-tune.residential[0])*hash(id,'occupancy'),unitBays:tune.unitBays};
-    const unit=Math.floor(bay/Math.max(1,profile.unitBays)),face=key.split('|').slice(0,3).join('|');
-    // Adjacent panes share a home, with a few darker floors. No time/camera seed.
+    const unit=tune.windowScatter ? bay+':'+pane : Math.floor(bay/Math.max(1,profile.unitBays)),face=key.split('|').slice(0,3).join('|');
+    // Each opening has its own stable pick, including openings within one bay.
+    // Preserve building/floor occupancy; the legacy pairing is an A/B knob.
     const floorFactor=tune.floorOccupancy[0]+(tune.floorOccupancy[1]-tune.floorOccupancy[0])*hash(id,'floor',floor);
     const lit=hash(face,'home',floor,unit)<profile.occupancy*floorFactor;
     const tone=tune.tones[Math.floor(hash(face,'tone',floor,unit)*tune.tones.length)];

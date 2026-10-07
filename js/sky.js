@@ -207,8 +207,63 @@
       AMP: 0.35,      // peak-to-trough alpha swing, fraction of the star's alpha
       SPEED: 0.0012,  // rad/ms base angular speed
     },
+    // The horizon washes' radial profiles: [stop position, alpha multiplier]. They used to
+    // be literals inside updateSky; the GL sky (SKY_COMP.mode = 'gl') needs the same numbers
+    // in its shader, so there is one copy and both paths read it.
+    WASH: {
+      WIDE: [[0, 0.9], [0.34, 0.28], [0.70, 0]],
+      HOT: [[0, 1], [0.30, 0.45], [0.62, 0.12], [1, 0]],
+    },
+    // The night city skyglow band: a linear gradient from BAND_DEG above the horizon to
+    // BELOW_H of the frame height below it. Colours per stop, alpha per stop (x night).
+    GLOW: {
+      BAND_DEG: 7.5, BELOW_H: 0.012,
+      POS: [0, 0.45, 0.78, 1.0],
+      COLS: [[150, 160, 196], [150, 160, 196], [228, 164, 110], [255, 176, 96]],
+      ALPHA: [0, 0.014, 0.032, 0.052],
+    },
+    // The ramp that erases the wash across the horizon (see HORIZON_FADE): [position, erase].
+    FEATHER: { STOPS: [[0, 0], [0.35, 0.18], [0.70, 0.72], [1, 1]] },
+
+    // ── Which cloud panorama the GL sky draws: 'A' or 'B' ───────────────────────────────
+    //   A  a real photographed sky (a CC0 HDRI), reduced to coverage and self-shade
+    //   B  generated: soft high thin cloud with a few scattered puffs
+    // Both are baked by scripts/bake_sky.py into data/sky/ and only fetched when
+    // SKY_COMP.mode is 'gl'. Swapping a look for another picture is a data-file change:
+    // replace the file and its entry in data/sky/clouds.json (see docs/perf/sky-gl.md).
+    cloudSet: 'A',
+
+    // ── The GL sky's own taste values (SKY_COMP.mode = 'gl'). None of these are read by
+    // the 'canvas' sky. ──────────────────────────────────────────────────────────────────
+    GL: {
+      PANO: { A: 'data/sky/clouds-a.jpg', B: 'data/sky/clouds-b.jpg' },
+      META: 'data/sky/clouds.json',
+      ELEV_MAX: 45,          // degrees at the top row of a panorama (clouds.json can override)
+      ROT: 0,                // azimuth of the panorama's left edge, degrees
+      // Degrees of azimuth the cloud field slides per minute, 0 = still. `?drift=0` (the flag
+      // scripted runs already pass to stop the idle camera) holds the clouds still too, so two
+      // frames of one state are the same picture.
+      DRIFT: (new URLSearchParams(window.location.search).get('drift') === '0') ? 0 : 0.6,
+      CLOUD_ALPHA: 0.96,     // opacity scale on the baked coverage at full day
+      NIGHT_FADE: 0.78,      // share of that opacity lost by deep night
+      NIGHT_DIM: 0.30,       // clouds' brightness at deep night (they are moonlit, not lit)
+      // Shade = SHADE_BAKE x the baked self-shade (flat grey bases, bright tops)
+      //       + SHADE_SUN x how much cloud lies toward the lighting body (lit edges).
+      SHADE_BAKE: 0.62, SHADE_SUN: 0.58, GOLDEN_BAKE: 0.45,   // GOLDEN_BAKE: share of SHADE_BAKE kept at golden hour
+      SUN_TAPS: [0.9, 2.6],  // degrees toward the body where the sun-side cloud is sampled
+      EDGE_DETAIL: { A: 0.25, B: 0.6 },   // ragged-edge strength from a small tiling noise, per look, 0 = off
+      DETAIL_DEG: 3.2,       // size of that noise's repeat, degrees
+      COVER_LO: 0.02, COVER_HI: 0.96,   // coverage remap, trims the JPEG's faint fog and soft shoulder
+      TOP_FADE_DEG: 5,       // clouds thin out over the last degrees below the panorama's top
+      HAZE_DEG: 3.5,         // clouds melt into the horizon haze over this many degrees...
+      HAZE_AMT: 0.55,        // ...by up to this much
+      STAR_HALO_MAG: 0.82,   // stars brighter than this get a halo
+    },
   };
   window.SKY_TUNE = SKY_TUNE;
+  // Test-only gains the verification script flips to prove each assertion can fail.
+  // All identity by default; nothing in the shipped look reads them as a taste knob.
+  window.SKY_GL_DEBUG = { atmoGain: 1, cloudGain: 1, featherShiftPx: 0, seamShift: 0 };
 
   function track(keys, p) {
     p = clamp01(p);
@@ -305,6 +360,9 @@
     }
     function project(az, elev) { return projectVec(dirOf(az, elev)); }
     project.vec = projectVec;
+    // The camera basis itself, for the GL sky: it rebuilds the direction of every pixel
+    // from these instead of projecting a list of things onto the screen.
+    project.basis = { f, r, u, tv, th, W, H };
     return project;
   }
 
@@ -938,6 +996,15 @@
     // Just under the far plane. Anything MapLibre drew has a smaller stored
     // depth; cleared sky is exactly 1.0.
     z: 0.999999,
+    // THE ONE SWITCH for how the sky band is drawn:
+    //   'gl'      drawn in this same GL pass from textures uploaded once; a camera turn
+    //             changes uniforms only (the default since 2026-10-04, with the
+    //             photographed clouds of SKY_TUNE.cloudSet 'A'). Falls back to 'canvas'
+    //             by itself if it cannot compile.
+    //   'canvas'  the 2D canvas, redrawn on every camera move and copied into a texture
+    //             (the look before). `?sky=canvas` in the URL, or at run time
+    //             `SKY_COMP.mode = 'canvas'`, brings it back in one line.
+    mode: (new URLSearchParams(window.location.search).get('sky') === 'canvas') ? 'canvas' : 'gl',
   };
   window.SKY_COMP = SKY_COMP;
 
@@ -1008,12 +1075,572 @@
     return t;
   }
 
+  // ── THE GL SKY (SKY_COMP.mode = 'gl') ─────────────────────────────────────────────────
+  //
+  // WHY. The 2D sky is redrawn on every camera move and the whole canvas is copied into a
+  // texture each frame (`texImage2D`). On an Intel Mac in Safari that one call is about
+  // 58 ms of a 195 ms frame while the camera turns (docs/perf/safari-frame-floor.md).
+  // Nothing in the sky depends on position or zoom; only bearing, pitch, FOV and the hour.
+  // So this path draws the same sky in the same GL pass with NOTHING uploaded per frame:
+  //
+  //   * the atmosphere (night skyglow, Belt of Venus, the sun's and moon's horizon washes,
+  //     their hot spots) is analytic in the fragment shader. The CPU only projects six
+  //     anchor points and hands the shader numbers; the stop tables are the same
+  //     SKY_TUNE.WASH / BELT / GLOW values the canvas reads. No texture at all.
+  //   * the clouds are a 360-degree panorama baked offline (scripts/bake_sky.py, files in
+  //     data/sky/) holding COVERAGE and a SELF-SHADE term, not colour. The shader rebuilds
+  //     each pixel's azimuth and elevation from the camera and relights the cloud with the
+  //     hour's lit and shade colours. Uploaded once, after first paint.
+  //   * the stars are GL points from a buffer filled once; twinkle comes from a time
+  //     uniform.
+  //   * the horizon feather is the same ramp as the canvas's destination-out, in the shader.
+  //
+  // The disc and bloom sprites are unchanged and are drawn after this, in the same pass.
+  const VS_SKYGL = `
+    attribute vec2 a_unit;
+    uniform vec4 u_rect;                 // x0, y0, x1, y1 in NDC
+    uniform float u_z;
+    varying vec2 v_ndc;
+    void main() {
+      v_ndc = vec2(mix(u_rect.x, u_rect.z, a_unit.x), mix(u_rect.y, u_rect.w, a_unit.y));
+      gl_Position = vec4(v_ndc, u_z, 1.0);
+    }`;
+  const FS_SKYGL = `
+    precision highp float;
+    varying vec2 v_ndc;
+    uniform vec2 u_wh;                   // frame size, CSS px
+    uniform vec2 u_roll;                 // cos, sin of the camera's bank (1, 0 when level)
+    uniform vec3 u_f, u_r, u_u;          // camera basis, ENU
+    uniform vec2 u_t;                    // tan half-FOV: horizontal, vertical
+    uniform vec2 u_fy;                   // feather: first and last CSS row
+    uniform vec4 u_fT, u_fM;             // feather stops
+    uniform vec4 u_dbg;                  // test gains: atmosphere, cloud, feather shift px, seam shift
+    uniform vec4 u_gY, u_gA, u_gT;       // skyglow rows (y0, y1), alpha per stop, stop positions
+    uniform vec3 u_gC0, u_gC1, u_gC2, u_gC3;
+    uniform vec4 u_lA0, u_lA1, u_lA2, u_lA3, u_lA4, u_lA5;   // lobes: cx, cy, rx, ry
+    uniform vec4 u_lC0, u_lC1, u_lC2, u_lC3, u_lC4, u_lC5;   // lobes: r, g, b, alpha
+    uniform vec4 u_sBeltT, u_sBeltM, u_sWideT, u_sWideM, u_sHotT, u_sHotM;
+    uniform sampler2D u_pano;
+    uniform sampler2D u_dtl;
+    uniform vec4 u_cl;                   // cloud opacity (0 = none), brightness, panorama top elev, rotation
+    uniform vec4 u_cs;                   // lighting body: az, elev, cos(elev)
+    uniform vec3 u_lit, u_shade, u_haze;
+    uniform vec4 u_cp;                   // bake shade weight, sun shade weight, edge detail, haze amount
+    uniform vec4 u_cq;                   // cover lo, cover hi, top fade deg, haze deg
+    uniform vec4 u_dt;                   // detail repeats (az, elev), sun taps (deg, deg)
+    uniform float u_wrap;                // 1 = texture wraps in hardware
+
+    float stops(float t, vec4 ts, vec4 ms) {
+      if (t <= ts.x) return ms.x;
+      if (t < ts.y) return mix(ms.x, ms.y, (t - ts.x) / (ts.y - ts.x));
+      if (t < ts.z) return mix(ms.y, ms.z, (t - ts.y) / (ts.z - ts.y));
+      if (t < ts.w) return mix(ms.z, ms.w, (t - ts.z) / (ts.w - ts.z));
+      return ms.w;
+    }
+    vec4 lobe(vec2 p, vec4 g, vec4 c, vec4 ts, vec4 ms) {
+      if (c.a <= 0.0) return vec4(0.0);
+      float t = length((p - g.xy) / g.zw);
+      if (t >= 1.0) return vec4(0.0);
+      float a = c.a * stops(t, ts, ms);
+      return vec4(c.rgb * a, a);
+    }
+    vec4 glow(float y) {
+      float t = (y - u_gY.x) / (u_gY.y - u_gY.x);
+      if (t < 0.0 || t > 1.0) return vec4(0.0);
+      vec3 c; float a;
+      if (t < u_gT.y)      { float k = (t - u_gT.x) / (u_gT.y - u_gT.x); c = mix(u_gC0, u_gC1, k); a = mix(u_gA.x, u_gA.y, k); }
+      else if (t < u_gT.z) { float k = (t - u_gT.y) / (u_gT.z - u_gT.y); c = mix(u_gC1, u_gC2, k); a = mix(u_gA.y, u_gA.z, k); }
+      else                 { float k = (t - u_gT.z) / (u_gT.w - u_gT.z); c = mix(u_gC2, u_gC3, k); a = mix(u_gA.z, u_gA.w, k); }
+      return vec4(c * a, a);
+    }
+    void main() {
+      // The camera banks into a turn and MapLibre rolls the whole picture about the view axis, so
+      // the horizon, the buildings and the map's own sky gradient all rotate about the frame
+      // centre. Everything below (the washes, the glow rows, the feather, the cloud rays) is built
+      // for a level camera, so it is evaluated at the LEVEL-FRAME pixel this pixel came from.
+      // u_roll is (1, 0) for a level camera, which makes p the pixel itself.
+      vec2 ps = vec2((v_ndc.x * 0.5 + 0.5) * u_wh.x, (0.5 - v_ndc.y * 0.5) * u_wh.y);
+      vec2 q = ps - 0.5 * u_wh;
+      vec2 p = 0.5 * u_wh + vec2(q.x * u_roll.x - q.y * u_roll.y, q.x * u_roll.y + q.y * u_roll.x);
+      vec2 ndc = vec2(p.x / u_wh.x * 2.0 - 1.0, 1.0 - p.y / u_wh.y * 2.0);
+      vec4 acc = glow(p.y)
+        + lobe(p, u_lA0, u_lC0, u_sBeltT, u_sBeltM) + lobe(p, u_lA1, u_lC1, u_sBeltT, u_sBeltM)
+        + lobe(p, u_lA2, u_lC2, u_sWideT, u_sWideM) + lobe(p, u_lA3, u_lC3, u_sWideT, u_sWideM)
+        + lobe(p, u_lA4, u_lC4, u_sHotT, u_sHotM)   + lobe(p, u_lA5, u_lC5, u_sHotT, u_sHotM);
+      acc = min(acc, vec4(1.0)) * u_dbg.x;
+      vec4 outc = acc;
+
+      if (u_cl.x > 0.0) {
+        vec3 d = normalize(u_f + u_r * (ndc.x * u_t.x) + u_u * (ndc.y * u_t.y));
+        float el = degrees(asin(clamp(d.z, -1.0, 1.0)));
+        float azd = degrees(atan(d.x, d.y));
+        float azTex = azd - u_cl.w;
+        float u = azTex / 360.0;
+        if (mod(azTex + 180.0, 360.0) - 180.0 < 0.0) u += u_dbg.w;
+        if (u_wrap < 0.5) u = fract(u);
+        float v = 1.0 - el / u_cl.z;
+        vec2 uv = vec2(u, v);
+        vec4 pano = texture2D(u_pano, uv);
+        float c0 = pano.r;
+        // ragged edges from a small tiling noise, only where coverage is partial
+        float n = texture2D(u_dtl, vec2(azTex / 360.0 * u_dt.x, el / u_cl.z * u_dt.y)).r;
+        float cov = clamp(c0 + u_cp.z * (n - 0.5) * 4.0 * c0 * (1.0 - c0), 0.0, 1.0);
+        cov = smoothstep(u_cq.x, u_cq.y, cov);
+        // how much cloud lies toward the lighting body: rim light where there is none
+        float dAz = clamp(mod(u_cs.x - azd + 540.0, 360.0) - 180.0, -60.0, 60.0) * u_cs.z;
+        vec2 L = vec2(dAz, u_cs.y - el);
+        L /= max(length(L), 0.001);
+        vec2 s1 = vec2(L.x / 360.0, -L.y / u_cl.z) * u_dt.z;
+        vec2 s2 = vec2(L.x / 360.0, -L.y / u_cl.z) * u_dt.w;
+        float so = 0.5 * (texture2D(u_pano, uv + s1).r + texture2D(u_pano, uv + s2).r);
+        float shade = clamp(u_cp.x * pano.g + u_cp.y * (so - 0.5 * c0), 0.0, 1.0);
+        vec3 col = mix(u_lit, u_shade, shade);
+        float hz = (1.0 - smoothstep(0.0, u_cq.w, el)) * u_cp.w;
+        col = mix(col, u_haze, hz) * u_cl.y;
+        float a = cov * u_cl.x * (1.0 - smoothstep(u_cl.z - u_cq.z, u_cl.z, el)) * u_dbg.y;
+        outc = vec4(col * a, a) + acc * (1.0 - a);
+      }
+
+      float ft = clamp((p.y - u_dbg.z - u_fy.x) / max(u_fy.y - u_fy.x, 0.001), 0.0, 1.0);
+      gl_FragColor = outc * (1.0 - stops(ft, u_fT, u_fM));
+    }`;
+
+  const VS_STARS = `
+    attribute vec4 a_dm;                 // unit direction, magnitude
+    attribute float a_az;
+    uniform vec3 u_f, u_r, u_u;
+    uniform vec2 u_t, u_wh, u_roll;
+    uniform float u_z, u_px, u_time, u_str, u_halo, u_haloMag;
+    uniform vec3 u_tw;                   // twinkle: magnitude gate, amplitude, speed
+    varying float v_a;
+    varying float v_r;
+    void main() {
+      gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+      gl_PointSize = 0.0;
+      v_a = 0.0; v_r = 0.0;
+      float fd = dot(a_dm.xyz, u_f);
+      float mag = a_dm.w;
+      if (fd <= 0.02) return;
+      if (u_halo > 0.5 && mag <= u_haloMag) return;
+      float x = (0.5 + 0.5 * (dot(a_dm.xyz, u_r) / fd) / u_t.x) * u_wh.x;
+      float y = (0.5 - 0.5 * (dot(a_dm.xyz, u_u) / fd) / u_t.y) * u_wh.y;
+      // x, y is where a LEVEL camera would see the star; a banked camera sees the whole picture
+      // turned about the frame centre (the inverse of the turn the sky shader undoes).
+      vec2 q = vec2(x, y) - 0.5 * u_wh;
+      x = 0.5 * u_wh.x + q.x * u_roll.x + q.y * u_roll.y;
+      y = 0.5 * u_wh.y - q.x * u_roll.y + q.y * u_roll.x;
+      if (x < -8.0 || x > u_wh.x + 8.0 || y < -8.0 || y > u_wh.y) return;
+      float a = u_str * mag;
+      if (mag > u_tw.x) a *= 1.0 - u_tw.y * (0.5 + 0.5 * sin(u_time * u_tw.z * (0.6 + mag) + a_az * 7.3));
+      float r = 0.55 + mag * 1.25;
+      if (u_halo > 0.5) { v_a = a * 0.5; v_r = r * 5.0; gl_PointSize = r * 10.0 * u_px; }
+      else              { v_a = a;       v_r = r;       gl_PointSize = (2.0 * r + 2.0) * u_px; }
+      gl_Position = vec4(x / u_wh.x * 2.0 - 1.0, 1.0 - y / u_wh.y * 2.0, u_z, 1.0);
+    }`;
+  const FS_STARS = `
+    precision highp float;
+    varying float v_a;
+    varying float v_r;
+    uniform float u_halo, u_bufH;
+    uniform vec2 u_wh, u_fy, u_roll;
+    uniform vec4 u_fT, u_fM, u_dbg;
+    float stops(float t, vec4 ts, vec4 ms) {
+      if (t <= ts.x) return ms.x;
+      if (t < ts.y) return mix(ms.x, ms.y, (t - ts.x) / (ts.y - ts.x));
+      if (t < ts.z) return mix(ms.y, ms.z, (t - ts.y) / (ts.z - ts.y));
+      if (t < ts.w) return mix(ms.z, ms.w, (t - ts.z) / (ts.w - ts.z));
+      return ms.w;
+    }
+    void main() {
+      if (v_a <= 0.0) discard;
+      float dn = length(gl_PointCoord * 2.0 - 1.0);
+      float m; vec3 col;
+      if (u_halo > 0.5) {
+        m = dn < 0.35 ? mix(1.0, 0.34, dn / 0.35) : mix(0.34, 0.0, clamp((dn - 0.35) / 0.65, 0.0, 1.0));
+        col = vec3(210.0, 228.0, 255.0) / 255.0;
+      } else {
+        m = clamp(v_r - dn * (v_r + 1.0) + 0.5, 0.0, 1.0);
+        col = vec3(238.0, 244.0, 255.0) / 255.0;
+      }
+      float y = (u_bufH - gl_FragCoord.y) / u_bufH * u_wh.y;
+      // the feather is a row of the LEVEL frame; this fragment's level row, from its screen position
+      float x = gl_FragCoord.x / u_bufH * u_wh.y;
+      y = 0.5 * u_wh.y + (x - 0.5 * u_wh.x) * u_roll.y + (y - 0.5 * u_wh.y) * u_roll.x;
+      float ft = clamp((y - u_dbg.z - u_fy.x) / max(u_fy.y - u_fy.x, 0.001), 0.0, 1.0);
+      float a = v_a * m * (1.0 - stops(ft, u_fT, u_fM));
+      gl_FragColor = vec4(col * a, a);
+    }`;
+
+  let glSky = null, glFailed = false, _glFrame = null, _frameMode = 'canvas';
+  const glActive = () => SKY_COMP.mode === 'gl' && skyOn() && !glFailed;
+
+  function uniformsOf(src) {
+    const names = [];
+    const re = /uniform\s+\w+\s+([^;]+);/g;
+    let m;
+    while ((m = re.exec(src))) for (const n of m[1].split(',')) names.push(n.trim().replace(/\[.*$/, ''));
+    return names;
+  }
+  function glProgram(gl, vs, fs, attribs) {
+    const p = gl.createProgram();
+    gl.attachShader(p, compile(gl, vs, gl.VERTEX_SHADER));
+    gl.attachShader(p, compile(gl, fs, gl.FRAGMENT_SHADER));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('sky-gl link: ' + gl.getProgramInfoLog(p));
+    const u = {}, a = {};
+    for (const n of new Set([...uniformsOf(vs), ...uniformsOf(fs)])) u[n] = gl.getUniformLocation(p, n);
+    for (const n of attribs) a[n] = gl.getAttribLocation(p, n);
+    return { p, u, a };
+  }
+
+  /** A small tileable value-noise texture for ragged cloud edges. Built in JS, uploaded once. */
+  function buildDetailPixels(N) {
+    const rnd = seeded(4242);
+    const out = new Float32Array(N * N);
+    for (const [g, w] of [[8, 0.5], [16, 0.28], [32, 0.14], [64, 0.08]]) {
+      const grid = new Float32Array(g * g);
+      for (let i = 0; i < grid.length; i++) grid[i] = rnd();
+      for (let y = 0; y < N; y++) {
+        const gy = y / N * g, y0 = Math.floor(gy), fy = gy - y0, sy = fy * fy * (3 - 2 * fy);
+        const ya = (y0 % g) * g, yb = ((y0 + 1) % g) * g;
+        for (let x = 0; x < N; x++) {
+          const gx = x / N * g, x0 = Math.floor(gx), fx = gx - x0, sx = fx * fx * (3 - 2 * fx);
+          const xa = x0 % g, xb = (x0 + 1) % g;
+          const top = grid[ya + xa] + (grid[ya + xb] - grid[ya + xa]) * sx;
+          const bot = grid[yb + xa] + (grid[yb + xb] - grid[yb + xa]) * sx;
+          out[y * N + x] += w * (top + (bot - top) * sy);
+        }
+      }
+    }
+    let lo = 1e9, hi = -1e9;
+    for (const v of out) { if (v < lo) lo = v; if (v > hi) hi = v; }
+    const px = new Uint8Array(N * N * 4);
+    for (let i = 0; i < out.length; i++) {
+      const b = Math.round(255 * (out[i] - lo) / (hi - lo));
+      px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = b; px[i * 4 + 3] = 255;
+    }
+    return px;
+  }
+
+  function glInit(gl) {
+    const g = {
+      sky: glProgram(gl, VS_SKYGL, FS_SKYGL, ['a_unit']),
+      stars: glProgram(gl, VS_STARS, FS_STARS, ['a_dm', 'a_az']),
+      starBuf: gl.createBuffer(), detail: gl.createTexture(),
+      detailN: 128,
+    };
+    const data = new Float32Array(stars.length * 5);
+    stars.forEach((s, i) => { data.set([s.v[0], s.v[1], s.v[2], s.mag, s.az], i * 5); });
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.starBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    gl.bindTexture(gl.TEXTURE_2D, g.detail);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, g.detailN, g.detailN, 0, gl.RGBA, gl.UNSIGNED_BYTE, buildDetailPixels(g.detailN));
+    SKY_METER.uploads++;
+    glSky = g;
+  }
+
+  // ── the cloud panoramas: fetched after first paint, uploaded once per GL context ──
+  const cloudSets = {};
+  let cloudMeta = null;
+
+  /**
+   * A lost GL context takes the GL sky's objects with it: the two programs, the star
+   * buffer, the edge-noise texture and the cloud panoramas. Used again in the restored
+   * context they draw nothing, and they do not throw, so the sky came back as a bare
+   * gradient with no clouds (`context-restore.mjs` saw 12.8% of the frame differ).
+   * Forget them, and the next frame builds them again in the context it is given.
+   * With `gl` (the layer is being removed and the context is alive) they are deleted too.
+   */
+  function glForget(gl) {
+    if (gl && !(gl.isContextLost && gl.isContextLost())) {
+      try {
+        if (glSky) {
+          gl.deleteProgram(glSky.sky.p); gl.deleteProgram(glSky.stars.p);
+          gl.deleteBuffer(glSky.starBuf); gl.deleteTexture(glSky.detail);
+        }
+        for (const k of Object.keys(cloudSets)) if (cloudSets[k].tex) gl.deleteTexture(cloudSets[k].tex);
+      } catch (e) {}
+    }
+    glSky = null;
+    glFailed = false;   // a new context gets a new try; a real defect fails again, once
+    for (const k of Object.keys(cloudSets)) {
+      const e = cloudSets[k];
+      if (e.state === 'ready') { e.tex = null; e.state = e.img ? 'decoded' : 'idle'; }
+    }
+  }
+  let glForgetHooked = false;
+  function cloudEntry(set) {
+    return cloudSets[set] || (cloudSets[set] = {
+      state: 'idle', tex: null, img: null, elevMax: SKY_TUNE.GL.ELEV_MAX, rot: 0, wrapOk: true,
+    });
+  }
+  function cloudStart(set) {
+    const e = cloudEntry(set);
+    if (e.state !== 'idle') return;
+    e.state = 'loading';
+    const G = SKY_TUNE.GL;
+    const fail = (why) => { e.state = 'failed'; console.warn('[sky] cloud panorama ' + set + ' not loaded:', why); };
+    const load = () => {
+      const url = G.PANO[set];
+      if (!url) return fail('no file for this look');
+      const img = new Image();
+      img.decoding = 'async';
+      img.onload = () => { e.img = img; e.state = 'decoded'; if (_map) _map.triggerRepaint(); };
+      img.onerror = () => fail(url);
+      img.src = url;
+    };
+    const apply = (meta) => {
+      cloudMeta = meta || {};
+      const L = (cloudMeta.looks || {})[set] || {};
+      e.elevMax = L.elevMax != null ? L.elevMax : (cloudMeta.elevMax != null ? cloudMeta.elevMax : e.elevMax);
+      e.rot = L.rotDeg != null ? L.rotDeg : 0;
+      load();
+    };
+    const go = () => {
+      if (cloudMeta) return apply(cloudMeta);
+      fetch(G.META).then(r => (r.ok ? r.json() : null)).catch(() => null).then(apply);
+    };
+    // After the first paint and when the browser is idle, so it never competes with the load.
+    if (window.requestIdleCallback) window.requestIdleCallback(go, { timeout: 6000 });
+    else setTimeout(go, 1500);
+  }
+  function cloudReady(gl, set) {
+    const e = cloudEntry(set);
+    if (e.state === 'idle') cloudStart(set);
+    if (e.state === 'decoded' && gl) {
+      const img = e.img;
+      const isPot = n => (n & (n - 1)) === 0;
+      const gl2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
+      e.wrapOk = gl2 || (isPot(img.width) && isPot(img.height));
+      e.tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, e.tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, e.wrapOk ? gl.REPEAT : gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      // The file is data, not a picture: no colour management, no premultiplying.
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
+      SKY_METER.uploads++;
+      // `e.img` is kept on purpose: a lost GL context takes the texture with it, and the
+      // clouds must come back on the next frame, not after a second fetch (see glForget).
+      e.state = 'ready';
+    }
+    return e.state === 'ready' ? e : null;
+  }
+  window.__skyGL = {
+    cloudsReady() {
+      const e = cloudEntry(SKY_TUNE.cloudSet);
+      if (e.state === 'idle') cloudStart(SKY_TUNE.cloudSet);
+      return e.state === 'ready';
+    },
+    // Azimuth where the panorama wraps, degrees. The check centres the camera on it.
+    seamAz() {
+      const e = cloudEntry(SKY_TUNE.cloudSet);
+      const r = SKY_TUNE.GL.ROT + e.rot + SKY_TUNE.GL.DRIFT * performance.now() / 60000;
+      return ((r % 360) + 360) % 360;
+    },
+    url() { return SKY_TUNE.GL.PANO[SKY_TUNE.cloudSet]; },
+    state() { return cloudEntry(SKY_TUNE.cloudSet).state; },
+  };
+
+  /** Everything the GL sky needs this frame, from the camera and the hour. Runs in updateSky. */
+  let _glHaze = { p: null, col: [200, 224, 240] };
+  function buildGLFrame(map, M, B, project, W, H, hzPx, fadePx) {
+    const pvec = project.vec, S = Math.max(W, H), T = SKY_TUNE;
+    const mk = (pos, rx, ry, a, col) => (pos.front && a > 0.004 && rx >= 2 && ry >= 1)
+      ? [pos.x, pos.y, rx, ry, col[0] / 255, col[1] / 255, col[2] / 255, a] : null;
+    let rose = null, blue = null;
+    const BELT = T.BELT;
+    if (M.beltW > 0.02) {
+      const rp = pvec(M.vRose), bp = pvec(M.vBlue);
+      rose = mk(rp, BELT.RX * S, BELT.RY_ROSE * S, BELT.ROSE_A * M.beltW * rp.fade, BELT.ROSE);
+      blue = mk(bp, BELT.RX * S * 0.9, BELT.RY_BLUE * S, BELT.BLUE_A * M.beltW * bp.fade, BELT.BLUE);
+    }
+    const hzSun = pvec(M.vHzSun), hzMoon = pvec(M.vHzMoon), kW = M.kWide;
+    const lobes = [
+      rose, blue,
+      mk(hzSun, 0.5 * S * kW, 0.15 * S * kW, M.glowASun0 * hzSun.fade, M.sunHalo),
+      mk(hzMoon, 0.5 * S * 1.5, 0.15 * S * 1.5, M.glowAMoon0 * hzMoon.fade, M.moonHalo),
+      mk(hzSun, 0.16 * S, 0.042 * S, Math.min(0.60, M.hotASun0 * hzSun.fade), M.sunHalo),
+      mk(hzMoon, 0.16 * S, 0.042 * S, Math.min(0.60, M.hotAMoon0 * hzMoon.fade), M.moonHalo),
+    ];
+    const fov = map.getVerticalFieldOfView ? map.getVerticalFieldOfView() : 58;
+    const GL0 = T.GLOW;
+    const glow = B.night > 0.02 ? {
+      y0: hzPx - GL0.BAND_DEG * (H / fov), y1: hzPx + GL0.BELOW_H * H,
+      a: GL0.ALPHA.map(x => x * B.night),
+    } : null;
+    if (_glHaze.p !== M.p) { _glHaze = { p: M.p, col: fogColour(map) }; }
+    const gc = (window.GFX && window.GFX.clouds != null) ? window.GFX.clouds : 1;
+    const gs = (window.GFX && window.GFX.stars != null) ? window.GFX.stars : 1;
+    _glFrame = {
+      b: project.basis, W, H, hz: hzPx, fade: fadePx, lobes, glow,
+      roll: rad(map.getRoll ? (map.getRoll() || 0) : 0),
+      night: B.night, golden: B.golden, p: M.p,
+      cloudsOn: gc > 0.01, cloudCount: gc,
+      body: M.body, lit: M.lit, base: M.base, haze: _glHaze.col,
+      starStr: B.stars > 0.02 ? B.stars * T.CITY_STARS : 0, nStars: Math.round(stars.length * gs),
+    };
+  }
+
+  function featherUniforms(gl, u, F) {
+    const ST = SKY_TUNE.FEATHER.STOPS;
+    gl.uniform4f(u.u_fT, ST[0][0], ST[1][0], ST[2][0], ST[3][0]);
+    gl.uniform4f(u.u_fM, ST[0][1], ST[1][1], ST[2][1], ST[3][1]);
+    gl.uniform2f(u.u_fy, Math.max(0, F.hz - 0.5 * F.fade), F.hz + 0.5 * F.fade);
+  }
+  // A stop table padded to four stops (the shader's `stops` reads four).
+  const stops4 = (st) => {
+    const t = st.map(s => s[0]), m = st.map(s => s[1]);
+    while (t.length < 4) { t.push(t[t.length - 1]); m.push(m[m.length - 1]); }
+    return [t, m];
+  };
+
+  /** Draw the band, then the stars. Leaves the GL state the disc quads expect. */
+  function drawGLSky(gl, W, H, P) {
+    if (!glSky) glInit(gl);
+    const G = glSky, T = SKY_TUNE, GT = T.GL, F = _glFrame, D = window.SKY_GL_DEBUG;
+    if (!F) return;
+    const S = G.sky, u = S.u, b = F.b;
+    const pano = F.cloudsOn ? cloudReady(gl, T.cloudSet) : null;
+    // Lowest row the sky can reach. Banked, the level horizon is turned about the frame centre:
+    // its low end sits (W/2)|tan roll| lower and its offset from the centre is stretched by 1/cos.
+    const rl = F.roll || 0, lowLevel = F.hz + 0.5 * F.fade;
+    const bandPx = Math.min(H, Math.max(0, rl
+      ? 0.5 * H + (lowLevel - 0.5 * H) / Math.cos(rl) + 0.5 * W * Math.abs(Math.tan(rl)) : lowLevel));
+    SKY_METER.glDraws++;
+    _skyDrawnP = _p;
+    if (bandPx <= 0) return;
+
+    gl.useProgram(S.p);
+    gl.bindBuffer(gl.ARRAY_BUFFER, skyGL.buf);
+    gl.enableVertexAttribArray(S.a.a_unit);
+    gl.vertexAttribPointer(S.a.a_unit, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform4f(u.u_rect, -1, 1 - 2 * bandPx / H, 1, 1);
+    gl.uniform1f(u.u_z, SKY_COMP.z);
+    gl.uniform2f(u.u_wh, W, H);
+    gl.uniform2f(u.u_roll, Math.cos(rl), Math.sin(rl));
+    gl.uniform3f(u.u_f, b.f[0], b.f[1], b.f[2]);
+    gl.uniform3f(u.u_r, b.r[0], b.r[1], b.r[2]);
+    gl.uniform3f(u.u_u, b.u[0], b.u[1], b.u[2]);
+    gl.uniform2f(u.u_t, b.th, b.tv);
+    featherUniforms(gl, u, F);
+    gl.uniform4f(u.u_dbg, D.atmoGain, D.cloudGain, D.featherShiftPx, D.seamShift);
+
+    // atmosphere
+    const GL0 = T.GLOW, gcol = GL0.COLS;
+    gl.uniform4f(u.u_gY, F.glow ? F.glow.y0 : 0, F.glow ? F.glow.y1 : 1, 0, 0);
+    const ga = F.glow ? F.glow.a : [0, 0, 0, 0];
+    gl.uniform4f(u.u_gA, ga[0], ga[1], ga[2], ga[3]);
+    gl.uniform4f(u.u_gT, GL0.POS[0], GL0.POS[1], GL0.POS[2], GL0.POS[3]);
+    gl.uniform3f(u.u_gC0, gcol[0][0] / 255, gcol[0][1] / 255, gcol[0][2] / 255);
+    gl.uniform3f(u.u_gC1, gcol[1][0] / 255, gcol[1][1] / 255, gcol[1][2] / 255);
+    gl.uniform3f(u.u_gC2, gcol[2][0] / 255, gcol[2][1] / 255, gcol[2][2] / 255);
+    gl.uniform3f(u.u_gC3, gcol[3][0] / 255, gcol[3][1] / 255, gcol[3][2] / 255);
+    for (let i = 0; i < 6; i++) {
+      const L = F.lobes[i];
+      gl.uniform4f(u['u_lA' + i], L ? L[0] : 0, L ? L[1] : 0, L ? L[2] : 1, L ? L[3] : 1);
+      gl.uniform4f(u['u_lC' + i], L ? L[4] : 0, L ? L[5] : 0, L ? L[6] : 0, L ? L[7] : 0);
+    }
+    const [bt, bm] = stops4(T.BELT.STOPS), [wt, wm] = stops4(T.WASH.WIDE), [ht, hm] = stops4(T.WASH.HOT);
+    gl.uniform4f(u.u_sBeltT, bt[0], bt[1], bt[2], bt[3]); gl.uniform4f(u.u_sBeltM, bm[0], bm[1], bm[2], bm[3]);
+    gl.uniform4f(u.u_sWideT, wt[0], wt[1], wt[2], wt[3]); gl.uniform4f(u.u_sWideM, wm[0], wm[1], wm[2], wm[3]);
+    gl.uniform4f(u.u_sHotT, ht[0], ht[1], ht[2], ht[3]);  gl.uniform4f(u.u_sHotM, hm[0], hm[1], hm[2], hm[3]);
+
+    // clouds
+    gl.uniform1i(u.u_pano, 0);
+    gl.uniform1i(u.u_dtl, 1);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, G.detail);
+    gl.activeTexture(gl.TEXTURE0);
+    if (pano) {
+      gl.bindTexture(gl.TEXTURE_2D, pano.tex);
+      const drift = GT.DRIFT * performance.now() / 60000;
+      const amt = GT.CLOUD_ALPHA * (1 - F.night * GT.NIGHT_FADE);
+      const dim = 1 - (1 - GT.NIGHT_DIM) * F.night;
+      gl.uniform4f(u.u_cl, amt, dim, pano.elevMax, GT.ROT + pano.rot + drift);
+      const body = F.body;
+      gl.uniform4f(u.u_cs, body.az, body.elev, Math.cos(rad(Math.max(0, body.elev))), 0);
+      const lit = F.lit, base = F.base, hz = F.haze;
+      gl.uniform3f(u.u_lit, lit[0] / 255, lit[1] / 255, lit[2] / 255);
+      gl.uniform3f(u.u_shade, base[0] / 255, base[1] / 255, base[2] / 255);
+      gl.uniform3f(u.u_haze, hz[0] / 255, hz[1] / 255, hz[2] / 255);
+      const bakeW = GT.SHADE_BAKE * (1 - (1 - GT.GOLDEN_BAKE) * F.golden);
+      gl.uniform4f(u.u_cp, bakeW, GT.SHADE_SUN, GT.EDGE_DETAIL[T.cloudSet] || 0, GT.HAZE_AMT);
+      gl.uniform4f(u.u_cq, GT.COVER_LO + (1 - F.cloudCount) * 0.45, GT.COVER_HI, GT.TOP_FADE_DEG, GT.HAZE_DEG);
+      gl.uniform4f(u.u_dt, 360 / GT.DETAIL_DEG, pano.elevMax / GT.DETAIL_DEG, GT.SUN_TAPS[0], GT.SUN_TAPS[1]);
+      gl.uniform1f(u.u_wrap, pano.wrapOk ? 1 : 0);
+    } else {
+      gl.bindTexture(gl.TEXTURE_2D, G.detail);        // any complete texture; the shader skips it
+      gl.uniform4f(u.u_cl, 0, 1, 45, 0);
+      gl.uniform4f(u.u_cs, 0, 0, 1, 0); gl.uniform3f(u.u_lit, 1, 1, 1); gl.uniform3f(u.u_shade, 1, 1, 1);
+      gl.uniform3f(u.u_haze, 1, 1, 1); gl.uniform4f(u.u_cp, 0, 0, 0, 0); gl.uniform4f(u.u_cq, 0, 1, 1, 1);
+      gl.uniform4f(u.u_dt, 1, 1, 1, 1); gl.uniform1f(u.u_wrap, 1);
+    }
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // stars
+    if (F.starStr > 0 && F.nStars > 0) {
+      const Q = G.stars, q = Q.u;
+      gl.useProgram(Q.p);
+      gl.bindBuffer(gl.ARRAY_BUFFER, G.starBuf);
+      gl.enableVertexAttribArray(Q.a.a_dm);
+      gl.enableVertexAttribArray(Q.a.a_az);
+      gl.vertexAttribPointer(Q.a.a_dm, 4, gl.FLOAT, false, 20, 0);
+      gl.vertexAttribPointer(Q.a.a_az, 1, gl.FLOAT, false, 20, 16);
+      gl.uniform3f(q.u_f, b.f[0], b.f[1], b.f[2]);
+      gl.uniform3f(q.u_r, b.r[0], b.r[1], b.r[2]);
+      gl.uniform3f(q.u_u, b.u[0], b.u[1], b.u[2]);
+      gl.uniform2f(q.u_t, b.th, b.tv);
+      gl.uniform2f(q.u_wh, W, H);
+      gl.uniform2f(q.u_roll, Math.cos(rl), Math.sin(rl));
+      gl.uniform1f(q.u_z, SKY_COMP.z);
+      gl.uniform1f(q.u_px, gl.drawingBufferWidth / W);
+      gl.uniform1f(q.u_bufH, gl.drawingBufferHeight);
+      gl.uniform1f(q.u_time, performance.now());
+      gl.uniform1f(q.u_str, F.starStr);
+      gl.uniform1f(q.u_haloMag, GT.STAR_HALO_MAG);
+      gl.uniform3f(q.u_tw, T.TWINKLE.MAG, T.TWINKLE.AMP, T.TWINKLE.SPEED);
+      featherUniforms(gl, q, F);
+      gl.uniform4f(q.u_dbg, D.atmoGain, D.cloudGain, D.featherShiftPx, D.seamShift);
+      gl.uniform1f(q.u_halo, 0);
+      gl.drawArrays(gl.POINTS, 0, F.nStars);
+      gl.uniform1f(q.u_halo, 1);
+      gl.drawArrays(gl.POINTS, 0, F.nStars);
+      gl.disableVertexAttribArray(Q.a.a_dm);
+      gl.disableVertexAttribArray(Q.a.a_az);
+    }
+
+    // hand the state back to the disc quads
+    gl.useProgram(P.p);
+    gl.bindBuffer(gl.ARRAY_BUFFER, skyGL.buf);
+    gl.enableVertexAttribArray(P.a);
+    gl.vertexAttribPointer(P.a, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform1f(P.u.u_z, SKY_COMP.z);
+    gl.uniform1i(P.u.u_tex, 0);
+    gl.activeTexture(gl.TEXTURE0);
+  }
+
   const skyLayer = {
     id: SKY_LAYER_ID,
     type: 'custom',
     renderingMode: '3d',
 
     onAdd(map, gl) {
+      // Whatever the GL sky built belongs to an older context (or to none): start clean.
+      glForget(null);
+      if (!glForgetHooked) {
+        glForgetHooked = true;
+        map.on('webglcontextlost', () => glForget(null));
+        map.on('webglcontextrestored', () => { glForget(null); map.triggerRepaint(); });
+      }
       skyGL = {
         prog: program(gl, VS_TEX, FS_TEX, ['u_rect', 'u_z', 'u_tex', 'u_tint']),
         buf: gl.createBuffer(),
@@ -1028,6 +1655,7 @@
     },
 
     onRemove(map, gl) {
+      glForget(gl);
       if (!skyGL) return;
       try {
         gl.deleteBuffer(skyGL.buf);
@@ -1055,7 +1683,12 @@
   function drawSky(gl) {
     const cv = _map.getCanvas();
     const W = cv.clientWidth, H = cv.clientHeight;
-    if (!(W > 0 && H > 0) || !(canvas.width > 0) || !(cssH > 0)) return;
+    if (!(W > 0 && H > 0)) return;
+    // The mode can change between two frames (the URL flag, a test, the fallback below).
+    // updateSky builds the frame for ONE mode, so rebuild it for the other before drawing.
+    let glMode = glActive();
+    if ((glMode ? 'gl' : 'canvas') !== _frameMode) { window.updateSky(_map, _p); glMode = glActive(); }
+    if (!glMode && (!(canvas.width > 0) || !(cssH > 0))) return;
 
     const P = skyGL.prog;
     gl.useProgram(P.p);
@@ -1114,10 +1747,23 @@
     gl.activeTexture(gl.TEXTURE0);
 
     // ── the sky band ──
+    if (glMode) {
+      // Drawn from uniforms and the textures uploaded once; nothing is copied per frame.
+      try { drawGLSky(gl, W, H, P); } catch (e) {
+        // One failure retires the GL sky for the session and the canvas path comes back.
+        glFailed = true;
+        console.warn('[sky] GL sky failed, falling back to the canvas sky:', e);
+        gl.depthFunc(gl.LEQUAL);
+        gl.depthMask(true);
+        _map.triggerRepaint();
+        return;
+      }
+    } else {
     gl.bindTexture(gl.TEXTURE_2D, skyGL.tex);
     if (skyDirty || skyTexW !== canvas.width || skyTexH !== canvas.height) {
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+      SKY_METER.uploads++;
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
       skyTexW = canvas.width; skyTexH = canvas.height;
       skyDirty = false;
@@ -1128,6 +1774,7 @@
     gl.uniform4f(P.u.u_rect, -1, yBot, 1, 1);
     gl.uniform4f(P.u.u_tint, 1, 1, 1, 1);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
 
     // ── the disc and its bloom ──
     // Same positions, sizes, colours and alphas the DOM elements were given;
@@ -1380,6 +2027,14 @@
     return dpr;
   }
 
+  /** 'gl' mode keeps no 2D backing store. resize() rebuilds it if the mode flips back. */
+  function collapseCanvas() {
+    if (!canvas || (canvas.width <= 1 && canvas.height <= 1)) return;
+    canvas.width = canvas.height = 1;
+    canvas.style.width = canvas.style.height = '1px';
+    cssH = 0; skyTexW = skyTexH = 0;
+  }
+
   function rgba(c, a) { return `rgba(${c[0]},${c[1]},${c[2]},${a})`; }
   function mix(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
 
@@ -1395,6 +2050,11 @@
   const SKY_METER = window.__sky = {
     calls: 0, ms: 0, maxMs: 0, lastMs: 0,
     memoHits: 0, memoMisses: 0, stars: 0, lobes: 0,
+    // draws2d: passes over the 2D sky canvas. uploads: texImage2D calls for a sky texture
+    // (the canvas every frame in 'canvas' mode; the cloud and noise textures once in 'gl').
+    // glDraws: frames the GL sky band was drawn. A camera turn in 'gl' mode must move
+    // glDraws and nothing else (scripts/verify/sky-gl.mjs).
+    draws2d: 0, uploads: 0, glDraws: 0,
   };
 
   /**
@@ -1520,10 +2180,9 @@
 
     // The skyglow band's four stops: colour and alpha are hour-only; only the
     // two y coordinates move with the camera, and those are set at the call.
-    const gs0 = 'rgba(150,160,196,0)';
-    const gs1 = `rgba(150,160,196,${(0.014 * B.night).toFixed(4)})`;
-    const gs2 = `rgba(228,164,110,${(0.032 * B.night).toFixed(4)})`;
-    const gs3 = `rgba(255,176,96,${(0.052 * B.night).toFixed(4)})`;
+    const GL0 = SKY_TUNE.GLOW;
+    const gstops = GL0.COLS.map((c, i) => `rgba(${c[0]},${c[1]},${c[2]},${(GL0.ALPHA[i] * B.night).toFixed(4)})`);
+    const gs0 = gstops[0], gs1 = gstops[1], gs2 = gstops[2], gs3 = gstops[3];
 
     _memo = {
       p, gs, gc, ho, B, useMoon, body, coreCol, haloCol, moonHalo, moonMix,
@@ -1576,7 +2235,12 @@
     const W = cv.clientWidth, H = cv.clientHeight;
     // Horizon first: it decides how tall the canvas has to be this frame.
     const hzPxEarly = horizonPx(map);
-    const dpr = resize(Math.max(0, hzPxEarly) + 0.5 * SKY_TUNE.HORIZON_FADE * H) || 1;
+    // 'gl' mode has no 2D pass at all, so the canvas is collapsed to a pixel: it costs no
+    // memory and cannot be uploaded by mistake. See the GL sky block above skyLayer.
+    const glMode = glActive();
+    let dpr;
+    if (glMode) { collapseCanvas(); dpr = Math.min(2, window.devicePixelRatio || 1); }
+    else dpr = resize(Math.max(0, hzPxEarly) + 0.5 * SKY_TUNE.HORIZON_FADE * H) || 1;
 
     // Which body is lighting the sky, and in what colour. All hour-only — see
     // `hourMemo`, which also carries the two `radial-gradient(...)` strings and
@@ -1604,6 +2268,14 @@
     const vis = M.vis;
 
     const pos = pvec(M.vBody);
+    // The GL sky draws the world-fixed picture turned by the camera's bank (see FS_SKYGL), and the
+    // disc is part of it: turn its screen position about the frame centre by the same angle. The
+    // 2D canvas pass is left as it was (the DOM overlay and the canvas path read `pos` as is).
+    const rollR = glMode && map.getRoll ? rad(map.getRoll() || 0) : 0;
+    const dPos = !rollR ? pos : (() => {
+      const qx = pos.x - 0.5 * W, qy = pos.y - 0.5 * H, c = Math.cos(rollR), s = Math.sin(rollR);
+      return { ...pos, x: 0.5 * W + qx * c + qy * s, y: 0.5 * H - qx * s + qy * c };
+    })();
     const showDisc = pos.front && vis > 0.01;
     const discFade = pos.fade;
 
@@ -1624,17 +2296,13 @@
     // `place()` calls above just used — this is the SAME disc drawn in a pass
     // that can be occluded, not a second one.
     _disc = showDisc ? {
-      x: pos.x, y: pos.y,
+      x: dPos.x, y: dPos.y,
       coreR, coreA: vis * discFade,
       bloomR, bloomA,
       col: { core: coreCol, halo: haloCol },
     } : null;
 
-    // ── Canvas pass ──
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, cssH);
-    ctx.globalCompositeOperation = 'lighter';
-
+    // ── Canvas pass (mode 'canvas') or the numbers the GL sky needs (mode 'gl') ──
     const S = Math.max(W, H);
     const hzPx = hzPxEarly;
 
@@ -1671,6 +2339,11 @@
     // still what stops the wash reaching the whole frame; the erase is only what
     // stops the clip's own edge being a line across the towers.
     const fadePx = SKY_TUNE.HORIZON_FADE * H;
+    const canvasPass = () => {
+    SKY_METER.draws2d++;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, cssH);
+    ctx.globalCompositeOperation = 'lighter';
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, 0, W, Math.max(0, hzPx + 0.5 * fadePx));
@@ -1698,15 +2371,15 @@
     // sky being a flat near-black bar, and (being additive) it washes out the
     // faintest low stars exactly as real skyglow does.
     if (B.night > 0.02) {
-      const band = 7.5 * (H / (map.getVerticalFieldOfView ? map.getVerticalFieldOfView() : 58));
-      const y0 = hzPx - band, y1 = hzPx + 0.012 * H;
+      const band = SKY_TUNE.GLOW.BAND_DEG * (H / (map.getVerticalFieldOfView ? map.getVerticalFieldOfView() : 58));
+      const y0 = hzPx - band, y1 = hzPx + SKY_TUNE.GLOW.BELOW_H * H;
       if (y1 > 0 && y0 < H) {
-        const gs = M.glowStops;
+        const gs = M.glowStops, gp = SKY_TUNE.GLOW.POS;
         const g = ctx.createLinearGradient(0, y0, 0, y1);
-        g.addColorStop(0.00, gs[0]);
-        g.addColorStop(0.45, gs[1]);
-        g.addColorStop(0.78, gs[2]);
-        g.addColorStop(1.00, gs[3]);
+        g.addColorStop(gp[0], gs[0]);
+        g.addColorStop(gp[1], gs[1]);
+        g.addColorStop(gp[2], gs[2]);
+        g.addColorStop(gp[3], gs[3]);
         ctx.fillStyle = g;
         ctx.fillRect(0, y0, W, y1 - y0);
       }
@@ -1731,7 +2404,7 @@
     const hzSun = pvec(M.vHzSun);
     const hzMoon = pvec(M.vHzMoon);
     const kWide = M.kWide;
-    const WIDE = [[0, 0.9], [0.34, 0.28], [0.70, 0]];
+    const WIDE = SKY_TUNE.WASH.WIDE;
     const glowASun = M.glowASun0 * hzSun.fade;
     const glowAMoon = M.glowAMoon0 * hzMoon.fade;
     drawGlow(hzSun,  0.5 * S * kWide, 0.15 * S * kWide, glowASun,  sunHalo,  WIDE);
@@ -1743,7 +2416,7 @@
     // it is a flat tint with no falloff anywhere in frame. This lobe is sized so
     // a real falloff lands inside that band — the difference between "the sky is
     // orange" and "the sun is setting over there".
-    const HOT = [[0, 1], [0.30, 0.45], [0.62, 0.12], [1, 0]];
+    const HOT = SKY_TUNE.WASH.HOT;
     const hotASun = Math.min(0.60, M.hotASun0 * hzSun.fade);
     const hotAMoon = Math.min(0.60, M.hotAMoon0 * hzMoon.fade);
     drawGlow(hzSun, 0.16 * S, 0.042 * S, hotASun, sunHalo, HOT);
@@ -1869,23 +2542,24 @@
       const y1 = hzPx + 0.5 * fadePx;
       ctx.globalCompositeOperation = 'destination-out';
       const g = ctx.createLinearGradient(0, y0, 0, y1);
-      g.addColorStop(0, 'rgba(0,0,0,0)');
       // Ease rather than ramp linearly: a straight ramp still leaves a visible
       // corner where it starts, because the eye finds the DISCONTINUITY IN
-      // SLOPE, not just in value.
-      g.addColorStop(0.35, 'rgba(0,0,0,0.18)');
-      g.addColorStop(0.70, 'rgba(0,0,0,0.72)');
-      g.addColorStop(1, 'rgba(0,0,0,1)');
+      // SLOPE, not just in value. (SKY_TUNE.FEATHER.STOPS)
+      for (const [t, a] of SKY_TUNE.FEATHER.STOPS) g.addColorStop(t, `rgba(0,0,0,${a})`);
       ctx.fillStyle = g;
       ctx.fillRect(0, y0, W, y1 - y0);
     }
     ctx.globalCompositeOperation = 'source-over';
+    };                                   // end of the 2D pass
+    if (glMode) buildGLFrame(map, M, B, project, W, H, hzPx, fadePx);
+    else canvasPass();
+    _frameMode = glMode ? 'gl' : 'canvas';
 
     // The compositor's texture IS this canvas, so it is stale until a frame is
     // drawn. `move` already lands before the render that follows it; a
     // time-of-day change has nothing behind it, so ask for one frame. This
     // cannot feed itself — triggerRepaint does not fire `move`.
-    skyDirty = true;
+    if (!glMode) skyDirty = true;
     // `window.SKY_COMP.on = false` is a live A/B switch, not just a boot flag —
     // both a verification and Simeon can put the old overlay back in one line.
     showDomSky(!(skyOn() && skyGL));
@@ -1907,7 +2581,7 @@
     // after the completed map render keeps bloom synchronized with the scene.
     window.skyFrame = {
       W, H, dpr, horizonPx: hzPx,
-      sun: { x: pos.x, y: pos.y, front: !useMoon && pos.front, fade: pos.fade, elev: B.sun.elev, az: B.sun.az },
+      sun: { x: dPos.x, y: dPos.y, front: !useMoon && pos.front, fade: pos.fade, elev: B.sun.elev, az: B.sun.az },
       moonUp: useMoon, colour: coreCol, haloColour: haloCol,
       golden: B.golden, night: B.night, lamps: B.lamps, stars: B.stars, p,
     };

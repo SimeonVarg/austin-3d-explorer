@@ -11,7 +11,7 @@
     "dusk": "node dusk.mjs",
     "silhouette": "node silhouette.mjs",
     "banding": "node banding.mjs",
-    "all": "node movement.mjs && node collision.mjs && node sky.mjs && node graphics.mjs && node difftour.mjs",
+    "all": "node movement.mjs && node collision.mjs && node sky.mjs && node graphics.mjs",
     "graphics": "node graphics.mjs",
     "roofz": "node roofz.mjs",
     "skycolour": "node skycolour.mjs",

@@ -3,7 +3,7 @@
 shape_trees.py — take the trees out of the surfaces they cannot stand in, and
 give each species its own crown.
 
-FOUR REPORTED DEFECTS, one pass over data/trees.geojson.
+FIVE REPORTED DEFECTS, one pass over data/trees.geojson.
 
 1. "Trees clip through buildings and appear on top of them - fix the
    ordering/placement rule, not individual trees." It is not ordering. A tree
@@ -44,6 +44,11 @@ FOUR REPORTED DEFECTS, one pass over data/trees.geojson.
    OPEN_LAWNS. Handled by the same table, because it is the same claim: the
    South Mall panels are open grass in life and the canopy belongs on the
    flanking walks.
+
+5. And then, at a restaurant corner seen from the street: a huge tree in the way
+   of the building, where the photograph shows no tree at all. See FIELD_CLEAR.
+   A spot a photograph proves empty, cleared by the same test as everything
+   else here, with --field-clear to land a row without re-running the planting.
 
 WHERE THE SPECIES COMES FROM. `data/trees.geojson` already carries `sp` on every
 canopy — liveoak 5,986, elm 3,145, crape 2,470, magnolia 1,917, pecan 1,866,
@@ -88,6 +93,7 @@ the imagery cache, and re-running it would rewrite positions, species and height
 This touches geometry and nothing else.
 
     python scripts/shape_trees.py [--dry]
+    python scripts/shape_trees.py --field-clear [--dry]    FIELD_CLEAR only
 
 NOTE: trees are TILED. After running this, the PMTiles archive has to be rebuilt
 or the app keeps serving the old shapes — `gh workflow run build-tiles.yml --ref
@@ -232,6 +238,43 @@ OPEN_LAWNS = [
     (-97.73909, 30.28532, "Main Mall, east of the Main Building"),
     (-97.73986, 30.28538, "Main Mall, west of the Main Building"),
 ]
+
+# ── Field clear: spots a street-level photograph proves are empty ─────
+#
+# The detector behind the `src:'imagery'` crowns looks straight down, and from
+# straight down a steel entry canopy or a dark roof unit is a round dark blob
+# the size of a magnolia. Four of those stood at one corner west of campus,
+# 8 to 13 m tall: two against the entrance of one restaurant, one over half the
+# roof of its neighbour and one in that neighbour's open car park, in front of
+# the only faces a walker sees. No rule in SURFACES can catch them. The centre
+# of each is OUTSIDE every footprint, on paving that is a perfectly good place
+# for a tree.
+#
+# So this is the one table here that is not a rule about a class of surface.
+# Each row is a claim about ONE SPOT, and the evidence is a photograph taken
+# from the street: nothing stands here. A row is (lon, lat, radius in metres,
+# what the photograph shows instead). Keep the radius small. It clears every
+# trunk inside it, surveyed ones included, and the planting pass will not plant
+# there either.
+#
+# The full pass applies it like any other dropped surface. LAND A NEW ROW WITH
+# --field-clear, which applies this table and nothing else. The full pass also
+# strips and replants against whatever ground.geojson and roads.geojson say
+# today: on 2026-10-04 an unchanged run swapped 2,236 planted features for
+# 1,439 and dropped 33 trees that had nothing to do with the row being added.
+# A photograph of one corner is not a reason to reshuffle the campus planting
+# inside the same change.
+FIELD_CLEAR = [
+    (-97.743595, 30.281988, 3.0,
+     "P. Terry's entrance: a teal steel canopy, not a 12 m magnolia"),
+    (-97.743622, 30.282074, 3.0,
+     "P. Terry's, north bed: knee-high palms, not an 8 m magnolia"),
+    (-97.742520, 30.281597, 3.0,
+     "Raising Cane's, north half: roof and low shrubs, not a 13 m live oak"),
+    (-97.742452, 30.281735, 3.0,
+     "Raising Cane's, car park: open asphalt, not an 11 m elm"),
+]
+FIELD_ONLY = "--field-clear" in sys.argv
 
 # ── Taste block: PLANTING ─────────────────────────────────────────────
 #
@@ -463,12 +506,58 @@ class Surfaces(object):
         return out
 
 
+def field_clear_polys():
+    """One disc per FIELD_CLEAR row, in metres, in table order."""
+    return [Point(*to_m(lo, la)).buffer(r) for lo, la, r, _why in FIELD_CLEAR]
+
+
+def field_clear_only(gj, path):
+    """Apply FIELD_CLEAR to the file as it stands and touch nothing else: no
+    strip, no replant, no re-tiering. Every feature that survives is written
+    back exactly as it was read, so the diff is the cleared trees and only them.
+    """
+    discs = field_clear_polys()
+    keep = []
+    trees = [set() for _ in discs]
+    feats = [0] * len(discs)
+    for f in gj["features"]:
+        rs = rings(f["geometry"])
+        if rs:
+            c = centroid(rs[0])
+            p = Point(*to_m(c[0], c[1]))
+            row = next((i for i, d in enumerate(discs) if d.contains(p)), None)
+            if row is not None:
+                feats[row] += 1
+                if f["properties"].get("kind") == "canopy":
+                    q = f["properties"]
+                    trees[row].add((round(c[0], 6), round(c[1], 6), q.get("sp"),
+                                    q.get("src")))
+                continue
+        keep.append(f)
+    print("  --- field clear: %d rows ---" % len(discs))
+    for (lo, la, r, why), ts, n in zip(FIELD_CLEAR, trees, feats):
+        # A row that clears nothing prints too. On the run that lands it that
+        # is a wrong coordinate; on every run after, it is the row holding.
+        print("      %d trees, %d features  %s" % (len(ts), n, why))
+        for t in sorted(ts):
+            print("          %.6f,%.6f  %s  src:%s" % t)
+    print("  features: %d -> %d" % (len(gj["features"]), len(keep)))
+    if not DRY:
+        gj["features"] = keep
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(gj, fh, separators=(",", ":"))
+        print("  written  (%.2f MB)" % (os.path.getsize(path) / 1e6))
+        print("  REMEMBER: trees are tiled. Rebuild the archive or the app keeps")
+        print("  serving the old shapes:  gh workflow run build-tiles.yml --ref <branch>")
+
+
 def build_surfaces(buildings):
     """Read ground.geojson + roads.geojson + the snapshot and index every class
     named in SURFACES, dropped or not. The kept classes are indexed on purpose:
     the per-class report is the only way to see what a verdict flip would cost.
     """
     S = Surfaces()
+    S.add("field clear", True, field_clear_polys())
     if BUILDING_DROP:
         S.add("building", True, [poly_m(f["geometry"]) for f in buildings])
         # The snapshot's detailed footprints stop at the campus box, and the
@@ -481,8 +570,9 @@ def build_surfaces(buildings):
             of = json.load(open(outer, encoding="utf-8"))["features"]
             S.add("outer building", True, [poly_m(f["geometry"]) for f in of])
 
-    ground = json.load(open(os.path.join(DATA, "ground.geojson"),
-                            encoding="utf-8"))["features"]
+    ground = [f for f in json.load(open(os.path.join(DATA, "ground.geojson"),
+                                        encoding="utf-8"))["features"]
+              if not f["properties"].get("gd")]   # display-only ground-detail patches never move a tree
     by_class = defaultdict(list)
     open_lawn = []
     seeds = [(Point(*to_m(lo, la)), name) for lo, la, name in OPEN_LAWNS]
@@ -691,8 +781,9 @@ def plant_campus(S, standing):
     """
     from shapely.geometry import shape as _shape
 
-    ground = json.load(open(os.path.join(DATA, "ground.geojson"),
-                            encoding="utf-8"))["features"]
+    ground = [f for f in json.load(open(os.path.join(DATA, "ground.geojson"),
+                                        encoding="utf-8"))["features"]
+              if not f["properties"].get("gd")]   # display-only ground-detail patches never move a tree
     near_old = NearestGrid(PLANT["min_gap_m"])
     for lon, lat in standing:
         near_old.add(lon, lat)
@@ -788,6 +879,10 @@ def main():
     gj = json.load(open(path, encoding="utf-8"))
     feats = gj["features"]
     print("trees.geojson: %d features" % len(feats))
+
+    if FIELD_ONLY:
+        field_clear_only(gj, path)
+        return
 
     # 0. STRIP WHAT A PREVIOUS RUN PLANTED. This is what keeps the file
     #    idempotent now that it adds features as well as reshaping them: the

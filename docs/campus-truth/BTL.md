@@ -14,17 +14,17 @@ Austin LiDAR: 73.4 ft (22.4 m). UT Direct's facilities register: 7 floors -- but
 
 ## Where the real entrance is
 
-The single central round-arched door on the EAST elevation (facing the South Mall), flanked by wrought-iron lanterns. Confirmed three ways: visible in the photograph, `scripts/bake_entrances.py`'s CELEBRATED table already carries it as `facade="E"` with an authored point marked [D] "centre of the east wall", and the final `data/entrances.geojson` places its `role: main` door 1.4 m from that authored point -- this is one of the entrances the pipeline gets right end to end.
+The east elevation has one central rectangular recessed doorway with teal paneled leaves, a flat stone lintel and flanking lanterns. The September 26 source review corrects the older arched-door claim. The authored Battle model owns this opening; legacy east assemblies 94 and 95 are retired, including the path-inferred doorway occupying a window bay. The historical UT survey proximity score below is location evidence, not evidence for the former arch shape.
 
-**UT Facilities' own hand-surveyed "celebrated entrance" table** (`UT_CELEBRATED` in `scripts/bake_entrances.py`, fetched 2026-08-23 from UT's own ArcGIS FeatureServer) lists **1** door(s) for `BTL`. Cross-checked against what `data/entrances.geojson` actually ships: the nearest app-baked entrance is **1.4 m** away (eid 118, tagged `role: main`), within the 12 m match tolerance the bake script's own UT-relabelling stage uses, and correctly labelled `main`.
+UT Facilities lists one celebrated BTL entrance. The older baked survey proximity score is retained in the JSON as historical location evidence; its former eid and shape are not current authored geometry.
 
 ## The window grid, counted off the photograph
 
 *Photographed elevation: the east (South Mall-facing) elevation.*
 
-East elevation, 2 storeys over a rusticated limestone base, counted off the photograph. Upper floor: 5 tall round-arched Palladian bays -- paired casements with divided lights, a small wrought-iron Juliet balcony under each, a carved roundel medallion above each arch. Ground floor: roughly 4 tall double-hung windows on each side of the central door (~8 total, symmetric), about 2 per upper arch bay -- the row counts do NOT match between floors. Red clay tile hip roof, deep bracketed eave with a polychrome tile frieze.
+East elevation: seven tall round-arched upper bays, each with a Juliet guard; six rectangular lower sash windows, three on either side of one rectangular central doorway. The upper sash has divided vertical lights, a central transom and fanlight bars. Pale stone arch surrounds enclose a narrow polychrome strip. Red clay hip roof with deep bracketed eave and teal/gold soffit panels. Dimensions and detailed ornament are approximate; west and short elevations are not established by these views.
 
-**What this app currently draws on this building today:** family `mh` — 8 rows x 5 cols (4-7 storey campus halls), chosen by `js/facades.js`'s `familyFor()` from this building's own baked height (21.5 m) and class (`university`). This is the number the rest of the facade fix should be scored against.
+The previous five-upper/eight-lower count was incorrect. The authored model now owns the east facade; the older `mh` 8-by-5 generic family is only a fallback. See [Battle east facade](../battle-east-facade.md) for the verified scope and remaining limits.
 
 ## Reference photograph
 

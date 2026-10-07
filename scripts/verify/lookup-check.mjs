@@ -18,19 +18,33 @@ import { chromium } from 'playwright-core';
 import { BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 
-const outDir = path.resolve('shots/lookup');
+const outDir = path.resolve(process.env.VERIFY_OUT || path.join(os.tmpdir(), 'lookup-check'));
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await launch(chromium);
+const browser = await launch(chromium, { gl: 'hardware', maxMs: 300000 });
+try {
 const page = await browser.newPage({ viewport: { width: 1000, height: 700 }, deviceScaleFactor: 1 });
 const errors = [];
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
+await page.addInitScript(() => {
+  const timer = setInterval(() => {
+    if (window.cancelGraphicsAutoDetect) {
+      window.cancelGraphicsAutoDetect();
+      clearInterval(timer);
+    }
+  }, 50);
+});
 
 await page.goto(`${SERVER}/index.html?intro=0&drift=0`, { waitUntil: 'networkidle', timeout: 180000 });
-await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 180000 });
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
-await page.waitForFunction(() => window.__map.getSource('austin-buildings'), null, { timeout: 180000 });
+await page.waitForFunction(() => {
+  const map = window.__map;
+  if (!map || !map.isStyleLoaded() || !map.getSource('austin-buildings')) return false;
+  const canvas = map.getCanvas();
+  return !document.getElementById('veil') && document.elementFromPoint(500, 80) === canvas;
+}, null, { timeout: 180000 });
 await page.waitForTimeout(7000);
 
 
@@ -278,5 +292,7 @@ let bad = 0;
 for (const r of results) { console.log(`${r.p ? ' PASS ' : '*FAIL '} ${r.n}\n         ${r.d}`); if (!r.p) bad++; }
 console.log(`\n${results.length - bad}/${results.length} passed`);
 console.log('shots in', outDir);
-browser.__done();
 process.exitCode = bad ? 1 : 0;
+} finally {
+  await browser.__done();
+}

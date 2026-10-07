@@ -97,6 +97,9 @@ def bake(p):
  elif p['code']=='SUT':
   from campus_sutton import refine
   model=refine(model,p)
+ elif p['code']=='GEA':
+  from campus_gearing import refine
+  model=refine(model,p)
  return model
 
 buildings=[bake(p)for p in PROFILES['buildings']]

@@ -164,6 +164,50 @@
   // ══════════════════════════════════════════════════════════════════════
   const ROOFS = {
     on: true,                    // this generator; SLOPES.on is the layer
+    tiles: {
+      on: true,                  // shared barrel-tile material; live, no rebuild
+      pitchM: .25,               // provisional column spacing in slope metres
+      courseM: .45,              // provisional exposed course in slope metres
+      strength: 1,               // relief and tile-colour contrast
+      tones: ['#96502d','#b76b42','#ce824e','#e8a06c','#f9d29e'], // clay alphabet from reference photographs
+      weights: [.20,.44,.18,.1175,.0625], // intrinsic tile weights (shadows counted separately)
+      hourContrast: [1,.85,.22],  // day, golden, night: pale clay never emits light
+      paleRun: [2,3],            // range of shared pale selections down a column
+      paleGrouped: .30,         // share of pale decisions made by a short run; the photograph shows mostly single pale tiles
+      seed: 51,                 // repeatable tile colours and weathering
+      valleyWidth: .12,          // dark valley fraction of a column
+      valley: .38,              // valley darkening before mean compensation
+      barrel: .12,              // broad rounded cover shading
+      lipWidth: .035,            // shadow width as a fraction of a course
+      lip: .38,                 // overlap shadow strength
+      lipCurve: .18,             // course-end bow around the curved cover
+      lipLight: .06,             // restrained light on the upper lip
+      weatherShare: .15,         // fraction of tiles carrying weather deposits
+      weather: .16,              // weather contrast, centred around zero
+      weatherScale: [3,5],       // broad deposits within one tile
+      filter: [.65,1.25],         // integrated relief: retain detail through a pixel, then converge to the roof mean
+      clayFilter: [.20,.65],     // integrated clay colours: cells per pixel area; preserve readable middle-distance tiles
+      axisFilter: [.60,1.0],     // colour integration supports up to one cell per pixel along either axis
+      perScreenPixel: false,     // true measures the fades in screen pixels: a phone then fades tiles at the same apparent size as a desktop (calmer, fewer tiles)
+      meanFrom: 'baked',         // 'baked' preserves every roof; 'photo' is an option
+      photoMean: ['#b06e42','#c5824e','#16131e'], // optional day/golden/night reference mean
+      hue: [5,29],               // clay hue interval in degrees
+      sat: [.38,1],              // clay saturation interval
+      value: [.38,1],            // exclude very dark brown non-clay roofs
+      slopeDeg: [6,80],          // never flat decks, soffits or vertical fins
+      campusBounds: [-97.74165,30.2800,-97.7299,30.2920], // conservative main-campus envelope
+      allow: [],                 // exact building names overriding colour only
+      deny: ['University United Methodist Church','University United Methodist Church Early Childhood Center'], // non-campus properties inside the envelope
+      unnamed: false,            // unknown campus ownership stays unchanged
+      mainBuilding: true,        // include the Main Building's three clay eaves
+      authoredCampus: ['San Jacinto Hall','Goldsmith Hall','Battle Hall','Robert A. Welch Hall','Welch Hall','Jester West Hall','Jester East Hall','Beauford H. Jester Center'], // campus replacements; colour and slope rules still apply
+      caps: false,               // optional same-clay crest shading, no raised geometry
+      capWidthM: .22,            // width of that crest treatment down the slope
+      capContrast: .12,          // cap overlap and rounding contrast
+      eave: false,               // optional scallop/gutter shading on the existing face
+      eaveWidthM: .22,            // depth of optional eave shading up the slope
+      gutter: .65,               // optional gutter darkening (no new silhouette)
+    },
     layer: 'roofs-pitched',      // the slab layer it stands in for
     source: 'austin-roofs',      // where app.js put the parsed roofs.geojson
     url: 'data/roofs.geojson',   // ...and the fallback if that object is not there
@@ -635,7 +679,8 @@
   }
   function hallParts(B, r, meta, g, hall, F, zLip, zTop, blocks) {
     const H = hall.H, over = meta.over;
-    const hc = (ROOFS.hallColour && H.col) ? H.col : r.col;   // the hall's planes: the photograph's colour when the bake read one
+    const rawHc = (ROOFS.hallColour && H.col) ? H.col : r.col;
+    const hc = tileEligible({...r,col:rawHc}) ? tileColour(rawHc,zLip,H.ridge) : rawHc;
     const zAt = u => u < 0 ? H.ridge - (H.ridge - zLip) * (u / H.uL) : H.ridge - (H.ridge - zLip) * (u / H.uR);
     // 1. the two planes, their front edge stepping with the pediment
     const frontEdge = (ua, ub) => {
@@ -831,7 +876,8 @@
       for (let i = 0; i + 1 < brk.length; i++) {
         const d0 = brk[i], d1 = brk[i + 1];
         if (d1 - d0 < 1e-4) continue;
-        B.quad(P(at(k, d0), zk(k, d0)), P(at(j, d0), zk(j, d0)), P(at(j, d1), zk(j, d1)), P(at(k, d1), zk(k, d1)), r.col, want);
+        const col = opts && opts.tiles && tileEligible(r) ? tileColour(r.col, zLip, zTop) : r.col;
+        B.quad(P(at(k, d0), zk(k, d0)), P(at(j, d0), zk(j, d0)), P(at(j, d1), zk(j, d1)), P(at(k, d1), zk(k, d1)), col, want);
       }
     }
     facet(B, false);
@@ -859,7 +905,7 @@
         // the blocks built against the hall, each a hip of its own in the
         // roof's colours; `interior` edges slope but carry no lip
         for (const b of blocks) {
-          roofOne(B, { ...b, name: r.name, col: r.col, lip: r.lip, deck: r.deck }, meta, null, { interior: b.interior });
+          roofOne(B, { ...b, name: r.name, col: r.col, lip: r.lip, deck: r.deck }, meta, null, { interior: b.interior, tiles: opts && opts.tiles });
           _blocks++;
         }
       } else if (ROOFS.deck && r.deck) {
@@ -876,6 +922,25 @@
       }
       hallParts(B, r, meta, g, hall, F, zLip, zTop, !!blocks);
     }
+  }
+
+  // Classification is draw-side and conservative: a warm colour alone is not
+  // evidence that a roof outside campus is clay. Unknown ownership stays out.
+  function tileEligible(r) {
+    const t=ROOFS.tiles,name=r.name||'';
+    if(r.flat || t.deny.includes(name) || (!name&&!t.unnamed))return false;
+    const pts=r.pts||[],dpm=r.dpm;
+    if(!pts.length||!dpm)return false;
+    const xy=[0,1].map(i=>pts.reduce((s,p)=>s+p[i],0)/pts.length*dpm[i]),b=t.campusBounds;
+    if(xy[0]<b[0]||xy[0]>b[2]||xy[1]<b[1]||xy[1]>b[3])return false;
+    if(t.allow.includes(name))return true;
+    const rgb=[1,3,5].map(i=>parseInt(r.col[0].slice(i,i+2),16)/255),hi=Math.max(...rgb),lo=Math.min(...rgb),d=hi-lo;
+    const h=d===0?0:((hi===rgb[0]?(rgb[1]-rgb[2])/d:hi===rgb[1]?2+(rgb[2]-rgb[0])/d:4+(rgb[0]-rgb[1])/d)*60+360)%360;
+    const s=hi?d/hi:0;
+    return h>=t.hue[0]&&h<=t.hue[1]&&s>=t.sat[0]&&s<=t.sat[1]&&hi>=t.value[0]&&hi<=t.value[1];
+  }
+  function tileColour(col,eave,ridge) {
+    const c=col.slice();c.surface=[-2,eave,ridge,1];return c;
   }
 
   // ── Gregory Gym's elevation ─────────────────────────────────────────────
@@ -962,7 +1027,7 @@
       // the entry's own band-and-plate draws instead and the parts stay out.
       if (ROOFS.flatRoofs ? r.flat : (r.wing && r.part != null)) { if (r.flat) flat++; continue; }
       const g = ROOFS.gable && _rig.gables && _rig.gables[key.split('/')[0]];
-      try { roofOne(B, r, _rig.meta, g || null); roofs++; if (r.part != null) parts++; }
+      try { roofOne(B, r, _rig.meta, g || null, {tiles:true}); roofs++; if (r.part != null) parts++; }
       catch (e) { console.warn('[slopes-roofs] roof', r.name || key, e); }
     }
     if (ROOFS.gable && _rig.gables) {
@@ -1043,7 +1108,7 @@
     const t0 = performance.now();
     const B = S.build();
     const l0 = _lines;
-    const n = window.slopesRoofs.emit(B, x.rig, { eaveBand: true });
+    const n = window.slopesRoofs.emit(B, x.rig, { eaveBand: true, tiles: ROOFS.tiles.mainBuilding && x.spec.url === 'data/tower.geojson' });
     const g = new T.Group();
     g.name = x.spec.name;
     g.userData.lod = x.spec.lod || null;
@@ -1127,6 +1192,7 @@
   };
 
   window.slopesRoofs = {
+    tileEligible,
     rebuild() {
       if (_group) { window.slopes.remove(_group); _group = null; }
       for (const x of _extras) if (x.group) { window.slopes.remove(x.group); x.group = null; }
@@ -1148,7 +1214,13 @@
       const meta = { lip: 0, over: 0, ...(rig.meta || {}) };
       let n = 0;
       for (const key of Object.keys(rig.roofs)) {
-        try { roofOne(B, rig.roofs[key], meta, null, opts || null); n++; }
+        const r = rig.roofs[key];
+        // Authored campus replacements use the same emitter and append their
+        // block id to the building name. Apartments never enter this opt-in.
+        const campusName = ROOFS.tiles.authoredCampus.find(name => r.name === name || (r.name || '').startsWith(name + ' '));
+        const clay = campusName && tileEligible({...r, name: campusName});
+        const drawOpts = clay ? {...(opts || {}), tiles: true} : opts;
+        try { roofOne(B, r, meta, null, drawOpts || null); n++; }
         catch (e) { console.warn('[slopes-roofs] rig', key, e); }
       }
       return n;

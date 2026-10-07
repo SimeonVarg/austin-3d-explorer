@@ -373,6 +373,8 @@ one H-shaped hole.
 | `openingD` | `2.0` | an opening's depth when its file gives none |
 | `canopyT` | `0.2` | a canopy slab's thickness when its file gives none |
 | `rakeFloors` | `true` | a raked face carries the building's floor lines where they cut the plane |
+| `areas.loadM`, `areas.phone.loadM` / `unloadM` | `1800`; `1200` / `3000` | metres from the camera (the nearer of its eye and the map centre) to an area's box at which the area loads; a phone drops it again past `unloadM`. See *Areas* below |
+| `areas.eager` | `?areas=eager` | load every area at start, as before areas existed (for an A/B) |
 
 ## What is in the frame, and where it came from
 
@@ -616,6 +618,20 @@ A `window` spec (on `pixel`, `bays`, `flat`) also takes:
   offset lines, so an open corner on columns is open round the corner. The
   corner arithmetic is in the file's `recess` comment.
 
+  A band may switch each closing surface for itself, in the object form:
+  `"inset": { "d": 2.0, "soffit": false, "floor": false, "returns": false }`
+  (`returns` also takes `{ "lo": false }` or `{ "hi": false }`, for one end).
+  A switch the band does not give falls to the layer default
+  (`APARTMENTS.insetSoffit` for the soffit and the floor,
+  `APARTMENTS.insetReturns` for the returns), so a file that gives none is
+  drawn as it was. The case it is for: one recessed glass wall that a height
+  slice cuts into two stacked bands. Each band closed its own recess, so a
+  ceiling plate crossed the middle of the glass, and the only way round it
+  was free geometry. Give the lower band `soffit: false` and the upper band
+  `floor: false` and the two read as one wall.
+  `scripts/verify/inset-switches.mjs` counts the vertices each switch
+  removes and shows that no switch touches another's surface.
+
 **deck** — boxes on a roof at `z`: `plan` rectangle, `z0` and `h` (or `z1`)
 above the deck, `tone`. The Standard's pool, spa, turf, cabana, jumbotron
 and guard rail.
@@ -666,12 +682,41 @@ and guard rail.
 | `hidePrecinct` | `true` | hide `js/moody.js`'s own arena (`moody-wall`, `moody-roof`, `moody-plant`, `moody-cap`) where it stands on an authored footprint — by geometry, because the same pass draws two precinct neighbours we do not author |
 | `wallMargin` | `0.6` | metres OUTSIDE an authored footprint that a baked wall detail (`roofs-pitched`'s `f: band` strips, drawn proud of the wall) may stand and still be hidden — the scaffolding number |
 | `roof.pitch`, `roof.lipH`, `roof.gableLean` | `25`, `0.25`, `0.30` | a roof's pitch when the file gives none; the fascia height where a roof oversails its wall; how far a gable end leans in over its rise so the emitter's strip on that edge stands behind the wall drawn there |
-| `insetSoffit`, `insetReturns` | `true`, `true` | draw a recess's soffit and floor; draw its returns |
+| `insetSoffit`, `insetReturns` | `true`, `true` | draw a recess's soffit and floor; draw its returns. City-wide defaults: one band overrules them for itself with `inset: { soffit, floor, returns }` |
 | `fins`, `piers`, `canopies`, `openings` | `true` | draw those fixtures at all (round 3) |
 | `openingD`, `canopyT` | `2.0`, `0.2` | an opening's depth and a canopy's thickness when the file gives none |
 | `rakeFloors` | `true` | a raked face carries the building's floor lines where they cut the plane |
+| `areas.loadM`, `areas.phone.loadM` / `unloadM` | `1800`; `1200` / `3000` | metres from the camera (the nearer of its eye and the map centre) to an area's box at which the area loads; a phone drops it again past `unloadM`. See *Areas* below |
+| `areas.eager` | `?areas=eager` | load every area at start, as before areas existed (for an A/B) |
 
 Everything that is a measurement is in the building's file, not here.
+
+## Areas: authored buildings that load when you go there
+
+Everything in `index.json`'s `buildings` and `collections` is the **core**: it
+loads at start and the veil waits for it. A file listed under `areas` instead
+belongs to an **area** that loads on demand:
+
+```json
+"areas": { "riverside": { "bbox": [west, south, east, north], "collections": ["data/apartments/....json"] } }
+```
+
+The box must enclose every footprint in the area's files. An area is fetched
+and built, as its own group in the slopes layer, when the camera comes within
+`APARTMENTS.areas.loadM` of that box; its buildings then join
+`slopesApartments.data`, so the filters retire the boxes they replace only once
+their mesh is in. Before that the map draws there what it drew before the
+area was authored (at Riverside, mostly empty lots: the outer ring culls small
+footprints that far out). A phone drops the area again past
+`areas.phone.unloadM` (boxes back first, then the mesh goes) and forgets its
+parsed files; a desktop keeps it. A panel that is about to fly somewhere can
+call `slopesApartments.areas.ensureAt([lng, lat])` to start the build before
+the camera arrives; `slopesApartments.areas.list` says what is loaded.
+
+Put a new neighbourhood in an area when it is far from campus, where the
+opening camera never looks. Riverside (236 buildings, 7.6 MB of JSON, ~620k
+triangles at balanced detail) is the first. `scripts/verify/apartment-areas.mjs`
+is the gate.
 
 ## Why quads and not textures
 

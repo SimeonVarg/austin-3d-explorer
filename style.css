@@ -180,7 +180,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 /* ── ?clip=1: cinematic capture — scene only. Attribution stays (license). */
 .clip #hud,.clip #controls-hint,.clip #date-panel,.clip #tod-panel,
 .clip #debug-panel,.clip #diff-banner,.clip #gfx-button,.clip #gfx-panel,.clip #gfx-toast,
-.clip #fb-button,.clip #fb-panel{display:none!important}
+.clip #fb-button,.clip #fb-panel,.clip #mode-launcher{display:none!important}
 
 /* ── ?timelapse=1 — chrome-free like clip, EXCEPT the time column, which is
    the point of the shot: the knob has to be seen travelling from sunset to
@@ -307,6 +307,12 @@ html.timelapse #tod-slider{pointer-events:none}
 /* controls.js adds .flying after 200ms of genuine camera input and removes it
    again after 4s idle, so the hint always comes back. */
 body.flying #controls-hint{opacity:0}
+/* The hint sits centred on the bottom row and the map credit sits at the
+   right of it, so once the screen is narrower than about hint + 2 x credit
+   (the desktop hint is ~560px, the credit ~310px with its margin) the two
+   overlap. Below that width the hint moves up one credit row (the same 42px
+   the "Switch modes" pill uses). Phones have their own rule further down. */
+@media(min-width:521px) and (max-width:1200px){#controls-hint{bottom:42px}}
 body.flying #hud{opacity:.35}
 
 /* The side panels used to be `pointer-events:none` for the whole of `.flying`,
@@ -791,6 +797,68 @@ html.has-touch #joystick-zone{display:block}
   #tod-sun svg,#tod-moon svg{width:12px;height:12px}
   #tod-play{width:var(--touch-min);height:var(--touch-min);font-size:12px}
   #date-select{max-width:112px;font-size:12px}
+}
+
+/* ── PHONE SWEEP (2026-09-29): three touch-layout defects ────────────────
+   Found by walking a first visit at 390x844, 360x780 and 844x390 with touch.
+   Each rule sits behind html.has-touch (set by js/controls.js from
+   navigator.maxTouchPoints) AND a phone-sized media query (max-width 640 px
+   or max-height 520 px), so a mouse desktop and a touch laptop or tablet at
+   a normal window size are both unchanged. */
+
+/* 1. "Switch modes" (#mode-launcher, z-index 59) floated ON TOP of the
+   settings and recommendations sheets and covered their bottom-right button
+   (Reset, Copy). The sheet is what the visitor opened, so the pill steps
+   aside while one is open, the same way the sheets already clear the stick. */
+@media(max-width:640px),(max-height:520px){
+  html.has-touch body.gfx-open #mode-launcher,
+  html.has-touch body.fb-open #mode-launcher{visibility:hidden}
+}
+
+/* 2. Landscape phone: BOOST sat on the time-of-day pill and hid half of its
+   play button, and the portrait touch sizes never applied (the play button
+   was 30 px, the slider 18 px thick, the top-right buttons 34 px), because
+   844 px is wider than the 640 px portrait block above. Here the controls
+   take --touch-min, and BOOST moves in from the right edge far enough to
+   clear the pill. --tod-clear is the pill's inset + its width + air. */
+@media(max-height:520px){
+  html.has-touch{
+    --tod-pill-w:calc(var(--touch-min) + 2 * 7px + 2px); /* slider + padding + border */
+    --tod-clear:calc(14px + var(--tod-pill-w) + var(--drive-air));
+    --boost-right:var(--tod-clear);
+  }
+  html.has-touch #tod-panel{gap:7px;padding:10px 7px}
+  html.has-touch #tod-slider-wrap{width:var(--touch-min)}
+  html.has-touch #tod-slider{height:var(--touch-min)}
+  html.has-touch #tod-sun svg,html.has-touch #tod-moon svg{width:12px;height:12px}
+  html.has-touch #tod-play{width:var(--touch-min);height:var(--touch-min);font-size:12px}
+  html.has-touch #gfx-button,html.has-touch #fb-button{width:var(--touch-min);height:var(--touch-min)}
+  html.has-touch #fb-button{right:calc(16px + var(--touch-min) + 8px)}
+}
+/* the panels hang under the (now taller) buttons with the same 8 px of air;
+   below 641 px wide they are bottom sheets instead (block above) */
+@media(max-height:520px) and (min-width:641px){
+  html.has-touch #gfx-panel,html.has-touch #fb-panel{top:calc(16px + var(--touch-min) + 8px);
+    max-height:calc(100vh - 140px)}   /* bottom edge unchanged: 60 + (100vh - 132) */
+}
+
+/* 3. The close crosses on the settings and recommendations panels were
+   15x13 px targets. The button grows to --touch-min square. The first try
+   borrowed the header padding with negative margins, but the header is only
+   36 px tall: the panel's overflow clipped the top of the box and the panel
+   body (the preset row) painted over the bottom, so a tap there missed.
+   Hanging the box further into the body would steal taps from the right
+   preset button. So the header drops its vertical padding and is exactly
+   one tap target tall (45 px with its border, was 36): every pixel of the
+   44x44 box is inside the header and takes the tap. The glyph keeps its
+   15 px inset from the right edge. Phone sizes only, like 1 and 2. */
+@media(max-width:640px),(max-height:520px){
+  html.has-touch #gfx-head,html.has-touch #fb-head{padding-top:0;padding-bottom:0}
+  html.has-touch #gfx-close,html.has-touch #fb-close{
+    width:var(--touch-min);height:var(--touch-min);flex:none;
+    display:flex;align-items:center;justify-content:flex-end;
+    margin:0 -13px 0 0;                 /* flush with the panel's right edge */
+    padding:0 15px 0 0}
 }
 
 /* Attribution: present (license) but quiet — the old orange links were the
@@ -2140,3 +2208,46 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
      four-character distance at 366 px of bar. */
   #wf-root{--wf-big:25px;--wf-arrow:40px;--wf-then:14px;--wf-key-gap:12px}
 }
+
+/* Loading postcard and launcher: taste values are scoped tokens. */
+:root{--load-bg:#101b23;--load-panel:#1b2931;--load-ink:#f6ecdc;--load-muted:#b5bfc0;--load-accent:#f6b85e;--load-border:#3c4a4e;--load-radius:18px;--load-width:1100px}
+#veil.loading-v2{background:radial-gradient(ellipse at 25% 70%,#314148 0,transparent 60%),var(--load-bg);pointer-events:auto;color:var(--load-ink);overflow:auto}
+#veil.loading-v2.lift{pointer-events:none}
+#load-city{width:min(var(--load-width),92%);display:grid;grid-template-columns:1.3fr 1fr;gap:50px;align-items:center;padding:36px 0}
+.load-eyebrow{font-size:11px;letter-spacing:.23em;color:var(--load-accent);margin-bottom:24px}
+#load-city h1{font-size:clamp(32px,3.6vw,48px);line-height:1.08;max-width:530px;font-weight:600;letter-spacing:-.035em}
+.load-subtitle{font-size:16px;line-height:1.6;color:var(--load-muted);max-width:380px;margin-top:20px}
+.load-caption{font-size:9px;letter-spacing:.12em;color:var(--load-muted)}
+.load-card{padding:28px;border:1px solid var(--load-border);border-radius:var(--load-radius);background:var(--load-panel)}
+.load-heading{display:flex;justify-content:space-between;gap:16px;align-items:center}.load-heading h2{font-size:17px;font-weight:600}#load-percent{color:var(--load-accent);font-variant-numeric:tabular-nums}
+.load-rail{height:5px;background:var(--load-border);border-radius:5px;overflow:hidden;margin:18px 0 12px}.load-rail i{display:block;height:100%;background:var(--load-accent);transform:scaleX(0);transform-origin:left;transition:transform .2s}
+#load-estimate{font-size:12px;color:var(--load-muted);margin-bottom:24px}
+#load-estimate .load-run{display:inline-block}
+#load-estimate .load-odo{display:none}
+#load-estimate.odo .load-odo{display:inline-flex;font-variant-numeric:tabular-nums}
+#load-estimate.odo .load-num{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#load-estimate .load-odo i{display:block;width:1ch;height:1lh;overflow:hidden;font-style:normal}
+#load-estimate .load-odo i::before{display:block;white-space:pre;content:"0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"}
+#load-estimate .load-odo i:first-child::before{content:"\00a0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"}
+#load-stages{display:grid;gap:15px;font-size:12px}#load-stages>div{display:flex;justify-content:space-between;gap:12px}#load-stages>div span:last-child{color:var(--load-muted);text-align:right}
+.load-choice{border-top:1px solid var(--load-border);margin-top:25px;padding-top:22px}.load-choice h3{font-size:16px}.load-choice p{font-size:13px;color:var(--load-muted);line-height:1.5;margin:10px 0 18px}
+#load-modes,.mode-go{border:0;border-radius:9px;background:var(--load-accent);color:#202225;padding:14px 16px;font-weight:650;font-size:14px;cursor:pointer;width:100%}.load-choice small{display:block;font-size:11px;color:var(--load-muted);margin-top:12px;text-align:center}
+#load-city footer{grid-column:1/-1;font-size:11px;color:var(--load-muted);letter-spacing:.06em}
+/* "Switch modes" never covers the map credit (a licence requirement) or the
+   touch controls. On a desktop it sits one credit row up: the credit's 10px
+   margin + its 24px bar + 8px of air. Wherever the stick and BOOST show, it
+   clears them the way every bottom sheet does (--drive-clear). */
+:root{--launcher-bottom:42px}
+@media(max-width:1024px){:root{--launcher-bottom:var(--drive-clear)}}
+html.has-touch{--launcher-bottom:var(--drive-clear)}
+/* A phone on its side has no room above BOOST (the time-of-day slider fills
+   that edge), so the pill goes small and sits just over the credit, under
+   BOOST: the credit row is 34px, plus 6px of air. */
+@media(max-height:520px){:root,html.has-touch{--launcher-bottom:40px}}
+#mode-launcher{position:fixed;right:16px;bottom:var(--launcher-bottom);z-index:59;background:var(--load-panel);color:var(--load-ink);border:1px solid var(--load-border);border-radius:24px;padding:12px 18px;cursor:pointer;box-shadow:0 4px 20px #0005}#mode-launcher[hidden]{display:none}
+@media(max-height:520px){#mode-launcher{right:10px;padding:10px 14px;font-size:12px}}
+#mode-dialog{margin:auto;width:min(710px,94vw);max-height:90dvh;overflow:auto;border:1px solid var(--load-border);border-radius:var(--load-radius);background:var(--load-bg);color:var(--load-ink);padding:26px;box-shadow:0 20px 70px #0008}#mode-dialog::backdrop{background:#050d14c9}.mode-header{display:flex;align-items:center;justify-content:space-between;gap:15px}.mode-header h2{font-size:24px}.mode-header button{font-size:27px;color:var(--load-ink);border:0;background:none;width:44px;height:44px;cursor:pointer}.mode-intro{font-size:13px;color:var(--load-muted);line-height:1.5;margin:10px 0 20px}.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mode-option{display:flex;align-items:start;gap:10px;padding:14px;border:1px solid var(--load-border);border-radius:10px;cursor:pointer}.mode-option:has(input:checked){border-color:var(--load-accent);background:var(--load-panel)}.mode-option input{margin-top:3px;accent-color:var(--load-accent)}.mode-option strong{display:block;font-size:14px}.mode-option small{display:block;color:var(--load-muted);font-size:12px;line-height:1.5;margin-top:6px}.mode-settings{display:flex;gap:16px;margin:20px 0}.mode-settings label{flex:1;font-size:12px;color:var(--load-muted)}.mode-settings select{display:block;width:100%;background:var(--load-panel);color:var(--load-ink);border:1px solid var(--load-border);border-radius:6px;padding:10px 6px;margin-top:7px}#mode-dialog :focus-visible,#load-city :focus-visible,#mode-launcher:focus-visible{outline:2px solid var(--load-accent);outline-offset:4px}
+.load-route{animation:load-route-pulse 2.5s ease-in-out infinite}@keyframes load-route-pulse{50%{opacity:.35}}
+@media(max-width:650px){#load-city{display:flex;flex-direction:column;gap:20px;padding:28px 0;width:90%;margin:auto}.load-eyebrow{margin-bottom:14px}#load-city h1{font-size:32px;max-width:340px}.load-subtitle{font-size:13px;margin-top:12px}.load-story .mvh-stack{max-width:320px;margin-top:0;margin-left:auto;margin-right:auto;--mvh-w:min(100%,320px)}.load-caption{font-size:8px;text-align:center}.load-card{width:100%;padding:20px}#load-stages{gap:10px;font-size:11px}#load-estimate{margin-bottom:18px}.load-choice{margin-top:18px;padding-top:16px}.load-choice p{margin:7px 0 12px}#load-city footer{font-size:10px}.mode-grid{grid-template-columns:1fr}#mode-dialog{padding:18px}.mode-settings{gap:8px}#mode-launcher{right:10px;padding:10px 14px;font-size:12px}}
+@media(prefers-reduced-motion:reduce){.load-route{animation:none}.load-rail i{transition:none}}
+@media(max-width:650px){.mode-settings select{font-size:16px}}

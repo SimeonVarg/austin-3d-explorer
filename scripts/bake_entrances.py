@@ -74,6 +74,7 @@ authored portals). Read all three before changing a number here.
 from __future__ import print_function
 
 import json
+import hashlib
 import math
 import os
 import re
@@ -101,6 +102,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # `scripts/snapshot_parity.py` compares it against the manifest.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bake_facades  # noqa: E402
+from building_exclusions import is_excluded, RETIRED_ENTRANCE_IDS
 
 # ══════════════════════════════════════════════════════════════════════
 #  ERA_BASELINE=1 — the before-number, produced by the after-instrument
@@ -1653,8 +1655,6 @@ SHELTER_OBS = {
                 "cantilevered upper block."),
     "WWH": dict(k="recess", src="[M] WWH: a recessed dark ground floor under "
                 "the brick mass."),
-    "COM": dict(k="recess", src="[M] COM: a recessed portal cut into the "
-                "limestone block."),
     "NUR": dict(k="recess", src="[M] Nursing: the entrance is behind the "
                 "brise-soleil, set back from the wall line."),
     "DFA": dict(k="recess", src="[M] DFA: the entrance is under the "
@@ -2183,7 +2183,6 @@ YEAR_UTDIRECT_URL = ("https://utdirect.utexas.edu/apps/campus/buildings/"
                      "information/nlogon/maps/UTM/%s/")
 YEAR_UTDIRECT_DATE = "2026-08-27"
 YEAR_UTDIRECT = {
-    "COM": 1961,    # COMPUTATION CENTER          — MOVES 5 doors E5 -> C
     "UPB": 1960,    # UNIVERSITY POLICE BUILDING  — MOVES 3 doors E5 -> C
     "ARC": 1977,    # ANIMAL RESOURCES CENTER     — MOVES 2 doors E5 -> C
     "NEZ": 2008,    # NORTH END ZONE BUILDING     — MOVES 6 doors, with REF_SPLIT
@@ -2810,7 +2809,6 @@ _BUILDING_ROWS = [
     (-97.740628, 30.285435, 'WMB', 'West Mall Office Building', 'office', None, None),
     (-97.742576, 30.285511, None, 'University Presbyterian Church', 'church', 'place_of_worship', None),
     (-97.746170, 30.285568, None, 'The Quarters Grayson House', 'apartments', None, None),
-    (-97.738531, 30.285637, 'COM', 'Computation Center', 'university', None, None),
     (-97.742082, 30.285656, None, 'Chipotle', 'yes', 'fast_food', None),
     (-97.743149, 30.285666, None, 'Moontower', 'apartments', None, None),
     (-97.742110, 30.285757, None, 'Sweetgreen', 'yes', 'fast_food', None),
@@ -3105,6 +3103,8 @@ def load_buildings():
     out = []
     for f in j["features"]:
         g, p = f["geometry"], f["properties"]
+        if is_excluded(p):
+            continue
         if g["type"] == "Polygon":
             rings = g["coordinates"]
         elif g["type"] == "MultiPolygon":
@@ -6547,7 +6547,212 @@ def finish_arcades():
     return made
 
 
+# The campus Gearing courtyard model owns the rear doorway and its approach.
+# Keep this retirement separate from placement: removing a candidate earlier
+# would renumber every later eid. The legacy ramp slabs still belong here until
+# the continuous ground/ramp route is replaced by its owning bake.
+GEARING_COURT_RETIREMENT = {
+    "bid": "5f2441ff-0c49-4dea-990e-d9f2b97e4241",
+    "ref": "GEA", "role": "main", "src": "ut",
+    "door_center": (-97.73921745, 30.28771412),
+    "center_tolerance_m": 1.0,
+    "frozen_eid": 239,
+    "retire_kinds": frozenset(("door", "glass", "surround", "reveal",
+                                "transom", "step", "rail")),
+    "expected_kinds": {"door": 6, "glass": 6, "surround": 4,
+                       "reveal": 3, "transom": 1, "step": 18,
+                       "rail": 6, "ramp": 4},
+}
+GEARING_COURT_MARKER = "gearingCourtEntryRetirement"
+
+
+def gearing_court_marker(feats):
+    """Content-address the four retained slabs, including all their metadata."""
+    rule = GEARING_COURT_RETIREMENT
+    ramps = [f for f in feats if f["properties"]["eid"] == rule["frozen_eid"]]
+    assert len(ramps) == rule["expected_kinds"]["ramp"], (
+        "Gearing court retirement: expected exactly four remaining ramps")
+    assert all(f["properties"]["k"] == "ramp" and all(
+        f["properties"].get(k) == rule[k] for k in ("bid", "ref", "role", "src"))
+        for f in ramps), "Gearing court retirement: invalid retained ramp ownership"
+    return {"version": 1, "owner": "campus_gearing.py",
+            "eid": rule["frozen_eid"], "bid": rule["bid"],
+            "retiredPieces": sum(rule["expected_kinds"][k]
+                                 for k in rule["retire_kinds"]),
+            "retainedRampSha256": [hashlib.sha256(json.dumps(
+                f, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+                for f in ramps]}
+
+
+def retire_gearing_court_entry(feats):
+    """Retire one spatially identified doorway, preserving every ramp record.
+
+    The UUID/ref/role/source and door-bank centre identify the court entry;
+    the frozen eid/composition assertions expose snapshot or generator drift
+    instead of silently removing a different entry after a future rebake.
+    """
+    rule = GEARING_COURT_RETIREMENT
+    groups = defaultdict(list)
+    for f in feats:
+        p = f["properties"]
+        if all(p.get(k) == rule[k] for k in ("bid", "ref", "role", "src")):
+            groups[p["eid"]].append(f)
+    cx, cy = to_m(*rule["door_center"])
+    matches = []
+    for eid, group in groups.items():
+        points = [pt for f in group if f["properties"]["k"] == "door"
+                  for pt in f["geometry"]["coordinates"][0][:-1]]
+        if not points:
+            continue
+        x, y = to_m(*(sum(p[i] for p in points) / len(points) for i in (0, 1)))
+        if math.hypot(x - cx, y - cy) <= rule["center_tolerance_m"]:
+            matches.append(eid)
+    assert matches == [rule["frozen_eid"]], (
+        "Gearing court retirement: expected one frozen spatial entry, got %s"
+        % matches)
+    eid = matches[0]
+    group = [f for f in feats if f["properties"]["eid"] == eid]
+    assert group == groups[eid], "Gearing court retirement: mixed entry ownership"
+    kinds = Counter(f["properties"]["k"] for f in group)
+    assert kinds == rule["expected_kinds"], (
+        "Gearing court retirement: frozen piece composition changed: %s" % kinds)
+    arch = ARCHES.get(eid)
+    if arch is not None:
+        assert arch.get("bid") == rule["bid"] and arch.get("ref") == rule["ref"], (
+            "Gearing court retirement: mixed arch ownership")
+        del ARCHES[eid]
+    retired = rule["retire_kinds"]
+    feats[:] = [f for f in feats if not (
+        f["properties"]["eid"] == eid and f["properties"]["k"] in retired)]
+    LOCAL[:] = [r for r in LOCAL if not (r[0] == eid and r[1] in retired)]
+    print("Gearing court ownership: retired %d doorway/stair/rail pieces; "
+          "kept %d ramp slabs; retired %d arch records"
+          % (sum(kinds[k] for k in retired), kinds["ramp"], int(arch is not None)))
+    return gearing_court_marker(feats)
+
+
+def retire_gearing_court_only():
+    """Migrate the existing baked file without re-seating unrelated doors.
+
+    A normal full bake still applies the same retirement. This focused mode
+    preserves the existing snapshot, feature order and all unrelated metadata;
+    it does not query sources or rerun placement. The marker makes a second run
+    a checked no-op, not permission to accept an unmarked partial retirement.
+    """
+    with open(OUT, encoding="utf-8") as fh:
+        out = json.load(fh)
+    marker = out.get(GEARING_COURT_MARKER)
+    if marker is not None:
+        assert marker == gearing_court_marker(out["features"]), (
+            "Gearing court retirement: marker or retained ramp records changed")
+        assert str(GEARING_COURT_RETIREMENT["frozen_eid"]) not in out.get("arches", {}), (
+            "Gearing court retirement: retired arch metadata remains")
+        print("Gearing court ownership: already retired; four ramp records verified")
+        return
+    ARCHES.clear()
+    ARCHES.update((int(k), v) for k, v in out.get("arches", {}).items())
+    out[GEARING_COURT_MARKER] = retire_gearing_court_entry(out["features"])
+    out["arches"] = ARCHES
+    with open(OUT, "w", encoding="utf-8") as fh:
+        json.dump(out, fh, separators=(",", ":"))
+    print("  wrote %s (existing snapshot %s; placement not rerun)"
+          % (os.path.relpath(OUT, ROOT), out.get("snapshot")))
+
+
+BATTLE_EAST_MARKER = "battleEastEntryRetirement"
+BATTLE_EAST_ENTRIES = {
+    94: ("main", "authored", (-97.7401655125, 30.28541115)),
+    95: ("secondary", "path", (-97.74014895, 30.2855767)),
+}
+BATTLE_EAST_BID = "283f5992-bc72-411a-80ba-25d0314544d0"
+
+
+def retire_battle_east_entries(feats):
+    """The authored east facade owns its photographed rectangular central door.
+
+    Retire both old arched assemblies after generation, retaining eid ordering.
+    The second was inferred from a path and occupies a photographed window bay.
+    Exact identity, position and composition checks fail on source drift.
+    """
+    for eid, (role, src, center) in BATTLE_EAST_ENTRIES.items():
+        group = [f for f in feats if f['properties']['eid'] == eid]
+        assert group and all(f['properties'].get('bid') == BATTLE_EAST_BID
+            and f['properties'].get('ref') == 'BTL'
+            and f['properties'].get('role') == role
+            and f['properties'].get('src') == src for f in group), 'Battle entry identity drift'
+        expected = {'reveal': 3, 'door': 2, 'glass': 2, 'transom': 5,
+                    'surround': 21, 'step': 6, 'rail': 6}
+        if eid == 94:
+            expected['sign'] = 4
+        assert Counter(f['properties']['k'] for f in group) == expected, 'Battle entry composition drift'
+        pts = [p for f in group if f['properties']['k'] == 'door'
+               for p in f['geometry']['coordinates'][0][:-1]]
+        x, y = to_m(*(sum(p[i] for p in pts)/len(pts) for i in (0, 1)))
+        cx, cy = to_m(*center)
+        assert math.hypot(x-cx, y-cy) < .1, 'Battle entry position drift'
+        arch = ARCHES.get(eid)
+        assert arch and arch.get('bid') == BATTLE_EAST_BID and arch.get('ref') == 'BTL', 'Battle arch identity drift'
+        del ARCHES[eid]
+    feats[:] = [f for f in feats if f['properties']['eid'] not in BATTLE_EAST_ENTRIES]
+    LOCAL[:] = [r for r in LOCAL if r[0] not in BATTLE_EAST_ENTRIES]
+    return {'version': 1, 'owner': 'campus_battle.py', 'bid': BATTLE_EAST_BID,
+            'eids': list(BATTLE_EAST_ENTRIES), 'retiredPieces': 94}
+
+
+def retire_battle_east_only():
+    """Migrate only the two frozen east entries; never rerun global placement."""
+    with open(OUT, encoding='utf-8') as fh:
+        out = json.load(fh)
+    expected = {'version': 1, 'owner': 'campus_battle.py', 'bid': BATTLE_EAST_BID,
+                'eids': list(BATTLE_EAST_ENTRIES), 'retiredPieces': 94}
+    if BATTLE_EAST_MARKER in out:
+        assert out[BATTLE_EAST_MARKER] == expected, 'Battle retirement marker drift'
+        assert not any(f['properties']['eid'] in BATTLE_EAST_ENTRIES for f in out['features'])
+        assert not any(str(eid) in out.get('arches', {}) for eid in BATTLE_EAST_ENTRIES)
+        print('Battle east entries already retired; checked no-op')
+        return
+    ARCHES.clear()
+    ARCHES.update((int(k), v) for k, v in out.get('arches', {}).items())
+    out[BATTLE_EAST_MARKER] = retire_battle_east_entries(out['features'])
+    out['arches'] = ARCHES
+    with open(OUT, 'w', encoding='utf-8') as fh:
+        json.dump(out, fh, separators=(',', ':'))
+    print('Battle east: retired 94 legacy pieces and two arch records; other entries unchanged')
+
+
+def retire_excluded_only():
+    with open(OUT, encoding="utf-8") as source:
+        out = json.load(source)
+    before = len(out["features"])
+    out["features"] = [feature for feature in out["features"] if not is_excluded(feature["properties"])]
+    out["arches"] = {key: value for key, value in out.get("arches", {}).items() if not is_excluded(value)}
+    with open(OUT, "w", encoding="utf-8") as target:
+        json.dump(out, target, separators=(",", ":"))
+    print("Excluded building entries: retired %d pieces; other entries unchanged" % (before - len(out["features"])))
+
+
 def main():
+    if "--retire-excluded-only" in sys.argv:
+        assert len(sys.argv) == 2, "Targeted retirement cannot be combined with other flags"
+        retire_excluded_only()
+        return
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print("Usage: python scripts/bake_entrances.py [--retire-gearing-court-only]")
+        print("  default: full cached-source bake (SNAP_DATE optionally pins snapshot)")
+        print("  --retire-gearing-court-only: migrate existing output, preserving all")
+        print("    other entries and four rear ramp slabs; checked idempotent reruns")
+        print("  --refresh / --refresh-ut: refresh source observations")
+        print("  --retire-battle-east-only: migrate the two obsolete east arch assemblies")
+        print("  --retire-excluded-only: remove stale-building entries without global placement")
+        return
+    if "--retire-battle-east-only" in sys.argv:
+        assert len(sys.argv) == 2, "Targeted retirement cannot be combined with other flags"
+        retire_battle_east_only()
+        return
+    if "--retire-gearing-court-only" in sys.argv:
+        assert len(sys.argv) == 2, "Targeted retirement cannot be combined with other flags"
+        retire_gearing_court_only()
+        return
     if "--refresh" in sys.argv:
         refresh()
         return
@@ -6906,7 +7111,12 @@ def main():
     for b in sorted(scope, key=lambda b: b.bid):
         for c in sorted(b.ents, key=lambda c: (-c.score, c.x, c.y)):
             eid += 1
+            while eid in RETIRED_ENTRANCE_IDS:
+                eid += 1
             assemble(feats, b, c, eid, stats)
+
+    gearing_retirement = retire_gearing_court_entry(feats)
+    battle_retirement = retire_battle_east_entries(feats)
 
     # ── SANITY, and the numbers go in the commit message ───────────────
     print("")
@@ -7326,7 +7536,9 @@ def main():
            # westcampus/capitol in either order.
            "replacedBuildingIds": [],
            # The curves the chords are sampled from — see ARCHES at the top.
-           "arches": ARCHES}
+           "arches": ARCHES,
+           GEARING_COURT_MARKER: gearing_retirement,
+           BATTLE_EAST_MARKER: battle_retirement}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(out, fh, separators=(",", ":"))
     mb = os.path.getsize(OUT) / 1048576.0

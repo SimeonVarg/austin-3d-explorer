@@ -14,6 +14,9 @@ rather than being silently resolved.
                                               graph, route the frozen pair
                                               list, and exit 1 if any route
                                               broke or got materially longer
+    python scripts/bake_walk.py --retire-excluded-only
+                                              retire excluded doors in place,
+                                              keeping geometry and provenance
 
 What it does NOT do, deliberately:
   * no route ever passes through a building — there is exactly one `indoor`
@@ -43,6 +46,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # `walk_graph.json` and checked by `scripts/snapshot_parity.py`.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bake_facades  # noqa: E402
+from building_exclusions import is_excluded
 
 SNAP_SOURCE = "buildings.enriched.geojson"
 SNAP_DATE = bake_facades.snapshot_date()
@@ -75,6 +79,7 @@ SNAP_MAX_ACCEPTED = 80
 # Doors.
 DOOR_LINK_MAX_M = 30.0     # beyond this the route ends at the outline
 DOOR_ANCHORS = 3           # candidate anchors per door, so a profile can re-anchor
+DOOR_WALL_TOL_M = 2.0
 ANCHOR_SPLIT_MIN_M = 2.0   # closer than this to an existing node, reuse it
 POI_LINK_MAX_M = 40.0
 
@@ -752,6 +757,8 @@ def build_obstacles():
     bclass = {}
     b = load(SNAP_REL)
     for ft in b["features"]:
+        if is_excluded(ft["properties"]):
+            continue
         bid = ft["properties"].get("id")
         bnames[bid] = ft["properties"].get("name") or "(unnamed footprint)"
         bclass[bid] = ft["properties"].get("building_class")
@@ -1181,6 +1188,8 @@ def build_doors():
     groups = {}
     for ft in d["features"]:
         p = ft["properties"]
+        if is_excluded(p):
+            continue
         key = (p.get("bid"), p.get("eid"))
         g = groups.get(key)
         if g is None:
@@ -1205,9 +1214,30 @@ def build_doors():
     # Curated street approaches carry explicit uncertainty through role/src.
     # They use the same collision checks and anchor limit as every other door.
     for approach in load("data/apartment-approaches.json")["approaches"]:
+        if is_excluded(approach):
+            continue
         out.append({k: approach[k] for k in
                     ("lon", "lat", "ref", "nm", "role", "src", "bid")})
     out.sort(key=lambda x: (x["ref"], x["nm"], x["lon"]))
+    identities = load("data/walking-identities.json")
+    for entry in identities.get("authored_doors", []):
+        model = load(entry["model"])
+        frame = model["frame"]["obb"]
+        assembly = model[entry["assembly"]]
+        notch = assembly["doorCourseNotch"]
+        along = (notch["s0"] + notch["s1"]) / 2
+        across = assembly["parameters"]["plan"][1]
+        lon = frame["o"][0] + (frame["ax"] * across - frame["ay"] * along) / frame["mx"]
+        lat = frame["o"][1] + (frame["ay"] * across + frame["ax"] * along) / frame["my"]
+        assert model["id"] == entry["bid"] and model["name"] == entry["nm"]
+        ring = model["footprint"]["ring"]
+        px, py = xy(lon, lat)
+        wall_distance = min(seg_point(px, py, *xy(*first), *xy(*second))[0]
+                            for first, second in zip(ring, ring[1:] + ring[:1]))
+        assert wall_distance <= DOOR_WALL_TOL_M, "Authored doorway is not on its building wall"
+        out.append(dict(lon=lon, lat=lat, bid=entry["bid"], ref=entry["ref"],
+                        nm=entry["nm"], role="main", src="authored"))
+    out.sort(key=lambda door: (door["ref"], door["nm"], door["lon"]))
     return out
 
 
@@ -1490,11 +1520,51 @@ def bake(verbose=True):
 
     an = anchor_doors(G, doors, main, bgrid, road_keys=road_keys,
                       bclass=bclass, chord_keys=chord_keys)
+    identities = load("data/walking-identities.json")
+    recovery_bids = {alias["bid"] for alias in identities["code_aliases"]}
+    recovery_bids.update(entry["bid"] for entry in identities.get("authored_doors", []))
+    existing_housing = {feature["properties"].get("name")
+                        for feature in load("data/westcampus.geojson")["features"]}
+    for alias in load("data/housing-route-aliases.json")["aliases"]:
+        matched = [door for door in doors if door["bid"] in alias["building_ids"]]
+        if alias["name"] not in existing_housing and matched and not any(door["ref"] for door in matched):
+            recovery_bids.update(alias["building_ids"])
+    for door in doors:
+        if door["bid"] not in recovery_bids:
+            continue
+        rings = polys.get(door["bid"]) or []
+        px, py = xy(door["lon"], door["lat"])
+        wall_distance = min((seg_point(px, py, *first, *second)[0]
+                             for ring in rings for first, second in zip(ring, ring[1:] + ring[:1])),
+                            default=float("inf"))
+        retained = []
+        if wall_distance <= DOOR_WALL_TOL_M:
+            for anchor, link in zip(door["anchors"], door["links"]):
+                if edge_clips_building(bgrid, polys, bclass, px, py, nx[anchor], ny[anchor]):
+                    continue
+                samples = max(2, math.ceil(link / 0.25))
+                inside = sum(any(point_in_ring(ring, px + (nx[anchor] - px) * step / samples,
+                                               py + (ny[anchor] - py) * step / samples) for ring in rings)
+                             for step in range(samples + 1)) * link / samples
+                if inside <= 0.5:
+                    retained.append((anchor, link))
+        door["anchors"] = [anchor for anchor, link in retained]
+        door["links"] = [link for anchor, link in retained]
     through, clip_events = find_through_edges(edges, nx, ny, bgrid, polys, bclass)
 
     # --- code index: refs (split on ';'), nm aliases, then ref joins -------
     reg = load("data/ut_buildings.json")["buildings"]
     reg_codes = [b["ref"] for b in reg]
+    identities = load("data/walking-identities.json")
+    register_by_code = {building["ref"]: building for building in reg}
+    for alias in identities["code_aliases"]:
+        assert register_by_code[alias["code"]]["name"] == alias["register_name"]
+        assert alias["sources"] and alias["basis"]
+        matched = [door for door in doors if door["bid"] == alias["bid"]]
+        assert matched and all(door["nm"] == alias["door_name"] for door in matched)
+        for door in matched:
+            assert not door["ref"] or door["ref"] == alias["code"]
+            door["ref"] = alias["code"]
     code_doors = defaultdict(list)
     alias_hits = defaultdict(int)
     alias_bids = defaultdict(set)
@@ -1530,6 +1600,8 @@ def bake(verbose=True):
     # --- why is each missing code missing?  Printed with the health block --
     fp_names = defaultdict(list)
     for ft in load(SNAP_REL)["features"]:
+        if is_excluded(ft["properties"]):
+            continue
         nm = (ft["properties"].get("name") or "").strip()
         if nm:
             fp_names[nm.lower()].append(ft["properties"].get("id"))
@@ -1653,6 +1725,17 @@ def bake(verbose=True):
     for i, dr in enumerate(doors):
         if dr["nm"] in wc_names:
             wc_doors[dr["nm"]].append(i)
+    seen_housing = set()
+    for alias in load("data/housing-route-aliases.json")["aliases"]:
+        assert alias["name"] not in seen_housing, "Duplicate exact housing name"
+        seen_housing.add(alias["name"])
+        assert alias["sources"] and alias["basis"] and alias["building_ids"]
+        if not alias.get("catalog", True):
+            continue
+        indices = [index for index, door in enumerate(doors)
+                   if door["bid"] in alias["building_ids"] and door.get("anchors")]
+        if indices:
+            wc_doors[alias["name"]] = indices
 
     # --- FINDABLE MUST MEAN ROUTABLE (gates S and T) -----------------------
     #
@@ -1820,6 +1903,7 @@ def bake(verbose=True):
         "code": {k: v for k, v in sorted(code_doors.items())},
         "name": name_ix,
         "wc": {k: v for k, v in sorted(wc_doors.items())},
+        "availability": identities["unavailable_codes"],
         "poi": [[int(round(p["lon"] / COORD_Q)), int(round(p["lat"] / COORD_Q)),
                  p["node"], p["cat"], p["name"], p["hours"]] for p in pois],
         "tune": {
@@ -2067,11 +2151,11 @@ def best_route(c, adj, a_key, b_key, prefer_main=True):
 def audit(c, adj, r):
     """Does this route cross a building, leave campus, or double back?
 
-    The layer test is not a nicety.  UT's East Mall is a pedestrian DECK built
-    over the Computation Center, drawn in OSM as `highway=pedestrian,
-    area=yes, layer=1`, and a naive footprint test calls every route across it
-    a route through a building.  An edge tagged `layer != 0` that overlaps a
-    footprint is a bridge or a deck, and is counted separately.
+    The layer test is not a nicety.  UT's East Mall terrace is drawn in OSM
+    as `highway=pedestrian, area=yes, layer=1`. Its outdoor stairs are not
+    a building; stale footprints are filtered before this audit. An edge
+    tagged `layer != 0` that overlaps a retained footprint is a bridge or
+    a deck, and is counted separately.
     """
     G, doors, edges = c["G"], c["doors"], c["edges"]
     nx, ny = G["nx"], G["ny"]
@@ -2289,11 +2373,60 @@ def do_regress():
     return 1 if bad else 0
 
 
+def retire_excluded_only():
+    out = load("data/walk_graph.json")
+    snapshot = "data/snapshots/%s/%s" % (out["snapshot"], out["snapshot_source"])
+    footprints = load(snapshot)["features"]
+    excluded_names = {feature["properties"].get("name") for feature in footprints
+                      if is_excluded(feature["properties"])} - {None, ""}
+    assert not any(feature["properties"].get("name") in excluded_names
+                   and not is_excluded(feature["properties"])
+                   for feature in footprints), "Excluded building name is ambiguous"
+    removed = {index for index, door in enumerate(out["d"])
+               if door[7] in excluded_names}
+    if not removed:
+        P("Excluded walk doors already retired; checked no-op")
+        return
+    doors = out["d"]
+    index_map = {}
+    for index in range(len(doors)):
+        if index not in removed:
+            index_map[index] = len(index_map)
+    removed_codes = set()
+    for section in ("code", "wc"):
+        entries = {}
+        for key, indices in out[section].items():
+            kept = [index_map[index] for index in indices if index not in removed]
+            if kept:
+                entries[key] = kept
+            elif section == "code":
+                removed_codes.add(key)
+        out[section] = entries
+    out["name"] = {name: code for name, code in out["name"].items()
+                   if code not in removed_codes}
+    out["d"] = [door for index, door in enumerate(doors) if index not in removed]
+    out["meta"]["doors"] -= len(removed)
+    out["meta"]["doors_linked"] -= sum(bool(doors[index][2]) for index in removed)
+    register_codes = {building["ref"] for building in
+                      load("data/ut_buildings.json")["buildings"]}
+    out["meta"]["routable_codes"] -= len(removed_codes & register_codes)
+    with open(os.path.join(ROOT, "data/walk_graph.json"), "w", encoding="utf-8") as target:
+        json.dump(out, target, separators=(",", ":"))
+    P("Excluded walk doors: retired %d; node/edge geometry and provenance unchanged"
+      % len(removed))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--routes", action="store_true")
     ap.add_argument("--regress", action="store_true")
+    ap.add_argument("--retire-excluded-only", action="store_true")
     a = ap.parse_args()
+    if a.retire_excluded_only:
+        if a.routes or a.regress:
+            ap.error("Targeted retirement cannot be combined with other flags")
+        retire_excluded_only()
+        return
     if a.regress:
         sys.exit(do_regress())
     c = bake()

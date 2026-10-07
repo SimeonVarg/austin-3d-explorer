@@ -16,7 +16,7 @@ PRIMARY = "https://overpass-api.de/api/interpreter"
 FALLBACK = "https://overpass.kumi.systems/api/interpreter"
 BBOX = "30.276,-97.752,30.296,-97.726"  # south,west,north,east
 
-DATA_DIR = r"C:/Users/simip/Projects/austin-3d-explorer/data"
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 TREES_PATH = os.path.join(DATA_DIR, "trees.geojson")
 LANDSCAPE_PATH = os.path.join(DATA_DIR, "landscape.geojson")
 

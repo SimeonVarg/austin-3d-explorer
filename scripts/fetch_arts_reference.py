@@ -25,7 +25,7 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "research", "arts-precinct")
-UA = {"User-Agent": "austin-3d-explorer research (simeonvarghese@utexas.edu)"}
+UA = {"User-Agent": "austin-3d-explorer research (https://github.com/SimeonVarg/austin-3d-explorer)"}
 COMMONS = "https://commons.wikimedia.org/w/api.php"
 ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 

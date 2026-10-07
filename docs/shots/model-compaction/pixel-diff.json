@@ -1,0 +1,36 @@
+{
+  "pose": {
+    "center": [
+      -97.74526,
+      30.28763
+    ],
+    "zoom": 17.6,
+    "pitch": 62,
+    "bearing": 300,
+    "p": 0.3
+  },
+  "noise": {
+    "pixels": 339,
+    "total": 810000,
+    "pct": 0.0419,
+    "maxChannelDiff": 22,
+    "bbox": [
+      4,
+      90,
+      888,
+      896
+    ]
+  },
+  "branchVsMain": {
+    "pixels": 244,
+    "total": 810000,
+    "pct": 0.0301,
+    "maxChannelDiff": 49,
+    "bbox": [
+      4,
+      79,
+      899,
+      896
+    ]
+  }
+}

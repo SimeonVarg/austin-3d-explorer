@@ -239,7 +239,7 @@ if (TESTS.includes('shadow') && hasSlopes) {
   for (const pose of ['flying', 'low', 'street']) {
     const o = await place(pose, 0.36);
     const set = (patch) => page.evaluate(patch => { const s = window.SLOPES.sunlight; for (const k in patch) s[k] = patch[k]; window.__map.triggerRepaint(); }, patch);
-    const DEF = await page.evaluate(() => ({ shadowSnap: window.SLOPES.sunlight.shadowSnap, shadowRadii: window.SLOPES.sunlight.shadowRadii.slice() }));
+    const DEF = await page.evaluate(() => ({ shadowSnap: window.SLOPES.sunlight.shadowSnap, shadowSnapFar: window.SLOPES.sunlight.shadowSnapFar ?? null, shadowRadii: window.SLOPES.sunlight.shadowRadii.slice() }));
     let u = await shadowUpdates();
     await page.waitForTimeout(1500);
     const A = await still(`${TAG}shadow-${pose}-A`);
@@ -250,12 +250,13 @@ if (TESTS.includes('shadow') && hasSlopes) {
     });
     const out = { pose: POSES[pose], lead_m: +o.lead.toFixed(0), ...info };
     // B: the same camera, the cascade re-centred by a different snap (what a
-    //    20 m step of travel does to every shadow in view)
-    u = await shadowUpdates(); await set({ shadowSnap: 17 }); await waitShadowUpdate(u);
+    //    20 m step of travel does to every shadow in view). Both maps: since
+    //    2026-09-28 the far one has its own grid (shadowSnapFar).
+    u = await shadowUpdates(); await set({ shadowSnap: 17, shadowSnapFar: 17 }); await waitShadowUpdate(u);
     const B = await still(`${TAG}shadow-${pose}-B-resnap`);
     out.recentre = diffImages(A.img, B.img, path.join(OUT, `${TAG}shadow-${pose}-diff-recentre.png`));
     // C: near cascade widened to the far one's radius -> where the near map is
-    u = await shadowUpdates(); await set({ shadowSnap: DEF.shadowSnap, shadowRadii: [DEF.shadowRadii[1], DEF.shadowRadii[1]] }); await waitShadowUpdate(u);
+    u = await shadowUpdates(); await set({ shadowSnap: DEF.shadowSnap, shadowSnapFar: DEF.shadowSnapFar, shadowRadii: [DEF.shadowRadii[1], DEF.shadowRadii[1]] }); await waitShadowUpdate(u);
     const C = await still(`${TAG}shadow-${pose}-C-single`);
     out.nearCascadeFootprint = diffImages(A.img, C.img, path.join(OUT, `${TAG}shadow-${pose}-diff-nearcascade.png`));
     // D: far cascade widened to 4 km -> the shadows that end at 1,400 m

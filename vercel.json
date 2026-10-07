@@ -1,0 +1,13 @@
+{
+  "github": {
+    "silent": true
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Referrer-Policy", "value": "origin" }
+      ]
+    }
+  ]
+}

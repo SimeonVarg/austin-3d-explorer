@@ -19,7 +19,8 @@ page.on('pageerror', e => errs.push(e.message));
 const results = [];
 const check = (n, pass, d) => results.push({ name: n, pass, detail: String(d) });
 
-await page.goto(`${BASE}/_harness.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+// The subject here is the 2D sky canvas, so the page is pinned to it (the default is 'gl').
+await page.goto(`${BASE}/_harness.html?drift=0&intro=0&sky=canvas`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForTimeout(4500);
 await page.evaluate(() => window.cancelGraphicsAutoDetect());

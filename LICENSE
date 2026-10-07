@@ -1,0 +1,30 @@
+Flyover (Austin 3D Explorer)
+Copyright (c) 2026 Simeon Varghese. All rights reserved.
+
+This repository is public so that people can read it. It is NOT open source.
+
+You may:
+  - read the source code and the files in this repository;
+  - fork it on GitHub only as far as GitHub's own terms require.
+
+You may not, without written permission from the copyright holder:
+  - copy, modify, publish, distribute, host or sell this software or any part of it;
+  - reuse the 3D building models, building descriptions, textures or artwork;
+  - use this repository to build a competing or derived product;
+  - use this repository to train or test a machine-learning model.
+
+School work is not an exception: a class project or a research study
+must ask first.
+
+Not covered by this notice (they keep their own licences):
+  - data derived from OpenStreetMap: Open Database License (ODbL) 1.0,
+    (c) OpenStreetMap contributors;
+  - StratMap 2021 lidar products: CC0;
+  - third-party libraries in vendor/ and those loaded at run time
+    (MapLibre GL JS, three.js, PMTiles, Tesseract.js): their own licences;
+  - any other third-party data or software in this repository: the licence
+    of its source.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+
+Permission requests: simeonvarghese (at) utexas (dot) edu

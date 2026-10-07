@@ -45,7 +45,10 @@
     "yugo-austin-rio.json",
     "yugo-austin-nueces.json",
     "block-on-25th-west.json",
-    "the-otis-hotel.json"
+    "the-otis-hotel.json",
+    "burdine-hall.json",
+    "norman-hackerman-building.json",
+    "robert-b-rowling-hall.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -94,7 +97,10 @@
     "762122e3-8b0c-4bd5-9795-dcf61325b854",
     "5453ffd2-7119-4e67-ba04-603bde7f10b4",
     "3d9f61df-03ab-4b6f-8f47-8cd7463827be",
-    "12126a99-0b70-410e-a37b-cd25080f2036"
+    "12126a99-0b70-410e-a37b-cd25080f2036",
+    "8b767e28-0d6c-46aa-9d5e-af693151909b",
+    "f8a072d5-4751-4e9b-8939-49239919913a",
+    "3e41820f-7a63-49d5-950a-b1b46767617e"
   ],
   "replacedNames": [
     "The Standard",
@@ -141,7 +147,10 @@
     "The Block on 25th West",
     "The Otis Hotel",
     "The Otis Hotel, Autograph Collection",
-    "AC Hotel Austin-University"
+    "AC Hotel Austin-University",
+    "Burdine Hall",
+    "Norman Hackerman Building",
+    "Robert B. Rowling Hall"
   ],
   "collections": [
     "data/campus_buildings.json",
@@ -149,5 +158,18 @@
     "data/guadalupe.json",
     "data/south_campus.json",
     "data/speedway_buildings.json"
-  ]
+  ],
+  "_areas": "Collections that load only when the camera comes near them (js/slopes-apartments.js APARTMENTS.areas). Each area is a box [west, south, east, north] around every footprint in its files and the files themselves. Everything above this key is the core and loads at start.",
+  "areas": {
+    "riverside": {
+      "bbox": [-97.7320, 30.2350, -97.7090, 30.2426],
+      "collections": [
+        "data/apartments/village-at-east-riverside.json",
+        "data/apartments/estates-at-east-riverside.json",
+        "data/apartments/town-lake-student-apartments.json",
+        "data/apartments/the-element-austin.json",
+        "data/apartments/riverside-site.json"
+      ]
+    }
+  }
 }

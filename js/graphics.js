@@ -341,11 +341,120 @@
   // Union's thin facade details alias during rotation without coverage samples.
   // Verified on the 732x672 desktop framebuffer; retain a bounded default rather
   // than extending that timing result to large displays or the phone profile.
-  const EDGE_SMOOTHING = { maxDefaultPixels: 600000 };
+  //
+  // RAISED 2026-09-28 (claude/no-moire) from 600,000 to cover a 1080p laptop
+  // screen at 150% (1920x1020 framebuffer, 1.96 MP) and 1080p at 100%. The
+  // moire on the flyover is almost all GEOMETRY thinner than a pixel — floor
+  // lines, fins, rails, far road edges — which only coverage samples resolve;
+  // scripts/verify/moire.mjs against a 3x-supersampled truth measured 4x MSAA
+  // cutting it by 45-70% at every flyover pose together with the outline
+  // change below (spawn 0.575 -> 0.198, downtown 0.448 -> 0.225, west campus
+  // 0.702 -> 0.207). Its frame-time cost was never the samples: see
+  // AE.ASYNC. With that fixed, interleaved A/Bs (moire-fps.mjs, RTX 3050 Ti,
+  // 1920x1020, spawn orbit, vsync off) read no cost in one browser: 15 pairs,
+  // median difference -0.8 ms, MSAA slower in 4. With a fresh browser per rep
+  // on a machine another job held at 50-75% CPU, 8 pairs read +1.8 ms with
+  // two slow MSAA reps, while the card sat at ~700 MHz and 1.5 of 4 GB: the
+  // frames were CPU-bound, which points at the machine, not the samples.
+  // Screens larger than this keep the old default: that timing does not
+  // extend to 1440p+.
+  //
+  // fullDefaultGpu: the raised budget is for a graphics card only. An
+  // integrated chip shares its memory bandwidth with the CPU, and four samples
+  // a pixel is four times the colour and depth traffic; that cost has not been
+  // timed (the test laptop's Chrome is pinned to its NVIDIA card, and
+  // --force_low_power_gpu no longer reaches the AMD chip). Until it is, a
+  // renderer this does not name (integrated, software, unknown, unreadable)
+  // keeps integratedMaxPixels, the old default, exactly as before. That also
+  // keeps the SwiftShader harness's exact-pixel frames unchanged.
+  //
+  // fillOutlinesWithMSAA: MapLibre draws every `fill` layer (roads, lots,
+  // parks, building shadows, the basemap's far ground) with a gl.LINES outline
+  // one DEVICE pixel wide, its only anti-aliasing. With MSAA the fill's own
+  // edges are already smoothed, and the outline does harm: a road polygon a
+  // third of a pixel wide near the horizon is drawn a whole pixel wide at full
+  // strength, which is the dark stair-stepped web over the far city on the
+  // landing flight. Off under MSAA, that view's moire against the supersampled
+  // truth halves (intro-crest 0.518 -> 0.262, pixels in a visible band 2.05% ->
+  // 0.11%). Without MSAA the outlines stay: there they ARE the edge smoothing.
+  const EDGE_SMOOTHING = {
+    maxDefaultPixels: 2100000,
+    integratedMaxPixels: 600000,
+    // The phone profile (js/mobile.js budget.smoothEdges). A phone's GPU is
+    // tile-based: the four samples are resolved inside each tile, so the cost
+    // is memory, not speed, and the budget is the buffer size. 390x844 at
+    // DPR 3 x renderScale 0.75 is 1.67 MP; a tablet (3 MP and up) stays off.
+    phoneMaxPixels: 2100000,
+    // NVIDIA; AMD's discrete RX / Pro lines; Intel's discrete Arc A-series
+    // ("Intel Arc Graphics" with no model number is Core Ultra's integrated one).
+    fullDefaultGpu: /nvidia|geforce|quadro|\b[gr]tx\b|radeon.*\b(rx|pro)\b|\barc.*\ba\d{3}/i,
+    fillOutlinesWithMSAA: false,
+    // ?smooth=1|0: Smooth edges on or off for THIS VISIT, on any device,
+    // nothing saved. It is how to see a default (the phone's, js/mobile.js
+    // budget.smoothEdges) on a real device before it is turned on. With the
+    // flag a small strip says what the graphics context really has: a setting
+    // that was asked for is not proof of one that was given.
+    urlReadout: { top: 'calc(env(safe-area-inset-top, 0px) + 6px)', z: 70, bg: 'rgba(12,20,34,.84)',
+                  ink: '#f3ead2', size: '11.5px', pad: '5px 10px', radius: '999px' },
+  };
+  // The renderer this browser draws WebGL with. `antialias` has to be decided
+  // before the map's context exists, so a FIRST visit reads it off a throwaway
+  // context: 17-24 ms of main thread on the RTX laptop, and 310-370 ms when it
+  // landed right after another page's city had been torn down. initGraphics
+  // then saves what the map's own context reports (GPU_RENDERER_KEY), and every
+  // later visit decides from that with no context at all. A browser moved to
+  // another GPU is right again from its next load.
+  const GPU_RENDERER_KEY = 'austin3d.gpu.renderer.v1';
+  let gpuRenderer = null;
+  function contextRenderer(gl) {
+    // Firefox answers RENDERER unmasked (and warns if the debug extension is
+    // asked for); Chrome and Safari mask it. Same order as js/gpu-hint.js.
+    const plain = String(gl.getParameter(gl.RENDERER) || '');
+    if (plain && !/^WebKit WebGL$/i.test(plain)) return plain;
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    return ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '') : plain;
+  }
+  const gpuClock = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  function readGpuRenderer() {
+    if (gpuRenderer !== null) return gpuRenderer;
+    const t0 = gpuClock();
+    let from = 'saved';
+    try { gpuRenderer = localStorage.getItem(GPU_RENDERER_KEY); } catch (e) { gpuRenderer = null; }
+    if (gpuRenderer === null) {
+      from = 'probe';
+      gpuRenderer = '';
+      try {
+        const gl = document.createElement('canvas').getContext('webgl2');
+        if (gl) {
+          gpuRenderer = contextRenderer(gl);
+          const lose = gl.getExtension('WEBGL_lose_context');
+          if (lose) lose.loseContext();
+        }
+      } catch (e) {}
+    }
+    // debug/test hook: what the MSAA default was decided on, where from, and what reading it cost
+    window.__gfxGpu = { renderer: gpuRenderer, full: EDGE_SMOOTHING.fullDefaultGpu.test(gpuRenderer), from,
+                        ms: +(gpuClock() - t0).toFixed(1) };
+    return gpuRenderer;
+  }
+  // Once the map's context exists: remember its renderer for the next load.
+  function rememberGpuRenderer(map) {
+    try {
+      const gl = map.painter && map.painter.context && map.painter.context.gl;
+      if (!gl || gl.isContextLost()) return;
+      const r = contextRenderer(gl);
+      if (r && r !== localStorage.getItem(GPU_RENDERER_KEY)) localStorage.setItem(GPU_RENDERER_KEY, r);
+    } catch (e) {}
+  }
   function defaultMSAA(scale) {
     const ratio=(window.devicePixelRatio||1)*scale;
     const pixels=window.innerWidth*window.innerHeight*ratio*ratio;
-    return !window.LITE_PROFILE?.on && pixels>0 && pixels<=EDGE_SMOOTHING.maxDefaultPixels;
+    // The phone profile decides from its own budget, and never probes a
+    // renderer: its tier already says what the device survived.
+    if (window.LITE_PROFILE?.on) return !!window.LITE_PROFILE.budget?.smoothEdges && pixels>0 && pixels<=EDGE_SMOOTHING.phoneMaxPixels;
+    const budget=EDGE_SMOOTHING.fullDefaultGpu.test(readGpuRenderer())
+      ? EDGE_SMOOTHING.maxDefaultPixels : EDGE_SMOOTHING.integratedMaxPixels;
+    return pixels>0 && pixels<=budget;
   }
   const PRESETS = {
     performance: {
@@ -396,8 +505,11 @@
   // re-run the probe and can drop a good machine to `performance`.
   //
   //   rev 2 — `dof` off everywhere (the horizon line; see the note on PRESETS).
-  const SETTINGS_REV = 3;
+  //   rev 4 — an unstamped automatic Performance save goes back to `balanced`
+  //           once (REV_UNSTAMPED_AUTO below; it is a preset step, not a key list).
+  const SETTINGS_REV = 4;
   const REV_RESET = { 2: ['dof'] };
+  const REV_UNSTAMPED_AUTO = 4;
 
   // ── `preset` is the preset the settings came FROM; `custom` says they moved ──
   //
@@ -422,15 +534,67 @@
   const GFX = Object.assign({}, PRESETS.balanced, { preset: 'balanced', custom: false, autoDetected: false, rev: SETTINGS_REV });
   window.GFX = GFX;
 
+  // ── Saved settings are a hint, never an authority ──────────────────
+  //
+  // A hard refresh does not clear localStorage, so whatever this key holds
+  // decides the scene on every later visit. Two ways that went wrong quietly:
+  //   1. A value that parses but means nothing (a string where a slider goes,
+  //      0 or -40 where the menu's range starts at 150, an array for a
+  //      boolean) was copied into GFX as-is. Each key is now checked against
+  //      its own SCHEMA row, and one that fails falls back to the default for
+  //      its key alone; the rest of the save survives.
+  //   2. The auto-detect's downgrade to `performance` was permanent: it set
+  //      `autoDetected`, which is what stops the probe, and nothing ever
+  //      cleared it, so one slow first minute (a cold cache, a busy laptop)
+  //      dimmed the scene for good. The downgrade now writes the time it
+  //      happened (`autoDownAt`) and expires after AUTO_DOWNGRADE_TTL_MS: the
+  //      next load goes back to `balanced` with the probe armed, and it
+  //      downgrades again only if the machine is still slow. A preset chosen
+  //      by hand never carries that stamp, so it never expires.
+  const AUTO_DOWNGRADE_TTL_MS = 3 * 24 * 3600 * 1000;
+  const validSaved = (s, v) => {
+    if (s.type === 'bool') return typeof v === 'boolean';
+    return typeof v === 'number' && isFinite(v) && v >= s.min && v <= s.max;
+  };
+
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) saved = null;
   let migrated = false;
-  if (saved && typeof saved === 'object') {
-    for (const s of SCHEMA) if (saved[s.key] !== undefined) GFX[s.key] = saved[s.key];
+  if (saved) {
+    for (const s of SCHEMA) {
+      if (saved[s.key] === undefined) continue;
+      if (validSaved(s, saved[s.key])) GFX[s.key] = saved[s.key];
+      else { migrated = true; }
+    }
+    // A downgrade the machine made on its own has run out: take it back.
+    //
+    // The same step runs ONCE for a save written before the stamp existed (rev
+    // below REV_UNSTAMPED_AUTO): `performance`, not custom, `autoDetected`, no
+    // stamp. Those saves cannot be told apart from a hand pick, because
+    // usePreset() sets `autoDetected` for a hand pick too. That is the accepted
+    // cost: a person who chose Performance by hand before this change gets one
+    // extra probe, and on a slow machine the probe puts them back within
+    // seconds, now with a stamp. On a strong machine it is the fix: that save
+    // was one slow first minute, kept for good. After this load the save is
+    // rev 4, so a hand pick made later has no stamp and stays.
+    const at = +saved.autoDownAt;
+    const wasRev = +saved.rev || 1;
+    const autoPerf = saved.preset === 'performance' && !saved.custom && saved.autoDetected;
+    const stale = autoPerf && at && !(Date.now() - at >= 0 && Date.now() - at < AUTO_DOWNGRADE_TTL_MS);
+    // Not on the phone profile: Performance is that device's design (PHONE_PRESET), and
+    // a phone's memory ceiling is the reason, so it never gets a Balanced load to probe.
+    const oldUnstamped = autoPerf && !at && wasRev < REV_UNSTAMPED_AUTO && !(window.LITE_PROFILE && window.LITE_PROFILE.on);
+    if (stale || oldUnstamped) {
+      saved.preset = 'balanced'; saved.autoDetected = false; saved.autoDownAt = 0;
+      Object.assign(GFX, PRESETS.balanced);
+      migrated = true;
+    }
     if (saved.preset && PRESETS[saved.preset]) GFX.preset = saved.preset;
     GFX.custom = !!saved.custom || (!!saved.preset && !PRESETS[saved.preset]);
     GFX.autoDetected = !!saved.autoDetected;
-    const was = +saved.rev || 1;
+    GFX.autoDownAt = (+saved.autoDownAt > 0 && GFX.preset === 'performance' && !GFX.custom) ? +saved.autoDownAt : 0;
+    const was = wasRev;
     for (let r = was + 1; r <= SETTINGS_REV; r++) {
       for (const k of (REV_RESET[r] || [])) {
         const p = PRESETS[GFX.preset] || PRESETS.balanced;
@@ -504,8 +668,14 @@
   // WebGL context. Bloom needs to read the GL canvas, so it needs the buffer
   // kept; asking for it only when bloom is actually wanted means the performance
   // preset stops paying for it on the next load.
-  window.GFX_MSAA = !!GFX.msaa;
+  const SMOOTH_URL = Q.get('smooth') === '1' ? true : Q.get('smooth') === '0' ? false : null;
+  window.GFX_MSAA = SMOOTH_URL == null ? !!GFX.msaa : SMOOTH_URL;   // the flag is not written to GFX: nothing is saved
   window.GFX_PDB = GFX.bloom > 0.01 || !!GFX.autoExposure;  // auto-exposure meters the same buffer
+  // Does this browser draw with a graphics card? The same test as the Smooth
+  // edges default (EDGE_SMOOTHING.fullDefaultGpu). js/city-lighting.js keeps
+  // its far pattern filter to cards by default. On the phone profile this may
+  // have to probe a throwaway context, so a caller checks LITE_PROFILE first.
+  window.GFX_GPU_CARD = () => EDGE_SMOOTHING.fullDefaultGpu.test(readGpuRenderer());
 
   function save() {
     // A ?preset= load NEVER writes settings. applyGraphics() calls save() on
@@ -566,6 +736,59 @@
     return c.toDataURL();
   }
 
+  // EDGE_SMOOTHING.fillOutlinesWithMSAA, applied: every fill layer, the
+  // basemap's and every one added later (ground, shadows, a re-added layer),
+  // loses its outline pass once, if and only if this context has MSAA.
+  function dropFillOutlinesUnderMSAA(map) {
+    if (EDGE_SMOOTHING.fillOutlinesWithMSAA) return;
+    let gl = null;
+    try { gl = map.painter && map.painter.context && map.painter.context.gl; } catch (e) {}
+    if (!gl || !gl.getContextAttributes || !gl.getContextAttributes().antialias) return;
+    const seen = new WeakSet();
+    const sweep = () => {
+      const ids = typeof map.getLayersOrder === 'function' ? map.getLayersOrder() : ((map.style && map.style._order) || []);
+      for (const id of ids) {
+        const l = map.getLayer(id);
+        if (!l || seen.has(l)) continue;
+        seen.add(l);
+        if (l.type !== 'fill') continue;
+        try { if (map.getPaintProperty(id, 'fill-antialias') !== false) map.setPaintProperty(id, 'fill-antialias', false); } catch (e) {}
+      }
+    };
+    map.on('styledata', sweep);
+    sweep();
+  }
+
+  // ?smooth=: say what this context really has (EDGE_SMOOTHING.urlReadout).
+  function smoothReadout(map) {
+    if (SMOOTH_URL == null) return;
+    let gl = null;
+    try { gl = map.painter && map.painter.context && map.painter.context.gl; } catch (e) {}
+    if (!gl || !gl.getContextAttributes) return;
+    const R = EDGE_SMOOTHING.urlReadout, lite = window.LITE_PROFILE || {};
+    const on = !!(gl.getContextAttributes() || {}).antialias;
+    let samples = null;
+    try { if (!gl.getParameter(gl.FRAMEBUFFER_BINDING)) samples = gl.getParameter(gl.SAMPLES); } catch (e) {}
+    const info = window.__smoothReadout = { asked: SMOOTH_URL, on, samples, width: 0, height: 0,
+                                            tier: lite.on ? (lite.tierName || 'phone') : null };
+    const el = document.createElement('div');
+    el.id = 'smooth-readout';
+    el.style.cssText = 'position:fixed;top:' + R.top + ';left:50%;transform:translateX(-50%);z-index:' + R.z +
+      ';background:' + R.bg + ';color:' + R.ink + ';font-size:' + R.size + ';line-height:1.2;padding:' + R.pad +
+      ';border-radius:' + R.radius + ';white-space:nowrap;pointer-events:none';
+    // The buffer is resized after this runs (the render scale, a rotation), so
+    // the size is read again every time the map says it changed.
+    const update = () => {
+      info.width = gl.drawingBufferWidth; info.height = gl.drawingBufferHeight;
+      el.textContent = 'Smooth edges ' + (on ? 'ON' + (samples ? ' (' + samples + ' samples)' : '') : 'OFF') +
+        ' · ' + info.width + ' x ' + info.height + (info.tier ? ' · ' + info.tier + ' tier' : '');
+    };
+    update();
+    map.on('resize', update);
+    map.on('idle', update);
+    document.body.appendChild(el);
+  }
+
   window.initGraphics = function initGraphics(map) {
     _map = map;
 
@@ -594,6 +817,9 @@
       bloomOK = !!(gl && gl.getContextAttributes().preserveDrawingBuffer);
     } catch (e) { bloomOK = false; }
     if (!bloomOK) console.log('[graphics] bloom unavailable: this context has no preserveDrawingBuffer (reload with bloom > 0)');
+    dropFillOutlinesUnderMSAA(map);
+    rememberGpuRenderer(map);
+    smoothReadout(map);
 
     buildMenu();
     buildFeedback();
@@ -649,10 +875,11 @@
     if (on) {
       for (const id of Array.from(_hidByCapture)) {
         try {
-          if (_map.getLayer(id)) _map.setLayoutProperty(id, 'visibility', 'visible');
+          if (_map.getLayer(id) && !window.nameLabels?.replaces(id)) _map.setLayoutProperty(id, 'visibility', 'visible');
         } catch (e) {}
         _hidByCapture.delete(id);
       }
+      window.nameLabels?.sync();
       return;
     }
     for (const id of symbolLayerIds()) {
@@ -887,8 +1114,16 @@
     // to 1e-15, and well under 0.1 ms of main thread a read where a flight
     // paid 25-54 ms for the synchronous one. Each reading enters the EMA with
     // the frame time it covers, so the meter is the per-frame EMA it always
-    // was, one or two frames late. false, a WebGL1 or a multisampled canvas:
-    // the old per-frame read.
+    // was, one or two frames late. false, or a WebGL1 canvas: the old
+    // per-frame read.
+    //
+    // A MULTISAMPLED canvas (Smooth edges) used to take the old read too,
+    // because a multisampled framebuffer can only be blitted at its own size.
+    // That was the whole frame-time cost of Smooth edges: measured on the RTX
+    // 3050 Ti, 1920x1020, spawn orbit, 24.3 ms a frame without MSAA and 31.2
+    // with it, all of the difference the synchronous read. Now it is resolved
+    // first, a same-size blit into a single-sample buffer, and read from there
+    // exactly as a plain canvas is (claude/no-moire).
     ASYNC: true,
     // Frames still unread when the map stops drawing (the last one or two)
     // are read this long after the last frame, from the preserved buffer, so
@@ -908,6 +1143,42 @@
     // stubbed to never signal it froze the meter for 56 s before giving up.
     FENCE_POLLS: 3, FENCE_MS: 2000,
   };
+
+  // GL STATE KEPT IN JS, NOT ASKED FOR. The reader below saves and puts back
+  // the framebuffer and pack-buffer bindings and checks the pack parameters, on
+  // every frame the map draws; js/slopes.js saves the viewport and scissor box
+  // on every sun-shadow re-render. Each of those was a gl.getParameter, and a
+  // getParameter the browser does not answer from its own cache is a
+  // synchronous round trip: the main thread waits until the GPU process has
+  // worked through everything queued so far. Measured on the owner's AMD chip
+  // (framecost, --gpu low, DPR 1.5, balanced): getParameter was the most
+  // expensive function on the main thread, 1.17 s per 12.6 s intro flight and
+  // 1.61 s per 12 s boost, and these two callers were 1.13 s and 1.28 s of it.
+  // So the few calls that change that state are wrapped once per context, pass
+  // straight through, and write down what they set; the saved values are read
+  // off that record. The bindings put back are the same ones, so the frame is.
+  //   ?glstate=0       query as before (an A/B in one build)
+  //   ?glstatecheck=1  query as well, and count every disagreement with the
+  //                    record in window.__glStateCheck (mismatches must be 0)
+  const GLSTATE = window.GLSTATE || (window.GLSTATE = {
+    on: Q.get('glstate') !== '0',
+    check: Q.get('glstatecheck') === '1',
+    // Check mode: the context's answer beside the record's, and what asking cost.
+    verify(gl, name, pname, recorded) {
+      const C = window.__glStateCheck ||
+        (window.__glStateCheck = { uses: 0, mismatches: 0, n: {}, ms: {}, bad: {}, first: [] });
+      const t = performance.now(), real = gl.getParameter(pname);
+      C.ms[name] = (C.ms[name] || 0) + performance.now() - t;
+      C.n[name] = (C.n[name] || 0) + 1; C.uses++;
+      const same = ArrayBuffer.isView(real)
+        ? !!recorded && real.length === recorded.length && Array.prototype.every.call(real, (v, i) => v === recorded[i])
+        : real === recorded;
+      if (!same && !gl.isContextLost()) {
+        C.mismatches++; C.bad[name] = (C.bad[name] || 0) + 1;
+        if (C.first.length < 10) C.first.push([name, String(recorded), String(real)]);
+      }
+    },
+  });
   let aeCv = null, aeCtx = null, aeLuma = null, aeGain = 1, aeLast = 0;
   // aeOwed: [frame, dt] for frames drawn but not yet read, oldest first.
   // aeGpu: the asynchronous reader, null until built, false where unavailable.
@@ -930,6 +1201,73 @@
     } catch (e) { return null; }
   }
 
+  // The state the reader saves, as the context last set it (GLSTATE above):
+  // the read and draw framebuffers, the pixel-pack buffer, and the three pack
+  // parameters a readPixels into that buffer depends on. The wrappers go on
+  // once per context and stay; the record is seeded with one query per value
+  // (the only round trips left) and seeded again after a lost context, whose
+  // restore resets every binding. Each wrapper records only what the call
+  // really sets: a bad target, a negative size or a deleted object is a GL
+  // error that leaves the state alone, and deleting a bound object unbinds it.
+  // null with GLSTATE off or while the record is unknown (the caller queries).
+  function aeGlState(gl) {
+    if (!GLSTATE.on) return null;
+    let S = gl.__aeState;
+    if (!S) {
+      S = gl.__aeState = { known: false, read: null, draw: null, pack: null, row: 0, skipRows: 0, skipPixels: 0 };
+      const deadFb = new WeakSet(), deadBuf = new WeakSet();
+      const wrap = (name, after) => {
+        const native = gl[name];
+        gl[name] = function (a, b) { const r = native.apply(this, arguments); after(a, b); return r; };
+      };
+      wrap('bindFramebuffer', (target, fb) => {
+        fb = fb || null;
+        if (fb && deadFb.has(fb)) return;
+        if (target === gl.FRAMEBUFFER) S.read = S.draw = fb;
+        else if (target === gl.READ_FRAMEBUFFER) S.read = fb;
+        else if (target === gl.DRAW_FRAMEBUFFER) S.draw = fb;
+      });
+      wrap('deleteFramebuffer', fb => {
+        if (!fb) return;
+        deadFb.add(fb);
+        if (S.read === fb) S.read = null;
+        if (S.draw === fb) S.draw = null;
+      });
+      wrap('bindBuffer', (target, buf) => {
+        buf = buf || null;
+        if (target === gl.PIXEL_PACK_BUFFER && !(buf && deadBuf.has(buf))) S.pack = buf;
+      });
+      wrap('deleteBuffer', buf => {
+        if (!buf) return;
+        deadBuf.add(buf);
+        if (S.pack === buf) S.pack = null;
+      });
+      wrap('pixelStorei', (pname, param) => {
+        const v = param | 0;                     // GLint, as WebIDL converts it
+        if (v < 0) return;
+        if (pname === gl.PACK_ROW_LENGTH) S.row = v;
+        else if (pname === gl.PACK_SKIP_ROWS) S.skipRows = v;
+        else if (pname === gl.PACK_SKIP_PIXELS) S.skipPixels = v;
+      });
+      gl.canvas.addEventListener('webglcontextlost', () => { S.known = false; });
+    }
+    if (!S.known && !gl.isContextLost()) {
+      S.read = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING); S.draw = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
+      S.pack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING);
+      S.row = gl.getParameter(gl.PACK_ROW_LENGTH); S.skipRows = gl.getParameter(gl.PACK_SKIP_ROWS);
+      S.skipPixels = gl.getParameter(gl.PACK_SKIP_PIXELS);
+      S.known = !gl.isContextLost();             // a loss mid-seed leaves it unknown
+    }
+    return S.known ? S : null;                   // unknown: query, as before
+  }
+  // One saved value: the record's (checked against the context in check mode),
+  // or with no record, the context's.
+  function aeGlGet(gl, S, key, pname) {
+    if (!S) return gl.getParameter(pname);
+    if (GLSTATE.check) GLSTATE.verify(gl, 'ae.' + key, pname, S[key]);
+    return S[key];
+  }
+
   // The asynchronous reader lives in the map's own WebGL2 context and puts
   // back every binding it touches: MapLibre and three.js both cache GL state.
   function aeGpuReader() {
@@ -938,7 +1276,8 @@
     try {
       const gl = AE.ASYNC && mapCanvas.getContext('webgl2');
       if (gl && gl.isContextLost()) { aeGpu = null; return false; }   // try again once restored
-      if (!gl || gl.getContextAttributes().antialias) return aeGpu;
+      if (!gl) return aeGpu;
+      const msaa = !!gl.getContextAttributes().antialias;
       const rb = gl.createRenderbuffer(), fb = gl.createFramebuffer(), pbo = gl.createBuffer();
       const oldRb = gl.getParameter(gl.RENDERBUFFER_BINDING), oldDraw = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
       const oldPack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING);
@@ -954,7 +1293,10 @@
       gl.bindRenderbuffer(gl.RENDERBUFFER, oldRb);
       if (!ok) { gl.deleteFramebuffer(fb); gl.deleteRenderbuffer(rb); gl.deleteBuffer(pbo); return aeGpu; }
       aeGpu = { gl, fb, rb, pbo, sync: null, frame: 0, data: new Uint8Array(AE.W * AE.H * 4),
-                premultiplied: gl.getContextAttributes().premultipliedAlpha };
+                premultiplied: gl.getContextAttributes().premultipliedAlpha,
+                // the resolve target for a multisampled canvas, sized on first use
+                resolve: msaa ? { fb: gl.createFramebuffer(), rb: gl.createRenderbuffer(), w: 0, h: 0, checked: false } : null };
+      aeGlState(gl);                                 // start recording before the first read
       // A lost context takes these objects with it; build new ones after.
       mapCanvas.addEventListener('webglcontextlost', () => { aeGpu = null; }, { once: true });
     } catch (e) { aeGpu = false; }
@@ -964,16 +1306,40 @@
   // Queue a read of the frame just drawn. false: not possible this frame.
   function aeGpuIssue(G) {
     const gl = G.gl;
-    if (gl.isContextLost() || gl.getParameter(gl.PACK_ROW_LENGTH) || gl.getParameter(gl.PACK_SKIP_ROWS) ||
-        gl.getParameter(gl.PACK_SKIP_PIXELS)) return false;
-    const read = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING), draw = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
-    const pack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING), scissor = gl.isEnabled(gl.SCISSOR_TEST);
+    if (gl.isContextLost()) return false;
+    const S = aeGlState(gl);
+    if (aeGlGet(gl, S, 'row', gl.PACK_ROW_LENGTH) || aeGlGet(gl, S, 'skipRows', gl.PACK_SKIP_ROWS) ||
+        aeGlGet(gl, S, 'skipPixels', gl.PACK_SKIP_PIXELS)) return false;
+    const read = aeGlGet(gl, S, 'read', gl.READ_FRAMEBUFFER_BINDING), draw = aeGlGet(gl, S, 'draw', gl.DRAW_FRAMEBUFFER_BINDING);
+    const pack = aeGlGet(gl, S, 'pack', gl.PIXEL_PACK_BUFFER_BINDING), scissor = gl.isEnabled(gl.SCISSOR_TEST);
     try {
       if (scissor) gl.disable(gl.SCISSOR_TEST);        // a blit is scissored
+      const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight, R = G.resolve;
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+      if (R) {
+        // Multisampled: resolve at full size first (the only blit a
+        // multisampled source allows), then downsample from the resolved copy.
+        if (R.w !== W || R.h !== H) {
+          const oldRb = gl.getParameter(gl.RENDERBUFFER_BINDING);
+          gl.bindRenderbuffer(gl.RENDERBUFFER, R.rb);
+          gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, W, H);
+          gl.bindRenderbuffer(gl.RENDERBUFFER, oldRb);
+          gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, R.fb);
+          gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, R.rb);
+          R.w = W; R.h = H;
+        }
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, R.fb);
+        gl.blitFramebuffer(0, 0, W, H, 0, 0, W, H, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+        if (!R.checked) {
+          // Once: a canvas whose format the resolve cannot take reports it
+          // here, and this reader then gives way to the old one for good.
+          R.checked = true;
+          if (gl.getError() !== gl.NO_ERROR) { G.stalled = true; return false; }
+        }
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, R.fb);
+      }
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, G.fb);
-      gl.blitFramebuffer(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, 0, AE.W, AE.H,
-                         gl.COLOR_BUFFER_BIT, gl.LINEAR);
+      gl.blitFramebuffer(0, 0, W, H, 0, 0, AE.W, AE.H, gl.COLOR_BUFFER_BIT, gl.LINEAR);
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, G.fb);
       gl.bindBuffer(gl.PIXEL_PACK_BUFFER, G.pbo);
       gl.readPixels(0, 0, AE.W, AE.H, gl.RGBA, gl.UNSIGNED_BYTE, 0);
@@ -1000,7 +1366,7 @@
     }
     gl.deleteSync(G.sync); G.sync = null;
     G.stalled = false;                               // its reading is older than every frame the old read took
-    const pack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING);
+    const pack = aeGlGet(gl, aeGlState(gl), 'pack', gl.PIXEL_PACK_BUFFER_BINDING);
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, G.pbo);
     gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, G.data);
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pack);
@@ -1547,6 +1913,8 @@
     // Downgrade only — see the note above on why an upgrade is unmeasurable.
     if (med > 21.5 && GFX.preset === 'balanced' && !GFX.custom) {
       usePreset('performance', true);
+      GFX.autoDownAt = Date.now();   // expires: see AUTO_DOWNGRADE_TTL_MS
+      save();
       toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`,
         TOAST_PROBE_MS);
     } else {
@@ -1606,7 +1974,7 @@
     Object.assign(GFX, p);
     GFX.preset = name;
     GFX.custom = false;
-    if (!keepAuto) GFX.autoDetected = true;
+    if (!keepAuto) { GFX.autoDetected = true; GFX.autoDownAt = 0; }
     applyGraphics();
     syncMenu();
     if (GFX.msaa !== msaaWas) markReload();

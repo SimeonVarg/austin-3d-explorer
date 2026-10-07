@@ -116,7 +116,7 @@
         "note": "Austin LiDAR: 73.4 ft (22.4 m). UT Direct's facilities register: 7 floors -- but only 2 storeys are visible above grade on the photographed (east) elevation. Battle Hall was built as the university's library and its stack hall is known to carry internal book-stack tiers; that almost certainly accounts for the gap between '7 floors' on paper and 2 storeys on the wall, but this round did not independently verify the stack-tier count, so it is flagged rather than asserted."
       },
       "entrance": {
-        "note": "The single central round-arched door on the EAST elevation (facing the South Mall), flanked by wrought-iron lanterns. Confirmed three ways: visible in the photograph, `scripts/bake_entrances.py`'s CELEBRATED table already carries it as `facade=\"E\"` with an authored point marked [D] \"centre of the east wall\", and the final `data/entrances.geojson` places its `role: main` door 1.4 m from that authored point -- this is one of the entrances the pipeline gets right end to end.",
+        "note": "The east elevation has one central rectangular recessed doorway with teal paneled leaves, a flat stone lintel and flanking lanterns. The September 26 source review corrects the older arched-door claim. The authored Battle model owns this opening; legacy east assemblies 94 and 95 are retired, including the path-inferred doorway occupying a window bay. The historical UT survey proximity score below is location evidence, not evidence for the former arch shape.",
         "osm_tagged_nodes_on_this_building": [],
         "ut_facilities_survey_score": {
           "ut_surveyed": true,
@@ -127,20 +127,23 @@
           "dist_m": 1.4,
           "within_12m": true,
           "is_main": true,
-          "ut_side": "authored"
+          "ut_side": "authored",
+          "historical_prior_bake": true
         }
       },
       "facade": {
         "photographed_elevation": "the east (South Mall-facing) elevation",
-        "window_grid_from_photo": "East elevation, 2 storeys over a rusticated limestone base, counted off the photograph. Upper floor: 5 tall round-arched Palladian bays -- paired casements with divided lights, a small wrought-iron Juliet balcony under each, a carved roundel medallion above each arch. Ground floor: roughly 4 tall double-hung windows on each side of the central door (~8 total, symmetric), about 2 per upper arch bay -- the row counts do NOT match between floors. Red clay tile hip roof, deep bracketed eave with a polychrome tile frieze.",
+        "window_grid_from_photo": "East elevation: seven tall round-arched upper bays, each with a Juliet guard; six rectangular lower sash windows, three on either side of one rectangular central doorway. The upper sash has divided vertical lights, a central transom and fanlight bars. Pale stone arch surrounds enclose a narrow polychrome strip. Red clay hip roof with deep bracketed eave and teal/gold soffit panels. Dimensions and detailed ornament are approximate; west and short elevations are not established by these views.",
         "app_current_family_assignment": {
           "family_code": "mh",
           "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
           "computed_from": {
             "building_class": "university",
             "final_height_m": 21.5
-          }
-        }
+          },
+          "scope": "Historical generic fallback; the authored Battle asset overrides this facade."
+        },
+        "authored_east_override": "data/apartments/battle-hall.json: seven upper arches, six lower sash, central rectangular paneled door and bracketed eave; September 26, 2026."
       },
       "photo": {
         "wikimedia_title": "File:Battle Hall - UT Austin (54983869707).jpg",
@@ -785,22 +788,23 @@
         "note": "Austin LiDAR: 68.7 ft (20.9 m). UT Direct: 5 floors, 171,276 gross sq ft."
       },
       "entrance": {
-        "note": "Unambiguous in the photograph: \"THE EYES OF TEXAS ARE UPON YOU / THE UNION\" is carved into the stone base beneath a monumental round arch under a tower with a projecting bracketed roof, on the WEST elevation facing the West Mall plaza; a Longhorn medallion marks a secondary door in the lower west wing. This is, by `scripts/bake_entrances.py`'s own comment, \"THE BIGGEST HOLE IN THE SPEC\": UNB is NOT in UT's surveyed celebrated-entrance table, has no OSM `entrance=*` node, and the CELEBRATED override for UNB authors no coordinate at all -- its own note reads \"No source states which elevation the main door is on... the generic pass places it.\" This photograph is itself new, useful evidence toward closing that hole: a clear, labelled, unambiguous west-facing entrance, CC-licensed and citable.",
+        "note": "The monumental entrance faces south toward the West Mall approach. Earlier west-facing notes were incorrect. Its round arch contains a deep vault and smaller wood-and-glass doorway; two exterior stair flights reach a shared outdoor landing around a central wall and planting. Existing mapped tower placement is retained; facade depth and ground dimensions are estimates, not survey data. See docs/campus-truth/UNB.md.",
         "osm_tagged_nodes_on_this_building": [],
         "ut_facilities_survey_score": {
           "ut_surveyed": false
         }
       },
       "facade": {
-        "photographed_elevation": "the west (entrance, tower) elevation",
-        "window_grid_from_photo": "Not a uniform grid. South wing (right of the tower): ground-floor round arcade (~6-7 arches with radiating fanlights) with paired rectangular windows above at floor 2, roughly 1:1 with the arches below. Lower west wing (left of the tower): 3 ground windows plus a door, 3 tall shuttered casement windows above, a roof deck with a balustrade and 2 large ceramic urns. The tower itself: one large arched window/Juliet-balcony opening at floor 3, a band of narrow louvred slit openings near the roofline, a deep bracketed eave.",
+        "photographed_elevation": "south-facing entrance tower",
+        "window_grid_from_photo": "Three balcony-level openings (broad center and narrow flanks), four tall upper bays (left louver and three timber sash), deep portal with smaller arched door, bowed balcony and bracketed eave. Wing patterns remain outside the tower correction.",
         "app_current_family_assignment": {
           "family_code": "mr",
           "family_grid": "6 rows x 5 cols (2-3 storey walk-ups)",
           "computed_from": {
             "building_class": "university",
             "final_height_m": 11.9
-          }
+          },
+          "status": "Historical generic fallback; current Union uses the authored data/apartments/texas-union.json model."
         }
       },
       "photo": {

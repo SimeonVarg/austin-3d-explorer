@@ -11,6 +11,45 @@
   // Pattern texels below this alpha are translucent overlays, not glass-coded
   // facade texels (which are 191..255). Anything between the two bands works.
   const OVERLAY_ALPHA=0.70;
+  // FAR PATTERN FILTER (moire on distant facades). MapLibre samples the
+  // fill-extrusion pattern atlas bilinear with NO mip levels
+  // (docs/pattern-sampling.md), so a wall whose texels are smaller than a pixel
+  // point-samples its window grid, and MSAA does not help: it multiplies
+  // coverage samples, not texture reads. Beyond nearM each pattern read is
+  // replaced by the average of up to maxTaps x maxTaps reads spread over the
+  // pixel's own footprint on the wall (screen derivatives of the pattern
+  // coordinate), faded in by fullM. Where a pixel covers one texel or less it
+  // is the single read it always was, and inside nearM nothing changes at all.
+  // maxSpacing (texels) keeps each tap within reach of its neighbour's bilinear
+  // footprint, so the taps add up to a box. Where a pixel spans more than
+  // maxTaps x maxSpacing texels the box stops growing instead of spreading its
+  // taps thinner: taps further apart than that are a comb, not a box, and a comb
+  // passes some of the window grid's harmonics at full strength. Measured, 2
+  // keeps nearly all of the unclamped gain (campus low alias 0.644 unclamped,
+  // 0.655 at 2, 0.665 at 1.5, 0.720 with no filter).
+  // ?patfilter=0 turns it off, ?patfilter=1 forces it on; CityLighting.patternFilter
+  // is live. The phone profile decides from its own budget
+  // (js/mobile.js budget.farPatternFilter), never from the card test.
+  // cardsOnly: on by default only where js/graphics.js says the browser draws
+  // with a graphics card (the Smooth edges test). Timed with each frame's GPU
+  // work finished (a synchronous redraw + readPixels, still poses, 10
+  // interleaved rounds): on the RTX 3050 Ti the filter is within noise in
+  // flight and at most +1.2 ms at the downtown pose (19 ms frames); on the AMD
+  // integrated chip +0.7 to +2.5 ms at every pose (30-50 ms frames), so there
+  // it stays off. Cheaper settings (maxTaps 2) cost nothing there but made the
+  // still-frame bands WORSE than no filter (landing flight moire 0.169 ->
+  // 0.175-0.177, pixels in a visible band 0.156% -> 0.182%): a 2-tap comb.
+  // Screen size needs no budget: a bigger screen gives each pixel fewer texels,
+  // so fewer taps per pixel for more pixels.
+  const patternFilterQuery=new URLSearchParams(location.search).get('patfilter');
+  const patternFilter={nearM:150,fullM:250,maxTaps:4,maxSpacing:2,cardsOnly:true};
+  patternFilter.on=patternFilterQuery==='1'||(patternFilterQuery!=='0'&&(window.LITE_PROFILE?.on
+    ? !!window.LITE_PROFILE.budget?.farPatternFilter
+    : (!patternFilter.cardsOnly||!!window.GFX_GPU_CARD?.())));
+  // Compiled in only where it is on at load. Elsewhere the pattern shader is
+  // MapLibre's own, exactly as before, so the integrated chip pays nothing,
+  // not even the registers. A live `on` switch works only where it compiled.
+  patternFilter.compiled=patternFilter.on;
   // Diffuse sky fill, in linear light. Upward-facing surfaces see more sky.
   // Shared by both building renderers; zeroes reproduce the previous balance.
   const balance={skyFill:0.12,roofFill:0.08};
@@ -41,8 +80,35 @@
     uniform sampler2D u_sunShadow0, u_sunShadow1;
     uniform mat4 u_sunShadowMatrix0, u_sunShadowMatrix1;
     uniform vec4 u_shadowSettings;
+    uniform vec4 u_cityPatternFilter, u_cityPatternFilterB;
     ${Array.from({length:8},(_,i)=>`uniform vec4 u_cityFixture${i}, u_cityFixtureColour${i};`).join('\n')}
   `;
+  // The pattern fragment only (see patternFilter). `point` is MapLibre's own
+  // read; v is the pattern coordinate in repeats; tl/br the image's corners in
+  // atlas UV. Derivatives are taken before any branch that varies per pixel.
+  const patternFilterGlsl = `
+    vec4 cityPatternTexel(sampler2D img,vec4 point,vec2 v,vec2 tl,vec2 br,vec2 texsize,float dist){
+      vec2 dx=dFdx(v),dy=dFdy(v);
+      if(u_cityPatternFilter.x<.5)return point;
+      float fade=smoothstep(u_cityPatternFilter.y,u_cityPatternFilter.z,dist);
+      if(fade<=0.0)return point;
+      vec2 texels=(br-tl)*texsize;
+      float fx=length(dx*texels),fy=length(dy*texels);
+      float nx=clamp(ceil(fx),1.0,u_cityPatternFilter.w),ny=clamp(ceil(fy),1.0,u_cityPatternFilter.w);
+      if(nx*ny<=1.0)return point;
+      dx*=min(1.0,nx*u_cityPatternFilterB.x/max(fx,1e-4));
+      dy*=min(1.0,ny*u_cityPatternFilterB.x/max(fy,1e-4));
+      vec4 sum=vec4(0.0);
+      for(int i=0;i<${patternFilter.maxTaps};i++){
+        if(float(i)>=nx)break;
+        for(int j=0;j<${patternFilter.maxTaps};j++){
+          if(float(j)>=ny)break;
+          vec2 at=v+dx*((float(i)+.5)/nx-.5)+dy*((float(j)+.5)/ny-.5);
+          sum+=textureLod(img,mix(tl,br,fract(at)),0.0);
+        }
+      }
+      return mix(point,sum/(nx*ny),fade);
+    }`;
   const glsl = `
     vec3 linearColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(2.2)); }
     vec3 displayColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(1.0/2.2)); }
@@ -223,7 +289,7 @@
     for(let i=3;i<data.length;i+=4)data[i]=mask[i];
     stats.glassImages++;return {...image,data};
   }
-  let buildings=[],proxy=null,proxyDirty=true,proxyTimer=null,proxyMap=null,proxyBuilt=0;
+  let buildings=[],proxy=null,proxyDirty=true,proxyTimer=null,proxyMap=null,proxySigBuilt=null;
   // Only what is DRAWN may cast. The Tower, hero, Drag, arts, Moody and West
   // Campus passes draw their own buildings and hide the legacy prism with the
   // shared ['!',['in',['get','id'],['literal',ids]]] clause on buildings-3d.
@@ -263,19 +329,56 @@
       // (astra-pipe research/frame-cost.md, section 8, fix 1).
       map.on('move',()=>{proxyMovedAt=Date.now();});
       map.on('moveend',()=>{proxyMovedAt=Date.now();proxyViewMoved=true;});
-      map.on('remove',()=>{clearTimeout(proxyTimer);proxyTimer=null;proxyDirty=true;proxyBuilt=0;proxyViewMoved=false;proxyMovedAt=0;proxyInputs=null;proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
+      map.on('remove',()=>{clearTimeout(proxyTimer);proxyTimer=null;proxyJob=null;stats.shadowProxyBuilding=false;proxyDirty=true;proxySigBuilt=null;proxyViewMoved=false;proxyMovedAt=0;proxyInputs=null;proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
     }
-    const built=window.slopesApartments?.count.buildings||0;
-    if(proxyBuilt!==built)proxyDirty=true;
+    if(!sameList(proxySignature(map),proxySigBuilt))proxyDirty=true;
     if((proxyDirty||proxyViewMoved)&&!proxyTimer&&!map.isMoving())proxyTimer=setTimeout(()=>proxyRebuild(map),PROXY_PACE.settleMs);
     return proxy;
   }
+  // What the proxy reads from the authored apartments and the base layer,
+  // checked every frame: the catalogue whose footprints and ids it leaves out
+  // (a new object whenever an area attaches or detaches), the switch, the
+  // buildings-3d filter it takes the hide list from (its source is not a
+  // caster, so no sourcedata reports it) and the authored triangle count,
+  // which moves only when a build lands or an area comes and goes.
+  // Until 2026-09-28 this was count.buildings, which rises once per building
+  // DURING the time-sliced build. The proxy uses none of that progress, but
+  // it rebuilt the proxy every ~2.5 s of the build under the veil, the same
+  // mesh each time: 11-12 rebuilds, ~8.5 s of main thread. Measured on the
+  // AMD iGPU, 3 interleaved pairs: 6-8 rebuilds (~2.4 s) remain, all from
+  // tiles arriving (sourcedata), and the veil lifts at 38.0-40.0 s, not
+  // 44.3-46.1 s (speed night 09-28, shadow-proxy-no-storm).
+  // map.getLayer throws while the map has no style (a context restore).
+  const proxySignature=map=>{
+    const A=window.slopesApartments;
+    return [A?.count.triangles,window.APARTMENTS?.on,proxyRef(A?.data?.buildings),proxyRef(map.style?map.getLayer?.('buildings-3d')?.filter:undefined)];
+  };
+  const sameList=(a,b)=>!!a&&!!b&&a.length===b.length&&a.every((v,i)=>v===b[i]);
   // settleMs: how long the camera must have been still (no move event, no
   // camera animation, the flycam not driving) before the proxy is checked
   // or rebuilt. It was the old fixed delay after a moveend, so a camera that
   // stops gets the rebuild it always got, at the same moment.
-  const PROXY_PACE={settleMs:300};
-  let proxyMovedAt=0,proxyViewMoved=false,proxyInputs=null;
+  // budgetMs: the rebuild runs in slices of about this much main thread, one
+  // task each, so frames keep being drawn while it works (proxyGeometry). 0
+  // builds in one piece, as before 2026-09-28. MEASURED before slicing, the
+  // one piece was a stall of the still picture ~0.3 s after every turn or
+  // flight that changed the drawn caster tiles (TURN-LAG lane, turnmeter.mjs
+  // "stop"). A slice can run over its budget by one indivisible step (one
+  // tile query, one polygon); stats.shadowProxyMaxSliceMs records by how much.
+  // stretchMs / maxBudgetMs: a slice runs between two frames, so when frames
+  // are slow the build takes (slices x frame time): 52 s once, on a loaded
+  // machine at ~4 fps. For every stretchMs a build has been running (camera
+  // pauses not counted) the slice budget doubles, up to maxBudgetMs, so a slow
+  // machine finishes in a few seconds at the price of a few longer frames.
+  // yieldMs: the pause between slices. trustLayerFilters: query each layer
+  // with the filter MapLibre already validated when that layer was added
+  // (validate:false). MapLibre 5.24 otherwise re-validates a query filter by
+  // serialising the WHOLE style, once per caster layer per rebuild; the
+  // features returned are the same either way. (Ported from Codex's
+  // codex/overnight-shadow-proxy 75930c7 onto this file's current rebuild.)
+  const PROXY_PACE={settleMs:300,budgetMs:5,stretchMs:1000,maxBudgetMs:40,yieldMs:0,trustLayerFilters:true};
+  let proxyMovedAt=0,proxyViewMoved=false,proxyInputs=null,proxyJob=null;
+  const proxyNow=()=>globalThis.performance?.now?.()??Date.now();
   // Everything a rebuild reads, as a flat list compared entry by entry: the
   // drawn tiles of every caster source and each tile's decoded data (what
   // querySourceFeatures walks), the fill-extrusion layers that draw those
@@ -285,10 +388,10 @@
   // null means "cannot tell" (a MapLibre without these internals): rebuild.
   const proxyRefIds=new WeakMap();let proxyRefNext=0;
   const proxyRef=o=>o&&typeof o==='object'?proxyRefIds.get(o)??(proxyRefIds.set(o,++proxyRefNext),proxyRefNext):o;
-  function proxyKey(map,built) {
+  function proxyKey(map,signature) {
     const caches=map.style?.tileManagers||map.style?.sourceCaches;
     if(!caches||typeof map.getLayersOrder!=='function'||typeof map.getLayer!=='function')return null;
-    const key=[built,window.APARTMENTS?.on,proxyRef(window.slopesApartments?.data?.buildings),proxyRef(buildings),proxyRef(map.getLayer('buildings-3d')?.filter)];
+    const key=[...signature,proxyRef(buildings)];
     for(const source of casterSources) {
       key.push(source);
       if(!map.getSource(source))continue;
@@ -304,42 +407,104 @@
   }
   function proxyRebuild(map) {
     proxyTimer=null;
+    if(proxyMap!==map)return;
     // Never mid-flight. Re-arm while anything is moving the camera; the
     // rebuild waits for the flight to end instead of stalling inside it.
+    // A build already under way is paused the same way, not thrown away.
     const flying=map.isMoving()||!!window.__fly?.eye?.().driving;
     const wait=flying?PROXY_PACE.settleMs:PROXY_PACE.settleMs-(Date.now()-proxyMovedAt);
-    if(wait>0){proxyTimer=setTimeout(()=>proxyRebuild(map),wait);return;}
-    const built=window.slopesApartments?.count.buildings||0;
-    const inputs=proxyKey(map,built);
-    // Only the view moved, and it moved nothing the proxy is built from.
-    if(!proxyDirty&&proxyBuilt===built&&inputs&&proxyInputs&&inputs.length===proxyInputs.length&&inputs.every((v,i)=>v===proxyInputs[i])){proxyViewMoved=false;return;}
-    // A restored context briefly has no style while MapLibre rebuilds it.
-    // Keep the rebuild pending; neither discard the existing proxy nor read
-    // layers until the replacement style is available.
-    const style=map.getStyle()?.layers;
-    if(!style){proxyDirty=true;return;}
-    proxyDirty=false;proxyViewMoved=false;proxyBuilt=built;proxyInputs=inputs;
-    const T=window.THREE,S=window.slopes,positions=[],seen=new Set();
+    if(wait>0){if(proxyJob&&!proxyJob.paused){proxyJob.paused=true;proxyJob.activeMs+=proxyNow()-proxyJob.runStart;}proxyTimer=setTimeout(()=>proxyRebuild(map),wait);return;}
+    let job=proxyJob;
+    // A paused build resumes only if nothing it reads has changed since it
+    // started; otherwise it is dropped and a fresh one starts from today's
+    // tiles. (No check between ordinary slices: the camera has not moved.)
+    if(job?.paused) {
+      const signature=proxySignature(map),inputs=proxyKey(map,signature);
+      if(job.inputs&&map.style===job.styleOwner&&sameList(inputs,job.inputs)&&sameList(signature,job.signature)){job.paused=false;job.runStart=proxyNow();}
+      else{proxyJob=job=null;proxyDirty=true;stats.shadowProxyBuilding=false;stats.shadowProxyRestarts=(stats.shadowProxyRestarts||0)+1;}
+    }
+    if(!job) {
+      const signature=proxySignature(map);
+      const inputs=proxyKey(map,signature);
+      // Source notifications (including image/paint updates) ask for a check,
+      // not new geometry. Compare against the last SUCCESSFUL commit, even
+      // when dirty; actual tile data, filters and authored changes remain keyed.
+      if(proxy&&sameList(signature,proxySigBuilt)&&inputs&&sameList(inputs,proxyInputs)){proxyDirty=false;proxyViewMoved=false;return;}
+      // A restored context briefly has no style while MapLibre rebuilds it.
+      // Keep the rebuild pending; neither discard the existing proxy nor read
+      // layers until the replacement style is available.
+      const style=proxyStyleLayers(map);
+      if(!style){proxyDirty=true;return;}
+      proxyDirty=false;proxyViewMoved=false;
+      job=proxyJob={map,style,signature,inputs,styleOwner:map.style,started:proxyNow(),runStart:proxyNow(),activeMs:0,slices:0,paused:false};
+      job.steps=proxyGeometry(job);stats.shadowProxyBuilding=true;
+    }
+    const started=proxyNow();
+    const P=PROXY_PACE,budget=Math.min(Math.max(P.budgetMs,P.maxBudgetMs||0),P.budgetMs*2**Math.floor((job.activeMs+started-job.runStart)/(P.stretchMs||Infinity)));
+    try {
+      for(;;) {
+        const step=job.steps.next();
+        if(step.done){proxyCommit(map,job,step.value);return;}
+        // Bound CPU work, not the number of layer queries. Forcing a fresh
+        // task for every query costs one software-rendered frame per layer
+        // even when queries are cheap, defeating the stretched time budget.
+        // An indivisible query/polygon may overrun by one step, as before.
+        if(budget>0&&proxyNow()-started>=budget)break;
+      }
+    } catch(e) {
+      const m=e.message||String(e);if(!(stats.failures??=[]).includes(m)){stats.failures.push(m);console.error('[city-lighting]',m);}
+      proxyJob=null;proxyDirty=true;stats.shadowProxyBuilding=false;return;
+    } finally {
+      const ms=proxyNow()-started;job.slices++;
+      stats.shadowProxySlices=(stats.shadowProxySlices||0)+1;
+      stats.shadowProxyMaxSliceMs=Math.max(stats.shadowProxyMaxSliceMs||0,ms);
+    }
+    proxyTimer=setTimeout(()=>proxyRebuild(map),PROXY_PACE.yieldMs);
+  }
+  // The rebuild, one small step per `yield`: the same features, the same
+  // order, the same triangles and so the same bytes as the one-piece build it
+  // replaced (proxyHash compares them), only interruptible.
+  function* proxyGeometry(job) {
+    const map=job.map,style=job.style,T=window.THREE,S=window.slopes,seen=new Set();
     const authored=window.APARTMENTS?.on?window.slopesApartments?.data?.buildings||[]:[];
-    const ids=new Set(authored.map(b=>b.id)),rings=authored.map(b=>b.footprint?.ring).filter(Boolean);
-    const inside=(p,r)=>{let yes=false;for(let i=0,j=r.length-1;i<r.length;j=i++)if((r[i][1]>p[1])!==(r[j][1]>p[1])&&p[0]<(r[j][0]-r[i][0])*(p[1]-r[i][1])/(r[j][1]-r[i][1])+r[i][0])yes=!yes;return yes;};
+    const ids=new Set(authored.map(b=>b.id)),insideAuthored=footprintLookup(authored.map(b=>b.footprint?.ring).filter(Boolean));
+    yield;
     // The displayed base layer suppresses parent prisms with detailed parts,
     // and replaced prisms by id (see casterSources).
     const hidden=hiddenIds(style.find(l=>l.id==='buildings-3d')?.filter);
-    const features=buildings.filter(f=>!f.properties?.has_parts&&!hidden.has(f.properties?.id));
-    stats.shadowProxyHidden=buildings.filter(f=>!f.properties?.has_parts&&hidden.has(f.properties?.id)).length;
+    const features=[];let hiddenCount=0,n=0;
+    for(const f of buildings) {
+      if(!f.properties?.has_parts){if(hidden.has(f.properties?.id))hiddenCount++;else features.push(f);}
+      if(++n%1024===0)yield;
+    }
+    job.hidden=hiddenCount;
+    const trust=PROXY_PACE.trustLayerFilters&&window.maplibregl?.getVersion?.()==='5.24.0';
     for(const source of casterSources) {
       if(!map.getSource(source))continue;
       // Each visible layer with its own display filter: a part, deck or
       // detail that no layer draws does not cast.
       for(const l of style) {
-        if(l.type!=='fill-extrusion'||l.source!==source||l.layout?.visibility==='none')continue;
-        const o={};if(l['source-layer'])o.sourceLayer=l['source-layer'];if(l.filter)o.filter=l.filter;
-        try{features.push(...map.querySourceFeatures(source,o));}catch(e){const m='shadow proxy '+l.id+': '+e.message;if(!stats.failures.includes(m)){stats.failures.push(m);console.error('[city-lighting]',m);}}
+        if(l.type!=='fill-extrusion'||l.source!==source||l.visibility==='none')continue;
+        yield true;
+        const o={};if(l.sourceLayer)o.sourceLayer=l.sourceLayer;if(l.filter)o.filter=l.filter;
+        // Only the exact filter object the live layer draws with, which
+        // MapLibre validated when it was set.
+        if(trust&&o.filter&&map.getLayer?.(l.id)?.filter===o.filter)o.validate=false;
+        try{features.push(...map.querySourceFeatures(source,o));}catch(e){const m='shadow proxy '+l.id+': '+e.message;if(!(stats.failures??=[]).includes(m)){stats.failures.push(m);console.error('[city-lighting]',m);}}
+        yield;
       }
     }
+    // Triangles go straight into Float32 chunks: the bytes a Float32 copy of
+    // the old number array held, without the number array.
+    const CHUNK=9*1024,chunks=[];let chunk=null,used=0,length=0,sinceYield=0;
     const local=p=>{const v=S.toLocal(p[0],p[1],0);return new T.Vector2(v.x,v.y);};
-    const tri=(a,b,c,za,zb=za,zc=za)=>positions.push(a.x,a.y,za,b.x,b.y,zb,c.x,c.y,zc);
+    const tri=(a,b,c,za,zb=za,zc=za)=>{
+      if(!chunk||used===CHUNK){chunk=new Float32Array(CHUNK);chunks.push(chunk);used=0;}
+      chunk[used++]=a.x;chunk[used++]=a.y;chunk[used++]=za;
+      chunk[used++]=b.x;chunk[used++]=b.y;chunk[used++]=zb;
+      chunk[used++]=c.x;chunk[used++]=c.y;chunk[used++]=zc;
+      length+=9;sinceYield++;
+    };
     for(const f of features) {
       // Parts, stadium decks and the replacement passes carry `base`; the
       // outer ring carries `b`. Reading only `b` stood decks on the ground.
@@ -347,25 +512,120 @@
       // only a finite number counts; NaN would reach the GPU as geometry.
       const p=f.properties||{},num=v=>v==null||v===''||!isFinite(+v)?null:+v;
       const h=num(p.final_height)??num(p.h)??num(p.height)??0,base=num(p.b)??num(p.base)??num(p.min_height)??0;
-      if(!(h>base)||h<=0||ids.has(p.id)||ids.has(f.id))continue;
+      if(!(h>base)||h<=0||ids.has(p.id)||ids.has(f.id)){if(++n%256===0)yield;continue;}
       const polys=f.geometry?.type==='Polygon'?[f.geometry.coordinates]:f.geometry?.type==='MultiPolygon'?f.geometry.coordinates:[];
       for(const poly of polys) {
         const ring=poly[0];if(!ring?.length)continue;
         const key=[p.id??f.id,base,h,ring[0].join(','),ring.length].join('|');if(seen.has(key))continue;seen.add(key);
         const centre=ring.slice(0,-1).reduce((v,p)=>[v[0]+p[0]/(ring.length-1),v[1]+p[1]/(ring.length-1)],[0,0]);
-        if(rings.some(r=>inside(centre,r)))continue; // actual authored mesh casts instead
+        if(insideAuthored(centre))continue; // actual authored mesh casts instead
         const contours=poly.map(r=>r.slice(0,-1).map(local));
         const flat=contours.flat(),faces=T.ShapeUtils.triangulateShape(contours[0],contours.slice(1));
         for(const face of faces)tri(...face.map(i=>flat[i]),h);
         for(const contour of contours)for(let i=0;i<contour.length;i++) {
           const a=contour[i],b=contour[(i+1)%contour.length];tri(a,b,a,base,base,h);tri(b,b,a,base,h,h);
         }
+        if(sinceYield>=256){sinceYield=0;yield;}
       }
     }
+    const positions=new Float32Array(length);let offset=0;
+    let minX=Infinity,minY=Infinity,minZ=Infinity,maxX=-Infinity,maxY=-Infinity,maxZ=-Infinity;
+    for(let i=0;i<chunks.length;i++) {
+      const count=Math.min(CHUNK,length-offset),part=chunks[i];positions.set(part.subarray(0,count),offset);
+      for(let j=0;j<count;j+=3) {
+        const x=part[j],y=part[j+1],z=part[j+2];
+        if(x<minX)minX=x;if(y<minY)minY=y;if(z<minZ)minZ=z;if(x>maxX)maxX=x;if(y>maxY)maxY=y;if(z>maxZ)maxZ=z;
+      }
+      offset+=count;chunks[i]=null;yield;
+    }
+    // Three sorts even an unculled mesh by its bounding-sphere centre, and
+    // computes a missing sphere on the first frame that draws it: a scan of
+    // the whole buffer inside the first shadow render after the commit. The
+    // same sphere (box centre, farthest vertex), computed here in slices.
+    if(T.Sphere&&T.Vector3) {
+      const cx=length?(minX+maxX)/2:0,cy=length?(minY+maxY)/2:0,cz=length?(minZ+maxZ)/2:0;let r2=0;
+      for(let s=0;s<length;s+=CHUNK) {
+        for(let i=s,e=Math.min(s+CHUNK,length);i<e;i+=3){const dx=positions[i]-cx,dy=positions[i+1]-cy,dz=positions[i+2]-cz,d=dx*dx+dy*dy+dz*dz;if(d>r2)r2=d;}
+        yield;
+      }
+      job.sphere=new T.Sphere(new T.Vector3(cx,cy,cz),Math.sqrt(r2));
+    }
+    return positions;
+  }
+  function proxyCommit(map,job,positions) {
+    proxyJob=null;stats.shadowProxyBuilding=false;
+    // The style this build read was replaced under it (a context restore):
+    // keep the old proxy and build again from the new one.
+    if(map.style!==job.styleOwner){proxyDirty=true;return;}
+    const T=window.THREE;
     proxy?.geometry.dispose();proxy?.material.dispose();
-    const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+    const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.BufferAttribute(positions,3));
+    if(job.sphere)geometry.boundingSphere=job.sphere;
+    // A NEW Mesh, never new geometry on the old one: the sun shadow's cache
+    // key is the proxy's uuid (slopes.js updateSunShadows).
     proxy=new T.Mesh(geometry,new T.MeshBasicMaterial());proxy.frustumCulled=false;proxy.visible=false;
-    stats.shadowProxyTriangles=positions.length/9;map.triggerRepaint();
+    proxySigBuilt=job.signature;proxyInputs=job.inputs;
+    stats.shadowProxyRebuilds=(stats.shadowProxyRebuilds||0)+1;stats.shadowProxyHidden=job.hidden;
+    stats.shadowProxyTriangles=positions.length/9;stats.shadowProxyLastBuildMs=proxyNow()-job.started;stats.shadowProxyLastSlices=job.slices+1;
+    map.triggerRepaint();
+  }
+  // The style's layers in draw order, read off MapLibre's live layer objects
+  // (id, type, source, sourceLayer, filter, visibility: the fields proxyKey
+  // already compares). Custom layers are skipped, as getStyle() skips them.
+  // Until 2026-09-28 this was map.getStyle().layers, a full serialise and deep
+  // clone of every layer, the authored hide clauses included, on every
+  // rebuild. null while there is no loaded style (getStyle()'s undefined).
+  function proxyStyleLayers(map) {
+    const style=map.style;
+    if(!style||(typeof style._loaded==='boolean'?!style._loaded:!map.getStyle?.()))return null;
+    if(typeof map.getLayersOrder!=='function'||typeof map.getLayer!=='function')return map.getStyle()?.layers.map(l=>({id:l.id,type:l.type,source:l.source,sourceLayer:l['source-layer'],filter:l.filter,visibility:l.layout?.visibility}))||null;
+    const layers=[];
+    for(const id of map.getLayersOrder()){const l=map.getLayer(id);if(l&&l.type!=='custom')layers.push(l);}
+    return layers;
+  }
+  // The authored-footprint test, as a lookup built once per rebuild. Each
+  // ring is filed under every PROXY_GRID_DEG cell its bounding box touches, so
+  // a caster's centre is tested only against the rings of its own cell: the
+  // same even-odd test on the same rings, the same answer. Until 2026-09-28
+  // every caster polygon was tested against EVERY authored ring: 0.35-0.55 s
+  // per rebuild on the core catalogue, 2.2-7.1 s once Riverside's 353 rings
+  // join (offline bench, node). The grid takes 3-9 ms.
+  // PROXY_GRID_DEG: cell size in degrees (~100 m). Speed only, never picture:
+  // any size gives the same answer. PROXY_GRID_MAX_CELLS: a ring whose box
+  // would span more cells than this (bad data, a campus-sized outline) is
+  // tested for every centre instead of being filed.
+  const PROXY_GRID_DEG=0.001,PROXY_GRID_MAX_CELLS=4096;
+  const insideRing=(p,r)=>{let yes=false;for(let i=0,j=r.length-1;i<r.length;j=i++)if((r[i][1]>p[1])!==(r[j][1]>p[1])&&p[0]<(r[j][0]-r[i][0])*(p[1]-r[i][1])/(r[j][1]-r[i][1])+r[i][0])yes=!yes;return yes;};
+  function footprintLookup(rings,cell=PROXY_GRID_DEG) {
+    // pad: a centre within rounding of a box edge still finds that ring
+    const cells=new Map(),wide=[],pad=1e-9,key=(i,j)=>i*1e6+j;
+    for(const r of rings) {
+      let w=Infinity,s=Infinity,e=-Infinity,n=-Infinity,finite=true;
+      for(const p of r){if(!(Number.isFinite(p[0])&&Number.isFinite(p[1])))finite=false;if(p[0]<w)w=p[0];if(p[0]>e)e=p[0];if(p[1]<s)s=p[1];if(p[1]>n)n=p[1];}
+      if(!r.length)continue; // the even-odd test never hits an empty ring
+      // A broken vertex can leave an odd crossing count outside the box:
+      // such a ring is tested for every centre, exactly as before.
+      if(!finite){wide.push(r);continue;}
+      const i0=Math.floor((w-pad)/cell),i1=Math.floor((e+pad)/cell),j0=Math.floor((s-pad)/cell),j1=Math.floor((n+pad)/cell);
+      if((i1-i0+1)*(j1-j0+1)>PROXY_GRID_MAX_CELLS){wide.push(r);continue;}
+      for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const k=key(i,j);let list=cells.get(k);if(!list)cells.set(k,list=[]);list.push(r);}
+    }
+    return p=>{
+      const list=cells.get(key(Math.floor(p[0]/cell),Math.floor(p[1]/cell)));
+      if(list)for(const r of list)if(insideRing(p,r))return true;
+      for(const r of wide)if(insideRing(p,r))return true;
+      return false;
+    };
+  }
+  // Debug only (parity checks): a hash of the current proxy's triangles.
+  // `ordered` follows the vertex order; `set` sums one hash per triangle, so
+  // two proxies with the same triangles in a different order hash the same.
+  function proxyHash() {
+    const a=proxy?.geometry.getAttribute('position')?.array;
+    if(!a)return null;
+    const u=new Uint32Array(a.buffer,a.byteOffset,a.length);let ordered=0x811c9dc5,set=0;
+    for(let t=0;t<u.length;t+=9){let h=0x811c9dc5;for(let k=t;k<t+9;k++){h=Math.imul(h^u[k],0x01000193);ordered=Math.imul(ordered^u[k],0x01000193);}set=(set+(h>>>0))>>>0;}
+    return {triangles:u.length/9,ordered:(ordered>>>0).toString(16),set:set.toString(16)};
   }
   function install(map) {
     const gl=map.painter.context.gl;
@@ -431,7 +691,15 @@
           if(pattern||minimal) {
             kind=pattern?'pattern-fragment':'solid-fragment';
             const packing=`float unpackRGBAToDepth(vec4 v){return dot(v,vec4(255.0/256.0/16777216.0,255.0/256.0/65536.0,255.0/256.0/256.0,255.0/256.0));}`;
-            source=replace(source,'void main()',`in vec3 v_cityPos; in vec3 v_cityNormal; in vec4 v_cityAlbedo;\n${uniforms}\n${packing}\n${glsl.replaceAll('texture2D(', 'texture(')}\nvoid main()`);
+            source=replace(source,'void main()',`in vec3 v_cityPos; in vec3 v_cityNormal; in vec4 v_cityAlbedo;\n${uniforms}\n${packing}\n${glsl.replaceAll('texture2D(', 'texture(')}\n${pattern&&patternFilter.compiled?patternFilterGlsl:''}\nvoid main()`);
+            if(pattern&&patternFilter.compiled) {
+              const read=(ab,pos)=>`texture(u_image,${pos})`;
+              const filtered=(ab,pos,v)=>`cityPatternTexel(u_image,${read(ab,pos)},${v},pattern_tl_${ab}/u_texsize,pattern_br_${ab}/u_texsize,u_texsize,cityPatternDist)`;
+              source=replace(source,'vec2 imagecoord=mod(v_pos_a,1.0);','float cityPatternDist=distance(u_eye,v_cityPos);vec2 imagecoord=mod(v_pos_a,1.0);');
+              source=replace(source,`vec4 color1=${read('a','pos')};`,`vec4 color1=${filtered('a','pos','v_pos_a')};`);
+              // The second read only matters while MapLibre crossfades two zooms.
+              source=replace(source,`vec4 color2=${read('b','pos2')};`,`vec4 color2=u_fade>0.0?${filtered('b','pos2','v_pos_b')}:${read('b','pos2')};`);
+            }
             // The glass code is a FACADE-atlas convention: opaque texels, and
             // alpha 191 reserved for glass (see glassRect). A texel below
             // OVERLAY_ALPHA is neither: it is a translucent ground overlay
@@ -514,7 +782,41 @@
     });
     // Bind two spare texture units only for an extrusion draw, then restore
     // them: Three and MapLibre both cache their own texture bindings.
-    const units=[gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)-2,gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)-1];
+    const textureUnits=gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+    const units=[textureUnits-2,textureUnits-1];
+    // Binding queries add WebGL traffic and can wait on Safari's GPU process.
+    // Three queries accompany each extrusion draw even though every binding
+    // change already passes through this context. Track the two borrowed units
+    // and the active unit, including texture disposal, then restore exactly
+    // what the other renderer left there. Context restoration reinstalls this
+    // adapter and seeds the state again; cleanup removes all three hooks.
+    const maxUnits=gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+    let activeTexture=gl.getParameter(gl.ACTIVE_TEXTURE);
+    const textureBindings=new Map();
+    for(const unit of units){
+      gl.activeTexture(gl.TEXTURE0+unit);
+      textureBindings.set(gl.TEXTURE0+unit,gl.getParameter(gl.TEXTURE_BINDING_2D));
+    }
+    gl.activeTexture(activeTexture);
+    wrap('activeTexture',native=>unit=>{
+      native(unit);
+      const value=unit>>>0;
+      if(value>=gl.TEXTURE0&&value<gl.TEXTURE0+maxUnits)activeTexture=value;
+    });
+    wrap('bindTexture',native=>(target,texture)=>{
+      native(target,texture);
+      if(target===gl.TEXTURE_2D&&textureBindings.has(activeTexture))textureBindings.set(activeTexture,texture);
+    });
+    wrap('deleteTexture',native=>texture=>{
+      native(texture);
+      for(const [unit,bound] of textureBindings)if(bound===texture)textureBindings.set(unit,null);
+    });
+    const binding=(pname)=>{
+      const tracked=pname===gl.ACTIVE_TEXTURE?activeTexture:textureBindings.get(activeTexture);
+      const state=window.GLSTATE;
+      if(state?.check)state.verify(gl,'city.'+pname,pname,tracked);
+      return state?.on===false?gl.getParameter(pname):tracked;
+    };
     function draw(native,args) {
       if(current?.poolLift){
         gl.uniform1f(current.poolLift,depthPool(painter.id)?(window.NIGHT_TUNE?.POOL_ELEVATION_M??0.25):0);
@@ -545,10 +847,10 @@
         p.tile??=new THREE.Matrix4();p.tile.fromArray(p.projection).premultiply(frame.inverse);
         gl.uniformMatrix4fv(u.u_cityTileToLocal,false,p.tile.elements);p.tileDirty=false;
       }
-      const active=gl.getParameter(gl.ACTIVE_TEXTURE),old=[];
+      const active=binding(gl.ACTIVE_TEXTURE),old=[];
       try {
         for(let i=0;i<2;i++) {
-          gl.activeTexture(gl.TEXTURE0+units[i]);old[i]=gl.getParameter(gl.TEXTURE_BINDING_2D);
+          gl.activeTexture(gl.TEXTURE0+units[i]);old[i]=binding(gl.TEXTURE_BINDING_2D);
           gl.bindTexture(gl.TEXTURE_2D,frame.textures[i]);gl.uniform1i(u['u_sunShadow'+i],units[i]);
         }
         stats.draws++;return native(...args);
@@ -558,20 +860,33 @@
       }
     }
     for(const name of ['drawElements','drawArrays'])wrap(name,native=>(...args)=>draw(native,args));
+    const imageMethods={};
     for(const method of ['addImage','updateImage']) {
+      imageMethods[method]=map[method];
       const native=map[method].bind(map);
       map[method]=function(id,image,...rest){
         return native(id,bandGlassImage(id,image),...rest);
       };
     }
-    map.on('remove',()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;});
+    // The restored map owns a new painter, while the WebGL JS object survives.
+    // Remove old hooks/resources before installing on that replacement painter.
+    const cleanup=()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;for(const [name,native] of Object.entries(imageMethods))map[name]=native;if(!gl.isContextLost())gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;gl.__cityLighting=false;};
+    const removed=()=>{map.off('webglcontextlost',lost);cleanup();};
+    const lost=()=>{map.off('remove',removed);cleanup();map.once('webglcontextrestored',()=>install(map));};
+    map.once('webglcontextlost',lost);map.once('remove',removed);
   }
-  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,
+  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,proxyHash,patternFilter,
     setBuildings(features){buildings=features;proxyDirty=true;},
     frame(U,inverse,textures){
       // Before either renderer draws. Materials retain this shared U object.
       U.u_citySkyFill??={value:new THREE.Vector2()};
       U.u_citySkyFill.value.set(balance.skyFill,balance.roofFill);
+      U.u_cityPatternFilter??={value:new THREE.Vector4()};
+      // The shader's loops were sized from maxTaps when it compiled; a live
+      // change can lower the count, not raise it past that.
+      U.u_cityPatternFilter.value.set(patternFilter.on?1:0,patternFilter.nearM,patternFilter.fullM,Math.max(1,patternFilter.maxTaps));
+      U.u_cityPatternFilterB??={value:new THREE.Vector4()};
+      U.u_cityPatternFilterB.value.set(patternFilter.maxSpacing,0,0,0);
       U.u_cityNight??={value:new THREE.Vector4()};
       const night=window.CityNight,t=night?.tune;
       U.u_cityNight.value.set(t?.on?night.lamps(window.__todCurrentP??.5):0,t?.emissionGain??1,...(t?.glassThreshold??[.26,.48]));

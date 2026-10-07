@@ -97,6 +97,12 @@
     lod: null,
     minzoom: 14,
     twoSided: true, // closed visual envelopes remain opaque from either flight direction
+    // DRAW ONLY THE BUILDINGS A CAMERA CAN SEE. Not a taste value: the
+    // picture is byte-identical either way (see cullFor below). `on` is the
+    // switch (?aptcull=0 for an A/B, or flip it live); `marginM` pads every
+    // building's bounding sphere so float rounding can never cull a building
+    // that is a hair inside the view.
+    cull: { on: q.get('aptcull') !== '0', marginM: 1 },
     fetchTimeoutMs: 45000,
     // Geometry density per graphics preset (0..1) — the sign dots and the
     // window reveals go first when it drops; the massing never does.
@@ -124,7 +130,11 @@
     // Below this density the window reveals go; below this, the sign dots too.
     revealsAbove: 0.75,
     signsAbove: 0.6,
-    balconies: true,      // draw balcony slabs and rails (false: flush walls)
+    // draw balcony slabs and rails (false: flush walls). A phone's `lighter`
+    // tier — the one after the full phone city has died once — gives them up
+    // (js/mobile.js LITE.tiers, budget.aptBalconies: ~a quarter of the
+    // authored triangles). Every other profile keeps them.
+    balconies: !(window.LITE_PROFILE && window.LITE_PROFILE.budget && window.LITE_PROFILE.budget.aptBalconies === false),
     signs: true,          // draw the dot-matrix name signs
     deck: true,           // draw the podium roof deck's pool, turf, screen, rail
     reveals: true,        // draw the four strips that join a window to the wall plane
@@ -203,6 +213,8 @@
     // Recesses (a band's `inset`): the soffit over a recess and the floor of
     // one that starts above the block's foot are drawn; `insetReturns` draws
     // the side walls where a recess ends against a face that is not recessed.
+    // These are the defaults; one band may overrule them for itself with
+    // `inset: { d, soffit, floor, returns }` (see "recesses" below).
     insetSoffit: true,
     insetReturns: true,
     // The fixtures that stand OFF a wall (2026-09-08): fins and piers (a
@@ -225,12 +237,70 @@
     arch: { segments: 20, trimProud: 0.035 },
     mullion: { w: 0.08, proud: 0.04 },
     facets: { w: 3, h: 3, depth: 0.3, backingGap: 0.01 },
+    // ON-DEMAND AREAS. Authored buildings far from campus are grouped into
+    // areas in data/apartments/index.json (`areas`: name -> { bbox,
+    // collections }). The core, every file listed outside `areas`, loads at
+    // start exactly as before, and the veil waits only for it. An area is
+    // fetched and built when the camera comes within `loadM` of its box
+    // (metres from the nearer of the eye and the map centre to the nearest
+    // edge of the box), or when something asks for it with
+    // slopesApartments.areas.ensureAt([lng, lat]), the hook for a panel that
+    // is about to fly to a home there. Until then the map draws there what
+    // it drew before the area was authored (the outer ring's distance cull
+    // leaves most of Riverside's small footprints empty).
+    // A phone drops an area again past `unloadM` (well beyond loadM, so a
+    // camera on the boundary does not load and drop it over and over) and
+    // forgets its parsed files too; a desktop keeps what it has built.
+    //
+    // Why (2026-09-24): Riverside alone was 236 buildings, ~620k triangles
+    // and 7.6 MB of JSON added to every visitor's start, 5.6 km from the UT
+    // Tower where the opening camera never looks. `?areas=eager` loads every
+    // area at start, the old behaviour, for an A/B.
+    areas: {
+      eager: q.get('areas') === 'eager',
+      sliceMs: 50,
+      // The slice budget WHILE AN AREA ATTACHES (the reveal, masks and filter
+      // changes), separate from the build's sliceMs. The attach is a one-off
+      // fill-in over a few frames, not the steady 60 Hz a moving camera needs,
+      // so it can afford longer slices: fewer yields means the fill-in finishes
+      // sooner. Measured 2026-09-30 (NVIDIA RTX 3050 Ti, 1280x680 DPR1.5, vsync
+      // on): at 50 ms the fill-in ran ~2.7 s (30-ish medium frames); at 130 ms
+      // it runs close to the unsliced ~1.2 s while the worst attach frame stays
+      // well under a second — far below the ~2.3 s single stall the unsliced
+      // path costs. Raise it and the fill-in shortens but the worst attach
+      // frame grows toward the unsliced stall; lower it for a smoother fill-in.
+      attachSliceMs: 300,
+      geometryChunkTris: 24000,
+      sliced: q.get('areaslice') !== '0',
+      yieldMaxMs: 100,
+      // HOW MANY GEOMETRY CHUNKS REVEAL PER RENDERED FRAME. A chunk's GPU
+      // buffers upload the first frame its mesh is visible, so revealing every
+      // chunk in one frame is the whole synchronous stall back again (~1.8-2.3 s
+      // for Riverside's 26 chunks). Revealing ONE per frame — the first cut —
+      // spent 26 forced frame waits just to fill in, which turned a 2.7 s
+      // fill-in into 10 s. This reveals a batch per frame: the uploads still
+      // spread over a few frames (the stall stays small) but the fill finishes
+      // in a handful of frames, not one per chunk. 8 keeps Riverside's worst
+      // attach frame well under a second — far below the unsliced stall — while
+      // bringing the fill-in near the unsliced time. Lower it if a slower GPU
+      // shows a stall on the reveal; raise it to fill in faster.
+      revealChunksPerFrame: 8,
+      loadM: 1800,        // the intro's first eye is ~2.3 km from Riverside's box: this keeps the start clean
+      checkMs: 400,       // a moving camera is re-checked at most this often
+      pinMs: 20000,       // after ensureAt, how long a phone keeps an area the camera has not reached yet
+      phone: { loadM: 1200, unloadM: 3000, unload: true, dropSpecs: true },
+    },
   };
   window.APARTMENTS = APTS;
 
   // ── state ────────────────────────────────────────────────────────────
   let _map = null, _group = null, _data = null, _lastDetail = null;
   let _filtered = false;
+  // The catalog that loads at start, and the on-demand areas (APTS.areas).
+  // `_data` is always the core plus every area whose mesh is attached, so
+  // the filters, labels and shadow proxy that read it follow the meshes.
+  let _core = null;
+  const _areas = new Map();
   const _clauses = {};              // layer id -> the clause this file put on it (stripped out again on switch-off)
   /**
    * The density in force right now: APTS.byPreset for the live graphics preset,
@@ -955,7 +1025,8 @@
     // is odd — the diagonal weave of a slot that changes hands bay to bay and
     // row to row (Villas on Rio's glass slot at ±0.55 m off the bay centre)
     const flip = !!win.flip;
-    const frame = win.frame && win.frame.w > 0 ? win.frame : null;
+    const frame = win.frame && win.frame.w > 0 &&
+      (!win.frame.minDetail || win.frame.minDetail <= detailNow()) ? win.frame : null;
     // `spandrel: { h, tone }` under every opening, or per opening as an
     // `offsets` entry's third element (`null` = none) — see tileFace
     const spandrel = win.spandrel && win.spandrel.h > 0 ? win.spandrel : null;
@@ -979,7 +1050,7 @@
             const T = win.accent.tones, k = Math.floor(h01(key, 'accent', ci, storey) * T.length) % T.length;
             accent = Object.assign({}, win.accent, { tone: T[k] });
           }
-          const room=window.CityNight?.tune.on?window.CityNight.room(key,storey,ci):{lit:h01(key,'lit',fi,ci,pi)<APTS.nightLit};
+          const room=window.CityNight?.tune.on?window.CityNight.room(key,storey,ci,pi):{lit:h01(key,'lit',fi,ci,pi)<APTS.nightLit};
           out.push({ s0, s1, z0: zb, z1: zt, ...room, frame, spandrel: sp, arch: win.arch, mullion: win.mullion, head: win.head || null, accent });
         }
       }
@@ -1149,7 +1220,7 @@
       const room=window.CityNight.room(key,fi,i);
       // Shop windows and amenity rooms have their own operating pattern.
       const occ=spec.nightOccupancy??(ctx.z0<window.CityNight.tune.storefrontMaxBase?window.CityNight.tune.commercialOccupancy:null);
-      if(occ!=null)room.lit=window.CityNight.hash(key,'public-room',fi,Math.floor(i/2))<occ;
+      if(occ!=null)room.lit=window.CityNight.hash(key,'public-room',fi,window.CityNight.tune.windowScatter ? i : Math.floor(i/2))<occ;
       if(spec.nightTone)room.nightTone=spec.nightTone;
       return room;
     };
@@ -1848,6 +1919,15 @@
   // stand on the face line under the soffit: `{ pitch | at: [s...], w, d,
   // tone }`, one box each from floor to soffit.
   //
+  // A band may switch its own closing surfaces (2026-10-05): `inset: { d,
+  // soffit: false, floor: false, returns: false }`, each one optional and
+  // each overruling the layer default above for that band alone; `returns`
+  // may also be `{ lo, hi }` for one end. The case it is for: ONE recessed
+  // glass wall that a height slice cuts into two stacked bands. Each band
+  // closed its own top and foot, so a ceiling plate ran across the middle
+  // of the glass; the lower band says `soffit: false`, the upper one
+  // `floor: false`, and the wall reads as one again.
+  //
   // The corner arithmetic, for wall i leaving corner O with direction di
   // and outward normal ni after wall p (dp, np), both recessed (d, dN): the
   // point on i's offset line that lies on p's is s along the wall with
@@ -1858,6 +1938,8 @@
   // and the return closes it there.
   const insetOf = band => band && band.inset != null ? (typeof band.inset === 'number' ? band.inset : (band.inset.d || 0)) : 0;
   const insetSpec = band => (band && typeof band.inset === 'object') ? band.inset : {};
+  /** a band's own switch when it gives one, the layer default when it does not */
+  const bandSwitch = (own, dflt) => own == null ? dflt : !!own;
   const sameBand = (a, b) => Math.abs(a.z0 - b.z0) < 1e-3 && Math.abs(a.z1 - b.z1) < 1e-3;
   /** how far the recessed wall's end sits from this end of the piece, and whether a return closes it there */
   function recessEnd(end, band, d, high) {
@@ -1887,16 +1969,13 @@
       tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);
     }
     // the returns: a wall across the recess at either end, where nothing recessed meets it
-    if (APTS.insetReturns) {
-      if (lo.ret) B.quad(W.at(0, -lo.from, z0), W.at(lo.s, -d, z0), W.at(lo.s, -d, z1), W.at(0, -lo.from, z1), tone, T);
-      if (hi.ret) B.quad(W.at(len, -hi.from, z0), W.at(len - hi.s, -d, z0), W.at(len - hi.s, -d, z1), W.at(len, -hi.from, z1), tone, nT);
-    }
+    const R = IS.returns, endwise = R != null && typeof R === 'object';
+    if (lo.ret && bandSwitch(endwise ? R.lo : R, APTS.insetReturns)) B.quad(W.at(0, -lo.from, z0), W.at(lo.s, -d, z0), W.at(lo.s, -d, z1), W.at(0, -lo.from, z1), tone, T);
+    if (hi.ret && bandSwitch(endwise ? R.hi : R, APTS.insetReturns)) B.quad(W.at(len, -hi.from, z0), W.at(len - hi.s, -d, z0), W.at(len - hi.s, -d, z1), W.at(len, -hi.from, z1), tone, nT);
     // the soffit at the top, the floor at the foot when the band starts above the block's foot
-    if (APTS.insetSoffit) {
-      const ring = zz => [W.at(0, 0, zz), W.at(len, 0, zz), W.at(len - hi.s, -d, zz), W.at(lo.s, -d, zz)];
-      B.polygon(ring(z1), tone, [0, 0, -1], 'xy');
-      if (opts.blockZ0 == null || z0 > opts.blockZ0 + 0.01) B.polygon(ring(z0), tone, [0, 0, 1], 'xy');
-    }
+    const ring = zz => [W.at(0, 0, zz), W.at(len, 0, zz), W.at(len - hi.s, -d, zz), W.at(lo.s, -d, zz)];
+    if (bandSwitch(IS.soffit, APTS.insetSoffit)) B.polygon(ring(z1), tone, [0, 0, -1], 'xy');
+    if (bandSwitch(IS.floor, APTS.insetSoffit) && (opts.blockZ0 == null || z0 > opts.blockZ0 + 0.01)) B.polygon(ring(z0), tone, [0, 0, 1], 'xy');
     // the columns, on the face line
     const C = IS.columns || band.columns;
     if (C) {
@@ -2135,6 +2214,7 @@
     const ring = spec.footprint.ring;
     const obb = spec.frame && spec.frame.obb ? spec.frame.obb : obbOf(ring);
     const F = frameFor(obb);
+    window.WallPatterns.register(P,spec,F);
     window.CityNight?.registerFixtures(spec,F);
     const ringUV = ring.slice(0, ring.length - 1).map(F.toUV);
     console.log('[slopes-apartments] ' + spec.name + ': obb L=' + F.L.toFixed(1) + ' W=' + F.W.toFixed(1) + ', +u at bearing ' + F.bearing.toFixed(1) + '°');
@@ -2147,6 +2227,8 @@
 
     for (const blk of spec.blocks || []) {
       yield;                          // build() may pause here (time-sliced)
+      // Optional ornament only; essential massing omits minDetail.
+      if ((blk.minDetail || 0) > detailNow()) continue;
       count.blocks++;
       const bands = blk.bands || [];
       const zTop = blk.z1;
@@ -2313,6 +2395,7 @@
     // Small authored structural meshes: sloping canopies, curved rails and
     // brackets that cannot be represented honestly by stacked extrusion boxes.
     for (const mesh of spec.detailMeshes || []) {
+      if ((mesh.minDetail || 0) > detailNow()) continue;
       const col = P[mesh.tone], vertices = mesh.vertices;
       const points = vertices.map(p => F.at(...p));
       for (const tri of mesh.triangles || []) {
@@ -2369,7 +2452,7 @@
       filtered.len=len;filtered.z0=z0;filtered.z1= z1;
       let geom,mat;
       try {
-        const T=window.THREE,S=window.slopes,fb=S.build();
+        const T=window.THREE,S=window.slopes,fb=S.build(4);
         faceQuad(fb,W,0,len,z0,z1,0,rects[0][4]);
         geom=fb.geometry();
         geom.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));
@@ -2438,48 +2521,201 @@
     return result;
   }
 
-  async function build() {
+  // ══════════════════════════════════════════════════════════════════════
+  //  DRAW ONLY WHAT EACH CAMERA CAN SEE (APTS.cull)
+  // ══════════════════════════════════════════════════════════════════════
+  // On a desktop every authored building lands in ONE geometry (about 3.08 M
+  // triangles, 79 % of the three.js layer), drawn as one mesh. three.js culls
+  // a mesh by its bounding sphere, and this one covers the whole campus, so
+  // every vertex went through the uber-shader every frame — West Campus
+  // behind the camera included — and again in both sun-shadow cascades on
+  // every frame that re-renders them, the 480 m near one included. Measured
+  // 2026-09-27 on the AMD integrated GPU: the layer was 16.3 of 32.5 ms of
+  // GPU per boost frame, and removing the apartments outright had cut GPU by
+  // 35 % while 56 % fewer pixels cut 15 %: the cost is vertices, not pixels.
+  //
+  // The geometry stays ONE buffer, never reordered. build() records where
+  // each building's triangles start in the index, and each such range gets
+  // its own bounding sphere. Before every renderer.render — the main pass
+  // and each shadow cascade — the scene's onBeforeRender (three r159 calls it
+  // after the matrix updates and before it walks the scene, so it sees the
+  // camera that pass uses) writes the ranges inside that camera's frustum as
+  // geometry.groups, in index order, adjacent ones merged. Every group shares
+  // the object, the material and the sort depth, so three's stable painter
+  // sort keeps them in the old single draw's slot, in the old order. What is
+  // drawn is the old triangles minus ranges wholly outside the frustum, which
+  // could not have produced a fragment: the frame and both shadow maps are
+  // byte-identical. A phone's chunked build keeps the old path.
+  //
+  // Measured 2026-09-27, AMD integrated GPU, 1920x948 canvas, 3 interleaved
+  // pairs against main: in the Shift+W boost the main pass drew 1.85 M
+  // triangles instead of 3.55 M and the near shadow cascade 0.86 M instead of
+  // 3.74 M; the three.js layer's GPU time fell from 19.5 to 13.7 ms a frame
+  // (mean), the whole frame's from 32.6 to 28.4 ms (median), and the flight
+  // drew 242 frames per 10 s instead of 213. Standing at the Tower draws 30 %
+  // fewer triangles, at The Standard 44 %, from Riverside 95 %; the opening
+  // pose sees every building and gains nothing.
+  const CULL_REVISION = '159';          // the r159 internals named above; any other version keeps one plain draw
+  const _cullMeshes = new Set();
+  let _cullScene = null, _cullFrustum = null, _cullMatrix = null, _cullBroken = false;
+  const _cullStats = { passes: 0, ranges: 0, drawnRanges: 0, drawnTriangles: 0, totalTriangles: 0 };
+
+  function cullAvailable(B, T, S) {
+    return !!(APTS.cull && !B.geometries && T && T.REVISION === CULL_REVISION && T.Frustum && T.Matrix4 && S && S.scene);
+  }
+  /** Bounding sphere [cx, cy, cz, r] of every vertex the index range [s, e) can reach. */
+  function rangeSphere(idx, pos, s, e, margin) {
+    // Each building's triangles only point at vertices pushed for it, so the
+    // index range's min..max vertex span is exactly (or a superset of) them.
+    let lo = Infinity, hi = -1;
+    for (let k = s; k < e; k++) { const v = idx[k]; if (v < lo) lo = v; if (v > hi) hi = v; }
+    let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+    for (let v = lo * 3, end = hi * 3 + 3; v < end; v += 3) {
+      const x = pos[v], y = pos[v + 1], z = pos[v + 2];
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (z < z0) z0 = z; if (z > z1) z1 = z;
+    }
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2;
+    let r2 = 0;
+    for (let v = lo * 3, end = hi * 3 + 3; v < end; v += 3) {
+      const dx = pos[v] - cx, dy = pos[v + 1] - cy, dz = pos[v + 2] - cz, d = dx * dx + dy * dy + dz * dz;
+      if (d > r2) r2 = d;
+    }
+    return [cx, cy, cz, Math.sqrt(r2) + margin];
+  }
+  function fullGroups(mesh) {
+    const c = mesh.userData.cull, groups = mesh.geometry.groups;
+    groups.length = 0;
+    const g = c.pool[0] || (c.pool[0] = { start: 0, count: 0, materialIndex: 0 });
+    g.start = 0; g.count = c.total; groups.push(g);
+  }
+  function shownInScene(o) { let top = o; for (; o; o = o.parent) { if (!o.visible) return false; top = o; } return top === _cullScene; }
+  function cullFor(camera) {
+    const on = APTS.cull.on && !_cullBroken;
+    let planes = null;
+    if (on) {
+      _cullMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      planes = _cullFrustum.setFromProjectionMatrix(_cullMatrix).planes;
+    }
+    let ranges = 0, drawnRanges = 0, drawn = 0, total = 0;
+    for (const mesh of _cullMeshes) {
+      const c = mesh.userData.cull;
+      if (!on) { fullGroups(mesh); continue; }
+      if (!shownInScene(mesh)) continue;            // not drawn by this pass: leave it be
+      const groups = mesh.geometry.groups, S = c.sph, e = mesh.matrixWorld.elements, sc = mesh.matrixWorld.getMaxScaleOnAxis();
+      groups.length = 0;
+      let run = null, used = 0;
+      for (let i = 0; i < c.n; i++) {
+        const j = i * 4, x = S[j], y = S[j + 1], z = S[j + 2], r = -S[j + 3] * sc;
+        const wx = e[0] * x + e[4] * y + e[8] * z + e[12], wy = e[1] * x + e[5] * y + e[9] * z + e[13], wz = e[2] * x + e[6] * y + e[10] * z + e[14];
+        let inside = true;
+        for (let p = 0; p < 6; p++) { const P = planes[p], n = P.normal; if (n.x * wx + n.y * wy + n.z * wz + P.constant < r) { inside = false; break; } }
+        if (!inside) { run = null; continue; }
+        drawnRanges++; drawn += c.count[i];
+        if (run && run.start + run.count === c.start[i]) { run.count += c.count[i]; continue; }
+        run = c.pool[used] || (c.pool[used] = { start: 0, count: 0, materialIndex: 0 });
+        run.start = c.start[i]; run.count = c.count[i]; groups.push(run); used++;
+      }
+      ranges += c.n; total += c.total;
+    }
+    Object.assign(_cullStats, { passes: _cullStats.passes + 1, ranges, drawnRanges, drawnTriangles: drawn / 3, totalTriangles: total / 3 });
+  }
+  function watchCull(mesh) {
+    const T = window.THREE, sc = window.slopes.scene;
+    if (_cullScene !== sc) {
+      _cullFrustum = _cullFrustum || new T.Frustum();
+      _cullMatrix = _cullMatrix || new T.Matrix4();
+      const prev = sc.onBeforeRender;
+      sc.onBeforeRender = function (renderer, scene, camera) {
+        if (_cullMeshes.size) {
+          try { cullFor(camera); }
+          catch (e) {
+            // Never leave a half-written group list: draw everything from now on.
+            _cullBroken = true; console.error('[slopes-apartments] cull disabled', e);
+            for (const m of _cullMeshes) fullGroups(m);
+          }
+        }
+        return prev.apply(this, arguments);
+      };
+      _cullScene = sc;
+    }
+    _cullMeshes.add(mesh);
+    mesh.geometry.addEventListener('dispose', () => _cullMeshes.delete(mesh));
+  }
+
+  // `specs` defaults to the catalog; `area` (an APTS.areas entry) builds that
+  // area's own group without resetting the core's counts, failures or list.
+  async function build(specs, area) {
     const T = window.THREE, S = window.slopes;
     const t0 = performance.now();
-    resetCount();
-    _failed.clear();
-    const B = S.build();
+    const gen = area ? area.gen : 0;
+    const before = area ? { tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k]])), names: count.names.length } : null;
+    const tallySince = () => ({ tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k] - before.tally[k]])), names: count.names.slice(before.names) });
+    if (!area) { resetCount(); _failed.clear(); }
+    // A phone builds in chunks (js/mobile.js LITE.budget.geometryChunkTris,
+    // js/slopes.js buildChunked): same triangles, a fraction of the peak.
+    const BUD = (window.LITE_PROFILE && window.LITE_PROFILE.budget) || {};
+    const chunkTris = area && APTS.areas.sliced ? Math.min(BUD.geometryChunkTris || Infinity, APTS.areas.geometryChunkTris) : BUD.geometryChunkTris;
+    const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices) : S.build();
     B.filtered=[];
     B.filterPending=[];
-    _built = [];
+    const built = area ? [] : (_built = []);
+    const cancelled = () => area && area.gen !== gen;
+    const discard = () => {
+      untally(tallySince());
+      for (const geometry of B.geometries ? B.geometries() : [B.geometry()]) geometry.dispose();
+      for (const mesh of B.filtered) { mesh.geometry.dispose(); mesh.userData.disposeFacade(); }
+    };
     let sliceT0 = performance.now(), slices = 1;
     // Yield through a MessageChannel, not setTimeout: a hidden or background
     // tab clamps setTimeout to ~1 s per call, and measured 2026-09-16 a
     // rebuild after load (6 ms slices) took 58 MINUTES that way. A message
     // task is not clamped. And when nothing is being watched (the veil is up,
     // or the tab is hidden) the slices are long — there is no frame to protect.
-    const yieldTask = () => new Promise(r => { const ch = new MessageChannel(); ch.port1.onmessage = () => r(); ch.port2.postMessage(0); });
+    const yieldTask = () => new Promise(resolve => {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => { channel.port1.close(); channel.port2.close(); resolve(); };
+      channel.port2.postMessage(0);
+    });
     const pause = async () => {
       const quiet = document.getElementById('veil') || document.hidden;
       const budget = quiet ? APTS.buildSliceMs : APTS.buildSliceMsLive;
       if (performance.now() - sliceT0 < budget) return;
-      await yieldTask();
+      await (area && APTS.areas.sliced ? yieldAreaFrame() : yieldTask());
       sliceT0 = performance.now(); slices++;
     };
-    for (const spec of _data.buildings) {
+    // APTS.cull: where each building's triangles start in the index (the
+    // builder writes three indices per triangle and nothing else).
+    const cull = cullAvailable(area && APTS.areas.sliced && !BUD.geometryChunkTris && !BUD.packVertices ? {} : B, T, S) ? [] : null;
+    for (const spec of specs || _data.buildings) {
+      // An area whose build was superseded (dropped, or the core rebuilding)
+      // stops here and takes back what it had counted.
+      if (cancelled()) { discard(); return null; }
+      if (cull) cull.push(B.triangles * 3);
       const pendingStart=B.filterPending.length;
       B.allowFilter=APTS.facadeFilter.on&&APTS.facadeFilter.buildings.includes(spec.name)&&!!window.FacadeFilter;
       try {
         const it = buildingOne(B, spec);          // generator: yields per block
         let r = it.next();
-        while (!r.done) { await pause(); r = it.next(); }
-        _built.push(r.value);
+        while (!r.done) {
+          await pause();
+          if (cancelled()) { discard(); return null; }
+          r = it.next();
+        }
+        built.push(r.value);
       }
-      catch (e) { B.filterPending.length=pendingStart; console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); }
+      catch (e) { B.filterPending.length=pendingStart; console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); if (area) area.failed.push(spec.id || spec.name); }
       await pause();
     }
-    count.buildSlices = slices;
-    let geom;
+    if (cancelled()) { discard(); return null; }
+    if (cull) cull.push(B.triangles * 3);   // anything after this is a range of its own
+    const C = area ? {} : count;       // an area's slice and filter tallies are its own
+    C.buildSlices = slices;
+    let geom, mat;
     try {
-      count.filterCandidates=B.filterPending.length;
+      C.filterCandidates=B.filterPending.length;
       const plan=window.FacadeFilter?.planFaces({faces:B.filterPending,options:APTS.facadeFilter});
-      count.filterResolutionLevel=plan?.resolutionLevel??0;
-      count.filterPlannedBytes=plan?.bytes??0;
+      C.filterResolutionLevel=plan?.resolutionLevel??0;
+      C.filterPlannedBytes=plan?.bytes??0;
       if(plan)for(const entry of plan.faces) {
         addFilteredFace(B,entry.face,entry.options);
         // Release authored cell staging as soon as it has been rasterized.
@@ -2487,19 +2723,50 @@
         await pause();
       }
       B.filterPending.length=0;
-      count.filteredFaces=B.filtered.length;
+      C.filteredFaces=B.filtered.length;
       B.filtered=batchFiltered(B.filtered);
-      count.filteredBatches=B.filtered.length;
-      geom = B.geometry();
-      const mesh = new T.Mesh(geom, S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide}));
-      mesh.name = 'apartments';
+      C.filteredBatches=B.filtered.length;
+      geom = B.geometries ? B.geometries() : [B.geometry()];
+      // One bounding sphere per building's index range (APTS.cull). Any
+      // triangles after the last building are a range of their own.
+      const geometryRanges = [];
+      let indexOffset = 0;
+      for (const geometry of geom) {
+        let ranges = null;
+        if (cull && geometry.index && geometry.attributes && geometry.attributes.position) {
+          const index = geometry.index.array, positions = geometry.attributes.position.array;
+          const bounds = [0, ...cull.filter(bound => bound > indexOffset && bound < indexOffset + index.length).map(bound => bound - indexOffset), index.length];
+          const start = [], counts = [], spheres = [];
+          for (let range = 0; range + 1 < bounds.length; range++) {
+            const first = bounds[range], end = Math.min(bounds[range + 1], index.length);
+            if (end <= first) continue;
+            start.push(first); counts.push(end - first); spheres.push(...rangeSphere(index, positions, first, end, APTS.cull.marginM));
+            await pause();
+          }
+          ranges = { n: start.length, start, count: counts, sph: Float64Array.from(spheres), total: index.length, pool: [] };
+        }
+        geometryRanges.push(ranges);
+        indexOffset += geometry.index ? geometry.index.count : 0;
+        await pause();
+      }
+      mat = S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide});
       const g = new T.Group();
       g.userData.lod = APTS.lod;
       g.userData.minzoom = APTS.minzoom;
-      g.name = 'slopes-apartments';
-      _builtFrame = S.frames;
-      g.add(mesh);
+      g.name = area ? 'slopes-apartments-' + area.name : 'slopes-apartments';
+      if (!area) _builtFrame = S.frames;
+      geom.forEach((geometry, index) => {
+        const ranges = geometryRanges[index];
+        const mesh = new T.Mesh(geometry, ranges ? [mat] : mat);
+        mesh.name = index ? 'apartments-' + (index + 1) : 'apartments';
+        if (ranges) { mesh.userData.cull = ranges; fullGroups(mesh); watchCull(mesh); }
+        g.add(mesh);
+      });
       for(const m of B.filtered)g.add(m);
+      if (area) {
+        g.userData.area = Object.assign(tallySince(), { name: area.name, built, triangles: B.triangles, material: mat, ms: +(performance.now() - t0).toFixed(1) });
+        return g;
+      }
       count.triangles = B.triangles;
       count.ms = +(performance.now() - t0).toFixed(1);
       _lastDetail = detailNow();
@@ -2507,8 +2774,9 @@
     } catch(e) {
       // A failed final mesh/group assembly must not strand face textures in
       // FacadeFilter's live allocation set. The shared slopes material stays.
-      geom?.dispose();
+      for (const gm of geom || []) gm.dispose();
       for(const m of B.filtered) { m.geometry.dispose();m.userData.disposeFacade(); }
+      if (area) { mat?.dispose?.(); untally(tallySince()); }
       throw e;
     }
   }
@@ -2526,11 +2794,11 @@
    * boundary, on the positive side.
    */
   const _hideGeo = {};              // inset -> the MultiPolygon, per list of buildings
-  function hideGeometry(inset, roofscapeOnly = false, frontageOnly = false) {
+  function* hideGeometrySteps(inset, roofscapeOnly = false, frontageOnly = false, outerOnly = false) {
     // cached per inset and list of buildings: a building added at runtime (a builder's console, the gate) gets its clause on the next apply
     inset = inset == null ? APTS.roofscapeInset : inset;
-    const buildings = okBuildings().filter(b => (!roofscapeOnly || !b.preserveRoofscape) && (!frontageOnly || b.replaceFrontage));
-    const key = inset + '|' + frontageOnly + '|' + buildings.map(b => b.name).join('|');
+    const buildings = okBuildings().filter(b => (!roofscapeOnly || !b.preserveRoofscape) && (!frontageOnly || b.replaceFrontage) && (!outerOnly || b.replaceOuter));
+    const key = inset + '|' + frontageOnly + '|' + outerOnly + '|' + buildings.map(b => b.name).join('|');
     if (_hideGeo[key] !== undefined) return _hideGeo[key];
     const polys = [];
     // A building may add `hideRings`: outlines it replaces beyond its own
@@ -2548,9 +2816,17 @@
       const ll = off.map(q => [+(lng0 + q[0] / mx).toFixed(7), +(lat0 + q[1] / my).toFixed(7)]);
       ll.push(ll[0]);
       polys.push([ll]);
+      yield;
     }
     _hideGeo[key] = polys.length ? { type: 'MultiPolygon', coordinates: polys } : null;
     return _hideGeo[key];
+  }
+
+  function hideGeometry(inset, roofscapeOnly = false, frontageOnly = false, outerOnly = false) {
+    const steps = hideGeometrySteps(inset, roofscapeOnly, frontageOnly, outerOnly);
+    let result;
+    do { result = steps.next(); } while (!result.done);
+    return result.value;
   }
 
   /**
@@ -2593,7 +2869,9 @@
   // in the ground. `_aptfloat` (scripts/verify/aptfloat.mjs) is the sweep
   // that finds a new one: a nadir over every authored footprint, every
   // fill-extrusion layer queried, anything that answers named.
-  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'], parts: ['parts-3d', 'parts-roof'], precinct: ['moody-wall', 'moody-roof', 'moody-plant', 'moody-cap'] };
+  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'], parts: ['parts-3d', 'parts-roof'], precinct: ['moody-wall', 'moody-roof', 'moody-plant', 'moody-cap'], hero: ['heroes-solid', 'heroes-lime', 'heroes-brick', 'heroes-nbrick', 'heroes-glass', 'heroes-glassb', 'heroes-glassc', 'heroes-gdc-glass', 'heroes-lattice', 'heroes-cap'] };
+  /** js/heroes.js keys its bands by a short code (`b`), not the building id, so a model that replaces a hero names it: `replaceHero: 'nhb'`. */
+  const heroCodes = () => [...new Set(okBuildings().map(b => b.replaceHero).filter(Boolean))];
   /**
    * The tiled roofs js/slopes-roofs.js draws from data/roofs.geojson's rig
    * were baked on the SNAPSHOT prism too: San Jacinto Hall's hip sits on
@@ -2643,6 +2921,8 @@
     if (gone.length) for (const id of HIDE_LAYERS.prism) plan.push([id, ['!', ['in', ['get', 'id'], ['literal', gone]]]]);
     if (names.length) for (const id of HIDE_LAYERS.bands) plan.push([id, ['!', ['in', ['get', 'name'], ['literal', names]]]]);
     if (gone.length && APTS.hideStoreys) for (const id of HIDE_LAYERS.storeys) plan.push([id, ['!', ['in', ['get', 'host'], ['literal', gone]]]]);
+    const heroes = heroCodes();
+    if (heroes.length) for (const id of HIDE_LAYERS.hero) plan.push([id, ['!', ['in', ['get', 'b'], ['literal', heroes]]]]);
     // Every complete authored model replaces older Drag facade/cap geometry.
     // Restricting this to the new street shops left PCL and Texas Union drawing
     // two different elevations and roofs in the same place.
@@ -2674,6 +2954,13 @@
     if (geoW) for (const id of HIDE_LAYERS.walls) plan.push([id, ['>', ['distance', geoW], APTS.wallMargin]]);
     if (geo && APTS.hideParts) for (const id of HIDE_LAYERS.parts) plan.push([id, ['>', ['distance', geo], 0]]);
     if (geo && APTS.hidePrecinct) for (const id of HIDE_LAYERS.precinct) plan.push([id, ['>', ['distance', geo], 0]]);
+    // OSM-authored buildings beyond the core replace Overture outer-ring
+    // prisms by footprint: the two sources do not share building ids. Only
+    // successful, explicitly opted-in models retire those legacy volumes.
+    const outerGeo = hideGeometry(APTS.roofscapeInset, false, false, true);
+    if (outerGeo) for (const id of ['outer-3d', 'outer-midrise', 'outer-midrise-roof', 'outer-tower', 'outer-tower-roof', 'outer-detail', 'outer-landmark-glass', 'outer-landmark-light']) {
+      plan.push([id, ['>', ['distance', outerGeo], 0]]);
+    }
     return plan;
   }
   // Keep the applied plan, including layers that have not arrived yet. Polling
@@ -2721,15 +3008,36 @@
    * snapshot taken between them can only put back the wrong state.
    */
   const sameJSON = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  function sameFilter(left, right) {
+    if (left === right) return true;
+    if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false;
+    if (Array.isArray(left) !== Array.isArray(right)) return false;
+    if (Array.isArray(left)) {
+      if (left.length !== right.length) return false;
+      for (let index = 0; index < left.length; index++) if (!sameFilter(left[index], right[index])) return false;
+      return true;
+    }
+    const keys = Object.keys(left);
+    if (keys.length !== Object.keys(right).length) return false;
+    for (const key of keys) if (!Object.prototype.hasOwnProperty.call(right, key) || !sameFilter(left[key], right[key])) return false;
+    return true;
+  }
+  function containsClause(filter, clause) {
+    if (!Array.isArray(filter)) return false;
+    if (sameFilter(filter, clause)) return true;
+    if (filter[0] === 'literal') return false;
+    return filter.some(value => Array.isArray(value) && containsClause(value, clause));
+  }
   function stripClause(f, clause) {
     if (!Array.isArray(f)) return f;
-    if (sameJSON(f, clause)) return null;
-    if (f[0] === 'all' && f.length === 3 && sameJSON(f[2], clause)) return stripClause(f[1], clause);
+    if (sameFilter(f, clause)) return null;
+    if (f[0] === 'literal') return f;
+    if (f[0] === 'all' && f.length === 3 && sameFilter(f[2], clause)) return stripClause(f[1], clause);
     const out = f.map(x => Array.isArray(x) ? stripClause(x, clause) : x);
     if (out[0] === 'all') { const rest = out.slice(1).filter(x => x !== null); return rest.length === 0 ? null : (rest.length === 1 ? rest[0] : ['all'].concat(rest)); }
     return out;
   }
-  function setFilters(on) {
+  function* filterChanges(on) {
     const map = _map;
     if (!mapStyleAvailable(map)) { _pendingApply = true; return; }
     _pendingApply = false;
@@ -2744,42 +3052,56 @@
       for (const id of Object.keys(_clauses)) {
         if (planned.has(id)) continue;
         if (map.getLayer(id)) {
-          const f = map.getFilter(id) || null, g = stripClause(f, _clauses[id]);
-          if (!sameJSON(f, g)) {
+          const layer = map.getLayer(id), f = ('filter' in layer ? layer.filter : map.getFilter(id)) || null, g = stripClause(f, _clauses[id]);
+          if (!sameFilter(f, g)) {
             try { map.setFilter(id, g); }
             catch (e) { console.warn('[slopes-apartments] restore filter', id, e); continue; }
           }
         }
         delete _clauses[id];
+        yield;
       }
       for (const [id, clause] of plan) {
         if (!map.getLayer(id)) continue;
-        let f = map.getFilter(id) || null;
-        if (JSON.stringify(f).indexOf(JSON.stringify(clause)) >= 0) { _clauses[id] = clause; continue; }   // already ours (a re-apply)
+        const layer = map.getLayer(id);
+        let f = ('filter' in layer ? layer.filter : map.getFilter(id)) || null;
+        if (containsClause(f, clause)) { _clauses[id] = clause; yield; continue; }
         if (_clauses[id]) f = stripClause(f, _clauses[id]);                              // a clause of ours that has since changed (a building added at runtime)
         try { map.setFilter(id, f ? ['all', f, clause] : clause); _clauses[id] = clause; } catch (e) { console.warn('[slopes-apartments] filter', id, e); }
+        yield;
       }
+      yield;
       stashRigs(true);
+      window.heroesHideUndersides?.(heroCodes());
       _filtered = true;
     } else if (_filtered) {
       for (const id of Object.keys(_clauses)) {
         if (map.getLayer(id)) {
           const f = map.getFilter(id) || null, g = stripClause(f, _clauses[id]);
-          if (!sameJSON(f, g)) { try { map.setFilter(id, g); } catch (e) {} }
+          if (!sameFilter(f, g)) { try { map.setFilter(id, g); } catch (e) {} }
         }
         delete _clauses[id];
+        yield;
       }
       stashRigs(false);
+      window.heroesHideUndersides?.([]);
       _filtered = false;
     }
+  }
+  function setFilters(on) {
+    if (_attachingArea) return;
+    for (const change of filterChanges(on)) void change;
   }
 
   /**
    * Teach the flight controls the real height: js/controls.js rasterises its
    * collision grid once at init from final_height (20.5 m for The Standard),
    * so without this you fly through the top 38 m of the tower. The same
-   * route js/heroes.js and js/westcampus.js take; theirs are carried along so
-   * the rebuild does not drop Rambler's corrected height.
+   * route js/heroes.js and js/westcampus.js take; js/controls.js keeps each
+   * owner's volumes, so no rebuild drops another's. Called when the
+   * time-sliced build lands (startBuild): d017e58 moved the build off boot
+   * and dropped this call with the boot log it sat in, so Icon (87 m) had no
+   * collision at all.
    */
   function extendCollision(map) {
     if (typeof window.__flyRebuildCollision !== 'function') return 'no collision api';
@@ -2803,7 +3125,7 @@
       if (h) extra.push({ type: 'Feature', geometry, properties: { h } });
     }
     if (!extra.length) return 'no matching footprints';
-    window.__flyRebuildCollision({ buildings, parts: { type: 'FeatureCollection', features: ((parts && parts.features) || []).concat(extra) } });
+    window.__flyRebuildCollision({ buildings, parts: { type: 'FeatureCollection', features: ((parts && parts.features) || []).concat(extra) } }, 'apartments');
     return 'rebuilt with ' + extra.length + ' corrected heights';
   }
 
@@ -2825,6 +3147,7 @@
   }
 
   function dropGroup() {
+    dropAreas();
     if (!_group) return;
     window.slopes.remove(_group);
     _group.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); });
@@ -2837,15 +3160,19 @@
   let _building = null;
   function startBuild(map) {
     const S = window.slopes;
-    const p = _building = build().then(g => {
+    // Never beside an area build: they share the counts. An area build in
+    // flight has been superseded by dropAreas() and stops at its next building.
+    const p = _building = _areaChain.then(() => build()).then(g => {
       if (_building !== p) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); }); return; } // superseded
       _building = null;
       const want = !!(window.SLOPES.on && APTS.on);
       if (!want) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); }); return; }
       _group = g; S.add(_group);
       setFilters(true); setLabels(true);
+      count.collision = extendCollision(map || _map);
       (map || _map).triggerRepaint();
-      console.log('[slopes-apartments]', count.buildings, 'building(s) built in', count.ms, 'ms over', count.buildSlices, 'slice(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.triangles, 'triangles');
+      console.log('[slopes-apartments]', count.buildings, 'building(s) built in', count.ms, 'ms over', count.buildSlices, 'slice(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.triangles, 'triangles; collision:', count.collision);
+      checkAreas(map || _map);   // a camera that is already near an area
     }).catch(e => { if (_building === p) _building = null; console.error('[slopes-apartments] build failed', e); });
     return p;
   }
@@ -2878,6 +3205,8 @@
     },
     rebuild() { dropGroup(); window.applySlopesApartments(); },
     get count() { return Object.assign({}, count, { names: count.names.slice() }); },
+    /** APTS.cull as of the last renderer.render (each frame's main pass is its last) */
+    get cull() { return Object.assign({ on: APTS.cull.on && !_cullBroken, meshes: _cullMeshes.size }, _cullStats); },
     get group() { return _group; },
     get data() { return _data; },
     get filtered() { return _filtered; },
@@ -2890,7 +3219,274 @@
     uvToLngLat(name, u, v) { const b = _built.find(x => x.name === name); return b ? b.frame.ll(u, v) : null; },
     lngLatToUV(name, lng, lat) { const b = _built.find(x => x.name === name); return b ? b.frame.toUV([lng, lat]) : null; },
     obbOf, h01, floorsBetween, offsetRing, hideGeometry,
+    /** the on-demand areas (APTS.areas) */
+    areas: {
+      /** load every area within its loadM of [lng, lat] now, before the camera gets there; resolves when built */
+      ensureAt(lngLat) {
+        const pt = Array.isArray(lngLat) ? lngLat : [lngLat.lng, lngLat.lat], P = areaParams();
+        return Promise.all([..._areas.values()].filter(a => areaDistanceM(a, [pt]) <= P.loadM).map(a => {
+          a.pinUntil = performance.now() + APTS.areas.pinMs;
+          return a.state === 'on' ? true : (_group && !_building && !sceneGone() ? loadArea(a) : false);
+        }));
+      },
+      get list() { return [..._areas.values()].map(a => ({ name: a.name, state: a.state, distanceM: a.distanceM, buildings: a.group ? a.group.userData.area.built.length : 0, triangles: a.group ? a.group.userData.area.triangles : 0, specs: a.specs ? a.specs.length : 0, attachMs: a.group?.userData.area.attachMs ?? null, attachSlices: a.group?.userData.area.attachSlices ?? 0 })); },
+      check() { checkAreas(); },
+      unload(name) { const a = _areas.get(name); if (a) unloadArea(a); },
+    },
   };
+
+  // ── on-demand areas (APTS.areas) ─────────────────────────────────────
+  // Area builds run one at a time, and never beside a core build.
+  let _areaChain = Promise.resolve();
+  let _attachingArea = null;
+  let _areaCheckT = 0, _areaTimer = null;
+  function yieldAreaFrame() {
+    return new Promise(resolve => {
+      const channel = new MessageChannel();
+      let frame = null, timer = null, done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        if (frame !== null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(frame);
+        channel.port1.close(); channel.port2.close();
+        resolve();
+      };
+      channel.port1.onmessage = finish;
+      if (!document.hidden && typeof requestAnimationFrame === 'function') {
+        frame = requestAnimationFrame(() => channel.port2.postMessage(0));
+        timer = setTimeout(finish, APTS.areas.yieldMaxMs);
+      } else channel.port2.postMessage(0);
+    });
+  }
+  // A cheap yield to the event loop with NO rendered frame: a MessageChannel
+  // task (not setTimeout, which a hidden tab clamps to ~1 s). Used between the
+  // CPU-only mask/filter slices of an attach, so that work interleaves with
+  // MapLibre's own repaints without forcing a full three.js render each step.
+  function yieldTaskArea() {
+    return new Promise(resolve => {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => { channel.port1.close(); channel.port2.close(); resolve(); };
+      channel.port2.postMessage(0);
+    });
+  }
+  const isPhone = () => !!(window.LITE_PROFILE && window.LITE_PROFILE.on);
+  const sceneGone = () => !!(window.LITE_PROFILE && window.LITE_PROFILE.sceneUnavailable);
+  const areaParams = () => isPhone() ? Object.assign({}, APTS.areas, APTS.areas.phone) : Object.assign({}, APTS.areas, { unload: false, dropSpecs: false });
+  function registerAreas(idx) {
+    if (APTS.areas.eager) return;
+    for (const [name, a] of Object.entries(idx.areas || {})) {
+      const bb = a && a.bbox, files = a && a.collections;
+      if (!Array.isArray(bb) || bb.length !== 4 || !bb.every(Number.isFinite) || !Array.isArray(files) || !files.length) { console.warn('[slopes-apartments] area', name, 'has no bbox or collections'); continue; }
+      _areas.set(name, { name, bbox: bb, files, state: 'idle', gen: 0, specs: null, group: null, failed: [], ready: null, pinUntil: 0, distanceM: null });
+    }
+  }
+  // ?areas=eager: every area's files join the core, as before areas existed.
+  const eagerAreaFiles = idx => APTS.areas.eager ? Object.values(idx.areas || {}).flatMap(a => (a && a.collections) || []) : [];
+  function areaDistanceM(a, pts) {
+    let best = Infinity;
+    for (const [lng, lat] of pts) {
+      const dx = Math.max(a.bbox[0] - lng, 0, lng - a.bbox[2]) * mLon(lat);
+      const dy = Math.max(a.bbox[1] - lat, 0, lat - a.bbox[3]) * M_LAT;
+      best = Math.min(best, Math.hypot(dx, dy));
+    }
+    return best;
+  }
+  function cameraPoints(map) {
+    const c = map.getCenter(), pts = [[c.lng, c.lat]];
+    try { const e = map.getFreeCameraOptions().position.toLngLat(); if (Number.isFinite(e.lng) && Number.isFinite(e.lat)) pts.push([e.lng, e.lat]); } catch (e) {}
+    return pts;
+  }
+  function catalogWithAreas() {
+    const on = [..._areas.values()].filter(a => (a.state === 'on' || a.state === 'attaching' && a.group?.userData.area.counted) && a.group && a.specs);
+    if (!_core || !on.length) return _core;
+    const extra = on.flatMap(a => a.specs);
+    return { buildings: _core.buildings.concat(extra),
+      replacedBuildingIds: [...new Set((_core.replacedBuildingIds || []).concat(extra.map(b => b.id).filter(Boolean)))],
+      replacedNames: [...new Set((_core.replacedNames || []).concat(extra.flatMap(b => [b.name, ...(b.aliases || [])]).filter(Boolean)))] };
+  }
+  function disposeGroup(g) {
+    if (g.userData.area) g.userData.area.disposed = true;
+    g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.userData?.disposeFacade) o.userData.disposeFacade(); });
+    g.userData.area?.material?.dispose?.();
+  }
+  function untally(info) {
+    for (const k of RESET_KEYS) count[k] -= info.tally[k] || 0;
+    for (const n of info.names) { const i = count.names.lastIndexOf(n); if (i >= 0) count.names.splice(i, 1); }
+  }
+  function loadArea(a) {
+    if (a.state !== 'idle') return a.ready || Promise.resolve(a.state === 'on');
+    const gen = ++a.gen;
+    a.state = 'fetching';
+    a.ready = (async () => {
+      const S = window.slopes;
+      if (!a.specs) {
+        const lists = await Promise.all(a.files.map(async f => {
+          try {
+            const bundle = await fetchModel(S, f);
+            if (!Array.isArray(bundle.buildings)) throw new Error(f + ': buildings collection missing');
+            return bundle.buildings;
+          } catch (e) { console.warn('[slopes-apartments]', f, e.message); return []; }
+        }));
+        if (gen !== a.gen) return false;
+        a.specs = lists.flat();
+      }
+      if (!a.specs.length) { a.state = 'failed'; return false; }
+      a.state = 'building';
+      let g = null;
+      const run = _areaChain.then(async () => {
+        if (gen !== a.gen || !_group || sceneGone()) return;
+        try {
+          g = await build(a.specs, a);
+          if (gen === a.gen && g && _group && window.SLOPES.on && APTS.on && !sceneGone()) await attachArea(a, g, gen);
+        } catch (e) { console.error('[slopes-apartments] area', a.name, e); }
+      });
+      _areaChain = run.catch(() => {});
+      await run;
+      if (gen !== a.gen) { if (g && !g.userData.area.disposed) { untally(g.userData.area); disposeGroup(g); } return false; }
+      if (a.state === 'on') return true;
+      if (g && !g.userData.area.disposed) { untally(g.userData.area); disposeGroup(g); }
+      a.state = g ? 'idle' : 'failed';
+      return false;
+    })();
+    return a.ready;
+  }
+  async function attachArea(a, g, gen) {
+    const info = g.userData.area;
+    const valid = () => gen === a.gen && _group && window.SLOPES.on && APTS.on && !sceneGone() && mapStyleAvailable();
+    const children = g.children.slice(), started = performance.now();
+    let sliceStarted = started, slices = 1;
+    // Two kinds of slice. A REVEAL slice must end in a rendered frame: a chunk's
+    // GPU buffers upload the first frame its mesh is drawn, so we yield to a real
+    // animation frame (yieldAreaFrame) to spread those uploads. A COMPUTE slice
+    // (the mask geometry and the filter changes) does CPU-only work and changes
+    // MapLibre filters, which MapLibre repaints on its own; forcing a full
+    // three.js re-render between every one of those steps was the fill-in cost —
+    // 20-odd whole-city renders of the freshly attached area at ~350 ms each. A
+    // compute slice yields with the cheap MessageChannel task (no forced render),
+    // so the mask/filter work interleaves with the event loop without repainting
+    // the heavy scene each step. One repaint at the end draws the finished state.
+    const pause = async (wantFrame = false, force = false) => {
+      if (!APTS.areas.sliced || !force && performance.now() - sliceStarted < APTS.areas.attachSliceMs) return;
+      if (wantFrame) { if (_map) _map.triggerRepaint(); await yieldAreaFrame(); }
+      else await yieldTaskArea();
+      sliceStarted = performance.now(); slices++;
+    };
+    _attachingArea = a;
+    try {
+      a.group = g; a.state = 'attaching';
+      if (APTS.areas.sliced) for (const child of children) child.visible = false;
+      window.slopes.add(g);
+      // Reveal the chunks a batch per frame, not one per frame. Each chunk's
+      // buffers upload the first frame it is visible; a batch spreads that
+      // upload over a few frames (the stall stays small) instead of stacking
+      // 26 forced frame waits (which was the 10 s fill-in). pause(true, true)
+      // forces one rendered frame after each batch so the batch's uploads land.
+      const perFrame = Math.max(1, APTS.areas.revealChunksPerFrame | 0);
+      for (let i = 0; i < children.length; i++) {
+        if (!valid()) return;
+        children[i].visible = true;
+        if ((i + 1) % perFrame === 0) await pause(true, true);
+      }
+      if (!valid()) return;
+      count.triangles += info.triangles;
+      info.counted = true;
+      _built = _built.concat(info.built);
+      _data = catalogWithAreas();
+      // Hide the fallback prisms/ground as soon as the meshes are in the scene:
+      // the tan outer-ring boxes and the bare ground the mesh replaces are what
+      // shows through during a slow fill-in. The mask geometry is pure JS and the
+      // filter changes are MapLibre setFilter calls, so these slices yield with
+      // the cheap task, not a forced whole-scene render per step.
+      const masks = [
+        [APTS.roofscapeInset, false, true],
+        ...(APTS.hideRoofscape ? [[APTS.roofscapeInset, true], [0], [APTS.roofscapeInset, false, false, true]] : []),
+      ];
+      for (const settings of masks) {
+        const steps = hideGeometrySteps(...settings);
+        while (valid()) {
+          if (steps.next().done) break;
+          await pause();
+        }
+        if (!valid()) return;
+      }
+      const changes = filterChanges(true);
+      while (valid()) {
+        if (changes.next().done) break;
+        await pause();
+      }
+      if (!valid()) return;
+      setLabels(true);
+      info.attachMs = +(performance.now() - started).toFixed(1);
+      info.attachSlices = slices;
+      a.state = 'on';
+      if (_map) _map.triggerRepaint();
+      console.log('[slopes-apartments] area', a.name + ':', info.built.length, 'building(s),', info.triangles, 'triangles, built in', info.ms, 'ms');
+    } finally {
+      if (_attachingArea === a) _attachingArea = null;
+      if ((!valid() || a.state !== 'on') && a.group === g) unloadArea(a);
+    }
+  }
+  function detachArea(a) {
+    const g = a.group, info = g.userData.area;
+    a.group = null;
+    window.slopes.remove(g); disposeGroup(g);
+    untally(info); if (info.counted) count.triangles -= info.triangles;
+    _built = _built.filter(b => !info.built.includes(b));
+    for (const id of a.failed) _failed.delete(id);
+    a.failed = [];
+  }
+  function unloadArea(a) {
+    a.gen++;
+    a.ready = null;
+    if (_attachingArea === a) _attachingArea = null;
+    if (a.group) {
+      a.state = 'idle';
+      _data = catalogWithAreas();     // the boxes come back first...
+      setFilters(true); setLabels(true);
+      detachArea(a);                  // ...then the mesh goes, so the swap is never a hole
+      if (_map) _map.triggerRepaint();
+      console.log('[slopes-apartments] area', a.name, 'unloaded');
+    }
+    a.state = 'idle';
+    if (areaParams().dropSpecs) a.specs = null;
+  }
+  // The core is going (a rebuild, the switch, the map): its areas go with it
+  // and come back through checkAreas once the core is back.
+  function dropAreas() {
+    _attachingArea = null;
+    for (const a of _areas.values()) {
+      a.gen++;
+      if (a.group) detachArea(a);
+      if (a.state !== 'failed') a.state = 'idle';
+      a.ready = null;
+    }
+    if (_core) _data = _core;
+  }
+  function checkAreas(map) {
+    map = map || _map;
+    // A phone whose WebGL context was lost is paused behind its reload card
+    // (js/mobile.js sceneUnavailable): nothing new is built into it.
+    if (!map || !_core || !_group || _building || !_areas.size || !(window.SLOPES.on && APTS.on) || sceneGone()) return;
+    const P = areaParams(), pts = cameraPoints(map), now = performance.now();
+    for (const a of _areas.values()) {
+      const d = areaDistanceM(a, pts);
+      a.distanceM = Math.round(d);
+      if (d <= P.loadM) { if (a.state === 'idle') loadArea(a); }
+      else if (P.unload && a.state !== 'idle' && a.state !== 'failed' && d > P.unloadM && now > a.pinUntil) unloadArea(a);
+    }
+  }
+  function watchAreas(map) {
+    if (!_areas.size || map.__aptsAreasWatched) return;
+    map.__aptsAreasWatched = true;
+    const later = () => { _areaTimer = null; _areaCheckT = performance.now(); checkAreas(map); };
+    map.on('move', () => {
+      if (performance.now() - _areaCheckT >= APTS.areas.checkMs) later();
+      else if (!_areaTimer) _areaTimer = setTimeout(later, APTS.areas.checkMs);
+    });
+    map.on('moveend', later);
+    map.once('remove', () => { clearTimeout(_areaTimer); _areaTimer = null; });
+  }
 
   // ── boot ─────────────────────────────────────────────────────────────
   // Waits for the layer (window.slopes.root exists once initSlopes ran —
@@ -2899,7 +3495,12 @@
   // in the same apply. The data is fetched once, through the layer's cache.
   let _fetching = null;
   function replacementCatalog(idx, individual, bundles) {
-    const buildings = individual.filter(Boolean), collected = bundles.flat();
+    // A building rebuilt in its own file supersedes its entry in a collection
+    // (Burdine Hall is also one of data/campus_buildings.json's halls), or two
+    // meshes stand in one footprint. Only a file that downloaded supersedes,
+    // so a failed one still leaves the collection's version drawn.
+    const buildings = individual.filter(Boolean), own = new Set(buildings.map(b=>b.id).filter(Boolean));
+    const collected = bundles.flat().filter(b => !own.has(b.id));
     // Index-wide aliases can name a file that failed to download. Only retire
     // those extra legacy pieces when every individual model is available.
     const complete = individual.every(Boolean);
@@ -2923,6 +3524,7 @@
     if (_fetching) return _fetching;
     _fetching = (async () => {
           const idx = await fetchModel(S,APTS.index);
+          registerAreas(idx);
           if (_fetchClosed) return replacementCatalog(idx, [], []);
           // Fetch independent files together; serial fetches left obsolete models visible.
           const [individual, bundles] = await Promise.all([
@@ -2930,7 +3532,7 @@
               try { return await fetchModel(S,f.startsWith('data/') ? f : 'data/apartments/' + f); }
               catch (e) { console.warn('[slopes-apartments]', f, e.message); return null; }
             })),
-            Promise.all((idx.collections || []).map(async f => {
+            Promise.all((idx.collections || []).concat(eagerAreaFiles(idx)).map(async f => {
               try {
                 const bundle = await fetchModel(S,f);
                 if (!Array.isArray(bundle.buildings)) throw new Error(f + ': buildings collection missing');
@@ -2965,7 +3567,7 @@
     if (!map || !S || !S.root) return false;
     _map = map;
     if (!_data) {
-      try { _data = await startFetch(S); } catch (e) { console.warn('[slopes-apartments]', e.message, '— nothing drawn'); count.done = true; return true; }
+      try { _data = _core = await startFetch(S); } catch (e) { console.warn('[slopes-apartments]', e.message, '— nothing drawn'); count.done = true; return true; }
     }
     if (_removedMaps.has(map)) return true; // fetch completed after removal
     // The mesh needs data and a scene root, not the building layers: start it
@@ -2976,6 +3578,7 @@
     if (!mapStyleAvailable(map) || !map.getLayer('buildings-3d')) return false;
     if (window.WESTCAMPUS && window.WESTCAMPUS.on && !map.getLayer('wc-wall') && !window.__wcSkipped) return false;
     S.onSwitch(() => window.applySlopesApartments(map));
+    watchAreas(map);
     // after any pass that rewrites a layer we filter — the slopes settings,
     // js/slopes-roofs.js's own apply (it sets roofs-pitched's filter from
     // the snapshot it took at ITS boot, which drops ours if we came first)
@@ -2988,7 +3591,7 @@
       wrapped.__aptsHooked = true;
       window[name] = wrapped;
     };
-    for (const name of ['applySlopesSettings', 'applySlopesRoofs', 'applyWestcampusSettings']) hook(name);
+    for (const name of ['applySlopesSettings', 'applySlopesRoofs', 'applyWestcampusSettings', 'applyOuterSettings']) hook(name);
     window.applySlopesApartments(map);   // starts the time-sliced build; it logs its own counts when it lands
     // a layer that boots after this file (campus-storeys comes with the
     // facades pass, on its own clock; slopes-roofs after its 1.4 MB rig
@@ -3005,10 +3608,11 @@
         if (n > 120 + 240) return;
         _lateTimer = setTimeout(tick, n < 120 ? 500 : 1000);
         if (!mapStyleAvailable(map)) return;
+        if (_attachingArea) return;
         if (_pendingApply) window.applySlopesApartments(map);
         if (!_filtered || !(window.SLOPES.on && APTS.on)) return;
         setLabels(true);
-        for (const name of ['applySlopesRoofs', 'applyWestcampusSettings']) if (typeof window[name] === 'function' && !window[name].__aptsHooked) hook(name);
+        for (const name of ['applySlopesRoofs', 'applyWestcampusSettings', 'applyOuterSettings']) if (typeof window[name] === 'function' && !window[name].__aptsHooked) hook(name);
         if (filtersMissing().length || rigsMissing().length) { setFilters(true); map.triggerRepaint(); }
       };
       tick();

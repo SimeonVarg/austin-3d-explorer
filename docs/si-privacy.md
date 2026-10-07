@@ -14,6 +14,84 @@ without `?walk=1` and looking.
 
 ---
 
+## Round 9 (2026-09-28) — the guard refused the map's own traffic
+
+Eight rounds made the guard refuse more. This one found it refusing the wrong
+thing: **with a photo-imported schedule stored, a phone refused MapLibre's own
+tiles, and buildings went missing.** Two causes, both on the worker door.
+
+**One. The watchlist was every string in the stored doc, including the app's
+own words.** `provenance.confirmedBy: 'student'` is written the moment a class
+is confirmed. The byte scan found `student` inside a vector tile's "Student
+Activity Center" and threw. `read: 'photo'`, the source labels, `tz`, and the
+field names in `unconfirmedFields` (`building` is a layer name inside every
+building tile) were the same bug. None of them is the schedule; every student's
+device writes them the same way.
+
+Fix: `buildWatchlist()` skips the fields listed in
+`SCHEDULE_STORE.appOwnedFields` (envelope `v`, `savedAt`, `tz`, `sources`; per
+class `id`, `days`, times, `unroutableWhy`, `confidence`, `src`; in
+`provenance`, `read`, `confirmed`, `confirmedBy`, `unconfirmedFields`). It is a
+list of what to SKIP, so a new field is watched until someone decides it is app
+vocabulary: the guard may over-refuse, never under-refuse. A second line,
+`SCHEDULE_STORE.appVocabulary` plus the `SCHEDULE_SOURCES` kinds and labels, drops
+those exact words wherever they turn up. `provenance.correctedFrom` (what the
+photo said) and `provenance.why` (a whole sentence) stay watched.
+
+**Two. The 4 MB binary ceiling was outgrown.** MapLibre's replies to a worker's
+image request now carry up to 10.2 MB of facade pixels on a 1x phone. The
+facade images are drawn at `devicePixelRatio` (capped at 2), and a 1440x900
+DPR 2 page sent up to 33.7 MB over the same walk. Every reply over 4 MB was
+refused unread. `binaryScanBytes` is now 64 MB and still a hard ceiling.
+Tile bytes are still scanned: with the app's words out of the watchlist, a tile
+can only match if it literally holds the student's own class string.
+
+**Three. A bare room number is a substring of the map's decimals.** Found by
+re-running round 8's adversarial pass on the fix: a class in room `0.130`
+refused the campus landscape layer, because its tree records read
+`"0.1308|pecan|8.19|0"`. The needle test is a substring test, so any room
+number made only of digits and dots will match some decimal the map carries.
+Fix: `SCHEDULE_STORE.bareNumberPattern` — a value made only of digits and
+punctuation is not watched on its own. The pair is: `RLP 0.130` and
+`RLP-0.130` are still needles, and so is the serialised doc. This matches the
+rule the guard already had for building codes, which are too short to watch
+alone (`minTokenLen`).
+
+Measured with a probe (390x844 phone, SwiftShader, `?walk=1&drift=0`, a
+two-class schedule stored with `confirmedBy: 'student'`, reload, five campus
+views at zoom 14.5-17.2):
+
+| | main 89e01d3 | this fix |
+|---|---|---|
+| map messages refused | **14** (7 on `st…(7)`, 7 over 4 MB) | **0** |
+| uncaught page errors | 1 | 0 |
+| canaries (title bytes, title string, room pair, instructor, title inside 6 MB) | all refused | all refused |
+| `"Student Activity Center photo"` sent to a worker | refused | passes |
+| same walk, rooms `0.130` and `0.220` (bare numbers) | - | 0 refused, 0 errors |
+| same walk, 1440x900 DPR 2 desktop | - | 0 refused, 0 errors, canaries refused |
+
+The refused messages were `LD` (a GeoJSON source's data), `UL` (a layer
+update) and image replies, so on main a row of West Campus buildings near the
+Belo Center simply did not draw with a schedule stored.
+
+**The cost, said plainly.** The image replies are now scanned instead of
+dropped. On the probe's walk the guard read 615 MB of binary (main read 245 MB
+over the same walk, but it refused messages outright and drew less). A reply of
+6-10 MB spent 60-300 ms inside `postMessage` on a busy software-GL machine,
+including the clone MapLibre does anyway. On the 2x desktop walk the guard read
+947 MB, and the slowest replies (up to 33.7 MB) took 350-630 ms each on the same
+busy machine. That only happens on a device with a schedule stored. Before this
+fix those replies were refused, so the buildings did not draw at all; making
+the scan cheaper is the next job, not a reason to skip it.
+
+The gate is `scripts/verify/guard-map-traffic.mjs`. It needs no map, so it runs
+in seconds: map-like payloads must pass (including map decimals that contain a
+stored room number), the schedule must still be refused (including the building
+and room pair as tile bytes), and a payload past the ceiling is refused unread.
+On main (89e01d3) it fails 16 of 30 checks.
+
+---
+
 ## THE VERDICT, ROUND 8 — read this first
 
 **Rounds 4 through 7 each found the same bug wearing a different hat: a check
@@ -2171,8 +2249,8 @@ that is `clone:true, guard:pass` is a real, silent bypass. Run it with
  * A shape that is `clone:true, guard:pass` is a real, silent bypass.
  */
 import net from 'node:net';
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const SINK_PORT = Number(process.env.SINK_PORT || 8962);
@@ -2478,8 +2556,8 @@ and varies only the walk.
  *
  * Minimum of interleaved reps, in-page timing, never wall clock.
  */
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const label = process.argv[2] || 'run';
@@ -2565,8 +2643,8 @@ walk. `--shot` takes the frame at `shots/si/privacy/r7-map-guarded.jpg`.
  * One reading is not a result: the caller interleaves labels and takes the
  * minimum (scripts/verify/README.md).
  */
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const label = process.argv[2] || 'run';
@@ -2687,8 +2765,8 @@ put the canary on the socket.
  * the negative control that makes the armed column mean anything.
  */
 import net from 'node:net';
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const SINK_PORT = Number(process.env.SINK_PORT || 8963);
@@ -3004,8 +3082,8 @@ real one. `--shot` takes the frame at `shots/si/privacy/r8-map-guarded.jpg`.
  * likely to cost something.
  */
 import fs from 'node:fs';
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const label = process.argv[2] || 'run';
@@ -3138,8 +3216,8 @@ three reps. Run once plain and once with `--baseline` and compare the tables.
  * Run it once with and once without and compare the two tables.
  */
 import fs from 'node:fs';
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const baseline = process.argv.includes('--baseline')
@@ -3270,8 +3348,8 @@ and a genuinely fresh document rather than a reload of the page that seeded it.
  *
  * Exit 1 on any failure, per scripts/verify/README.md §142.
  */
-import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/node_modules/playwright-core/index.mjs';
-import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-5/scripts/verify/chrome.mjs';
+import { chromium } from 'file:///<repo>/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///<repo>/scripts/verify/chrome.mjs';
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
 const C = { title: 'Thaumaturgical Marimba Rhetoric', instructor: 'Prof. Ottoline Quennevire' };
@@ -3362,3 +3440,122 @@ await browser.close();
 console.log('\n' + (fails ? fails + ' FAILED' : 'ALL PASS') + '  (9 checks)');
 process.exit(fails ? 1 : 0);
 ```
+
+
+---
+
+## §12.A The visit counter (2026-09-29) — a new request, and why the guard's promise is untouched
+
+`js/analytics.js` was added so the owner can see how many people open the app.
+It is Vercel Web Analytics, added the plain-HTML way: a `window.va` / `window.vaq`
+queue shim, then `<script defer src="/_vercel/insights/script.js">`, injected by
+`js/analytics.js` and by nothing else. This section states exactly what the new
+request carries, to whom, and why every promise §12 makes about the class
+schedule still holds. `scripts/verify/analytics-check.mjs` is the gate that
+proves it.
+
+### What leaves the page, and to whom
+
+One request per page load, both to **this same origin** (the deployment's own
+domain — never a third-party host):
+
+1. `GET /_vercel/insights/script.js` — Vercel's own counting script, served from
+   this origin only once Web Analytics is switched on in the dashboard. Until
+   then it 404s and nothing else changes (§12.A "not switched on yet", below).
+2. `POST /_vercel/insights/view` — one page view. Its event, after `beforeSend`,
+   is `{ type: 'pageview', url: origin + pathname }`. Vercel derives country,
+   device, browser and referrer itself from the request's own headers and
+   `document.referrer`; the app hands it none of those.
+
+That is the whole outbound surface. No cookie is set or read. The only storage
+key `js/analytics.js` ever touches is Vercel's documented `va-disable` opt-out
+key, and it only ever reads it (writes it solely when a person passes `?va=off`).
+
+### Why the request carries nothing from the schedule
+
+`beforeSend` is `clean()` in `js/analytics.js`. It takes the event Vercel wants
+to send and returns `origin + pathname` with **the query string and the hash cut
+off**, or `null`. Everything the app ever writes into its own URL is therefore
+stripped before the request is built:
+
+- from the boot script: `?clip=1`, `?timelapse=1`, `?autopilot=1`,
+  `?sliderdemo=1`, `?drive=1`;
+- from `js/mobile.js`: `?tiles=`, `?lite=0/1`;
+- from `js/wayfind.js` (the schedule feature): `?walk=1`, `?from=`, `?to=`,
+  `?dayof=`, `?dayat=`;
+- from the renderers: `?slopes=0`, `?apartments=0`, `?tour`, graphics flags;
+- from the loader's mode picker: `?tour=1`, `?livehere=1`, `?p=` (time of day),
+  `?preset=` (graphics), `?intro=`; and debug flags such as `?debug=1`,
+  `?labels=`, `?patfilter=`;
+- `js/analytics.js`'s own `?va=on` / `?va=off`;
+- and every `#hash`.
+
+`?from=` and `?to=` are building codes and `?dayat=` is a time of day; those are
+the only URL parameters that could carry anything about where a person is going,
+and `clean()` removes the entire query string, so they never reach the request.
+`clean()` fails closed: a null event, a missing `url`, an unparseable `url` or a
+non-http scheme all return `null` and send nothing.
+
+`js/analytics.js` never reads an `austin3d.schedule.*` key, never imports
+`WAYFIND`, and never touches `window.wayfindStore`. It cannot put a class title,
+an instructor, a room or a route into the request because it never reads them.
+
+### Why the egress guard (§12) still holds, unweakened
+
+The guard in `js/wayfind.js` §12 is **not touched, bypassed, whitelisted or
+special-cased** by this work. `WAYFIND.on` stays `false`. The beacon simply has
+nothing in it for the guard to refuse, and it passes the guard the same way any
+schedule-free request does — through it, not around it:
+
+- `js/analytics.js` is the **last** `<script>` in `index.html` and `_harness.html`,
+  after `js/wayfind.js`. When the walking feature is on, the guard has already
+  wrapped `fetch` and `navigator.sendBeacon` by the time analytics runs, so the
+  reference Vercel's script picks up is the **guarded** one. If analytics loaded
+  first, Vercel's script could capture the unwrapped originals and the guard
+  would never see the beacon. Loading last is what keeps the beacon inside the
+  guard's reach.
+- With the feature off (every ordinary visitor, `WAYFIND.on === false`, no
+  schedule imported), the guard is not installed at all and there is no schedule
+  in storage to leak. Nothing to guard, nothing to leak.
+- With a schedule stored, the guard is armed and it **sees the beacon and lets it
+  through** because the payload holds none of the watched strings. The check
+  proves this two ways: it reads `guard.log()` and finds the `/_vercel/insights/view`
+  request with `blocked === false`, and it runs a **negative control** — the same
+  channel (`sendBeacon` and `fetch` to the same path) carrying a class title is
+  refused and never reaches the server, so the guard was demonstrably live in
+  that same page.
+
+### Fail-safe, not fail-open
+
+There is one case where a stored schedule makes the counter send **less**, never
+more. If Vercel's real script were to POST the page view as an opaque `Blob`
+body while a schedule is stored, the guard refuses it unread (`blockedOpaque`),
+because a body it cannot inspect is treated as a body that might carry the
+schedule. That visit is then not counted. This is the correct direction of
+failure: an uncounted visit costs the owner a number; a leaked schedule costs a
+student. With the feature off (no guard, no schedule UI) the same body is sent
+normally and the visit is counted. See §12's `blockUnreadableBodies` policy.
+
+### Not counting one visitor twice
+
+A load reached from this same origin (the loader's mode picker reloads the page
+with `location.assign`) is not counted again; it reads `document.referrer` only
+to compare its origin, and sends nothing.
+
+### Opting out
+
+The owner's own visits and any agent that loads the live site should not count.
+`?va=off` writes Vercel's `va-disable` key and that browser stops counting on
+every later load; `?va=on` removes the key. This is the only thing in
+`js/analytics.js` that writes to storage, and it writes only that one key.
+
+### What the check proves, and what it cannot
+
+`scripts/verify/analytics-check.mjs` runs the real `js/analytics.js` and the real
+`js/wayfind.js` guard against a **stand-in** for `/_vercel/insights/script.js`,
+because Vercel's real script only exists on a live deployment with Web Analytics
+enabled. The stand-in is written from Vercel's documented contract (drain
+`window.vaq`, pass every event through the registered `beforeSend`, POST the
+survivor to `/_vercel/insights/view`). What the stand-in cannot prove is the byte
+layout of the real script's request body. `docs/analytics.md` records how the
+lead confirms that live once the owner enables it.

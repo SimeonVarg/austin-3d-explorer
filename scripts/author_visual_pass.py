@@ -30,7 +30,7 @@ def base(name,source,f=None):
  return s,F,uv
 def save(slug,s):
  for b in s['blocks']: b.setdefault('_src','reference; dimensions are derived, see sources.dimensions')
- (OUT/(slug+'.json')).write_text(json.dumps(s,indent=2,ensure_ascii=False)+'\n',encoding='utf-8');NEW.append((slug,s));print(slug,len(s['blocks']))
+ (OUT/(slug+'.json')).write_text(json.dumps(s,separators=(',',':'),ensure_ascii=False),encoding='utf-8');NEW.append((slug,s));print(slug,len(s['blocks']))
 def cornice(s,id,plan,z,width=.4,tone='trim'):
  a,b,c,d=plan;s['skins'][tone]=flat(tone);s['blocks'].append(block(id,[a-width,b+width,c-width,d+width],z,z+.28,tone))
 def roof(s,b,pitch=25,kind='hip',**kw):b['roof']={'kind':kind,'pitch':pitch,'over':.55,'tone':'roof','lipTone':'trim','soffitTone':'wood',**kw};b['roofTone']='roof'
@@ -113,22 +113,12 @@ s['deck']={'z':0,'items':[dict(id='court-paving',plan=[14,42,29,69],h=.08,tone='
 s['open'].append('Courtyard plan and entrance extents are derived; crown curve follows the exterior photograph, not a measured elevation.')
 save('rambler',s)
 # Campus: photographed elevations take precedence over generic floor grids.
-s,F,uv=base('Battle Hall','docs/campus-truth/BTL.md; docs/shots/verdict-battle-vs-photo.jpg');L,W=F['L'],F['W'];s['levels']['floors']=[0,1.2,7.2,17.7];s['skins']['lower']=bays('stone',4.3,1.5,3.4,1.2);s['skins']['arches']=bays('stone',8.5,3.15,7.2,.55);s['skins']['arches']['window']['arch']={'rise':1.6,'segments':24,'tone':'trim','trim':.35};s['skins']['arches']['window']['mullion']={'w':.11,'cols':[.25,.5,.75],'rows':[.22,.45,.68,.83],'tone':'trim'};s['skins']['lower']['window']['mullion']={'w':.09,'cols':[.5],'rows':[.45],'tone':'trim'};s['skins']['arches']['reveal']=.6
-b=block('reading-hall',[14.9,34.45,0,43.1],0,17.7,'lower');b['bands']=[band(0,1.2,'stone'),band(1.2,7.2,'lower'),band(7.2,16.2,'arches'),band(16.2,17.7,'trim')];roof(s,b,25);s['blocks']=[b,block('west-stack-wing',[0,14.9,7.8,35],0,16,'lower')];roof(s,s['blocks'][1],25)
-for z in [1.1,7,16.2,17.5]:cornice(s,'cornice-'+str(z),[14.9,34.45,0,43.1],z,.32)
-# Five iron Juliet rails on the photographed east face.
-s['balcony']={'proj':.65,'slabT':.16,'railH':1,'railT':.045,'railPitch':.2,'railPost':.035,'slabTone':'trim','railTone':'dark'}
-b['faces']={'u1':{'bands':copy.deepcopy(b['bands'])}}
-b['faces']['u1']['bands'][2]['balconies']=[{'s0':i*8.62+2.65,'s1':i*8.62+5.97} for i in range(5)]
-save('battle-hall',s)
-s,F,uv=base('Union Building','docs/campus-truth/UNB.md; https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/UNB/');L,W=F['L'],F['W'];s['levels']['floors']=[0,4.4,9.5,13,18.3];s['preserveRoof']=True
-s['skins']['arcade']=bays('stone',5.3,2.3,3.6,.6);s['skins']['arcade']['window']['arch']={'rise':1.15,'tone':'trim','trim':.18};s['skins']['arcade']['window']['mullion']={'cols':[.5],'rows':[.55],'w':.10};s['skins']['arcade']['reveal']=.5
-s['skins']['paired']=bays('wall',5.3,1.1,2.6,.6);s['skins']['paired']['window']['offsets']=[[-.9,1.1],[.9,1.1]]
-s['skins']['slits']=bays('stone',4.36,1.4,2.4,1.2)
-s['skins']['towerdoor']=bays('stone',13.1,3.7,7.2,1.7);s['skins']['towerdoor']['window']['arch']={'rise':1.85,'tone':'trim','trim':.45};s['skins']['towerdoor']['window']['mullion']={'cols':[.33,.66],'rows':[.35,.7],'w':.12};s['skins']['towerdoor']['window']['cols']=[.5];s['skins']['towerdoor']['reveal']=.85
-s['blocks']=[block('main-wings',{'ring':uv},0,12.80,'paired')];s['blocks'][0]['bands']=[band(0,4.4,'paired'),band(4.4,9.5,'arcade'),band(9.5,12.80,'paired')]
-b=block('entrance-tower',[20.3,33.4,0,13.5],0,18.3,'stone');b['bands']=[band(0,9.5,'towerdoor'),band(9.5,13,'paired'),band(13,18.3,'slits')];roof(s,b,18,over=.85);s['blocks'].append(b);cornice(s,'tower-eave',[20.3,33.4,0,13.5],18.05,.75)
-save('texas-union',s)
+# Battle has a dedicated output owner.
+from bake_battle import main as bake_battle
+s=bake_battle();NEW.append(('battle-hall',s))
+# Union has a dedicated output owner; keep the legacy all-model entrypoint wired.
+from bake_union import main as bake_union
+s=bake_union();NEW.append(('texas-union',s))
 s,F,uv=base(feature(next(f['properties']['name'] for f in features if 'Perry' in (f['properties'].get('name') or '') ))['properties']['name'],'docs/campus-truth/PCL.md')
 s['name']='Perry-Castañeda Library';s['levels']['floors']=[0,4.8,9.6,14.4,19.2,24];s['skins']['slots']=bays('stone',2.5,.72,3.8,.5);s['skins']['slots']['reveal']=.85;s['skins']['slots']['pier']={'w':.48,'d':.22,'tone':'stone'}
 b=block('library',{'ring':uv},0,28.4,'stone',parapet=.5,parapetTone='stone');b['faces']={}
