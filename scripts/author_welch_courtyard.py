@@ -353,7 +353,8 @@ def main():
         rod('metal',[x,y,18.2],[x,y,18.2+height],r,12)
         for j in range(1,5):turned('metal',x,y,18.2+j*height/5,[(0,r+.045),(.07,r+.045)],12)
     deepen_court(d,base,upper,h)
-    d['detailMeshes']=list(M.values())
+    # Keep meshes another author owns (e.g. welch-east-arcade); replace only ours.
+    d['detailMeshes']=list(M.values())+[m for m in d.get('detailMeshes',[]) if not m['id'].startswith('welch-court-')]
     d['courtyardParameters']=T
     d['sources']['courtyard']='Existing footprint fixes courtyard edges. Exterior architectural evidence informs lower historic projection, masonry arches/balustrade, deep multipane historic windows, contrasting narrow laboratory openings, recessed terrace entrance, steel shade canopies and a planted split-level terrace; small dimensions remain approximate.'
     d['open']=['Unphotographed elevations and small dimensions remain approximate.',
