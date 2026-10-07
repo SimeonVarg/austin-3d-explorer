@@ -49,6 +49,8 @@ COORD_DP = 6             # decimals kept on positions (~0.1 m)
 NOT_HOMES = {
     "battle-hall", "batts-hall", "benedict-hall", "mezes-hall", "welch-hall",
     "pcl", "texas-union", "moody-center", "the-otis-hotel",
+    # Classroom buildings added to data/apartments/ on main after Sep 24.
+    "burdine-hall", "norman-hackerman-building", "robert-b-rowling-hall",
 }
 # UT residence halls among the authored models: kept, labelled as dorms.
 DORMS = {"kinsolving-dormitory", "jester-west-hall", "jester-east-hall", "san-jacinto-hall"}
