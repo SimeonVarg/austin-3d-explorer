@@ -35,8 +35,11 @@
  * Every taste value — colours, sizes, copy, thresholds, first-visit behaviour —
  * is one line in FINDER below (CLAUDE.md rule 11); finder.css holds the rest.
  */
-import * as core from './finder-core.js';
-import { decodeWalkGraph } from './walkgraph.js';
+// finder-core.js (and through it walkgraph.js) are imported when the panel
+// first loads its data (ensureLoaded), NOT with this file: a visit that never
+// opens the panel, and every cold load before the flight lands, must not pay for
+// the router's graph code (scripts/verify/img-import.mjs gate 1 asserts it).
+let core = null, decodeWalkGraph = null;
 
 const q = new URLSearchParams(location.search);
 
@@ -83,6 +86,14 @@ const FINDER = {
   // and compared homes always show). From East Riverside, campus is 6 km off
   // and its 45 pins stacked up on the horizon behind the title bar (phase 2).
   pinMaxKm: 3.2,
+  pins: {
+    // MapLibre snaps a DOM marker to a whole pixel only when its last update was
+    // not caused by a camera event (placed, or a move that just ended); after a
+    // WebGL context restore it re-places them unsnapped, so every pin shifts by
+    // up to half a pixel and context-restore.mjs saw 0.65% of the frame change.
+    // true = always unsnapped: the same pixels before and after any restore.
+    subpixel: true,
+  },
   rowBuildings: 4,                // buildings listed under a selected row
   compareMax: 3,
   compareBuildings: 6,            // rows in a compare card
@@ -413,8 +424,11 @@ function boot() {
     if (S.loading) return S.loading;
     status(C.loading);
     S.loading = Promise.all([getJSON(FINDER.data.homes), getJSON(FINDER.data.majors),
-      getJSON(FINDER.data.transit), getJSON(FINDER.data.graph)])
-      .then(([homes, majors, transit, raw]) => {
+      getJSON(FINDER.data.transit), getJSON(FINDER.data.graph),
+      import('./finder-core.js'), import('./walkgraph.js')])
+      .then(([homes, majors, transit, raw, coreMod, graphMod]) => {
+        core = coreMod; decodeWalkGraph = graphMod.decodeWalkGraph;
+        if (S.pendingSchedule) { const w = S.pendingSchedule; S.pendingSchedule = null; useSchedule(w.s); }
         const G = decodeWalkGraph(raw);
         G.wc = raw.wc || {};
         S.G = G; S.graphAsOf = raw.as_of || null;
@@ -490,6 +504,9 @@ function boot() {
     }
   }
   function useSchedule(s) {
+    // finder-core.js loads with the panel's data (ensureLoaded); a schedule that
+    // arrives first (the walking feature's own import, a saved one) waits for it.
+    if (!core) { S.pendingSchedule = { s }; return; }
     const pairs = s ? core.scheduleTargets(s) : [];
     S.schedule = pairs.length ? pairs : null;
     if (S.schedule) S.preferMajor = false;
@@ -695,7 +712,7 @@ function boot() {
           b.onclick = (e) => { e.stopPropagation(); if (S.view === 'pill') setView(isPhone() ? 'peek' : 'open'); select(h.id); };
           b.onmouseenter = () => setHot(h.id); b.onmouseleave = () => setHot(null);
           wrap.append(el('i', 'fd-stem'));
-          const marker = new maplibregl.Marker({ element: wrap, anchor: 'bottom' }).setLngLat(h.p).addTo(map());
+          const marker = new maplibregl.Marker({ element: wrap, anchor: 'bottom', subpixelPositioning: FINDER.pins.subpixel }).setLngLat(h.p).addTo(map());
           mk = { marker, wrap, b };
           S.markers.set(h.id, mk);
         }
@@ -894,7 +911,7 @@ function boot() {
       for (const e of ends) {
         const tag = el('div', 'fd-dest');
         tag.append(el('b', null, e.code), ' ' + e.t);
-        S.destMarkers.push(new maplibregl.Marker({ element: tag, anchor: 'bottom', offset: [0, -6] }).setLngLat(e.p).addTo(map()));
+        S.destMarkers.push(new maplibregl.Marker({ element: tag, anchor: 'bottom', offset: [0, -6], subpixelPositioning: FINDER.pins.subpixel }).setLngLat(e.p).addTo(map()));
       }
     });
   }

@@ -112,13 +112,19 @@ const BANNED = [
   ['new Image / img src', /new Image\b|\.src\s*=\s*['"`]?https?:/g], ['form submit', /\.submit\s*\(|<form/g],
   ['window.open', /window\.open\s*\(/g], ['history write', /history\.(push|replace)State/g],
   ['location write', /location(\.href)?\s*=[^=]/g], ['absolute URL', /['"`]https?:\/\//g],
-  ['dynamic import', /\bimport\s*\(/g], ['navigator', /navigator\./g], ['serviceWorker', /serviceWorker/g],
+  // Dynamic import stays banned EXCEPT the two literal, same-origin specifiers below:
+  // finder.js loads its own arithmetic and the router's graph code when the panel first
+  // loads, so a visit that never opens it fetches neither (img-import.mjs gate 1).
+  ['dynamic import', /\bimport\s*\((?!\s*'\.\/(?:finder-core|walkgraph)\.js'\s*\))/g], ['navigator', /navigator\./g], ['serviceWorker', /serviceWorker/g],
 ];
 for (const [name, re] of BANNED) {
   ok(count(finder, re) === 0, `js/finder.js uses ${name}`);
   ok(count(fcore, re) === 0, `js/finder-core.js uses ${name}`);
 }
 ok(count(fcore, /\bfetch\s*\(/g) === 0, 'js/finder-core.js never fetches');
+ok(count(finder, /\bimport\s*\(\s*'\.\/finder-core\.js'\s*\)/g) === 1 && count(finder, /\bimport\s*\(\s*'\.\/walkgraph\.js'\s*\)/g) === 1,
+  'js/finder.js lazily imports exactly finder-core.js and walkgraph.js');
+ok(count(finder, /^\s*import\s+(?!\()/gm) === 0, 'js/finder.js has no static import: nothing of the router loads at page load');
 ok(count(fcore, /\b(window|document|localStorage|sessionStorage|indexedDB)\b/g) === 0, 'js/finder-core.js touches no browser state');
 ok(count(finder, /\bfetch\s*\(/g) === 1, 'js/finder.js has exactly one fetch (inside getJSON)');
 ok(/function getJSON\(url\)\s*\{\s*return fetch\(url,/.test(finder), 'the one fetch is getJSON(url)');
