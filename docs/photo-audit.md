@@ -96,6 +96,15 @@ in this file were cut out first, so the answers were not given away.
 
 One building, one run. Test it again when a check is added.
 
+**The table finds differences. Its COUNT is not a score.** Measured the same
+day on Welch Hall's courtyard: a small model filled the same 33 rows twice,
+from the same camera. Between the two runs the wall it measured had not
+changed, and 5 rows about that wall still flipped between SAME and DIFFERENT.
+So "15 same, 15 different" against "12 same, 20 different" says nothing. Use
+each row as a lead and open the picture for it. To claim that a change made
+things better, show the photograph, the before and the after from the SAME
+camera.
+
 ## Where each check came from
 
 Keep this list. One line per owner comment: date, the comment, the check it
