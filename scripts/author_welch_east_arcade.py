@@ -1,11 +1,13 @@
-"""Author the round arches on the south part of Welch Hall's east ground-floor arcade.
+"""Author the round arches on Welch Hall's east ground-floor arcade (south and middle parts).
 
 An owner's photograph of the east side shows a smooth pale plaster wall with
 round-arched openings along the ground floor. The recipe had square posts there.
 This script adds one detail mesh, `welch-east-arcade`: a plaster wall pierced by
 evenly spaced round arches, standing just in front of the old posts, and it
-takes the old posts out of that stretch only. The north part of the east wall
-is not photographed and is left exactly as it was.
+takes the old posts out of those stretches only. Two stretches are built (see
+SPANS): the south one and the middle one each appear in a photograph; the short
+gap between them at the bend of the wall is carried over from both sides. The
+north end of the east wall is not photographed and is left exactly as it was.
 
 Run it after author_welch_courtyard.py (which leaves meshes it does not own
 alone). Running it again gives the identical file: it removes its own mesh and
@@ -24,8 +26,9 @@ from compact_models import compact
 PATH = Path(__file__).resolve().parents[1] / 'data/apartments/welch-hall.json'
 
 # ---- every taste or size choice is here (metres unless stated) ----
-START = 2.0          # v where the arcade wall begins
-END = 58.0           # v where it ends (the rest of the east wall is untouched)
+# One arcade wall per entry: (face of the block, v where it begins, v where it ends).
+# Face 3 is the south stretch of the east wall, face 4 the middle stretch.
+SPANS = [(3, 2.0, 60.705), (4, 60.705, 111.5)]   # they meet at the bend of the wall (ring point v 60.705)
 BAY = 3.5            # one arch every BAY metres; count = round((END-START)/BAY)
 OPENING = 2.5        # clear width of one arch opening
 THICKNESS = 0.5      # wall thickness
@@ -38,11 +41,10 @@ TONE = 'eastPlaster'
 MATERIAL = 'plaster'
 MESH_ID = 'welch-east-arcade'
 BLOCK = 'welch-wings'
-FACE = 3             # the block's east face: ring points FACE to FACE+1
 DECIMALS = 3
 
 
-def build(d):
+def build(d, FACE, START, END):
     block = next(b for b in d['blocks'] if b['id'] == BLOCK)
     a, c = block['plan']['ring'][FACE:FACE + 2]
     band = block['faces'][str(FACE)]['bands'][0]
@@ -142,7 +144,7 @@ def build(d):
     return verts, tris, count
 
 
-def posts(block):
+def posts(block, FACE):
     """Centres (metres along the face) of every old post, from its pitch."""
     cols = block['faces'][str(FACE)]['bands'][0]['inset']['columns']
     a, c = block['plan']['ring'][FACE:FACE + 2]
@@ -159,23 +161,28 @@ def main():
     d['detailMeshes'] = [m for m in d['detailMeshes'] if m['id'] != MESH_ID]
     d['colours'].pop(TONE, None)
     d['materials'].pop(TONE, None)
-    cols, a, c, length, existing = posts(block)
-    cols.pop('at', None)
-
-    verts, tris, count = build(d)
-    for p in verts:
-        assert all(math.isfinite(x) for x in p)
-    assert all(0 <= i < len(verts) for t in tris for i in t)
+    verts, tris, count, removed = [], [], 0, 0
+    for FACE, START, END in SPANS:
+        cols, a, c, length, existing = posts(block, FACE)
+        cols.pop('at', None)
+        v, t, n = build(d, FACE, START, END)
+        for p in v:
+            assert all(math.isfinite(x) for x in p)
+        assert all(0 <= i < len(v) for tri in t for i in tri)
+        tris.extend([[i + len(verts) for i in tri] for tri in t])
+        verts.extend(v)
+        count += n
+        kept = [s for s in existing
+                if not START <= a[1] + s * (c[1] - a[1]) / length <= END]
+        cols['at'] = kept
+        removed += len(existing) - len(kept)
 
     d['colours'][TONE] = {'hex': COLOUR}
     d['materials'][TONE] = MATERIAL
     d['detailMeshes'].append(dict(id=MESH_ID, tone=TONE, vertices=verts, triangles=tris))
-    kept = [s for s in existing
-            if not START <= a[1] + s * (c[1] - a[1]) / length <= END]
-    cols['at'] = kept
     PATH.write_text(compact(json.dumps(d, indent=2)), encoding='utf-8')
     print('Welch east arcade:', count, 'arches,', len(verts), 'vertices,', len(tris), 'triangles;',
-          len(existing) - len(kept), 'old posts removed')
+          removed, 'old posts removed')
 
 
 if __name__ == '__main__':
