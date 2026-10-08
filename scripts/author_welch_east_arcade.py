@@ -36,10 +36,11 @@ PATH = Path(__file__).resolve().parents[1] / 'data/apartments/welch-hall.json'
 # Face 3 is the south stretch of the east wall, face 4 the middle stretch; they meet at
 # the bend of the wall. The first bay at the south corner and the last two at the
 # north end keep the old square posts.
-BAYS = [(3, 1, 14), (4, 0, 12)]
-BAY = 4.3            # one arch in each bay. In the photographs the columns of windows are as far
+BAYS = [(3, 1, 14), (4, 0, 13)]
+BAY = 4.2            # one arch in each bay. In the photographs the columns of windows are as far
                      # apart as the rows are (row pitch / column pitch = 1.0), and the rows are
-                     # 4.24 m apart (wall height from the 2021 laser scan), so a bay is about 4.3 m.
+                     # 4.24 m apart (wall height from the 2021 laser scan), so a bay is about 4.2 m
+                     # (14 bays on face 3, 15 on face 4).
 OPENING = 3.4        # clear width of one arch opening (the photographs: 77 to 80% of a bay)
 RISE = 0.72          # how far the curve rises above the straight sides. The photographs show a
                      # FLAT curve, about a fifth as high as the opening is wide, on tall straight
@@ -49,7 +50,7 @@ STANDOFF = 0.4       # how far the front face stands out from the old wall line
 HEIGHT = 4.8         # top of the wall; must equal the old arcade band's top
 HEADROOM = 1.2       # plaster left above the crown (the photographs: the whole opening is about 1.06 times as high as it is wide)
 SEGMENTS = 10        # flat strips in each half-circle head
-COLOUR = '#ecebe4'   # plaster: a warm white, set so that it reads like the photographs in the app's light
+COLOUR = '#efe9dc'   # plaster: a warm white, set so that it reads like the photographs in the app's light
 TONE = 'eastPlaster'
 MATERIAL = 'plaster'
 MESH_ID = 'welch-east-arcade'
