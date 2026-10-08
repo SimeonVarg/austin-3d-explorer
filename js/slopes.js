@@ -232,12 +232,17 @@
     },
     surfaces: {on:q.get('surfaces')!=='0', joint:.009, jointShade:.12,
       grain:.035, reflection:.42, near:25, far:120,
-      // Brick in mixed tones that stay visible from across a street (a real brick wall is not one
-      // colour). brickPatch = how strong (0 = off, the default); brickPatchCell = the size of one
-      // tone block, in bricks along and courses up. Try it with ?brickpatch=0.5,1,1 (the nearest to
-      // a photograph of Welch Hall's east wall from 26 m) or ?brickpatch=0.35 (block 1 x 2).
-      brickPatch:(()=>{const v=(q.get('brickpatch')||'').split(',').map(Number);return Number.isFinite(v[0])&&v[0]>0?Math.min(v[0],1):0;})(),
-      brickPatchCell:(()=>{const v=(q.get('brickpatch')||'').split(',').map(Number);return v.length===3&&v[1]>0&&v[2]>0?[v[1],v[2]]:[1,2];})(),
+      // Brick in mixed tones (a real brick wall is not one colour). Two parts:
+      //  brickPatch    each brick gets its own tone; fades when a brick is under a few pixels.
+      //                brickPatchCell = the size of one tone block, in bricks along and courses up.
+      //  brickMottle   soft light and dark areas about brickMottleSize metres across, which stay
+      //                visible from far away (to brickMottleFar[1] metres), as on a real wall.
+      // 0 turns a part off. Try values on any page: ?brickpatch=0.5,1,1&brickmottle=0.12,1.6
+      brickPatch:(()=>{const v=(q.get('brickpatch')||'').split(',').map(Number);return q.has('brickpatch')&&Number.isFinite(v[0])&&v[0]>=0?Math.min(v[0],1):0.5;})(),
+      brickPatchCell:(()=>{const v=(q.get('brickpatch')||'').split(',').map(Number);return v.length===3&&v[1]>0&&v[2]>0?[v[1],v[2]]:[1,1];})(),
+      brickMottle:(()=>{const v=(q.get('brickmottle')||'').split(',').map(Number);return q.has('brickmottle')&&Number.isFinite(v[0])&&v[0]>=0?Math.min(v[0],1):0.12;})(),
+      brickMottleSize:(()=>{const v=(q.get('brickmottle')||'').split(',').map(Number);return v.length>=2&&v[1]>0?v[1]:1.6;})(),
+      brickMottleFar:[250,600],
       grainScale:36,tileVariation:1.5,reflectionBase:.35,skyLow:.7,skyHigh:1.15,horizonLow:-.4,horizonHigh:.6,
       sky:['#7e9fab','#b19b7d','#101922']},
     // Opt-in shallow shop interiors. Shelf/depth dimensions are metres; ceiling
@@ -505,6 +510,7 @@
     uniform vec3 u_surfaceSky;
     uniform vec3 u_surfaceNoise;
     uniform vec3 u_brickPatch;
+    uniform vec4 u_brickMottle;
     uniform vec4 u_surfaceHorizon;
     uniform vec4 u_weatherScale;
     uniform vec3 u_weatherTone;
@@ -667,6 +673,11 @@ ${window.RoofTiles.apply}
             brickTone=(fract(sin(dot(tc,vec2(12.9898,78.233))+tc.x*tc.y*.37)*43758.5453)-.5)*u_brickPatch.x*toneSeen;
           }
           col*=1.0+strength*nearDetail*(tile*u_surfaceStyle.z*u_surfaceNoise.y*resolved+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved+brickTone);
+          if(kind>1.5&&kind<2.5&&u_brickMottle.x>0.0){
+            // soft areas of lighter and darker brick; two sizes so that it does not read as a grid
+            float m=surfaceNoise(uv/u_brickMottle.y)*.65+surfaceNoise(uv/(u_brickMottle.y*.37)+7.3)*.35-.5;
+            col*=1.0+strength*m*u_brickMottle.x*(1.0-smoothstep(u_brickMottle.z,u_brickMottle.w,distance(u_eye,v_pos)));
+          }
         }
       }
       gl_FragColor=vec4(col,baseColor.a*faceMix);
@@ -1426,6 +1437,7 @@ ${window.RoofTiles.apply}
       U.u_surfaceStyle.value.set(surf.joint,surf.jointShade,surf.grain,surf.reflection);
       U.u_surfaceNoise.value.set(surf.grainScale,surf.tileVariation,surf.reflectionBase);
       U.u_brickPatch.value.set(surf.brickPatch,surf.brickPatchCell[0],surf.brickPatchCell[1]);
+      U.u_brickMottle.value.set(surf.brickMottle,surf.brickMottleSize,surf.brickMottleFar[0],surf.brickMottleFar[1]);
       U.u_surfaceHorizon.value.set(surf.skyLow,surf.skyHigh,surf.horizonLow,surf.horizonHigh);
       const weather=SLOPES.weathering;
       U.u_weatherScale.value.set(weather.streakX,weather.streakY,weather.broadX,weather.broadY);
@@ -1649,7 +1661,7 @@ ${window.RoofTiles.apply}
       u_lightpos: { value: new T.Vector3(0, 0, 1) },
       u_eye: {value:new T.Vector3()}, u_surfaceRange:{value:new T.Vector3(1,25,120)},
       u_surfaceStyle:{value:new T.Vector4()},u_surfaceSky:{value:new T.Vector3()},
-      u_surfaceNoise:{value:new T.Vector3()},u_brickPatch:{value:new T.Vector3()},u_surfaceHorizon:{value:new T.Vector4()},
+      u_surfaceNoise:{value:new T.Vector3()},u_brickPatch:{value:new T.Vector3()},u_brickMottle:{value:new T.Vector4()},u_surfaceHorizon:{value:new T.Vector4()},
       u_weatherScale:{value:new T.Vector4()},u_weatherTone:{value:new T.Vector3()},
       u_shopClosedAmbient:{value:.06},u_shopShelfTop:{value:.55},u_shopRoom:{value:new T.Vector4()},u_shopStyle:{value:new T.Vector4()},u_shopCeiling:{value:new T.Vector4()},
       u_shopWall:{value:new T.Vector3()},u_shopFloor:{value:new T.Vector3()},u_shopMerch:{value:new T.Vector3()},u_shopLight:{value:new T.Vector3()},
