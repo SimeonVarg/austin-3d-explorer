@@ -29,6 +29,12 @@ and which wall, before anything else.
 - Storeys. Rows of windows on each wall in view.
 - Columns of windows (or bays) across a stretch you can see end to end.
 - Repeated parts along the ground: arches, posts, doors, shop fronts.
+- Spacing of the rows ÷ spacing of the columns. It needs no scale, and it
+  shows at once when bays are too narrow or storeys too tall.
+
+**1b. One real length.** Ratios do not give size. Fix the scale with one
+measured length: the wall height from the laser scan, or a wall length from
+the map outline. Then every ratio becomes metres.
 
 **2. Measure each repeated part.** For a window, an arch, a balcony, a post:
 - width ÷ spacing (how much of a bay it fills);
@@ -101,6 +107,9 @@ made or sharpened.
 - 2026-10-08. "look at the angle of the arch from the OG and your new version
   are they the same?": check 2 (rise ÷ width of a curved top, height of the
   straight sides) and check 3 (never build from a word).
+- 2026-10-08. The first use of this file on the rebuilt wall found rows 1.26
+  times as far apart as columns where the photograph has 1.0 (bays 3.45 m
+  that should be 4.3 m): the row ÷ column check in step 1, and step 1b.
 - 2026-10-07. Three photographs filed under one building showed another
   building: check 0.
 - 2026-10-03. "can't see the sign cuz the tree": check 9, from the camera of
