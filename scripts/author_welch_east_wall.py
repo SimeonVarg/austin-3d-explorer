@@ -34,12 +34,13 @@ LOWER, UPPER = 'welch-wings', 'welch-upper-wings'
 ARCADE_TOP = 4.8               # top of the plaster arcade = bottom of the brick
 SEAM = 12.7                    # where the two blocks meet
 WALL_TOP = 18.2
-FLOORS = [4.8, 9.27, 13.74]    # floor line of each window row (three even storeys)
+FLOORS = [4.8, 9.04, 13.28]    # floor line of each window row. Measured on the photograph against the wall
+                               # height: rows 4.24 m apart, 1.7 m of brick above the top bars.
 BAY = arcade.BAY               # one window per bay; the arcade script puts one arch under each
-WIN_W, WIN_H, SILL = 1.2, 2.3, 0.75
+WIN_W, WIN_H, SILL = 1.25, 2.45, 0.12   # 0.29 of a bay wide, twice as high as wide; the lowest row sits almost on the plaster
 FRAME_W = 0.05
 REVEAL = 0.2
-BAR_H = 0.55                   # the stone bar on top of each window
+BAR_H = 0.7                    # the stone bar on top of each window (the photograph: about 0.3 of the glass height)
 SILL_H = 0.08                  # the thin stone sill under it
 PROUD = 0.03                   # bars and sills stand this far in front of the brick
 ROOF_EDGE_H = 0.25             # dark band at the top of the wall
