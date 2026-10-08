@@ -40,7 +40,7 @@ T = dict(terrace=3.1, slab=.32, parapet=.84, railRadius=.032,
          # south-west part was: at its west end the terrace is only a balcony in front of the low
          # projection. terraceWest..terraceBodyWest is that balcony; its front is terraceBalconyFront.
          # How far east the balcony runs before the deep terrace starts is INFERRED.
-         terraceWest=34.0, terraceBodyWest=40.0, terraceBalconyFront=120.0)
+         terraceWest=35.0, terraceBodyWest=40.0, terraceBalconyFront=121.5)   # measured from the fitted camera: the balcony's corner is about 7.5 m from it, 18 degrees to the right
 COLOURS = dict(courtBrick='#b99b80', courtStone='#b69c80',
                courtTrim='#dfded3', courtGlass='#394a4e',
                courtConcrete='#aaa697', courtPave='#9b9789',
