@@ -5,8 +5,8 @@ round-arched openings along the ground floor. The recipe had square posts there.
 This script adds one detail mesh, `welch-east-arcade`: a plaster wall pierced by
 evenly spaced round arches, standing just in front of the old posts, and it
 takes the old posts out of those stretches only. Two stretches are built (see
-SPANS): the south one and the middle one each appear in a photograph; the short
-gap between them at the bend of the wall is carried over from both sides. The
+SPANS): the south one and the middle one each appear in a photograph, and they meet
+at the bend of the wall. The
 north end of the east wall is not photographed and is left exactly as it was.
 
 Run it after author_welch_courtyard.py (which leaves meshes it does not own
