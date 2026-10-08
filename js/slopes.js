@@ -232,6 +232,12 @@
     },
     surfaces: {on:q.get('surfaces')!=='0', joint:.009, jointShade:.12,
       grain:.035, reflection:.42, near:25, far:120,
+      // Brick in mixed tones that stay visible from across a street (a real brick wall is not one
+      // colour). brickPatch = how strong (0 = off, the default); brickPatchCell = the size of one
+      // tone block, in bricks along and courses up. Try it with ?brickpatch=0.5,1,1 (the nearest to
+      // a photograph of Welch Hall's east wall from 26 m) or ?brickpatch=0.35 (block 1 x 2).
+      brickPatch:(()=>{const v=(q.get('brickpatch')||'').split(',').map(Number);return Number.isFinite(v[0])&&v[0]>0?Math.min(v[0],1):0;})(),
+      brickPatchCell:(()=>{const v=(q.get('brickpatch')||'').split(',').map(Number);return v.length===3&&v[1]>0&&v[2]>0?[v[1],v[2]]:[1,2];})(),
       grainScale:36,tileVariation:1.5,reflectionBase:.35,skyLow:.7,skyHigh:1.15,horizonLow:-.4,horizonHigh:.6,
       sky:['#7e9fab','#b19b7d','#101922']},
     // Opt-in shallow shop interiors. Shelf/depth dimensions are metres; ceiling
@@ -498,6 +504,7 @@
     uniform vec3 u_surfaceRange;
     uniform vec3 u_surfaceSky;
     uniform vec3 u_surfaceNoise;
+    uniform vec3 u_brickPatch;
     uniform vec4 u_surfaceHorizon;
     uniform vec4 u_weatherScale;
     uniform vec3 u_weatherTone;
@@ -653,7 +660,13 @@ ${window.RoofTiles.apply}
           float grainFade=1.0-smoothstep(.2,1.0,max(fwidth(uv.x),fwidth(uv.y))*u_surfaceNoise.x);
           // Random tile colours have the same sampling limit as their joints.
           // Previously only the mortar faded, leaving unfiltered colour noise.
-          col*=1.0+strength*nearDetail*(tile*u_surfaceStyle.z*u_surfaceNoise.y*resolved+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved);
+          float brickTone=0.0;
+          if(kind>1.5&&kind<2.5&&u_brickPatch.x>0.0){
+            float toneSeen=1.0-smoothstep(.15,.55,max(footprint.x/u_brickPatch.y,footprint.y/u_brickPatch.z));
+            vec2 tc=floor(uv/size/u_brickPatch.yz+vec2(.5*mod(floor(uv.y/size.y/u_brickPatch.z),2.0),0.0));
+            brickTone=(fract(sin(dot(tc,vec2(12.9898,78.233))+tc.x*tc.y*.37)*43758.5453)-.5)*u_brickPatch.x*toneSeen;
+          }
+          col*=1.0+strength*nearDetail*(tile*u_surfaceStyle.z*u_surfaceNoise.y*resolved+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved+brickTone);
         }
       }
       gl_FragColor=vec4(col,baseColor.a*faceMix);
@@ -1412,6 +1425,7 @@ ${window.RoofTiles.apply}
       U.u_surfaceRange.value.set(surf.on?1:0,surf.near,surf.far);
       U.u_surfaceStyle.value.set(surf.joint,surf.jointShade,surf.grain,surf.reflection);
       U.u_surfaceNoise.value.set(surf.grainScale,surf.tileVariation,surf.reflectionBase);
+      U.u_brickPatch.value.set(surf.brickPatch,surf.brickPatchCell[0],surf.brickPatchCell[1]);
       U.u_surfaceHorizon.value.set(surf.skyLow,surf.skyHigh,surf.horizonLow,surf.horizonHigh);
       const weather=SLOPES.weathering;
       U.u_weatherScale.value.set(weather.streakX,weather.streakY,weather.broadX,weather.broadY);
@@ -1635,7 +1649,7 @@ ${window.RoofTiles.apply}
       u_lightpos: { value: new T.Vector3(0, 0, 1) },
       u_eye: {value:new T.Vector3()}, u_surfaceRange:{value:new T.Vector3(1,25,120)},
       u_surfaceStyle:{value:new T.Vector4()},u_surfaceSky:{value:new T.Vector3()},
-      u_surfaceNoise:{value:new T.Vector3()},u_surfaceHorizon:{value:new T.Vector4()},
+      u_surfaceNoise:{value:new T.Vector3()},u_brickPatch:{value:new T.Vector3()},u_surfaceHorizon:{value:new T.Vector4()},
       u_weatherScale:{value:new T.Vector4()},u_weatherTone:{value:new T.Vector3()},
       u_shopClosedAmbient:{value:.06},u_shopShelfTop:{value:.55},u_shopRoom:{value:new T.Vector4()},u_shopStyle:{value:new T.Vector4()},u_shopCeiling:{value:new T.Vector4()},
       u_shopWall:{value:new T.Vector3()},u_shopFloor:{value:new T.Vector3()},u_shopMerch:{value:new T.Vector3()},u_shopLight:{value:new T.Vector3()},
