@@ -25,7 +25,14 @@ T = dict(terrace=3.1, slab=.32, parapet=.84, railRadius=.032,
          sillProject=.17, sillHeight=.14, labBay=5.8, labWidth=1.35,
          labHeight=2.55, labSill=.7, labReveal=.38,
          entranceWidth=5.6, entranceHeight=3.1, entranceDepth=.62,
-         shrubSegments=7, shrubRings=5, historicGlassStrength=.22, labGlassStrength=.16)
+         shrubSegments=7, shrubRings=5, historicGlassStrength=.22, labGlassStrength=.16,
+         # The plain brick court walls of the 1929 wing, measured on an owner photograph
+         # (2026-10-08): PAIRS of windows, three rows over a stone base storey. oldFaces are
+         # court faces of the lower ring: 14 the west wall (north part), 15 the north wall
+         # (west part), both photographed; 2 the north wall (east part) is INFERRED by symmetry.
+         oldFaces=[14, 15, 2], oldBay=4.83, oldWidth=1.35, oldHeight=2.7, oldSill=.7,
+         oldGap=.57, oldBaseTop=4.8, oldFloors=[4.8, 9.04, 13.28], oldDepth=.3,
+         oldBaseHeight=2.9, oldBaseSill=1.1, oldBelt=.3, oldPaneW=.045)
 COLOURS = dict(courtBrick='#b99b80', courtStone='#b69c80',
                courtTrim='#dfded3', courtGlass='#394a4e',
                courtConcrete='#aaa697', courtPave='#9b9789',
@@ -187,6 +194,58 @@ def shrub(x,y,z,sx,sy,sz,seed):
         polyhedron(['courtLeaf','courtLeafLight','courtLeafShade'][clump],pts,faces)
 
 
+def old_wing(d,base,upper,h):
+    """The 1929 wing's plain court walls: pairs of windows in three rows over a stone base.
+
+    Every window is an explicit opening, so the pairs sit exactly where the
+    photograph has them and the top row (in the upper block, whose north wall
+    is one long face above the low projection) lines up with the rows below.
+    """
+    w,half=T['oldWidth'],(T['oldWidth']+T['oldGap'])/2
+    d['skins']['courtOldBase']=dict(kind='flat',field='stone')
+    panes=dict(cols=[1/3,2/3],rows=[.2,.4,.6,.8],w=T['oldPaneW'],tone='courtTrim')
+    def centres(length,mod=None):
+        """Centre of each window: two to a bay. `mod` fixes the bay width (the long upper wall)."""
+        if mod is None:n=max(1,round(length/T['oldBay']));mod=length/n
+        out=[];c=mod/2
+        while c+half+w/2<length-.25:
+            out.extend([c-half,c+half]);c+=mod
+        return out,mod
+    def opening(c,z,height):
+        return dict(s0=c-w/2,s1=c+w/2,z0=z,z1=z+height,d=T['oldDepth'],glass='courtGlass',tone='courtBrick',lit=False,mullion=panes)
+    def dress(a,b,c,z,height):
+        wall_box('historicSill',a,b,c-w/2-.09,c+w/2+.09,-.035,T['sillProject'],z-T['sillHeight'],z)
+        wall_box('courtArchBrick',a,b,c-w/2-.06,c+w/2+.06,.005,.06,z+height,z+height+.17)
+    low=[f for f in T['oldFloors'] if f+T['oldSill']+T['oldHeight']<=T['projectionTop']]
+    top=[f for f in T['oldFloors'] if f>=T['projectionTop']]
+    assert len(low)+len(top)==len(T['oldFloors']),'a window row would cross the seam between the two blocks'
+    mods={}
+    for i in T['oldFaces']:
+        a,b=h[i],h[(i+1)%len(h)];length=math.dist(a,b);cs,mods[i]=centres(length)
+        ground=[opening(c,T['oldBaseSill'],T['oldBaseHeight']) for c in cs]
+        rows=[opening(c,f+T['oldSill'],T['oldHeight']) for f in low for c in cs]
+        base['faces']['h0.'+str(i)]=dict(bands=[dict(z0=0,z1=T['oldBaseTop'],skin='courtOldBase',openings=ground),
+                                                dict(z0=T['oldBaseTop'],z1=T['projectionTop'],skin='courtBrick',openings=rows)])
+        for f in low:
+            for c in cs:dress(a,b,c,f+T['oldSill'],T['oldHeight'])
+        wall_box('stone',a,b,.02,length-.02,.01,.1,T['oldBaseTop']-.18,T['oldBaseTop'])      # the top of the stone base
+    # The top row is in the upper block. Its court ring is the lower ring's points 2..15, so
+    # lower face i is upper face i-2, and the lower north wall's west part (face 15) is the
+    # start of ONE long upper face (the last one), which also runs over the low projection.
+    last=len(upper['plan']['holes'][0])-1
+    for i in T['oldFaces']:
+        if i==15:a,b=h[15],h[2];key='h0.'+str(last)
+        else:a,b=h[i],h[(i+1)%len(h)];key='h0.'+str(i-2)
+        length=math.dist(a,b);cs,_=centres(length,mods[i])
+        rows=[opening(c,f+T['oldSill'],T['oldHeight']) for f in top for c in cs]
+        upper['faces'][key]=dict(bands=[dict(z0=T['projectionTop'],z1=17.55,skin='courtBrick',openings=rows),dict(z0=17.55,z1=18.2,skin='trim')])
+        for f in top:
+            for c in cs:dress(a,b,c,f+T['oldSill'],T['oldHeight'])
+            z=f+T['oldSill']-T['sillHeight']
+            wall_box('historicSill',a,b,.02,length-.02,.01,.2,z-T['oldBelt'],z)                 # the moulded band the top row sits on
+        wall_box('historicSill',a,b,.02,length-.02,.01,.2,17.65,17.83)                         # under the eave, as on the other historic walls
+
+
 def deepen_court(d,base,upper,h):
     """Complete visible historic wings, modern lab and terrace entrance."""
     historic=dict(kind='bays',field='courtBrick',bay=T['bay'],glass='courtGlass',
@@ -210,6 +269,7 @@ def deepen_court(d,base,upper,h):
     # The visible historic court elevations have deep brick jambs and separate
     # projecting sill blocks, not a bright frame pasted onto a uniform plane.
     for i in [0,1,2,3,4,5,10,11,12,13,14,15,16]:
+        if i in T['oldFaces']:continue      # old_wing() draws these walls
         a,b=h[i],h[(i+1)%len(h)];length=math.dist(a,b)
         central=i in [0,1,16];n=max(1,round(length/T['bay']));mod=length/n
         width=T['windowWidth'] if central else T['historicWidth']
@@ -353,6 +413,7 @@ def main():
         rod('metal',[x,y,18.2],[x,y,18.2+height],r,12)
         for j in range(1,5):turned('metal',x,y,18.2+j*height/5,[(0,r+.045),(.07,r+.045)],12)
     deepen_court(d,base,upper,h)
+    old_wing(d,base,upper,h)
     # Keep meshes another author owns (e.g. welch-east-arcade); replace only ours.
     d['detailMeshes']=list(M.values())+[m for m in d.get('detailMeshes',[]) if not m['id'].startswith('welch-court-')]
     d['courtyardParameters']=T
