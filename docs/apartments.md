@@ -499,6 +499,10 @@ count from a module, never a hard-coded count.
   1..n cells shares a tone), `macro` (`[rows, planks]` per decision cell —
   The Standard's dark runs are two courses by two planks), `window`
   (`cols` as fractions of the face, `w`, `h`, `sill`).
+- A band may carry `floors: [z, ...]` (absolute heights of its own floor
+  lines). Without it the band uses the building's `levels.floors`. Use it for
+  a wall whose storeys differ from the rest of the building: Welch Hall's east
+  wall has three window rows where the building's levels give two.
 - `bays`: a flat `field` cut into bays of `bay` metres; `strip` (`w`,
   `tone`, `at: "joints" | "centres"`, `every`) puts a vertical strip of
   another tone on the bay lines; `window` (`w`, `h`, `sill`) one per bay per

@@ -3,9 +3,10 @@
 An owner's photograph of the east side shows a smooth pale plaster wall with
 round-arched openings along the ground floor. The recipe had square posts there.
 This script adds one detail mesh, `welch-east-arcade`: a plaster wall pierced by
-evenly spaced round arches, standing just in front of the old posts, and it
-takes the old posts out of those stretches only. Two stretches are built (see
-SPANS): the south one and the middle one each appear in a photograph, and they meet
+round arches, one under each column of windows, standing just in front of the old posts, and it
+takes the old posts out of those stretches only. It also gives the glass behind
+the arches a dark tone, because the photographs show dark openings. Two stretches are built (see
+BAYS): the south one and the middle one each appear in a photograph, and they meet
 at the bend of the wall. The
 north end of the east wall is not photographed and is left exactly as it was.
 
@@ -26,30 +27,38 @@ from compact_models import compact
 PATH = Path(__file__).resolve().parents[1] / 'data/apartments/welch-hall.json'
 
 # ---- every taste or size choice is here (metres unless stated) ----
-# One arcade wall per entry: (face of the block, v where it begins, v where it ends).
-# Face 3 is the south stretch of the east wall, face 4 the middle stretch.
-SPANS = [(3, 2.0, 60.705), (4, 60.705, 111.5)]   # they meet at the bend of the wall (ring point v 60.705)
-BAY = 3.5            # one arch every BAY metres; count = round((END-START)/BAY)
+# One arcade wall per entry: (face of the block, first bay, bay after the last one).
+# Bays are the face's own: n = round(face length / BAY), each face length / n wide. It is
+# the rule the app uses to place the windows of the brick wall above (same BAY in
+# author_welch_east_wall.py), so each arch sits under a column of windows and each
+# post under the brick between two columns.
+# Face 3 is the south stretch of the east wall, face 4 the middle stretch; they meet at
+# the bend of the wall. The first bay at the south corner and the last three at the
+# north end keep the old square posts.
+BAYS = [(3, 1, 18), (4, 0, 15)]
+BAY = 3.45           # one arch in each bay
 OPENING = 2.5        # clear width of one arch opening
 THICKNESS = 0.5      # wall thickness
 STANDOFF = 0.4       # how far the front face stands out from the old wall line
 HEIGHT = 4.8         # top of the wall; must equal the old arcade band's top
-HEADROOM = 0.30      # plaster left above the crown of each arch
+HEADROOM = 1.40      # plaster left above the crown of each arch (the photographs show a tall band of plaster over the arches)
 SEGMENTS = 10        # flat strips in each half-circle head
-COLOUR = '#dad8d3'   # plaster, sampled from the owner's photograph
+COLOUR = '#ecebe4'   # plaster: a warm white, set so that it reads like the photographs in the app's light
 TONE = 'eastPlaster'
 MATERIAL = 'plaster'
 MESH_ID = 'welch-east-arcade'
+# The glass behind the arches: the photographs show dark openings (a shaded walk), not bright sky.
+OLD_SKIN, SHADE_SKIN, SHADE_TONE = 'concourse', 'eastConcourse', 'eastShade'
+SHADE_COLOUR, SHADE_STRENGTH = '#2e3338', 0.05
 BLOCK = 'welch-wings'
 DECIMALS = 3
 
 
-def build(d, FACE, START, END):
+def build(d, FACE, START, END, count):
     block = next(b for b in d['blocks'] if b['id'] == BLOCK)
     a, c = block['plan']['ring'][FACE:FACE + 2]
     band = block['faces'][str(FACE)]['bands'][0]
     assert abs(band['z1'] - HEIGHT) < 1e-9, 'HEIGHT must match the old arcade band top'
-    count = round((END - START) / BAY)
     bay = (END - START) / count
     r = OPENING / 2
     spring = HEIGHT - r - HEADROOM
@@ -162,10 +171,14 @@ def main():
     d['colours'].pop(TONE, None)
     d['materials'].pop(TONE, None)
     verts, tris, count, removed = [], [], 0, 0
-    for FACE, START, END in SPANS:
+    for FACE, first, stop in BAYS:
         cols, a, c, length, existing = posts(block, FACE)
         cols.pop('at', None)
-        v, t, n = build(d, FACE, START, END)
+        bays = max(1, round(length / BAY))
+        assert 0 <= first < stop <= bays, 'BAYS must lie inside the face'
+        START = a[1] + (c[1] - a[1]) * first / bays
+        END = a[1] + (c[1] - a[1]) * stop / bays
+        v, t, n = build(d, FACE, START, END, stop - first)
         for p in v:
             assert all(math.isfinite(x) for x in p)
         assert all(0 <= i < len(v) for tri in t for i in tri)
@@ -175,11 +188,22 @@ def main():
         kept = [s for s in existing
                 if not START <= a[1] + s * (c[1] - a[1]) / length <= END]
         cols['at'] = kept
+        band = block['faces'][str(FACE)]['bands'][0]
+        assert band['skin'] in (OLD_SKIN, SHADE_SKIN), 'the arcade band has a skin this script does not know'
+        band['skin'] = SHADE_SKIN
         removed += len(existing) - len(kept)
 
     d['colours'][TONE] = {'hex': COLOUR}
     d['materials'][TONE] = MATERIAL
+    d['colours'][SHADE_TONE] = {'hex': SHADE_COLOUR}
+    d['materials'][SHADE_TONE] = {'type': 'glass', 'strength': SHADE_STRENGTH}
+    d['skins'][SHADE_SKIN] = dict(d['skins'][OLD_SKIN], glass=SHADE_TONE)
+    for table in (d['colours'], d['materials'], d['skins']):      # east-wall entries go last, in name order (see below)
+        for k in sorted(k for k in table if k.startswith('east')):
+            table[k] = table.pop(k)
     d['detailMeshes'].append(dict(id=MESH_ID, tone=TONE, vertices=verts, triangles=tris))
+    # east-wall meshes go last, in name order, so the file does not depend on which author script ran last
+    d['detailMeshes'].sort(key=lambda m: (m['id'].startswith('welch-east-'), m['id'] if m['id'].startswith('welch-east-') else ''))
     PATH.write_text(compact(json.dumps(d, indent=2)), encoding='utf-8')
     print('Welch east arcade:', count, 'arches,', len(verts), 'vertices,', len(tris), 'triangles;',
           removed, 'old posts removed')
