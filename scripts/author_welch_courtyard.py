@@ -32,7 +32,15 @@ T = dict(terrace=3.1, slab=.32, parapet=.84, railRadius=.032,
          # (west part), both photographed; 2 the north wall (east part) is INFERRED by symmetry.
          oldFaces=[14, 15, 2], oldBay=4.83, oldWidth=1.35, oldHeight=2.7, oldSill=.7,
          oldGap=.57, oldBaseTop=4.8, oldFloors=[4.8, 9.04, 13.28], oldDepth=.3,
-         oldBaseHeight=2.9, oldBaseSill=1.1, oldBelt=.3, oldPaneW=.045)
+         oldBaseHeight=2.9, oldBaseSill=1.1, oldBelt=.3, oldPaneW=.045,
+         # Face 14 (the west wall) has SINGLE windows, evenly spaced: three across its 10.2 m in
+         # the photograph, seen from a camera fitted to the north wall's window corners.
+         oldSingleFaces=[14], oldSingleBay=3.4,
+         # The terrace. From the fitted camera the photograph shows open court where the slab's
+         # south-west part was: at its west end the terrace is only a balcony in front of the low
+         # projection. terraceWest..terraceBodyWest is that balcony; its front is terraceBalconyFront.
+         # How far east the balcony runs before the deep terrace starts is INFERRED.
+         terraceWest=35.0, terraceBodyWest=40.0, terraceBalconyFront=121.5)   # measured from the fitted camera: the balcony's corner is about 7.5 m from it, 18 degrees to the right
 COLOURS = dict(courtBrick='#b99b80', courtStone='#b69c80',
                courtTrim='#dfded3', courtGlass='#394a4e',
                courtConcrete='#aaa697', courtPave='#9b9789',
@@ -204,12 +212,12 @@ def old_wing(d,base,upper,h):
     w,half=T['oldWidth'],(T['oldWidth']+T['oldGap'])/2
     d['skins']['courtOldBase']=dict(kind='flat',field='stone')
     panes=dict(cols=[1/3,2/3],rows=[.2,.4,.6,.8],w=T['oldPaneW'],tone='courtTrim')
-    def centres(length,mod=None):
-        """Centre of each window: two to a bay. `mod` fixes the bay width (the long upper wall)."""
-        if mod is None:n=max(1,round(length/T['oldBay']));mod=length/n
-        out=[];c=mod/2
-        while c+half+w/2<length-.25:
-            out.extend([c-half,c+half]);c+=mod
+    def centres(length,mod=None,single=False):
+        """Centre of each window: two to a bay, or one (`single`). `mod` fixes the bay width (the long upper wall)."""
+        if mod is None:n=max(1,round(length/(T['oldSingleBay'] if single else T['oldBay'])));mod=length/n
+        out=[];c=mod/2;reach=w/2 if single else half+w/2
+        while c+reach<length-.25:
+            out.extend([c] if single else [c-half,c+half]);c+=mod
         return out,mod
     def opening(c,z,height):
         return dict(s0=c-w/2,s1=c+w/2,z0=z,z1=z+height,d=T['oldDepth'],glass='courtGlass',tone='courtBrick',lit=False,mullion=panes)
@@ -221,7 +229,7 @@ def old_wing(d,base,upper,h):
     assert len(low)+len(top)==len(T['oldFloors']),'a window row would cross the seam between the two blocks'
     mods={}
     for i in T['oldFaces']:
-        a,b=h[i],h[(i+1)%len(h)];length=math.dist(a,b);cs,mods[i]=centres(length)
+        a,b=h[i],h[(i+1)%len(h)];length=math.dist(a,b);cs,mods[i]=centres(length,single=i in T['oldSingleFaces'])
         ground=[opening(c,T['oldBaseSill'],T['oldBaseHeight']) for c in cs]
         rows=[opening(c,f+T['oldSill'],T['oldHeight']) for f in low for c in cs]
         base['faces']['h0.'+str(i)]=dict(bands=[dict(z0=0,z1=T['oldBaseTop'],skin='courtOldBase',openings=ground),
@@ -236,7 +244,7 @@ def old_wing(d,base,upper,h):
     for i in T['oldFaces']:
         if i==15:a,b=h[15],h[2];key='h0.'+str(last)
         else:a,b=h[i],h[(i+1)%len(h)];key='h0.'+str(i-2)
-        length=math.dist(a,b);cs,_=centres(length,mods[i])
+        length=math.dist(a,b);cs,_=centres(length,mods[i],single=i in T['oldSingleFaces'])
         rows=[opening(c,f+T['oldSill'],T['oldHeight']) for f in top for c in cs]
         upper['faces'][key]=dict(bands=[dict(z0=T['projectionTop'],z1=17.55,skin='courtBrick',openings=rows),dict(z0=17.55,z1=18.2,skin='trim')])
         for f in top:
@@ -309,9 +317,10 @@ def deepen_court(d,base,upper,h):
     base['faces']['h0.0']['bands'][0]['openings']=lower
     # Bushes soften the photographed terrace edge and planted lower court.
     # Keep the walking route and stair clear; existing spiky plants survive.
-    for x,y,z,sx,sy,sz,seed in [(29,121,.16,1.7,1.5,3.4,1),(30.5,120,.16,1.25,1.1,2.7,4),
+    # One narrow shrub at the foot of the north wall, as photographed (it was two, 3.4 m tall, in mid court).
+    for x,y,z,sx,sy,sz,seed in [(29.6,130.4,.16,.85,.85,2.3,1),
         (35.3,122.8,3.66,.82,.58,1.25,2),(68.4,123.4,3.66,.78,.55,1.15,6),
-        (35.7,118,3.66,.68,.5,1.1,8)]:shrub(x,y,z,sx,sy,sz,seed)
+        (37.6,121.6,3.66,.68,.5,1.1,8)]:shrub(x,y,z,sx,sy,sz,seed)
 
 
 def main():
@@ -361,13 +370,21 @@ def main():
        roof=dict(kind='hip',pitch=T['roofPitch'],over=.45,lipH=.18,tone='courtRoofTile')))
     # Lower sunken court and elevated terrace, following the footprint hole.
     box('courtPave',24,72,102.1,124.9,.08,.16)
-    box('courtConcrete',34.0,70.0,112.0,124.95,T['terrace']-T['slab'],T['terrace'])
-    for x in [35.3,43.0,50.7,58.4,66.1]:
+    tw,tb,tf=T['terraceWest'],T['terraceBodyWest'],T['terraceBalconyFront']
+    lo,hi=T['terrace']-.6,T['terrace']+T['parapet']
+    box('courtConcrete',tb,70.0,112.0,124.95,T['terrace']-T['slab'],T['terrace'])      # the deep terrace
+    box('courtConcrete',tw,tb,tf,124.95,T['terrace']-T['slab'],T['terrace'])           # the west balcony
+    for x in [tb+.6,43.0,50.7,58.4,66.1]:
         rod('courtConcrete',[x,112.65,.16],[x,112.65,T['terrace']-T['slab']],.24,10)
     # Stepped/tapered terrace edge, upper handrail and lower horizontal reveal.
-    box('courtConcrete',34,70,111.72,112.03,T['terrace']-.6,T['terrace']+T['parapet'])
-    box('courtStone',33.93,70.08,111.64,112.10,T['terrace']+T['parapet'],T['terrace']+T['parapet']+.1)
-    rail([34.3,111.87,4.56],[69.6,111.87,4.56])
+    box('courtConcrete',tb,70,111.72,112.03,lo,hi)
+    box('courtStone',tb-.07,70.08,111.64,112.10,hi,hi+.1)
+    rail([tb+.3,111.87,4.56],[69.6,111.87,4.56])
+    # The balcony's parapet: its front, its west side, and the step back to the deep terrace.
+    box('courtConcrete',tw-.28,tb+.03,tf-.28,tf+.03,lo,hi)
+    box('courtConcrete',tw-.28,tw+.03,tf-.28,124.95,lo,hi)
+    box('courtConcrete',tb-.28,tb+.03,111.72,tf-.28,lo,hi)
+    rail([tw-.12,tf-.12,4.56],[tb-.12,tf-.12,4.56]);rail([tw-.12,tf-.12,4.56],[tw-.12,124.7,4.56]);rail([tb-.12,111.87,4.56],[tb-.12,tf-.12,4.56])
     box('courtConcrete',69.7,70,112,124.9,3.1,3.94)
     rail([69.85,112.1,4.56],[69.85,124.65,4.56])
     # Stair at the eastern terrace end. Individual treads, open underside not
@@ -403,7 +420,7 @@ def main():
         for dx in [-1.05,1.05]:
             box('courtFurniture',x+dx-.18,x+dx+.18,y-.85,y+.85,3.53,3.59)
             for dy in [-.6,.6]:rod('courtSteel',[x+dx,y+dy,3.1],[x+dx,y+dy,3.53],.035)
-    for x,y,s in [(35.3,122.8,1.0),(36,117.5,.8),(68.4,123.4,1.0),(68.4,113.0,.9)]:
+    for x,y,s in [(35.3,122.8,1.0),(37.6,121.6,.8),(68.4,123.4,1.0),(68.4,113.0,.9)]:
         box('courtConcrete',x-.85,x+.85,y-.7,y+.7,3.1,3.65)
         box('courtSoil',x-.75,x+.75,y-.6,y+.6,3.64,3.66);plant(x,y,3.67,s)
     for x,y in [(26,106),(27,120),(30,105)]:plant(x,y,.16,1.3)
