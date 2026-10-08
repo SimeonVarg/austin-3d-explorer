@@ -1,9 +1,10 @@
-"""Author the round arches on Welch Hall's east ground-floor arcade (south and middle parts).
+"""Author the arches on Welch Hall's east ground-floor arcade (south and middle parts).
 
-An owner's photograph of the east side shows a smooth pale plaster wall with
-round-arched openings along the ground floor. The recipe had square posts there.
+The owner's photographs of the east side show a smooth pale plaster wall with
+wide openings along the ground floor: tall straight sides and a flat curved top
+(not a half-circle). The recipe had square posts there.
 This script adds one detail mesh, `welch-east-arcade`: a plaster wall pierced by
-round arches, one under each column of windows, standing just in front of the old posts, and it
+arches, one under each column of windows, standing just in front of the old posts, and it
 takes the old posts out of those stretches only. It also gives the glass behind
 the arches a dark tone, because the photographs show dark openings. Two stretches are built (see
 BAYS): the south one and the middle one each appear in a photograph, and they meet
@@ -37,11 +38,14 @@ PATH = Path(__file__).resolve().parents[1] / 'data/apartments/welch-hall.json'
 # north end keep the old square posts.
 BAYS = [(3, 1, 18), (4, 0, 15)]
 BAY = 3.45           # one arch in each bay
-OPENING = 2.5        # clear width of one arch opening
-THICKNESS = 0.5      # wall thickness
+OPENING = 2.65       # clear width of one arch opening (the photographs: about 77% of a bay)
+RISE = 0.55          # how far the curve rises above the straight sides. The photographs show a
+                     # FLAT curve, about a fifth as high as the opening is wide, on tall straight
+                     # sides. RISE = OPENING / 2 would be a half-circle, which is wrong here.
+THICKNESS = 0.9      # wall thickness (the photographs: the piers are about as deep as they are wide)
 STANDOFF = 0.4       # how far the front face stands out from the old wall line
 HEIGHT = 4.8         # top of the wall; must equal the old arcade band's top
-HEADROOM = 1.40      # plaster left above the crown of each arch (the photographs show a tall band of plaster over the arches)
+HEADROOM = 1.25      # plaster left above the crown of each arch (the photographs: about half an opening width)
 SEGMENTS = 10        # flat strips in each half-circle head
 COLOUR = '#ecebe4'   # plaster: a warm white, set so that it reads like the photographs in the app's light
 TONE = 'eastPlaster'
@@ -60,9 +64,11 @@ def build(d, FACE, START, END, count):
     band = block['faces'][str(FACE)]['bands'][0]
     assert abs(band['z1'] - HEIGHT) < 1e-9, 'HEIGHT must match the old arcade band top'
     bay = (END - START) / count
-    r = OPENING / 2
-    spring = HEIGHT - r - HEADROOM
-    assert 0 < spring < HEIGHT and OPENING < bay
+    half = OPENING / 2
+    radius = (half * half + RISE * RISE) / (2 * RISE)      # the circle that the curve is a slice of
+    sweep = math.asin(half / radius)                        # half of the angle that slice covers
+    spring = HEIGHT - RISE - HEADROOM                       # where the straight sides end
+    assert 0 < RISE <= half and 0 < spring < HEIGHT and OPENING < bay
 
     slope = (c[0] - a[0]) / (c[1] - a[1])          # the wall is a little off the v axis
     # outward (east) direction of the wall face, as a unit vector
@@ -100,11 +106,11 @@ def build(d, FACE, START, END, count):
     openings = []
     for k in range(count):
         centre = START + (k + .5) * bay
-        openings.append((centre - r, centre + r, centre))
+        openings.append((centre - half, centre + half, centre))
 
     def arc(centre, j):
-        t = j * math.pi / SEGMENTS
-        return centre - r * math.cos(t), spring + r * math.sin(t)
+        t = -sweep + 2 * sweep * j / SEGMENTS
+        return centre + radius * math.sin(t), spring + RISE - radius + radius * math.cos(t)
 
     def wall_face(back):
         """The big plane: piers and the plaster over each arch, shared vertices."""
