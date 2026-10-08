@@ -1,4 +1,4 @@
-"""Author the arches on Welch Hall's east ground-floor arcade (south and middle parts).
+"""Author the arches on Welch Hall's east ground-floor arcade (faces 3 and 4 of the wings).
 
 The owner's photographs of the east side show a smooth pale plaster wall with
 wide openings along the ground floor: tall straight sides and a flat curved top
@@ -8,8 +8,8 @@ arches, one under each column of windows, standing just in front of the old post
 takes the old posts out of those stretches only. It also gives the glass behind
 the arches a dark tone, because the photographs show dark openings. Two stretches are built (see
 BAYS): the south one and the middle one each appear in a photograph, and they meet
-at the bend of the wall. The
-north end of the east wall is not photographed and is left exactly as it was.
+at the bend of the wall. The ends of the wall are in no photograph; their
+arches are INFERRED from the pattern.
 
 Run it after author_welch_courtyard.py (which leaves meshes it does not own
 alone). Running it again gives the identical file: it removes its own mesh and
@@ -35,8 +35,8 @@ PATH = Path(__file__).resolve().parents[1] / 'data/apartments/welch-hall.json'
 # post under the brick between two columns.
 # Face 3 is the south stretch of the east wall, face 4 the middle stretch; they meet at
 # the bend of the wall. The first bay at the south corner and the last two at the
-# north end keep the old square posts.
-BAYS = [(3, 1, 14), (4, 0, 13)]
+# north end are in no photograph: their arches are INFERRED from the pattern.
+BAYS = [(3, 0, 14), (4, 0, 15)]
 BAY = 4.2            # one arch in each bay. In the photographs the columns of windows are as far
                      # apart as the rows are (row pitch / column pitch = 1.0), and the rows are
                      # 4.24 m apart (wall height from the 2021 laser scan), so a bay is about 4.2 m
