@@ -41,6 +41,24 @@ fitted to points of the model fits the MODEL: on Welch Hall the fit was 10 px
 while the whole building was 2 m too low, because a camera a little nearer
 hides a model that is a little small.
 
+**1c. Parts that stand in front.** Read the scan OUTSIDE the map outline too,
+a few metres past every wall. A map outline is often the tower only. On
+Moontower a white box three floors high stands 3.6 m in front of the tower on
+both wings and is not in the outline; five builder rounds drew the front flat.
+
+**1d. Find the rule of the wall before you draw it.** Flatten the photograph
+of each wall into a straight-on drawing (the private tool `rectify_face.py`
+does it from the wall's own edges, with no camera and no model), then say the
+rule in one sentence and check it against every tier and column you can see.
+A pattern that looks random from the street is nearly never random. Moontower:
+white blocks three floors tall, charcoal columns with one window a floor, and
+each tier the same layout moved 1.07 m north. The draft had painted it at
+random, and no audit row can turn a random wall into the right one.
+Two flat drawings of two walls that are NOT in one plane also give a camera you
+can trust for size: fit it to points from both. On Moontower the tower wall
+and the box front, 3.4 m apart, fitted to 5.6 px, and two photographs taken
+from one spot gave the same spot twice.
+
 **2. Measure each repeated part.** For a window, an arch, a balcony, a post:
 - width ÷ spacing (how much of a bay it fills);
 - height ÷ width;
@@ -127,6 +145,9 @@ made or sharpened.
 - 2026-10-08, found by the main lane, not by the owner: Welch Hall's walls were
   built to 18.2 m from a misread scan summary; the scan grid says about 20.3 m.
   Step 1b (read the scan itself; a fitted camera cannot check size).
+- 2026-10-09, found by the main lane: Moontower's draft had a flat front and a
+  random panel pattern, and 35 of 42 audit rows differed. Steps 1c and 1d (read
+  the scan past the outline; flatten the wall and state its rule first).
 - 2026-10-07. Three photographs filed under one building showed another
   building: check 0.
 - 2026-10-03. "can't see the sign cuz the tree": check 9, from the camera of
