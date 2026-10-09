@@ -1,0 +1,7 @@
+# These scripts run on Linux (the EC2 instance and CI). text eol=lf makes git
+# check them out with LF line endings on every platform, so the shebang and the
+# shell parsing are never broken by CRLF.
+launch       text eol=lf
+user-data    text eol=lf
+teardown     text eol=lf
+test-offline text eol=lf

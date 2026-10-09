@@ -1,0 +1,106 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DescribeIsReadOnlyAndUnscoped",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeImages",
+        "ec2:DescribeInstanceTypes",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeSecurityGroups"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ResolveTheDeepLearningBaseGpuAmiFromPublicSsm",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath"
+      ],
+      "Resource": [
+        "arn:aws:ssm:us-east-1::parameter/aws/service/deeplearning/*"
+      ]
+    },
+    {
+      "Sid": "RunInstancesInUsEast1Only",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "us-east-1"
+        }
+      }
+    },
+    {
+      "Sid": "EveryLaunchMustCarryTheProjectTag",
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "RunInstances"
+        }
+      }
+    },
+    {
+      "Sid": "TerminateOnlyFlyoverTaggedInstances",
+      "Effect": "Allow",
+      "Action": "ec2:TerminateInstances",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/project": "flyover"
+        }
+      }
+    },
+    {
+      "Sid": "DeleteOnlyFlyoverTaggedVolumes",
+      "Effect": "Allow",
+      "Action": "ec2:DeleteVolume",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/project": "flyover"
+        }
+      }
+    },
+    {
+      "Sid": "PassOnlyTheRunnerInstanceProfileRole",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::ACCOUNT_ID:role/flyover-gpu-runner",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "ec2.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "ReadResultsFromTheRunBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::RESULT_BUCKET_NAME",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": "flyover-runs/*"
+        }
+      }
+    },
+    {
+      "Sid": "GetResultObjectsFromTheRunBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::RESULT_BUCKET_NAME/flyover-runs/*"
+    }
+  ]
+}

@@ -103,6 +103,20 @@ memory and is never written here, in any tracked file, or in a commit message.
       (`window.cancelGraphicsAutoDetect()`). Note it is a correctness measure,
       not a speed one — measured, it costs nothing.
 
+14. **Compare a photograph whole, with numbers. An owner comment is a class of
+    defect, not one defect.** `docs/photo-audit.md` is the checklist for any work
+    from a photograph, for every lane and every model: count rows and columns
+    first, measure each repeated part as ratios, never build from a word such as
+    "round arch", and redo the whole table after each round. When the owner
+    points at a defect, fix it AND add or sharpen a check in that file in the
+    same pass, so the next building and the next model catch that class without
+    him. (2026-10-08: an arcade was rebuilt twice while the wall above it still
+    had two rows of windows where his photograph shows three, and half-circle
+    arches where it shows a flat curve. He had to point at each one. His words:
+    *"i hope with EVERY comment from now on it helps future work no matter
+    model or effort to do a better job holistically, not just the part i give
+    comments on"*.)
+
 ## Disk
 
 12. **Screenshots are working artifacts, not deliverables. Keep the repo a

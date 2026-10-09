@@ -1,0 +1,86 @@
+# Start ONE rented GPU machine on the owner's AWS account, run browser checks on it with real GPU
+# graphics, collect the results, and make sure the machine is gone.
+#
+# Started by hand only (workflow_dispatch): a person or agent with write access to this repository.
+# It is NOT attached to pull requests, because this repository is public and a pull request from a
+# fork must never be able to start a machine on the owner's account.
+#
+# No access key exists anywhere. GitHub proves to AWS that this run comes from this repository's main
+# branch, and AWS hands it a one-hour pass for a role that can only start and stop the two GPU sizes
+# (scripts/aws-gpu/setup-stack.yaml). The two secrets below hold no key, only names; they are secrets
+# so that the account number stays out of this public repository.
+name: AWS GPU checks
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit to check
+        default: main
+      checks:
+        description: Checks to run, separated by commas (each one a scripts/verify file with its arguments)
+        default: graphics.mjs
+      max_runtime:
+        description: The machine switches itself off after this many minutes (hard limit on the machine)
+        default: '45'
+permissions:
+  id-token: write
+  contents: read
+concurrency:
+  group: aws-gpu
+  cancel-in-progress: false
+jobs:
+  run:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      AWS_REGION: us-east-1
+      RESULT_BUCKET: ${{ secrets.AWS_GPU_BUCKET }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop early when the account is not set up
+        run: |
+          if [ -z "${{ secrets.AWS_GPU_ROLE_ARN }}" ] || [ -z "$RESULT_BUCKET" ]; then
+            echo "::error::The AWS account is not set up yet: see scripts/aws-gpu/README.md, 'The owner's one-time setup'."; exit 1
+          fi
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GPU_ROLE_ARN }}
+          aws-region: us-east-1
+          role-duration-seconds: 3600
+      - name: Start the machine
+        env:
+          INPUT_REF: ${{ inputs.ref }}
+          INPUT_CHECKS: ${{ inputs.checks }}
+          INPUT_MAX: ${{ inputs.max_runtime }}
+        run: |
+          set -euo pipefail
+          args=(--ref "$INPUT_REF" --bucket "$RESULT_BUCKET" --max-runtime "$INPUT_MAX")
+          IFS=',' read -ra list <<< "$INPUT_CHECKS"
+          for c in "${list[@]}"; do c="$(echo "$c" | xargs)"; [ -n "$c" ] && args+=(--check "$c"); done
+          scripts/aws-gpu/launch "${args[@]}" | tee launch.log
+      - name: Wait until the machine is gone, then fetch the results
+        env:
+          INPUT_MAX: ${{ inputs.max_runtime }}
+        run: |
+          set -euo pipefail
+          deadline=$(( $(date +%s) + (INPUT_MAX + 10) * 60 ))
+          while :; do
+            n=$(aws ec2 describe-instances --filters Name=tag:project,Values=flyover Name=instance-state-name,Values=pending,running,stopping,shutting-down --query 'length(Reservations[].Instances[])' --output text)
+            [ "$n" = "0" ] && break
+            [ "$(date +%s)" -gt "$deadline" ] && { echo "::warning::still running after the limit; the next step removes it"; break; }
+            sleep 30
+          done
+          mkdir -p results && aws s3 cp "s3://$RESULT_BUCKET/flyover-runs/" results/ --recursive --only-show-errors || true
+          ls -R results | head -50
+      - name: Make sure nothing is left running
+        if: always()
+        run: scripts/aws-gpu/teardown || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aws-gpu-results
+          path: |
+            results/
+            launch.log
+          if-no-files-found: warn

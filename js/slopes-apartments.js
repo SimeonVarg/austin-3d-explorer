@@ -1883,7 +1883,10 @@
       if (z1 - z0 < 0.05) continue;
       const sk = spec.skins[band.skin];
       if (!sk) { warnOnce('skin|' + key + '|' + band.skin, key + ': no skin "' + band.skin + '"'); continue; }
-      const fl = floorsBetween(spec.levels.floors, z0, z1, key + ' ' + band.skin);
+      // a band may carry its own floor lines (`floors`, absolute z): a wing whose
+      // storeys do not sit on the building's levels (Welch Hall's east wall has
+      // three window rows where the building's levels give two)
+      const fl = floorsBetween(band.floors || spec.levels.floors, z0, z1, key + ' ' + band.skin);
       const d = insetOf(band);
       if (d > 0) { recess(B, sub, len, band, d, sk, spec, P, key, Object.assign({ cutAt, sOff }, opts), fl); continue; }
       const ctx = { len, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
@@ -2011,7 +2014,7 @@
       const hasB = APTS.balconies && band.balconies && band.balconies.length, hasS = wantSigns() && band.signs && band.signs.length;
       const hasF = APTS.fins && band.fins, hasC = APTS.canopies && band.canopies && band.canopies.length;
       if (!hasB && !hasS && !hasF && !hasC) continue;
-      const floors = floorsBetween(spec.levels.floors, band.z0, band.z1, key + ' ' + band.skin).floors;
+      const floors = floorsBetween(band.floors || spec.levels.floors, band.z0, band.z1, key + ' ' + band.skin).floors;
       const d = insetOf(band);
       const Wb = d > 0 ? { at: (s, dd, z) => W.at(s, dd - d, z), T: W.T, N: W.N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n } : W;
       if (hasB) for (const bs of band.balconies) balconyStack(B, Wb, Object.assign({}, spec.balcony || {}, bs), floors, P, band.z1);
@@ -2090,7 +2093,7 @@
       const sk = spec.skins[band.skin];
       if (!sk) { warnOnce('skin|' + key + '|' + band.skin, key + ': no skin "' + band.skin + '"'); continue; }
       if (insetOf(band) > 0) warnOnce('rake-inset|' + key, key + ': a raked face cannot be recessed; its band is drawn on the plane');
-      const fl = floorsBetween(spec.levels.floors, zb0, zb1, key + ' ' + band.skin);
+      const fl = floorsBetween(band.floors || spec.levels.floors, zb0, zb1, key + ' ' + band.skin);
       const floors = APTS.rakeFloors ? fl.floors.map(t0Of) : [];
       const floorBelow = APTS.rakeFloors && fl.floorBelow != null ? t0Of(fl.floorBelow) : null;
       const t0 = t0Of(zb0), t1 = t0Of(zb1);
