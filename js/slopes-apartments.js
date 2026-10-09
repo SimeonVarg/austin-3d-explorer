@@ -574,7 +574,10 @@
     for (const k of Object.keys(spec.colours || {})) {
       if (k[0] === '_') continue;                       // a `_src` note beside a colour, not a colour
       const v = spec.colours[k];
-      const hexes = Array.isArray(v) ? v : (v && v.hex);
+      // A colour is { hex } or a [day, golden, night] trio. A bare "#rrggbb" string is taken as a day hex too: before
+      // 2026-10-09 it threw inside ramp() and the WHOLE building was skipped, with nothing on screen to say why.
+      const hexes = Array.isArray(v) ? v : (typeof v === 'string' ? v : (v && v.hex));
+      if (typeof (Array.isArray(hexes) ? hexes[0] : hexes) !== 'string') { warnOnce('colour|' + (spec.id || spec.name) + '|' + k, (spec.name || spec.id) + ': colour "' + k + '" has no hex; skipped'); continue; }
       out[k] = Array.isArray(hexes) ? (hexes.length === 3 ? hexes.slice() : ramp(hexes[0])) : ramp(hexes);
       const M=APTS.materials;
       if(M.on){
