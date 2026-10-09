@@ -485,7 +485,9 @@ what the block extents were read from.
 }
 ```
 
-**colours** — a day hex gets golden and night from `js/westcampus.js`'s
+**colours** — write each as `{ "hex": "#rrggbb" }` (a bare `"#rrggbb"` string is accepted as a day hex too, and a
+colour with no hex is skipped with a warning; before 2026-10-09 a bare string stopped the whole building from being
+drawn). A day hex gets golden and night from `js/westcampus.js`'s
 `ramp()` (the same relationship its own bands use, so a mesh panel and the
 fill-extrusion band next door age the same way); a full trio is taken as
 given. Keys starting `_` are notes.
