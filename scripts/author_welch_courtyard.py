@@ -332,6 +332,7 @@ def main():
     base['z1']=T['projectionTop']
     base['bands']=[dict(z0=0,z1=T['floors'][0],skin='basement'),dict(z0=T['floors'][0],z1=T['projectionTop'],skin='welch')]
     d['levels']=dict(floors=[0,*T['floors'],T['wallTop']])
+    d['roofBase']=T['wallTop']      # the kept campus roof pieces move up with the walls (js/slopes-apartments.js)
     base['faces']={k:v for k,v in base.get('faces',{}).items() if not k.startswith('h')}
     for face in base['faces'].values():
         face['bands']=[{**b,'z1':min(b['z1'],T['projectionTop'])} for b in face['bands'] if b['z0']<T['projectionTop']]
