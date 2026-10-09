@@ -49,6 +49,13 @@ T = dict(terrace=3.1, slab=.32, parapet=.84, railRadius=.032,
          portalDoorWidth=2.0, portalDoorTop=5.5, portalArchTop=7.35, portalSign=(8.35, .30, 3.05),
          portalWindows=((9.1, 11.2, 1.65), (13.0, 14.8, 1.3)), portalDoor='#b3c7d2', portalStone='#efe9dc',
          portalSteps=8, portalStepRun=.42, portalStairWidth=5.6, portalCheek=(.55, 1.5),
+         # The west entrance, measured on the owner's photograph of the west wall, flattened (52.5 px per metre):
+         # a stone door surround 4.85 m wide up to a cornice at 7.65 m, a door 1.5 m wide from 3.3 m (the ground is
+         # about 3.3 m higher on this side: laser scan) to 6.0 m, and above it a window in an ornate stone frame
+         # 3.7 m wide up to 11.7 m. Place along the wall and the stair: the scan shows a 3 m high, 2 m deep run of
+         # stone from v 137 to 146 west of the wall; the photograph shows the steps rising from the south to the door.
+         westDoorV=144.5, westSurround=(4.85, 7.65), westDoor=(1.5, 3.3, 6.0), westFrame=(3.7, 11.7), westWindow=(1.5, 7.9, 10.1),
+         westStair=(137.0, 143.0, 146.9, 2.2, 8),      # steps start, landing start, landing end (v); width (m); number of steps
          outerFrame=.08, outerMullion=.045, outerReveal=.22, outerBrick='#c5a494',
          # Stone: the SAME limestone as the east wall's arcade, so the same tone (sampled there in sun). The median of the
          # overcast north photograph (#ccc5bb) drew as grey concrete on a wall that the app already shades. The belt is
@@ -396,6 +403,28 @@ def north_portal(d):
     d['blocks']+=blocks
 
 
+def west_portal(d):
+    """The stone entrance on the west wall with its window frame above, the landing and the steps (see west* in T)."""
+    ring=d['blocks'][0]['plan']['ring']; (ua,va),(ub,vb)=ring[7],ring[8]                 # the west wall: edge 7 of the ring
+    v0=T['westDoorV']; wall=ua+(ub-ua)*(va-v0)/(va-vb)
+    w,top=T['westSurround']; dw,dz0,dz1=T['westDoor']; fw,ftop=T['westFrame']; ww,wz0,wz1=T['westWindow']
+    panes=dict(cols=[.5],rows=[.33,.66],w=.05,tone='courtTrim')
+    low=dict(z0=0,z1=top,skin='portalStone',openings=[dict(s0=w/2-dw/2,s1=w/2+dw/2,z0=dz0,z1=dz1-.9,d=.35,tone='portalDoor'),
+        dict(s0=w/2-dw/2,s1=w/2+dw/2,z0=dz1-.82,z1=dz1,d=.3,glass='courtGlass',tone='portalStone')])
+    up=dict(z0=top,z1=ftop,skin='portalStone',openings=[dict(s0=fw/2-ww/2,s1=fw/2+ww/2,z0=wz0,z1=wz1,d=.35,glass='courtGlass',tone='portalStone',mullion=panes)])
+    plain=lambda z0,z1:[dict(z0=z0,z1=z1,skin='portalStone')]
+    blocks=[dict(id='welch-west-portal',plan=[round(wall-.45,2),round(wall+.5,2),v0-w/2,v0+w/2],z0=0,z1=top,bands=plain(0,top),faces=dict(u1=None,u0=dict(bands=[low])),roofTone='portalStone',
+                 _src='PHOTO (flattened): size, door and cornice. SCAN: place along the wall and the ground level. Carving not drawn.'),
+            dict(id='welch-west-frame',plan=[round(wall-.3,2),round(wall+.5,2),v0-fw/2,v0+fw/2],z0=top,z1=ftop,bands=plain(top,ftop),faces=dict(u1=None,u0=dict(bands=[up])),roofTone='portalStone',
+                 _src='PHOTO (flattened): the window in its stone frame over the door. The scrolls and the iron balcony are not drawn.')]
+    s0,l0,l1,sw,n=T['westStair']; rise=dz0/n; run=(l0-s0)/n
+    blocks.append(dict(id='welch-west-landing',plan=[round(wall-sw,2),round(wall,2),l0,l1],z0=0,z1=dz0,bands=[dict(z0=0,z1=dz0,skin='outerStone')],faces=dict(u1=None),roofTone='outerStone'))
+    for i in range(n):
+        blocks.append(dict(id=f'welch-west-step-{i}',plan=[round(wall-sw,2),round(wall,2),round(s0+i*run,3),round(s0+(i+1)*run,3)],z0=0,z1=round(rise*(i+1),3),
+                           bands=[dict(z0=0,z1=round(rise*(i+1),3),skin='outerStone')],faces=dict(u1=None),roofTone='outerStone'))
+    d['blocks']+=blocks
+
+
 def main():
     d=json.loads(PATH.read_text(encoding='utf-8'));base=d['blocks'][0]
     base['z1']=T['projectionTop']
@@ -447,6 +476,7 @@ def main():
        bands=[dict(z0=(T['wallTop']-.05),z1=T['wallTop'],skin='trim')],roofTone='courtRoofTile',
        roof=dict(kind='hip',pitch=T['roofPitch'],over=.45,lipH=.18,tone='courtRoofTile')))
     north_portal(d)
+    west_portal(d)
     # Lower sunken court and elevated terrace, following the footprint hole.
     box('courtPave',24,72,102.1,124.9,.08,.16)
     tw,tb,tf=T['terraceWest'],T['terraceBodyWest'],T['terraceBalconyFront']
