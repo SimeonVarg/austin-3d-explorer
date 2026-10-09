@@ -1,0 +1,211 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Flyover GPU runner: everything the AWS account needs, in one stack. A private results bucket, the
+  instance role, a role that ONLY this GitHub repository's main branch can use (no access keys exist
+  anywhere), and a monthly budget that e-mails the owner and BLOCKS new launches when it is used up.
+  Delete the stack to remove all of it. Nothing here starts a machine or costs money by itself.
+
+Parameters:
+  AlertEmail:
+    Type: String
+    Description: Where the budget e-mails go.
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 100
+    MinValue: 5
+    Description: Monthly ceiling in dollars of USAGE (credits are not subtracted, so it warns before credits run out, not after). New launches are blocked when it is reached.
+  GitHubRepo:
+    Type: String
+    Default: SimeonVarg/austin-3d-explorer
+    Description: owner/name of the repository whose main branch may start the runner.
+  CreateGitHubOidcProvider:
+    Type: String
+    Default: 'yes'
+    AllowedValues: ['yes', 'no']
+    Description: Say no only if this account already has the GitHub OIDC provider (token.actions.githubusercontent.com).
+
+Conditions:
+  MakeOidc: !Equals [!Ref CreateGitHubOidcProvider, 'yes']
+
+Resources:
+  ResultsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration: {BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}
+      LifecycleConfiguration:
+        Rules:
+          - {Id: expire-runs, Status: Enabled, ExpirationInDays: 30}
+      Tags:
+        - {Key: project, Value: flyover}
+
+  GitHubOidc:
+    Type: AWS::IAM::OIDCProvider
+    Condition: MakeOidc
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+      ThumbprintList: [6938fd4d98bab03faadb97b34396831e3780aea1, 1c58a3a8518e8759bf075b76b750d4f2df264fcd]
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: flyover-gpu-runner
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - {Effect: Allow, Principal: {Service: ec2.amazonaws.com}, Action: 'sts:AssumeRole'}
+      Policies:
+        - PolicyName: write-run-results-only
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - {Effect: Allow, Action: 's3:PutObject', Resource: !Sub 'arn:aws:s3:::${ResultsBucket}/flyover-runs/*'}
+      Tags:
+        - {Key: project, Value: flyover}
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: flyover-gpu-runner
+      Roles: [!Ref InstanceRole]
+
+  OperatorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: flyover-gpu-operator
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If [MakeOidc, !GetAtt GitHubOidc.Arn, !Sub 'arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com']
+            Action: 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                'token.actions.githubusercontent.com:aud': sts.amazonaws.com
+                'token.actions.githubusercontent.com:sub': !Sub 'repo:${GitHubRepo}:ref:refs/heads/main'
+      Policies:
+        - PolicyName: run-and-stop-flyover-gpu-only
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: DescribeIsReadOnly
+                Effect: Allow
+                Action: ['ec2:DescribeInstances', 'ec2:DescribeVolumes', 'ec2:DescribeImages', 'ec2:DescribeInstanceTypes', 'ec2:DescribeSubnets', 'ec2:DescribeSecurityGroups']
+                Resource: '*'
+              - Sid: ResolveTheGpuImageFromPublicSsm
+                Effect: Allow
+                Action: ['ssm:GetParameter', 'ssm:GetParameters', 'ssm:GetParametersByPath']
+                Resource: 'arn:aws:ssm:us-east-1::parameter/aws/service/deeplearning/*'
+              - Sid: RunInUsEast1Only
+                Effect: Allow
+                Action: 'ec2:RunInstances'
+                Resource: '*'
+                Condition: {StringEquals: {'aws:RequestedRegion': us-east-1}}
+              - Sid: OnlyTheTwoGpuSizes
+                Effect: Deny
+                Action: 'ec2:RunInstances'
+                Resource: 'arn:aws:ec2:*:*:instance/*'
+                Condition: {StringNotEquals: {'ec2:InstanceType': [g6.2xlarge, g5.2xlarge]}}
+              - Sid: TagOnlyAtLaunch
+                Effect: Allow
+                Action: 'ec2:CreateTags'
+                Resource: '*'
+                Condition: {StringEquals: {'ec2:CreateAction': RunInstances}}
+              - Sid: TerminateOnlyFlyoverInstances
+                Effect: Allow
+                Action: 'ec2:TerminateInstances'
+                Resource: '*'
+                Condition: {StringEquals: {'ec2:ResourceTag/project': flyover}}
+              - Sid: DeleteOnlyFlyoverVolumes
+                Effect: Allow
+                Action: 'ec2:DeleteVolume'
+                Resource: '*'
+                Condition: {StringEquals: {'ec2:ResourceTag/project': flyover}}
+              - Sid: PassOnlyTheRunnerRole
+                Effect: Allow
+                Action: 'iam:PassRole'
+                Resource: !GetAtt InstanceRole.Arn
+                Condition: {StringEquals: {'iam:PassedToService': ec2.amazonaws.com}}
+              - Sid: ListRunResults
+                Effect: Allow
+                Action: 's3:ListBucket'
+                Resource: !GetAtt ResultsBucket.Arn
+                Condition: {StringLike: {'s3:prefix': 'flyover-runs/*'}}
+              - Sid: ReadRunResults
+                Effect: Allow
+                Action: 's3:GetObject'
+                Resource: !Sub '${ResultsBucket.Arn}/flyover-runs/*'
+      Tags:
+        - {Key: project, Value: flyover}
+
+  StopLaunchesPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Attached to the operator role by the budget when the month's ceiling is reached. Blocks new machines; running ones stop by their own timer.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - {Effect: Deny, Action: 'ec2:RunInstances', Resource: '*'}
+
+  BudgetActionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - {Effect: Allow, Principal: {Service: budgets.amazonaws.com}, Action: 'sts:AssumeRole'}
+      Policies:
+        - PolicyName: attach-the-stop-policy-only
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['iam:AttachRolePolicy', 'iam:DetachRolePolicy']
+                Resource: !GetAtt OperatorRole.Arn
+                Condition: {ArnEquals: {'iam:PolicyARN': !Ref StopLaunchesPolicy}}
+
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: flyover-monthly
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit: {Amount: !Ref MonthlyBudgetUsd, Unit: USD}
+        CostTypes: {IncludeCredit: false, IncludeRefund: false, IncludeTax: true, IncludeSubscription: true, IncludeUpfront: true, IncludeRecurring: true, IncludeOtherSubscription: true, IncludeSupport: true, IncludeDiscount: true, UseBlended: false, UseAmortized: false}
+      NotificationsWithSubscribers:
+        - Notification: {NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 50, ThresholdType: PERCENTAGE}
+          Subscribers: [{SubscriptionType: EMAIL, Address: !Ref AlertEmail}]
+        - Notification: {NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 80, ThresholdType: PERCENTAGE}
+          Subscribers: [{SubscriptionType: EMAIL, Address: !Ref AlertEmail}]
+        - Notification: {NotificationType: FORECASTED, ComparisonOperator: GREATER_THAN, Threshold: 100, ThresholdType: PERCENTAGE}
+          Subscribers: [{SubscriptionType: EMAIL, Address: !Ref AlertEmail}]
+
+  StopLaunchesAtTheCeiling:
+    Type: AWS::Budgets::BudgetsAction
+    Properties:
+      BudgetName: !Ref MonthlyBudget
+      NotificationType: ACTUAL
+      ActionType: APPLY_IAM_POLICY
+      ActionThreshold: {Type: PERCENTAGE, Value: 100}
+      ApprovalModel: AUTOMATIC
+      ExecutionRoleArn: !GetAtt BudgetActionRole.Arn
+      Definition:
+        IamActionDefinition:
+          PolicyArn: !Ref StopLaunchesPolicy
+          Roles: [!Ref OperatorRole]
+      Subscribers:
+        - {Type: EMAIL, Address: !Ref AlertEmail}
+
+Outputs:
+  OperatorRoleArn:
+    Description: Paste into the repository secret AWS_GPU_ROLE_ARN.
+    Value: !GetAtt OperatorRole.Arn
+  ResultsBucketName:
+    Description: Paste into the repository secret AWS_GPU_BUCKET.
+    Value: !Ref ResultsBucket

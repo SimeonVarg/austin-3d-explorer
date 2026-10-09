@@ -126,71 +126,42 @@ see the top of `launch`.
 
 ## The owner's one-time setup
 
-Do this once, before the first real run.
+One browser session, about 10 minutes, once. No access key is made and nothing is typed on any
+computer of ours: GitHub proves to AWS that a run comes from this repository's main branch.
 
-1. **Create a least-privilege identity.** In IAM Identity Center, create a user
-   and a permission set (or, with plain IAM, an IAM user) and attach the policy
-   in `iam-operator-policy.json`. Before attaching, replace the two
-   placeholders: `ACCOUNT_ID` with the AWS account number and
-   `RESULT_BUCKET_NAME` with the results bucket name. The policy allows only:
-   read-only `Describe*`; reading the Deep Learning AMI SSM parameter;
-   `RunInstances` in `us-east-1` only; `CreateTags` only as part of a launch;
-   `TerminateInstances` and `DeleteVolume` only on `project=flyover` resources;
-   `PassRole` only for the runner instance role; and read access to the results
-   bucket prefix.
+1. **Billing.** Read the credit balance and its expiry date (Billing, Credits). Nothing below
+   should be done before the credits show there.
+2. **One stack.** CloudFormation, region `us-east-1`, Create stack, upload
+   `scripts/aws-gpu/setup-stack.yaml`. Fill in the e-mail for alerts and the monthly ceiling
+   (default 100 dollars of usage; credits are not subtracted, so it warns before the credits run
+   out). Tick the box that allows IAM resources with names. Create.
+   It makes: a private results bucket (files expire after 30 days), the machine's role, a role that
+   only this repository's main branch can use and that can only start and stop `g6.2xlarge` /
+   `g5.2xlarge` in `us-east-1`, a monthly budget with e-mails at 50%, 80% and a forecast of 100%,
+   and an action that BLOCKS new launches when the ceiling is reached. Deleting the stack removes
+   all of it.
+3. **Two repository secrets.** From the stack's Outputs tab, copy `OperatorRoleArn` into the
+   GitHub secret `AWS_GPU_ROLE_ARN` and `ResultsBucketName` into `AWS_GPU_BUCKET` (repository
+   Settings, Secrets and variables, Actions). They hold no key; they are secrets only so the
+   account number stays out of this public repository.
+4. **First run.** GitHub, Actions, "AWS GPU checks", Run workflow (defaults: `main`,
+   `graphics.mjs`, 45 minutes). After that any agent with write access can start it with
+   `gh workflow run aws-gpu.yml`.
 
-2. **Create the instance role.** Create an IAM role named `flyover-gpu-runner`
-   with EC2 as the trusted service, attach `iam-instance-policy.json` (replace
-   `RESULT_BUCKET_NAME`), and create an instance profile of the same name. The
-   `launch` script attaches this profile by default so the instance can write
-   results. If you use SSM Session Manager to log in for debugging, also attach
-   the AWS-managed `AmazonSSMManagedInstanceCore`.
+What stops the money: the machine switches itself off after the limit (set on the machine at boot),
+after 20 idle minutes, and when its job ends; the workflow's last step removes anything tagged
+`project=flyover`; the budget blocks new launches at the ceiling. A budget e-mail alone stops
+nothing, which is why the other three exist.
 
-3. **Create the results bucket** in `us-east-1`, keep it private (block all
-   public access), and use its name for the two policy placeholders above and
-   for `--bucket`.
+The older manual way (an IAM user and `aws configure` on a laptop) still works with
+`iam-operator-policy.json` and `iam-instance-policy.json`, but it puts a key on a machine. Prefer
+the stack.
 
-4. **Configure the CLI.** With Identity Center:
-
-   ```
-   aws configure sso
-   ```
-
-   or with an IAM user:
-
-   ```
-   aws configure
-   ```
-
-   Confirm it works with a read-only call:
-
-   ```
-   aws sts get-caller-identity
-   ```
-
-5. **Set a monthly budget alarm.** In AWS Budgets, create a monthly cost budget
-   (for example $20) with an email alert at 80% and 100% of the amount. This is
-   the backstop if a guardrail is ever bypassed.
-
-6. **Verify the AMI parameter on the first run.** The SSM parameter name in
-   `launch` is marked "verify on first real run" because AWS renames these paths
-   between AMI generations. Confirm it resolves:
-
-   ```
-   aws ssm get-parameter \
-     --name /aws/service/deeplearning/ami/x86_64/base-oss-nvidia-driver-gpu-ubuntu-22.04/latest/ami-id \
-     --region us-east-1 --query Parameter.Value --output text
-   ```
-
-   If it 404s, list the family and pick the current name:
-
-   ```
-   aws ssm get-parameters-by-path \
-     --path /aws/service/deeplearning/ami/x86_64 --region us-east-1 \
-     --query "Parameters[?contains(Name,'base') && contains(Name,'gpu')].Name"
-   ```
-
-   then set `AWS_GPU_SSM_AMI_PARAM` to the one you confirmed.
+**Verify the AMI parameter on the first run.** The SSM parameter name in `launch` is marked
+"verify on first real run" because AWS renames these paths between AMI generations. If the first
+run fails at that lookup, the log names the parameter; list the family in the console
+(Systems Manager, Parameter Store, public parameters, `deeplearning`) and set the current name in
+`launch`.
 
 ## Offline tests
 
