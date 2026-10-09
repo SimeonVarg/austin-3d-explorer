@@ -36,6 +36,24 @@ exec > >(tee -a "$LOG") 2>&1
 echo "== flyover user-data start $(date -u +%FT%TZ) =="
 
 # ---------------------------------------------------------------------------
+# RESULTS ALWAYS COME BACK. The first real run (2026-10-09) launched, ran 31
+# minutes, shut itself down and uploaded NOTHING: the upload was the last line
+# of this script, and the idle watchdog stopped the box before it got there.
+# So the upload is a function. The watchdog calls it before it shuts down, an
+# EXIT trap calls it, the end of the script calls it, and the log alone goes up
+# every few minutes, so even a hang leaves its log in the bucket.
+# ---------------------------------------------------------------------------
+upload_results() {
+  [ -n "$RESULT_BUCKET" ] || { echo "== no RESULT_BUCKET set; results are in ${OUT} on the instance only =="; return 0; }
+  local iid; iid=$(cloud-init query instance_id 2>/dev/null || cat /var/lib/cloud/data/instance-id 2>/dev/null || date -u +%Y%m%dT%H%M%SZ)
+  local prefix="s3://${RESULT_BUCKET}/flyover-runs/${REF}-${iid}"
+  echo "== uploading results to ${prefix} (${1:-end}) =="
+  aws s3 cp "$LOG" "${prefix}/user-data.log" --only-show-errors || true
+  [ "${1:-end}" = "log-only" ] || aws s3 cp --recursive "$OUT" "${prefix}/out" --only-show-errors || true
+}
+trap 'upload_results exit' EXIT
+
+# ---------------------------------------------------------------------------
 # GUARDRAIL 1: hard maximum runtime. Schedule a shutdown NOW, before anything
 # slow, so nothing that hangs later can outlive the cap. shutdown -h + the
 # instance's terminate-on-shutdown behaviour = the box is gone at the cap.
@@ -55,8 +73,11 @@ touch "$HEARTBEAT"
     sleep 60
     last=$(stat -c %Y "$HEARTBEAT" 2>/dev/null || echo 0)
     now=$(date +%s)
+    n=$(( ${n:-0} + 1 ))
+    [ $(( n % 5 )) -eq 0 ] && upload_results log-only
     if [ $(( now - last )) -ge "$idle_secs" ]; then
       echo "== idle watchdog: no check in ${IDLE_TIMEOUT_MIN}m, shutting down =="
+      upload_results watchdog
       shutdown -h now "flyover idle watchdog"
       exit 0
     fi
@@ -70,6 +91,7 @@ beat() { touch "$HEARTBEAT"; }
 # ---------------------------------------------------------------------------
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
+beat
 # Chrome from Google's apt repo (stable, and re-pullable if the .deb URL moves).
 wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O /tmp/chrome.deb
 apt-get install -y /tmp/chrome.deb
@@ -79,6 +101,7 @@ google-chrome --version
 if ! command -v node >/dev/null 2>&1 || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 18 ]; then
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt-get install -y nodejs
+  beat
 fi
 node --version
 
@@ -113,7 +136,9 @@ if ! git clone --depth 1 --branch "$REF" "$REPO" "$WORK"; then
   ( cd "$WORK" && git checkout "$REF" )
 fi
 ( cd "$WORK" && git rev-parse HEAD )
+beat
 ( cd "$WORK/scripts/verify" && npm install --no-audit --no-fund )
+beat
 
 # ---------------------------------------------------------------------------
 # A server per check port (never `python -m http.server` — serve.py handles
@@ -232,15 +257,8 @@ PY
 # exact permissions the instance profile needs). The instance's IAM role must
 # allow s3:PutObject on that bucket/prefix and nothing else.
 # ---------------------------------------------------------------------------
-if [ -n "$RESULT_BUCKET" ]; then
-  IID=$(cloud-init query instance_id 2>/dev/null || echo "$(date -u +%Y%m%dT%H%M%SZ)")
-  PREFIX="s3://${RESULT_BUCKET}/flyover-runs/${REF}-${IID}"
-  echo "== uploading results to ${PREFIX} =="
-  aws s3 cp "$LOG" "${PREFIX}/user-data.log" || true
-  aws s3 cp --recursive "$OUT" "${PREFIX}/out" || true
-else
-  echo "== no RESULT_BUCKET set; results are in ${OUT} on the instance only =="
-fi
+trap - EXIT
+upload_results end
 
 echo "== flyover user-data done; shutting down now =="
 # Explicit shutdown so we do not wait out the hard cap when we are already done.
