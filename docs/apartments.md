@@ -571,6 +571,12 @@ A `window` spec (on `pixel`, `bays`, `flat`) also takes:
 - `overrides`: `[{ region: [u0, u1, v0, v1], bands }]` — the part of any
   axis-parallel wall inside the region wears these bands instead (The
   Standard's corner bay, the wall above the lower east wing).
+  An override REPLACES the wall's bands for the block's whole height: give it
+  bands from the block's `z0` to its `z1`, or the wall is left open above and
+  below them (you see through the building). The first override to claim a
+  stretch keeps it, so two overrides must not overlap. A wall whose layout
+  changes from tier to tier is therefore one BLOCK PER TIER (`cap: false` on
+  all but the top one); `scripts/author_moontower.py` does this.
 - `balconies` on a band: `[{ s0, s1, lift }]` — a stack, one per floor line
   in the band, `s` measured along the face (a rectangle's `v0` face runs
   from its `u1` end to its `u0` end). The slab, projection and rail come
