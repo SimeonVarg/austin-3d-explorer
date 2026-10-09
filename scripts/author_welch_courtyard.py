@@ -62,6 +62,10 @@ T = dict(terrace=3.1, slab=.32, parapet=.84, railRadius=.032,
          # from the photograph and the sizes are APPROXIMATE (seven screens in about 39 m gives the 5.5 m bay).
          screenSplitV=134.0, screenBay=5.5, screenWidth=2.7, screenBase=1.6, screenTop=11.4, screenBelt=11.8,
          screenTone='#b0623f', screenLine='#6e3a26', slitWidth=.7, slitHeight=1.3, slitSill=.6,
+         # The storey above the screens is lighter and has a few wide windows (PHOTO; it is also set back, which is not
+         # drawn). Tone: the HUE measured on the photograph (183, 160, 138), at a brightness between the wing's brick
+         # and the stone (the photograph is overcast, so its own brightness would draw too dark). Windows approximate.
+         screenUpperTone='#d8bda3', screenUpperWindow=(2.0, 1.6, 1.3),
          outerFrame=.08, outerMullion=.045, outerReveal=.22, outerBrick='#c5a494',
          # Stone: the SAME limestone as the east wall's arcade, so the same tone (sampled there in sun). The median of the
          # overcast north photograph (#ccc5bb) drew as grey concrete on a wall that the app already shades. The belt is
@@ -481,6 +485,10 @@ def main():
     upper['bands']=[dict(z0=T['projectionTop'],z1=T['outerBelt'][0],skin='outerBrick'),dict(z0=T['outerBelt'][0],z1=T['outerBelt'][1],skin='outerBeltBrick'),
                     dict(z0=T['outerBelt'][1],z1=(T['wallTop']-.65),skin='outerTop'),dict(z0=(T['wallTop']-.65),z1=T['wallTop'],skin='trim')]
     upper['faces']={}
+    d['colours'].update(screenUpperTone=dict(hex=T['screenUpperTone']));d['materials'].update(screenUpperTone='brick')
+    uw,uh,us=T['screenUpperWindow']
+    d['skins']['screenUpper']=dict(kind='bays',field='screenUpperTone',bay=d['skins']['outerSlit']['bay'],glass='courtGlass',frame='screenUpperTone',reveal=.2,window=dict(w=uw,h=uh,sill=us))
+    upper['faces']['8']=dict(bands=[dict(z0=T['projectionTop'],z1=(T['wallTop']-.65),skin='screenUpper',floors=[T['projectionTop']]),dict(z0=(T['wallTop']-.65),z1=T['wallTop'],skin='trim')])
     upper['plan']['holes'][0]=h[2:16]
     upper['plan']['holes'][0][-1]=[24.924,133.008]
     for i in [0,1,16]:
