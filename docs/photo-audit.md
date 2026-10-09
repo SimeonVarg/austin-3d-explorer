@@ -35,6 +35,11 @@ and which wall, before anything else.
 **1b. One real length.** Ratios do not give size. Fix the scale with one
 measured length: the wall height from the laser scan, or a wall length from
 the map outline. Then every ratio becomes metres.
+Read the scan itself, not a summary of it: take the roof heights in a strip
+just inside the wall line. And do not trust a fitted camera for size. A camera
+fitted to points of the model fits the MODEL: on Welch Hall the fit was 10 px
+while the whole building was 2 m too low, because a camera a little nearer
+hides a model that is a little small.
 
 **2. Measure each repeated part.** For a window, an arch, a balcony, a post:
 - width ÷ spacing (how much of a bay it fills);
@@ -119,6 +124,9 @@ made or sharpened.
 - 2026-10-08. The first use of this file on the rebuilt wall found rows 1.26
   times as far apart as columns where the photograph has 1.0 (bays 3.45 m
   that should be 4.3 m): the row ÷ column check in step 1, and step 1b.
+- 2026-10-08, found by the main lane, not by the owner: Welch Hall's walls were
+  built to 18.2 m from a misread scan summary; the scan grid says about 20.3 m.
+  Step 1b (read the scan itself; a fitted camera cannot check size).
 - 2026-10-07. Three photographs filed under one building showed another
   building: check 0.
 - 2026-10-03. "can't see the sign cuz the tree": check 9, from the camera of
