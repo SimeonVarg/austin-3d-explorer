@@ -165,9 +165,14 @@ sleep 3
 # (see scripts/verify/chrome.mjs on why the default is otherwise SwiftShader).
 # ---------------------------------------------------------------------------
 RENDERER_FILE="$OUT/renderer.txt"
-"$CHROME_WRAPPER" --headless=new --disable-gpu-compositing \
-  --dump-dom "data:text/html,<canvas id=c></canvas><script>var gl=document.getElementById('c').getContext('webgl');var e=gl.getExtension('WEBGL_debug_renderer_info');document.title=gl.getParameter(e.UNMASKED_RENDERER_WEBGL);</script>" \
-  > /dev/null 2>&1 || true
+# Ask the browser itself which graphics chip it draws with, and KEEP the answer. (The first version sent this
+# output to /dev/null and hoped a check would print the name; graphics.mjs does not, so the second real run
+# passed 27 of 27 with no proof of a real GPU.) The page writes the name into its body; --dump-dom prints it.
+"$CHROME_WRAPPER" --headless=new --disable-gpu-compositing --virtual-time-budget=4000 \
+  --dump-dom "data:text/html,<body><script>var gl=document.createElement('canvas').getContext('webgl');var e=gl&&gl.getExtension('WEBGL_debug_renderer_info');document.body.textContent='RENDERER:'.concat(gl?(e?gl.getParameter(e.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)):'no webgl');</script></body>" \
+  > "$OUT/renderer-probe.html" 2>/dev/null || true
+grep -o 'RENDERER:[^<]*' "$OUT/renderer-probe.html" 2>/dev/null | head -1 > "$RENDERER_FILE" || true
+echo "== graphics chip the browser reports: $(cat "$RENDERER_FILE" 2>/dev/null || echo unknown) =="
 # The dump-dom trick is unreliable headless; the checks themselves record the
 # renderer string in their output. Capture it authoritatively from graphics.mjs
 # below and gate on it there.
@@ -210,12 +215,14 @@ while IFS=$'\t' read -r idx name cmd args; do
   PIDS[$!]=1
   RUNNING=$(( RUNNING + 1 ))
   if [ "$RUNNING" -ge "$CONCURRENCY" ]; then
-    wait -n 2>/dev/null || wait
+    wait -n "${!PIDS[@]}" 2>/dev/null || wait "${!PIDS[@]}"
     RUNNING=$(( RUNNING - 1 ))
     beat
   fi
 done < /opt/flyover/checks.tsv
-wait
+# Wait for the CHECKS only. A bare `wait` also waits for the page servers and for the idle watchdog, which never
+# end: the second real run sat idle for 20 minutes after its one check until the watchdog stopped the machine.
+wait "${!PIDS[@]}"
 beat
 
 for s in "${SERVERS[@]}"; do kill "$s" 2>/dev/null || true; done
@@ -229,7 +236,7 @@ if grep -rili "swiftshader" "$OUT" >/dev/null 2>&1; then
   echo "== FAIL: SwiftShader renderer detected — the GPU was not used =="
   GPU_OK=0
 fi
-grep -rhoiE "ANGLE \(NVIDIA[^)]*\)|SwiftShader[^\"']*" "$OUT" 2>/dev/null | sort -u > "$RENDERER_FILE" || true
+[ -s "$RENDERER_FILE" ] || echo "RENDERER:unknown (the probe printed nothing)" > "$RENDERER_FILE"
 
 # ---------------------------------------------------------------------------
 # Build a manifest, then ship results.
