@@ -56,6 +56,12 @@ T = dict(terrace=3.1, slab=.32, parapet=.84, railRadius=.032,
          # stone from v 137 to 146 west of the wall; the photograph shows the steps rising from the south to the door.
          westDoorV=144.5, westSurround=(4.85, 7.65), westDoor=(1.5, 3.3, 6.0), westFrame=(3.7, 11.7), westWindow=(1.5, 7.9, 10.1),
          westStair=(137.0, 143.0, 146.9, 2.2, 8),      # steps start, landing start, landing end (v); width (m); number of steps
+         # The NEWER wing's west wall (the west wall south of the old range, v 84 to 134). PHOTO: mixed tan brick with
+         # tall terracotta lattice screens, one a bay and about half a bay wide, from a low stone base to a corbel
+         # course; above it a row of small slit windows. The photograph is too oblique to flatten, so the pattern is
+         # from the photograph and the sizes are APPROXIMATE (seven screens in about 39 m gives the 5.5 m bay).
+         screenSplitV=134.0, screenBay=5.5, screenWidth=2.7, screenBase=1.6, screenTop=11.4, screenBelt=11.8,
+         screenTone='#b0623f', screenLine='#6e3a26', slitWidth=.7, slitHeight=1.3, slitSill=.6,
          outerFrame=.08, outerMullion=.045, outerReveal=.22, outerBrick='#c5a494',
          # Stone: the SAME limestone as the east wall's arcade, so the same tone (sampled there in sun). The median of the
          # overcast north photograph (#ccc5bb) drew as grey concrete on a wall that the app already shades. The belt is
@@ -425,6 +431,26 @@ def west_portal(d):
     d['blocks']+=blocks
 
 
+def west_screens(d,base):
+    """Split the west wall where the old range ends and give the newer wing's part its lattice screens (see screen* in T)."""
+    ring=base['plan']['ring'];v=T['screenSplitV']
+    if not any(abs(p[1]-v)<.01 and p[0]<5 for p in ring):                 # put the split point on the west wall once
+        (ua,va),(ub,vb)=ring[7],ring[8];ring.insert(8,[round(ua+(ub-ua)*(va-v)/(va-vb),3),v])
+    (ua,va),(ub,vb)=ring[8],ring[9];length=math.hypot(ub-ua,vb-va)
+    d['colours'].update(screenTone=dict(hex=T['screenTone']),screenLine=dict(hex=T['screenLine']))
+    d['materials'].update(screenTone='brick')
+    n=max(1,round(length/T['screenBay']));bay=length/n;w=T['screenWidth']
+    screens=[dict(s0=round(bay*(k+.5)-w/2,3),s1=round(bay*(k+.5)+w/2,3),z0=T['screenBase']+.3,z1=T['screenTop']-.2,d=.12,tone='screenTone',
+                  mullion=dict(cols=[i/9 for i in range(1,9)],rows=[i/30 for i in range(1,30)],w=.05,tone='screenLine')) for k in range(n)]
+    d['skins']['screenBrick']=dict(kind='flat',field='labBrick')
+    d['skins']['outerSlit']=dict(kind='bays',field='labBrick',bay=round(bay,3),glass='courtGlass',frame='labBrick',reveal=.2,
+        window=dict(w=T['slitWidth'],h=T['slitHeight'],sill=T['slitSill']))
+    base['faces']['8']=dict(bands=[dict(z0=0,z1=T['screenBase'],skin='outerStone'),
+        dict(z0=T['screenBase'],z1=T['screenTop'],skin='screenBrick',openings=screens),
+        dict(z0=T['screenTop'],z1=T['screenBelt'],skin='outerBeltBrick'),
+        dict(z0=T['screenBelt'],z1=T['projectionTop'],skin='outerSlit',floors=[T['screenBelt']])])
+
+
 def main():
     d=json.loads(PATH.read_text(encoding='utf-8'));base=d['blocks'][0]
     base['z1']=T['projectionTop']
@@ -434,6 +460,7 @@ def main():
     d['levels']=dict(floors=[0,*T['floors'],T['wallTop']])
     d['roofBase']=T['wallTop']      # the kept campus roof pieces move up with the walls (js/slopes-apartments.js)
     base['faces']={k:v for k,v in base.get('faces',{}).items() if not k.startswith('h')}
+    west_screens(d,base)
     for face in base['faces'].values():
         face['bands']=[{**b,'z1':min(b['z1'],T['projectionTop'])} for b in face['bands'] if b['z0']<T['projectionTop']]
     d['colours'].update({k:{'hex':v} for k,v in COLOURS.items()})
