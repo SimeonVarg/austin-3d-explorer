@@ -126,6 +126,7 @@
   <script src="js/city-night.js"></script>
   <script src="js/city-lighting.js"></script>
   <script src="js/facades.js"></script>
+  <script src="js/image-memory.js"></script>
   <script src="js/ground.js"></script>
   <script src="js/capitol.js"></script>
   <script src="js/union24.js"></script>
@@ -184,7 +185,12 @@
   <!-- Real slopes (js/slopes.js header): the three.js custom layer. Self-
        booting off window.__map; ?slopes=0 leaves it out. After lod.js, which
        lists its layer id. KEEP IN SYNC WITH _harness.html. -->
+  <!-- Compact wall material (js/wall-patterns.js header). Before slopes.js,
+       whose shader and material read it. KEEP IN SYNC WITH _harness.html. -->
+  <script src="js/wall-patterns.js"></script>
   <script src="js/slopes.js"></script>
+  <script src="js/geometry-memory-codec.js"></script>
+  <script src="js/geometry-memory.js"></script>
   <!-- Its three generators, each one shape from baked data (headers in each
        file): the roofs off the rig on roofs.geojson, the arches off the
        `arches` member on entrances.geojson, the dome lathed from its discs.

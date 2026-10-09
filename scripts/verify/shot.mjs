@@ -32,7 +32,10 @@ const outDir = path.resolve('shots');
 fs.mkdirSync(outDir, { recursive: true });
 
 const browser = await launch(chromium);
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+// `SHOT_VP=390x844x2` shoots at a phone's size and pixel ratio (width x height x ratio).
+// The default is the desktop frame every committed picture was taken at.
+const [VW, VH, VR] = (process.env.SHOT_VP || '1440x900x1').split('x').map(Number);
+const page = await browser.newPage({ viewport: { width: VW, height: VH }, deviceScaleFactor: VR || 1 });
 
 const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -164,8 +167,12 @@ for (const s of SHOTS) {
   await page.evaluate(() => new Promise(r => {
     const m = window.__map;
     if (m.loaded()) return r();
-    m.once('idle', r);
-    setTimeout(r, 15000);
+    // `() => r()`, never `r`: the idle event carries the whole map, and a promise that
+    // resolves to it makes the browser send the map back by value (over 512 MB: the run
+    // dies with ERR_STRING_TOO_LONG). It only shows when the map is still loading here,
+    // which a phone-size frame is and the desktop frame usually is not.
+    m.once('idle', () => r());
+    setTimeout(() => r(), 15000);
   }));
   // The shadow casters are rebuilt in slices after the camera stops
   // (js/city-lighting.js PROXY_PACE). On a software renderer that build can

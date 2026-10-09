@@ -740,6 +740,8 @@ def load_ground(stats=None, warnings=None):
     with open(GROUND, encoding="utf-8") as f:
         for feat in json.load(f)["features"]:
             pr = feat["properties"]
+            if pr.get("gd"):      # a display-only patch from the ground-detail stage: no prop stands on it
+                continue
             g = feat["geometry"]
             if g["type"] != "Polygon" or not g["coordinates"]:
                 continue
@@ -793,6 +795,8 @@ class Pavement(object):
         roads, walks = [], []
         with open(GROUND, encoding="utf-8") as f:
             for feat in json.load(f)["features"]:
+                if feat["properties"].get("gd"):   # display-only ground-detail patch
+                    continue
                 g = feat["geometry"]
                 if g["type"] != "Polygon" or not g["coordinates"]:
                     continue

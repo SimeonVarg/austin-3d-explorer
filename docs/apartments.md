@@ -499,6 +499,10 @@ count from a module, never a hard-coded count.
   1..n cells shares a tone), `macro` (`[rows, planks]` per decision cell —
   The Standard's dark runs are two courses by two planks), `window`
   (`cols` as fractions of the face, `w`, `h`, `sill`).
+- A band may carry `floors: [z, ...]` (absolute heights of its own floor
+  lines). Without it the band uses the building's `levels.floors`. Use it for
+  a wall whose storeys differ from the rest of the building: Welch Hall's east
+  wall has three window rows where the building's levels give two.
 - `bays`: a flat `field` cut into bays of `bay` metres; `strip` (`w`,
   `tone`, `at: "joints" | "centres"`, `every`) puts a vertical strip of
   another tone on the bay lines; `window` (`w`, `h`, `sill`) one per bay per
@@ -618,6 +622,20 @@ A `window` spec (on `pixel`, `bays`, `flat`) also takes:
   offset lines, so an open corner on columns is open round the corner. The
   corner arithmetic is in the file's `recess` comment.
 
+  A band may switch each closing surface for itself, in the object form:
+  `"inset": { "d": 2.0, "soffit": false, "floor": false, "returns": false }`
+  (`returns` also takes `{ "lo": false }` or `{ "hi": false }`, for one end).
+  A switch the band does not give falls to the layer default
+  (`APARTMENTS.insetSoffit` for the soffit and the floor,
+  `APARTMENTS.insetReturns` for the returns), so a file that gives none is
+  drawn as it was. The case it is for: one recessed glass wall that a height
+  slice cuts into two stacked bands. Each band closed its own recess, so a
+  ceiling plate crossed the middle of the glass, and the only way round it
+  was free geometry. Give the lower band `soffit: false` and the upper band
+  `floor: false` and the two read as one wall.
+  `scripts/verify/inset-switches.mjs` counts the vertices each switch
+  removes and shows that no switch touches another's surface.
+
 **deck** — boxes on a roof at `z`: `plan` rectangle, `z0` and `h` (or `z1`)
 above the deck, `tone`. The Standard's pool, spa, turf, cabana, jumbotron
 and guard rail.
@@ -668,7 +686,7 @@ and guard rail.
 | `hidePrecinct` | `true` | hide `js/moody.js`'s own arena (`moody-wall`, `moody-roof`, `moody-plant`, `moody-cap`) where it stands on an authored footprint — by geometry, because the same pass draws two precinct neighbours we do not author |
 | `wallMargin` | `0.6` | metres OUTSIDE an authored footprint that a baked wall detail (`roofs-pitched`'s `f: band` strips, drawn proud of the wall) may stand and still be hidden — the scaffolding number |
 | `roof.pitch`, `roof.lipH`, `roof.gableLean` | `25`, `0.25`, `0.30` | a roof's pitch when the file gives none; the fascia height where a roof oversails its wall; how far a gable end leans in over its rise so the emitter's strip on that edge stands behind the wall drawn there |
-| `insetSoffit`, `insetReturns` | `true`, `true` | draw a recess's soffit and floor; draw its returns |
+| `insetSoffit`, `insetReturns` | `true`, `true` | draw a recess's soffit and floor; draw its returns. City-wide defaults: one band overrules them for itself with `inset: { soffit, floor, returns }` |
 | `fins`, `piers`, `canopies`, `openings` | `true` | draw those fixtures at all (round 3) |
 | `openingD`, `canopyT` | `2.0`, `0.2` | an opening's depth and a canopy's thickness when the file gives none |
 | `rakeFloors` | `true` | a raked face carries the building's floor lines where they cut the plane |

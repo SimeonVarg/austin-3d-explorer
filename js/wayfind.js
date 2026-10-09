@@ -2273,7 +2273,8 @@
       for (const b of reg.buildings) {
         if (!b || !b.ref || byCode.has(b.ref)) continue;
         const e = { kind: 'reg', reg: true, code: b.ref, name: norm(b.name),
-          number: b.number || '', display: titleCase(norm(b.name)), doors: [] };
+          number: b.number || '', display: titleCase(norm(b.name)), doors: [],
+          unavailable: g.raw?.availability?.[b.ref] || null };
         byCode.set(b.ref, e);
         entries.push(e);
       }
@@ -3469,7 +3470,8 @@
     // extra one, so the same call serves both pickers.
     const fromDoors = pickDoors(g, from, opts.avoidStairs),
       toDoors = pickDoors(g, to, opts.avoidStairs);
-    if (!fromDoors.length || !toDoors.length) return { ok: false, why: 'nodoor' };
+    if (!fromDoors.length || !toDoors.length) return { ok: false, why: 'nodoor',
+      reason: (!fromDoors.length ? from.unavailable : to.unavailable)?.reason || null };
 
     let legs, viaPoi = null;
     if (opts.via != null) {
@@ -8368,7 +8370,7 @@
     run({ fit: !!opts.fit });
     if (opts.expand) { state.expanded = true; renderPill(); }
     const r = state.route;
-    if (!r || !r.ok) return { ok: false, why: r ? r.why : 'noroute' };
+    if (!r || !r.ok) return { ok: false, why: r ? r.why : 'noroute', reason: r?.reason || null };
     // The bbox and a point-on-route come back with the answer so a verify
     // script can pose a camera from the route itself rather than from a guess.
     const pts = r.geom.line.concat([doorLL(G, r.fromDoor), doorLL(G, r.toDoor)]);
@@ -8513,7 +8515,7 @@
       const f = resolveExact(from), t = resolveExact(to);
       if (!f || !t) return { ok: false, why: 'notfound' };
       const r = computeRoute(g, f, t, { avoidStairs: !!(opts && opts.avoidStairs) });
-      if (!r.ok) return { ok: false, why: r.why, from: f.code, to: t.code };
+      if (!r.ok) return { ok: false, why: r.why, reason: r.reason || null, from: f.code, to: t.code };
       const a = stairAnswer(r);
       a.ok = true;
       // Re-derive the step-free claim straight from the graph rather than
@@ -14018,14 +14020,18 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       impState.err = SAY_IMP.errImgBig(Math.round(f.size / 1048576));
       impRender(); return null;
     }
+    // SAY SO FIRST. The panel speaks before anything is awaited: even the
+    // 12-byte format sniff below waits for a free main thread, and on a phone
+    // still drawing the city that left the panel blank for 1-3 s (measured).
+    impState.busy = true; impState.busyNote = SAY_IMP.imgLoading; impRender();
     // THE FORMAT GATE, AND IT ONLY RUNS FOR THE FORMAT IT IS ABOUT. See
     // IMP.image.heicBrands: a HEIC that this browser cannot decode is the
     // single likeliest total failure of this feature on a real iPhone, and
     // before this it arrived as the generic read error five megabytes later.
     if (await impLooksHeic(f) && !(await impCanDecode(f))) {
+      impState.busy = false; impState.busyNote = null;
       impState.err = SAY_IMP.errImgHeic; impRender(); return null;
     }
-    impState.busy = true; impState.busyNote = SAY_IMP.imgLoading; impRender();
     return impFinishImage(f);
   }
 

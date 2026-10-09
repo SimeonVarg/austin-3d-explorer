@@ -55,6 +55,9 @@
  *     --init <js>          a statement run before any page script (a switch the first
  *                          build must see, e.g. one field of window.APARTMENTS)
  *     --width/--height/--dpr   default 1280/680/1.5
+ *     --scale <s>          the render scale the page runs at (default 1). The phone
+ *                          profile draws at 0.75 of the device ratio, so a phone frame is
+ *                          --width 390 --height 844 --dpr 3 --scale 0.75 --q lite=1
  *     --own                also capture each system hidden in turn (authored, patterned,
  *                          extrusions, outer, trees, ground) for moire-report.py --own
  *     --gfx <json>         saved graphics settings before load, e.g. '{"msaa":true,"custom":true}'
@@ -85,6 +88,8 @@ const OUT = opt('--out', null);
 if (!OUT && !has('--probe')) { console.error('usage: moire.mjs --out <dir> [--probe] [--poses a,b] [--ss 3] [--flight name] [--ref git-ref] [--set k=v]'); process.exit(2); }
 if (OUT) fs.mkdirSync(OUT, { recursive: true });
 const W = +opt('--width', '1280'), H = +opt('--height', '680'), DPR = +opt('--dpr', '1.5');
+// the map's own pixel ratio: the device ratio times the page's render scale
+const MAP_DPR = DPR * +opt('--scale', '1');
 const SS = +opt('--ss', '3');
 const TRUTH = !has('--no-truth');
 const REF = opt('--ref', null);
@@ -185,7 +190,7 @@ await page.waitForFunction(() => window.slopesApartments?.count.done && window.s
   window.slopesApartments.readyToReveal(), null, { timeout: 300000, polling: 500 });
 await page.waitForFunction(() => !window.__fly?.eye().driving, null, { timeout: 30000 }).catch(() => {});
 await page.waitForFunction(({ w, h }) => !document.getElementById('veil') &&
-  window.__map.getCanvas().width >= w && window.__map.getCanvas().height >= h, { w: Math.floor(W * DPR), h: Math.floor(H * DPR) }, { timeout: 120000, polling: 250 });
+  window.__map.getCanvas().width >= w && window.__map.getCanvas().height >= h, { w: Math.floor(W * MAP_DPR), h: Math.floor(H * MAP_DPR) }, { timeout: 120000, polling: 250 });
 if (LABEL) await page.evaluate(t => { document.title = t; }, LABEL);
 
 const info = await page.evaluate(({ sets, evalSrc }) => {
@@ -333,14 +338,14 @@ await page.evaluate(({ SS, DPR, SCREENS }) => {
       await frames(4);
     },
   };
-}, { SS, DPR, SCREENS });
+}, { SS, DPR: MAP_DPR, SCREENS });
 
 const save = (file, dataUrl) => fs.writeFileSync(path.join(OUT, file), Buffer.from(dataUrl.split(',')[1], 'base64'));
 const lerp = (a, b, t) => a + (b - a) * t;
 const poseAt = (f, t) => ({ center: [lerp(f.from.center[0], f.to.center[0], t), lerp(f.from.center[1], f.to.center[1], t)],
   zoom: lerp(f.from.zoom, f.to.zoom, t), pitch: lerp(f.from.pitch, f.to.pitch, t), bearing: lerp(f.from.bearing, f.to.bearing, t) });
 
-const meta = { info: { ...info, layers: undefined }, ss: SS, w: W, h: H, dpr: DPR, ref: REF, sets: SETS, captures: [] };
+const meta = { info: { ...info, layers: undefined }, ss: SS, w: W, h: H, dpr: DPR, mapDpr: MAP_DPR, ref: REF, sets: SETS, captures: [] };
 const FL = opt('--flight', null);
 if (FL) {
   const f = FLIGHTS[FL];

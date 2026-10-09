@@ -213,6 +213,8 @@
     // Recesses (a band's `inset`): the soffit over a recess and the floor of
     // one that starts above the block's foot are drawn; `insetReturns` draws
     // the side walls where a recess ends against a face that is not recessed.
+    // These are the defaults; one band may overrule them for itself with
+    // `inset: { d, soffit, floor, returns }` (see "recesses" below).
     insetSoffit: true,
     insetReturns: true,
     // The fixtures that stand OFF a wall (2026-09-08): fins and piers (a
@@ -1881,7 +1883,10 @@
       if (z1 - z0 < 0.05) continue;
       const sk = spec.skins[band.skin];
       if (!sk) { warnOnce('skin|' + key + '|' + band.skin, key + ': no skin "' + band.skin + '"'); continue; }
-      const fl = floorsBetween(spec.levels.floors, z0, z1, key + ' ' + band.skin);
+      // a band may carry its own floor lines (`floors`, absolute z): a wing whose
+      // storeys do not sit on the building's levels (Welch Hall's east wall has
+      // three window rows where the building's levels give two)
+      const fl = floorsBetween(band.floors || spec.levels.floors, z0, z1, key + ' ' + band.skin);
       const d = insetOf(band);
       if (d > 0) { recess(B, sub, len, band, d, sk, spec, P, key, Object.assign({ cutAt, sOff }, opts), fl); continue; }
       const ctx = { len, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
@@ -1917,6 +1922,15 @@
   // stand on the face line under the soffit: `{ pitch | at: [s...], w, d,
   // tone }`, one box each from floor to soffit.
   //
+  // A band may switch its own closing surfaces (2026-10-05): `inset: { d,
+  // soffit: false, floor: false, returns: false }`, each one optional and
+  // each overruling the layer default above for that band alone; `returns`
+  // may also be `{ lo, hi }` for one end. The case it is for: ONE recessed
+  // glass wall that a height slice cuts into two stacked bands. Each band
+  // closed its own top and foot, so a ceiling plate ran across the middle
+  // of the glass; the lower band says `soffit: false`, the upper one
+  // `floor: false`, and the wall reads as one again.
+  //
   // The corner arithmetic, for wall i leaving corner O with direction di
   // and outward normal ni after wall p (dp, np), both recessed (d, dN): the
   // point on i's offset line that lies on p's is s along the wall with
@@ -1927,6 +1941,8 @@
   // and the return closes it there.
   const insetOf = band => band && band.inset != null ? (typeof band.inset === 'number' ? band.inset : (band.inset.d || 0)) : 0;
   const insetSpec = band => (band && typeof band.inset === 'object') ? band.inset : {};
+  /** a band's own switch when it gives one, the layer default when it does not */
+  const bandSwitch = (own, dflt) => own == null ? dflt : !!own;
   const sameBand = (a, b) => Math.abs(a.z0 - b.z0) < 1e-3 && Math.abs(a.z1 - b.z1) < 1e-3;
   /** how far the recessed wall's end sits from this end of the piece, and whether a return closes it there */
   function recessEnd(end, band, d, high) {
@@ -1956,16 +1972,13 @@
       tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);
     }
     // the returns: a wall across the recess at either end, where nothing recessed meets it
-    if (APTS.insetReturns) {
-      if (lo.ret) B.quad(W.at(0, -lo.from, z0), W.at(lo.s, -d, z0), W.at(lo.s, -d, z1), W.at(0, -lo.from, z1), tone, T);
-      if (hi.ret) B.quad(W.at(len, -hi.from, z0), W.at(len - hi.s, -d, z0), W.at(len - hi.s, -d, z1), W.at(len, -hi.from, z1), tone, nT);
-    }
+    const R = IS.returns, endwise = R != null && typeof R === 'object';
+    if (lo.ret && bandSwitch(endwise ? R.lo : R, APTS.insetReturns)) B.quad(W.at(0, -lo.from, z0), W.at(lo.s, -d, z0), W.at(lo.s, -d, z1), W.at(0, -lo.from, z1), tone, T);
+    if (hi.ret && bandSwitch(endwise ? R.hi : R, APTS.insetReturns)) B.quad(W.at(len, -hi.from, z0), W.at(len - hi.s, -d, z0), W.at(len - hi.s, -d, z1), W.at(len, -hi.from, z1), tone, nT);
     // the soffit at the top, the floor at the foot when the band starts above the block's foot
-    if (APTS.insetSoffit) {
-      const ring = zz => [W.at(0, 0, zz), W.at(len, 0, zz), W.at(len - hi.s, -d, zz), W.at(lo.s, -d, zz)];
-      B.polygon(ring(z1), tone, [0, 0, -1], 'xy');
-      if (opts.blockZ0 == null || z0 > opts.blockZ0 + 0.01) B.polygon(ring(z0), tone, [0, 0, 1], 'xy');
-    }
+    const ring = zz => [W.at(0, 0, zz), W.at(len, 0, zz), W.at(len - hi.s, -d, zz), W.at(lo.s, -d, zz)];
+    if (bandSwitch(IS.soffit, APTS.insetSoffit)) B.polygon(ring(z1), tone, [0, 0, -1], 'xy');
+    if (bandSwitch(IS.floor, APTS.insetSoffit) && (opts.blockZ0 == null || z0 > opts.blockZ0 + 0.01)) B.polygon(ring(z0), tone, [0, 0, 1], 'xy');
     // the columns, on the face line
     const C = IS.columns || band.columns;
     if (C) {
@@ -2001,7 +2014,7 @@
       const hasB = APTS.balconies && band.balconies && band.balconies.length, hasS = wantSigns() && band.signs && band.signs.length;
       const hasF = APTS.fins && band.fins, hasC = APTS.canopies && band.canopies && band.canopies.length;
       if (!hasB && !hasS && !hasF && !hasC) continue;
-      const floors = floorsBetween(spec.levels.floors, band.z0, band.z1, key + ' ' + band.skin).floors;
+      const floors = floorsBetween(band.floors || spec.levels.floors, band.z0, band.z1, key + ' ' + band.skin).floors;
       const d = insetOf(band);
       const Wb = d > 0 ? { at: (s, dd, z) => W.at(s, dd - d, z), T: W.T, N: W.N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n } : W;
       if (hasB) for (const bs of band.balconies) balconyStack(B, Wb, Object.assign({}, spec.balcony || {}, bs), floors, P, band.z1);
@@ -2080,7 +2093,7 @@
       const sk = spec.skins[band.skin];
       if (!sk) { warnOnce('skin|' + key + '|' + band.skin, key + ': no skin "' + band.skin + '"'); continue; }
       if (insetOf(band) > 0) warnOnce('rake-inset|' + key, key + ': a raked face cannot be recessed; its band is drawn on the plane');
-      const fl = floorsBetween(spec.levels.floors, zb0, zb1, key + ' ' + band.skin);
+      const fl = floorsBetween(band.floors || spec.levels.floors, zb0, zb1, key + ' ' + band.skin);
       const floors = APTS.rakeFloors ? fl.floors.map(t0Of) : [];
       const floorBelow = APTS.rakeFloors && fl.floorBelow != null ? t0Of(fl.floorBelow) : null;
       const t0 = t0Of(zb0), t1 = t0Of(zb1);
@@ -2204,6 +2217,7 @@
     const ring = spec.footprint.ring;
     const obb = spec.frame && spec.frame.obb ? spec.frame.obb : obbOf(ring);
     const F = frameFor(obb);
+    window.WallPatterns.register(P,spec,F);
     window.CityNight?.registerFixtures(spec,F);
     const ringUV = ring.slice(0, ring.length - 1).map(F.toUV);
     console.log('[slopes-apartments] ' + spec.name + ': obb L=' + F.L.toFixed(1) + ' W=' + F.W.toFixed(1) + ', +u at bearing ' + F.bearing.toFixed(1) + '°');
@@ -2858,7 +2872,9 @@
   // in the ground. `_aptfloat` (scripts/verify/aptfloat.mjs) is the sweep
   // that finds a new one: a nadir over every authored footprint, every
   // fill-extrusion layer queried, anything that answers named.
-  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'], parts: ['parts-3d', 'parts-roof'], precinct: ['moody-wall', 'moody-roof', 'moody-plant', 'moody-cap'] };
+  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'], parts: ['parts-3d', 'parts-roof'], precinct: ['moody-wall', 'moody-roof', 'moody-plant', 'moody-cap'], hero: ['heroes-solid', 'heroes-lime', 'heroes-brick', 'heroes-nbrick', 'heroes-glass', 'heroes-glassb', 'heroes-glassc', 'heroes-gdc-glass', 'heroes-lattice', 'heroes-cap'] };
+  /** js/heroes.js keys its bands by a short code (`b`), not the building id, so a model that replaces a hero names it: `replaceHero: 'nhb'`. */
+  const heroCodes = () => [...new Set(okBuildings().map(b => b.replaceHero).filter(Boolean))];
   /**
    * The tiled roofs js/slopes-roofs.js draws from data/roofs.geojson's rig
    * were baked on the SNAPSHOT prism too: San Jacinto Hall's hip sits on
@@ -2908,6 +2924,8 @@
     if (gone.length) for (const id of HIDE_LAYERS.prism) plan.push([id, ['!', ['in', ['get', 'id'], ['literal', gone]]]]);
     if (names.length) for (const id of HIDE_LAYERS.bands) plan.push([id, ['!', ['in', ['get', 'name'], ['literal', names]]]]);
     if (gone.length && APTS.hideStoreys) for (const id of HIDE_LAYERS.storeys) plan.push([id, ['!', ['in', ['get', 'host'], ['literal', gone]]]]);
+    const heroes = heroCodes();
+    if (heroes.length) for (const id of HIDE_LAYERS.hero) plan.push([id, ['!', ['in', ['get', 'b'], ['literal', heroes]]]]);
     // Every complete authored model replaces older Drag facade/cap geometry.
     // Restricting this to the new street shops left PCL and Texas Union drawing
     // two different elevations and roofs in the same place.
@@ -3057,6 +3075,7 @@
       }
       yield;
       stashRigs(true);
+      window.heroesHideUndersides?.(heroCodes());
       _filtered = true;
     } else if (_filtered) {
       for (const id of Object.keys(_clauses)) {
@@ -3068,6 +3087,7 @@
         yield;
       }
       stashRigs(false);
+      window.heroesHideUndersides?.([]);
       _filtered = false;
     }
   }
@@ -3080,8 +3100,11 @@
    * Teach the flight controls the real height: js/controls.js rasterises its
    * collision grid once at init from final_height (20.5 m for The Standard),
    * so without this you fly through the top 38 m of the tower. The same
-   * route js/heroes.js and js/westcampus.js take; theirs are carried along so
-   * the rebuild does not drop Rambler's corrected height.
+   * route js/heroes.js and js/westcampus.js take; js/controls.js keeps each
+   * owner's volumes, so no rebuild drops another's. Called when the
+   * time-sliced build lands (startBuild): d017e58 moved the build off boot
+   * and dropped this call with the boot log it sat in, so Icon (87 m) had no
+   * collision at all.
    */
   function extendCollision(map) {
     if (typeof window.__flyRebuildCollision !== 'function') return 'no collision api';
@@ -3105,7 +3128,7 @@
       if (h) extra.push({ type: 'Feature', geometry, properties: { h } });
     }
     if (!extra.length) return 'no matching footprints';
-    window.__flyRebuildCollision({ buildings, parts: { type: 'FeatureCollection', features: ((parts && parts.features) || []).concat(extra) } });
+    window.__flyRebuildCollision({ buildings, parts: { type: 'FeatureCollection', features: ((parts && parts.features) || []).concat(extra) } }, 'apartments');
     return 'rebuilt with ' + extra.length + ' corrected heights';
   }
 
@@ -3149,8 +3172,9 @@
       if (!want) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); }); return; }
       _group = g; S.add(_group);
       setFilters(true); setLabels(true);
+      count.collision = extendCollision(map || _map);
       (map || _map).triggerRepaint();
-      console.log('[slopes-apartments]', count.buildings, 'building(s) built in', count.ms, 'ms over', count.buildSlices, 'slice(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.triangles, 'triangles');
+      console.log('[slopes-apartments]', count.buildings, 'building(s) built in', count.ms, 'ms over', count.buildSlices, 'slice(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.triangles, 'triangles; collision:', count.collision);
       checkAreas(map || _map);   // a camera that is already near an area
     }).catch(e => { if (_building === p) _building = null; console.error('[slopes-apartments] build failed', e); });
     return p;
@@ -3474,7 +3498,12 @@
   // in the same apply. The data is fetched once, through the layer's cache.
   let _fetching = null;
   function replacementCatalog(idx, individual, bundles) {
-    const buildings = individual.filter(Boolean), collected = bundles.flat();
+    // A building rebuilt in its own file supersedes its entry in a collection
+    // (Burdine Hall is also one of data/campus_buildings.json's halls), or two
+    // meshes stand in one footprint. Only a file that downloaded supersedes,
+    // so a failed one still leaves the collection's version drawn.
+    const buildings = individual.filter(Boolean), own = new Set(buildings.map(b=>b.id).filter(Boolean));
+    const collected = bundles.flat().filter(b => !own.has(b.id));
     // Index-wide aliases can name a file that failed to download. Only retire
     // those extra legacy pieces when every individual model is available.
     const complete = individual.every(Boolean);

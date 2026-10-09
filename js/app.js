@@ -248,8 +248,103 @@
   const ROOF_CAP = { on: !/[?&]roofcaps=0\b/.test(location.search) };
   window.ROOF_CAP = ROOF_CAP;
 
+  // THE LIDAR HEIGHTS. On every load, a building the 2021 airborne laser scan
+  // reads TALLER than the snapshot is raised to the scan's height (the owner
+  // chose "raises only" from before/after pictures, 2026-10-04). The list is
+  // data/lidar_raises.json, about a hundred buildings and 5 KB, cut by
+  // scripts/bake_lidar_raises.py from the whole measurement,
+  // data/lidar_heights.json (scripts/bake_lidar_heights.py). The rule for the
+  // height (a tower on a podium is not drawn as fat as its podium) lives in
+  // that bake and nowhere else.
+  //   ?lidarheights=0    off: no request, the snapshot's heights as they were.
+  //   (nothing)          'raise': raises only.
+  //   ?lidarheights=all  raises, AND the scan may lower a building by up to
+  //                      `maxLower` metres. That reads the whole measurement.
+  //                      Not the default: the scan is old, see `maxLower`.
+  // It is applied ONCE, in loadScene, on the feature before anything else
+  // reads it, so the walls, the parapet cap, the window grid's height class,
+  // the labels and the shadows all see the same number and there is no second
+  // copy to drift.
+  //   skipSources: heights somebody authored on purpose; the scan does not
+  //     overrule those. (`hero_override` is a hand-set landmark height.)
+  //   skipFlags: scan readings the bake itself distrusts: a roof the scan
+  //     could barely see (`sparse`, `low_class6`), or no reading at all. The
+  //     `canopy` and `skewed` flags are information, not a reason to skip:
+  //     the number is taken from the scan's building class, which ignores
+  //     trees, and a tall part on a podium is the point, not an error.
+  //   minAbsDiff / maxAbsDiff: ignore a difference under half a metre (noise),
+  //     and refuse one over 100 m (the scan and the footprint cannot both be
+  //     right). It was 60 m first; that refused the two worst cases in the
+  //     city, a 12 m apartment block carried at 97.5 m and a courts building
+  //     at 7 m that stands 70 m, and those are exactly what this is for.
+  //   maxLower: the scan is from early 2021 and West Campus has built towers
+  //     ever since, so a scan that reads LOWER than the app may simply be old.
+  //     The scan alone never lowers a building by more than this many metres;
+  //     the bigger cases sit in the bake's review list (`rv` in the data), with
+  //     a guess at why, and are not applied. Raising has no such limit.
+  //   Only the plain prism is changed. A building drawn some other way (an
+  //   authored mesh, West Campus bands, a hero, parts, a pitched roof) carries
+  //   `x` in the data and is left alone: its `final_height` is not the height
+  //   on screen, and the roofs and bands drawn from it would not follow. The
+  //   Capitol Complex's hand-set heights (data/capitol_overrides.json) are `x`
+  //   too: js/capitol.js overwrites `final_height` after this runs, so a scan
+  //   number would be replaced a moment later and change nothing.
+  const LIDAR_HEIGHTS = {
+    mode: /[?&]lidarheights=0\b/.test(location.search) ? 'off'
+      : (/[?&]lidarheights=all\b/.test(location.search) ? 'all' : 'raise'),
+    skipSources: ['hero_override'],
+    skipFlags: ['sparse', 'low_class6', 'few_cells', 'off_raster'],
+    minAbsDiff: 0.5,
+    maxAbsDiff: 100,
+    maxLower: 3,
+  };
+  window.LIDAR_HEIGHTS = LIDAR_HEIGHTS;
+  // The raises: `raises.buildings` is id -> height. A building is raised only
+  // while that height is still above the one in the snapshot that was loaded,
+  // so a snapshot that has since been corrected is not pushed back down.
+  function applyLidarRaises(buildings, raises) {
+    const table = (raises && raises.buildings) || {};
+    let changed = 0;
+    for (const f of buildings.features) {
+      const p = f.properties || {};
+      const h = table[p.id];
+      if (typeof h !== 'number' || typeof p.final_height !== 'number') continue;
+      if (LIDAR_HEIGHTS.skipSources.includes(p.source_height)) continue;
+      const d = h - p.final_height;
+      if (d < LIDAR_HEIGHTS.minAbsDiff || d > LIDAR_HEIGHTS.maxAbsDiff) continue;
+      p.final_height_prior = p.final_height;
+      p.final_height = h;
+      p.source_height = 'lidar_2021';
+      changed++;
+    }
+    return changed;
+  }
+  // The small lowerings (`?lidarheights=all` only), from the whole measurement.
+  // Raises are never taken from here: applyLidarRaises owns those.
+  function applyLidarLowerings(buildings, lidar) {
+    const table = (lidar && lidar.buildings) || {};
+    let changed = 0;
+    for (const f of buildings.features) {
+      const p = f.properties || {};
+      const m = table[p.id];
+      if (!m || typeof m.h !== 'number' || typeof p.final_height !== 'number') continue;
+      if (m.x) continue;   // drawn some other way (mesh, bands, hero, parts, pitched roof): not this extrusion
+      if (m.rv) continue;  // the scan reads far lower than the app: review list, never applied
+      if (p.source_height === 'lidar_2021') continue;   // raised a moment ago
+      if (LIDAR_HEIGHTS.skipSources.includes(p.source_height)) continue;
+      if (String(m.q || '').split(',').some(q => LIDAR_HEIGHTS.skipFlags.includes(q))) continue;
+      const d = p.final_height - m.h;
+      if (d < LIDAR_HEIGHTS.minAbsDiff || d > LIDAR_HEIGHTS.maxLower) continue;   // the scan is from early 2021: it does not lower by much
+      p.final_height_prior = p.final_height;
+      p.final_height = m.h;
+      p.source_height = 'lidar_2021';
+      changed++;
+    }
+    return changed;
+  }
+
   async function loadScene(date) {
-    const [buildings, parts, signs, extraNames, roofs, facadeGrids, overrides] = await Promise.all([
+    const [buildings, parts, signs, extraNames, roofs, facadeGrids, overrides, lidarRaises, lidarAll] = await Promise.all([
       getJSON(snapshotUrlFor(date), { type:'FeatureCollection', features: [] }),
       getJSON(`data/snapshots/${date}/parts.detailed.geojson`, { type:'FeatureCollection', features: [] }),
       getJSON('data/signs.json', { type:'FeatureCollection', features: [] }),
@@ -275,6 +370,9 @@
       // existed.
       getJSON('data/facade_grids.json', { buildings: [] }),
       getJSON('data/building_overrides.json', { buildings: {} }),
+      // The lidar heights (see LIDAR_HEIGHTS above): 5 KB by default, nothing when off.
+      LIDAR_HEIGHTS.mode !== 'off' ? getJSON('data/lidar_raises.json', { buildings: {} }) : null,
+      LIDAR_HEIGHTS.mode === 'all' ? getJSON('data/lidar_heights.json', { buildings: {} }) : null,
     ]);
 
     const excludedIds = new Set(Object.entries(overrides.buildings).filter(([, override]) => override.exclude === true).map(([id]) => id));
@@ -282,6 +380,12 @@
     const excluded = properties => ['id', 'bid', 'pid', 'building_id'].some(key => excludedIds.has(String(properties[key])))
       || ['osm', 'osm_id', 'osm_way_id'].some(key => excludedWays.has(String(properties[key] || '').replace(/^(way\/|w)/, '')));
     for (const collection of [buildings, parts, roofs]) collection.features = collection.features.filter(feature => !excluded(feature.properties || {}));
+
+    // The lidar knob (see LIDAR_HEIGHTS above). Off: no request, no change.
+    LIDAR_HEIGHTS.raised = LIDAR_HEIGHTS.mode !== 'off' ? applyLidarRaises(buildings, lidarRaises) : 0;
+    LIDAR_HEIGHTS.lowered = LIDAR_HEIGHTS.mode === 'all' ? applyLidarLowerings(buildings, lidarAll) : 0;
+    LIDAR_HEIGHTS.changed = LIDAR_HEIGHTS.raised + LIDAR_HEIGHTS.lowered;
+    if (LIDAR_HEIGHTS.changed) console.log('lidar heights (' + LIDAR_HEIGHTS.mode + '): ' + LIDAR_HEIGHTS.raised + ' raised, ' + LIDAR_HEIGHTS.lowered + ' lowered, from the 2021 scan');
 
     // The Capitol Complex, south of the snapshot's own bbox, is spliced in
     // HERE — before quantisation and before the label pass — so it earns
@@ -437,7 +541,11 @@
       // 88, not 85: MapLibre 5.24's own hard ceiling is 90 (verified against the
       // running library, scripts/verify/pitch-probe.mjs) and the flycam's
       // eye->pose derivation goes singular there. See js/controls.js PITCH_MAX.
-      maxPitch:88, scrollZoom:false, attributionControl:{ compact:true },
+      // The terms and credits page (terms.html) is linked from the map's own credit
+      // line, the "i" at the bottom right, beside the data credits it belongs with.
+      // The whole link is this one string: reword it or remove it here.
+      maxPitch:88, scrollZoom:false, attributionControl:{ compact:true,
+        customAttribution:'<a href="terms.html" target="_blank" rel="noopener">Terms and credits</a>' },
       // v5: antialias moved into canvasContextAttributes. It defaults OFF here
       // because it is the most expensive single option in the whole app —
       // measured over a 4 s flight at 2560x1400, turning MSAA off took dropped
@@ -454,6 +562,21 @@
       ...(PHONE_BUDGET && PHONE_BUDGET.tileCacheSize != null ? { maxTileCacheSize: PHONE_BUDGET.tileCacheSize } : {}),
     });
     window.__map = map;
+    // THE STYLELESS GAP. When the graphics context is lost, MapLibre destroys
+    // its style (map.style is null) until the restore. On CI's slow renderer a
+    // texture refresh on a timer landed in that gap and threw "reading
+    // 'getImage'". The paint writes are worse than the throw: setSky/setLight/
+    // addImage quietly build an EMPTY style there, so the time of day is spent
+    // on nothing. Skip them in the gap (applyTimeOfDay skips itself too); the
+    // restore re-applies the current time of day once the real style is back
+    // (js/slopes.js restoreLayer).
+    for (const name of ['hasImage', 'getImage', 'addImage', 'updateImage', 'removeImage', 'setSky', 'setLight']) {
+      const original = map[name];
+      map[name] = function () {
+        if (this.style) return original.apply(this, arguments);
+        return name === 'hasImage' ? false : name === 'getImage' ? null : this;
+      };
+    }
 window.CityLighting.install(map);
     // Y12. Before the first frame is drawn, and again once the style has
     // swapped the transform out from under us. A no-op above WALK_NEAR.ALT_HI.

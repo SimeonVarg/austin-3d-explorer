@@ -380,10 +380,22 @@
   const EDGE_SMOOTHING = {
     maxDefaultPixels: 2100000,
     integratedMaxPixels: 600000,
+    // The phone profile (js/mobile.js budget.smoothEdges). A phone's GPU is
+    // tile-based: the four samples are resolved inside each tile, so the cost
+    // is memory, not speed, and the budget is the buffer size. 390x844 at
+    // DPR 3 x renderScale 0.75 is 1.67 MP; a tablet (3 MP and up) stays off.
+    phoneMaxPixels: 2100000,
     // NVIDIA; AMD's discrete RX / Pro lines; Intel's discrete Arc A-series
     // ("Intel Arc Graphics" with no model number is Core Ultra's integrated one).
     fullDefaultGpu: /nvidia|geforce|quadro|\b[gr]tx\b|radeon.*\b(rx|pro)\b|\barc.*\ba\d{3}/i,
     fillOutlinesWithMSAA: false,
+    // ?smooth=1|0: Smooth edges on or off for THIS VISIT, on any device,
+    // nothing saved. It is how to see a default (the phone's, js/mobile.js
+    // budget.smoothEdges) on a real device before it is turned on. With the
+    // flag a small strip says what the graphics context really has: a setting
+    // that was asked for is not proof of one that was given.
+    urlReadout: { top: 'calc(env(safe-area-inset-top, 0px) + 6px)', z: 70, bg: 'rgba(12,20,34,.84)',
+                  ink: '#f3ead2', size: '11.5px', pad: '5px 10px', radius: '999px' },
   };
   // The renderer this browser draws WebGL with. `antialias` has to be decided
   // before the map's context exists, so a FIRST visit reads it off a throwaway
@@ -435,9 +447,11 @@
     } catch (e) {}
   }
   function defaultMSAA(scale) {
-    if (window.LITE_PROFILE?.on) return false;
     const ratio=(window.devicePixelRatio||1)*scale;
     const pixels=window.innerWidth*window.innerHeight*ratio*ratio;
+    // The phone profile decides from its own budget, and never probes a
+    // renderer: its tier already says what the device survived.
+    if (window.LITE_PROFILE?.on) return !!window.LITE_PROFILE.budget?.smoothEdges && pixels>0 && pixels<=EDGE_SMOOTHING.phoneMaxPixels;
     const budget=EDGE_SMOOTHING.fullDefaultGpu.test(readGpuRenderer())
       ? EDGE_SMOOTHING.maxDefaultPixels : EDGE_SMOOTHING.integratedMaxPixels;
     return pixels>0 && pixels<=budget;
@@ -491,8 +505,11 @@
   // re-run the probe and can drop a good machine to `performance`.
   //
   //   rev 2 — `dof` off everywhere (the horizon line; see the note on PRESETS).
-  const SETTINGS_REV = 3;
+  //   rev 4 — an unstamped automatic Performance save goes back to `balanced`
+  //           once (REV_UNSTAMPED_AUTO below; it is a preset step, not a key list).
+  const SETTINGS_REV = 4;
   const REV_RESET = { 2: ['dof'] };
+  const REV_UNSTAMPED_AUTO = 4;
 
   // ── `preset` is the preset the settings came FROM; `custom` says they moved ──
   //
@@ -517,15 +534,67 @@
   const GFX = Object.assign({}, PRESETS.balanced, { preset: 'balanced', custom: false, autoDetected: false, rev: SETTINGS_REV });
   window.GFX = GFX;
 
+  // ── Saved settings are a hint, never an authority ──────────────────
+  //
+  // A hard refresh does not clear localStorage, so whatever this key holds
+  // decides the scene on every later visit. Two ways that went wrong quietly:
+  //   1. A value that parses but means nothing (a string where a slider goes,
+  //      0 or -40 where the menu's range starts at 150, an array for a
+  //      boolean) was copied into GFX as-is. Each key is now checked against
+  //      its own SCHEMA row, and one that fails falls back to the default for
+  //      its key alone; the rest of the save survives.
+  //   2. The auto-detect's downgrade to `performance` was permanent: it set
+  //      `autoDetected`, which is what stops the probe, and nothing ever
+  //      cleared it, so one slow first minute (a cold cache, a busy laptop)
+  //      dimmed the scene for good. The downgrade now writes the time it
+  //      happened (`autoDownAt`) and expires after AUTO_DOWNGRADE_TTL_MS: the
+  //      next load goes back to `balanced` with the probe armed, and it
+  //      downgrades again only if the machine is still slow. A preset chosen
+  //      by hand never carries that stamp, so it never expires.
+  const AUTO_DOWNGRADE_TTL_MS = 3 * 24 * 3600 * 1000;
+  const validSaved = (s, v) => {
+    if (s.type === 'bool') return typeof v === 'boolean';
+    return typeof v === 'number' && isFinite(v) && v >= s.min && v <= s.max;
+  };
+
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) saved = null;
   let migrated = false;
-  if (saved && typeof saved === 'object') {
-    for (const s of SCHEMA) if (saved[s.key] !== undefined) GFX[s.key] = saved[s.key];
+  if (saved) {
+    for (const s of SCHEMA) {
+      if (saved[s.key] === undefined) continue;
+      if (validSaved(s, saved[s.key])) GFX[s.key] = saved[s.key];
+      else { migrated = true; }
+    }
+    // A downgrade the machine made on its own has run out: take it back.
+    //
+    // The same step runs ONCE for a save written before the stamp existed (rev
+    // below REV_UNSTAMPED_AUTO): `performance`, not custom, `autoDetected`, no
+    // stamp. Those saves cannot be told apart from a hand pick, because
+    // usePreset() sets `autoDetected` for a hand pick too. That is the accepted
+    // cost: a person who chose Performance by hand before this change gets one
+    // extra probe, and on a slow machine the probe puts them back within
+    // seconds, now with a stamp. On a strong machine it is the fix: that save
+    // was one slow first minute, kept for good. After this load the save is
+    // rev 4, so a hand pick made later has no stamp and stays.
+    const at = +saved.autoDownAt;
+    const wasRev = +saved.rev || 1;
+    const autoPerf = saved.preset === 'performance' && !saved.custom && saved.autoDetected;
+    const stale = autoPerf && at && !(Date.now() - at >= 0 && Date.now() - at < AUTO_DOWNGRADE_TTL_MS);
+    // Not on the phone profile: Performance is that device's design (PHONE_PRESET), and
+    // a phone's memory ceiling is the reason, so it never gets a Balanced load to probe.
+    const oldUnstamped = autoPerf && !at && wasRev < REV_UNSTAMPED_AUTO && !(window.LITE_PROFILE && window.LITE_PROFILE.on);
+    if (stale || oldUnstamped) {
+      saved.preset = 'balanced'; saved.autoDetected = false; saved.autoDownAt = 0;
+      Object.assign(GFX, PRESETS.balanced);
+      migrated = true;
+    }
     if (saved.preset && PRESETS[saved.preset]) GFX.preset = saved.preset;
     GFX.custom = !!saved.custom || (!!saved.preset && !PRESETS[saved.preset]);
     GFX.autoDetected = !!saved.autoDetected;
-    const was = +saved.rev || 1;
+    GFX.autoDownAt = (+saved.autoDownAt > 0 && GFX.preset === 'performance' && !GFX.custom) ? +saved.autoDownAt : 0;
+    const was = wasRev;
     for (let r = was + 1; r <= SETTINGS_REV; r++) {
       for (const k of (REV_RESET[r] || [])) {
         const p = PRESETS[GFX.preset] || PRESETS.balanced;
@@ -599,7 +668,8 @@
   // WebGL context. Bloom needs to read the GL canvas, so it needs the buffer
   // kept; asking for it only when bloom is actually wanted means the performance
   // preset stops paying for it on the next load.
-  window.GFX_MSAA = !!GFX.msaa;
+  const SMOOTH_URL = Q.get('smooth') === '1' ? true : Q.get('smooth') === '0' ? false : null;
+  window.GFX_MSAA = SMOOTH_URL == null ? !!GFX.msaa : SMOOTH_URL;   // the flag is not written to GFX: nothing is saved
   window.GFX_PDB = GFX.bloom > 0.01 || !!GFX.autoExposure;  // auto-exposure meters the same buffer
   // Does this browser draw with a graphics card? The same test as the Smooth
   // edges default (EDGE_SMOOTHING.fullDefaultGpu). js/city-lighting.js keeps
@@ -689,6 +759,36 @@
     sweep();
   }
 
+  // ?smooth=: say what this context really has (EDGE_SMOOTHING.urlReadout).
+  function smoothReadout(map) {
+    if (SMOOTH_URL == null) return;
+    let gl = null;
+    try { gl = map.painter && map.painter.context && map.painter.context.gl; } catch (e) {}
+    if (!gl || !gl.getContextAttributes) return;
+    const R = EDGE_SMOOTHING.urlReadout, lite = window.LITE_PROFILE || {};
+    const on = !!(gl.getContextAttributes() || {}).antialias;
+    let samples = null;
+    try { if (!gl.getParameter(gl.FRAMEBUFFER_BINDING)) samples = gl.getParameter(gl.SAMPLES); } catch (e) {}
+    const info = window.__smoothReadout = { asked: SMOOTH_URL, on, samples, width: 0, height: 0,
+                                            tier: lite.on ? (lite.tierName || 'phone') : null };
+    const el = document.createElement('div');
+    el.id = 'smooth-readout';
+    el.style.cssText = 'position:fixed;top:' + R.top + ';left:50%;transform:translateX(-50%);z-index:' + R.z +
+      ';background:' + R.bg + ';color:' + R.ink + ';font-size:' + R.size + ';line-height:1.2;padding:' + R.pad +
+      ';border-radius:' + R.radius + ';white-space:nowrap;pointer-events:none';
+    // The buffer is resized after this runs (the render scale, a rotation), so
+    // the size is read again every time the map says it changed.
+    const update = () => {
+      info.width = gl.drawingBufferWidth; info.height = gl.drawingBufferHeight;
+      el.textContent = 'Smooth edges ' + (on ? 'ON' + (samples ? ' (' + samples + ' samples)' : '') : 'OFF') +
+        ' · ' + info.width + ' x ' + info.height + (info.tier ? ' · ' + info.tier + ' tier' : '');
+    };
+    update();
+    map.on('resize', update);
+    map.on('idle', update);
+    document.body.appendChild(el);
+  }
+
   window.initGraphics = function initGraphics(map) {
     _map = map;
 
@@ -719,6 +819,7 @@
     if (!bloomOK) console.log('[graphics] bloom unavailable: this context has no preserveDrawingBuffer (reload with bloom > 0)');
     dropFillOutlinesUnderMSAA(map);
     rememberGpuRenderer(map);
+    smoothReadout(map);
 
     buildMenu();
     buildFeedback();
@@ -1812,6 +1913,8 @@
     // Downgrade only — see the note above on why an upgrade is unmeasurable.
     if (med > 21.5 && GFX.preset === 'balanced' && !GFX.custom) {
       usePreset('performance', true);
+      GFX.autoDownAt = Date.now();   // expires: see AUTO_DOWNGRADE_TTL_MS
+      save();
       toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`,
         TOAST_PROBE_MS);
     } else {
@@ -1871,7 +1974,7 @@
     Object.assign(GFX, p);
     GFX.preset = name;
     GFX.custom = false;
-    if (!keepAuto) GFX.autoDetected = true;
+    if (!keepAuto) { GFX.autoDetected = true; GFX.autoDownAt = 0; }
     applyGraphics();
     syncMenu();
     if (GFX.msaa !== msaaWas) markReload();

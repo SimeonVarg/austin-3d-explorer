@@ -42,6 +42,10 @@ The report records the graph hash and fails if it changes during verification.
 A few groups pin today's coverage on purpose: SMC must be unroutable, HLB must
 have no baked doors, and `wayfindSearch('Icon')` must contain `Ion Austin`.
 When a bake adds SMC or HLB doors, update those assertions in the same change.
+Jester West must resolve only to its own supported doors, not Jester East.
+The ACS register alias is explicit and keeps the existing field-source door;
+AF1 remains unavailable with its recorded reason. Identity recovery must not
+accept a door away from its wall or a link cutting through its building.
 
 ## Setup
 
@@ -162,6 +166,7 @@ node movement.mjs      # camera: symmetry, vertical control, momentum, stuck key
 node collision.mjs     # never inside a building, streets stay flyable, joystick+look (8 assertions)
 node walk.mjs          # a scripted walk really walks, at 1.7 m, and can be watched failing
 node sky.mjs           # one-sun coherence, disc projection, blend invariants (12 assertions)
+node sunset-band.mjs --url=<origin>  # composited phone/desktop sunset horizon: coolest clear column R-B >= 90
 node dusk.mjs          # the dusk handover is continuous, measured in PIXELS across a p sweep
 node night-silhouette.mjs   # the skyline reads DARK against the sky at dusk and night
 node banding.mjs       # the sky gradient is still a gradient + updateSky cost
@@ -170,6 +175,27 @@ node shot.mjs <prefix> [shots.json]   # screenshots at named camera poses
 
 `movement.mjs`, `dusk.mjs` and `banding.mjs` accept `--report` to print the
 table without failing.
+
+### The lidar height knob: what is drawn, and before/after frames
+
+`final_height` is only the height of the plain prism, so a roof height compared
+with it is compared with something that is often not on screen (authored
+meshes, West Campus bands, heroes, parts, pitched roofs hide or bury it).
+
+- `drawn-heights.mjs <out.json> [query]` loads the app (real GPU, veil gone,
+  authored meshes ready) and dumps every extrusion feature that can be a
+  building, the authored meshes' own tops and the prism hide list, with no
+  screenshot. `python scripts/lidar_drawn.py <out.json> <drawn.json>` joins it to
+  the footprints: `drawn_h` and `path` per building.
+- `lidar-shots.mjs <outDir> <shots.json>` shoots the same camera with
+  `?lidarheights=0` (the snapshot's heights) then the default page (the scan's
+  raises) in ONE browser, retries a failed capture with the cause logged, fails
+  if the default leg changed no height, and writes `proof.json` with the
+  `final_height` the renderer drew for each probed building. It refuses to run on
+  SwiftShader (every earlier run of it timed out at 30 s there).
+
+Both want `VERIFY_GL=hardware` and go through `gpu-run.mjs`; frames belong in a
+scratch folder, not the repo.
 
 ### Full-city context recovery
 
@@ -398,6 +424,78 @@ and 390x844, inside the frame and clear of the title pill and buttons.
 
 The notice stands down under `navigator.webdriver` on purpose: this suite runs
 SwiftShader for exact pixels, and a card over the city would move every one.
+
+### A broken browser cache must not take a map layer with it (Oct 4 2026)
+
+`node tile-heal-source.mjs` (no browser, no server) runs the real `js/tiles.js`
+against the real pmtiles library (the build `index.html` names, fetched once and
+kept in the temp folder; `PMTILES_JS=<file>` uses a local copy) and the real
+`data/tiles/props.pmtiles`. Only the network is fake, and it models the incident:
+a cache that answers a NORMAL read of a range with a 206 of the right length
+whose bytes are all zero, while a `cache: 'reload'` read gets the file. It
+asserts 35 things: with the heal off the archive fails to open (so the fake
+reproduces the incident); a zero-filled header range is healed by a reload in the
+same load, with the real tile and one console line naming the archive; a cache
+that keeps the bad copy after the reload moves the archive to `?cg=1`, stores the
+generation, and the next load opens on it without a bad read; a stored generation
+is read strictly (integer, 1..99, written as `String(n)`); a bad reload, a
+hopeless archive (one console error, bounded requests, nothing stored), a bad
+tile range, a header of garbage or of another spec version, a zero-filled root
+directory, a root directory or a tile with a zeroed end, a short read, blocked
+storage, three bad reads at once (one move, not three); a healthy archive makes
+exactly the requests it made before; and every directory, metadata block and tile
+of all five real archives (2,944 ranges) passes the check, so it has no false
+positive on what the site serves.
+`--break` loads `tiles.js` with `?tileheal=0` (the code path before the heal) and
+must exit 1 (4/35 pass: the control and the checks that nothing changed);
+`--tiles <file>` runs the same scenarios against another copy of `tiles.js`
+(`origin/main`'s: also red). Ten hand-made breakages of the heal itself (no
+generation when a reload does not stick, lax generation parsing, a generation
+stored on failure, no once-only move, no gzip rule, no zeroed-end rule, no
+gzip-magic rule, no zero rule on the header, a reload that reads from the cache,
+no check at all) were each caught.
+
+`VERIFY_URL=http://127.0.0.1:8442 node tile-heal.mjs [--break] [--out DIR]`
+(laptop, through the browser queue; `_harness.html`, one load) is the same
+incident in a real page. It intercepts the first range of `outer`, `roads` and
+`props` and answers a normal read with a zero-filled copy of the real 206; a
+cache-bypassing read and a `?cg=` URL get the real bytes. `outer` and `props`
+repair on a reload, `roads` does not (so it must move to `?cg=1`). Then, from the
+one page: the poison was really served; one navigation; each archive healed the
+way it should and one console line names it; and the DRAWN result: decoded
+features in the far ring's and the roads' tile caches AND the frame moves when
+the layers of that source are hidden, beyond the noise floor of the same state
+shot first, second and last (a downtown pose; screenshots, counted in the page).
+Measured 2026-10-04, map pixels only, labels off: noise 0.000%, far ring 60.3%,
+roads 0.261% on the laptop and 0.235% on the build server (floors 10% and
+0.08%), the two hidden frames 60.6% apart; all 16 pass. With the heal off
+(`--break`, `?tileheal=0`, exit 1) 5 of 16 pass: bare ground, zero decoded
+features, and every share is exactly 0.000%. **The first version of this check
+was wrong and the build server caught it:** it reported roads 8.1% and set a 1%
+floor from that, and with the heal off it "measured" 13.2% for both layers.
+Neither number was the layer (see the last two traps below); the server, where
+the timing fell differently, measured the true 0.235% and failed the floor.
+Five traps in it:
+Playwright's interception sits above the HTTP cache, so the `Cache-Control:
+no-cache` / `Pragma: no-cache` Chrome adds to a `cache: 'reload'` fetch are not on
+the request the route is shown (a one-line shim copies the page's own `cache`
+option into a header); and `route.fetch` opens its own connections, so a burst of
+tile reads through it overflowed the local server's listen queue
+(`ECONNREFUSED`): only the poisoned reads go through it, the rest `continue()`.
+And the loading veil sits over the map and animates, so a page screenshot of an
+un-pinned page measured the veil (97% "noise" on the first run): the script
+removes it, pins auto-exposure, grain and star twinkle, and the drawn checks are
+net of the measured noise. Fourth: **taking the veil element away does not end
+the veil's reduced render scale.** The app draws soft until its own `reveal()`
+(`INTRO.veilRenderScale`, js/app.js), so the frame went from soft to sharp by
+itself between two shots; the "same state twice" pair was taken before the jump
+and read 0.003%, and the jump was then counted as a layer. Pin
+`window.__veilRenderScale = 1` (then `applyGraphics()`) in any test that removes
+the veil, and shoot the first state again LAST: a noise floor measured only at
+the start cannot see a frame that changes later. Fifth: page furniture arrives
+late (a "Switch modes" pill appeared mid-run and moved 0.2-0.5% of the frame, as
+much as the roads) and labels cross-fade when a layer is toggled, so the shots
+hide everything but the canvas with one CSS rule and switch symbol layers off.
 
 ### Exit codes mean something
 
@@ -629,6 +727,8 @@ Kept here so nobody restores them from history thinking they were lost.
   1/128 quantisation of the expensive path
 
 ## Graphics / post-process suite (added July 29 2026)
+
+- `node context-restore.mjs --profile desktop|phone --out <local-scratch>`: desktop forces a map-canvas WebGL loss and restore, then checks the city pixels, a new bound renderer, the same scene, camera and light, rebuilt shadow maps, no reload and no city data fetched, plus a headless hide/show. Phone asserts its contract instead: CPU copies freed and the reload recovery kept (`slopes.canRestoreContext === false`). Hardware GL; run through the shared browser queue.
 
 - `node graphics.mjs` — the post-process stack and its menu (27 assertions).
   Every effect is asserted by requiring pixels to CHANGE, not by checking that a
@@ -1549,3 +1649,146 @@ the old fallback until the new geometry has rendered.
 The time budget is cooperative: an indivisible MapLibre operation or a
 competing full-city render can still exceed it. No architecture, material
 or model-detail knob changes with area slicing.
+
+## Saved browser state heals itself: `stored-state.mjs`
+
+A hard refresh does not clear localStorage. `stored-state.mjs <outDir>` seeds
+`austin3d.gfx.v1` with an out-of-range/wrong-type save, unparsable text, an
+expired automatic downgrade, a fresh one, a hand-chosen `performance` and a real
+old unstamped automatic `performance` save (rev 3; healed to `balanced` once, with
+the probe armed: read off the page by counting the probe's own timer), each in
+its own browser context before the page's scripts run, and asserts the settings
+the page ends with plus that the downtown outer-ring layers still return rendered
+features (and change pixels) against a clean-profile load. `--break` writes
+`outerDensity 0` into the live page and must come back red: that is also the
+proof the bad value hides the low-rise ring (towers and mid-rise stay). Run it
+through the GPU queue; about 6 minutes.
+
+### Does a preset hide downtown? `downtown-preset.mjs`
+
+`downtown-preset.mjs <outDir>` loads the real page twice in one browser, once with
+Performance saved and once on the default, and from three cameras (the spawn
+pose, where the opening flight lands, and an eye over south campus looking at
+the skyline) shoots the same frame twice (keep the second) and measures it: the
+pixels each outer-ring layer covers (layer on against layer off, divided by
+renderScale squared so the two canvases compare), the downtown towers with ink
+standing on their ground point, every downtown name in range and on screen with
+the building it names and whether the preset's own rule draws it, what render
+distance hid at that altitude, and every style layer whose visibility, filter or
+opacity differs between the presets. It is a measurement, not a gate. Measured
+2026-10-04 (two runs, same numbers): Performance and Balanced draw the same
+towers and mid-rise (full-scale pixels 10,407 against 10,531 and 5,307 against
+5,145 at the south-campus camera); Performance draws about half the low-rise ring
+(6,766 against 13,854, `outerDensity` 0.45); render distance 350 hides only the
+clutter tiers in `js/lod.js`; none of the 28 names on screen names a building the
+preset removes. So the preset alone does not leave a name over empty ground.
+Through the GPU queue; about 5 minutes.
+
+## The GL sky against the canvas sky: `sky-gl.mjs` (added October 4 2026)
+
+`SKY_COMP.mode = 'gl'` draws the sky in the map's own pass from textures uploaded
+once, and is the default; `'canvas'` (`?sky=canvas`) is the 2D canvas it replaced. `sky-gl.mjs` is the gate
+for the two claims that matter: the atmosphere did not move, and a camera turn costs
+no 2D draw and no upload. It reads pixels of the **finished map frame** (the harness
+page, `readPixels`), never a number the sky code reports about itself.
+
+```bash
+python scripts/serve.py 8527                       # from the repo root
+VERIFY_GL=hardware VERIFY_URL=http://127.0.0.1:8527 node <lanes>/gpu-run.mjs --label sky-gl -- \
+  node scripts/verify/sky-gl.mjs --shots <scratch>/frames     # green, plus nine labelled frames
+... sky-gl.mjs --break                                       # one defect per assertion: all must go RED
+... sky-gl.mjs --only c --report                             # iterate on one assertion, never fails
+```
+
+Five assertions (a atmosphere at noon, sunset and night; b no seam where the cloud
+panorama wraps; c the horizon feather sits at the same row; d clouds are really
+drawn and the look knob changes them; e turning costs no 2D draw and no upload) and
+one about the instrument itself (g: the pixels come from the GL path). Every taste
+number is in the `TUNE` block at the top of the file.
+
+Traps this check cost time:
+
+- **It needs a GPU.** On SwiftShader the city draws at 0.2-0.6 frames a second, so
+  the screenshot and the 40-frame turn time out. That is why it is quarantined in
+  `ci/checks.json` and runs on the laptop through the GPU slot.
+- **A tower hides the horizon.** In a fixed column the feather was occluded in both
+  modes and the assertion read 0 against 0. The check now picks the cleanest of 24
+  columns from the *canvas* profile and says which one it used.
+- **Luma is blind to a sunset wash.** At sunset the rose-over-blue changes colour
+  without changing brightness, so the feather is measured as the summed per-channel
+  distance from the same frame with the atmosphere gain at zero, not as luma.
+- **A counter can lie, so there are two.** The turn assertion reads the app's own
+  `SKY_METER` counters *and* a `texImage2D` wrapper this script installs itself. The
+  `'canvas'` control run must show both moving or the instrument is dead.
+- **Each assertion has a break switch** (atmosphere gain 1.6, seam shifted, feather
+  moved 30 px, cloud gain 0, the turn run in canvas mode, the own-output run in canvas
+  mode). Run `--break` after any edit to the check; a break that comes back green
+  means the assertion measures nothing.
+
+## A band's own recess switches: `inset-switches.mjs` (added October 5 2026)
+
+A recessed band closes its recess with a soffit, a floor and a return at each
+open end. A band can now leave each one out for itself
+(`inset: { d, soffit, floor, returns }`, `docs/apartments.md`). The check sets
+one band of The Standard's corner bay 2.0 m back in thirteen variants and counts
+mesh vertices: each switch removes its own surface and nothing else, the
+recessed wall never changes, and taking the inset away restores the count.
+
+```bash
+python scripts/serve.py 8447                       # from the repo root
+VERIFY_URL=http://127.0.0.1:8447 node <lanes>/gpu-run.mjs --label inset-switches --   node scripts/verify/inset-switches.mjs           # about 3.6 minutes
+```
+
+Two traps it met on its first two runs:
+
+- **`slopesApartments.rebuild()` returns before the mesh exists.** It drops the
+  group and builds the new one over the next frames, so `slopesApartments.group`
+  is `null` in the same `page.evaluate`. Change the data and call `rebuild()` in
+  one evaluate, wait for `count.done && group`, read the mesh in a second one.
+- **`APARTMENTS.insetSoffit` is city-wide.** Turning it off takes the soffit and
+  the floor off every recess in the city (1,164 vertices), not off the band
+  under test (12). Compare two variants under the SAME layer default.
+
+## The sky against the world when the camera moves: `skyturn.mjs` (added October 5 2026)
+
+The owner's words: "camera tilt and sky go in opposite directions when turning". `skyturn.mjs` measures it.
+It holds the eye still (the camera is placed from a fixed eye position, so a bearing or pitch change is a pure
+rotation), takes each pose twice (sky on, sky off), and reads two pictures out of the *finished map frame*:
+the sky layer alone (on minus off, only where the world frame shows plain sky) and the world alone. It then
+measures how far each moved, with a masked correlation searched over **both** signs, and compares both against
+a pinhole model of its own whose lens comes from the page (`getVerticalFieldOfView()`), never a number typed in.
+
+```bash
+python scripts/serve.py 8527                       # from the repo root
+VERIFY_URL=http://127.0.0.1:8527 node <lanes>/gpu-run.mjs --label skyturn -- node scripts/verify/skyturn.mjs
+... skyturn.mjs --tier phone --report              # one tier, print the numbers and never fail
+... skyturn.mjs --frames <scratch>/frames          # also write the grey pictures it measured
+... skyturn.mjs --skyjs <old sky.js>               # serve another js/sky.js: this is how a BEFORE run is made
+```
+
+Nine assertions per tier, on the desktop tier (1280 x 800, DPR 1) and the phone tier (390 x 844, DPR 2, the
+LITE profile at 0.75 render scale): a and a2 (the sky layer is drawn by the GL path and has cloud energy in every
+pose), b and b2 (the pinhole model matches the world the app really rendered, and the rendered world rolls by the
+camera's roll), c yaw 4 degrees, d yaw tilted, e pitch 4 degrees, f both together, and g **bank 5 degrees each
+way**. Exit 0 pass, 1 a sky failure, 2 an instrument failure (a and b assertions), so a dead instrument cannot be
+read as a sky bug.
+
+What it found: yaw and pitch were always right (sky and world within a few percent in size and the same sign on
+both tiers). The defect was bank. The flight controller banks the camera into a turn (up to `BANK_MAX` = 5
+degrees, `map.setRoll`), MapLibre turns the whole picture about the frame centre, and the GL sky was built for a
+level camera, so the horizon, buildings and map sky rotated while clouds, stars, horizon feather and sun stayed
+level. On the old code assertion g reads: sky tilt 0.00 degrees against a world tilt of +5.00 and -5.00 (phone
++4.91 and -5.04).
+
+Traps this check cost time:
+
+- **`roll` is the only axis that was wrong.** Looking for "opposite directions" in yaw and pitch finds nothing.
+  Measure the rotation of the picture, not just its shift.
+- **The phone canvas is 1.5x dense, not 2x.** DPR 2 times the 0.75 render scale. Averaging whole-number blocks
+  mis-registered the world by 25 percent and turned a pitch of 57 into 0.12; frames are now sampled at CSS pixel
+  centres.
+- **MapLibre's `setRoll` is called every idle frame by the flight controller** (the self-heal to level), so the
+  page kit blocks it while a pose is held, or the bank is erased before the frame is read.
+- **A per-half translation cannot measure a small rotation** (it gave 2.9 degrees for 5). Bank is found by a
+  rigid-rotation search instead.
+- **This check needs a GPU.** It asks for hardware GL itself and is listed in `ci/checks.json`.

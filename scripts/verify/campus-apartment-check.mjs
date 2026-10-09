@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright-core';
 import {launch,BASE,HW_ARGS} from './chrome.mjs';
+import {waitForApartmentBuild} from './lib/apartment-ready.mjs';
 const root=new URL('../../',import.meta.url),out=process.env.VERIFY_OUT;
 const read=path=>JSON.parse(fs.readFileSync(new URL(path,root)));
 const old=path=>JSON.parse(execFileSync('git',['show','d549ef0:'+path],{cwd:root,maxBuffer:3000000}));
@@ -10,15 +11,17 @@ const index=read('data/apartments/index.json');
 const registered=index.buildings.length+(index.collections||[]).reduce((n,f)=>n+read(f).buildings.length,0);
 const beforeIndex=old('data/apartments/index.json');
 const before={buildings:beforeIndex.buildings.map(f=>old('data/apartments/'+f)),replacedBuildingIds:beforeIndex.replacedBuildingIds,replacedNames:beforeIndex.replacedNames};
-const browser=await launch(chromium,{gl:'hardware',args:[...HW_ARGS,'--disable-gpu-vsync','--disable-frame-rate-limit'],maxMs:600000});
+const browser=await launch(chromium,{gl:'hardware',args:[...HW_ARGS,'--disable-gpu-vsync','--disable-frame-rate-limit'],maxMs:300000});
 let failed=false;
 try{
  const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'}),errors=[];
+ const waitForBuild=()=>waitForApartmentBuild(page);
  page.on('pageerror',e=>errors.push(e.message));
  page.on('console',m=>{if(m.type()==='error'&&m.text().includes('[slopes-'))errors.push(m.text())});
  await page.addInitScript(()=>{const t=setInterval(()=>{if(window.cancelGraphicsAutoDetect){cancelGraphicsAutoDetect();clearInterval(t)}},50)});
  await page.goto(BASE+'/index.html?intro=0&drift=0&livehere=1',{waitUntil:'domcontentloaded',timeout:180000});
  await page.waitForFunction(()=>window.slopesApartments?.count.done&&window.slopesRoofs?.data&&window.__fly?.indexed(),null,{timeout:180000});
+ await waitForBuild();
  const after=await page.evaluate(()=>structuredClone(slopesApartments.data));
  const info=await page.evaluate(()=>({count:slopesApartments.count,hidden:slopesApartments.hidden,roofKeys:Object.keys(slopesRoofs.data.roofs)}));
  assert.equal(info.count.buildings,registered,'every registered building builds');assert.equal(info.count.signMissing,0);assert.deepEqual(info.hidden.missing,[]);assert.deepEqual(info.hidden.rigsMissing,[]);
@@ -31,37 +34,57 @@ try{
  }),'finite vertices and normals');
  const rays=()=>page.evaluate(()=>{
   const group=slopesApartments.group;group.updateMatrixWorld(true);
+  const geometry=new THREE.Group();
+  group.traverse(object=>{
+   if(!object.isMesh)return;
+   const mesh=new THREE.Mesh(object.geometry,Array.isArray(object.material)?object.material[0]:object.material);
+   mesh.matrixAutoUpdate=false;mesh.matrix.copy(object.matrixWorld);geometry.add(mesh);
+  });
+  geometry.updateMatrixWorld(true);
   const cast=(name,u,v,z=140,dir=null)=>{
    const ll=slopesApartments.uvToLngLat(name,u,v),p=slopes.toLocal(...ll,z);
    const r=new THREE.Raycaster(new THREE.Vector3(p.x,p.y,p.z),dir||new THREE.Vector3(0,0,-1));
-   const h=r.intersectObject(group,true)[0];return h?{z:h.point.z,distance:h.distance,normal:h.face.normal.toArray()}:null;
+   const h=r.intersectObject(geometry,true)[0];return h?{z:h.point.z,distance:h.distance,normal:h.face.normal.toArray()}:null;
   };
   const b=slopesApartments.data.buildings.find(s=>s.name==='Battle Hall'),F=b.frame.obb;
   const direction=new THREE.Vector3(-F.ax,-F.ay,0);
-  const results={north:cast('Union on San Antonio',10,10),south:cast('Union on San Antonio',80,22),terrace:cast('Union on San Antonio',80,7),pointe:cast('Pointe on Rio',18,28),rambler:cast('Rambler',23,45),villasWell:cast('Villas on Rio',43,22),villasSlot:cast('Villas on Rio',47,31),villasControl:cast('Villas on Rio',35,22),archCorner:cast('Battle Hall',37.45,40.14,14.5,direction),archPane:cast('Battle Hall',37.45,38.39,11.2,direction)};
-  const villas=slopesApartments.data.buildings.find(s=>s.name==='Villas on 24th'),V=villas.frame.obb;
-  results.facet=cast('Villas on 24th',V.L+3,V.W/2,8,new THREE.Vector3(-V.ax,-V.ay,0));
+  const hall=b.blocks.find(block=>block.id==='reading-hall'),east=b.battleEast.parameters;
+  const opening=hall.faces.u1.bands.flatMap(band=>band.openings||[]).find(opening=>opening.z0===east.upperBottom);
+  const half=(opening.s1-opening.s0)/2,center=hall.plan[3]-(opening.s0+opening.s1)/2,u=hall.plan[1]+3;
+  const results={north:cast('Union on San Antonio',10,10),south:cast('Union on San Antonio',80,22),terrace:cast('Union on San Antonio',80,7),pointe:cast('Pointe on Rio',18,28),rambler:cast('Rambler',23,45),villasWell:cast('Villas on Rio',43,22),villasSlot:cast('Villas on Rio',47,31),villasControl:cast('Villas on Rio',35,22),archCorner:cast('Battle Hall',u,center+half*.9,opening.z1-.1,direction),archPane:cast('Battle Hall',u,center+east.glassWidth*.1,east.upperBottom+(east.spring-east.upperBottom)*.4,direction)};
+  const villas=slopesApartments.data.buildings.find(s=>s.name==='Villas on 24th'),villasFrame=villas.frame.obb;
+  const screen=villas.detailMeshes.find(mesh=>mesh.id==='parking-screen-screen');
+  const facet=screen.triangles[0].map(index=>screen.vertices[index]);
+  const midpoint=facet[0].map((_,axis)=>facet.reduce((sum,vertex)=>sum+vertex[axis],0)/3);
+  results.facet=cast('Villas on 24th',midpoint[0]-3,midpoint[1],midpoint[2],new THREE.Vector3(villasFrame.ax,villasFrame.ay,0));
   const icon=slopesApartments.uvToLngLat('Icon',3,3);results.iconCollision=__fly.roofAt(...icon,0);
+  results.geometrySamples={rambler:{courtyardUV:[23,45],roofControlUV:[10,45],roofControl:cast('Rambler',10,45)},battle:{cornerUVZ:[u,center+half*.9,opening.z1-.1],paneUVZ:[u,center+east.glassWidth*.1,east.upperBottom+(east.spring-east.upperBottom)*.4]},villas:{triangle:facet,centroid:midpoint},icon:{uv:[3,3],meshRoof:cast('Icon',3,3),collision:results.iconCollision}};
   return results;
  });
- const r=await rays();console.log('rays',JSON.stringify(r));
- assert.ok(r.north.z>98&&r.south.z>98&&r.terrace.z<22,'Union has two full-height wings and a low terrace');
- assert.ok(r.pointe.z<5&&r.rambler.z<1,'courtyards are open');
+ const r=await rays();console.log('rays',JSON.stringify(r));console.log('independent geometry samples',JSON.stringify(r.geometrySamples));
+ assert.ok(r.north?.z>98&&r.south?.z>98&&r.terrace?.z<22,'Union has two full-height wings and a low terrace');
+ assert.ok(r.pointe?.z<5&&r.rambler?.z<1,'courtyards are open: '+JSON.stringify({pointe:r.pointe,rambler:r.rambler}));
  assert.equal(r.villasWell,null);assert.equal(r.villasSlot,null);assert.ok(r.villasControl.z>30,'Villas on Rio roof cuts remain intact');
- assert.ok(r.archPane.distance-r.archCorner.distance>.3,'arched spandrel is in front of recessed pane');
- assert.ok(Math.abs(r.facet.normal[2])>.05,'Villas bronze panels have sloping faces');
- assert.ok(r.iconCollision>85,'new Icon footprint participates in collision');
+ assert.ok(r.archPane?.distance-r.archCorner?.distance>.3,'arched spandrel is in front of recessed pane: '+JSON.stringify({corner:r.archCorner,pane:r.archPane}));
+ assert.ok(Math.abs(r.facet?.normal[2])>.05,'Villas bronze panels have sloping faces: '+JSON.stringify(r.facet));
+ assert.ok(r.iconCollision>85,'new Icon footprint participates in collision (d017e58 removed extendCollision from boot): '+r.iconCollision);
  const iconLabel=()=>page.evaluate(()=>__map.getLayoutProperty('buildings-labels','text-field'));
  const namedIcon=await iconLabel();assert.ok(namedIcon.includes('Icon'),'Icon label replaces the former church name');
  // Observe the old broken plan and square window heads fail these same probes.
  await page.evaluate(oldUnion=>{
   const a=slopesApartments.data.buildings;a[a.findIndex(s=>s.name==='Union on San Antonio')]=oldUnion;
-  const b=a.find(s=>s.name==='Battle Hall');delete b.skins.arches.window.arch;slopesApartments.rebuild();
+  const b=a.find(s=>s.name==='Battle Hall'),hall=b.blocks.find(block=>block.id==='reading-hall');
+  for(const band of hall.faces.u1.bands)for(const opening of band.openings||[])delete opening.arch;
+  slopesApartments.rebuild();
  },before.buildings.find(s=>s.name==='Union on San Antonio'));
+ await waitForBuild();
  const broken=await rays();assert.ok(broken.south.z<30,'guard catches old short tower');assert.ok(broken.archCorner.distance-r.archCorner.distance>.3,'guard catches square heads');
- const swap=async data=>page.evaluate(data=>{
-  APARTMENTS.on=false;applySlopesApartments();Object.assign(slopesApartments.data,structuredClone(data));APARTMENTS.on=true;slopesApartments.rebuild();
- },data);
+ const swap=async data=>{
+  await page.evaluate(data=>{
+   APARTMENTS.on=false;applySlopesApartments();Object.assign(slopesApartments.data,structuredClone(data));APARTMENTS.on=true;slopesApartments.rebuild();
+  },data);
+  await waitForBuild();
+ };
  await swap(after);assert.deepEqual(await rays(),r,'restoring specs restores the same ray results');
  console.log('PASS models, preserved roofs, open courts, Icon collision, shaped windows, folded panels; both original defects observed failing');
  // Look closely at the details, with the same hardware renderer used above.
@@ -81,6 +104,7 @@ try{
  assert.equal(await page.evaluate(()=>slopesApartments.group),null);
  assert.deepEqual(await iconLabel(),['get','name'],'fallback restores snapshot label');
  await page.evaluate(()=>{APARTMENTS.on=true;applySlopesApartments()});
+ await waitForBuild();
  assert.deepEqual(await iconLabel(),namedIcon,'mesh restores Icon label');
  assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),registered);
  const results=[];
@@ -101,6 +125,7 @@ try{
  }
  for(const preset of ['performance','cinematic']){
   await page.evaluate(preset=>__usePreset(preset),preset);
+  await waitForBuild();
   assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),registered,'all models survive '+preset);
  }
  await page.evaluate(()=>{__map.jumpTo({center:[-97.7396,30.2853],zoom:17.3,pitch:55,bearing:20,padding:{top:0,bottom:0,left:0,right:0}});applyTimeOfDay(__map,1,true)});await page.waitForTimeout(4000);

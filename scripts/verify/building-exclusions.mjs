@@ -8,7 +8,9 @@ const phantom = {type:'Feature',properties:{id,name:'Computation Center',final_h
 const retained = {type:'Feature',properties:{id:'retained'},geometry:{type:'Polygon',coordinates:[]}};
 const app = fs.readFileSync(new URL('js/app.js',root),'utf8');
 const start = app.indexOf('    const excludedIds =');
-const end = app.indexOf('    // The Capitol Complex',start);
+// The slice is the exclusion code only. It stops at the first block that follows it:
+// the lidar knob (it awaits a fetch, and this vm is not async) or the Capitol splice.
+const end = ['    // The lidar knob','    // The Capitol Complex'].map(mark=>app.indexOf(mark,start)).filter(at=>at>start).sort((a,b)=>a-b)[0];
 assert.ok(start>=0 && end>start);
 const osmPhantom = {properties:{id:'alternate-source',osm:'way/129435969'}};
 const scope = vm.createContext({overrides:read('data/building_overrides.json'),buildings:{features:[phantom,osmPhantom,retained]},parts:{features:[{properties:{pid:id}},retained]},roofs:{features:[{properties:{bid:id}},retained]}});

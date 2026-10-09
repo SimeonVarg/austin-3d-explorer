@@ -194,6 +194,12 @@
       lowZenith: '#6c91b3', lowHorizon: '#a0b6c8', sunset: '#ff963b',
       ground: '#484e51', groundBlend: .08,
       nightFadeStart: 0, nightFadeEnd: -6, warmElevation: 20,
+      // How far the atmosphere study's near-horizon colour swings toward its
+      // warm `sunset` hue as the sun drops (0..1, on the same `warm` weight the
+      // window reflections use). 1 keeps the sky just above the horizon warm at
+      // sunset so the golden wash meets a warm horizon, not a cold blue-grey
+      // band; 0 restores the old cool horizon. See js/timeofday.js presetAt.
+      horizonWarmAtSunset: 1,
       atmosphere: true, skyBlend: .72, saturation: 1.0,
       // shadowSize: texels per side of each of the two sun shadow maps. A phone
       // takes js/mobile.js LITE.budget.shadowSize instead (desktop: no budget,
@@ -226,6 +232,17 @@
     },
     surfaces: {on:q.get('surfaces')!=='0', joint:.009, jointShade:.12,
       grain:.035, reflection:.42, near:25, far:120,
+      // Brick in mixed tones (a real brick wall is not one colour). Two parts:
+      //  brickPatch    each brick gets its own tone; fades when a brick is under a few pixels.
+      //                brickPatchCell = the size of one tone block, in bricks along and courses up.
+      //  brickMottle   soft light and dark areas about brickMottleSize metres across, which stay
+      //                visible from far away (to brickMottleFar[1] metres), as on a real wall.
+      // 0 turns a part off. Try values on any page: ?brickpatch=0.5,1,1&brickmottle=0.12,1.6
+      brickPatch:(()=>{const v=(q.get('brickpatch')||'').split(',').map(Number);return q.has('brickpatch')&&Number.isFinite(v[0])&&v[0]>=0?Math.min(v[0],1):0.5;})(),
+      brickPatchCell:(()=>{const v=(q.get('brickpatch')||'').split(',').map(Number);return v.length===3&&v[1]>0&&v[2]>0?[v[1],v[2]]:[1,1];})(),
+      brickMottle:(()=>{const v=(q.get('brickmottle')||'').split(',').map(Number);return q.has('brickmottle')&&Number.isFinite(v[0])&&v[0]>=0?Math.min(v[0],1):0.12;})(),
+      brickMottleSize:(()=>{const v=(q.get('brickmottle')||'').split(',').map(Number);return v.length>=2&&v[1]>0?v[1]:1.6;})(),
+      brickMottleFar:[250,600],
       grainScale:36,tileVariation:1.5,reflectionBase:.35,skyLow:.7,skyHigh:1.15,horizonLow:-.4,horizonHigh:.6,
       sky:['#7e9fab','#b19b7d','#101922']},
     // Opt-in shallow shop interiors. Shelf/depth dimensions are metres; ceiling
@@ -492,6 +509,8 @@
     uniform vec3 u_surfaceRange;
     uniform vec3 u_surfaceSky;
     uniform vec3 u_surfaceNoise;
+    uniform vec3 u_brickPatch;
+    uniform vec4 u_brickMottle;
     uniform vec4 u_surfaceHorizon;
     uniform vec4 u_weatherScale;
     uniform vec3 u_weatherTone;
@@ -509,6 +528,8 @@
     ${window.CityLighting.uniforms}
     #include <packing>
     ${window.CityLighting.glsl}
+${window.WallPatterns.glsl}
+${window.RoofTiles.glsl}
     float hashCell(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
     float surfaceNoise(vec2 p) {
       vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
@@ -518,6 +539,8 @@
     void main() {
       vec4 baseColor=v_color, surface=v_surface;
       vec3 albedo=v_albedo, night=v_night;
+${window.WallPatterns.apply}
+${window.RoofTiles.apply}
       float faceMix=1.0;
       #ifdef FACADE_FILTER
       #ifdef FACADE_FILTER_ARRAY
@@ -628,16 +651,33 @@
           vec2 uv=abs(n.z)>.65?v_pos.xy:vec2(dot(v_pos.xy,normalize(vec2(-n.y,n.x))),v_pos.z);
           vec2 size=max(surface.yz,vec2(.01));
           vec2 cell=uv/size;
+          // Measure the continuous coordinates before the running-bond row
+          // offset. Derivatives of floor/fract measure the discontinuity,
+          // not the pixel footprint, and make lines crawl at shallow angles.
+          vec2 footprint=fwidth(cell);
+          float resolved=1.0-smoothstep(.15,.55,max(footprint.x,footprint.y));
           if(kind<2.5)cell.x+=mod(floor(cell.y),2.0)*.5;
           vec2 edge=(.5-abs(fract(cell)-.5))*size;
-          float d=min(edge.x,edge.y),aa=max(fwidth(d),.0005);
-          float joint=1.0-smoothstep(u_surfaceStyle.x-aa,u_surfaceStyle.x+aa,d);
-          // Subpixel mortar resolves toward the field colour instead of shimmering.
-          float resolved=1.0-smoothstep(.15,.55,max(fwidth(cell.x),fwidth(cell.y)));
+          vec2 aa=max(fwidth(uv),vec2(.0005));
+          vec2 inside=smoothstep(vec2(u_surfaceStyle.x)-aa*.5,vec2(u_surfaceStyle.x)+aa*.5,edge);
+          float joint=1.0-inside.x*inside.y;
           float tile=hashCell(floor(cell))-.5;
           float grain=hashCell(floor(uv*u_surfaceNoise.x))-.5;
           float grainFade=1.0-smoothstep(.2,1.0,max(fwidth(uv.x),fwidth(uv.y))*u_surfaceNoise.x);
-          col*=1.0+strength*nearDetail*(tile*u_surfaceStyle.z*u_surfaceNoise.y+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved);
+          // Random tile colours have the same sampling limit as their joints.
+          // Previously only the mortar faded, leaving unfiltered colour noise.
+          float brickTone=0.0;
+          if(kind>1.5&&kind<2.5&&u_brickPatch.x>0.0){
+            float toneSeen=1.0-smoothstep(.15,.55,max(footprint.x/u_brickPatch.y,footprint.y/u_brickPatch.z));
+            vec2 tc=floor(uv/size/u_brickPatch.yz+vec2(.5*mod(floor(uv.y/size.y/u_brickPatch.z),2.0),0.0));
+            brickTone=(fract(sin(dot(tc,vec2(12.9898,78.233))+tc.x*tc.y*.37)*43758.5453)-.5)*u_brickPatch.x*toneSeen;
+          }
+          col*=1.0+strength*nearDetail*(tile*u_surfaceStyle.z*u_surfaceNoise.y*resolved+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved+brickTone);
+          if(kind>1.5&&kind<2.5&&u_brickMottle.x>0.0){
+            // soft areas of lighter and darker brick; two sizes so that it does not read as a grid
+            float m=surfaceNoise(uv/u_brickMottle.y)*.65+surfaceNoise(uv/(u_brickMottle.y*.37)+7.3)*.35-.5;
+            col*=1.0+strength*m*u_brickMottle.x*(1.0-smoothstep(u_brickMottle.z,u_brickMottle.w,distance(u_eye,v_pos)));
+          }
         }
       }
       gl_FragColor=vec4(col,baseColor.a*faceMix);
@@ -881,6 +921,8 @@
       side: o.side != null ? o.side : T.FrontSide,
       depthTest: true, depthWrite: true, transparent: false, blending: T.NoBlending,
     });
+    window.WallPatterns.attach(mat);
+    window.RoofTiles?.sync(mat.uniforms);
     // Builder meshes have no wall gradient. A constant vertex attribute is
     // exactly the old all-zero buffer, without eight CPU/GPU bytes per vertex.
     // colour() still supplies an attribute for meshes that need a gradient.
@@ -944,7 +986,7 @@
   // recovers from that by reloading; nothing reads it after add() (raycast()
   // above is an unwired helper). onUpload is three's own hook for exactly this.
   // Bounding spheres are computed before the first upload and kept. Desktop
-  // (no budget) keeps every copy, unchanged.
+  // (no budget) keeps every copy, so it can re-upload in place after a loss.
   const FREE_CPU = !!(window.LITE_PROFILE && window.LITE_PROFILE.budget && window.LITE_PROFILE.budget.freeGeometryCpu);
   function dropArray() { this.array = null; }
   function freeOnUpload(obj) {
@@ -1333,6 +1375,8 @@
     onAdd(map, gl) { _gl = gl; },
     onRemove() {
       releaseSunShadows();
+      _pc.pending.clear();
+      _pc.next = 0;
       try { if (renderer) renderer.dispose(); } catch (e) {}
       renderer = null; _frames = 0;
     },
@@ -1388,9 +1432,12 @@
       _eye4.set(0,0,1,0).applyMatrix4(camera.projectionMatrixInverse);
       U.u_eye.value.set(_eye4.x/_eye4.w,_eye4.y/_eye4.w,_eye4.z/_eye4.w);
       const surf=SLOPES.surfaces;
+      window.RoofTiles.sync(U);
       U.u_surfaceRange.value.set(surf.on?1:0,surf.near,surf.far);
       U.u_surfaceStyle.value.set(surf.joint,surf.jointShade,surf.grain,surf.reflection);
       U.u_surfaceNoise.value.set(surf.grainScale,surf.tileVariation,surf.reflectionBase);
+      U.u_brickPatch.value.set(surf.brickPatch,surf.brickPatchCell[0],surf.brickPatchCell[1]);
+      U.u_brickMottle.value.set(surf.brickMottle,surf.brickMottleSize,surf.brickMottleFar[0],surf.brickMottleFar[1]);
       U.u_surfaceHorizon.value.set(surf.skyLow,surf.skyHigh,surf.horizonLow,surf.horizonHigh);
       const weather=SLOPES.weathering;
       U.u_weatherScale.value.set(weather.streakX,weather.streakY,weather.broadX,weather.broadY);
@@ -1614,7 +1661,7 @@
       u_lightpos: { value: new T.Vector3(0, 0, 1) },
       u_eye: {value:new T.Vector3()}, u_surfaceRange:{value:new T.Vector3(1,25,120)},
       u_surfaceStyle:{value:new T.Vector4()},u_surfaceSky:{value:new T.Vector3()},
-      u_surfaceNoise:{value:new T.Vector3()},u_surfaceHorizon:{value:new T.Vector4()},
+      u_surfaceNoise:{value:new T.Vector3()},u_brickPatch:{value:new T.Vector3()},u_brickMottle:{value:new T.Vector4()},u_surfaceHorizon:{value:new T.Vector4()},
       u_weatherScale:{value:new T.Vector4()},u_weatherTone:{value:new T.Vector3()},
       u_shopClosedAmbient:{value:.06},u_shopShelfTop:{value:.55},u_shopRoom:{value:new T.Vector4()},u_shopStyle:{value:new T.Vector4()},u_shopCeiling:{value:new T.Vector4()},
       u_shopWall:{value:new T.Vector3()},u_shopFloor:{value:new T.Vector3()},u_shopMerch:{value:new T.Vector3()},u_shopLight:{value:new T.Vector3()},
@@ -1647,6 +1694,34 @@
     scene.add(new T.AmbientLight(0xffffff, 0.35));   // ROOF_SHADE.ambient, for standard materials
 
     map.addLayer(layer, beforeId(map));
+
+    // MapLibre serializes its style without custom layers when the context is
+    // lost. Wait for its replacement style, then re-add ONLY the layer: keep
+    // CPU meshes/materials/textures and let a fresh renderer upload everything.
+    // Only where the CPU copies were kept; a phone reloads instead (js/mobile.js).
+    if (!FREE_CPU) {
+      let restorePending = false, restoreLight = null, restoreP = null;
+      const restoreLayer = () => {
+        if (!restorePending || !map.style?._loaded || !map.getLayer('buildings-3d') || map.painter.context.gl.isContextLost()) return;
+        // MapLibre's loss snapshot also omits its live time-of-day light.
+        if (restoreLight) map.setLight(restoreLight, { duration: 0 });
+        if (!map.getLayer(SLOPES.layerId)) map.addLayer(layer, beforeId(map));
+        // The clock may have moved while the style was gone (js/app.js, THE
+        // STYLELESS GAP); the snapshot only knows the moment of the loss.
+        // Re-apply the CURRENT time through the full wrapper chain, but only
+        // then: a needless repaint makes the name labels re-test what hides
+        // them, and on CI's slow renderer they were still fading back in.
+        if (typeof window.applyTimeOfDay === 'function' && window.__todCurrentP != null &&
+            window.__todCurrentP !== restoreP)
+          window.applyTimeOfDay(map, window.__todCurrentP, true);
+        restorePending = false;
+        map.triggerRepaint();
+      };
+      map.getCanvas().addEventListener('webglcontextlost', () => { restoreLight = map.getLight(); restoreP = window.__todCurrentP; restorePending = true; }, true);
+      map.on('webglcontextrestored', restoreLayer);
+      map.on('styledata', restoreLayer);
+      map.on('style.load', restoreLayer);
+    }
 
     // Join the retint chain (js/timeofday.js's retint comment says why the
     // wrapper, not a poll, is the only correct way).
@@ -1740,6 +1815,7 @@
   }
 
   window.slopes = {
+    canRestoreContext: !FREE_CPU,
     toLocal, toLngLat, project, raycast, material, facadeMaterial, colour, add, remove, detail,
     onSwitch, build, buildChunked, packGeometry, frame, stats, fetchJSON,
     light: () => ({ enu: _light.enu.slice(), colour: _light.colour.slice(), intensity: _light.intensity }),

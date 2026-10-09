@@ -32,6 +32,7 @@ on:
       - 'docs/**'
       - 'shots/**'
       - 'research/**'
+      - 'scripts/gods-eye/**'
       - '*.md'
   workflow_dispatch:
     inputs:

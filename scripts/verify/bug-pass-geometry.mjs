@@ -35,3 +35,8 @@ assert.deepEqual(partial.replacedBuildingIds,['good','campus']);
 assert.deepEqual(partial.replacedNames,['Good','Campus']);
 assert.ok(catalog(idx,[{id:'good',name:'Good'},{id:'failed',name:'Failed'}],[]).replacedBuildingIds.includes('extra'));
 console.log('PASS failed model keeps its legacy fallback; complete index retains extra replacement aliases');
+const twice=catalog({},[{id:'hall',name:'Hall',v:'own'}],[[{id:'hall',name:'Hall',v:'bundle'},{id:'other',name:'Other'}]]);
+assert.deepEqual(twice.buildings.map(b=>b.v||b.id),['own','other']);
+const fellBack=catalog({},[null],[[{id:'hall',name:'Hall',v:'bundle'}]]);
+assert.deepEqual(fellBack.buildings.map(b=>b.v),['bundle']);
+console.log('PASS a building in its own file supersedes its collection entry; a failed file keeps the collection one');

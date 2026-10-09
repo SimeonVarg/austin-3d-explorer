@@ -139,7 +139,8 @@
       // js/slopes.js: once three.js has put a mesh's vertices on the GPU, drop
       // the CPU copy (~260 MB for the authored buildings). It is only needed to
       // upload again after a lost WebGL context, and a phone recovers from that
-      // by reloading (below). Nothing on a phone raycasts the meshes.
+      // by reloading (below). Nothing on a phone raycasts the meshes. Keeping it
+      // would let a phone restore in place, but costs that 260 MB all the time.
       freeGeometryCpu: true,
       // js/slopes-apartments.js via js/slopes.js buildChunked: build the
       // authored buildings in pieces of at most this many triangles instead of
@@ -180,6 +181,32 @@
       // js/app.js: the opening flight from downtown to campus. It is the peak:
       // every tile it crosses is loaded at the pitch it is flown at.
       intro: true,
+      // js/graphics.js defaultMSAA: "Smooth edges" (4 coverage samples a
+      // pixel). OFF, and this one line turns it on. A phone has every
+      // anti-moire tool off, because none had been timed on one, so anything
+      // thinner than a pixel (floor lines, fins, rails, far road edges) crawls
+      // in flight. Measured on the phone frame (scripts/verify/moire.mjs
+      // --width 390 --height 844 --dpr 3 --scale 0.75 --q lite=1, truth at
+      // 2x): with it on, moire is down 29-53% at five flyover poses, pixels in
+      // a visible band 0.9-3.1% -> 0.1-1.0%, and along a slow flight the
+      // frame-to-frame crawl 0.418 -> 0.095.
+      // WHY IT IS STILL OFF. On Oct 4 2026 a current iPhone lost the page twice
+      // in a row in one browser on the build WITHOUT it (the phone tier, then
+      // the lighter tier), so the phone city has no memory to spare there. A
+      // 4-sample drawing buffer is about 53 MB by arithmetic at 390x844
+      // (877x1899 device pixels, colour + depth), and desktop phone emulation
+      // measured about 135-180 MB more in the graphics process
+      // (scripts/verify/mobile-memory.mjs). Neither is a phone. See it on a
+      // real phone with ?smooth=1 (js/graphics.js), and turn this on when the
+      // phone city has that much room. EDGE_SMOOTHING.phoneMaxPixels caps it,
+      // so a tablet's much larger buffer stays off either way.
+      smoothEdges: false,
+      // js/city-lighting.js patternFilter: far facade patterns read as a box
+      // of taps instead of one. Off: measured on top of smoothEdges it moved
+      // the same five poses by 0-2% (a phone's patterns are already built at
+      // 1x, so they are barely minified), for up to 16 texture reads a pixel.
+      // false = MapLibre's own single read.
+      farPatternFilter: false,
     },
     // The tiers, lightest last. Each is the phone budget with its own changes.
     // `flags` are the URL flags that tier writes for the parse (see above).
@@ -189,9 +216,9 @@
       // buildings and look, minus their balconies (flush walls); no opening
       // flight (the camera starts at West Campus, js/app.js SPAWN) and no
       // out-of-view tile cache.
-      { name: 'lighter', flags: 'profile', budget: { intro: false, tileCacheSize: 0, aptBalconies: false } },
+      { name: 'lighter', flags: 'profile', budget: { intro: false, tileCacheSize: 0, aptBalconies: false, smoothEdges: false, farPatternFilter: false } },
       // After two. No three.js layer: flat prisms, and the notice says so.
-      { name: 'safe', flags: 'safeProfile', budget: { intro: false, tileCacheSize: 0 } },
+      { name: 'safe', flags: 'safeProfile', budget: { intro: false, tileCacheSize: 0, smoothEdges: false, farPatternFilter: false } },
     ],
 
     bootKey: 'flyover.boot',
@@ -509,6 +536,13 @@
       if (!isMapCanvas(e)) return;
       lostAt = Date.now(); restored = false;
       window.LITE_PROFILE.contextLost = (window.LITE_PROFILE.contextLost | 0) + 1;
+      // The layer retains its upload data and owns in-document restoration.
+      // Leave the legacy reload fallback for scenes without that capability.
+      if (window.slopes?.canRestoreContext && window.slopes.root) {
+        lostAt = 0;
+        if (timer) { clearTimeout(timer); timer = null; }
+        return;
+      }
       if (!struck && visible() && window.SLOPES && window.SLOPES.on && (!B.revealed || introFlying())) struck = strike('ctx');
       // CPU buffers may already have been released after their first upload.
       // Restoration cannot make that scene usable; only a new document can.

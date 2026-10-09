@@ -30,7 +30,7 @@ def base(name,source,f=None):
  return s,F,uv
 def save(slug,s):
  for b in s['blocks']: b.setdefault('_src','reference; dimensions are derived, see sources.dimensions')
- (OUT/(slug+'.json')).write_text(json.dumps(s,indent=2,ensure_ascii=False)+'\n',encoding='utf-8');NEW.append((slug,s));print(slug,len(s['blocks']))
+ (OUT/(slug+'.json')).write_text(json.dumps(s,separators=(',',':'),ensure_ascii=False),encoding='utf-8');NEW.append((slug,s));print(slug,len(s['blocks']))
 def cornice(s,id,plan,z,width=.4,tone='trim'):
  a,b,c,d=plan;s['skins'][tone]=flat(tone);s['blocks'].append(block(id,[a-width,b+width,c-width,d+width],z,z+.28,tone))
 def roof(s,b,pitch=25,kind='hip',**kw):b['roof']={'kind':kind,'pitch':pitch,'over':.55,'tone':'roof','lipTone':'trim','soffitTone':'wood',**kw};b['roofTone']='roof'

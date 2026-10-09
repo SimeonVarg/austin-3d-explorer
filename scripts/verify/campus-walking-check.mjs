@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright-core';
 import {launch,BASE,HW_ARGS} from './chrome.mjs';
+import {waitForApartmentBuild} from './lib/apartment-ready.mjs';
 const root=new URL('../../',import.meta.url),out=process.env.VERIFY_OUT;
 const source=f=>fs.readFileSync(new URL(f,root),'utf8');
 const old=f=>execFileSync('git',['show','f919494:'+f],{cwd:root,maxBuffer:4000000}).toString();
@@ -12,15 +13,21 @@ const original=shaders(old('js/slopes.js'));
 const oldLandscape=old('js/campus-landscape.js');
 const oldCrown=Function('return ('+oldLandscape.match(/crown:(\{[^\n]+\}),/)[1]+')')();
 const oldTrunk=Function('return ('+oldLandscape.match(/trunk:(\{[^\n]+\}),/)[1]+')')();
-const browser=await launch(chromium,{gl:'hardware',args:process.env.WALK_PERF?[...HW_ARGS,'--disable-gpu-vsync','--disable-frame-rate-limit']:HW_ARGS,maxMs:720000});
+const browser=await launch(chromium,{gl:'hardware',args:process.env.WALK_PERF?[...HW_ARGS,'--disable-gpu-vsync','--disable-frame-rate-limit']:HW_ARGS,maxMs:300000});
 try{
  const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'}),errors=[];
+ const waitForGroundRender=()=>page.evaluate(()=>new Promise((resolve,reject)=>{
+  const onIdle=()=>{clearTimeout(timer);resolve();};
+  const timer=setTimeout(()=>{__map.off('idle',onIdle);reject(new Error('ground filter render did not reach idle within 45000 ms'));},45000);
+  __map.once('idle',onIdle);__map.triggerRepaint();
+ }));
  page.on('pageerror',e=>errors.push(e.message));
  page.on('console',m=>{if(m.type()==='error'&&/\[(slopes|campus-landscape)|THREE.WebGL/.test(m.text()))errors.push(m.text())});
  await page.addInitScript(()=>{const t=setInterval(()=>{if(window.cancelGraphicsAutoDetect){cancelGraphicsAutoDetect();clearInterval(t)}},50)});
  await page.goto(BASE+'/index.html?intro=0&drift=0',{waitUntil:'domcontentloaded',timeout:180000});
  try{await page.waitForFunction(()=>window.slopesApartments?.count.done&&window.campusLandscape?.count.done&&window.__fly?.indexed(),null,{timeout:180000});}catch(e){console.log('boot',await page.evaluate(()=>({apartments:window.slopesApartments?.count,landscape:window.campusLandscape?.count,fly:window.__fly?.indexed(),entrances:window.__entDefer})),errors);throw e;}
  console.log('walking scene loaded');
+ await waitForApartmentBuild(page);
  const geometry=await page.evaluate(()=>{
   let meshes=0,stone=0,glass=0,paving=0;
   slopes.root.traverse(o=>{if(!o.geometry?.attributes.aSurface)return;meshes++;
@@ -54,8 +61,9 @@ try{
  const ramp=await page.evaluate(()=>{
   const r=campusLandscape.data.ramps.find(r=>r.eid===239),lo=r.vertices.filter(v=>Math.abs(v[2]-r.toe)<.001),hi=r.vertices.filter(v=>Math.abs(v[2]-r.top)<.001);
   const mean=v=>v.reduce((s,p)=>s.map((x,i)=>x+p[i]/v.length),[0,0,0]),a=mean(lo),b=mean(hi);
-  campusLandscape.group.updateMatrixWorld(true);
-  return [0.15,.5,.85].map(t=>{const ll=a.map((x,i)=>x+(b[i]-x)*t),p=slopes.toLocal(ll[0],ll[1],10),expected=ll[2];const hits=new THREE.Raycaster(new THREE.Vector3(p.x,p.y,p.z),new THREE.Vector3(0,0,-1)).intersectObject(campusLandscape.group,true);return {expected,actual:hits[0]?.point.z}});
+  const group=r.structural?campusLandscape.structuralGroup:campusLandscape.group;
+  group.updateMatrixWorld(true);
+  return [0.15,.5,.85].map(t=>{const ll=a.map((x,i)=>x+(b[i]-x)*t),p=slopes.toLocal(ll[0],ll[1],10),expected=ll[2];const hits=new THREE.Raycaster(new THREE.Vector3(p.x,p.y,p.z),new THREE.Vector3(0,0,-1)).intersectObject(group,true);return {expected,actual:hits[0]?.point.z}});
  });
  assert.ok(ramp.every(p=>Math.abs(p.actual-p.expected)<.005),'continuous Gearing ramp plane '+JSON.stringify(ramp));
  assert.equal(await page.evaluate(()=>__map.queryRenderedFeatures({layers:['entrances-detail']}).filter(f=>f.properties.k==='ramp'&&f.properties.eid===239).length),0,'old ramp steps retire');
@@ -64,10 +72,13 @@ try{
  const eye=await page.evaluate(()=>{const a=slopes.uniforms().u_eye.value,b=window.__walkExpectedEye;return {actual:a.toArray(),expected:b,error:Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)}});
  assert.ok(eye.error<.1,'material view vector follows physical camera '+JSON.stringify(eye));
  const filtered=()=>page.evaluate(()=>__map.queryRenderedFeatures({layers:['ground-paths-texture','ground-close-path-grain']}).filter(f=>'walk_z'in f.properties).length);
+ await waitForGroundRender();
  assert.equal(await filtered(),0,'old pilot textures retire');
- await page.evaluate(()=>{CAMPUS_LANDSCAPE.on=false;applyCampusLandscape()});await page.waitForTimeout(1500);
- assert.ok(await filtered()>0,'texture fallback restores');
+ await page.evaluate(()=>{CAMPUS_LANDSCAPE.on=false;applyCampusLandscape()});await waitForGroundRender();
+ const fallback=await filtered();
+ assert.ok(fallback>0,'texture fallback restores '+JSON.stringify(await page.evaluate(fallback=>({fallback,tilesLoaded:__map.areTilesLoaded(),styleLoaded:__map.isStyleLoaded(),layers:['ground-paths-texture','ground-close-path-grain'].map(id=>({id,filter:__map.getFilter(id),sourceLoaded:__map.isSourceLoaded(__map.getLayer(id).source)}))}),fallback)));
  await page.evaluate(()=>{CAMPUS_LANDSCAPE.on=true;applyCampusLandscape()});
+ await waitForGroundRender();
  await pose('GOL',30,35);
  const shots=[];
  for(const on of [true,false,true]){
@@ -84,10 +95,21 @@ try{
   const b=slopesApartments.data.buildings.find(b=>b.code==='WCP'),F=b.frame.obb,part=b.blocks.find(b=>b.id==='patton-bridge');
   const c=part.plan.reduce((s,p)=>[s[0]+p[0]/4,s[1]+p[1]/4],[0,0]);
   const ll=[F.o[0]+(c[0]*F.ax-c[1]*F.ay)/F.mx,F.o[1]+(c[0]*F.ay+c[1]*F.ax)/F.my],p=slopes.toLocal(...ll,5);
-  slopesApartments.group.updateMatrixWorld(true);const down=new THREE.Raycaster(new THREE.Vector3(p.x,p.y,5),new THREE.Vector3(0,0,-1)).intersectObject(slopesApartments.group,true);const up=new THREE.Raycaster(new THREE.Vector3(p.x,p.y,5),new THREE.Vector3(0,0,1)).intersectObject(slopesApartments.group,true);return {ground:down.length,soffit:up[0]?.point.z,expected:part.z0};
+  slopesApartments.group.updateMatrixWorld(true);
+  const geometry=new THREE.Group();
+  slopesApartments.group.traverse(object=>{
+   if(!object.isMesh)return;
+   const mesh=new THREE.Mesh(object.geometry,Array.isArray(object.material)?object.material[0]:object.material);
+   mesh.matrixAutoUpdate=false;mesh.matrix.copy(object.matrixWorld);geometry.add(mesh);
+  });
+  geometry.updateMatrixWorld(true);
+  const down=new THREE.Raycaster(new THREE.Vector3(p.x,p.y,5),new THREE.Vector3(0,0,-1)).intersectObject(geometry,true);
+  const up=new THREE.Raycaster(new THREE.Vector3(p.x,p.y,5),new THREE.Vector3(0,0,1)).intersectObject(geometry,true);
+  return {ground:down.length,soffit:up[0]?.point.z,expected:part.z0};
  });assert.equal(bridge.ground,0,'bridge leaves ground passage open');assert.ok(Math.abs(bridge.soffit-bridge.expected)<.001,'bridge has a real underside');
  for(const preset of ['performance','cinematic','balanced']){
   await page.evaluate(p=>{__usePreset(p);applyTimeOfDay(__map,.95,true)},preset);await page.waitForTimeout(900);
+  await waitForApartmentBuild(page);
   assert.ok(await page.evaluate(()=>slopes.uniforms().u_surfaceSky.value.toArray().every(Number.isFinite)));
  }
  const frames=[];

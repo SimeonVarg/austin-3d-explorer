@@ -28,8 +28,8 @@
   // keeps nearly all of the unclamped gain (campus low alias 0.644 unclamped,
   // 0.655 at 2, 0.665 at 1.5, 0.720 with no filter).
   // ?patfilter=0 turns it off, ?patfilter=1 forces it on; CityLighting.patternFilter
-  // is live. offOnPhone: the phone profile keeps the single read (its GPU cost
-  // has not been timed on a phone).
+  // is live. The phone profile decides from its own budget
+  // (js/mobile.js budget.farPatternFilter), never from the card test.
   // cardsOnly: on by default only where js/graphics.js says the browser draws
   // with a graphics card (the Smooth edges test). Timed with each frame's GPU
   // work finished (a synchronous redraw + readPixels, still poses, 10
@@ -42,9 +42,10 @@
   // Screen size needs no budget: a bigger screen gives each pixel fewer texels,
   // so fewer taps per pixel for more pixels.
   const patternFilterQuery=new URLSearchParams(location.search).get('patfilter');
-  const patternFilter={nearM:150,fullM:250,maxTaps:4,maxSpacing:2,offOnPhone:true,cardsOnly:true};
-  patternFilter.on=patternFilterQuery==='1'||(patternFilterQuery!=='0'&&!(patternFilter.offOnPhone&&window.LITE_PROFILE?.on)&&
-    (!patternFilter.cardsOnly||!!window.GFX_GPU_CARD?.()));
+  const patternFilter={nearM:150,fullM:250,maxTaps:4,maxSpacing:2,cardsOnly:true};
+  patternFilter.on=patternFilterQuery==='1'||(patternFilterQuery!=='0'&&(window.LITE_PROFILE?.on
+    ? !!window.LITE_PROFILE.budget?.farPatternFilter
+    : (!patternFilter.cardsOnly||!!window.GFX_GPU_CARD?.())));
   // Compiled in only where it is on at load. Elsewhere the pattern shader is
   // MapLibre's own, exactly as before, so the integrated chip pays nothing,
   // not even the registers. A live `on` switch works only where it compiled.
@@ -781,7 +782,41 @@
     });
     // Bind two spare texture units only for an extrusion draw, then restore
     // them: Three and MapLibre both cache their own texture bindings.
-    const units=[gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)-2,gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)-1];
+    const textureUnits=gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+    const units=[textureUnits-2,textureUnits-1];
+    // Binding queries add WebGL traffic and can wait on Safari's GPU process.
+    // Three queries accompany each extrusion draw even though every binding
+    // change already passes through this context. Track the two borrowed units
+    // and the active unit, including texture disposal, then restore exactly
+    // what the other renderer left there. Context restoration reinstalls this
+    // adapter and seeds the state again; cleanup removes all three hooks.
+    const maxUnits=gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+    let activeTexture=gl.getParameter(gl.ACTIVE_TEXTURE);
+    const textureBindings=new Map();
+    for(const unit of units){
+      gl.activeTexture(gl.TEXTURE0+unit);
+      textureBindings.set(gl.TEXTURE0+unit,gl.getParameter(gl.TEXTURE_BINDING_2D));
+    }
+    gl.activeTexture(activeTexture);
+    wrap('activeTexture',native=>unit=>{
+      native(unit);
+      const value=unit>>>0;
+      if(value>=gl.TEXTURE0&&value<gl.TEXTURE0+maxUnits)activeTexture=value;
+    });
+    wrap('bindTexture',native=>(target,texture)=>{
+      native(target,texture);
+      if(target===gl.TEXTURE_2D&&textureBindings.has(activeTexture))textureBindings.set(activeTexture,texture);
+    });
+    wrap('deleteTexture',native=>texture=>{
+      native(texture);
+      for(const [unit,bound] of textureBindings)if(bound===texture)textureBindings.set(unit,null);
+    });
+    const binding=(pname)=>{
+      const tracked=pname===gl.ACTIVE_TEXTURE?activeTexture:textureBindings.get(activeTexture);
+      const state=window.GLSTATE;
+      if(state?.check)state.verify(gl,'city.'+pname,pname,tracked);
+      return state?.on===false?gl.getParameter(pname):tracked;
+    };
     function draw(native,args) {
       if(current?.poolLift){
         gl.uniform1f(current.poolLift,depthPool(painter.id)?(window.NIGHT_TUNE?.POOL_ELEVATION_M??0.25):0);
@@ -812,10 +847,10 @@
         p.tile??=new THREE.Matrix4();p.tile.fromArray(p.projection).premultiply(frame.inverse);
         gl.uniformMatrix4fv(u.u_cityTileToLocal,false,p.tile.elements);p.tileDirty=false;
       }
-      const active=gl.getParameter(gl.ACTIVE_TEXTURE),old=[];
+      const active=binding(gl.ACTIVE_TEXTURE),old=[];
       try {
         for(let i=0;i<2;i++) {
-          gl.activeTexture(gl.TEXTURE0+units[i]);old[i]=gl.getParameter(gl.TEXTURE_BINDING_2D);
+          gl.activeTexture(gl.TEXTURE0+units[i]);old[i]=binding(gl.TEXTURE_BINDING_2D);
           gl.bindTexture(gl.TEXTURE_2D,frame.textures[i]);gl.uniform1i(u['u_sunShadow'+i],units[i]);
         }
         stats.draws++;return native(...args);
@@ -825,13 +860,20 @@
       }
     }
     for(const name of ['drawElements','drawArrays'])wrap(name,native=>(...args)=>draw(native,args));
+    const imageMethods={};
     for(const method of ['addImage','updateImage']) {
+      imageMethods[method]=map[method];
       const native=map[method].bind(map);
       map[method]=function(id,image,...rest){
         return native(id,bandGlassImage(id,image),...rest);
       };
     }
-    map.on('remove',()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;});
+    // The restored map owns a new painter, while the WebGL JS object survives.
+    // Remove old hooks/resources before installing on that replacement painter.
+    const cleanup=()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;for(const [name,native] of Object.entries(imageMethods))map[name]=native;if(!gl.isContextLost())gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;gl.__cityLighting=false;};
+    const removed=()=>{map.off('webglcontextlost',lost);cleanup();};
+    const lost=()=>{map.off('remove',removed);cleanup();map.once('webglcontextrestored',()=>install(map));};
+    map.once('webglcontextlost',lost);map.once('remove',removed);
   }
   window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,proxyHash,patternFilter,
     setBuildings(features){buildings=features;proxyDirty=true;},
