@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+#
+# teardown — one command that terminates every running instance tagged
+# project=flyover and lists any leftover volumes or buckets so nothing is left
+# billing quietly.
+#
+# The instances normally terminate themselves (terminate-on-shutdown + the
+# hard cap + the idle watchdog in user-data). This is the belt-and-braces:
+# run it after any launch, or any time, to be sure.
+#
+# SAFETY
+#   Terminating instances is destructive and not reversible. This ONLY targets
+#   instances tagged project=flyover, and it prints exactly what it will
+#   terminate first. --print shows the aws commands and runs nothing. Volumes
+#   and buckets are only LISTED here, never deleted, because a delete of the
+#   wrong bucket is unrecoverable — remove those by hand after reading the list.
+#
+# USAGE
+#   ./teardown              # terminate flyover instances, list leftover volumes/buckets
+#   ./teardown --print      # print the aws commands, run nothing
+#
+set -euo pipefail
+
+REGION="${AWS_GPU_REGION:-us-east-1}"
+PROJECT_TAG="${AWS_GPU_PROJECT_TAG:-flyover}"
+RESULT_BUCKET="${AWS_GPU_RESULT_BUCKET:-}"
+PRINT=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --print)   PRINT=1; shift ;;
+    --region)  REGION="$2"; shift 2 ;;
+    --tag)     PROJECT_TAG="$2"; shift 2 ;;
+    -h|--help) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "unknown argument: $1" >&2; exit 1 ;;
+  esac
+done
+
+DESC_INSTANCES="aws ec2 describe-instances --region ${REGION} --filters Name=tag:project,Values=${PROJECT_TAG} Name=instance-state-name,Values=pending,running,stopping,stopped --query Reservations[].Instances[].InstanceId --output text"
+DESC_VOLUMES="aws ec2 describe-volumes --region ${REGION} --filters Name=tag:project,Values=${PROJECT_TAG} --query Volumes[].[VolumeId,State,Size] --output text"
+
+if [ "$PRINT" -eq 1 ]; then
+  echo "# find flyover instances:"
+  echo "$DESC_INSTANCES"
+  echo
+  echo "# terminate them (only if any were found):"
+  echo "aws ec2 terminate-instances --region ${REGION} --instance-ids <ids from the describe above>"
+  echo
+  echo "# list any leftover flyover volumes (NOT deleted here):"
+  echo "$DESC_VOLUMES"
+  if [ -n "$RESULT_BUCKET" ]; then
+    echo
+    echo "# list objects still in the result bucket (NOT deleted here):"
+    echo "aws s3 ls s3://${RESULT_BUCKET}/flyover-runs/ --recursive"
+  fi
+  exit 0
+fi
+
+command -v aws >/dev/null 2>&1 || { echo "aws CLI v2 not found on PATH" >&2; exit 1; }
+
+echo "== finding instances tagged project=${PROJECT_TAG} in ${REGION} =="
+IDS="$(eval "$DESC_INSTANCES")"
+if [ -z "${IDS// /}" ]; then
+  echo "no running/stopped flyover instances found"
+else
+  echo "will terminate: $IDS"
+  aws ec2 terminate-instances --region "$REGION" --instance-ids $IDS \
+    --query "TerminatingInstances[].[InstanceId,CurrentState.Name]" --output text
+fi
+
+echo
+echo "== leftover volumes tagged project=${PROJECT_TAG} (listed, not deleted) =="
+VOLS="$(eval "$DESC_VOLUMES")"
+if [ -z "${VOLS// /}" ]; then
+  echo "none"
+else
+  echo "$VOLS"
+  echo "(delete by hand after checking: aws ec2 delete-volume --region ${REGION} --volume-id <id>)"
+fi
+
+if [ -n "$RESULT_BUCKET" ]; then
+  echo
+  echo "== objects still in s3://${RESULT_BUCKET}/flyover-runs/ (listed, not deleted) =="
+  aws s3 ls "s3://${RESULT_BUCKET}/flyover-runs/" --recursive || true
+fi
+
+echo "== teardown done =="
