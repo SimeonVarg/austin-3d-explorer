@@ -36,19 +36,19 @@ PATH = Path(__file__).resolve().parents[1] / 'data/apartments/welch-hall.json'
 # Face 3 is the south stretch of the east wall, face 4 the middle stretch; they meet at
 # the bend of the wall. The first bay at the south corner and the last two at the
 # north end are in no photograph: their arches are INFERRED from the pattern.
-BAYS = [(3, 0, 14), (4, 0, 15)]
-BAY = 4.2            # one arch in each bay. In the photographs the columns of windows are as far
+BAYS = [(3, 0, 13), (4, 0, 13)]
+BAY = 4.75           # one arch in each bay. In the photographs the columns of windows are as far
                      # apart as the rows are (row pitch / column pitch = 1.0), and the rows are
                      # 4.24 m apart (wall height from the 2021 laser scan), so a bay is about 4.2 m
-                     # (14 bays on face 3, 15 on face 4).
-OPENING = 3.4        # clear width of one arch opening (the photographs: 77 to 80% of a bay)
-RISE = 0.72          # how far the curve rises above the straight sides. The photographs show a
+                     # (13 bays on each face, with the wall top at 20.3 m from the laser scan).
+OPENING = 3.68       # clear width of one arch opening (the photographs: 77 to 80% of a bay)
+RISE = 0.77          # how far the curve rises above the straight sides. The photographs show a
                      # FLAT curve, about a fifth as high as the opening is wide, on tall straight
                      # sides. RISE = OPENING / 2 would be a half-circle, which is wrong here.
 THICKNESS = 0.9      # wall thickness (the photographs: the piers are about as deep as they are wide)
 STANDOFF = 0.4       # how far the front face stands out from the old wall line
-HEIGHT = 4.8         # top of the wall; must equal the old arcade band's top
-HEADROOM = 1.2       # plaster left above the crown (the photographs: the whole opening is about 1.06 times as high as it is wide)
+HEIGHT = 5.35        # top of the wall; must equal the old arcade band's top
+HEADROOM = 1.45      # plaster left above the crown (the photographs: the whole opening is about 1.06 times as high as it is wide)
 SEGMENTS = 10        # flat strips in each half-circle head
 COLOUR = '#efe9dc'   # plaster: a warm white, set so that it reads like the photographs in the app's light
 TONE = 'eastPlaster'
@@ -65,7 +65,7 @@ def build(d, FACE, START, END, count):
     block = next(b for b in d['blocks'] if b['id'] == BLOCK)
     a, c = block['plan']['ring'][FACE:FACE + 2]
     band = block['faces'][str(FACE)]['bands'][0]
-    assert abs(band['z1'] - HEIGHT) < 1e-9, 'HEIGHT must match the old arcade band top'
+    band['z1'] = HEIGHT            # the arcade band ends where the brick begins (this script and the wall script set the same number)
     bay = (END - START) / count
     half = OPENING / 2
     radius = (half * half + RISE * RISE) / (2 * RISE)      # the circle that the curve is a slice of

@@ -32,16 +32,16 @@ PATH = Path(__file__).resolve().parents[1] / 'data/apartments/welch-hall.json'
 # ---- every taste or size choice is here (metres unless stated) ----
 FACES = (3, 4)                 # the east wall: ring points 3-4 and 4-5
 LOWER, UPPER = 'welch-wings', 'welch-upper-wings'
-ARCADE_TOP = 4.8               # top of the plaster arcade = bottom of the brick
-SEAM = 12.7                    # where the two blocks meet
-WALL_TOP = 18.2
-FLOORS = [4.8, 9.04, 13.28]    # floor line of each window row. Measured on the photograph against the wall
-                               # height: rows 4.24 m apart, 1.7 m of brick above the top bars.
+ARCADE_TOP = arcade.HEIGHT             # top of the plaster arcade = bottom of the brick
+SEAM = 14.3                    # where the two blocks meet
+WALL_TOP = 20.3                # the 2021 laser scan: 20.9, 19.7 and 20.4 m just inside this wall's three faces
+FLOORS = [5.35, 10.08, 14.81]   # floor line of each window row. Measured on the photograph against the wall
+                               # height (20.3 m): rows 4.73 m apart, about 1.9 m of brick above the top bars.
 BAY = arcade.BAY               # one window per bay; the arcade script puts one arch under each
-WIN_W, WIN_H, SILL = 1.25, 2.45, 0.12   # 0.29 of a bay wide, twice as high as wide; the lowest row sits almost on the plaster
+WIN_W, WIN_H, SILL = 1.37, 2.74, 0.14   # 0.29 of a bay wide, twice as high as wide; the lowest row sits almost on the plaster
 FRAME_W = 0.05
 REVEAL = 0.2
-BAR_H = 0.7                    # the stone bar on top of each window (the photograph: about 0.3 of the glass height)
+BAR_H = 0.76                   # the stone bar on top of each window (the photograph: about 0.3 of the glass height)
 SILL_H = 0.08                  # the thin stone sill under it
 PROUD = 0.03                   # bars and sills stand this far in front of the brick
 ROOF_EDGE_H = 0.25             # dark band at the top of the wall
@@ -51,7 +51,7 @@ EAVE_OUT, EAVE_H = 0.0, 0.3    # how far the roof edge stands out over the wall.
                                # to 1.0 again when the shadows can take it.
 TRANSOM_AT, TRANSOM_H = 0.38, 0.06   # the dark bar across each window: how far up the glass, and how thick
 PIPES_PER_FACE = 4
-PIPE_W, PIPE_PROUD, PIPE_TOP = 0.14, 0.05, 17.95   # a pipe on an arcade post runs on down the plaster to the ground
+PIPE_W, PIPE_PROUD, PIPE_TOP = 0.14, 0.05, WALL_TOP - 0.25   # a pipe on an arcade post runs on down the plaster to the ground
 COLOURS = {                    # measured from the photographs, then set by eye in the app's light
     'eastBrick': '#cfae99',
     'eastGlass': '#8a9199',
@@ -126,7 +126,7 @@ def main():
     for face in FACES:
         k = str(face)
         bands = lower['faces'][k]['bands']
-        assert bands[0]['z1'] == ARCADE_TOP, 'the arcade band must end where the brick begins'
+        bands[0]['z1'] = ARCADE_TOP          # the arcade band ends where the brick begins
         lower['faces'][k]['bands'] = [bands[0], {'z0': ARCADE_TOP, 'z1': SEAM, 'skin': SKIN, 'floors': low_floors}]
         upper['faces'][k] = {'bands': [{'z0': SEAM, 'z1': WALL_TOP, 'skin': SKIN, 'floors': up_floors}]}
 
