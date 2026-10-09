@@ -499,6 +499,9 @@ count from a module, never a hard-coded count.
   1..n cells shares a tone), `macro` (`[rows, planks]` per decision cell —
   The Standard's dark runs are two courses by two planks), `window`
   (`cols` as fractions of the face, `w`, `h`, `sill`).
+- A recipe with `preserveRoof: true` may carry `roofBase` (metres above ground, the top of
+  its walls): the kept campus roof pieces are moved to it. Without it they stay at their
+  baked height.
 - A band may carry `floors: [z, ...]` (absolute heights of its own floor
   lines). Without it the band uses the building's `levels.floors`. Use it for
   a wall whose storeys differ from the rest of the building: Welch Hall's east

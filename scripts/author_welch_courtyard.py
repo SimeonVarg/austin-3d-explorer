@@ -14,8 +14,12 @@ import math
 PATH = Path(__file__).resolve().parents[1] / 'data/apartments/welch-hall.json'
 # All appearance and dimension choices are editable here.
 T = dict(terrace=3.1, slab=.32, parapet=.84, railRadius=.032,
-         projectionTop=12.7, balustradeTop=13.65, bay=3.3,
-         windowWidth=1.5, windowSill=.65, windowHeight=3.8,
+         projectionTop=14.3, balustradeTop=15.25, bay=3.3,
+         # Heights from the 2021 laser scan (2026-10-08): the roof just inside the east wall line is at
+         # 20.9, 19.7 and 20.4 m on its three faces. The recipe had 18.2 m. Storeys follow the owner's
+         # photographs: a base storey of 1.13 storeys, then three storeys of 4.73 m.
+         wallTop=20.3, floors=[5.35, 10.08, 14.81], level2=8.7,
+         windowWidth=1.5, windowSill=.65, windowHeight=4.25,
          canopyWest=52.0, canopyEast=70.1, canopyLow=6.65,
          canopyHigh=8.75, canopyThickness=.09, roofPitch=22,
          archSegments=20, archJoint=.012, archBand=.18,
@@ -30,9 +34,9 @@ T = dict(terrace=3.1, slab=.32, parapet=.84, railRadius=.032,
          # (2026-10-08): PAIRS of windows, three rows over a stone base storey. oldFaces are
          # court faces of the lower ring: 14 the west wall (north part), 15 the north wall
          # (west part), both photographed; 2 the north wall (east part) is INFERRED by symmetry.
-         oldFaces=[14, 15, 2], oldBay=4.83, oldWidth=1.35, oldHeight=2.7, oldSill=.7,
-         oldGap=.57, oldBaseTop=4.8, oldFloors=[4.8, 9.04, 13.28], oldDepth=.3,
-         oldBaseHeight=2.9, oldBaseSill=1.1, oldBelt=.3, oldPaneW=.045,
+         oldFaces=[14, 15, 2], oldBay=4.83, oldWidth=1.45, oldHeight=2.85, oldSill=.7,
+         oldGap=.6, oldBaseTop=5.35, oldFloors=[5.35, 10.08, 14.81], oldDepth=.3,
+         oldBaseHeight=3.2, oldBaseSill=1.2, oldBelt=.3, oldPaneW=.045,
          # Face 14 (the west wall) has SINGLE windows, evenly spaced: three across its 10.2 m in
          # the photograph, seen from a camera fitted to the north wall's window corners.
          oldSingleFaces=[14], oldSingleBay=3.4,
@@ -246,12 +250,12 @@ def old_wing(d,base,upper,h):
         else:a,b=h[i],h[(i+1)%len(h)];key='h0.'+str(i-2)
         length=math.dist(a,b);cs,_=centres(length,mods[i],single=i in T['oldSingleFaces'])
         rows=[opening(c,f+T['oldSill'],T['oldHeight']) for f in top for c in cs]
-        upper['faces'][key]=dict(bands=[dict(z0=T['projectionTop'],z1=17.55,skin='courtBrick',openings=rows),dict(z0=17.55,z1=18.2,skin='trim')])
+        upper['faces'][key]=dict(bands=[dict(z0=T['projectionTop'],z1=(T['wallTop']-.65),skin='courtBrick',openings=rows),dict(z0=(T['wallTop']-.65),z1=T['wallTop'],skin='trim')])
         for f in top:
             for c in cs:dress(a,b,c,f+T['oldSill'],T['oldHeight'])
             z=f+T['oldSill']-T['sillHeight']
             wall_box('historicSill',a,b,.02,length-.02,.01,.2,z-T['oldBelt'],z)                 # the moulded band the top row sits on
-        wall_box('historicSill',a,b,.02,length-.02,.01,.2,17.65,17.83)                         # under the eave, as on the other historic walls
+        wall_box('historicSill',a,b,.02,length-.02,.01,.2,(T['wallTop']-.55),(T['wallTop']-.37))                         # under the eave, as on the other historic walls
 
 
 def deepen_court(d,base,upper,h):
@@ -273,7 +277,7 @@ def deepen_court(d,base,upper,h):
         frame=dict(w=.065,tone='courtDoor'),head=dict(h=.58,tone='stone'),
         mullion=dict(rows=[.18,.82],w=.04,tone='courtDoor')))
     for i in [6,7,8,9]:
-        upper['faces']['h0.'+str(i-2)]=dict(bands=[dict(z0=T['projectionTop'],z1=18.2,skin='courtLab')])
+        upper['faces']['h0.'+str(i-2)]=dict(bands=[dict(z0=T['projectionTop'],z1=T['wallTop'],skin='courtLab')])
     # The visible historic court elevations have deep brick jambs and separate
     # projecting sill blocks, not a bright frame pasted onto a uniform plane.
     for i in [0,1,2,3,4,5,10,11,12,13,14,15,16]:
@@ -282,7 +286,7 @@ def deepen_court(d,base,upper,h):
         central=i in [0,1,16];n=max(1,round(length/T['bay']));mod=length/n
         width=T['windowWidth'] if central else T['historicWidth']
         height=T['windowHeight'] if central else T['historicHeight']
-        for floor in ([7.8] if central else [3.1,7.8,12.5]):
+        for floor in ([T['level2']] if central else T['floors']):
             for j in range(n):
                 c=(j+.5)*mod
                 if c-width/2<.05 or c+width/2>length-.05:continue
@@ -292,7 +296,7 @@ def deepen_court(d,base,upper,h):
                 # from the modern wing's large pale precast heads.
                 wall_box('courtArchBrick',a,b,c-width/2-.06,c+width/2+.06,.005,.06,z+height,z+height+.17)
         if not central and length>3:
-            for z in [12.35,17.65]:
+            for z in [T['projectionTop']-.35,(T['wallTop']-.55)]:
                 wall_box('historicSill',a,b,.02,length-.02,.01,.2,z,z+.18)
     # Recessed, full-height glazed entry seen under the far shade roof.
     # Width stays inside the surveyed east court wall; no extra building mass.
@@ -301,8 +305,8 @@ def deepen_court(d,base,upper,h):
     door=dict(s0=s0,s1=s1,z0=z0,z1=z1,d=T['entranceDepth'],glass='labGlass',tone='courtDoor',lit=False,
               mullion=dict(cols=[.2,.4,.6,.8],rows=[.78],w=.065,tone='courtDoor'))
     d['skins']['courtLabEntry']={**copy.deepcopy(d['skins']['courtLab']),'windowSkip':[[s0,s1]]}
-    base['faces']['h0.8']=dict(bands=[dict(z0=0,z1=7.8,skin='courtLabEntry',openings=[door]),
-                                             dict(z0=7.8,z1=T['projectionTop'],skin='courtLab')])
+    base['faces']['h0.8']=dict(bands=[dict(z0=0,z1=T['level2'],skin='courtLabEntry',openings=[door]),
+                                             dict(z0=T['level2'],z1=T['projectionTop'],skin='courtLab')])
     wall_box('courtDoor',a,b,s0-.1,s1+.1,-.05,.09,z1,z1+.13)
     wall_box('courtConcrete',a,b,s0-.25,s1+.25,.01,2.7,z0-.13,z0)
     for s in [c-.12,c+.12]:
@@ -326,7 +330,9 @@ def deepen_court(d,base,upper,h):
 def main():
     d=json.loads(PATH.read_text(encoding='utf-8'));base=d['blocks'][0]
     base['z1']=T['projectionTop']
-    base['bands']=[dict(z0=0,z1=3.1,skin='basement'),dict(z0=3.1,z1=T['projectionTop'],skin='welch')]
+    base['bands']=[dict(z0=0,z1=T['floors'][0],skin='basement'),dict(z0=T['floors'][0],z1=T['projectionTop'],skin='welch')]
+    d['levels']=dict(floors=[0,*T['floors'],T['wallTop']])
+    d['roofBase']=T['wallTop']      # the kept campus roof pieces move up with the walls (js/slopes-apartments.js)
     base['faces']={k:v for k,v in base.get('faces',{}).items() if not k.startswith('h')}
     for face in base['faces'].values():
         face['bands']=[{**b,'z1':min(b['z1'],T['projectionTop'])} for b in face['bands'] if b['z0']<T['projectionTop']]
@@ -344,8 +350,8 @@ def main():
     h=base['plan']['holes'][0]
     # The central low projection keeps its actual footprint but stops below
     # the adjacent historic wings. Only the upper-storey hole is widened.
-    upper=copy.deepcopy(base);upper['id']='welch-upper-wings';upper['z0']=T['projectionTop'];upper['z1']=18.2
-    upper['bands']=[dict(z0=T['projectionTop'],z1=17.55,skin='welch'),dict(z0=17.55,z1=18.2,skin='trim')]
+    upper=copy.deepcopy(base);upper['id']='welch-upper-wings';upper['z0']=T['projectionTop'];upper['z1']=T['wallTop']
+    upper['bands']=[dict(z0=T['projectionTop'],z1=(T['wallTop']-.65),skin='welch'),dict(z0=(T['wallTop']-.65),z1=T['wallTop'],skin='trim')]
     upper['faces']={}
     upper['plan']['holes'][0]=h[2:16]
     upper['plan']['holes'][0][-1]=[24.924,133.008]
@@ -354,19 +360,19 @@ def main():
         openings=[]
         for j in range(n):
             c=(j+.5)*mod
-            openings.append(dict(s0=c-.74,s1=c+.74,z0=3.65,z1=7.0,tone='courtBrick',lit=False,d=.1,
+            openings.append(dict(s0=c-.74,s1=c+.74,z0=3.65,z1=T['level2']-.9,tone='courtBrick',lit=False,d=.1,
                 arch=dict(rise=.74,trim=.18,tone='courtBrick',proud=.045)))
-            soldier_arch(a,b,c,6.26,.74)
+            soldier_arch(a,b,c,T['level2']-1.64,.74)
         base['faces']['h0.'+str(i)]=dict(bands=[dict(z0=0,z1=3.1,skin='courtBrick'),
-          dict(z0=3.1,z1=7.8,skin='courtBrick',openings=openings),dict(z0=7.8,z1=T['projectionTop'],skin='courtWindow')])
+          dict(z0=3.1,z1=T['level2'],skin='courtBrick',openings=openings),dict(z0=T['level2'],z1=T['projectionTop'],skin='courtWindow')])
     for i in [6,7,8,9]:
         base['faces']['h0.'+str(i)]=dict(bands=[dict(z0=0,z1=T['projectionTop'],skin='courtLab')])
     d['blocks']=[base,upper]
     # A correctly bounded northern hip replaces only the old rectangle which
     # bridged the courtyard. Southern roof and rooftop detail remain legacy.
     d['excludeRoofIds']=['ca0207d3-bbf8-408d-a319-9407d7bd0dd2/0/p0']
-    d['blocks'].append(dict(id='welch-north-hip',plan=[.85,94.15,134.05,156.65],z0=18.15,z1=18.2,
-       bands=[dict(z0=18.15,z1=18.2,skin='trim')],roofTone='courtRoofTile',
+    d['blocks'].append(dict(id='welch-north-hip',plan=[.85,94.15,134.05,156.65],z0=(T['wallTop']-.05),z1=T['wallTop'],
+       bands=[dict(z0=(T['wallTop']-.05),z1=T['wallTop'],skin='trim')],roofTone='courtRoofTile',
        roof=dict(kind='hip',pitch=T['roofPitch'],over=.45,lipH=.18,tone='courtRoofTile')))
     # Lower sunken court and elevated terrace, following the footprint hole.
     box('courtPave',24,72,102.1,124.9,.08,.16)
@@ -407,8 +413,8 @@ def main():
         n=max(1,round(math.dist(a,b)/3.35))
         for j in range(n+1):
             f=j/n;x=a[0]+(b[0]-a[0])*f;y=a[1]+(b[1]-a[1])*f
-            box('courtStone',x-.2,x+.2,y-.2,y+.2,12.75,13.65)
-            turned('courtStone',x,y,13.7,[(0,.22),(.11,.22),(.13,.16),(.57,.105),(.62,.12)],4)
+            box('courtStone',x-.2,x+.2,y-.2,y+.2,T['projectionTop']+.05,T['balustradeTop'])
+            turned('courtStone',x,y,T['balustradeTop']+.05,[(0,.22),(.11,.22),(.13,.16),(.57,.105),(.62,.12)],4)
     # Small vents occupy a few blind arches, with horizontal dark louvres.
     for x in [41.05,47.75,54.45]:
         box('courtSteel',x-.6,x+.6,125.06,125.14,3.35,4.7)
@@ -427,8 +433,8 @@ def main():
     # Existing exhaust plant is retained. The photographed pair stands above
     # the laboratory roof, with shallow segmented bands and capped tops.
     for x,y,r,height in [(78,129,.55,4.2),(80.5,130,.42,3.0)]:
-        rod('metal',[x,y,18.2],[x,y,18.2+height],r,12)
-        for j in range(1,5):turned('metal',x,y,18.2+j*height/5,[(0,r+.045),(.07,r+.045)],12)
+        rod('metal',[x,y,T['wallTop']],[x,y,T['wallTop']+height],r,12)
+        for j in range(1,5):turned('metal',x,y,T['wallTop']+j*height/5,[(0,r+.045),(.07,r+.045)],12)
     deepen_court(d,base,upper,h)
     old_wing(d,base,upper,h)
     # Keep meshes another author owns (e.g. welch-east-arcade); replace only ours.

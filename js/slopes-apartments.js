@@ -2900,6 +2900,16 @@
       // Restore a selective roof if its replacement failed during a rebuild.
       for (const k of Object.keys(_rigStash)) if (!ids.has(k.split('/')[0]) && !exact.has(k)) { roofs[k] = _rigStash[k]; delete _rigStash[k]; n++; }
       for (const k of Object.keys(roofs)) if (ids.has(k.split('/')[0]) || exact.has(k)) { _rigStash[k] = roofs[k]; delete roofs[k]; n++; }
+      // A recipe that keeps the campus roof may say where its walls now end (`roofBase`, metres above
+      // ground): the kept roof pieces move with it. (Welch Hall's walls went from 18.2 m to the
+      // laser-scan height, and its kept south tile roof was left inside the taller walls.)
+      for (const b of _data.buildings) if (b.preserveRoof && typeof b.roofBase === 'number' && b.id) for (const k of Object.keys(roofs)) {
+        if (k.split('/')[0] !== b.id) continue;
+        const r = roofs[k];
+        if (typeof r.base !== 'number' || typeof r.h !== 'number') continue;
+        if (r._base0 == null) { r._base0 = r.base; r._h0 = r.h; }
+        if (r.base !== b.roofBase) { r.base = b.roofBase; r.h = r._h0 + (b.roofBase - r._base0); n++; }
+      }
     } else {
       for (const k of Object.keys(_rigStash)) { roofs[k] = _rigStash[k]; delete _rigStash[k]; n++; }
     }
