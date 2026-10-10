@@ -1,0 +1,7 @@
+[
+ {"name": "roof-one-american", "p": 0.25, "center": [-97.74326, 30.26862], "zoom": 17.0, "pitch": 30, "bearing": 30, "flicker": true},
+ {"name": "roof-indeed", "p": 0.25, "center": [-97.74443, 30.26909], "zoom": 17.0, "pitch": 30, "bearing": 210, "flicker": true},
+ {"name": "roof-415-colorado", "p": 0.25, "center": [-97.74431, 30.26706], "zoom": 16.8, "pitch": 30, "bearing": 120, "flicker": true},
+ {"name": "roof-independent", "p": 0.25, "center": [-97.75119, 30.26785], "zoom": 16.8, "pitch": 30, "bearing": 300, "flicker": true},
+ {"name": "roof-waterline", "p": 0.25, "center": [-97.73964, 30.26118], "zoom": 16.4, "pitch": 30, "bearing": 60, "flicker": true}
+]

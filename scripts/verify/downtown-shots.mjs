@@ -20,7 +20,9 @@
  * (scripts/verify/README.md). With --flicker (or DT_FLICKER=1) each side also takes a frame
  * with the camera turned 0.3 degrees and prints how much of the picture moved,
  * for the roofs the coplanar check lists (a z-fight shows as a change far
- * larger than a 0.3 degree turn can make).
+ * larger than a 0.3 degree turn can make). Those roofs have their own list,
+ * shots-downtown-roofs.json: a roof 120 to 315 m up needs a steeper, wider camera
+ * than a street does (the first set aimed at the pavement and saw no roof).
  *
  * Usage:  node downtown-shots.mjs [shots-downtown.json] [--out DIR] [--flicker]
  *   --out / VERIFY_OUT where the pictures go (default scripts/verify/shots/downtown)
