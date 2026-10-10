@@ -231,6 +231,9 @@ def build():
 def main():
     d = {
         'name': "Raising Cane's", 'id': ID,
+        # remove the generic storefront slabs, doors and brand label that share this building id (js/slopes-apartments.js
+        # hides the places-* and entrances-* layers for it); the recipe draws its own doors, glass and sign
+        'replaceFrontage': True,
         'sources': {
             'footprint': 'data/snapshots/2026-10-05/buildings.detailed.geojson, feature ' + ID,
             'reference': "four street photographs of the restaurant, taken 2026-10-03, and the 2021 laser scan read in the recipe's own (u, v) frame",
@@ -336,14 +339,36 @@ def report_buried(d):
     return len(boxes)
 
 
+def report_unregistered(d, index_path):
+    """A new building recipe must be registered or the old generic box stays standing INSIDE the new walls: its file, id and
+    name in data/apartments/index.json (files, replacedBuildingIds, replacedNames) and replaceFrontage in the recipe (removes
+    the generic storefront slabs). Returns the number of missing pieces, each printed."""
+    idx = json.loads(Path(index_path).read_text(encoding='utf-8'))
+    missing = []
+    if PATH.name not in [Path(f).name for f in idx.get('buildings', idx.get('files', []))]:
+        missing.append('index.json does not list ' + PATH.name)
+    if d.get('id') not in idx.get('replacedBuildingIds', []):
+        missing.append('index.json replacedBuildingIds lacks ' + str(d.get('id')))
+    if d.get('name') not in idx.get('replacedNames', []):
+        missing.append('index.json replacedNames lacks ' + str(d.get('name')))
+    if d.get('replaceFrontage') is not True:
+        missing.append('the recipe has no replaceFrontage: true (the generic storefront slabs would stay)')
+    for m in missing:
+        print('  UNREGISTERED:', m)
+    return len(missing)
+
+
 if __name__ == '__main__':
     import sys
+    INDEX = PATH.parent / 'index.json'
     if '--check' in sys.argv:
         rest = [a for a in sys.argv[1:] if a != '--check']
         src = Path(rest[0]) if rest else PATH
-        n = report_buried(json.loads(src.read_text(encoding='utf-8')))
+        doc = json.loads(src.read_text(encoding='utf-8'))
+        n = report_buried(doc)
         print('%s: %d detail boxes buried inside a block' % (src, n))
-        sys.exit(1 if n else 0)
+        u = report_unregistered(doc, INDEX)
+        sys.exit(1 if (n or u) else 0)
     d = main()
     if report_buried(d):
         sys.exit('refusing to write: details are drawn inside the blocks they belong to')
