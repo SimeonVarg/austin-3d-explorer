@@ -2661,7 +2661,11 @@
     // js/slopes.js buildChunked): same triangles, a fraction of the peak.
     const BUD = (window.LITE_PROFILE && window.LITE_PROFILE.budget) || {};
     const chunkTris = area && APTS.areas.sliced ? Math.min(BUD.geometryChunkTris || Infinity, APTS.areas.geometryChunkTris) : BUD.geometryChunkTris;
-    const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices) : S.build();
+    // ?rustbuilder=1: the Rust vertex store (js/slopes-rust.js) if it has loaded; `S.rustReady` is null with the switch off,
+    // so a page without the switch awaits nothing and builds exactly as before.
+    if (S.rustReady) await S.rustReady;
+    const wasm = { wasm: true };
+    const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices, wasm) : S.build(undefined, wasm);
     B.filtered=[];
     B.filterPending=[];
     const built = area ? [] : (_built = []);

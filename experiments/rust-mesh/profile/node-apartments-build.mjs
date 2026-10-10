@@ -5,7 +5,7 @@ import { loadApp } from './app-env.mjs';
 const REPS = Number(process.argv.find((a, i) => i > 1 && /^\d+$/.test(a)) || 1);
 const out = (...a) => process.stdout.write(a.join(' ') + '\n');
 const NULL = process.argv.includes('--null-builder');   // generator only, builder replaced by no-ops
-const WASM = process.argv.includes('--wasm') ? (process.env.WASM || new URL('../dist/meshkernel.wasm', import.meta.url).pathname) : null;   // the Rust builder behind the real generator
+const WASM = process.argv.includes('--wasm') ? (process.env.WASM || new URL('../../../wasm/meshkernel.wasm', import.meta.url).pathname) : null;   // the Rust builder behind the real generator
 const { A, specs } = await loadApp({ nullBuilder: NULL, wasm: WASM });
 out('buildings in catalog:', specs.length);
 const times = [], cpus = [];

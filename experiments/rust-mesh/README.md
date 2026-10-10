@@ -1,19 +1,24 @@
 # rust-mesh: a prototype for "what can we rewrite in Rust"
 
-Nothing in the site loads anything in this folder. It backs `docs/rust-study-2026-10-09.md` (read that first; it has the
-numbers, the research and the roadmap).
+It backs `docs/rust-study-2026-10-09.md` (read that first; it has the numbers, the research and the roadmap).
+
+**Wired into the page behind a switch (roadmap step 1).** `https://.../?rustbuilder=1` makes the apartment builder use this module:
+`js/slopes.js` imports `js/slopes-rust.js` and fetches `wasm/meshkernel.wasm` (a copy of `dist/meshkernel.wasm`, byte for byte, held
+by `scripts/verify/wasm-mesh-parity.mjs`) only when the switch is on. With it off nothing new is requested. The check
+`scripts/verify/wasm-mesh-parity.mjs` (no browser; runs in CI; `--break` must fail) proves the page's own `build()` and the Rust
+builder make identical buffers. `scripts/verify/rust-builder-page.mjs` times the real page, switch off against on (laptop only).
 
 What is here:
 
 | Path | What |
 |---|---|
 | `rust/` | `meshkernel`: the shared mesh builder of `js/slopes.js` `build()` (tri / quad / triN / facet, flat normals, welded planar quads, byte colours, per-vertex surface) as a WebAssembly module with a flat C ABI, plus `blur_wrap` (an experiment: `js/pattern-lowpass.js` in Rust). 34 KB. No dependencies. |
-| `dist/meshkernel.wasm`, `dist/meshkernel-simd.wasm` (+ `.sha256`) | the built, `wasm-opt`ed modules, committed so the site would need no build step to use them (`SIMD=1 ./build.sh` makes the second) |
+| `dist/meshkernel.wasm`, `dist/meshkernel-simd.wasm` (+ `.sha256`) | the built, `wasm-opt`ed modules, committed so the site needs no build step (`SIMD=1 ./build.sh` makes the second). `../../wasm/meshkernel.wasm` is the copy the page fetches: `./build.sh` refreshes it, `./build.sh --check` also fails if the copy differs |
 | `build.sh` | `cargo build` + `wasm-opt`; `./build.sh --check` rebuilds from scratch and fails if the bytes differ from the committed file |
 | `js/builder-app.mjs` | the app's own `build()`, cut out of `js/slopes.js` at load time (not retyped), driven from a recorded stream |
 | `js/builder-typed.mjs` | the same algorithm as tuned JS: typed array in, no per-call arrays. The honest competitor to the Rust. |
 | `js/builder-wasm.mjs` | drives `meshkernel.wasm`: palette in, records in batches, zero-copy views out |
-| `compare.mjs` | feeds one recorded stream to all three and demands byte-identical buffers (sha256 of every attribute array) |
+| `compare.mjs` | feeds one recorded stream to the app's builder, the tuned JS, the Rust module and the PAGE'S OWN ADAPTER (`js/slopes-rust.js`) and demands byte-identical buffers (sha256 of every attribute array); `--break` nudges every input, `--break-rust` only the Rust side's |
 | `fixtures/moontower/` | 2 MB stream recorded from the real generator (Moontower alone), with the sha256 of what the real in-app builder produced |
 | `blur/compare-and-bench.mjs` | the second kernel: `blur_wrap` against the app's `js/pattern-lowpass.js`, 408 byte-identical cases, then an interleaved benchmark (finding: no gain) |
 | `profile/` | loads the REAL `js/slopes.js` + `js/slopes-apartments.js` into Node (no browser, no map) and runs the real build over the real 198-building catalog; records the builder stream; times the builder's share |

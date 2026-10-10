@@ -334,6 +334,26 @@
   };
   window.SLOPES = SLOPES;
 
+  // ══════════════════════════════════════════════════════════════════════
+  //  THE RUST BUILDER SWITCH (?rustbuilder=1) — default OFF
+  //  The shared mesh builder (tri / quad / triN / facet, see build()) also exists as a 34 KB WebAssembly module
+  //  (experiments/rust-mesh, studied in docs/rust-study-2026-10-09.md) that makes byte-identical buffers.
+  //  With the switch OFF nothing below runs: no fetch, no import, no module. With it ON, the apartment builder
+  //  (js/slopes-apartments.js asks for it with build(undefined, { wasm: true })) writes into Wasm memory and hands
+  //  the finished arrays to three.js as views of that memory. Every other generator keeps the JS builder.
+  // ══════════════════════════════════════════════════════════════════════
+  const RUST = {
+    on: q.get('rustbuilder') === '1',
+    wasmUrl: 'wasm/meshkernel.wasm',   // the committed build of experiments/rust-mesh (scripts/verify/wasm-mesh-parity.mjs holds it to the source's hash)
+    moduleUrl: './slopes-rust.js',     // the JS side of it, imported only when the switch is on (relative to this file)
+    stageRecords: 8192,                // builder calls staged in Wasm memory before one process() call
+    // A vertex-count hint: the module reserves its buffers once instead of doubling them (the study's 650 MiB
+    // linear memory becomes 357 MiB). 0 = no hint. ?rustreserve=6523203 sets it for an A/B run.
+    reserveVertices: Math.max(0, Math.floor(Number(q.get('rustreserve')) || 0)),
+  };
+  let _rustBuild = null;   // set once the module is compiled; null = every builder is the JS one
+  const RUST_INFO = { on: RUST.on, state: RUST.on ? 'loading' : 'off', compileMs: 0, builds: 0, error: null };
+
   // `SLOPES.on` is an ACCESSOR, so `window.SLOPES.on = false` from the console
   // is still the whole switch — and the generators, which hide fill-extrusion
   // stand-ins by filter while the mesh draws, hear it and put them back. The
@@ -1001,6 +1021,91 @@ ${window.RoofTiles.apply}
   function add(obj) { if (FREE_CPU && obj && obj.traverse) freeOnUpload(obj); if (root) root.add(obj); if (_map) _map.triggerRepaint(); return obj; }
   function remove(obj) { if (root) root.remove(obj); if (_map) _map.triggerRepaint(); }
 
+  /**
+   * polygon() and extrude(): the two shape operations of a builder, written once over a builder's own tri / triN / quad
+   * so the JS vertex store below and the Rust one (js/slopes-rust.js, ?rustbuilder=1) share every line of them and cannot
+   * drift. They hold no state; the vertex store is the only thing the two builders do differently.
+   */
+  function shapeOps(tri, triN, quad) {
+    /** A planar polygon, any orientation; triangulated in the given plane. */
+    function polygon(pts, col, want, plane) {
+      if (pts.length < 3) return;
+      const T2 = window.THREE;
+      const flat = pts.map(p => plane === 'uz' ? new T2.Vector2(p[3], p[2]) : new T2.Vector2(p[0], p[1]));
+      let idx;
+      try { idx = T2.ShapeUtils.triangulateShape(flat, []); } catch (e) { idx = []; }
+      for (const [i, j, k] of idx) tri(pts[i], pts[j], pts[k], col, want);
+    }
+    /**
+     * `poly` is [[u, z], ...] in the frame's wall plane (any winding), `frame`
+     * is from slopes.frame(). Sweeps it from depth v0 to v1 along the frame's
+     * normal and emits a closed solid: cap at v1 facing +n, cap at v0 facing
+     * -n, one quad per edge facing that edge's outward direction. `opts.sides`
+     * = false skips the side quads (a face that sits against a wall).
+     * `opts.smooth` (true, or a crease angle in degrees; default 40) gives the
+     * side faces per-vertex normals averaged across each polygon vertex whose
+     * corner is shallower than the crease, so a curve — an archivolt's
+     * extrados, a fanlight's edge — shades continuously instead of as a
+     * necklace of flat facets ("faint corners at close range", the critics,
+     * 2026-09-03). A real corner keeps its two flat faces.
+     */
+    function extrude(poly, frame, v0, v1, col, opts) {
+      opts = opts || {};
+      const P = (u, v, z) => frame.at(u, v, z);
+      const N = frame.N, nn = [-N[0], -N[1], -N[2]];
+      const n = poly.length;
+      if (n < 3) return;
+      // signed area in (u, z): CCW > 0 — so every edge's outward normal below is (dz, -du)
+      let A = 0;
+      for (let i = 0; i < n; i++) { const p = poly[i], q = poly[(i + 1) % n]; A += p[0] * q[1] - q[0] * p[1]; }
+      const ccw = A > 0 ? 1 : -1;
+      if (opts.front !== false) {
+        const cap = poly.map(p => { const q = P(p[0], v1, p[1]); return [q[0], q[1], q[2], p[0]]; });
+        polygon(cap, col, N, 'uz');
+      }
+      if (opts.back !== false) {
+        const cap = poly.map(p => { const q = P(p[0], v0, p[1]); return [q[0], q[1], q[2], p[0]]; });
+        polygon(cap, col, nn, 'uz');
+      }
+      if (opts.sides !== false) {
+        // each edge's outward unit normal in (u, z), and — for opts.smooth —
+        // each vertex's, averaged across the corner when it is shallower
+        // than the crease angle
+        const en = [];
+        for (let i = 0; i < n; i++) {
+          const p = poly[i], q = poly[(i + 1) % n];
+          const du = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(du, dz) || 1;
+          en.push([ccw * dz / L, -ccw * du / L]);
+        }
+        const creaseCos = opts.smooth ? Math.cos((typeof opts.smooth === 'number' ? opts.smooth : 40) * Math.PI / 180) : 2;
+        const vn = i => {
+          const a = en[(i - 1 + n) % n], b = en[i];
+          if (a[0] * b[0] + a[1] * b[1] < creaseCos) return null;
+          const s = [a[0] + b[0], a[1] + b[1]], L = Math.hypot(s[0], s[1]) || 1;
+          return [s[0] / L, s[1] / L];
+        };
+        const to3 = m => { const v = [frame.T[0] * m[0], frame.T[1] * m[0], m[1]]; const L = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / L, v[1] / L, v[2] / L]; };
+        for (let i = 0; i < n; i++) {
+          const p = poly[i], q = poly[(i + 1) % n], j = (i + 1) % n;
+          const du = q[0] - p[0], dz = q[1] - p[1];
+          if (Math.hypot(du, dz) < 1e-6) continue;
+          // outward in (u, z) for the polygon's own winding, mapped to 3-D
+          const ou = ccw * dz, oz = -ccw * du;
+          const want = [frame.T[0] * ou, frame.T[1] * ou, oz];
+          if (opts.skipDown && oz < -0.9 * Math.hypot(ou, oz)) continue;   // a bottom face on a sill
+          const p0 = P(p[0], v0, p[1]), p1 = P(q[0], v0, q[1]), p2 = P(q[0], v1, q[1]), p3 = P(p[0], v1, p[1]);
+          if (opts.smooth) {
+            const na = to3(vn(i) || en[i]), nb = to3(vn(j) || en[i]);
+            triN(p0, p1, p2, na, nb, nb, col); triN(p0, p2, p3, na, nb, na, col);
+          } else {
+            quad(p0, p1, p2, p3, col, want);
+          }
+        }
+      }
+    }
+    return { polygon, extrude };
+  }
+
   // ── The builder: one geometry, one draw call, flat normals ──────────────
   //
   // Every generator emits triangles into one of these per material group and
@@ -1028,7 +1133,9 @@ ${window.RoofTiles.apply}
   //   b.geometry()                      the BufferGeometry (call once)
   //
   // Points are [x, y, z] in local metres. `col` is [day, golden, night] hex.
-  function build(initialCapacity = 1 << 16) {
+  function build(initialCapacity = 1 << 16, opts) {
+    // The Rust builder, when the page asked for it (?rustbuilder=1), it has loaded, and this caller opted in.
+    if (_rustBuild && opts && opts.wasm) return _rustBuild(initialCapacity);
     const T = window.THREE;
     // Vertex store: growable Float32Arrays written in place. This used to be
     // seven plain arrays fed one number at a time (170 million push() calls
@@ -1179,82 +1286,7 @@ ${window.RoofTiles.apply}
       if (dot(n, avg) < 0) { let t = b; b = c; c = t; t = nb; nb = nc; nc = t; }
       emit(push(a, na, col), push(b, nb, col), push(c, nc, col));
     }
-    /** A planar polygon, any orientation; triangulated in the given plane. */
-    function polygon(pts, col, want, plane) {
-      if (pts.length < 3) return;
-      const T2 = window.THREE;
-      const flat = pts.map(p => plane === 'uz' ? new T2.Vector2(p[3], p[2]) : new T2.Vector2(p[0], p[1]));
-      let idx;
-      try { idx = T2.ShapeUtils.triangulateShape(flat, []); } catch (e) { idx = []; }
-      for (const [i, j, k] of idx) tri(pts[i], pts[j], pts[k], col, want);
-    }
-    /**
-     * `poly` is [[u, z], ...] in the frame's wall plane (any winding), `frame`
-     * is from slopes.frame(). Sweeps it from depth v0 to v1 along the frame's
-     * normal and emits a closed solid: cap at v1 facing +n, cap at v0 facing
-     * -n, one quad per edge facing that edge's outward direction. `opts.sides`
-     * = false skips the side quads (a face that sits against a wall).
-     * `opts.smooth` (true, or a crease angle in degrees; default 40) gives the
-     * side faces per-vertex normals averaged across each polygon vertex whose
-     * corner is shallower than the crease, so a curve — an archivolt's
-     * extrados, a fanlight's edge — shades continuously instead of as a
-     * necklace of flat facets ("faint corners at close range", the critics,
-     * 2026-09-03). A real corner keeps its two flat faces.
-     */
-    function extrude(poly, frame, v0, v1, col, opts) {
-      opts = opts || {};
-      const P = (u, v, z) => frame.at(u, v, z);
-      const N = frame.N, nn = [-N[0], -N[1], -N[2]];
-      const n = poly.length;
-      if (n < 3) return;
-      // signed area in (u, z): CCW > 0 — so every edge's outward normal below is (dz, -du)
-      let A = 0;
-      for (let i = 0; i < n; i++) { const p = poly[i], q = poly[(i + 1) % n]; A += p[0] * q[1] - q[0] * p[1]; }
-      const ccw = A > 0 ? 1 : -1;
-      if (opts.front !== false) {
-        const cap = poly.map(p => { const q = P(p[0], v1, p[1]); return [q[0], q[1], q[2], p[0]]; });
-        polygon(cap, col, N, 'uz');
-      }
-      if (opts.back !== false) {
-        const cap = poly.map(p => { const q = P(p[0], v0, p[1]); return [q[0], q[1], q[2], p[0]]; });
-        polygon(cap, col, nn, 'uz');
-      }
-      if (opts.sides !== false) {
-        // each edge's outward unit normal in (u, z), and — for opts.smooth —
-        // each vertex's, averaged across the corner when it is shallower
-        // than the crease angle
-        const en = [];
-        for (let i = 0; i < n; i++) {
-          const p = poly[i], q = poly[(i + 1) % n];
-          const du = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(du, dz) || 1;
-          en.push([ccw * dz / L, -ccw * du / L]);
-        }
-        const creaseCos = opts.smooth ? Math.cos((typeof opts.smooth === 'number' ? opts.smooth : 40) * Math.PI / 180) : 2;
-        const vn = i => {
-          const a = en[(i - 1 + n) % n], b = en[i];
-          if (a[0] * b[0] + a[1] * b[1] < creaseCos) return null;
-          const s = [a[0] + b[0], a[1] + b[1]], L = Math.hypot(s[0], s[1]) || 1;
-          return [s[0] / L, s[1] / L];
-        };
-        const to3 = m => { const v = [frame.T[0] * m[0], frame.T[1] * m[0], m[1]]; const L = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / L, v[1] / L, v[2] / L]; };
-        for (let i = 0; i < n; i++) {
-          const p = poly[i], q = poly[(i + 1) % n], j = (i + 1) % n;
-          const du = q[0] - p[0], dz = q[1] - p[1];
-          if (Math.hypot(du, dz) < 1e-6) continue;
-          // outward in (u, z) for the polygon's own winding, mapped to 3-D
-          const ou = ccw * dz, oz = -ccw * du;
-          const want = [frame.T[0] * ou, frame.T[1] * ou, oz];
-          if (opts.skipDown && oz < -0.9 * Math.hypot(ou, oz)) continue;   // a bottom face on a sill
-          const p0 = P(p[0], v0, p[1]), p1 = P(q[0], v0, q[1]), p2 = P(q[0], v1, q[1]), p3 = P(p[0], v1, p[1]);
-          if (opts.smooth) {
-            const na = to3(vn(i) || en[i]), nb = to3(vn(j) || en[i]);
-            triN(p0, p1, p2, na, nb, nb, col); triN(p0, p2, p3, na, nb, na, col);
-          } else {
-            quad(p0, p1, p2, p3, col, want);
-          }
-        }
-      }
-    }
+    const { polygon, extrude } = shapeOps(tri, triN, quad);
     function geometry() {
       const g = new T.BufferGeometry();
       // slice(): trimmed copies, so the oversized growth buffers can be freed.
@@ -1753,15 +1785,15 @@ ${window.RoofTiles.apply}
    * ArrayBuffers for a result of ~235 MB, measured on the phone profile. A
    * chunk's buffers never grow past the chunk.
    */
-  function buildChunked(maxTris, pack) {
+  function buildChunked(maxTris, pack, opts) {
     const done = [];
-    let cur = build(), facetOn = false, before = 0;
+    let cur = build(undefined, opts), facetOn = false, before = 0;
     const finish = () => (pack ? packGeometry(cur.geometry()) : cur.geometry());
     const roll = () => {
       if (cur.triangles < maxTris) return;
       before += cur.triangles;
       done.push(finish());
-      cur = build();
+      cur = build(undefined, opts);
       cur.facet(facetOn);
     };
     const api = {
@@ -1818,6 +1850,9 @@ ${window.RoofTiles.apply}
     canRestoreContext: !FREE_CPU,
     toLocal, toLngLat, project, raycast, material, facadeMaterial, colour, add, remove, detail,
     onSwitch, build, buildChunked, packGeometry, frame, stats, fetchJSON,
+    // null with the switch off; with it on, a promise that settles when the Rust builder is ready (or has failed and
+    // every builder stays the JS one). Callers that want the Rust builder await it before their first build().
+    rustReady: null, get rustBuilder() { return !!_rustBuild; }, rustInfo: () => RUST_INFO,
     light: () => ({ enu: _light.enu.slice(), colour: _light.colour.slice(), intensity: _light.intensity }),
     get scene() { return scene; }, get root() { return root; }, get camera() { return camera; },
     get renderer() { return renderer; }, get layer() { return layer; },
@@ -1827,6 +1862,18 @@ ${window.RoofTiles.apply}
     sunlightStats: () => ({shadowUpdates:_sunShadow?.updates||0,shadowMapRenders:_sunShadow?.mapRenders||0,shadowSize:_sunShadow?.size||0,shadowMaps:_sunShadow?2:0}),
     precompileStats: () => ({ on: SLOPES.turn.precompile, compiled: _pc.compiled, warmed: _pc.warmed, pending: _pc.pending.size, materials: _pc.materials, ms: +_pc.ms.toFixed(1) }),
   };
+
+  // ?rustbuilder=1: fetch + compile the module now (streaming), well before the first big build asks for it. The switch off
+  // never reaches this block, so a page without it requests nothing extra. A failure leaves every builder the JS one.
+  if (RUST.on) {
+    window.slopes.rustReady = import(RUST.moduleUrl)
+      .then(m => m.loadRustBuilder({
+        wasmUrl: RUST.wasmUrl, stageRecords: RUST.stageRecords, reserveVertices: RUST.reserveVertices,
+        shapeOps, hexToRgb01, three: () => window.THREE, info: RUST_INFO,
+      }))
+      .then(factory => { _rustBuild = factory; RUST_INFO.state = 'ready'; })
+      .catch(e => { RUST_INFO.state = 'failed'; RUST_INFO.error = String(e && e.message || e); console.warn('[slopes] ?rustbuilder=1: the Rust builder did not load; building in JS —', RUST_INFO.error); });
+  }
 
   // Self-boot, the shape js/roofs.js documents: take the style's own `load`
   // event, then poll only for what has to exist — the buildings layer and

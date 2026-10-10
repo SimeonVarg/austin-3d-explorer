@@ -29,6 +29,11 @@ printf 'raw %s bytes -> wasm-opt %s %s bytes  sha256 %s\n' "$(wc -c <"$raw" | tr
 if [ "${1:-}" = "--check" ]; then
   want=$(cut -d' ' -f1 dist/$NAME.wasm.sha256)
   if [ "$sha" = "$want" ]; then echo "OK: rebuilt wasm is byte-identical to the committed dist/$NAME.wasm"; else echo "DIFFERENT: committed $want, rebuilt $sha" >&2; exit 1; fi
+  if [ "$NAME" = meshkernel ]; then
+    if cmp -s "$out/$NAME.wasm" ../../wasm/meshkernel.wasm; then echo "OK: wasm/meshkernel.wasm (what the page fetches) is the same bytes"; else echo "DIFFERENT: wasm/meshkernel.wasm is not the rebuilt module; run ./build.sh" >&2; exit 1; fi
+  fi
 else
   echo "$sha  $NAME.wasm" > dist/$NAME.wasm.sha256
+  # the copy the page fetches (?rustbuilder=1, js/slopes-rust.js): the plain build only
+  if [ "$NAME" = meshkernel ]; then mkdir -p ../../wasm && cp "$out/$NAME.wasm" ../../wasm/meshkernel.wasm; fi
 fi

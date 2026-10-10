@@ -6,23 +6,28 @@
 // (38 s instead of 7 s for the same build).
 import vm from 'node:vm'; import fs from 'node:fs'; import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { installStubs, installLateStubs, patchSlopes, patchSlopesWasm, patchApartments, catalog, nullBuilder } from './app-patch.mjs';
+import { installStubs, installLateStubs, patchSlopes, patchApartments, catalog, nullBuilder } from './app-patch.mjs';
 export const R = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../') + '/';
 
 export async function loadApp({ record = false, timeBuilder = false, nullBuilder: useNull = false, wasm = null, threeJs = process.env.THREE_JS } = {}) {
   if (!threeJs) throw new Error('set THREE_JS to three@0.159.0 build/three.min.js (https://unpkg.com/three@0.159.0/build/three.min.js, the same file index.html loads)');
   const ctx = globalThis, realError = console.error;
   console.warn = console.log = console.info = () => {};
-  ctx.window = ctx; ctx.self = ctx; ctx.location = { search: '?slopes=0&facadefilter=0', href: 'http://x/' };
+  ctx.window = ctx; ctx.self = ctx; ctx.location = { search: '?slopes=0&facadefilter=0' + (wasm ? '&rustbuilder=1' + (process.env.RESERVE ? '&rustreserve=' + process.env.RESERVE : '') : ''), href: 'http://x/' };
   ctx.document = { getElementById: () => null, hidden: false, createElement: () => ({ getContext: () => null, style: {} }), addEventListener() {}, body: {} };
   ctx.addEventListener = () => {}; ctx.devicePixelRatio = 1;
   Object.defineProperty(ctx, 'navigator', { value: { userAgent: 'node' }, configurable: true });
   installStubs(ctx);
   vm.runInThisContext(fs.readFileSync(threeJs, 'utf8'));
   let slopesSrc = patchSlopes(fs.readFileSync(R + 'js/slopes.js', 'utf8'), { record, timeBuilder });
-  if (wasm) { ctx.__RUST_MOD = new WebAssembly.Module(fs.readFileSync(wasm)); ctx.__RUST_RESERVE = Number(process.env.RESERVE || 0); slopesSrc = patchSlopesWasm(slopesSrc); }   // END-TO-END experiment: the Rust builder behind the real generator
-  vm.runInThisContext(slopesSrc, { filename: 'slopes.js' });
+  if (wasm) {   // END-TO-END: the REAL ?rustbuilder=1 path of js/slopes.js (its loader block, js/slopes-rust.js, the committed .wasm), behind the real generator
+    ctx.fetch = async url => new Response(fs.readFileSync(wasm), { headers: { 'content-type': 'application/wasm' } });
+    ctx.THREE_LOADED = true;
+    const file = R + 'js/slopes.js';
+    vm.runInThisContext(slopesSrc, { filename: 'file://' + file, importModuleDynamically: vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER });
+  } else vm.runInThisContext(slopesSrc, { filename: 'slopes.js' });
   installLateStubs(ctx);
+  if (wasm) { await ctx.slopes.rustReady; if (!ctx.slopes.rustBuilder) throw new Error('?rustbuilder=1 did not load the Rust builder: ' + JSON.stringify(ctx.slopes.rustInfo())); }
   vm.runInThisContext(patchApartments(fs.readFileSync(R + 'js/slopes-apartments.js', 'utf8')), { filename: 'slopes-apartments.js' });
   if (useNull) ctx.slopes.build = nullBuilder(ctx);
   if (process.env.HINT) { const orig = ctx.slopes.build; ctx.slopes.build = () => orig(Number(process.env.HINT)); }   // the app's own `build(initialCapacity)` parameter: pass the vertex count up front (one line in the app)

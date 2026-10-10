@@ -146,6 +146,7 @@
     "transit-live.mjs": {"est_s": 10},
     "walk.mjs": {"timeout_s": 2400, "est_s": 1010},
     "walkmeter.mjs": {"est_s": 190},
+    "wasm-mesh-parity.mjs": {"est_s": 20},
     "walkwidth.mjs": {"est_s": 160},
     "wallplane.mjs": {"est_s": 10},
     "westcampus-probe.mjs": {"est_s": 80},
@@ -219,6 +220,7 @@
   "_laptop_only": "Timing. Frame times on a shared cloud CPU with a software rasteriser measure the runner, not the code (README: 'right for pixel assertions and useless for timing'). These stay on a quiet laptop.",
   "laptop_only": {
     "apts-perf.mjs": "timing",
+    "rust-builder-page.mjs": "timing (the real page, ?rustbuilder=1 against the JS builder, interleaved; wasm-mesh-parity.mjs is its correctness half and runs in CI)",
     "arts-perf.mjs": "timing",
     "drag-perf.mjs": "timing",
     "facade-perf.mjs": "timing",

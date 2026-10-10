@@ -8,7 +8,8 @@
 import crypto from 'node:crypto'; import path from 'node:path'; import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { loadStream, hexBytes } from './js/stream.mjs';
-import { makeBuild, toneObjects, runApp } from './js/builder-app.mjs';
+import { makeBuild, makeShapeOps, toneObjects, runApp, THREE_STUB, hexToRgb01 } from './js/builder-app.mjs';
+import { loadRustBuilder } from '../../js/slopes-rust.js';
 import { runTyped } from './js/builder-typed.mjs';
 import { runWasm } from './js/builder-wasm.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -17,10 +18,16 @@ const wasmPath = process.env.WASM || path.join(here, 'dist/meshkernel.wasm');
 const wasmModule = new WebAssembly.Module(fs.readFileSync(wasmPath));
 function instantiateWithMemory() { return new WebAssembly.Instance(wasmModule, {}).exports; }
 const slopesSource = fs.readFileSync(path.join(here, '../../js/slopes.js'), 'utf8');
+// THE PAGE'S OWN ADAPTER: js/slopes-rust.js (what ?rustbuilder=1 imports), handed the app's own shapeOps() cut from js/slopes.js and
+// the same wasm bytes, so a bug in the adapter (not only in the Rust) fails this check.
+const pageBuild = await loadRustBuilder({ module: wasmModule, stageRecords: Number(process.env.STAGE_RECORDS) || 8192, shapeOps: makeShapeOps(slopesSource), hexToRgb01, three: () => THREE_STUB });
 const sha = a => crypto.createHash('sha256').update(Buffer.from(a.buffer, a.byteOffset, a.byteLength)).digest('hex');
 const { stream, records, palette, expected } = loadStream(dir);
 if (process.argv.includes('--break')) { const k = Math.floor(records / 2) * 28 + 6; stream[k] = stream[k] + 1e-9 * Math.max(1, Math.abs(stream[k])); console.log('(--break) nudged one coordinate of record', Math.floor(records / 2)); }
 
+// --break-rust: nudge one coordinate for the Rust paths ONLY, so the JS builder and the Rust builder get slightly different input.
+// This is the gate failing the way a real regression would (the two builders disagree), not just the in-app sha going stale.
+const streamRust = process.argv.includes('--break-rust') ? (() => { const c = stream.slice(); const k = Math.floor(records / 2) * 28 + 6; c[k] += 1e-9 * Math.max(1, Math.abs(c[k])); console.log('(--break-rust) nudged one coordinate of record', Math.floor(records / 2), 'for the Rust builders only'); return c; })() : stream;
 const tonesBytes = { bytes: new Uint8Array(palette.length * 9), surf: new Float32Array(palette.length * 4) };
 palette.forEach((p, i) => { tonesBytes.bytes.set([...hexBytes(p.hex[0]), ...hexBytes(p.hex[1]), ...hexBytes(p.hex[2])], i * 9); if (p.surface) tonesBytes.surf.set(p.surface, i * 4); });
 
@@ -49,16 +56,37 @@ function synthetic() {
   const tb = { bytes: new Uint8Array(5 * 9), surf: new Float32Array(20) };
   syn.palette.forEach((p, i) => { tb.bytes.set([...hexBytes(p.hex[0]), ...hexBytes(p.hex[1]), ...hexBytes(p.hex[2])], i * 9); if (p.surface) tb.surf.set(p.surface, i * 4); });
   const A = runApp(makeBuild(slopesSource), toneObjects(syn.palette), syn.stream, syn.records, 1 << 16), T = runTyped(tb, syn.stream, syn.records), W = runWasm(instantiateWithMemory(), syn.palette, syn.stream, syn.records, { batchRecords: 1000 });
+  const P = runApp(pageBuild, toneObjects(syn.palette), syn.stream, syn.records, 1 << 16);
   const nm = ['position', 'normal', 'cDay', 'cGold', 'cNight', 'aFacet', 'aSurface', 'index'];
   const diff = (X) => nm.filter(n => sha(X[n]) !== sha(A[n]));
-  const dT = diff(T), dW = diff(W);
-  console.log(`synthetic edge cases (${syn.records} records: bent/degenerate quads, triN, facet runs, flipped winding): js-typed ${dT.length ? 'MISMATCH ' + dT : 'MATCH'}, rust-wasm ${dW.length ? 'MISMATCH ' + dW : 'MATCH'}  (${A.triangles} triangles)`);
-  if (dT.length || dW.length) process.exitCode = 1;
+  const dT = diff(T), dW = diff(W), dP = diff(P);
+  console.log(`synthetic edge cases (${syn.records} records: bent/degenerate quads, triN, facet runs, flipped winding): js-typed ${dT.length ? 'MISMATCH ' + dT : 'MATCH'}, rust-wasm ${dW.length ? 'MISMATCH ' + dW : 'MATCH'}, page adapter ${dP.length ? 'MISMATCH ' + dP : 'MATCH'}  (${A.triangles} triangles)`);
+  if (dT.length || dW.length || dP.length) process.exitCode = 1;
+  // polygon() and extrude() are the app's shapeOps over each builder's own tri/quad/triN: walls, caps and smooth curved sides (triN),
+  // through the JS vertex store and through the page adapter, with a staging buffer small enough to flush mid-shape.
+  const shapes = B => {
+    const col = syn.palette.slice(0, 3).map((p, i) => { const c = p.hex.slice(); if (p.surface) c.surface = p.surface; return c; });
+    const frame = { N: [0.6, 0.8, 0], T: [-0.8, 0.6, 0], at: (u, v, z) => [10 + u * -0.8 + v * 0.6, 20 + u * 0.6 + v * 0.8, z || 0] };
+    for (let i = 0; i < 400; i++) {
+      const w = 1 + (i % 7) * 0.3, h = 2 + (i % 5) * 0.4, c = col[i % 3];
+      B.extrude([[0, 0], [w, 0], [w, h], [0, h]], frame, 0, 0.2 + (i % 3) * 0.1, c, i % 4 === 0 ? { sides: false } : {});
+      B.extrude([[0, 0], [w, 0], [w * 1.1, h * 0.6], [w * 0.5, h], [-w * 0.1, h * 0.6]], frame, -0.1, 0.3, c, { smooth: true });   // curved sides: triN
+      B.polygon([[0, 0, 0, 0], [3, 0, 0, 3], [3, 0, 2, 3], [0, 0, 2.5, 0]], c, [0, -1, 0], 'uz');
+      B.polygon([[0, 0, 5], [4, 0, 5], [4, 3, 5.2], [1, 4, 5]], c, [0, 0, 1], 'xy');
+    }
+    return B;
+  };
+  const SA = shapes(makeBuild(slopesSource)(1 << 16)), SP = shapes(pageBuild(1 << 16));
+  const ga = SA.geometry(), gp = SP.geometry();
+  const bad = [...Object.keys(ga.attributes).filter(k => sha(ga.attributes[k].array) !== sha(gp.attributes[k].array)), ...(sha(ga.index.array) !== sha(gp.index.array) ? ['index'] : [])];
+  console.log(`extrude/polygon scenario (${SA.triangles} triangles, smooth sides, flipped caps): page adapter ${bad.length ? 'MISMATCH ' + bad : 'MATCH'}`);
+  if (bad.length || SA.triangles !== SP.triangles) process.exitCode = 1;
 }
 const results = {
   'js-app (js/slopes.js build() verbatim)': runApp(makeBuild(slopesSource), toneObjects(palette), stream, records, 1 << 16),
   'js-typed (tuned JS, no allocations)': runTyped(tonesBytes, stream, records),
-  'rust-wasm (meshkernel.wasm)': runWasm(instantiateWithMemory(), palette, stream, records),
+  'rust-wasm (meshkernel.wasm)': runWasm(instantiateWithMemory(), palette, streamRust, records),
+  'rust-page (js/slopes-rust.js adapter, what ?rustbuilder=1 runs)': runApp(pageBuild, toneObjects(palette), streamRust, records, 1 << 16),
 };
 const names = ['position', 'normal', 'cDay', 'cGold', 'cNight', 'aFacet', 'aSurface', 'index'];
 const keyOf = { position: 'position', normal: 'normal', cDay: 'cDay', cGold: 'cGold', cNight: 'cNight', aFacet: 'aFacet', aSurface: 'aSurface', index: 'index' };
