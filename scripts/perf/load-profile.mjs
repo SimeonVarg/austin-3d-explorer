@@ -187,6 +187,7 @@ async function runOnce(throttle, rep, { profile, trace, warm }) {
         nav:{dcl:nav.domContentLoadedEventEnd, load:nav.loadEventEnd, responseEnd:nav.responseEnd},
         intro: window.__intro?{waitedMs:window.__intro.waitedMs, reason:window.__intro.reason, missingAtLift:window.__intro.missingAtLift, gateOkAt:window.__intro.gateOkAt}:null,
         apartments: ap?{buildings:ap.buildings, blocks:ap.blocks, faces:ap.faces, cells:ap.cells, triangles:ap.triangles, ms:ap.ms, slices:ap.buildSlices, done:ap.done}:null,
+        landscape: window.campusLandscape?window.campusLandscape.count:null,
         facadePace: window.__facadePace||null, loading: window.__loading?{started:window.__loading.started,complete:window.__loading.complete,n:(window.__loading.history||[]).length}:null,
         gfx, gpuRenderer: dbg?gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL):null,
         gl:{draws:P.gl.draws,tris:Math.round(P.gl.tris),tex:P.gl.texBytes,buf:P.gl.bufBytes,peak:P.gl.peak,own:P.gl.own,calls:P.gl.calls},

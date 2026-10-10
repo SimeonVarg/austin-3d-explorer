@@ -6,6 +6,11 @@
  const q=new URLSearchParams(location.search);
  const C=window.CAMPUS_LANDSCAPE={
   on:q.get('campuslandscape')!=='0',url:'data/campus_landscape.json',minzoom:14,chunkSize:180,
+  // Trees as instanced meshes (?treeinstancing=0 builds every tree into plain chunk geometry, the old way).
+  // chunkSize: a tree chunk is three draws (crowns, trunks, limbs) instead of one, so the chunk is twice as wide
+  // as the plain one (17 chunks against 58 over the campus). boundsPad: extra radius on a crown's bounding sphere,
+  // so that the lobes of a crown that is only just on screen are never culled with it.
+  instancing:{on:q.get('treeinstancing')!=='0',chunkSize:360,boundsPad:.02},
   crown:{segments:10,rings:5,lobes:5,lobeDepth:.12,wave:.04,mainSpread:.55,mainDepth:.8,mainRise:.08,clusterSize:.49,clusterOffset:.49,clusterDepth:.73,clusterBase:-.22,clusterJitter:.38,angleJitter:.55,sizeJitter:.28,clusterQuality:.7,shade:.90},
   trunk:{radius:.22,largeRadius:.48,radiusRatio:.055,limbs:5,segments:5,branchReach:.66,branchRise:.62,forkHeight:.18,forkMin:1.8,topRadius:.7,limbRadius:.48,tipRadius:.15},
   species:{liveoak:{spread:1.03,depth:.78},oak:{spread:1,depth:.88},elm:{spread:.91,depth:1},pecan:{spread:.92,depth:1.06},crape:{spread:.79,depth:.91},magnolia:{spread:.85,depth:1.04},cedar:{spread:.78,depth:1.2},cypress:{spread:.75,depth:1.25},other:{spread:.95,depth:.93}},
@@ -114,6 +119,196 @@
    }
    count.trees++;
   }
+ }
+ // ── Trees as instanced meshes ───────────────────────────────────────────
+ // A tree is six crowns and six stems (a trunk and five limbs). The plain path above builds each one into its own
+ // vertices, about 340 triangles a tree. Here a crown is ONE unit sphere grid and a stem ONE unit cone, drawn once
+ // per part with an instance matrix, and the vertex shader does the one thing a matrix cannot: a crown's lobes
+ // (`ripple`), which depend on the crown's seed. Nothing is rounded to a variant: every crown keeps its own seed,
+ // radii and place, every stem its own two ends, so the vertices land where the plain path put them (the check
+ // scripts/verify/campus-trees-instancing.mjs compares them one by one). What varies per tree and where it lives:
+ //   position, width, height  -> the instance matrix of each part (centre and three radii; or both ends and a radius)
+ //   lobe phase               -> instanceColor.x   (the crown's seed)
+ //   leaf palette (one of 4)  -> instanceColor.y   (an exact tint: the colours come from a table, not a multiply)
+ //   ring shading             -> the template's aRing, the row a vertex belongs to (a table of the plain path's own rounded colours)
+ // The sun-shadow pass draws the scene with ONE override material (js/slopes.js updateSunShadows) that knows
+ // nothing about instances: patchDepth() gives it the same instance and lobe maths the first time an instanced
+ // tree is drawn under it, so the trees keep casting shadows. Non-instanced meshes compile to the code they had.
+ const f1=v=>{const s=String(+v);return /[.e]/i.test(s)?s:s+'.0'};
+ const bytes=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+ const crownGrid=()=>{
+  const k=slopes.detail()*C.crown.clusterQuality;
+  return {n:Math.max(6,Math.round(C.crown.segments*k)),m:Math.max(3,Math.round(C.crown.rings*k))};
+ };
+ // The unit crown: vertices (x,y,z) on the unit sphere, with the angles the lobes need in `uv`. Every ring row has its
+ // own vertices (the plain path shades a row flat, so a vertex shared by two rows would have two colours).
+ function crownTemplate(){
+  const {n,m}=crownGrid(),pos=[],uv=[],ring=[],index=[],vertex=(r,e,i)=>(r*2+e)*n+i;
+  for(let r=0;r<m;r++){
+   for(let e=0;e<2;e++)for(let i=0;i<n;i++){
+    const theta=i/n*Math.PI*2,phi=(r+e)/m*Math.PI,sp=Math.sin(phi);
+    pos.push(Math.cos(theta)*sp,Math.sin(theta)*sp,Math.cos(phi));uv.push(theta,phi);ring.push(r);
+   }
+  }
+  // The plain path skips a triangle whose area is nil (the two points at each pole) and winds the rest to face the
+  // mean of its vertex normals. Both are decided here on the unit sphere with the lobes at their first seed; they do
+  // not depend on a crown's size or seed (checked over many seeds and sizes in the script).
+  const at=(r,e,i,wrap)=>{const j=r+e,theta=(i+(wrap?1:0))/n*Math.PI*2,phi=j/m*Math.PI,sp=Math.sin(phi),x=Math.cos(theta)*sp,y=Math.sin(theta)*sp,z=Math.cos(phi);
+   const ripple=1+C.crown.lobeDepth*Math.sin(C.crown.lobes*theta)*sp+C.crown.wave*Math.sin(3*phi+theta);
+   return {p:[x*ripple,y*ripple,z*(1+C.crown.wave*Math.sin(theta)*sp)],n:[x,y,z]}};
+  const emit=(A,B,Cc)=>{
+   let nrm=cross([B.p[0]-A.p[0],B.p[1]-A.p[1],B.p[2]-A.p[2]],[Cc.p[0]-A.p[0],Cc.p[1]-A.p[1],Cc.p[2]-A.p[2]]);
+   const L=Math.hypot(nrm[0],nrm[1],nrm[2]);if(L<1e-9)return;
+   const avg=[A.n[0]+B.n[0]+Cc.n[0],A.n[1]+B.n[1]+Cc.n[1],A.n[2]+B.n[2]+Cc.n[2]];
+   const flip=(nrm[0]/L*avg[0]+nrm[1]/L*avg[1]+nrm[2]/L*avg[2])<0;
+   index.push(A.v,flip?Cc.v:B.v,flip?B.v:Cc.v);
+  };
+  for(let r=0;r<m;r++)for(let i=0;i<n;i++){
+   const a={...at(r,0,i,false),v:vertex(r,0,i)},b={...at(r,0,i,true),v:vertex(r,0,(i+1)%n)},c={...at(r,1,i,true),v:vertex(r,1,(i+1)%n)},d={...at(r,1,i,false),v:vertex(r,1,i)};
+   emit(a,b,c);emit(a,c,d);
+  }
+  return {pos,uv,ring,index,n,m};
+ }
+ // The leaf colours of every palette, entry and ring row, as the plain path rounds them (mixTone), in the order the crown
+ // shader indexes them: palette, then day/golden/night, then ring row.
+ function leafTable(m){
+  const t=[];
+  for(const col of C.leaf)for(let k=0;k<3;k++)for(let r=0;r<m;r++)t.push(bytes(mixTone(col,C.crown.shade+(1-C.crown.shade)*(1-r/m))[k]));
+  return t;
+ }
+ // The unit stem: a cone one unit long, radius 1 at the bottom and `top` at the top, flat-shaded one quad a side,
+ // wound and lit exactly as stem() does it.
+ function stemTemplate(top){
+  const n=C.trunk.segments,pos=[],nor=[],index=[];
+  for(let j=0;j<n;j++){
+   const a0=j/n*Math.PI*2,a1=(j+1)/n*Math.PI*2;
+   const P=[[Math.cos(a0),Math.sin(a0),0],[Math.cos(a1),Math.sin(a1),0],[top*Math.cos(a1),top*Math.sin(a1),1],[top*Math.cos(a0),top*Math.sin(a0),1]];
+   let nrm=cross([P[1][0]-P[0][0],P[1][1]-P[0][1],P[1][2]-P[0][2]],[P[2][0]-P[0][0],P[2][1]-P[0][1],P[2][2]-P[0][2]]);
+   const L=Math.hypot(nrm[0],nrm[1],nrm[2]);nrm=[nrm[0]/L,nrm[1]/L,nrm[2]/L];
+   const flip=nrm[0]*P[0][0]+nrm[1]*P[0][1]<0;
+   if(flip)nrm=[-nrm[0],-nrm[1],-nrm[2]];
+   const base=pos.length/3;for(const p of P){pos.push(...p);nor.push(...nrm)}
+   if(flip)index.push(base,base+2,base+1,base,base+3,base+2);else index.push(base,base+1,base+2,base,base+2,base+3);
+  }
+  return {pos,nor,index};
+ }
+ // Everything one tree is made of, from the same numbers buildTrees uses (same hashes, same order of arithmetic).
+ function treeSpec(i,t,p){
+  const [lng,lat,r,base,top,sp,d,hue]=t,form=C.species[sp]||C.species.other,seed=hash(i,8)*Math.PI*2;
+  const height=Math.max(2,top-base),radius=r*form.spread,half=Math.min(height/2*form.depth,(top-.8)/2),cz=top-half;
+  const leaf=Math.min(C.leaf.length-1,Math.floor(hue*C.leaf.length)),thick=Math.min(C.trunk.largeRadius,Math.max(C.trunk.radius,r*C.trunk.radiusRatio));
+  const fork=[p.x+Math.cos(seed)*thick,p.y+Math.sin(seed)*thick,Math.max(C.trunk.forkMin,base+height*C.trunk.forkHeight)];
+  const stems=[{a:[p.x,p.y,0],b:fork,r:thick,limb:false}];
+  const crowns=[{c:[p.x,p.y,cz+half*C.crown.mainRise],r:[radius*C.crown.mainSpread,radius*C.crown.mainSpread,half*C.crown.mainDepth],seed}];
+  const limbs=C.trunk.limbs;
+  for(let j=0;j<limbs;j++){
+   const a=seed+j/limbs*Math.PI*2+(hash(i,j+40)-.5)*C.crown.angleJitter,reach=radius*C.trunk.branchReach*(.82+hash(i,j)*.24),z=base+height*C.trunk.branchRise;
+   stems.push({a:fork,b:[p.x+Math.cos(a)*reach,p.y+Math.sin(a)*reach,z],r:thick*C.trunk.limbRadius,limb:true});
+   const s=C.crown.clusterSize*(1+(hash(i,j+30)-.5)*C.crown.sizeJitter);
+   crowns.push({c:[p.x+Math.cos(a)*radius*C.crown.clusterOffset,p.y+Math.sin(a)*radius*C.crown.clusterOffset,cz+half*C.crown.clusterBase+hash(i,j+20)*half*C.crown.clusterJitter],r:[radius*s,radius*s,half*C.crown.clusterDepth],seed:seed+j});
+  }
+  return {leaf,stems,crowns};
+ }
+ const crownMatrix=c=>[c.r[0],0,0,0, 0,c.r[1],0,0, 0,0,c.r[2],0, c.c[0],c.c[1],c.c[2],1];
+ function stemMatrix(s){
+  const N=norm(s.b.map((v,i)=>v-s.a[i])),U=norm(cross(N,Math.abs(N[2])>.9?[1,0,0]:[0,0,1])),V=cross(N,U);
+  return [s.r*U[0],s.r*U[1],s.r*U[2],0, s.r*V[0],s.r*V[1],s.r*V[2],0, s.b[0]-s.a[0],s.b[1]-s.a[1],s.b[2]-s.a[2],0, s.a[0],s.a[1],s.a[2],1];
+ }
+ // GLSL. `ripple` is the crown's lobes in a unit crown; the same text goes into the crown shader and the shadow shader.
+ const ripple=(u,seed)=>`float tsp=length(${u}.xy);
+   float trip=1.0+${f1(C.crown.lobeDepth)}*sin(${f1(C.crown.lobes)}*uv.x+${seed})*tsp+${f1(C.crown.wave)}*sin(3.0*uv.y+uv.x+${seed});
+   vec3 tlocal=vec3(${u}.x*trip,${u}.y*trip,${u}.z*(1.0+${f1(C.crown.wave)}*sin(uv.x+${seed})*tsp));`;
+ const worldNormal=n=>`vec3 tma=instanceMatrix[0].xyz,tmb=instanceMatrix[1].xyz,tmc=instanceMatrix[2].xyz;
+   vec3 tnormal=normalize(cross(tmb,tmc)*${n}.x+cross(tmc,tma)*${n}.y+cross(tma,tmb)*${n}.z);`;
+ function treeMaterial(kind){
+  const mat=slopes.material();
+  let v=mat.vertexShader.replace(/\bposition\b/g,'tposition').replace(/\bnormal\b/g,'tnormal')
+   .replace('attribute vec2 aGrad;','vec2 aGrad=vec2(0.0);').replace('attribute float aFacet;','float aFacet=0.0;').replace('attribute vec4 aSurface;','vec4 aSurface=vec4(0.0);');
+  if(kind==='crown'){
+   const m=crownGrid().m,table=leafTable(m).map(b=>new THREE.Vector3(b[0]/255,b[1]/255,b[2]/255));
+   mat.uniforms={...mat.uniforms,u_treeLeaf:{value:table}};
+   v=v.replace('attribute vec3 cDay;',`attribute float aRing; uniform vec3 u_treeLeaf[${table.length}]; vec3 cDay;`).replace('attribute vec3 cGold;','vec3 cGold;').replace('attribute vec3 cNight;','vec3 cNight;')
+    .replace('void main() {',`void main() {
+      ${ripple('position','instanceColor.x')}
+      vec3 tposition=(instanceMatrix*vec4(tlocal,1.0)).xyz;
+      ${worldNormal('position')}
+      int tbase=int(instanceColor.y+0.5)*${3*m},tring=int(aRing+0.5);
+      cDay=u_treeLeaf[tbase+tring];cGold=u_treeLeaf[tbase+${m}+tring];cNight=u_treeLeaf[tbase+${2*m}+tring];`);
+  }else{
+   v=v.replace('void main() {',`void main() {
+      vec3 tposition=(instanceMatrix*vec4(position,1.0)).xyz;
+      ${worldNormal('normal')}`);
+  }
+  mat.vertexShader=v;
+  return mat;
+ }
+ // The sun-shadow depth material, given instances and lobes (see the header above). Does nothing for any material
+ // that is not the one slopes.js builds, and says so once.
+ let depthWarned=false;
+ function patchDepth(mat){
+  const sig=[C.crown.lobeDepth,C.crown.lobes,C.crown.wave].join();
+  if(mat.userData.treeDepth===sig)return;
+  if(mat.userData.treeDepthOriginal===undefined)mat.userData.treeDepthOriginal=mat.vertexShader;
+  const o=mat.userData.treeDepthOriginal;
+  if(!o.includes('void main(){')||!o.includes('vec4(position,1.0)')){if(!depthWarned)console.warn('[campus-landscape] shadow material changed shape: instanced trees will not cast shadows');depthWarned=true;return}
+  mat.vertexShader=o.replace('void main(){',`void main(){
+   vec3 tp=position;
+   #ifdef USE_INSTANCING
+   #ifdef USE_INSTANCING_COLOR
+   ${ripple('position','instanceColor.x')}
+   tp=tlocal;
+   #endif
+   tp=(instanceMatrix*vec4(tp,1.0)).xyz;
+   #endif`).replace('vec4(position,1.0)','vec4(tp,1.0)');
+  mat.userData.treeDepth=sig;mat.needsUpdate=true;
+ }
+ const depthHook=function(renderer,scene,camera,geometry,material){if(material&&material===scene.overrideMaterial&&material.isShaderMaterial)patchDepth(material)};
+ let treeMaterials=[];
+ function buildInstancedTrees(g){
+  const density=window.GFX?.treeDensity??1,T=THREE,I=C.instancing,chunks=new Map();
+  const crownT=crownTemplate(),trunkT=stemTemplate(C.trunk.topRadius),limbT=stemTemplate(C.trunk.tipRadius/C.trunk.limbRadius);
+  count.trees=0;
+  for(let i=0;i<data.trees.length;i++){
+   const t=data.trees[i];if(t[6]>density)continue;
+   const p=slopes.toLocal(t[0],t[1],0),key=Math.floor(p.x/I.chunkSize)+','+Math.floor(p.y/I.chunkSize);
+   let ch=chunks.get(key);if(!ch)chunks.set(key,ch={crown:[],crownTint:[],trunk:[],limb:[]});
+   const s=treeSpec(i,t,p);
+   for(const c of s.crowns){ch.crown.push(...crownMatrix(c));ch.crownTint.push(c.seed,s.leaf,0)}
+   for(const st of s.stems)(st.limb?ch.limb:ch.trunk).push(...stemMatrix(st));
+   count.trees++;
+  }
+  const bark=C.bark.map(bytes);
+  const stemGeometry=S=>{
+   const geo=new T.BufferGeometry(),n=S.pos.length/3,col=k=>{const a=new Uint8Array(n*3);for(let i=0;i<n;i++)a.set(bark[k],i*3);return new T.BufferAttribute(a,3,true)};
+   geo.setAttribute('position',new T.Float32BufferAttribute(S.pos,3));geo.setAttribute('normal',new T.Float32BufferAttribute(S.nor,3));
+   geo.setAttribute('cDay',col(0));geo.setAttribute('cGold',col(1));geo.setAttribute('cNight',col(2));
+   geo.setIndex(S.index);geo.boundingSphere=new T.Sphere(new T.Vector3(0,0,.5),1.2);return geo;
+  };
+  const crownGeometry=()=>{
+   const geo=new T.BufferGeometry(),n=crownT.ring.length,table=leafTable(crownT.m),ones=k=>{const a=new Uint8Array(n*3);for(let i=0;i<n;i++)a.set(table[k*crownT.m+crownT.ring[i]],i*3);return new T.BufferAttribute(a,3,true)};
+   geo.setAttribute('position',new T.Float32BufferAttribute(crownT.pos,3));geo.setAttribute('normal',new T.Float32BufferAttribute(crownT.pos,3));
+   geo.setAttribute('uv',new T.Float32BufferAttribute(crownT.uv,2));geo.setAttribute('aRing',new T.Float32BufferAttribute(crownT.ring,1));
+   geo.setAttribute('cDay',ones(0));geo.setAttribute('cGold',ones(1));geo.setAttribute('cNight',ones(2));
+   geo.setIndex(crownT.index);geo.boundingSphere=new T.Sphere(new T.Vector3(0,0,0),1+C.crown.lobeDepth+C.crown.wave+I.boundsPad);return geo;
+  };
+  const crownMat=treeMaterial('crown'),trunkMat=treeMaterial('stem'),limbMat=treeMaterial('stem');
+  treeMaterials=[crownMat,trunkMat,limbMat];
+  let drawn=0,built=0;
+  const make=(name,geo,mat,matrices,tint)=>{
+   const n=matrices.length/16,mesh=new T.InstancedMesh(geo,mat,n);
+   mesh.instanceMatrix.array.set(matrices);mesh.instanceMatrix.setUsage(T.StaticDrawUsage);
+   if(tint){mesh.instanceColor=new T.InstancedBufferAttribute(new Float32Array(tint),3);mesh.instanceColor.setUsage(T.StaticDrawUsage)}
+   mesh.name=name;mesh.computeBoundingSphere();mesh.onBeforeRender=depthHook;
+   drawn+=n*geo.index.count/3;g.add(mesh);
+  };
+  for(const [key,ch] of chunks){
+   make('campus-trees-'+key+'-crowns',crownGeometry(),crownMat,ch.crown,ch.crownTint);
+   make('campus-trees-'+key+'-trunks',stemGeometry(trunkT),trunkMat,ch.trunk);
+   make('campus-trees-'+key+'-limbs',stemGeometry(limbT),limbMat,ch.limb);
+  }
+  built=(crownT.index.length+trunkT.index.length+limbT.index.length)/3;
+  count.instances=[...chunks.values()].reduce((a,ch)=>a+ch.crown.length/16+ch.trunk.length/16+ch.limb.length/16,0);
+  count.treeTriangles=drawn;count.treeBuiltTriangles=built;
  }
  function polygon(B,rings,z,col){
   const R=rings.map(r=>r.map(ll=>{const p=slopes.toLocal(ll[0],ll[1],z);return new THREE.Vector2(p.x,p.y)}).filter((p,i,a)=>!i||!p.equals(a[i-1])));
@@ -246,7 +441,11 @@
   count.structuralTriangles=B.triangles;return g;
  }
  function build(){
-  const chunks=new Map();count.triangles=0;buildTrees(chunks);
+  const t0=performance.now(),chunks=new Map();count.triangles=0;count.treeTriangles=0;count.treeBuiltTriangles=0;count.instances=0;
+  const g=new THREE.Group();g.name='campus-landscape';g.userData.minzoom=C.minzoom;
+  const instanced=C.instancing.on&&!!THREE.InstancedMesh;
+  if(instanced)buildInstancedTrees(g);else buildTrees(chunks);
+  count.treeMs=+(performance.now()-t0).toFixed(1);count.instanced=instanced;
   const gardens=slopes.build();buildGardens(gardens);chunks.set('gardens',gardens);
   buildRamps(gardens,false);
   if(C.walks.on){
@@ -274,15 +473,20 @@
    }
    count.railings++;
   }
-  const g=new THREE.Group();g.name='campus-landscape';g.userData.minzoom=C.minzoom;
-  for(const [key,B]of chunks){if(!B.triangles)continue;const mesh=new THREE.Mesh(B.geometry(),slopes.material());mesh.name='campus-'+key;g.add(mesh);count.triangles+=B.triangles}
+  for(const [key,B]of chunks){if(!B.triangles)continue;const mesh=new THREE.Mesh(B.geometry(),slopes.material());mesh.name='campus-'+key;g.add(mesh);count.triangles+=B.triangles;if(key!=='gardens')count.treeTriangles+=B.triangles}
+  if(!instanced)count.treeBuiltTriangles=count.treeTriangles;
+  count.triangles+=instanced?count.treeTriangles:0;
+  // What the group holds, in bytes: vertex and index arrays, and the instance matrices and tints. The trees alone are `treeBytes`.
+  const size=o=>{let b=0;for(const k in o.geometry?.attributes||{})b+=o.geometry.attributes[k].array?.byteLength||0;b+=o.geometry?.index?.array?.byteLength||0;b+=o.instanceMatrix?.array.byteLength||0;b+=o.instanceColor?.array.byteLength||0;return b};
+  count.bytes=0;count.treeBytes=0;count.meshes=0;g.traverse(o=>{if(!o.geometry)return;const b=size(o);count.bytes+=b;count.meshes++;if(/^campus-(trees-|-?\d+,)/.test(o.name))count.treeBytes+=b});
+  count.buildMs=+(performance.now()-t0).toFixed(1);
   lastDensity=window.GFX?.treeDensity??1;lastDetail=slopes.detail();return g;
  }
  const canopyKey=['concat',['to-string',['get','d']],'|',['coalesce',['get','sp'],'other'],'|',['to-string',['coalesce',['get','r0'],0]],'|',['to-string',['coalesce',['get','j'],0]]];
  const trunkKey=['concat',['to-string',['get','d']],'|',['to-string',['get','h']]];
  function drop(){
   if(!group)return;
-  slopes.remove(group);group.traverse(o=>o.geometry?.dispose());group=null;
+  slopes.remove(group);group.traverse(o=>{o.geometry?.dispose();if(o.isInstancedMesh)o.dispose()});for(const m of treeMaterials)m.dispose();treeMaterials=[];group=null;
   count.trees=0;count.triangles=0;count.gardens=0;count.railings=0;
  }
  function dropStructural(){
@@ -334,7 +538,7 @@
   map.triggerRepaint();
  }
  window.applyCampusLandscape=apply;
- window.campusLandscape={get count(){return {...count}},get group(){return group},get structuralGroup(){return structuralGroup},get data(){return data},floorAt,rebuild(){if(window.LITE_PROFILE?.sceneUnavailable)return;drop();dropStructural();apply()}};
+ window.campusLandscape={get count(){return {...count}},get group(){return group},get structuralGroup(){return structuralGroup},get data(){return data},floorAt,trees:{buildTrees,treeSpec,crownTemplate,stemTemplate,leafTable,crownMatrix,stemMatrix,setData(d){data=d}},rebuild(){if(window.LITE_PROFILE?.sceneUnavailable)return;drop();dropStructural();apply()}};
  if(q.get('slopes')==='0'){count.done=true;return}
  let busy=false;
  const timer=setInterval(async()=>{
