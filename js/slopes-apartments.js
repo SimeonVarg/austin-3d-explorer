@@ -574,7 +574,10 @@
     for (const k of Object.keys(spec.colours || {})) {
       if (k[0] === '_') continue;                       // a `_src` note beside a colour, not a colour
       const v = spec.colours[k];
-      const hexes = Array.isArray(v) ? v : (v && v.hex);
+      // A colour is { hex } or a [day, golden, night] trio. A bare "#rrggbb" string is taken as a day hex too: before
+      // 2026-10-09 it threw inside ramp() and the WHOLE building was skipped, with nothing on screen to say why.
+      const hexes = Array.isArray(v) ? v : (typeof v === 'string' ? v : (v && v.hex));
+      if (typeof (Array.isArray(hexes) ? hexes[0] : hexes) !== 'string') { warnOnce('colour|' + (spec.id || spec.name) + '|' + k, (spec.name || spec.id) + ': colour "' + k + '" has no hex; skipped'); continue; }
       out[k] = Array.isArray(hexes) ? (hexes.length === 3 ? hexes.slice() : ramp(hexes[0])) : ramp(hexes);
       const M=APTS.materials;
       if(M.on){
@@ -1883,7 +1886,10 @@
       if (z1 - z0 < 0.05) continue;
       const sk = spec.skins[band.skin];
       if (!sk) { warnOnce('skin|' + key + '|' + band.skin, key + ': no skin "' + band.skin + '"'); continue; }
-      const fl = floorsBetween(spec.levels.floors, z0, z1, key + ' ' + band.skin);
+      // a band may carry its own floor lines (`floors`, absolute z): a wing whose
+      // storeys do not sit on the building's levels (Welch Hall's east wall has
+      // three window rows where the building's levels give two)
+      const fl = floorsBetween(band.floors || spec.levels.floors, z0, z1, key + ' ' + band.skin);
       const d = insetOf(band);
       if (d > 0) { recess(B, sub, len, band, d, sk, spec, P, key, Object.assign({ cutAt, sOff }, opts), fl); continue; }
       const ctx = { len, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
@@ -2011,7 +2017,7 @@
       const hasB = APTS.balconies && band.balconies && band.balconies.length, hasS = wantSigns() && band.signs && band.signs.length;
       const hasF = APTS.fins && band.fins, hasC = APTS.canopies && band.canopies && band.canopies.length;
       if (!hasB && !hasS && !hasF && !hasC) continue;
-      const floors = floorsBetween(spec.levels.floors, band.z0, band.z1, key + ' ' + band.skin).floors;
+      const floors = floorsBetween(band.floors || spec.levels.floors, band.z0, band.z1, key + ' ' + band.skin).floors;
       const d = insetOf(band);
       const Wb = d > 0 ? { at: (s, dd, z) => W.at(s, dd - d, z), T: W.T, N: W.N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n } : W;
       if (hasB) for (const bs of band.balconies) balconyStack(B, Wb, Object.assign({}, spec.balcony || {}, bs), floors, P, band.z1);
@@ -2090,7 +2096,7 @@
       const sk = spec.skins[band.skin];
       if (!sk) { warnOnce('skin|' + key + '|' + band.skin, key + ': no skin "' + band.skin + '"'); continue; }
       if (insetOf(band) > 0) warnOnce('rake-inset|' + key, key + ': a raked face cannot be recessed; its band is drawn on the plane');
-      const fl = floorsBetween(spec.levels.floors, zb0, zb1, key + ' ' + band.skin);
+      const fl = floorsBetween(band.floors || spec.levels.floors, zb0, zb1, key + ' ' + band.skin);
       const floors = APTS.rakeFloors ? fl.floors.map(t0Of) : [];
       const floorBelow = APTS.rakeFloors && fl.floorBelow != null ? t0Of(fl.floorBelow) : null;
       const t0 = t0Of(zb0), t1 = t0Of(zb1);
@@ -2897,6 +2903,16 @@
       // Restore a selective roof if its replacement failed during a rebuild.
       for (const k of Object.keys(_rigStash)) if (!ids.has(k.split('/')[0]) && !exact.has(k)) { roofs[k] = _rigStash[k]; delete _rigStash[k]; n++; }
       for (const k of Object.keys(roofs)) if (ids.has(k.split('/')[0]) || exact.has(k)) { _rigStash[k] = roofs[k]; delete roofs[k]; n++; }
+      // A recipe that keeps the campus roof may say where its walls now end (`roofBase`, metres above
+      // ground): the kept roof pieces move with it. (Welch Hall's walls went from 18.2 m to the
+      // laser-scan height, and its kept south tile roof was left inside the taller walls.)
+      for (const b of _data.buildings) if (b.preserveRoof && typeof b.roofBase === 'number' && b.id) for (const k of Object.keys(roofs)) {
+        if (k.split('/')[0] !== b.id) continue;
+        const r = roofs[k];
+        if (typeof r.base !== 'number' || typeof r.h !== 'number') continue;
+        if (r._base0 == null) { r._base0 = r.base; r._h0 = r.h; }
+        if (r.base !== b.roofBase) { r.base = b.roofBase; r.h = r._h0 + (b.roofBase - r._base0); n++; }
+      }
     } else {
       for (const k of Object.keys(_rigStash)) { roofs[k] = _rigStash[k]; delete _rigStash[k]; n++; }
     }

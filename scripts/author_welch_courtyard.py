@@ -14,8 +14,12 @@ import math
 PATH = Path(__file__).resolve().parents[1] / 'data/apartments/welch-hall.json'
 # All appearance and dimension choices are editable here.
 T = dict(terrace=3.1, slab=.32, parapet=.84, railRadius=.032,
-         projectionTop=12.7, balustradeTop=13.65, bay=3.3,
-         windowWidth=1.5, windowSill=.65, windowHeight=3.8,
+         projectionTop=14.3, balustradeTop=15.25, bay=3.3,
+         # Heights from the 2021 laser scan (2026-10-08): the roof just inside the east wall line is at
+         # 20.9, 19.7 and 20.4 m on its three faces. The recipe had 18.2 m. Storeys follow the owner's
+         # photographs: a base storey of 1.13 storeys, then three storeys of 4.73 m.
+         wallTop=20.3, floors=[5.35, 10.08, 14.81], level2=8.7,
+         windowWidth=1.5, windowSill=.65, windowHeight=4.25,
          canopyWest=52.0, canopyEast=70.1, canopyLow=6.65,
          canopyHigh=8.75, canopyThickness=.09, roofPitch=22,
          archSegments=20, archJoint=.012, archBand=.18,
@@ -25,7 +29,63 @@ T = dict(terrace=3.1, slab=.32, parapet=.84, railRadius=.032,
          sillProject=.17, sillHeight=.14, labBay=5.8, labWidth=1.35,
          labHeight=2.55, labSill=.7, labReveal=.38,
          entranceWidth=5.6, entranceHeight=3.1, entranceDepth=.62,
-         shrubSegments=7, shrubRings=5, historicGlassStrength=.22, labGlassStrength=.16)
+         shrubSegments=7, shrubRings=5, historicGlassStrength=.22, labGlassStrength=.16,
+         # The OUTER walls (every wall that is not the east arcade wall or a court wall), measured on the
+         # owner's photograph of the north wall, flattened (2026-10-09; 67.9 px per metre from the 4.73 m
+         # storeys): one window a bay, 1.55 m wide, bays 2.9 m; a cream stone base storey with tall
+         # windows on the same columns and a moulded stone cap to 5.55 m; a thin stone string course under
+         # the first brick row's sills; a corbelled brick belt under the top row's sills. Colours are the
+         # medians of the flat drawing (overcast light). The wide pier after every few bays, the brick
+         # panels between the rows and the entrance frontispiece are NOT drawn yet.
+         outerBay=2.9, outerWidth=1.55, outerHeight=2.8, outerSill=.92, outerTopHeight=2.72, outerTopSill=.97,
+         outerBaseHeight=3.2, outerBaseSill=1.0, outerBaseTop=5.55, outerString=(6.15, 6.27), outerBelt=(15.3, 15.75),
+         # The north entrance ("CHEMISTRY"), measured on the owner's photograph, flattened (51.4 px per metre):
+         # a cream stone frontispiece 7.26 m wide from the ground to 16.1 m, with an arched doorway (2.0 m
+         # wide, sill at 2.86 m because the ground is higher on this side, arch top 7.35 m), the word
+         # over it, and two windows above. Position along the wall: the laser scan shows the steps at
+         # u 40 to 44 (the phone's GPS lagged 25 m behind his walk there; its times and his pace agree
+         # with the scan). Steps and cheek walls: PHOTO for the look, sizes approximate.
+         portalCentre=42.0, portalWidth=7.26, portalTop=16.1, portalProud=.45, portalDoorSill=2.86,
+         portalDoorWidth=2.0, portalDoorTop=5.5, portalArchTop=7.35, portalSign=(8.35, .30, 3.05),
+         portalWindows=((9.1, 11.2, 1.65), (13.0, 14.8, 1.3)), portalDoor='#b3c7d2', portalStone='#efe9dc',
+         portalSteps=8, portalStepRun=.42, portalStairWidth=5.6, portalCheek=(.55, 1.5),
+         # The west entrance, measured on the owner's photograph of the west wall, flattened (52.5 px per metre):
+         # a stone door surround 4.85 m wide up to a cornice at 7.65 m, a door 1.5 m wide from 3.3 m (the ground is
+         # about 3.3 m higher on this side: laser scan) to 6.0 m, and above it a window in an ornate stone frame
+         # 3.7 m wide up to 11.7 m. Place along the wall and the stair: the scan shows a 3 m high, 2 m deep run of
+         # stone from v 137 to 146 west of the wall; the photograph shows the steps rising from the south to the door.
+         westDoorV=144.5, westSurround=(4.85, 7.65), westDoor=(1.5, 3.3, 6.0), westFrame=(3.7, 11.7), westWindow=(1.5, 7.9, 10.1),
+         westStair=(137.0, 143.0, 146.9, 2.2, 8),      # steps start, landing start, landing end (v); width (m); number of steps
+         # The NEWER wing's west wall (the west wall south of the old range, v 84 to 134). PHOTO: mixed tan brick with
+         # tall terracotta lattice screens, one a bay and about half a bay wide, from a low stone base to a corbel
+         # course; above it a row of small slit windows. The photograph is too oblique to flatten, so the pattern is
+         # from the photograph and the sizes are APPROXIMATE (seven screens in about 39 m gives the 5.5 m bay).
+         screenSplitV=134.0, screenBay=5.5, screenWidth=2.7, screenBase=1.6, screenTop=11.4, screenBelt=11.8,
+         screenTone='#b0623f', screenLine='#6e3a26', slitWidth=.7, slitHeight=1.3, slitSill=.6,
+         # The storey above the screens is lighter and has a few wide windows (PHOTO; it is also set back, which is not
+         # drawn). Tone: the HUE measured on the photograph (183, 160, 138), at a brightness between the wing's brick
+         # and the stone (the photograph is overcast, so its own brightness would draw too dark). Windows approximate.
+         screenUpperTone='#d8bda3', screenUpperWindow=(2.0, 1.6, 1.3),
+         outerFrame=.08, outerMullion=.045, outerReveal=.22, outerBrick='#c5a494',
+         # Stone: the SAME limestone as the east wall's arcade, so the same tone (sampled there in sun). The median of the
+         # overcast north photograph (#ccc5bb) drew as grey concrete on a wall that the app already shades. The belt is
+         # brick a little darker than the wall: the first try used the court's sill tone and drew a brown stripe.
+         outerStone='#efe9dc', outerBeltTone='#b39180',
+         # The plain brick court walls of the 1929 wing, measured on an owner photograph
+         # (2026-10-08): PAIRS of windows, three rows over a stone base storey. oldFaces are
+         # court faces of the lower ring: 14 the west wall (north part), 15 the north wall
+         # (west part), both photographed; 2 the north wall (east part) is INFERRED by symmetry.
+         oldFaces=[14, 15, 2], oldBay=4.83, oldWidth=1.45, oldHeight=2.85, oldSill=.7,
+         oldGap=.6, oldBaseTop=5.35, oldFloors=[5.35, 10.08, 14.81], oldDepth=.3,
+         oldBaseHeight=3.2, oldBaseSill=1.2, oldBelt=.3, oldPaneW=.045,
+         # Face 14 (the west wall) has SINGLE windows, evenly spaced: three across its 10.2 m in
+         # the photograph, seen from a camera fitted to the north wall's window corners.
+         oldSingleFaces=[14], oldSingleBay=3.4,
+         # The terrace. From the fitted camera the photograph shows open court where the slab's
+         # south-west part was: at its west end the terrace is only a balcony in front of the low
+         # projection. terraceWest..terraceBodyWest is that balcony; its front is terraceBalconyFront.
+         # How far east the balcony runs before the deep terrace starts is INFERRED.
+         terraceWest=35.0, terraceBodyWest=40.0, terraceBalconyFront=121.5)   # measured from the fitted camera: the balcony's corner is about 7.5 m from it, 18 degrees to the right
 COLOURS = dict(courtBrick='#b99b80', courtStone='#b69c80',
                courtTrim='#dfded3', courtGlass='#394a4e',
                courtConcrete='#aaa697', courtPave='#9b9789',
@@ -187,6 +247,58 @@ def shrub(x,y,z,sx,sy,sz,seed):
         polyhedron(['courtLeaf','courtLeafLight','courtLeafShade'][clump],pts,faces)
 
 
+def old_wing(d,base,upper,h):
+    """The 1929 wing's plain court walls: pairs of windows in three rows over a stone base.
+
+    Every window is an explicit opening, so the pairs sit exactly where the
+    photograph has them and the top row (in the upper block, whose north wall
+    is one long face above the low projection) lines up with the rows below.
+    """
+    w,half=T['oldWidth'],(T['oldWidth']+T['oldGap'])/2
+    d['skins']['courtOldBase']=dict(kind='flat',field='stone')
+    panes=dict(cols=[1/3,2/3],rows=[.2,.4,.6,.8],w=T['oldPaneW'],tone='courtTrim')
+    def centres(length,mod=None,single=False):
+        """Centre of each window: two to a bay, or one (`single`). `mod` fixes the bay width (the long upper wall)."""
+        if mod is None:n=max(1,round(length/(T['oldSingleBay'] if single else T['oldBay'])));mod=length/n
+        out=[];c=mod/2;reach=w/2 if single else half+w/2
+        while c+reach<length-.25:
+            out.extend([c] if single else [c-half,c+half]);c+=mod
+        return out,mod
+    def opening(c,z,height):
+        return dict(s0=c-w/2,s1=c+w/2,z0=z,z1=z+height,d=T['oldDepth'],glass='courtGlass',tone='courtBrick',lit=False,mullion=panes)
+    def dress(a,b,c,z,height):
+        wall_box('historicSill',a,b,c-w/2-.09,c+w/2+.09,-.035,T['sillProject'],z-T['sillHeight'],z)
+        wall_box('courtArchBrick',a,b,c-w/2-.06,c+w/2+.06,.005,.06,z+height,z+height+.17)
+    low=[f for f in T['oldFloors'] if f+T['oldSill']+T['oldHeight']<=T['projectionTop']]
+    top=[f for f in T['oldFloors'] if f>=T['projectionTop']]
+    assert len(low)+len(top)==len(T['oldFloors']),'a window row would cross the seam between the two blocks'
+    mods={}
+    for i in T['oldFaces']:
+        a,b=h[i],h[(i+1)%len(h)];length=math.dist(a,b);cs,mods[i]=centres(length,single=i in T['oldSingleFaces'])
+        ground=[opening(c,T['oldBaseSill'],T['oldBaseHeight']) for c in cs]
+        rows=[opening(c,f+T['oldSill'],T['oldHeight']) for f in low for c in cs]
+        base['faces']['h0.'+str(i)]=dict(bands=[dict(z0=0,z1=T['oldBaseTop'],skin='courtOldBase',openings=ground),
+                                                dict(z0=T['oldBaseTop'],z1=T['projectionTop'],skin='courtBrick',openings=rows)])
+        for f in low:
+            for c in cs:dress(a,b,c,f+T['oldSill'],T['oldHeight'])
+        wall_box('stone',a,b,.02,length-.02,.01,.1,T['oldBaseTop']-.18,T['oldBaseTop'])      # the top of the stone base
+    # The top row is in the upper block. Its court ring is the lower ring's points 2..15, so
+    # lower face i is upper face i-2, and the lower north wall's west part (face 15) is the
+    # start of ONE long upper face (the last one), which also runs over the low projection.
+    last=len(upper['plan']['holes'][0])-1
+    for i in T['oldFaces']:
+        if i==15:a,b=h[15],h[2];key='h0.'+str(last)
+        else:a,b=h[i],h[(i+1)%len(h)];key='h0.'+str(i-2)
+        length=math.dist(a,b);cs,_=centres(length,mods[i],single=i in T['oldSingleFaces'])
+        rows=[opening(c,f+T['oldSill'],T['oldHeight']) for f in top for c in cs]
+        upper['faces'][key]=dict(bands=[dict(z0=T['projectionTop'],z1=(T['wallTop']-.65),skin='courtBrick',openings=rows),dict(z0=(T['wallTop']-.65),z1=T['wallTop'],skin='trim')])
+        for f in top:
+            for c in cs:dress(a,b,c,f+T['oldSill'],T['oldHeight'])
+            z=f+T['oldSill']-T['sillHeight']
+            wall_box('historicSill',a,b,.02,length-.02,.01,.2,z-T['oldBelt'],z)                 # the moulded band the top row sits on
+        wall_box('historicSill',a,b,.02,length-.02,.01,.2,(T['wallTop']-.55),(T['wallTop']-.37))                         # under the eave, as on the other historic walls
+
+
 def deepen_court(d,base,upper,h):
     """Complete visible historic wings, modern lab and terrace entrance."""
     historic=dict(kind='bays',field='courtBrick',bay=T['bay'],glass='courtGlass',
@@ -206,15 +318,16 @@ def deepen_court(d,base,upper,h):
         frame=dict(w=.065,tone='courtDoor'),head=dict(h=.58,tone='stone'),
         mullion=dict(rows=[.18,.82],w=.04,tone='courtDoor')))
     for i in [6,7,8,9]:
-        upper['faces']['h0.'+str(i-2)]=dict(bands=[dict(z0=T['projectionTop'],z1=18.2,skin='courtLab')])
+        upper['faces']['h0.'+str(i-2)]=dict(bands=[dict(z0=T['projectionTop'],z1=T['wallTop'],skin='courtLab')])
     # The visible historic court elevations have deep brick jambs and separate
     # projecting sill blocks, not a bright frame pasted onto a uniform plane.
     for i in [0,1,2,3,4,5,10,11,12,13,14,15,16]:
+        if i in T['oldFaces']:continue      # old_wing() draws these walls
         a,b=h[i],h[(i+1)%len(h)];length=math.dist(a,b)
         central=i in [0,1,16];n=max(1,round(length/T['bay']));mod=length/n
         width=T['windowWidth'] if central else T['historicWidth']
         height=T['windowHeight'] if central else T['historicHeight']
-        for floor in ([7.8] if central else [3.1,7.8,12.5]):
+        for floor in ([T['level2']] if central else T['floors']):
             for j in range(n):
                 c=(j+.5)*mod
                 if c-width/2<.05 or c+width/2>length-.05:continue
@@ -224,7 +337,7 @@ def deepen_court(d,base,upper,h):
                 # from the modern wing's large pale precast heads.
                 wall_box('courtArchBrick',a,b,c-width/2-.06,c+width/2+.06,.005,.06,z+height,z+height+.17)
         if not central and length>3:
-            for z in [12.35,17.65]:
+            for z in [T['projectionTop']-.35,(T['wallTop']-.55)]:
                 wall_box('historicSill',a,b,.02,length-.02,.01,.2,z,z+.18)
     # Recessed, full-height glazed entry seen under the far shade roof.
     # Width stays inside the surveyed east court wall; no extra building mass.
@@ -233,8 +346,8 @@ def deepen_court(d,base,upper,h):
     door=dict(s0=s0,s1=s1,z0=z0,z1=z1,d=T['entranceDepth'],glass='labGlass',tone='courtDoor',lit=False,
               mullion=dict(cols=[.2,.4,.6,.8],rows=[.78],w=.065,tone='courtDoor'))
     d['skins']['courtLabEntry']={**copy.deepcopy(d['skins']['courtLab']),'windowSkip':[[s0,s1]]}
-    base['faces']['h0.8']=dict(bands=[dict(z0=0,z1=7.8,skin='courtLabEntry',openings=[door]),
-                                             dict(z0=7.8,z1=T['projectionTop'],skin='courtLab')])
+    base['faces']['h0.8']=dict(bands=[dict(z0=0,z1=T['level2'],skin='courtLabEntry',openings=[door]),
+                                             dict(z0=T['level2'],z1=T['projectionTop'],skin='courtLab')])
     wall_box('courtDoor',a,b,s0-.1,s1+.1,-.05,.09,z1,z1+.13)
     wall_box('courtConcrete',a,b,s0-.25,s1+.25,.01,2.7,z0-.13,z0)
     for s in [c-.12,c+.12]:
@@ -249,16 +362,109 @@ def deepen_court(d,base,upper,h):
     base['faces']['h0.0']['bands'][0]['openings']=lower
     # Bushes soften the photographed terrace edge and planted lower court.
     # Keep the walking route and stair clear; existing spiky plants survive.
-    for x,y,z,sx,sy,sz,seed in [(29,121,.16,1.7,1.5,3.4,1),(30.5,120,.16,1.25,1.1,2.7,4),
+    # One narrow shrub at the foot of the north wall, as photographed (it was two, 3.4 m tall, in mid court).
+    for x,y,z,sx,sy,sz,seed in [(29.6,130.4,.16,.85,.85,2.3,1),
         (35.3,122.8,3.66,.82,.58,1.25,2),(68.4,123.4,3.66,.78,.55,1.15,6),
-        (35.7,118,3.66,.68,.5,1.1,8)]:shrub(x,y,z,sx,sy,sz,seed)
+        (37.6,121.6,3.66,.68,.5,1.1,8)]:shrub(x,y,z,sx,sy,sz,seed)
+
+
+def outer_skins(d):
+    """The outer walls' own skins and tones (see the outer* numbers in T)."""
+    d['colours'].update(outerBrick=dict(hex=T['outerBrick']),outerStone=dict(hex=T['outerStone']),outerBeltTone=dict(hex=T['outerBeltTone']))
+    d['materials'].update(outerBeltTone='brick')      # a colour is {hex}: a bare string stops the whole building from being drawn
+    d['materials'].update(outerBrick='brick',outerStone='stone')
+    panes=dict(cols=[.25,.5,.75],rows=[.176,.352,.528,.704,.88],w=T['outerMullion'],tone='courtTrim')
+    def win(h,sill):return dict(w=T['outerWidth'],h=h,sill=sill,frame=dict(w=T['outerFrame'],tone='courtTrim'),mullion=copy.deepcopy(panes))
+    common=dict(kind='bays',bay=T['outerBay'],glass='courtGlass',reveal=T['outerReveal'])
+    d['skins']['outerWall']=dict(common,field='outerBrick',frame='outerBrick',window=win(T['outerHeight'],T['outerSill']))
+    d['skins']['outerTop']=dict(common,field='outerBrick',frame='outerBrick',window=win(T['outerTopHeight'],T['outerTopSill']))
+    d['skins']['outerBase']=dict(common,field='outerStone',frame='outerStone',window=win(T['outerBaseHeight'],T['outerBaseSill']))
+    d['skins']['outerBrick']=dict(kind='flat',field='outerBrick')
+    d['skins']['outerStone']=dict(kind='flat',field='outerStone')
+    d['skins']['outerBeltBrick']=dict(kind='flat',field='outerBeltTone')
+
+
+def north_portal(d):
+    """The stone entrance on the north wall, its steps and the two cheek walls (see the portal* numbers in T)."""
+    north=max(p[1] for p in d['blocks'][0]['plan']['ring'])-.55            # the north wall's line (the ring's corners differ by 0.5 m)
+    c,w,proud=T['portalCentre'],T['portalWidth'],T['portalProud']
+    d['colours'].update(portalDoor=dict(hex=T['portalDoor']),portalStone=dict(hex=T['portalStone']))
+    d['materials'].update(portalStone='stone')
+    d['skins']['portalStone']=dict(kind='flat',field='portalStone',glass='courtGlass',frame='portalStone',reveal=.3)
+    sill,mid=T['portalDoorSill'],w/2
+    panes=dict(cols=[.5],rows=[.25,.5,.75],w=.05,tone='courtTrim')
+    ops=[dict(s0=mid-T['portalDoorWidth']/2,s1=mid+T['portalDoorWidth']/2,z0=sill,z1=T['portalDoorTop'],d=.35,tone='portalDoor'),
+         dict(s0=mid-T['portalDoorWidth']/2,s1=mid+T['portalDoorWidth']/2,z0=T['portalDoorTop']+.08,z1=T['portalArchTop'],d=.3,glass='courtGlass',tone='portalStone',arch={})]
+    ops+=[dict(s0=mid-ww/2,s1=mid+ww/2,z0=z0,z1=z1,d=.3,glass='courtGlass',tone='portalStone',mullion=copy.deepcopy(panes)) for z0,z1,ww in T['portalWindows']]
+    sz,dot,length=T['portalSign'];gap=round((length-9*5*(dot/7))/8,3)      # nine letters, each five dots wide
+    band=dict(z0=0,z1=T['portalTop'],skin='portalStone',openings=ops,
+              signs=[dict(text='CHEMISTRY',s0=round(mid-length/2,2),z0=sz,dot=round(dot/7,3),gap=gap,tone='courtSteel')])
+    blocks=[dict(id='welch-north-portal',plan=[c-w/2,c+w/2,north,north+.5+proud],z0=0,z1=T['portalTop'],bands=[dict(z0=0,z1=T['portalTop'],skin='portalStone')],
+                 faces=dict(v0=None,v1=dict(bands=[band])),roofTone='portalStone',
+                 _src='PHOTO (flattened): size, door, word and windows. SCAN: place along the wall. Carving and colonnettes are not drawn.')]
+    front=north+.5+proud;n=T['portalSteps'];rise=sill/n;sw=T['portalStairWidth'];ct,ch=T['portalCheek']
+    for i in range(n):                                                       # step i is one box from the ground to its tread
+        blocks.append(dict(id=f'welch-north-step-{i}',plan=[c-sw/2,c+sw/2,front+i*T['portalStepRun'],front+(i+1)*T['portalStepRun']],z0=0,z1=round(sill-rise*i,3),
+                           bands=[dict(z0=0,z1=round(sill-rise*i,3),skin='outerStone')],faces=dict(v0=None),roofTone='outerStone'))      # plain stone: the aged-concrete material drew dark stripes on the risers
+    run=n*T['portalStepRun']
+    for side,u0 in (('w',c-sw/2-ct),('e',c+sw/2)):
+        blocks.append(dict(id=f'welch-north-cheek-{side}',plan=[u0,u0+ct,front,front+run*.75],z0=0,z1=round(sill*.62+ch*.4,3),
+                           bands=[dict(z0=0,z1=round(sill*.62+ch*.4,3),skin='outerStone')],faces=dict(v0=None),roofTone='outerStone'))
+    d['blocks']+=blocks
+
+
+def west_portal(d):
+    """The stone entrance on the west wall with its window frame above, the landing and the steps (see west* in T)."""
+    ring=d['blocks'][0]['plan']['ring']; (ua,va),(ub,vb)=ring[7],ring[8]                 # the west wall: edge 7 of the ring
+    v0=T['westDoorV']; wall=ua+(ub-ua)*(va-v0)/(va-vb)
+    w,top=T['westSurround']; dw,dz0,dz1=T['westDoor']; fw,ftop=T['westFrame']; ww,wz0,wz1=T['westWindow']
+    panes=dict(cols=[.5],rows=[.33,.66],w=.05,tone='courtTrim')
+    low=dict(z0=0,z1=top,skin='portalStone',openings=[dict(s0=w/2-dw/2,s1=w/2+dw/2,z0=dz0,z1=dz1-.9,d=.35,tone='portalDoor'),
+        dict(s0=w/2-dw/2,s1=w/2+dw/2,z0=dz1-.82,z1=dz1,d=.3,glass='courtGlass',tone='portalStone')])
+    up=dict(z0=top,z1=ftop,skin='portalStone',openings=[dict(s0=fw/2-ww/2,s1=fw/2+ww/2,z0=wz0,z1=wz1,d=.35,glass='courtGlass',tone='portalStone',mullion=panes)])
+    plain=lambda z0,z1:[dict(z0=z0,z1=z1,skin='portalStone')]
+    blocks=[dict(id='welch-west-portal',plan=[round(wall-.45,2),round(wall+.5,2),v0-w/2,v0+w/2],z0=0,z1=top,bands=plain(0,top),faces=dict(u1=None,u0=dict(bands=[low])),roofTone='portalStone',
+                 _src='PHOTO (flattened): size, door and cornice. SCAN: place along the wall and the ground level. Carving not drawn.'),
+            dict(id='welch-west-frame',plan=[round(wall-.3,2),round(wall+.5,2),v0-fw/2,v0+fw/2],z0=top,z1=ftop,bands=plain(top,ftop),faces=dict(u1=None,u0=dict(bands=[up])),roofTone='portalStone',
+                 _src='PHOTO (flattened): the window in its stone frame over the door. The scrolls and the iron balcony are not drawn.')]
+    s0,l0,l1,sw,n=T['westStair']; rise=dz0/n; run=(l0-s0)/n
+    blocks.append(dict(id='welch-west-landing',plan=[round(wall-sw,2),round(wall,2),l0,l1],z0=0,z1=dz0,bands=[dict(z0=0,z1=dz0,skin='outerStone')],faces=dict(u1=None),roofTone='outerStone'))
+    for i in range(n):
+        blocks.append(dict(id=f'welch-west-step-{i}',plan=[round(wall-sw,2),round(wall,2),round(s0+i*run,3),round(s0+(i+1)*run,3)],z0=0,z1=round(rise*(i+1),3),
+                           bands=[dict(z0=0,z1=round(rise*(i+1),3),skin='outerStone')],faces=dict(u1=None),roofTone='outerStone'))
+    d['blocks']+=blocks
+
+
+def west_screens(d,base):
+    """Split the west wall where the old range ends and give the newer wing's part its lattice screens (see screen* in T)."""
+    ring=base['plan']['ring'];v=T['screenSplitV']
+    if not any(abs(p[1]-v)<.01 and p[0]<5 for p in ring):                 # put the split point on the west wall once
+        (ua,va),(ub,vb)=ring[7],ring[8];ring.insert(8,[round(ua+(ub-ua)*(va-v)/(va-vb),3),v])
+    (ua,va),(ub,vb)=ring[8],ring[9];length=math.hypot(ub-ua,vb-va)
+    d['colours'].update(screenTone=dict(hex=T['screenTone']),screenLine=dict(hex=T['screenLine']))
+    d['materials'].update(screenTone='brick')
+    n=max(1,round(length/T['screenBay']));bay=length/n;w=T['screenWidth']
+    screens=[dict(s0=round(bay*(k+.5)-w/2,3),s1=round(bay*(k+.5)+w/2,3),z0=T['screenBase']+.3,z1=T['screenTop']-.2,d=.12,tone='screenTone',
+                  mullion=dict(cols=[i/9 for i in range(1,9)],rows=[i/30 for i in range(1,30)],w=.05,tone='screenLine')) for k in range(n)]
+    d['skins']['screenBrick']=dict(kind='flat',field='labBrick')
+    d['skins']['outerSlit']=dict(kind='bays',field='labBrick',bay=round(bay,3),glass='courtGlass',frame='labBrick',reveal=.2,
+        window=dict(w=T['slitWidth'],h=T['slitHeight'],sill=T['slitSill']))
+    base['faces']['8']=dict(bands=[dict(z0=0,z1=T['screenBase'],skin='outerStone'),
+        dict(z0=T['screenBase'],z1=T['screenTop'],skin='screenBrick',openings=screens),
+        dict(z0=T['screenTop'],z1=T['screenBelt'],skin='outerBeltBrick'),
+        dict(z0=T['screenBelt'],z1=T['projectionTop'],skin='outerSlit',floors=[T['screenBelt']])])
 
 
 def main():
     d=json.loads(PATH.read_text(encoding='utf-8'));base=d['blocks'][0]
     base['z1']=T['projectionTop']
-    base['bands']=[dict(z0=0,z1=3.1,skin='basement'),dict(z0=3.1,z1=T['projectionTop'],skin='welch')]
+    outer_skins(d)
+    base['bands']=[dict(z0=0,z1=T['outerBaseTop'],skin='outerBase'),dict(z0=T['outerBaseTop'],z1=T['outerString'][0],skin='outerBrick'),
+                   dict(z0=T['outerString'][0],z1=T['outerString'][1],skin='outerStone'),dict(z0=T['outerString'][1],z1=T['projectionTop'],skin='outerWall')]
+    d['levels']=dict(floors=[0,*T['floors'],T['wallTop']])
+    d['roofBase']=T['wallTop']      # the kept campus roof pieces move up with the walls (js/slopes-apartments.js)
     base['faces']={k:v for k,v in base.get('faces',{}).items() if not k.startswith('h')}
+    west_screens(d,base)
     for face in base['faces'].values():
         face['bands']=[{**b,'z1':min(b['z1'],T['projectionTop'])} for b in face['bands'] if b['z0']<T['projectionTop']]
     d['colours'].update({k:{'hex':v} for k,v in COLOURS.items()})
@@ -275,9 +481,14 @@ def main():
     h=base['plan']['holes'][0]
     # The central low projection keeps its actual footprint but stops below
     # the adjacent historic wings. Only the upper-storey hole is widened.
-    upper=copy.deepcopy(base);upper['id']='welch-upper-wings';upper['z0']=T['projectionTop'];upper['z1']=18.2
-    upper['bands']=[dict(z0=T['projectionTop'],z1=17.55,skin='welch'),dict(z0=17.55,z1=18.2,skin='trim')]
+    upper=copy.deepcopy(base);upper['id']='welch-upper-wings';upper['z0']=T['projectionTop'];upper['z1']=T['wallTop']
+    upper['bands']=[dict(z0=T['projectionTop'],z1=T['outerBelt'][0],skin='outerBrick'),dict(z0=T['outerBelt'][0],z1=T['outerBelt'][1],skin='outerBeltBrick'),
+                    dict(z0=T['outerBelt'][1],z1=(T['wallTop']-.65),skin='outerTop'),dict(z0=(T['wallTop']-.65),z1=T['wallTop'],skin='trim')]
     upper['faces']={}
+    d['colours'].update(screenUpperTone=dict(hex=T['screenUpperTone']));d['materials'].update(screenUpperTone='brick')
+    uw,uh,us=T['screenUpperWindow']
+    d['skins']['screenUpper']=dict(kind='bays',field='screenUpperTone',bay=d['skins']['outerSlit']['bay'],glass='courtGlass',frame='screenUpperTone',reveal=.2,window=dict(w=uw,h=uh,sill=us))
+    upper['faces']['8']=dict(bands=[dict(z0=T['projectionTop'],z1=(T['wallTop']-.65),skin='screenUpper',floors=[T['projectionTop']]),dict(z0=(T['wallTop']-.65),z1=T['wallTop'],skin='trim')])
     upper['plan']['holes'][0]=h[2:16]
     upper['plan']['holes'][0][-1]=[24.924,133.008]
     for i in [0,1,16]:
@@ -285,29 +496,39 @@ def main():
         openings=[]
         for j in range(n):
             c=(j+.5)*mod
-            openings.append(dict(s0=c-.74,s1=c+.74,z0=3.65,z1=7.0,tone='courtBrick',lit=False,d=.1,
+            openings.append(dict(s0=c-.74,s1=c+.74,z0=3.65,z1=T['level2']-.9,tone='courtBrick',lit=False,d=.1,
                 arch=dict(rise=.74,trim=.18,tone='courtBrick',proud=.045)))
-            soldier_arch(a,b,c,6.26,.74)
+            soldier_arch(a,b,c,T['level2']-1.64,.74)
         base['faces']['h0.'+str(i)]=dict(bands=[dict(z0=0,z1=3.1,skin='courtBrick'),
-          dict(z0=3.1,z1=7.8,skin='courtBrick',openings=openings),dict(z0=7.8,z1=T['projectionTop'],skin='courtWindow')])
+          dict(z0=3.1,z1=T['level2'],skin='courtBrick',openings=openings),dict(z0=T['level2'],z1=T['projectionTop'],skin='courtWindow')])
     for i in [6,7,8,9]:
         base['faces']['h0.'+str(i)]=dict(bands=[dict(z0=0,z1=T['projectionTop'],skin='courtLab')])
     d['blocks']=[base,upper]
     # A correctly bounded northern hip replaces only the old rectangle which
     # bridged the courtyard. Southern roof and rooftop detail remain legacy.
     d['excludeRoofIds']=['ca0207d3-bbf8-408d-a319-9407d7bd0dd2/0/p0']
-    d['blocks'].append(dict(id='welch-north-hip',plan=[.85,94.15,134.05,156.65],z0=18.15,z1=18.2,
-       bands=[dict(z0=18.15,z1=18.2,skin='trim')],roofTone='courtRoofTile',
+    d['blocks'].append(dict(id='welch-north-hip',plan=[.85,94.15,134.05,156.65],z0=(T['wallTop']-.05),z1=T['wallTop'],
+       bands=[dict(z0=(T['wallTop']-.05),z1=T['wallTop'],skin='trim')],roofTone='courtRoofTile',
        roof=dict(kind='hip',pitch=T['roofPitch'],over=.45,lipH=.18,tone='courtRoofTile')))
+    north_portal(d)
+    west_portal(d)
     # Lower sunken court and elevated terrace, following the footprint hole.
     box('courtPave',24,72,102.1,124.9,.08,.16)
-    box('courtConcrete',34.0,70.0,112.0,124.95,T['terrace']-T['slab'],T['terrace'])
-    for x in [35.3,43.0,50.7,58.4,66.1]:
+    tw,tb,tf=T['terraceWest'],T['terraceBodyWest'],T['terraceBalconyFront']
+    lo,hi=T['terrace']-.6,T['terrace']+T['parapet']
+    box('courtConcrete',tb,70.0,112.0,124.95,T['terrace']-T['slab'],T['terrace'])      # the deep terrace
+    box('courtConcrete',tw,tb,tf,124.95,T['terrace']-T['slab'],T['terrace'])           # the west balcony
+    for x in [tb+.6,43.0,50.7,58.4,66.1]:
         rod('courtConcrete',[x,112.65,.16],[x,112.65,T['terrace']-T['slab']],.24,10)
     # Stepped/tapered terrace edge, upper handrail and lower horizontal reveal.
-    box('courtConcrete',34,70,111.72,112.03,T['terrace']-.6,T['terrace']+T['parapet'])
-    box('courtStone',33.93,70.08,111.64,112.10,T['terrace']+T['parapet'],T['terrace']+T['parapet']+.1)
-    rail([34.3,111.87,4.56],[69.6,111.87,4.56])
+    box('courtConcrete',tb,70,111.72,112.03,lo,hi)
+    box('courtStone',tb-.07,70.08,111.64,112.10,hi,hi+.1)
+    rail([tb+.3,111.87,4.56],[69.6,111.87,4.56])
+    # The balcony's parapet: its front, its west side, and the step back to the deep terrace.
+    box('courtConcrete',tw-.28,tb+.03,tf-.28,tf+.03,lo,hi)
+    box('courtConcrete',tw-.28,tw+.03,tf-.28,124.95,lo,hi)
+    box('courtConcrete',tb-.28,tb+.03,111.72,tf-.28,lo,hi)
+    rail([tw-.12,tf-.12,4.56],[tb-.12,tf-.12,4.56]);rail([tw-.12,tf-.12,4.56],[tw-.12,124.7,4.56]);rail([tb-.12,111.87,4.56],[tb-.12,tf-.12,4.56])
     box('courtConcrete',69.7,70,112,124.9,3.1,3.94)
     rail([69.85,112.1,4.56],[69.85,124.65,4.56])
     # Stair at the eastern terrace end. Individual treads, open underside not
@@ -330,8 +551,8 @@ def main():
         n=max(1,round(math.dist(a,b)/3.35))
         for j in range(n+1):
             f=j/n;x=a[0]+(b[0]-a[0])*f;y=a[1]+(b[1]-a[1])*f
-            box('courtStone',x-.2,x+.2,y-.2,y+.2,12.75,13.65)
-            turned('courtStone',x,y,13.7,[(0,.22),(.11,.22),(.13,.16),(.57,.105),(.62,.12)],4)
+            box('courtStone',x-.2,x+.2,y-.2,y+.2,T['projectionTop']+.05,T['balustradeTop'])
+            turned('courtStone',x,y,T['balustradeTop']+.05,[(0,.22),(.11,.22),(.13,.16),(.57,.105),(.62,.12)],4)
     # Small vents occupy a few blind arches, with horizontal dark louvres.
     for x in [41.05,47.75,54.45]:
         box('courtSteel',x-.6,x+.6,125.06,125.14,3.35,4.7)
@@ -343,17 +564,19 @@ def main():
         for dx in [-1.05,1.05]:
             box('courtFurniture',x+dx-.18,x+dx+.18,y-.85,y+.85,3.53,3.59)
             for dy in [-.6,.6]:rod('courtSteel',[x+dx,y+dy,3.1],[x+dx,y+dy,3.53],.035)
-    for x,y,s in [(35.3,122.8,1.0),(36,117.5,.8),(68.4,123.4,1.0),(68.4,113.0,.9)]:
+    for x,y,s in [(35.3,122.8,1.0),(37.6,121.6,.8),(68.4,123.4,1.0),(68.4,113.0,.9)]:
         box('courtConcrete',x-.85,x+.85,y-.7,y+.7,3.1,3.65)
         box('courtSoil',x-.75,x+.75,y-.6,y+.6,3.64,3.66);plant(x,y,3.67,s)
     for x,y in [(26,106),(27,120),(30,105)]:plant(x,y,.16,1.3)
     # Existing exhaust plant is retained. The photographed pair stands above
     # the laboratory roof, with shallow segmented bands and capped tops.
     for x,y,r,height in [(78,129,.55,4.2),(80.5,130,.42,3.0)]:
-        rod('metal',[x,y,18.2],[x,y,18.2+height],r,12)
-        for j in range(1,5):turned('metal',x,y,18.2+j*height/5,[(0,r+.045),(.07,r+.045)],12)
+        rod('metal',[x,y,T['wallTop']],[x,y,T['wallTop']+height],r,12)
+        for j in range(1,5):turned('metal',x,y,T['wallTop']+j*height/5,[(0,r+.045),(.07,r+.045)],12)
     deepen_court(d,base,upper,h)
-    d['detailMeshes']=list(M.values())
+    old_wing(d,base,upper,h)
+    # Keep meshes another author owns (e.g. welch-east-arcade); replace only ours.
+    d['detailMeshes']=list(M.values())+[m for m in d.get('detailMeshes',[]) if not m['id'].startswith('welch-court-')]
     d['courtyardParameters']=T
     d['sources']['courtyard']='Existing footprint fixes courtyard edges. Exterior architectural evidence informs lower historic projection, masonry arches/balustrade, deep multipane historic windows, contrasting narrow laboratory openings, recessed terrace entrance, steel shade canopies and a planted split-level terrace; small dimensions remain approximate.'
     d['open']=['Unphotographed elevations and small dimensions remain approximate.',

@@ -1,0 +1,272 @@
+#!/usr/bin/env bash
+#
+# user-data — runs ONCE at instance boot (cloud-init). Turns a fresh Deep
+# Learning Base GPU AMI into a machine that runs the browser checks and then
+# shuts itself down (and, because the instance was launched with
+# instance-initiated-shutdown-behavior=terminate, shutting down TERMINATES it).
+#
+# The launch script fills the @@TOKENS@@ before this is sent as user-data.
+#
+# ORDER MATTERS: arm the guardrails FIRST, before the long install/clone/run,
+# so a hang anywhere after this point still hits the hard cap and the box dies.
+#
+# GPU note vs Colab: this AMI ships the NVIDIA driver AND the userspace GL
+# libraries, so — unlike scripts/colab/setup.py — we do NOT unpack a .run
+# installer. We only install Chrome, Node and Playwright, point the verify
+# harness at Chrome with the EGL flags, and confirm the renderer is not
+# SwiftShader.
+#
+set -uxo pipefail
+
+REPO="@@REPO@@"
+REF="@@REF@@"
+CONCURRENCY="@@CONCURRENCY@@"
+MAX_RUNTIME_MIN="@@MAX_RUNTIME_MIN@@"
+IDLE_TIMEOUT_MIN="@@IDLE_TIMEOUT_MIN@@"
+RESULT_BUCKET="@@RESULT_BUCKET@@"
+PROJECT_TAG="@@PROJECT_TAG@@"
+CHECKS_JSON='@@CHECKS_JSON@@'
+
+BASE_PORT=8442
+WORK=/opt/flyover/work
+OUT=/opt/flyover/out
+LOG=/var/log/flyover-user-data.log
+mkdir -p "$WORK" "$OUT"
+exec > >(tee -a "$LOG") 2>&1
+echo "== flyover user-data start $(date -u +%FT%TZ) =="
+
+# ---------------------------------------------------------------------------
+# RESULTS ALWAYS COME BACK. The first real run (2026-10-09) launched, ran 31
+# minutes, shut itself down and uploaded NOTHING: the upload was the last line
+# of this script, and the idle watchdog stopped the box before it got there.
+# So the upload is a function. The watchdog calls it before it shuts down, an
+# EXIT trap calls it, the end of the script calls it, and the log alone goes up
+# every few minutes, so even a hang leaves its log in the bucket.
+# ---------------------------------------------------------------------------
+upload_results() {
+  [ -n "$RESULT_BUCKET" ] || { echo "== no RESULT_BUCKET set; results are in ${OUT} on the instance only =="; return 0; }
+  local iid; iid=$(cloud-init query instance_id 2>/dev/null || cat /var/lib/cloud/data/instance-id 2>/dev/null || date -u +%Y%m%dT%H%M%SZ)
+  local prefix="s3://${RESULT_BUCKET}/flyover-runs/${REF}-${iid}"
+  echo "== uploading results to ${prefix} (${1:-end}) =="
+  aws s3 cp "$LOG" "${prefix}/user-data.log" --only-show-errors || true
+  [ "${1:-end}" = "log-only" ] || aws s3 cp --recursive "$OUT" "${prefix}/out" --only-show-errors || true
+}
+trap 'upload_results exit' EXIT
+
+# ---------------------------------------------------------------------------
+# GUARDRAIL 1: hard maximum runtime. Schedule a shutdown NOW, before anything
+# slow, so nothing that hangs later can outlive the cap. shutdown -h + the
+# instance's terminate-on-shutdown behaviour = the box is gone at the cap.
+# ---------------------------------------------------------------------------
+shutdown -h "+${MAX_RUNTIME_MIN}" "flyover hard max runtime ${MAX_RUNTIME_MIN}m" || true
+
+# ---------------------------------------------------------------------------
+# GUARDRAIL 2: idle watchdog. A heartbeat file is touched whenever a check is
+# running; if it goes stale for IDLE_TIMEOUT_MIN, shut down early. This catches
+# the case where the checks finished (or wedged) long before the hard cap.
+# ---------------------------------------------------------------------------
+HEARTBEAT=/opt/flyover/heartbeat
+touch "$HEARTBEAT"
+(
+  idle_secs=$(( IDLE_TIMEOUT_MIN * 60 ))
+  while true; do
+    sleep 60
+    last=$(stat -c %Y "$HEARTBEAT" 2>/dev/null || echo 0)
+    now=$(date +%s)
+    n=$(( ${n:-0} + 1 ))
+    [ $(( n % 5 )) -eq 0 ] && upload_results log-only
+    if [ $(( now - last )) -ge "$idle_secs" ]; then
+      echo "== idle watchdog: no check in ${IDLE_TIMEOUT_MIN}m, shutting down =="
+      upload_results watchdog
+      shutdown -h now "flyover idle watchdog"
+      exit 0
+    fi
+  done
+) &
+
+beat() { touch "$HEARTBEAT"; }
+
+# ---------------------------------------------------------------------------
+# Toolchain: Chrome, Node, Playwright. The driver is already on the AMI.
+# ---------------------------------------------------------------------------
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y
+beat
+# Chrome from Google's apt repo (stable, and re-pullable if the .deb URL moves).
+wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O /tmp/chrome.deb
+apt-get install -y /tmp/chrome.deb
+google-chrome --version
+
+# Node 20 via NodeSource (the AMI's node, if any, is too old for the harness).
+if ! command -v node >/dev/null 2>&1 || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 18 ]; then
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y nodejs
+  beat
+fi
+node --version
+
+# ---------------------------------------------------------------------------
+# Chrome wrapper: the verify harness launches Chrome through
+# scripts/verify/chrome.mjs, which honours CHROME_PATH. Point it at a wrapper
+# that appends the EGL flags so the checks stay UNMODIFIED (same trick as
+# scripts/colab/setup.py). VERIFY_GL=hardware stops chrome.mjs adding its
+# SwiftShader flags.
+# ---------------------------------------------------------------------------
+CHROME_WRAPPER=/opt/flyover/chrome-egl
+cat > "$CHROME_WRAPPER" <<'WRAP'
+#!/bin/sh
+exec /usr/bin/google-chrome \
+  --headless=new \
+  --ignore-gpu-blocklist \
+  --enable-gpu \
+  --no-sandbox \
+  --use-gl=angle \
+  --use-angle=gl-egl \
+  "$@"
+WRAP
+chmod +x "$CHROME_WRAPPER"
+
+# ---------------------------------------------------------------------------
+# Clone the repo (shallow) at the exact ref, then make playwright-core
+# resolvable from scripts/verify the way the harness expects.
+# ---------------------------------------------------------------------------
+rm -rf "$WORK"
+if ! git clone --depth 1 --branch "$REF" "$REPO" "$WORK"; then
+  git clone "$REPO" "$WORK"
+  ( cd "$WORK" && git checkout "$REF" )
+fi
+( cd "$WORK" && git rev-parse HEAD )
+beat
+( cd "$WORK/scripts/verify" && npm install --no-audit --no-fund )
+beat
+
+# ---------------------------------------------------------------------------
+# A server per check port (never `python -m http.server` — serve.py handles
+# Range and cache headers; see its own header).
+# ---------------------------------------------------------------------------
+python3 - "$CHECKS_JSON" <<'PY' > /opt/flyover/checks.count
+import json, sys
+print(len(json.loads(sys.argv[1])))
+PY
+N=$(cat /opt/flyover/checks.count)
+PORTS=()
+SERVERS=()
+for i in $(seq 0 $(( N > 0 ? N-1 : 0 ))); do
+  p=$(( BASE_PORT + i ))
+  python3 "$WORK/scripts/serve.py" "$p" "$WORK" &
+  SERVERS+=($!)
+  PORTS+=("$p")
+done
+sleep 3
+
+# ---------------------------------------------------------------------------
+# GPU proof: confirm the renderer is the real GPU, not SwiftShader. FAIL the
+# whole run if it is SwiftShader — a green suite on a CPU rasteriser is a lie
+# (see scripts/verify/chrome.mjs on why the default is otherwise SwiftShader).
+# ---------------------------------------------------------------------------
+RENDERER_FILE="$OUT/renderer.txt"
+# Ask the browser itself which graphics chip it draws with, and KEEP the answer. (The first version sent this
+# output to /dev/null and hoped a check would print the name; graphics.mjs does not, so the second real run
+# passed 27 of 27 with no proof of a real GPU.) The page writes the name into its body; --dump-dom prints it.
+"$CHROME_WRAPPER" --headless=new --disable-gpu-compositing --virtual-time-budget=4000 \
+  --dump-dom "data:text/html,<body><script>var gl=document.createElement('canvas').getContext('webgl');var e=gl&&gl.getExtension('WEBGL_debug_renderer_info');document.body.textContent='RENDERER:'.concat(gl?(e?gl.getParameter(e.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)):'no webgl');</script></body>" \
+  > "$OUT/renderer-probe.html" 2>/dev/null || true
+grep -o 'RENDERER:[^<]*' "$OUT/renderer-probe.html" 2>/dev/null | head -1 > "$RENDERER_FILE" || true
+echo "== graphics chip the browser reports: $(cat "$RENDERER_FILE" 2>/dev/null || echo unknown) =="
+# The dump-dom trick is unreliable headless; the checks themselves record the
+# renderer string in their output. Capture it authoritatively from graphics.mjs
+# below and gate on it there.
+
+# ---------------------------------------------------------------------------
+# Run the checks, up to CONCURRENCY at once. Each gets its own port + server,
+# VERIFY_GL=hardware, and CHROME_PATH pointed at the EGL wrapper.
+# ---------------------------------------------------------------------------
+run_one() {
+  local idx="$1" name="$2" cmd="$3" args="$4" port="$5"
+  local outdir="$OUT/$name"
+  mkdir -p "$outdir"
+  beat
+  ( cd "$WORK/scripts/verify" \
+    && VERIFY_URL="http://127.0.0.1:${port}" \
+       VERIFY_GL=hardware \
+       CHROME_PATH="$CHROME_WRAPPER" \
+       VERIFY_OUT="$outdir" \
+       VERIFY_MAX_MS="${VERIFY_MAX_MS:-600000}" \
+       node "$cmd" $args ) > "$outdir/stdout.txt" 2>&1
+  echo "$?" > "$outdir/exit"
+  beat
+}
+
+# Drive the JSON check list from python (portable parsing), running a bounded
+# pool. python writes a line "IDX NAME CMD ARGS" per check.
+python3 - "$CHECKS_JSON" <<'PY' > /opt/flyover/checks.tsv
+import json, sys
+for i, c in enumerate(json.loads(sys.argv[1])):
+    args = " ".join(c.get("args", []))
+    print("%d\t%s\t%s\t%s" % (i, c["name"], c["cmd"], args))
+PY
+
+RUNNING=0
+i=0
+declare -A PIDS
+while IFS=$'\t' read -r idx name cmd args; do
+  port="${PORTS[$idx]:-$BASE_PORT}"
+  run_one "$idx" "$name" "$cmd" "$args" "$port" &
+  PIDS[$!]=1
+  RUNNING=$(( RUNNING + 1 ))
+  if [ "$RUNNING" -ge "$CONCURRENCY" ]; then
+    wait -n "${!PIDS[@]}" 2>/dev/null || wait "${!PIDS[@]}"
+    RUNNING=$(( RUNNING - 1 ))
+    beat
+  fi
+done < /opt/flyover/checks.tsv
+# Wait for the CHECKS only. A bare `wait` also waits for the page servers and for the idle watchdog, which never
+# end: the second real run sat idle for 20 minutes after its one check until the watchdog stopped the machine.
+wait "${!PIDS[@]}"
+beat
+
+for s in "${SERVERS[@]}"; do kill "$s" 2>/dev/null || true; done
+
+# ---------------------------------------------------------------------------
+# GPU gate: scan every check's output for the renderer string. If any run drew
+# on SwiftShader, mark the whole run failed.
+# ---------------------------------------------------------------------------
+GPU_OK=1
+if grep -rili "swiftshader" "$OUT" >/dev/null 2>&1; then
+  echo "== FAIL: SwiftShader renderer detected — the GPU was not used =="
+  GPU_OK=0
+fi
+[ -s "$RENDERER_FILE" ] || echo "RENDERER:unknown (the probe printed nothing)" > "$RENDERER_FILE"
+
+# ---------------------------------------------------------------------------
+# Build a manifest, then ship results.
+# ---------------------------------------------------------------------------
+python3 - "$OUT" "$REPO" "$REF" "$GPU_OK" <<'PY'
+import json, os, sys, time
+out, repo, ref, gpu_ok = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+results = []
+for name in sorted(os.listdir(out)):
+    d = os.path.join(out, name)
+    if not os.path.isdir(d):
+        continue
+    ex = os.path.join(d, "exit")
+    code = int(open(ex).read().strip()) if os.path.exists(ex) else None
+    results.append({"name": name, "exit": code})
+manifest = {"repo": repo, "ref": ref, "gpu_ok": bool(int(gpu_ok)),
+            "when": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "results": results}
+json.dump(manifest, open(os.path.join(out, "manifest.json"), "w"), indent=1)
+print("MANIFEST " + json.dumps(manifest))
+PY
+
+# ---------------------------------------------------------------------------
+# RESULTS: to S3 if a bucket is set (chosen delivery path; see README for the
+# exact permissions the instance profile needs). The instance's IAM role must
+# allow s3:PutObject on that bucket/prefix and nothing else.
+# ---------------------------------------------------------------------------
+trap - EXIT
+upload_results end
+
+echo "== flyover user-data done; shutting down now =="
+# Explicit shutdown so we do not wait out the hard cap when we are already done.
+shutdown -h now "flyover run complete"

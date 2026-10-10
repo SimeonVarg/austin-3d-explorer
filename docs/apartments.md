@@ -485,7 +485,9 @@ what the block extents were read from.
 }
 ```
 
-**colours** — a day hex gets golden and night from `js/westcampus.js`'s
+**colours** — write each as `{ "hex": "#rrggbb" }` (a bare `"#rrggbb"` string is accepted as a day hex too, and a
+colour with no hex is skipped with a warning; before 2026-10-09 a bare string stopped the whole building from being
+drawn). A day hex gets golden and night from `js/westcampus.js`'s
 `ramp()` (the same relationship its own bands use, so a mesh panel and the
 fill-extrusion band next door age the same way); a full trio is taken as
 given. Keys starting `_` are notes.
@@ -499,6 +501,13 @@ count from a module, never a hard-coded count.
   1..n cells shares a tone), `macro` (`[rows, planks]` per decision cell —
   The Standard's dark runs are two courses by two planks), `window`
   (`cols` as fractions of the face, `w`, `h`, `sill`).
+- A recipe with `preserveRoof: true` may carry `roofBase` (metres above ground, the top of
+  its walls): the kept campus roof pieces are moved to it. Without it they stay at their
+  baked height.
+- A band may carry `floors: [z, ...]` (absolute heights of its own floor
+  lines). Without it the band uses the building's `levels.floors`. Use it for
+  a wall whose storeys differ from the rest of the building: Welch Hall's east
+  wall has three window rows where the building's levels give two.
 - `bays`: a flat `field` cut into bays of `bay` metres; `strip` (`w`,
   `tone`, `at: "joints" | "centres"`, `every`) puts a vertical strip of
   another tone on the bay lines; `window` (`w`, `h`, `sill`) one per bay per
@@ -564,6 +573,12 @@ A `window` spec (on `pixel`, `bays`, `flat`) also takes:
 - `overrides`: `[{ region: [u0, u1, v0, v1], bands }]` — the part of any
   axis-parallel wall inside the region wears these bands instead (The
   Standard's corner bay, the wall above the lower east wing).
+  An override REPLACES the wall's bands for the block's whole height: give it
+  bands from the block's `z0` to its `z1`, or the wall is left open above and
+  below them (you see through the building). The first override to claim a
+  stretch keeps it, so two overrides must not overlap. A wall whose layout
+  changes from tier to tier is therefore one BLOCK PER TIER (`cap: false` on
+  all but the top one); `scripts/author_moontower.py` does this.
 - `balconies` on a band: `[{ s0, s1, lift }]` — a stack, one per floor line
   in the band, `s` measured along the face (a rectangle's `v0` face runs
   from its `u1` end to its `u0` end). The slab, projection and rail come

@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+#
+# launch — start one GPU EC2 instance that runs the browser checks and stops
+# itself. Mirrors scripts/colab/run.py, for AWS instead of Colab.
+#
+# The checks in scripts/verify need a real GPU. This laptop has one, but only
+# one full-app 3D browser fits in it at a time, so the checks queue. scripts/
+# colab already runs them on a rented Colab L4. This does the same on AWS, for
+# when the AWS credits are the ones available.
+#
+# WHAT IT DOES
+#   * Resolves the Deep Learning Base GPU AMI id from a public SSM parameter
+#     (so the NVIDIA driver is already installed and we do not unpack it like
+#     Colab has to).
+#   * Renders user-data with the run's inputs baked in (repo, ref, checks, ...).
+#   * Runs one instance, default g6.2xlarge (1x L4), falling back to g5.2xlarge
+#     (1x A10G) when the region has no g6 capacity.
+#   * Sets guardrails that cannot be forgotten because they are defaults here:
+#       - the instance TERMINATES on OS shutdown (not stop);
+#       - user-data arms a hard max-runtime shutdown and an idle watchdog;
+#       - project=flyover is tagged on the instance AND its volumes.
+#
+# SAFETY
+#   This script only ever calls run-instances (plus a read-only describe/SSM
+#   lookup). It never terminates anything — teardown does that. --print shows
+#   every aws command without running it; --dry-run passes --dry-run to
+#   run-instances so AWS validates permissions and returns without launching.
+#
+# USAGE
+#   ./launch --ref main \
+#       --check graphics.mjs \
+#       --check "movement.mjs --report"
+#
+#   ./launch --print          # print the aws commands, run nothing
+#   ./launch --dry-run        # ask AWS to validate run-instances, launch nothing
+#
+set -euo pipefail
+
+# ---- taste / tunables: every default is one line to overrule ---------------
+REGION="${AWS_GPU_REGION:-us-east-1}"
+INSTANCE_TYPE="${AWS_GPU_TYPE:-g6.2xlarge}"           # 1x NVIDIA L4
+FALLBACK_TYPE="${AWS_GPU_FALLBACK_TYPE:-g5.2xlarge}"  # 1x NVIDIA A10G
+PROJECT_TAG="${AWS_GPU_PROJECT_TAG:-flyover}"         # tag on instance + volumes
+MAX_RUNTIME_MIN="${AWS_GPU_MAX_RUNTIME_MIN:-60}"      # hard cap: shutdown -h
+IDLE_TIMEOUT_MIN="${AWS_GPU_IDLE_TIMEOUT_MIN:-20}"    # watchdog: no check running
+CONCURRENCY="${AWS_GPU_CONCURRENCY:-4}"               # checks in parallel
+VOLUME_SIZE_GB="${AWS_GPU_VOLUME_SIZE_GB:-100}"
+RESULT_BUCKET="${AWS_GPU_RESULT_BUCKET:-}"            # S3 bucket for results
+REPO="${AWS_GPU_REPO:-https://github.com/SimeonVarg/austin-3d-explorer.git}"
+REF="main"
+
+# The public SSM parameter that holds the current Deep Learning Base GPU AMI
+# (Ubuntu 22.04) id for the region. VERIFY ON FIRST REAL RUN: AWS renames these
+# paths between AMI generations, so confirm it resolves before trusting it
+# (`aws ssm get-parameter --name <this> --region us-east-1`). If it 404s, list
+# the family with:
+#   aws ssm get-parameters-by-path \
+#     --path /aws/service/deeplearning/ami/x86_64/base-oss-nvidia-driver-gpu-ubuntu-22.04 \
+#     --region us-east-1
+SSM_AMI_PARAM="${AWS_GPU_SSM_AMI_PARAM:-/aws/service/deeplearning/ami/x86_64/base-oss-nvidia-driver-gpu-ubuntu-22.04/latest/ami-id}"
+
+# ---- args ------------------------------------------------------------------
+PRINT=0
+DRYRUN=0
+CHECKS=()
+KEY_NAME="${AWS_GPU_KEY_NAME:-}"     # optional; SSM is the intended access path
+SUBNET_ID="${AWS_GPU_SUBNET_ID:-}"   # optional; account default subnet otherwise
+SG_ID="${AWS_GPU_SECURITY_GROUP_ID:-}"
+IAM_PROFILE="${AWS_GPU_INSTANCE_PROFILE:-flyover-gpu-runner}"
+
+usage() {
+  sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'
+  exit "${1:-0}"
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --ref)            REF="$2"; shift 2 ;;
+    --check)          CHECKS+=("$2"); shift 2 ;;
+    --repo)           REPO="$2"; shift 2 ;;
+    --type)           INSTANCE_TYPE="$2"; shift 2 ;;
+    --fallback-type)  FALLBACK_TYPE="$2"; shift 2 ;;
+    --bucket)         RESULT_BUCKET="$2"; shift 2 ;;
+    --parallel)       CONCURRENCY="$2"; shift 2 ;;
+    --max-runtime)    MAX_RUNTIME_MIN="$2"; shift 2 ;;
+    --idle-timeout)   IDLE_TIMEOUT_MIN="$2"; shift 2 ;;
+    --region)         REGION="$2"; shift 2 ;;
+    --key-name)       KEY_NAME="$2"; shift 2 ;;
+    --print)          PRINT=1; shift ;;
+    --dry-run)        DRYRUN=1; shift ;;
+    -h|--help)        usage 0 ;;
+    *) echo "unknown argument: $1" >&2; usage 1 ;;
+  esac
+done
+
+if [ "${#CHECKS[@]}" -eq 0 ]; then
+  # A default set that proves the GPU end to end: a graphics probe (renderer
+  # string) plus a movement run (needs real frames). Overrideable with --check.
+  CHECKS=("graphics.mjs" "movement.mjs --report")
+fi
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+USER_DATA_SRC="$HERE/user-data"
+
+# Build the CHECKS JSON the way run.py does: [{name,cmd,args}, ...].
+checks_json() {
+  local first=1
+  printf '['
+  for c in "${CHECKS[@]}"; do
+    # shellcheck disable=SC2206
+    local parts=($c)
+    local cmd="${parts[0]}"
+    local base="${cmd%.mjs}"
+    local name="${base//\//_}"
+    local args_json="[" af=1
+    for ((i=1; i<${#parts[@]}; i++)); do
+      [ $af -eq 1 ] && af=0 || args_json+=","
+      args_json+="\"${parts[$i]}\""
+      name+="_${parts[$i]#--}"
+    done
+    args_json+="]"
+    [ $first -eq 1 ] && first=0 || printf ','
+    printf '{"name":"%s","cmd":"%s","args":%s}' "$name" "$cmd" "$args_json"
+  done
+  printf ']'
+}
+
+CHECKS_JSON="$(checks_json)"
+
+# The user-data template carries @@PLACEHOLDER@@ tokens; fill them in. Every
+# value is either a literal we control or shell-quoted inside the script, so no
+# untrusted interpolation reaches the instance shell.
+render_user_data() {
+  sed \
+    -e "s|@@REPO@@|${REPO}|g" \
+    -e "s|@@REF@@|${REF}|g" \
+    -e "s|@@CONCURRENCY@@|${CONCURRENCY}|g" \
+    -e "s|@@MAX_RUNTIME_MIN@@|${MAX_RUNTIME_MIN}|g" \
+    -e "s|@@IDLE_TIMEOUT_MIN@@|${IDLE_TIMEOUT_MIN}|g" \
+    -e "s|@@RESULT_BUCKET@@|${RESULT_BUCKET}|g" \
+    -e "s|@@PROJECT_TAG@@|${PROJECT_TAG}|g" \
+    "$USER_DATA_SRC" \
+  | awk -v checks="$CHECKS_JSON" '{gsub(/@@CHECKS_JSON@@/, checks); print}'
+}
+
+# TagSpecifications: the project tag on BOTH the instance and its volumes, so a
+# forgotten disk is still findable and teardown can list it.
+TAG_SPEC="ResourceType=instance,Tags=[{Key=project,Value=${PROJECT_TAG}},{Key=Name,Value=${PROJECT_TAG}-gpu-runner}] ResourceType=volume,Tags=[{Key=project,Value=${PROJECT_TAG}}]"
+
+BLOCK_DEV="DeviceName=/dev/sda1,Ebs={VolumeSize=${VOLUME_SIZE_GB},VolumeType=gp3,DeleteOnTermination=true}"
+
+# ---- the aws commands ------------------------------------------------------
+# get-ami: resolve the AMI id from the public SSM parameter.
+ami_cmd() {
+  cat <<EOF
+aws ssm get-parameter --region ${REGION} --name ${SSM_AMI_PARAM} --query Parameter.Value --output text
+EOF
+}
+
+# run-instances, assembled as an array so quoting survives --print and exec.
+build_run_args() {
+  local ami="$1"
+  RUN_ARGS=(
+    ec2 run-instances
+    --region "$REGION"
+    --image-id "$ami"
+    --instance-type "$INSTANCE_TYPE"
+    --count 1
+    --instance-initiated-shutdown-behavior terminate
+    --block-device-mappings "$BLOCK_DEV"
+    --tag-specifications $TAG_SPEC
+    --user-data "file://${USER_DATA_RENDERED}"
+    --metadata-options "HttpTokens=required,HttpEndpoint=enabled"
+  )
+  if [ -n "$IAM_PROFILE" ]; then RUN_ARGS+=(--iam-instance-profile "Name=${IAM_PROFILE}"); fi
+  if [ -n "$KEY_NAME" ];    then RUN_ARGS+=(--key-name "$KEY_NAME"); fi
+  if [ -n "$SUBNET_ID" ];   then RUN_ARGS+=(--subnet-id "$SUBNET_ID"); fi
+  if [ -n "$SG_ID" ];       then RUN_ARGS+=(--security-group-ids "$SG_ID"); fi
+  if [ "$DRYRUN" -eq 1 ];   then RUN_ARGS+=(--dry-run); fi
+  return 0
+}
+
+print_cmd() {
+  local out="aws"
+  for a in "$@"; do
+    case "$a" in
+      *[![:alnum:]_./:=,-]*) out+=" '$a'" ;;
+      *) out+=" $a" ;;
+    esac
+  done
+  echo "$out"
+}
+
+# In --print mode we never touch AWS at all, not even the SSM read, so the
+# script is safe to run with no credentials. Show a placeholder AMI id.
+if [ "$PRINT" -eq 1 ]; then
+  USER_DATA_RENDERED="<rendered user-data written to a temp file at run time>"
+  echo "# resolve the Deep Learning Base GPU AMI (verify parameter name on first run):"
+  ami_cmd
+  echo
+  echo "# instance type: ${INSTANCE_TYPE} (fallback on InsufficientInstanceCapacity: ${FALLBACK_TYPE})"
+  echo "# launch:"
+  build_run_args "<ami-id-from-ssm>"
+  print_cmd "${RUN_ARGS[@]:1}"
+  echo
+  echo "# on InsufficientInstanceCapacity, the same command with --instance-type ${FALLBACK_TYPE}:"
+  INSTANCE_TYPE="$FALLBACK_TYPE"
+  build_run_args "<ami-id-from-ssm>"
+  print_cmd "${RUN_ARGS[@]:1}"
+  exit 0
+fi
+
+# ---- real run --------------------------------------------------------------
+command -v aws >/dev/null 2>&1 || { echo "aws CLI v2 not found on PATH" >&2; exit 1; }
+
+USER_DATA_RENDERED="$(mktemp -t flyover-user-data.XXXXXX)"
+trap 'rm -f "$USER_DATA_RENDERED"' EXIT
+render_user_data > "$USER_DATA_RENDERED"
+
+echo "== resolving AMI from ${SSM_AMI_PARAM} =="
+AMI_ID="$(eval "$(ami_cmd)")"
+echo "AMI: ${AMI_ID}"
+
+launch_with() {
+  local type="$1"
+  INSTANCE_TYPE="$type"
+  build_run_args "$AMI_ID"
+  echo "== run-instances (${type}) =="
+  aws "${RUN_ARGS[@]}"
+}
+
+set +e
+OUT="$(launch_with "$INSTANCE_TYPE" 2>&1)"
+CODE=$?
+set -e
+if [ $CODE -ne 0 ] && echo "$OUT" | grep -q "InsufficientInstanceCapacity"; then
+  echo "no ${INSTANCE_TYPE} capacity; falling back to ${FALLBACK_TYPE}"
+  set +e
+  OUT="$(launch_with "$FALLBACK_TYPE" 2>&1)"
+  CODE=$?
+  set -e
+fi
+echo "$OUT"
+exit $CODE
