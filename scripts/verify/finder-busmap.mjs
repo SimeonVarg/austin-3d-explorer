@@ -8,13 +8,15 @@
  * Every request of the run is recorded and the privacy rule is checked on the wire: no request carries a home, a stop or a
  * class building, and the live buses ask data.texas.gov only for the two public feeds.
  *
- * Usage: VERIFY_OUT=dir [VERIFY_GL=hardware] node scripts/verify/finder-busmap.mjs
+ * Usage: node scripts/verify/finder-busmap.mjs --out DIR     (or VERIFY_OUT=DIR; VERIFY_GL=hardware is the default)
+ * Laptop lane: acer-run.sh check finder-busmap.mjs --out {out} --workcopy DIR --gl hardware
  */
 import fs from 'node:fs';
 import { chromium } from 'playwright-core';
 import { launch, BASE } from './chrome.mjs';
 
-const OUT = process.env.VERIFY_OUT || '.';
+const oi = process.argv.indexOf('--out');
+const OUT = (oi > 0 && process.argv[oi + 1]) || process.env.VERIFY_OUT || '.';
 fs.mkdirSync(OUT, { recursive: true });
 const results = [];
 const note = {};
