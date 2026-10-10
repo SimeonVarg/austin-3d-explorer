@@ -8,7 +8,14 @@ if(process.argv.includes('--break')) source=source.replace('if(!viewport||!sciss
 const start=source.indexOf('  function updateSunShadows() {');
 const end=source.indexOf('\n  let _mat =',start);
 assert.ok(start>=0&&end>start);
-const production=source.slice(start,end);
+// updateSunShadows reads the viewport through viewState(gl) (a3fb013, 2026-09-27),
+// a sibling function, so it is cut out with it. window.GLSTATE is absent in the
+// fixture, which is the switch-off path viewState documents: it returns null and
+// the pass queries gl.getParameter exactly as before, which is what this test
+// counts. The GLSTATE-on path (cached viewport, no query) is not exercised here.
+const vsStart=source.indexOf('  function viewState(gl) {');
+assert.ok(vsStart>=0&&vsStart<start,'viewState(gl) must sit before updateSunShadows in js/slopes.js');
+const production=source.slice(vsStart,source.indexOf(`\n  function updateSunShadows() {`,vsStart))+'\n'+source.slice(start,end);
 function fixture() {
   const stats={allocations:0,renders:0,queries:0,mapReads:0,clears:0,restores:[]};
   const gl={lost:false,nullQuery:null,VIEWPORT:1,SCISSOR_BOX:2,SCISSOR_TEST:3,
@@ -35,7 +42,7 @@ function fixture() {
   const U={u_shadowSettings:{value:vector()},u_sunDirection:{value:{z:1}},u_p:{value:.3},u_sunShadow0:{},u_sunShadow1:{},
     u_sunShadowMatrix0:{value:{multiplyMatrices(){}}},u_sunShadowMatrix1:{value:{multiplyMatrices(){}}}};
   const scope=vm.createContext({window:{THREE,slopesApartments:{count:{done:true,triangles:100}},CityLighting:{shadowProxy:()=>null}},
-    SLOPES:{on:true,sunlight:{on:true,shadows:true,shadowSize:256,shadowRadii:[100,400],shadowDistance:800,shadowSnap:10,shadowBias:.1,shadowNormalBias:.2}},
+    SLOPES:{on:true,turn:{precompile:false}, /* the render tail now ends in precompileTick(); off here, it is not under test */ sunlight:{on:true,shadows:true,shadowSize:256,shadowRadii:[100,400],shadowDistance:800,shadowSnap:10,shadowBias:.1,shadowNormalBias:.2}},
     U,renderer,scene,root:{children:[]},_sunShadow:null,
     _map:{getCenter(){stats.mapReads++;return {lng:0,lat:0};}},
     releaseSunShadows(){throw Error('unexpected reallocation');},toLocal:()=>({x:0,y:0,z:30})});
