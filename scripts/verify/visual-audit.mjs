@@ -502,6 +502,24 @@ async function proofGroup() {
       await ctx.close();
     });
 
+    await step(`proof M01 data ${vp.name}`, async () => {
+      const { ctx, page } = await newPage(vp, { setup: async (c) => { await c.route(/\/data\/.*\.(geojson|json|pmtiles|bin)(\?.*)?$/, r => r.abort('failed')); } });
+      page.goto(BASE + '/?intro=0&drift=0&finder=0', { waitUntil: 'commit' }).catch(() => {});
+      await sleep(40000);
+      await shot(page, vp, 'proof-M01-data-blocked', 'every data file refused, 40 s in', { noMetrics: true });
+      const card = await page.evaluate(() => ({ h2: (document.querySelector('.load-card h2') || {}).textContent, retry: !!document.querySelector('.load-retry') }));
+      check('M01', 'with every data file refused the card says the city could not load and offers Try again', /could not load/i.test(card.h2 || '') && card.retry, JSON.stringify(card));
+      await ctx.close();
+    });
+    await step(`proof A14 notice ${vp.name}`, async () => {
+      const { ctx, page } = await newPage(vp);
+      await go(page, '/?lite=safe&intro=0&drift=0&finder=0'); await ready(page, 3000);
+      await shot(page, vp, 'proof-A14-litesafe-notice', '?lite=safe notice', { noMetrics: true });
+      const txt = await page.evaluate(() => (document.getElementById('lite-notice') || document.body).innerText);
+      check('A14', 'the lightweight-city notice does not show the URL flag', !/lite=safe/.test(txt) && /lightweight/i.test(txt), txt.replace(/\s+/g, ' ').slice(0, 100));
+      await ctx.close();
+    });
+
     // ── one city load: the chrome fixes ───────────────────────────────────────────────────────────────────
     const { ctx, page } = await newPage(vp);
     await go(page, `/?intro=0&drift=0&finder=0&p=${HOUR.day}`);

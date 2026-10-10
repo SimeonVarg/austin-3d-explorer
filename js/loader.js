@@ -23,6 +23,9 @@
     'story.footer': "Built by Simeon Varghese",
     'card.title': "Still building",
     // The map could not get a graphics context (A09). One of these replaces the progress card instead of a bar that never moves.
+    'fail.data.title': "The city could not load",
+    'fail.data.body': "The map data did not arrive. Check your connection and try again.",
+    'fail.retry': "Try again",
     'fail.webgl.title': "This map needs WebGL",
     'fail.webgl.body': "Your browser or device has it switched off, so the 3D city cannot draw. Try another browser, or turn on hardware acceleration in this one.",
     'card.progress_aria': "City loading progress",
@@ -240,7 +243,7 @@
   // `max` seconds, or without Web Animations on pseudo-elements, the plain
   // number shows instead. on: false = the old text.
   const CLOCK = { on: true, max: 99 };
-  const TUNE = { slowAfterDesktop: 40, slowAfterPhone: 50, pollMs: 600,
+  const TUNE = { slowAfterDesktop: 40, slowAfterPhone: 50, dataFailAfter: 15, pollMs: 600,
     weights: { map: 20, data: 20, models: 45, light: 5, reveal: 10 } };
   const t = (key, vars) => String(COPY[key] ?? '').replace(/\{(\w+)\}/g, (m, n) => vars && n in vars ? vars[n] : m);
   const h = (key, vars) => t(key, vars).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -338,6 +341,8 @@
       [t('stage.light.name'),t(r.light?'stage.light.ready':'stage.light.preparing')],
       [t('stage.walk.name'),t(graph==='optional'?'stage.walk.optional':graph==='done'?'stage.walk.ready':graph==='error'?'stage.walk.error':'stage.walk.preparing')]
     ];
+    // Every data file refused for a long while: say so instead of a bar that never moves (M01). TUNE.dataFailAfter seconds.
+    if (r.errors > 0 && r.dataDone === 0 && elapsed > TUNE.dataFailAfter && failCard('data', true)) return;
     const signature = JSON.stringify([r,graph,Math.floor(elapsed)]);
     if(signature===last)return; last=signature;
     state.current = r;
@@ -1483,15 +1488,22 @@ precision highp float; uniform highp sampler2D uT; uniform float uK; out vec4 o;
   // MapLibre throws when it cannot create a WebGL context, and that used to leave this card on its last reading
   // ("Map: surveying the site") for ever, with the clock running. Name the problem and what to try instead (A09).
   let webglPending = false;
+  // Replace the progress card with a plain failure: a title, one sentence, and (for data) a Try again button (A09, M01).
+  function failCard(kind, retry) {
+    if (webglDead) return false;
+    const card = root && root.querySelector('.load-card');
+    if (!card) return false;
+    webglDead = true; clearInterval(timer);
+    card.querySelector('.load-heading h2').textContent = t('fail.' + kind + '.title');
+    for (const sel of ['#load-percent', '.load-rail', '#load-stages', '.load-choice']) { const e = card.querySelector(sel); if (e) e.style.display = 'none'; }
+    const est = card.querySelector('#load-estimate'); est.className = 'load-fail'; est.style.display = 'block'; est.textContent = t('fail.' + kind + '.body');
+    if (retry) { const b = document.createElement('button'); b.type = 'button'; b.className = 'load-retry'; b.textContent = t('fail.retry'); b.onclick = () => location.reload(); est.after(b); }
+    const btn = document.getElementById('mode-launcher'); if (btn) btn.hidden = true;
+    return true;
+  }
   function webglFailed() {
     if (webglDead) return;
-    const card = root && root.querySelector('.load-card');
-    if (!card) { webglPending = true; return; }   // the card is not built yet: build() calls this again
-    webglDead = true; clearInterval(timer);
-    card.querySelector('.load-heading h2').textContent = t('fail.webgl.title');
-    for (const sel of ['#load-percent', '.load-rail', '#load-stages', '.load-choice']) { const e = card.querySelector(sel); if (e) e.style.display = 'none'; }
-    const est = card.querySelector('#load-estimate'); est.className = 'load-fail'; est.style.display = 'block'; est.textContent = t('fail.webgl.body');
-    const btn = document.getElementById('mode-launcher'); if (btn) btn.hidden = true;
+    if (!failCard('webgl', false)) webglPending = true;   // the card is not built yet: build() calls this again
   }
   window.loaderWebglFailed = webglFailed;
   const isWebglError = m => /requestedAttributes|Failed to initialize WebGL|webglcontextcreationerror/i.test(String(m || ''));

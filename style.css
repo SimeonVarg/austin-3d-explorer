@@ -2242,7 +2242,7 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 #load-estimate .load-odo i:first-child::before{content:"\00a0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"}
 #load-stages{display:grid;gap:15px;font-size:12px}#load-stages>div{display:flex;justify-content:space-between;gap:12px}#load-stages>div span:last-child{color:var(--load-muted);text-align:right}
 .load-choice{border-top:1px solid var(--load-border);margin-top:25px;padding-top:22px}.load-choice h3{font-size:16px}.load-choice p{font-size:13px;color:var(--load-muted);line-height:1.5;margin:10px 0 18px}
-#load-modes,.mode-go{border:0;border-radius:9px;background:var(--load-accent);color:#202225;padding:14px 16px;font-weight:650;font-size:14px;cursor:pointer;width:100%}.load-choice small{display:block;font-size:11px;color:var(--load-muted);margin-top:12px;text-align:center}
+#load-modes,.mode-go,.load-retry{border:0;border-radius:9px;background:var(--load-accent);color:#202225;padding:14px 16px;font-weight:650;font-size:14px;cursor:pointer;width:100%}.load-choice small{display:block;font-size:11px;color:var(--load-muted);margin-top:12px;text-align:center}
 #load-city footer{grid-column:1/-1;font-size:var(--load-small-min);color:var(--load-muted);letter-spacing:.06em}
 /* "Switch modes" never covers the map credit (a licence requirement) or the
    touch controls. On a desktop it sits one credit row up: the credit's 10px
