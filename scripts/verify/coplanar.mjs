@@ -625,8 +625,15 @@ if (WRITE_BASELINE) {
     console.log('\nrefusing to write a baseline from a partial run — omit the file arguments');
     process.exit(2);
   }
+  // `notes` is the written reason for every count that was MOVED UP on purpose
+  // (file -> what grew, which commit, why it is accepted). It is carried over
+  // from the old baseline so a rewrite never drops the reasons; add or edit an
+  // entry by hand in the same commit that raises its number.
+  let notes;
+  try { notes = JSON.parse(readFileSync(BASELINE_PATH, 'utf8')).notes; } catch (e) { /* first baseline */ }
   writeFileSync(BASELINE_PATH, JSON.stringify(
-    { eps: EPS, frac: FRAC, recorded: new Date().toISOString().slice(0, 10), counts },
+    { eps: EPS, frac: FRAC, recorded: new Date().toISOString().slice(0, 10), counts,
+      ...(notes ? { notes } : {}) },
     null, 2) + '\n');
   console.log(`\nbaseline written to ${basename(BASELINE_PATH)}`);
 } else if (GATE) {

@@ -54,7 +54,12 @@ export const LOOK = {
   // moment ago, so two loads of the same page differ. On 2026-09-27 that moved
   // up to 5.8% of a view between two shots of main and flagged a view as
   // "changed" that nothing had touched. Set to '' to photograph them anyway.
-  shotQuery: 'namelabels=0',
+  // facadepace=0 and timeofdaypace=0 (2026-10-09): the app paints its walls in paced jobs after the camera stops. On
+  // the software renderer that job NEVER finished inside a shoot (`__facadePace.done` stayed 0 at every view), so each
+  // picture caught a different part-painted city: a changed patch on a building the pull request could not touch,
+  // in the first run of three pull requests in a row. The two switches make the app paint walls at once, the old way.
+  // The pixels at rest are the same; only WHEN they are painted differs.
+  shotQuery: 'namelabels=0&facadepace=0&timeofdaypace=0',
 };
 
 const argv = process.argv.slice(2);
