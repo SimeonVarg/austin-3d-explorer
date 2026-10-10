@@ -1,0 +1,4 @@
+[toolchain]
+# Pin what the committed .wasm was built with. (conda-forge ships rustc 1.98.1 in env `rustwasm`; with rustup this file selects it.)
+channel = "1.98.1"
+targets = ["wasm32-unknown-unknown"]

@@ -183,6 +183,7 @@ export function shapeBetween(slice, dir, i, j) {
  *             Only used for the FIRST bus of an answer.
  *   walkSec   (a, b, metresStraight) -> [lo, hi] seconds, to use the walking graph instead of the straight line.
  *   transfers 0 or 1 (default 1).
+ *   beatsWalkS how many seconds under the walk a bus's midpoint must be to be offered (default ROUTE.busBeatsWalkS).
  * Returns {options: [...], skipped: n, reason, walk: {lo, hi, m}} with at most ROUTE.keep options, best first.
  * `walk` is the whole trip on foot by the same walking model (seconds, straight-line metres); a bus is only in `options`
  * when its midpoint is better than the walk's by ROUTE.busBeatsWalkS. A missing or unreadable slice gives
@@ -212,7 +213,7 @@ function search(slice, from, to, opts) {
   const wm = metres(from, to), ww = walk(from, to, wm);
   const walkAll = { lo: ww[0], hi: ww[1], m: wm };
   if (wm < R.sameSpotM) return { options: [], skipped: 0, reason: 'you are already there', walk: walkAll };
-  const limit = (walkAll.lo + walkAll.hi) / 2 - R.busBeatsWalkS;     // a bus must have a midpoint under this
+  const limit = (walkAll.lo + walkAll.hi) / 2 - (Number.isFinite(opts.beatsWalkS) ? opts.beatsWalkS : R.busBeatsWalkS);     // a bus must have a midpoint under this
 
   const board = P.near(from, R.maxWalkM), alight = new Map(P.near(to, R.maxWalkM));
   if (!board.length || !alight.size) return { options: [], skipped: 0, reason: !board.length ? 'no stop near the start' : 'no stop near the end', walk: walkAll };

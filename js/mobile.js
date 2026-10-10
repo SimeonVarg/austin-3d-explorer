@@ -163,6 +163,14 @@
       // Sep 30 2026: still off. Measured on vs off it barely moves the flight
       // peak (HANDOFF.md); it mainly lowers settled memory. Owner's call.
       packVertices: false,
+      // js/slopes.js, the authored buildings' vertex store. Packed vertices (?packverts=0|1) are ON for every tier and are read from js/slopes.js (PACK_DEFAULT_ON), not here.
+      // rustBuilder: OFF everywhere (the switch ?rustbuilder=1 stays). The shared mesh builder as a 43 KB WebAssembly module (wasm/meshkernel.wasm, experiments/rust-mesh/):
+      //   it makes byte-identical buffers and halves the JS heap, but by the whole-memory measure it adds nothing to packed alone, and ALONE it is worse:
+      //     phone emulation, AWS L4, 2 runs:   off 1,195 / 806   Rust alone 1,299 (one run 1,627) / 811   packed alone 1,026 / 685   Rust + packed 1,025 / 678   (peak / settled, MB)
+      //     desktop, AWS A10G, 3 to 5 runs, browser memory at the peak:   off 4,623 MB   Rust alone 6,452 (+1.8 GB)   with the vertex-count hint 7,558 (+2.9 GB)   Rust + packed 3,803
+      //   What would turn it on: the +1.8 GB explained AND a phone peak at or under packed alone over 5 runs. Until then nothing fetches the .wasm or js/slopes-rust.js.
+      // ?rustbuilder=0|1 overrides. false = off. The wasm is never fetched where rustBuilder is off.
+      rustBuilder: false,
       // js/slopes.js SLOPES.sunlight.shadowSize: the two sun shadow maps
       // (near, far). Desktop keeps 1536. Each map is a colour target plus a
       // depth buffer, 8 bytes a texel: 2 x 1536^2 x 8 = 37.7 MB at 1536,
@@ -207,6 +215,22 @@
       // 1x, so they are barely minified), for up to 16 texture reads a pixel.
       // false = MapLibre's own single read.
       farPatternFilter: false,
+      // js/outer-homes.js: the houses of the outer city (53,780 instanced
+      // rectangles on a desktop). A phone builds and draws this share of each
+      // 700 m chunk's houses, biggest first. 0.15 is about what the outer ring
+      // drew before that layer took its house-sized boxes (4,897 of 39,820),
+      // so a phone loses no building it had and gains their roofs, for 0.35 MB
+      // of vertex buffers instead of 2.3 MB. 0 or false = no houses, and
+      // data/outer_homes.bin (0.42 MB) is never fetched. Raise it only with a
+      // mobile-memory.mjs run that says there is room (docs/city-join.md).
+      outerHomes: 0.15,
+      // ... and their windows (18 more vertices a house, a light at night).
+      outerHomeWindows: false,
+      // js/outer-trees.js: the outer city's tree cover (196,109 instanced
+      // trees on a desktop). OFF: a phone drew no back-yard tree before either,
+      // so nothing is lost, and data/outer_trees.bin (0.14 MB) is never
+      // fetched. A number is the share of trees built (0.25 = the far set).
+      outerTrees: false,
     },
     // The tiers, lightest last. Each is the phone budget with its own changes.
     // `flags` are the URL flags that tier writes for the parse (see above).
@@ -258,7 +282,7 @@
       titles: { ctx: 'Reload to continue exploring', lighter: 'Lighter city', lighterCtx: 'Lighter city' },
       why: {
         crashes: 'The full city stopped loading on this device twice, so this visit shows plain blocks instead of the detailed buildings.',
-        url: 'This link asks for the lightweight city (lite=safe), so the buildings are plain blocks.',
+        url: 'This link asks for the lightweight city, so the buildings are plain blocks.',
         slow: 'The detailed buildings took too long to load this time, so plain blocks are shown instead.',
         ctx: 'The graphics were reset. Exploring is paused until the city reloads.',
         lighter: 'The full city ran out of memory on this device, so this visit uses lighter buildings (no balconies) and skips the opening flight.',

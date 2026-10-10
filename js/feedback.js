@@ -45,7 +45,7 @@
     SUBJECT: 'Austin 3D Explorer — a recommendation',
 
     // Copy. The status line must never say "sent" — this path hands off.
-    READY: 'Send opens your email app with this written and addressed — press send there. Nothing sends from this page.',
+    READY: 'Open email starts a message to us with this written in it. Press send in your email app. Nothing is sent from this page.',
     HANDED: 'Handed to your email app — press send there to deliver it. No app opened? Use Copy.',
     COPY: 'Copy',
     COPY_TITLE: 'Copy the message and the address, to paste into any email',
