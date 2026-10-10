@@ -31,6 +31,7 @@ const PARAMS = {
   breakShiftP: 0.06,            // --break: the "on" shoot's time of day, later by this much of the day
   settleMs: 4000,               // after a camera jump, as shot.mjs
   wallCapMs: 60000, quietReads: 3,
+  loadMs: 900000,               // page load / style / sources (a loaded Mac needs minutes)
   buildWaitMs: 1500000,         // one in-place rebuild's ceiling (a loaded machine takes minutes)
   maxMs: 150 * 60 * 1000,
 };
@@ -48,13 +49,13 @@ const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 200)); });
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 const q = [PARAMS.shotQuery, PHONE ? PARAMS.phone.query : '', opt('--query', '')].filter(Boolean).join('&');
-await page.goto(`${BASE}/_harness.html?${q}`, { waitUntil: 'networkidle', timeout: 60000 });
-await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
+await page.goto(`${BASE}/_harness.html?${q}`, { waitUntil: 'domcontentloaded', timeout: PARAMS.loadMs });
+await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: PARAMS.loadMs });
 await page.waitForFunction(() => {
   const m = window.__map; if (!m || !m.getSource('austin-buildings')) return false;
   return ['austin-buildings', 'austin-ground', 'austin-trees', 'austin-roofscape', 'austin-tower', 'austin-westcampus', 'austin-drag', 'austin-arts', 'austin-moody', 'austin-stadium']
     .every(s => !m.getSource(s) || m.isSourceLoaded(s));
-}, null, { timeout: 90000 }).catch(() => console.log('WARN: sources not all loaded'));
+}, null, { timeout: PARAMS.loadMs }).catch(() => console.log('WARN: sources not all loaded'));
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
 // the opening veil ("Still building 90%") sits over the page until the city is ready: a first version photographed it, and its control moved 99.9999% of the pixels
 await page.waitForFunction(() => !document.getElementById('veil'), null, { timeout: PARAMS.buildWaitMs, polling: 1000 });
