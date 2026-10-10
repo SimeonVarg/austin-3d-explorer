@@ -586,9 +586,9 @@ ${window.RoofTiles.apply}
       col=cityCrown(col,v_pos,v_normal);
       col=cityLocalLight(col,albedo,v_pos,v_normal,glazing);
       #ifdef FACADE_FILTER
-      {vec3 lit=cityEmission(col,night,glazing);col=col+(lit-col)*cityEyeGain(v_pos,night);if(int(u_cityEye2.w+.5)>=4&&glazing>.5)col=vec3(1.,1.,0.);}
+      {vec3 lit=cityEmission(col,night,glazing);vec3 eg=cityEyeGain(v_pos,night);col=mix(col*.1,lit,min(eg,vec3(1.0)))*max(eg,vec3(1.0));if(int(u_cityEye2.w+.5)>=4&&glazing>.5)col=vec3(1.,1.,0.);}
       #else
-      {vec3 lit=cityEmission(col,night,((kind>3.5&&kind<5.5)||shop)?1.0:0.0);col=col+(lit-col)*cityEyeGain(v_pos,night);if(int(u_cityEye2.w+.5)>=4&&((kind>3.5&&kind<5.5)||shop))col=vec3(1.,1.,0.);}
+      {vec3 lit=cityEmission(col,night,((kind>3.5&&kind<5.5)||shop)?1.0:0.0);vec3 eg=cityEyeGain(v_pos,night);col=mix(col*.1,lit,min(eg,vec3(1.0)))*max(eg,vec3(1.0));if(int(u_cityEye2.w+.5)>=4&&((kind>3.5&&kind<5.5)||shop))col=vec3(1.,1.,0.);}
       #endif
       if(kind>.5 && u_surfaceRange.x>.5) {
         vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);

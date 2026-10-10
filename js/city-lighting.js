@@ -791,7 +791,7 @@
               vec3 shaded=cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,${campusMaterials.gdcReflection.toFixed(3)});
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
               shaded=cityLocalLight(shaded,v_cityAlbedo.rgb,v_cityPos,v_cityNormal,1.0);
-              vec3 lit=cityEmission(shaded,v_cityAlbedo.rgb,1.0);lit=shaded+(lit-shaded)*cityEyeGain(v_cityPos,vec3(-1.0));
+              vec3 lit=cityEmission(shaded,v_cityAlbedo.rgb,1.0);vec3 eg=cityEyeGain(v_cityPos,vec3(-1.0));lit=mix(shaded*.1,lit,min(eg,vec3(1.0)))*max(eg,vec3(1.0));
               fragColor=vec4(lit*v_color.a,v_color.a);
               }else{
               float glass=1.0-step(1.5,u_citySolidSurface);
@@ -801,7 +801,7 @@
               vec3 original=mix(v_color.rgb/max(v_color.a,.0001)*recess,grid.rgb*${landmarkMaterials.frameShade.toFixed(3)},grid.a);
               vec3 shaded=cityShade(original,albedo,v_cityPos,v_cityNormal,glass*(1.0-grid.a)*${landmarkMaterials.reflection.toFixed(3)});
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
-              if(glass>.5){vec3 lit=cityEmission(shaded,v_cityAlbedo.rgb,1.0-grid.a);shaded=shaded+(lit-shaded)*cityEyeGain(v_cityPos,vec3(-1.0));if(int(u_cityEye2.w+.5)>=4)shaded=vec3(0.,1.,1.);}
+              if(glass>.5){vec3 lit=cityEmission(shaded,v_cityAlbedo.rgb,1.0-grid.a);vec3 eg=cityEyeGain(v_cityPos,vec3(-1.0));shaded=mix(shaded*.1,lit,min(eg,vec3(1.0)))*max(eg,vec3(1.0));if(int(u_cityEye2.w+.5)>=4)shaded=vec3(0.,1.,1.);}
               else shaded=mix(shaded,max(shaded,albedo*u_cityNight.y),u_cityNight.x);
               fragColor=vec4(shaded*v_color.a,v_color.a);
               }`;
