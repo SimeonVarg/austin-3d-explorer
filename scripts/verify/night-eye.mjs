@@ -244,7 +244,10 @@ await stage('movie', async () => {
     for (const g of [0, 1]) {
       await after.evaluate(g => { window.CityNight.eye.glare = g; window.CityNight.hold(1000); }, g);
       await after.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
-      await after.waitForTimeout(600); await after.screenshot({ path: path.join(dir, `${v}-glare${g}.png`) });
+      for (let rep = 0; rep < 3; rep++) { await after.waitForTimeout(500); await after.evaluate(() => window.__map.triggerRepaint()); }   // the effects canvas is redrawn on a later frame, not always the first
+      await after.waitForTimeout(800); await after.screenshot({ path: path.join(dir, `${v}-glare${g}.png`) });
+      const u = await after.evaluate(() => { const c = document.getElementById('fx-canvas'); return c ? c.toDataURL('image/png') : null; });
+      if (u) fs.writeFileSync(path.join(dir, `${v}-glare${g}-fx.png`), Buffer.from(u.split(',')[1], 'base64'));
     }
     await after.evaluate(() => { window.CityNight.eye.twinkle = 1; window.CityNight.eye.glare = 1; });
     for (let k = 0; k < M.fps * M.seconds; k++) {
@@ -285,7 +288,11 @@ await stage('debug', async () => {
 // ======================================================================================================
 await stage('sequence', async () => {
   const S = TUNE.sequence, pose = TUNE.poses[opt('--pose', S.pose)], dir = path.join(OUT, 'sequence'); fs.mkdirSync(dir, { recursive: true });
-  const page = await open('nightfreeze=1&twinkle=1'); await settle(page, pose); data.sceneStable = await waitStable(page);
+  const page = await open('nightfreeze=1&twinkle=1'); await settle(page, pose);
+  // The name labels and the page's buttons fade in and out on their own timing and are the same warm-white as a lit window: they are not lights.
+  await page.evaluate(() => { for (const l of window.__map.getStyle().layers) if (l.type === 'symbol') window.__map.setLayoutProperty(l.id, 'visibility', 'none'); });
+  await page.addStyleTag({ content: 'body > *:not(#map) { visibility: hidden !important; }' });
+  data.sceneStable = await waitStable(page);
   const eyeSet = opt('--eye', null);   // CityNight.eye overrides for an experiment, key=value joined by +, e.g. windowAmp=0.5+farM=1400
   if (eyeSet) await page.evaluate(o => Object.assign(window.CityNight.eye, o), Object.fromEntries(eyeSet.split(/[;+]/).map(kv => kv.split('=')).map(([k, v]) => [k, Number(v)])));   // --eye windowAmp=0.22+farM=1400
   data.sequenceEye = await page.evaluate(() => { const e = window.CityNight.eye; return { windowAmp: e.windowAmp, lampAmp: e.lampAmp, nearM: e.nearM, farM: e.farM, glare: e.glare }; });

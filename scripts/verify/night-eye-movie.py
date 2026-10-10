@@ -76,6 +76,18 @@ for v in views:
                     sc = (r + g + b) if (r > b + 25 and r > 200) else 0
                     if sc > best: best, bx, by = sc, xx, yy
             gw, gh = 140, 90; gx, gy = max(0, min(Wd - gw, bx - gw // 2)), max(0, min(Hd - gh, by - gh // 2))
+            # the exact skirt: the effects canvas (bloom + glare lobes, added over the map) with the glare off against on; the screenshot pair is the fallback
+            fx0f, fx1f = os.path.join(src, f'{v}-glare0-fx.png'), os.path.join(src, f'{v}-glare1-fx.png')
+            if os.path.exists(fx0f) and os.path.exists(fx1f):
+                F0, F1 = Image.open(fx0f).convert('RGBA'), Image.open(fx1f).convert('RGBA')
+                if F0.size != (Wd, Hd): F0, F1 = F0.resize((Wd, Hd)), F1.resize((Wd, Hd))
+                a0, a1 = F0.load(), F1.load(); fxtot = 0.0; fxmax = 0
+                for yy in range(0, Hd, 2):
+                    for xx in range(0, Wd, 2):
+                        dd = max(0, a1[xx, yy][0] - a0[xx, yy][0]) * a1[xx, yy][3] / 255.0
+                        fxtot += dd
+                        if dd > fxmax: fxmax = dd
+                print(v, 'effects canvas: the glare lobes add on average %.3f of 255 (red) over the frame, at most %d' % (fxtot / ((Wd // 2) * (Hd // 2)), fxmax))
             tot = 0; n = 0; prof = {}
             for yy in range(Hd):
                 for xx in range(Wd):
