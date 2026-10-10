@@ -323,7 +323,11 @@ window.slopes.remove = () => {};
 window.THREE.Group.prototype.traverse = function (visit) { visit(this); this.children.forEach(visit); };
 window.applySlopesApartments(applyMap);
 const inFlight = window.testBuildingPromise();
-assert.ok(inFlight); assert.equal(builderStarts, 1); assert.equal(F.bytes, 0);
+assert.ok(inFlight); assert.equal(F.bytes, 0);
+// startBuild queues the build behind any on-demand area build (_areaChain.then),
+// so the city builder starts one microtask turn later, not inside apply itself.
+await Promise.resolve(); await Promise.resolve();
+assert.equal(builderStarts, 1);
 window.SLOPES.on = false; window.applySlopesApartments(applyMap);
 assert.equal(window.testBuildingPromise(), inFlight);
 window.SLOPES.on = true; window.applySlopesApartments(applyMap);

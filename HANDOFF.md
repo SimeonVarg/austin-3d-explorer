@@ -15,32 +15,27 @@ build step for the site itself; data and tiles are baked by scripts in `scripts/
 
 ## What is live
 
-- Every push to `main` deploys the static site to GitHub Pages
-  (`.github/workflows/deploy-pages.yml`). Data snapshots arrive from
-  `build-data.yml`. So "live" means "what is on `main`". Check `main` before
-  saying anything is live.
-- Last things merged (newest first): #426 DKR stadium's four north stair towers are round brick towers (brick piers, dark glass strips, pale ledge, glass ring, rim and cap box; places and sizes from the laser scan, the stack from the owner's photograph; lower bodies and the two north-east towers inferred; `STADIUM_MESH.roundTowers`) (Oct 9). #425 DKR west face, second pass: the window bands were hidden behind the wall sheet by day; the wall is drawn around them and the bands are dark; check 7b in `docs/photo-audit.md` (Oct 9). #424 DKR stadium west face from the owner's photographs: cream solid wall with proud piers, ribbed panels, window bands and a centre pylon (`STADIUM_MESH.west`; bay width and level heights inferred; the other three faces, the upper deck and the brick stair towers are not done) (Oct 9). #423 Welch Hall's newer wing, west wall: terracotta lattice screens, slit windows and a lighter top storey from the owner's photograph (sizes approximate) (Oct 9). #422 Welch Hall west entrance (stone surround, framed window above, landing and steps; sized from the flattened photograph, placed from the laser scan) (Oct 9). #420 Welch Hall outer walls from the owner's flattened north wall photograph (window 1.55 x 2.8 m, bays 2.9 m, limestone base with tall windows) and the north CHEMISTRY entrance with steps; a colour written as a bare string no longer stops a building from being drawn (Oct 9). #419 AWS GPU runner: results and the log always come back (the owner's setup is done; the first run started with no key and stopped itself but returned nothing, which this fixes) (Oct 9). #413 Moontower rebuilt from the laser scan and flattened photographs: low boxes in front of both wings, tiers of three floors, glass strips, corner glass box on the notch corner (`scripts/author_moontower.py`; west, south and north walls inferred) (Oct 9). #418 Welch Hall to the laser-scan height, 20.3 m (was 18.2 m), storeys 4.73 m, 13 bays on each east face; new recipe option `roofBase` lifts kept campus roof pieces with the walls (Oct 9). #366 AWS GPU runner: a keyless setup stack (`scripts/aws-gpu/setup-stack.yaml`) and a hand-started workflow "AWS GPU checks" (Oct 8; NOT yet run on AWS: it waits for the owner's one browser session, see `scripts/aws-gpu/README.md`); #417 Welch Hall courtyard, second pass: the terrace's west end is a balcony, single windows on the west court wall, one small shrub, all from a camera fitted to the photograph's window corners (Oct 8, 18 CI checks, every job run). KNOWN FAULT, next job: Welch Hall is modelled about 2 m too low (laser scan 20.3 m, recipe 18.2 m); #416 Welch Hall courtyard, first pass: the old wing's court walls get pairs of windows in three rows over a stone base (Oct 8, 18 CI checks, every job run; `old_wing()` in `scripts/author_welch_courtyard.py`); #415 brick in mixed tones: a tone per brick and soft areas that show from far away (Oct 8, 18 CI checks, every job run; `?brickpatch=0&brickmottle=0` shows the old flat brick); #414 Welch Hall east wall: three window rows with stone bars, the photographed arch shape, 4.2 m bays, measured colours (Oct 8, 18 CI checks, every job run; a band may now carry its own `floors`); #412 the same arches continued through the middle stretch of that wall (Oct 7, 84 CI checks, every job run); #411 round arches on the south part of Welch Hall's east arcade (Oct 7; all 84 CI checks passed; seen on the live site from the photograph's camera the same day); #410 photo-rollout tools (not part of the site); #409 a local reference-viewer helper (a Mac tool, not part of the site); #408 ground detail across campus and West Campus and #406 campus roof tiles visible at middle distance (both checked on the live site, Oct 6); #407 bakes skip the generated ground patches; #388 Burdine Hall and the Norman Hackerman
+- The live site (flyover-utx.vercel.app) is built by the Vercel host from `main`
+  only (#463); `deploy-pages.yml` also publishes `main` to GitHub Pages. Data
+  snapshots arrive from `build-data.yml`. The host refuses builds when its daily
+  limit is used, so "on `main`" is NOT "live": a merge is live only when its
+  commit status says the host built it (or a later commit's does) and a changed
+  file fetched from the live site equals `main`'s.
+- Last things merged (newest first): #472 the bus in the finder (the trip drawn on the map, the class-day bus in every ranking row, a "Show live buses" switch, a bus row in the walking pathfinder; `js/finder-bus.js`); #470 the whole city, measured: 39,820 outer houses with roofs and 196,109 trees (`js/outer-homes.js`, `js/outer-trees.js`, two `.bin` files) and downtown shapes from the 2021 laser scan; outer files 340 KB smaller; phones get the biggest 15% of houses and no outer trees; `outer-count.mjs` guards that no case draws less than before; #465 whole-app look check, 49 interface fixes seen at three widths (report and the owner's 12 taste sheets in `docs/visual-audit-2026-10-10/`); #463 the site host builds `main` only (work branches no longer use up the daily build limit; a merge is live only when its commit status says the host built it); #434 the apartment finder opens as a pill and shows a live bus line under a selected home (CapMetro public feed, schedule stays on the device, `finder-egress.mjs`), with the 13 bus review fixes; #432 GDC entrance 165 and EER entrance 333 re-seated on their walls (`bake_entrances.py --reseat-entrances-only`); `wallplane.mjs` is on again; 12 other doors still sit off their walls (listed in the journal) (Oct 10). #428 DKR west face rebuilt to the rule of the near-frontal photograph (13 bays of 12 m, one tall ribbed panel with slit windows per bay, hoods, flutes, narrow pylon; check 1a in `docs/photo-audit.md`) (Oct 10). #430 live bus module (`js/transit-live.js` reads CapMetro's public feed in the browser, `data/transit-live.json` baked slice; the finder loads it since #434; `docs/transit-live.md`), #429 route search (`js/transit-route.js`: walk + bus + walk, one transfer, ranges; the finder uses it since #434), #431 six quarantined checks back on (coplanar baseline moved: downtown pairs not yet looked at in a render) (Oct 10). #427 the pictures in the checks show a finished city (walls painted at once with `facadepace=0&timeofdaypace=0`; day views now move 0 % with no change, so a flag on a day view is a real change; tower-night stays noisy) (Oct 10). #426 DKR stadium's four north stair towers are round brick towers (brick piers, dark glass strips, pale ledge, glass ring, rim and cap box; places and sizes from the laser scan, the stack from the owner's photograph; lower bodies and the two north-east towers inferred; `STADIUM_MESH.roundTowers`) (Oct 9). #425 DKR west face, second pass: the window bands were hidden behind the wall sheet by day; the wall is drawn around them and the bands are dark; check 7b in `docs/photo-audit.md` (Oct 9). #424 DKR stadium west face from the owner's photographs: cream solid wall with proud piers, ribbed panels, window bands and a centre pylon (`STADIUM_MESH.west`; bay width and level heights inferred; the other three faces, the upper deck and the brick stair towers are not done) (Oct 9). #423 Welch Hall's newer wing, west wall: terracotta lattice screens, slit windows and a lighter top storey from the owner's photograph (sizes approximate) (Oct 9). #422 Welch Hall west entrance (stone surround, framed window above, landing and steps; sized from the flattened photograph, placed from the laser scan) (Oct 9). #420 Welch Hall outer walls from the owner's flattened north wall photograph (window 1.55 x 2.8 m, bays 2.9 m, limestone base with tall windows) and the north CHEMISTRY entrance with steps; a colour written as a bare string no longer stops a building from being drawn (Oct 9). #419 AWS GPU runner: results and the log always come back (the owner's setup is done; the first run started with no key and stopped itself but returned nothing, which this fixes) (Oct 9). #413 Moontower rebuilt from the laser scan and flattened photographs: low boxes in front of both wings, tiers of three floors, glass strips, corner glass box on the notch corner (`scripts/author_moontower.py`; west, south and north walls inferred) (Oct 9). #418 Welch Hall to the laser-scan height, 20.3 m (was 18.2 m), storeys 4.73 m, 13 bays on each east face; new recipe option `roofBase` lifts kept campus roof pieces with the walls (Oct 9). #366 AWS GPU runner: a keyless setup stack (`scripts/aws-gpu/setup-stack.yaml`) and a hand-started workflow "AWS GPU checks" (Oct 8; first real run Oct 9, see #419; `scripts/aws-gpu/README.md`); #417 Welch Hall courtyard, second pass: the terrace's west end is a balcony, single windows on the west court wall, one small shrub, all from a camera fitted to the photograph's window corners (Oct 8, 18 CI checks, every job run). #416 Welch Hall courtyard, first pass: the old wing's court walls get pairs of windows in three rows over a stone base (Oct 8, 18 CI checks, every job run; `old_wing()` in `scripts/author_welch_courtyard.py`); #415 brick in mixed tones: a tone per brick and soft areas that show from far away (Oct 8, 18 CI checks, every job run; `?brickpatch=0&brickmottle=0` shows the old flat brick); #414 Welch Hall east wall: three window rows with stone bars, the photographed arch shape, 4.2 m bays, measured colours (Oct 8, 18 CI checks, every job run; a band may now carry its own `floors`); #412 the same arches continued through the middle stretch of that wall (Oct 7, 84 CI checks, every job run); #411 round arches on the south part of Welch Hall's east arcade (Oct 7; all 84 CI checks passed; seen on the live site from the photograph's camera the same day); #410 photo-rollout tools (not part of the site); #409 a local reference-viewer helper (a Mac tool, not part of the site); #408 ground detail across campus and West Campus and #406 campus roof tiles visible at middle distance (both checked on the live site, Oct 6); #407 bakes skip the generated ground patches; #388 Burdine Hall and the Norman Hackerman
   Building with the compact wall material (Oct 2-3); #383 2400 Nueces and #379
   Ion Austin, the two buildings from street photographs that passed the owner's
   look (Oct 1); #369 the city comes back after the browser loses its graphics
   context; #354 desktop memory; #373, #375, #376 smaller fixes.
-- Since #388 every commit on `main` is docs only: photo-evidence rules, photo
-  pilot and reconstruction comparison records (`docs/photo-pilot-2026-10-03.md`,
-  `docs/photo-source-provenance.md`, `docs/photo-evidence-context-2026-10-03.md`).
 
-## Open pull requests (from `gh pr list`, 2026-10-04)
+## Open pull requests (from `gh pr list`, 2026-10-04; merged and closed rows removed 2026-10-10, newer ones are not listed: run `gh pr list`)
 
 | PR | Branch | State |
 |---|---|---|
-| #399 | `acer/sky-turn-direction` | draft: the GL sky now banks with the camera when you turn (clouds, stars, horizon haze and the sun's disc used to stay level while the world leaned up to 5 degrees). Yaw and pitch were already right. Gate: `scripts/verify/skyturn.mjs` (GPU slot, 18 assertions, desktop and phone). Overlaps #348 in `updateSky` |
-| #395 | `acer/lidar-heights` | roof heights from the 2021 lidar. The owner chose "raises only" (2026-10-04): by default about a hundred plain prisms the scan reads taller are raised, from `data/lidar_raises.json` (`scripts/bake_lidar_raises.py`: a tower on a podium is raised to the height half its roof reaches). `?lidarheights=0` is off, `?lidarheights=all` adds lowerings of up to 3 m. Read `docs/lidar-heights.md`; `drawn-heights.mjs` must run with the scan OFF (its default) or the next bake raises nothing |
-| #366 | `claude/aws-gpu-runner` | draft: AWS GPU runner for the browser checks |
 | #348 | `claude/sky-roll` | open: sunset sky glow follows camera bank |
 | #347 | `claude/loading-fit` | open: loading screen fits one phone screen |
 | #327 | `claude/speed-shaders` | open: shaders start compiling at second one |
 | #320 | `codex/baked-enclosure-layer` | draft: optional baked enclosure shading |
 | #312 | `codex/compiled-building-lifecycle` | draft: guarded compiled building lifecycle |
-| #307 | `claude/finder` | open: apartment finder "Where should I live?" |
 | #189 | `acer/n12-vertical` | REFUSED, DO NOT MERGE (QUEUE Y19) |
 | #164 | `acer/facade-choice` | DECISION BRANCH, DO NOT MERGE AS IS (QUEUE Y5) |
 
@@ -67,14 +62,8 @@ Full rules: `CLAUDE.md` (same text in `AGENTS.md`). The short version:
   2026-10-05 (the main lane now runs on the Mac too, in its own work copy):
   - The second lane on the Mac (branches `codex/*` and `mac/*`) writes the roof
     and lighting pass on `codex/mac-roofs-motion`: `js/wall-patterns.js`,
-    `js/slopes-roofs.js`, `js/slopes.js`, `js/city-lighting.js`. Not merged: the
-    roof look at middle distance is a taste call that waits for the owner.
-  - The ground bake is lent to that same lane for its ground-detail pass:
-    `scripts/bake_ground.py`, its one output `data/ground.geojson`,
-    `js/ground.js`, and one new bake input, `scripts/ground-detail-sources.json`
-    (selected public survey shapes and reviewed surface assignments; no new
-    fetch at run time). The main lane does not write these four until that
-    lane hands them back in this file.
+    `js/slopes-roofs.js`, `js/slopes.js`, `js/city-lighting.js`. The
+    roof look at middle distance merged as #406 (Oct 6).
   - A third task on the Mac evaluates an outside viewer project (MIT) as a
     separate research tool. It writes NEW files only: `scripts/gods-eye/` (local
     setup, launcher, camera links) and one assessment in `docs/`. It imports no
@@ -90,20 +79,10 @@ Full rules: `CLAUDE.md` (same text in `AGENTS.md`). The short version:
     Python setup, fresh capture receipts and verified comparison sheets.
     Its tools pass 25 tests; the detailed shot guide stays private. This is
     preparation, not a new building rollout or model-training job. The main
-    lane publishes the tested preparation branch through its existing sign-in.
+    lane published it as #410 (Oct 6).
   - The second lane's sandbox cannot reach GitHub. The main lane pushes its
     branches and opens its pull requests; nothing of it goes straight to `main`.
   - Everything else is the main lane's.
-
-## Ground pass — PR #408
-
-`codex/ground-detail` has the verified ground pass, evidence records and matched
-before/after pictures in `docs/ground-detail-2026-10.md`. The final review adds
-bank/Capitol/stadium masks and reversible material assignment. Generative readers
-must skip `gd`; the main lane owns that integration. It is not live yet;
-PR #408 is published, with #407 (generated-surface reader exclusions) to merge
-first. Checks and the owner’s visual review precede site publication. The four ground files
-remain reserved to that branch until publication.
 
 ## What is next
 

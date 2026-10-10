@@ -1,5 +1,5 @@
 :root{--explore-width:280px;--explore-bg:rgba(28,28,25,.96);--explore-ink:#f7e6bd;--explore-edge:rgba(245,223,160,.25);--explore-radius:14px;--explore-gap:8px}
-#explore{position:absolute;top:16px;left:72px;z-index:32;color:var(--explore-ink);font:13px system-ui,sans-serif}
+#explore{position:absolute;top:calc(16px + var(--safe-top));left:calc(72px + var(--safe-left));z-index:32;color:var(--explore-ink);font:13px system-ui,sans-serif}
 #explore button{font:inherit;color:inherit;cursor:pointer;border:1px solid var(--explore-edge);background:var(--explore-bg);min-height:44px;border-radius:var(--explore-radius)}
 #explore-toggle{padding:0 15px;backdrop-filter:blur(10px)}
 #explore-panel{position:absolute;top:52px;left:-56px;width:var(--explore-width);max-width:calc(100vw - 32px);max-height:calc(100dvh - 180px);overflow:auto;box-sizing:border-box;padding:16px;background:var(--explore-bg);border:1px solid var(--explore-edge);border-radius:var(--explore-radius);box-shadow:0 12px 36px #0006}

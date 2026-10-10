@@ -1,7 +1,7 @@
 {
   "eps": 0.01,
   "frac": 0.3,
-  "recorded": "2026-08-24",
+  "recorded": "2026-10-10",
   "counts": {
     "art.geojson": 92,
     "arts.geojson": 0,
@@ -14,12 +14,12 @@
     "capitol_trees.geojson": 0,
     "depth.geojson": 0,
     "drag.geojson": 0,
-    "entrances.geojson": 1786,
+    "entrances.geojson": 1492,
     "ground.geojson": 1,
-    "heroes.geojson": 1,
+    "heroes.geojson": 1376,
     "landscape.geojson": 0,
     "moody.geojson": 0,
-    "outer_ring.geojson": 179,
+    "outer_ring.geojson": 371,
     "parts.geojson": 0,
     "places.geojson": 1,
     "props.geojson": 0,
@@ -31,5 +31,10 @@
     "tower.geojson": 0,
     "trees.geojson": 99,
     "westcampus.geojson": 0
+  },
+  "notes": {
+    "heroes.geojson": "1 -> 1376, accepted 2026-10-10. The 2026-08-24 count of 1 was the NHB glassvol/body pair. Added by deliberate passes: GDC's sunshade screen (7cf7d3a, PR #283, 2026-09-22) = 560 shade-return/shade-blade + 560 shade-lattice/shade-blade, each a post whose top is flush with the top slat of the blade it stands in, same colour; GDC atrium screen/lattice/rail/post = 254 (same colour except 14 atrium-post pairs, cm-scale tops); EER west_entry_glass/atrium_roof = 1 (8396ee8, same colour). 1360 of 1376 are the same colour so a z-fight there cannot be seen. Not rendered: the 14 different-colour atrium-post pairs are the only ones worth a zfight.mjs look.",
+    "outer_ring.geojson": "2101 -> 306, 2026-10-10 (downtown pass, scripts/downtown_bodies.py). The 2101 were: 1,406 pairs of two colours inside the hand-modelled towers (a pier, rim, cap or band finishing flush with the glazing it stands against), 529 of one colour, and 166 park pads laid on each other at one height. Fixed in the bake, not here: decoplanar() raises the smaller part of every two-colour pair by 0.08 / 0.04 / 0.02 m so no two colours share a top; settle_green() in bake_outer.py drops a pad that lies inside a bigger pad of its own tone and gives each tone its own height. Left: 300 same-colour pairs inside the towers (either face paints the same pixel) and 6 two-colour pairs outside downtown (twin outlines in the low-rise ring, not this pass's area). The measured downtown buildings add none: their levels nest and each has its own top.",
+    "entrances.geojson": "1786 -> 1492, lowered 2026-10-10 (improved): the Gearing court and Battle east retirements (273931c, d2ab385, 8d100de) fell, consistent with those entries being retired and rebuilt as authored geometry (not traced piece by piece)."
   }
 }

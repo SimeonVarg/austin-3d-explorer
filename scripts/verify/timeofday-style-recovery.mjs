@@ -13,8 +13,12 @@ const map = {
   isStyleLoaded: () => { throw Error('must not wait for pending sources'); },
 };
 const slider = { value: '', addEventListener: (type, fn) => { events['slider:' + type] = fn; } };
+const playAttrs = {};
 const play = {
   textContent: '',
+  title: '',
+  // The play button's label follows its state (visual audit B06): the stub records it so the check can assert it.
+  setAttribute: (k, v) => { playAttrs[k] = v; },
   classList: { add: c => classes.add(c), remove: c => classes.delete(c) },
   addEventListener: (type, fn) => { events['play:' + type] = fn; },
 };
@@ -47,6 +51,7 @@ const frame = dt => {
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-12, `${a} != ${b}`);
 
 click(); frame(320); near(calls.at(-1), .13);
+assert.match(playAttrs['aria-label'] || '', /pause/i, 'while playing the button is labelled Pause');
 map.style = null;
 frame(320); frame(320); frame(320);
 assert.equal(calls.length, 1, 'style loss defers the entire wrapper chain');

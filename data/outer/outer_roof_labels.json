@@ -1,0 +1,2409 @@
+{
+"note": "Blind roof labels of 3 x 160 randomly drawn outer-city buildings of 70 to 450 m2, made from the City's 2025 aerial and the 2021 scan's height picture without seeing the fitted roof. set1 and set2 were looked at while the flat-or-pitched rule was being written; set3 was labelled after the rule was frozen. Read by scripts/measure_outer.py.",
+"set1": [
+{
+"overture_id": "37bf9a75-4fe6-4306-9df0-0247e6b3d2c4",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "e3a04369-3418-4727-86ea-a37b3a4d0afd",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "12102e41-391f-4558-934b-828c31bef273",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "8882edfa-a181-427c-b814-66361573725a",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "06efa040-7bc9-4575-95c4-9b5d5e0796b7",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "c446427a-ee2a-42e6-8573-e9b6acc8752a",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "9d393eb4-116d-4f3a-9a45-7b879e665901",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "c3123a26-9767-43d9-aba8-8d636f795dd3",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "ba2af637-b7a3-4bf3-bbd5-2624dca770bc",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "308eef31-556e-4234-aaf4-fa3c45053ea8",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "352cbc1b-ecbd-404b-8b56-39c0cad1899e",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "5e10a63e-6453-4ba6-8540-a168c89b2dfa",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "a7ab703c-2079-4f79-899d-e5882263bc0a",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "ce87536a-aa19-46cf-a275-9db353c28bff",
+"roof": "flat",
+"conf": "high"
+},
+{
+"overture_id": "4921ddc4-be92-47ec-8a5a-7034be46411a",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "e93bd5a4-95b2-4a5a-8524-88384d27e61e",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "cdbd452a-c366-49c4-8e01-a026a6750f3b",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "63d8dfc4-8a50-458c-a72b-bb403e50df74",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "ae1a891e-3508-4623-912c-1e19b6dd107c",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "16afbd88-3f9c-436a-ad49-75242c19305d",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "8a561ad6-a136-4057-9761-9f78432ce3f4",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "c6f04834-5c42-488d-a526-b429f4891871",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "7f2b2c59-fd42-4c39-8f3e-657a85dffa6a",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "2e09d4bf-f4a9-4898-9be4-b97814528b49",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "0ab238c1-55b6-467e-9376-0d0588247a24",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "80f5d268-7210-4b97-8cc0-d543e192bf7e",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "a69c2ad6-2b6d-4482-aa0d-8797389a6687",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "7e060502-0d5c-4a16-b014-0ccc1367cb4d",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "6dcc5a09-5010-478f-a554-a40c8e8d92ec",
+"roof": "flat",
+"conf": "high"
+},
+{
+"overture_id": "1ff68822-c0ce-408e-a5b1-c6a7ff5b83ec",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "b468716e-2f46-49d5-876a-0c710e3736ce",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "759df18a-27f4-4f8b-a835-df6a2018496a",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "8cab9703-2af7-43c6-9755-d384e84756ee",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "47269f7e-adf2-4812-908d-d2cb410d3df8",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "f7f5da13-39cb-4bd8-91b5-e0dd55671a2f",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "1358e71e-1cbd-491a-85c5-0b266ec0b029",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "366a0d49-b555-4e1b-aa22-d32bfd08ebde",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "14f30bbe-de53-4371-b7de-fd11ba560f72",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "9fcdcab5-db78-4603-9dc2-e6a881b0be36",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "86efeebd-e951-44b5-9aee-c6897e1c9baa",
+"roof": "unclear",
+"conf": "low"
+},
+{
+"overture_id": "4914f90b-fe3d-4b58-9461-3da2ad9388fe",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "0f3118a3-4ee4-4f5a-a7ec-2b3aeee22534",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "f6d7ff5b-cca9-456f-ad87-3e7bf0615d6e",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "fe715284-2cb6-4728-b1da-90c0d54c1d8e",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "c6efad1b-5a58-42b4-9d61-a2f7e6a02464",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "fc14c093-4964-4541-ab53-39561bc087bb",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "03696da1-06db-4b1c-b03c-e9f48ed0257a",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "38f12e03-2786-41dd-a257-e4bd3efeb57b",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "fedbb348-77c2-4e76-ae82-29a2c171e5a5",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "a58fe3c2-a4f4-466f-94b4-51867507ffc6",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "603546af-fc3d-4560-aec6-933027ffccaa",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "7618c6f3-7de7-425f-a162-99de007f299d",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "7e7b1cbf-a4e5-4ce1-a30a-584fb6742757",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "3915475b-64a3-4b99-9aab-e2fe3568dc36",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "af745ce4-d2f1-44e5-a6f0-b612dbc3a2ce",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "e43bb979-41c4-4cfa-b5d1-47d8a457185a",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "ea5d3000-e563-40f8-86ce-ec73c0f225d9",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "ed230480-b955-4b23-a94e-81d6ab34a744",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "1adaa717-c32e-4a33-9a6b-6c3564e377a6",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "ec486f95-a421-4d1a-bfa4-4b2e3028002d",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "9e0fb4f4-f3c6-4957-957c-bce71475b622",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "2b0823c1-5868-46a8-8cd8-c7f8adad758b",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "734b9fe6-17da-4dec-8336-e8ef6e6023d1",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "7b4c528c-05e3-47c2-ade5-1d4da6766b91",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "385c4ed5-009b-484c-91eb-cd14ede4a239",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "72ad2edb-31a3-4485-8135-a01cdd582158",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "f8ec0eda-810e-46f6-ba53-9f3cd2706b51",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "2c61ce5c-6163-43bb-9610-ee17bc9753d1",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "7a2ddeb1-4322-4dfd-b28c-14220b5c3f73",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "3b864505-e45c-403e-9ed4-91d3f537334f",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "2e026890-78fc-491c-894f-e0b8277d51ee",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "fac100eb-0cb6-4d77-b736-6341183bf033",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "9e61278c-ec5a-4a93-a5ac-0c79cd9b8640",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "802c56e1-0661-4b9c-8e71-d47ed08b09b7",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "2a9335c6-8621-4d14-b93f-265b5f6f6f81",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "30f83279-ed75-4a5d-a226-8369b162ab5b",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "a6feeb5d-2876-4592-a6ba-bd29afb97850",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "dc1e6e59-3811-4495-a437-7167ee15a154",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "9ddafb8d-ef7e-4550-9478-2f8d020a4e5e",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "3e708da7-d1bd-4c6f-8670-1f5c4eb6f999",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "3887e85c-3d27-4e97-87ca-d52126707ed6",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "ecb7366a-94e0-4c07-a524-2ac80f9020aa",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "0944c5f1-4178-4b4c-82b5-cbbc2ba721ac",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "bf04426b-fde0-49e4-9327-4811f2d81c76",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "42ea87a1-7379-4244-886c-aee80bbc007d",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "aa1368de-5b68-4f08-9450-0b21a4f6de67",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "23eb1ff1-c472-47a4-bb04-f42a76f23a0f",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "2caa769d-fda3-481c-977c-5b8a14bc556c",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "9457eb11-9d03-438f-981c-f1bf7e18180c",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "06a13bd5-278d-4229-a697-d7a7e14b0966",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "9f831fdf-2243-404e-a31c-3f725565eb99",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "ffdfac4a-89d9-4581-ac48-cd4370375d77",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "ab8e0b4b-4fa4-43bf-b585-0e3d594f128f",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "3f20f584-aac1-4d14-a530-62a59aeaec38",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "dcea4cda-8f14-4735-a14b-76cb60c0eeac",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "3e001e26-11b3-4ada-a44b-384a3908f73e",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "f2564ae6-4862-43d6-b8b4-efeeff288376",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "51c763d4-0324-4317-a67b-972a1a59ddcc",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "1494ed01-0c7e-4f3e-9bd5-f05e2a46c094",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "aa5b3824-e9ed-43bd-a0e2-0be6863c097b",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "db9c453d-15e0-4735-8107-18333795d73d",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "ecd498b3-2b2e-4cb4-853a-b2faad8a5bde",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "a8fac712-ad3b-4769-bac4-d4f26f77aa6f",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "9c266730-0e55-464d-9057-71277402bf2f",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "0cbac861-1def-4c38-88a6-f3b0a482d01c",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "6a190b86-75a7-4884-9d69-e2e5d00f2a6a",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "9aa847af-9005-47c2-b8ce-c0c97ad3d14c",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "e21b0cc1-ffdf-409c-816f-dd5052f98d05",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "d4f18296-2888-47f5-b584-41fa91a472da",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "30f67c0f-a578-4acb-8bf4-9c4216aa92e4",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "bcb8896b-7c60-4c44-af63-78fa2fde1e43",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "1a634436-67b6-4191-a6c4-62295dc661ae",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "6df16975-af41-4d27-93f8-42f02c2f61ca",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "320c98a9-a2b2-44d3-9906-7d7b043dcab6",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "fd5d0160-8b0f-4257-ad13-0320e87cc5f0",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "569bdf8f-9174-443a-b0f1-303144bf6480",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "080fc409-195f-4e7b-9403-8c817781ed43",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "b8b483d7-c64e-4cf4-86d1-33a04f696d1c",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "3e1e1ed3-3edd-402f-93cd-d573eba6f2ca",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "51893d15-29b9-4320-9da5-85fbc6d161eb",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "8acc7771-e7d5-4cc3-86c6-d26bd714b42e",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "7245315e-52ef-46b6-9cf2-2ddae0d633a3",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "06ad9861-437f-4397-a2ac-98539fb3c3b0",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "975df121-8ccf-4009-bb8f-7b1e0d2d6357",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "a9f16ebf-d990-478f-a248-58b11d460e49",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "a7d94487-fc7d-4d98-bba8-b792c4bb7e44",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "d1d51718-af6d-4375-8ccb-c97e008ecc32",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "dd8d1f24-c9e9-41bb-8de9-a25567a18731",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "bce5aa3f-3f04-4f8d-b411-9fa281095e88",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "b05b9c81-9a53-433b-ba6e-8065b191881d",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "fab14ff5-fe60-4f96-b849-f26746e56d70",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "0faedfbb-3a0a-40ec-bc19-c96aae76c576",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "44450772-18a7-4396-beb1-ac3f1b446a4d",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "b3ca0308-dcb8-4c28-8701-c25deaffc2b1",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "636b4c84-bd22-4492-b543-ffcf90e9551b",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "a2bc895d-3127-4782-87f3-e986c6eae620",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "a60838f0-458a-4f9e-a714-463e6683d188",
+"roof": "unclear",
+"conf": "low"
+},
+{
+"overture_id": "48c1f4ff-f7f9-448c-89a5-86794d96e8d1",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "0e8a692d-2044-4f1e-8030-aeb666e3339d",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "b83180af-4016-4bce-9f9c-73afb09b6c1a",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "126000ce-dcb9-43a2-850f-71eff92aa4e8",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "a5cde2c1-1c18-439b-a1c9-c00afcc16d3f",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "2b5ce350-1b7d-464d-afe5-8df789315cfb",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "257a3b36-c2ec-480b-b2af-a510472906ca",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "e682111c-fc6c-477c-8a94-508ffac6585e",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "f90b07e6-c5d1-41c3-8004-9e1de90e08c3",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "954b2933-66d9-41b0-8e1b-e5fa796d9e84",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "9afae01e-02b4-4697-93bf-d9cf06e061a9",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "dc377428-2f79-454b-a11b-b75fc18fe378",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "eafe7d82-71d7-4023-a959-f957ae2b2e44",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "fd67b2bc-07ae-40db-9490-f73cd5d2e67f",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "ae5739e6-6cee-4a40-a3ab-dbbc9ed93f0d",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "9e236c4e-650a-40ab-99b3-d8997ce2f824",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "38b48ebd-9b55-4d2e-a5bd-08297893b7a0",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "bec0a1b5-0cf1-4aac-ac78-aa6c4a222000",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "f4c71a09-c3d0-46cc-9a4d-0f688a8472ee",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "c7ecbf6e-bdaf-4706-82ee-2e7ceb4da325",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "d92478b5-27ec-4883-818e-74ddbe59e79f",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "154bcde5-46bc-44f3-9e0e-4ae8f838ba2f",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "f12e99b7-4297-416b-b696-b76744fca364",
+"roof": "complex",
+"conf": "low"
+}
+],
+"set2": [
+{
+"overture_id": "b5b852f4-bdf9-4b14-bf63-84a4dfe789ec",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "a3e74114-4e71-4855-8786-88997be4bf91",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "5e6e1da5-d2af-4026-a26d-02b7d6c16494",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "03b5271f-6424-4e30-b368-633ec835f871",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "425aa91e-bd12-48ec-a2ab-a3f0fa521831",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "3af95837-450e-4cf4-bc24-03620e72ffb8",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "0b1ec4ea-bcd7-4449-83d5-ded324084f61",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "5667da00-d81f-4d11-a629-03c83608ab0b",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "ae260f22-ed7e-48a8-b06c-ec09c3d7f7b2",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "58e6c229-9179-4f9e-8c3e-ca80f6f4a561",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "f0ce4f03-8cca-4a9e-8b32-60289e14a6e4",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "fc53b579-5bd3-4176-98a4-5f1637929bac",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "b4d3f644-12ef-478a-855e-563858cd2c03",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "4ec79a02-7abf-4d2c-9c39-db4c4222b6fe",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "372fb62d-2c65-4d89-8b66-c6461221cf37",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "4fc2ba62-5f38-43ee-8e5a-4d4b9ad0ea6b",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "16c8da40-d8e9-43d2-9285-f8eccc1ce846",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "0eb8e6e0-4758-4392-9f42-091211843fb5",
+"roof": "flat",
+"conf": "high"
+},
+{
+"overture_id": "7749e134-badc-42bf-84db-6d8ee92f66a8",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "7ea922b7-b853-4947-ab5b-3f0adee71e47",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "74f202fc-3e0f-4668-86fc-b3df7e00a181",
+"roof": "flat",
+"conf": "high"
+},
+{
+"overture_id": "60464fe3-0de3-45d8-9b14-dad27fc5924d",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "6d3c826b-9e24-42aa-af51-daaa0288fd3c",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "62c0b954-3733-404d-a38d-62abbcc93427",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "79f7e770-1efe-4bda-a060-f2cb53ea619f",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "7803ef09-9ca0-4a38-b96e-12351c75b7d2",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "49c80275-29ec-4987-b864-ae5550437739",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "903516a7-2b71-40f0-a2ef-936d02afbe0a",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "565a6748-26c9-4556-8bd7-a62319549d8e",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "1c281916-438d-4e56-ae5a-976afaa6bb37",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "cc7e1ba0-a047-428b-8830-b01c814989ac",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "7b7eba91-a619-433f-87c4-77463e1db647",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "5dc1c478-2676-4e2e-8c38-8c38f6d6f4b5",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "081c098e-104a-486f-ba6c-11c0d9c026a8",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "ecd125fe-c7fd-47d2-a2ca-40e92d7efd5b",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "4a33a697-d2f8-4d4a-95fb-67a72addb876",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "5d59253c-7ce0-4855-b6d3-fd4d57bd0778",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "ccdb2b06-4715-4b9d-a8db-51f9b15ac45f",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "4729dda3-7d34-40cc-9009-35c0ff1a8ba0",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "38c0b219-d99f-436a-8ca4-ef7e6b577d2c",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "2f3c78d1-00f9-4819-83e0-d069293a9084",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "b113a403-eb01-4c01-974c-75134293d11f",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "3eafe10f-7dbd-4a13-b053-dbf64bcbe059",
+"roof": "unclear",
+"conf": "low"
+},
+{
+"overture_id": "5e99dce6-5f2d-4014-9a6c-a29261b260d3",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "4fc651a4-d86a-4ca5-ba7c-fb124ee6e451",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "aec6ff72-78b3-48a1-b5aa-54360f0340b4",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "ca090a25-6ebe-4baa-a36b-165bdd9070f3",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "a596302b-a788-4b4f-a19c-840e429c752b",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "aec6a6cd-7bf1-494d-839e-5c574c01be98",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "70fa7bc6-bf0a-4b58-8681-78286c490424",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "2482bea0-6699-426b-a690-4e4345393efe",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "406f415b-6ae3-435d-817a-e20f6f61bf77",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "b6c526cb-6b93-4fa4-a33b-6bc5bdebfca1",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "0f05c9aa-c7a7-40a1-b3b4-f6e8dff175a0",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "cf48c585-42ab-4555-8bc3-5453aa747f4d",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "5a01f03d-e9fe-405c-9aed-0b538375f0a9",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "b64f545b-c616-42ff-a45a-abd008ccefda",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "be75c122-a9bc-49e0-9988-bdc480b73cd3",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "9bbe589e-f660-4676-8303-18bf39206b52",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "6c8aeef4-e54f-46c6-9b9d-1176f0002ffd",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "4bb4da5f-fdfb-43b1-a2e4-0e7749844a58",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "b097a173-0e05-4fbe-860b-4be0fb2e2fbd",
+"roof": "flat",
+"conf": "high"
+},
+{
+"overture_id": "97245486-5ab4-46d7-9c2d-8199d5488dfd",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "d3d7e39e-cb95-4cfd-9607-65efead7d08d",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "6cea1940-d417-469d-8100-abab4c178e3f",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "494fd722-b77b-426f-9860-36ef611dab07",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "6a9a50b1-c101-4ea3-8652-a5bdd85c0818",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "61dcddcd-f84f-496c-8827-f673d670991b",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "638bbb9d-0d90-47d9-a3fc-2be459b7d563",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "0278cbac-35f9-4a62-80de-a7e0aff6be73",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "50978026-0b52-4bec-872d-aaf4fda5ea4d",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "057cffe9-20fe-4892-8afc-69858c0f2a7e",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "08a17080-f7e0-4648-bb51-3e3e01bc660b",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "dd698ac1-9d79-48fb-86bf-441014cde1bb",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "4e3bd4c7-fee2-4110-b390-29c6ca82fee9",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "7302fcd4-33ac-438f-8d1c-92dd8598e2b2",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "9c4d92e6-4257-4de1-b0b9-b8457a68df27",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "f1ded43c-9861-4d7e-9201-afb19b9629eb",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "e854934a-b34a-46f4-9320-38ab198a211a",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "e429538d-1e26-4efc-8b33-85ee9f413fcb",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "a5d15f36-49af-4f46-9402-71d1653285d2",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "8537abc2-79ce-46c3-b73a-2b7b4e906c1f",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "acd586ea-78c4-42c1-a91c-c6ccf9e92237",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "1fd08d74-3f30-4e89-976b-8eda0adb6529",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "4780d0b7-4c2f-4237-b613-a85a1c097ef1",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "1d6f449d-5ba7-43a5-8ffe-7814290e13a9",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "8d2b3ae9-430c-4f9d-9acd-702ee248ec28",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "92126308-aa13-4309-aabe-03ab602771a9",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "22bb032f-ea50-4020-85d5-7e19a81afe21",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "5b4f5ec1-1fb5-4372-9bf3-c9149fc53c60",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "09fbaba8-4049-41a7-b02e-b7869310cf8d",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "1f9562cf-c1f9-4fbc-b23a-b3494727ed10",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "874e4d82-04b9-4de1-b234-9dca0ccf824b",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "265da910-fb80-442d-82ac-87828eaf79c4",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "84fd26d2-9bb0-4487-93ee-f6f3f8d858e7",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "12f15d8a-db34-4d7d-bdb7-b1b8c4d0480e",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "c185acdd-89a2-4acf-a36d-707965292d59",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "d8bde7dd-f5da-4811-b3a7-12110f0369c3",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "e9577644-598f-4e0f-93e6-1244c87bb6cd",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "2bcf659f-cbcc-49a4-853c-e414362bf3c6",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "20320891-ceee-42fb-a3f4-12f5c58fcc1e",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "9f863e7b-42c0-4ce2-9c11-22df43236eea",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "3cc2718d-1197-4662-b367-23e1a650e245",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "de31be7c-90e5-4cab-a4af-6eafd8f83a92",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "50dd014d-ce90-4ad1-b315-4822509badcc",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "033fbd03-dd1a-4c39-adb6-94797e87bc92",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "b39c1858-8a1e-4fea-903b-a0335cd37cb4",
+"roof": "flat",
+"conf": "high"
+},
+{
+"overture_id": "0f86a2e3-96e9-449c-aa4d-c68b9dfc82a4",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "e5e1b1dc-22ba-43bf-9e9a-44187535bc75",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "379b4c91-b5b2-4747-a067-d29f4bc3d79d",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "cb9b7ba0-bcbc-4255-8363-7908603f56fa",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "db628afb-f500-45c9-93e7-376338827ed0",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "0404b500-9480-453b-b776-a19e08cf73f5",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "d4723399-d898-4c90-96e3-b13123ee3823",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "3cbb0097-ca81-4387-85d1-509472932e20",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "73eb2524-456f-49ea-b177-568b4073973a",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "8333a876-622a-4716-bf2c-258a2f17d6cc",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "1cc60f66-e1c8-4454-a1cb-fb090fcdc93c",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "3697996c-d519-4a5d-8996-e5223bbc5bfd",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "b9e3d2bc-9fb9-4630-b48b-91020071d39a",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "abd8814d-ac4d-49cb-85d5-f6270695e99a",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "c2a26a3a-4678-4250-a865-d40d5ff261a8",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "18aa5a0d-91a1-463a-88dc-29da029533f1",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "fa5f72c0-5617-4933-a6ca-fa3b223f6455",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "b725f7bc-dc34-4355-bc33-99e64d5732a4",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "98b704fc-77a8-4d3c-b8cf-943cd218820b",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "d94540da-7bd4-4e0f-899b-aa10f053cce8",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "e42360ad-5bcc-4fdf-b992-cf2078584d1b",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "0772e52b-e763-4e56-902b-315e960418a9",
+"roof": "unclear",
+"conf": "low"
+},
+{
+"overture_id": "ee0f032d-370f-411f-9a6e-4df9d67641c7",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "af0293fa-2c6e-478e-88ad-4de105542a75",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "383f5bbc-8cca-45de-b1b0-f2e454854eaa",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "f16b1017-d7d2-4693-a986-dfbd04c6a072",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "2dcc731c-756b-45ef-86bf-c40249d86bf3",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "29a5f935-0f75-4687-9e0a-c0f2b87a991d",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "be911682-5d22-4c4a-be93-5859f9b76b4c",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "e2e34150-99e5-4028-8772-9f7114d94961",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "6724ba8d-9e3d-4ec7-9ae6-1ba1e869d2bc",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "02f9aec5-4f99-4d92-9d3c-9d40664659fa",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "01e4bf38-7c0c-4316-a0b7-549277662406",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "af94a5e1-4274-4a20-ad35-98ebca7b2217",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "16c10bd5-4b12-4b33-a768-6a7c5f2c08e7",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "3913198b-ea53-4e33-bdc2-22065158937b",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "b95f0ac6-f222-4b33-a2c0-b4ff54f88aeb",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "279391db-4a0b-4532-a363-9ac35de1f053",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "ca004f75-a30c-4676-8a1e-eef3036ee262",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "8859c65b-988d-4066-9444-6b90a35f7c4c",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "db947930-720a-4267-a251-8225cd62a413",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "d9d71bac-6d3d-44be-93fa-1903bccdf6b5",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "93261673-4e02-4a2d-a714-fa37a7f0c7a8",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "a8844c09-bc50-4324-a268-3095d58ad34f",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "f254922b-fdb1-4453-b449-3ff8af7aebce",
+"roof": "complex",
+"conf": "high"
+},
+{
+"overture_id": "10143e83-3fd9-4e58-b9fe-1a1a26771a99",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "f290e612-8fd8-49c1-931d-f8ea000c0a7d",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "4310d01a-8564-4c12-b8e4-eb802815d1db",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "6d387bf7-e854-4860-8f01-870cc7fc35c6",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "374803bb-4e93-4556-82b8-c1c2f9aaef9b",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "c014a23c-22c6-4d9b-8f49-e4d7c8be8c5d",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "37f2a541-9b6e-4319-b9e2-23e7f48d8955",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "8c998ca0-81f3-41bc-b170-86a27eade7f2",
+"roof": "hip",
+"conf": "high"
+}
+],
+"set3": [
+{
+"overture_id": "e99235a2-1680-451d-a9cb-a65023349439",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "cc5de669-22e3-48a9-b541-bd3a48242f0c",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "343a6f56-10e7-48d4-98f4-d87f00ee336f",
+"roof": "flat",
+"conf": "high"
+},
+{
+"overture_id": "183aac3e-1f00-42d3-a293-e025c9dfc90e",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "3081db75-2840-485e-842f-8aa2751e6de2",
+"roof": "shed",
+"conf": "high"
+},
+{
+"overture_id": "3a556027-78a5-41bd-b694-2375a0d79977",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "3507cb70-f6fc-4898-887a-dd15ab34032b",
+"roof": "flat",
+"conf": "high"
+},
+{
+"overture_id": "0868808d-973b-4f1c-b9e6-116ea4618b11",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "c383be9b-0023-4c5f-bf93-d3c1edb6cbe6",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "bc8dcde4-e97f-4df6-847b-aac43e0d1b93",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "123c2837-b88a-4ec6-912a-e8223b862bb9",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "60115cdb-a2ef-4dee-8abd-3dc2cf0ee5ef",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "cbbcc97d-d54b-473c-9715-8bc612b03cbc",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "e088dd92-c424-429a-bd23-966e9ddf6cfc",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "af837c61-8c49-4c09-aef6-16bbf380191c",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "072190c9-a209-4ff2-8a45-3a9ac7a35c1d",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "95d0b507-b929-4219-a3f7-7022a23b1c5a",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "b8469f48-1536-4686-9fd6-800d618f675d",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "163a4f3b-3307-4ef9-984d-17331cca99f2",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "ef5c71df-65a1-421a-9eec-a077a607b626",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "0221ab29-2dfc-490f-9679-b9e3ca64c06a",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "30fadf6b-d9cb-402d-b81f-11ae9d5f530f",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "ae2d0648-bc38-4d0d-845a-42c1a4f21e1d",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "d99bd0dd-072d-45ae-8406-8858c24acf17",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "57e535fd-451b-4679-9fe3-5f7181392de9",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "c737a24a-b63c-4aa9-b06b-cba369142b43",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "4bf35d2a-a5f8-457a-a872-e69f897718ff",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "ebd26767-aee6-4973-9245-bf44b022c10a",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "fdf5f914-2b05-4755-82a2-7b8451cad415",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "66f5c9de-c57a-4eb1-b128-5d9560d997ab",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "1da3b62a-1d6c-4cb7-a519-6523022c2ffd",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "303755a9-1af0-4076-a910-808c4728a652",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "9f919187-47d9-4aea-b84c-503539cb3c55",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "805a330b-9930-40a7-8007-b6709a8fea6c",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "aa2ca98f-03ed-407f-9d4a-c36976da34de",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "c0a77b3d-0aa5-4c0c-9c02-3ef17e548e71",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "fb89b370-7925-4aac-9650-dadea8ffdeeb",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "1c70a8bd-bb6f-4e64-8ab5-9a6e430abab9",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "c41e91fa-b447-480a-8b7c-10ffe5a34511",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "eac2250d-c8e4-4c4b-a494-0597da1e0b82",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "53a0a124-66a8-477c-8927-f5837149f858",
+"roof": "shed",
+"conf": "high"
+},
+{
+"overture_id": "631a2059-140a-40b7-a624-98445c10a640",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "0a813821-63ba-45f1-9b1a-3295c8e338d9",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "3a100eed-202f-46d3-a721-399511ce5562",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "971675e3-7abc-42b6-8f6f-a836c6f70466",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "8f8d822e-49b2-4d1e-86eb-41448f17f551",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "13a3e278-66b5-4703-aad1-5f0a6f2e1310",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "857d8d3d-2568-4c1d-be57-21a884acdb54",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "8ff77640-fc21-414b-ad72-9be770e4245d",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "1aadba80-9c8c-4100-8372-017f55cfc06b",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "b237de3d-8419-41cc-bd32-c81d4595fa42",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "e1c72606-0cc2-4189-90d2-95769d7ec2ae",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "8ec5dc5c-d062-4078-b28d-de574f08fa0c",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "df1a17d1-9893-4066-ade0-751d5b65b646",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "1776bf07-077c-4af0-ace8-d96095cbbf2a",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "5040eca0-5faa-452e-9394-a74106c6e026",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "335d5902-1aa4-4b5f-8357-a30c5d72d694",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "ef3bc575-d796-4f0f-a1bc-62f150dbd14f",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "7d73273a-7616-4ebd-95e9-fa783233f326",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "7946eea9-e965-4d80-bc6d-ad9184b2757c",
+"roof": "flat",
+"conf": "high"
+},
+{
+"overture_id": "0fe7a515-f489-46f9-9979-6b95d01931e6",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "16e715f7-06fb-446e-9766-14dfaa6fe5aa",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "ab5867c9-4c45-4291-b0e4-6b1293bc282a",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "d1e98ffb-ffd5-4ef3-8756-da46befaf589",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "ddab8bfd-ba28-47b8-b877-77d9545c16b7",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "2e6d4b2d-41bb-4357-88d4-1397b8b9e329",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "0c26a8aa-6b4f-4abd-849d-932251cdeb3a",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "7f10ebdb-1098-4c71-b1ed-c2d468b1eafb",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "47d9bfa9-df5b-48a2-ae14-25f0a940b889",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "69ca5e75-562f-480e-acb1-d84e68bebd7d",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "2dc10f0a-a298-41ff-9b31-b516948e8115",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "91d67a49-68f1-4378-a7b4-df841464ae8e",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "8c26f350-f399-486c-9d94-5cd31ef7abaa",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "543a8fa1-a1ac-49f8-af7c-49a2c7d4d014",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "c2ed1909-2465-4174-b2e0-be82540ce730",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "19ddc494-9047-4693-92c5-0bc0a9eda0f4",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "9e2d7839-600a-42b9-a42f-9a7d7396cd06",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "4d86d346-455a-4604-9433-70501b948caf",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "d838ea56-2011-449b-b2cb-ad93b5e8ecc6",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "a92fc3e8-f90b-42c4-9fcd-6e7b417f0892",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "da28d826-176e-4741-a8e9-a8d13191d6ee",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "f0d852ae-67ff-406c-aecb-54b2c9f4964a",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "7a447da0-45a0-48c4-8e8d-c8032d104e88",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "b5ac75eb-fca9-43e5-9420-b05445e456ac",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "88c36d70-e573-4b6b-bb84-b79cdd1eabbc",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "f649feac-8428-4d84-b9b7-6ada9546de4a",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "be24a0a3-fd8c-4d68-a660-1c356d39af2d",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "bd3cebc0-ed5c-4136-ba49-7b9ec21c2fd0",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "1793037b-ae19-495e-85c4-0a3a153c4526",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "4f673f97-d967-4ebd-a062-52fc189fc26d",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "0ea15a95-e16b-4dfb-8aae-0daa98c499a5",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "5bd14ca0-3ac8-4cab-8f85-685eb280cfd7",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "38bb056d-4b28-43bd-be1a-40b302b43cd8",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "7b0665a8-6771-400a-a4fe-1f047beff8ac",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "c29a61fd-9976-4a14-affa-04a60fe8f3b0",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "0220a387-c56e-438c-951f-867126e5a206",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "be037356-f97b-4bc9-9cfc-274b2ac03bec",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "5172694f-1ec7-450f-aa6d-261895933bc3",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "5539ce62-9b72-48c6-ad18-a81fef72a9dd",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "5881641f-11c3-417f-82c8-d05e1e50efc4",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "c31db941-a489-4638-954f-a3451302acaf",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "8ff52635-1ab2-4e15-a55b-72ebcbb11839",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "e4843bd6-0630-4336-9a48-9bbedc66883e",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "31fb3c84-ee4a-4955-9f35-a5f1217ca0b3",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "5ac1e271-202f-4e5a-8dc3-7f5be87c75dd",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "9ebaa8a2-1d3b-457c-984e-63c9d93466c6",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "2f0ded31-ef36-4725-a86e-c494d1a05d20",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "3512c3c2-87e0-4f40-8e11-5ce83b72ea7f",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "65209fa9-122f-4376-a3ad-80f8cb562a2b",
+"roof": "flat",
+"conf": "high"
+},
+{
+"overture_id": "e5ed715d-c680-4340-b623-9c111071ad01",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "c48ead88-a584-4347-b9d4-2c1867aa66da",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "41e25b26-0c6d-4476-9528-b2807d604fe8",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "292c4c82-5003-4ce2-b51c-0b9b7c8b040f",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "4ce4fa68-5b21-4fd5-b238-f7cebc9fb278",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "ddeea081-117c-4549-ae1e-6429199f5dd5",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "9ed42b7f-307c-46cd-9ddf-f6335be2cbde",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "d468f681-1ce4-4b88-8c02-a8d0c8bf49ab",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "3ddebfd3-6dae-4e5a-8d95-81d348593380",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "6afa6d5a-d24f-4fef-b85d-7eb275ae4f26",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "86b97abb-ad0b-4adb-948a-5eb6ef89cf7c",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "4fde8e78-d2a9-41c1-bef8-c0d24dd0c460",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "1dc7822e-329b-4c1b-8372-d5e7b13fc42d",
+"roof": "flat",
+"conf": "low"
+},
+{
+"overture_id": "aa19e3ca-a1f7-4c60-89bb-d65f0ea83e7f",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "5441607f-cbf4-492e-a28d-d443bc622068",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "131f1320-207b-4c77-9c3c-a5fa19c96344",
+"roof": "unclear",
+"conf": "high"
+},
+{
+"overture_id": "6317f4ab-a656-452a-8247-e9cece566e43",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "30269243-e094-4036-9457-092d16670db5",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "78fc6ca6-b1bd-4e7e-a16f-c989d28bb4be",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "d3be3679-6d0d-445e-b511-53d45936e034",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "db7fcb33-82db-43fe-a26a-55cba6f36316",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "83e3bed5-7159-48ae-982a-b442952ff5ad",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "9c00c72b-954c-4e43-bcb6-11adfa343421",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "7d334a79-c986-4935-9365-349a317f2627",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "45fe5f70-bce2-49d8-a9d6-5550855b110c",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "d0a788d8-877d-4ed5-bbe4-4cc98592940f",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "2ee5d693-b052-4930-a9dc-c15d986bbb76",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "f32e780e-25aa-459e-9052-ccdecc765f5d",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "a6a8a39a-96aa-4e0a-8220-e8fb2aa81156",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "19a5ad4c-6d81-4dc1-b9c2-42abd40ff7a7",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "591f9306-388a-436f-beac-16ac657101ff",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "db375696-1336-46eb-b946-9990c7fb8c98",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "8d65a911-3444-4f6c-8eda-2a85c79b20c1",
+"roof": "flat",
+"conf": "high"
+},
+{
+"overture_id": "88ca775d-1570-4671-8f4f-36f8791a6031",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "6647dbd0-7bc7-4187-8134-2c1d08fd7a44",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "d1497f08-5634-4c5c-b2a4-25ab23ffb9b3",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "0c8aa1c0-af89-4c34-953b-e12283f4aead",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "eb325337-1366-4f5c-8a50-35b3c4a9de47",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "ccf9d72a-9f2c-4c91-9aa0-c6912c6ca406",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "78c8622b-c282-4aa4-8e1f-d391c0c49c11",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "20f38d9c-3615-477d-87f9-5233467f4485",
+"roof": "hip",
+"conf": "low"
+},
+{
+"overture_id": "748a315a-3888-459d-a5ce-0d109253e086",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "54d6bd3d-1e85-4a39-9e58-bc0136cd62d2",
+"roof": "gable",
+"conf": "low"
+},
+{
+"overture_id": "f2515aec-d237-4d5d-b110-010d678c704e",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "9537e3bf-ee32-4e7f-ac95-650052cbd710",
+"roof": "hip",
+"conf": "high"
+},
+{
+"overture_id": "9c176b6c-7b73-4d8c-a73a-d05d8c5f5050",
+"roof": "complex",
+"conf": "low"
+},
+{
+"overture_id": "3c5f528d-f723-412f-95c1-6087f913a721",
+"roof": "shed",
+"conf": "low"
+},
+{
+"overture_id": "f2f1e163-21e8-42f5-82b0-eca4f6f8c062",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "1b2940a7-4115-4f67-bc32-a93ceaae6e71",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "90b58f18-d895-44db-b886-495073466fa1",
+"roof": "gable",
+"conf": "high"
+},
+{
+"overture_id": "8745d8d9-710b-4375-a8fa-adff1a645a79",
+"roof": "unclear",
+"conf": "high"
+}
+]
+}
