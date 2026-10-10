@@ -73,7 +73,7 @@ async function open(browser, ctxOpts, query, { hideWebdriver = true } = {}) {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
-  await page.goto(BASE + '/index.html' + query, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(BASE + '/index.html' + (query ? query + '&drift=0' : '?drift=0'), { waitUntil: 'domcontentloaded', timeout: 60000 });
   await settle(page);
   return { ctx, page, errors };
 }
@@ -176,7 +176,7 @@ try {
       await settle(page);
       s = await state(page);
       check(!s.present && s.reason === 'dismissed', `stays gone after reload (reason '${s.reason}')`);
-      await page.goto(BASE + '/index.html?gpuhint=1', { waitUntil: 'domcontentloaded' });
+      await page.goto(BASE + '/index.html?gpuhint=1&drift=0', { waitUntil: 'domcontentloaded' });
       await settle(page);
       s = await state(page);
       check(s.visible && s.reason === 'forced', `?gpuhint=1 brings it back after a dismissal (reason '${s.reason}')`);
