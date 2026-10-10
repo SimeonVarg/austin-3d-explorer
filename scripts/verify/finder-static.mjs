@@ -138,8 +138,8 @@ ok([...dataBlock.matchAll(/'([^']+)'/g)].every(m => /^data\/[a-z0-9_/-]+\.json$/
 ok(count(finder, /localStorage\.setItem/g) === 1, 'one localStorage write');
 ok(/localStorage\.setItem\(FINDER\.prefsKey,/.test(finder), 'the write is the prefs key');
 ok(/prefsKey:\s*'austin3d\.finder\.ui'/.test(read('js/finder.js')), 'prefs key is austin3d.finder.ui');
-ok(/const p = \{ major: S\.majorId \|\| null, mode: S\.mode, heat: S\.heat, closed: !!prefs\.closed \};/.test(finder),
-  'prefs hold major, mode, heat and closed only');
+ok(/const p = \{ major: S\.majorId \|\| null, mode: S\.mode, heat: S\.heat, closed: !!prefs\.closed, preferMajor: !!S\.preferMajor \};/.test(finder),
+  'prefs hold major, mode, heat, closed and the use-a-major choice (a yes/no) only');
 // The one injected script is the page's own wayfind.js.
 ok(count(finder, /createElement\('script'\)/g) === 1, 'one script element created');
 ok(/js\\\/wayfind\\\.js/.test(finder) && /s\.src = own;/.test(finder), 'it is the page\'s own js/wayfind.js');

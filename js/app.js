@@ -532,9 +532,12 @@
     if (manifest && manifest.latest) {
       activeDate = manifest.latest;
     } else {
-      if (el) el.textContent = 'No snapshot found — run the data pipeline first';
+      if (el) el.textContent = 'Map data is unavailable. Please try again later.';
     }
 
+    // A browser with no WebGL makes MapLibre throw here. The error reaches window.onerror only as "Script error." (the
+    // library is a cross-origin script), so the loading card is told from this catch (A09).
+    try {
     map = new maplibregl.Map({
       container:'map', style:'https://tiles.openfreemap.org/styles/liberty',
       center:SPAWN.center, zoom:SPAWN.zoom, pitch:SPAWN.pitch, bearing:SPAWN.bearing,
@@ -561,7 +564,15 @@
       // (no budget) passes nothing and keeps MapLibre's viewport-sized cache.
       ...(PHONE_BUDGET && PHONE_BUDGET.tileCacheSize != null ? { maxTileCacheSize: PHONE_BUDGET.tileCacheSize } : {}),
     });
+    } catch (e) { if (window.loaderWebglFailed && /WebGL/i.test(String((e && e.message) || e))) window.loaderWebglFailed(); throw e; }
     window.__map = map;
+    // MapLibre does not throw when the browser gives it no WebGL context: it fires an error nobody is listening for
+    // yet and returns a map that never loads. Ask the canvas whether it holds a context (an existing one is
+    // returned, so this never creates a second) and, if not, tell the loading card to say so (A09).
+    try {
+      const cv = map.getCanvas();
+      if (cv && !(cv.getContext('webgl2') || cv.getContext('webgl')) && window.loaderWebglFailed) window.loaderWebglFailed();
+    } catch (e) {}
     // THE STYLELESS GAP. When the graphics context is lost, MapLibre destroys
     // its style (map.style is null) until the restore. On CI's slow renderer a
     // texture refresh on a timer landed in that gap and threw "reading
@@ -599,6 +610,14 @@ window.CityLighting.install(map);
       buildScene();
     });
 
+    // On a phone the credits start open as two lines and sit under the controls hint, so the "Terms and credits"
+    // link could not be tapped until the first touch. Start them folded into the "i" button there (G01);
+    // PHONE_CREDITS_MAX_PX is the widest screen that does so.
+    const PHONE_CREDITS_MAX_PX = 640;
+    map.once('load', () => {
+      const credits = document.querySelector('.maplibregl-ctrl-attrib');
+      if (credits && window.innerWidth <= PHONE_CREDITS_MAX_PX) { credits.removeAttribute('open'); credits.classList.remove('maplibregl-compact-show'); }
+    });
     map.on('styledata', () => {
       // Strip the basemap's own buildings/POIs as soon as the style parses —
       // earlier than the 'load' event — so they never flash on screen. The
@@ -2867,7 +2886,7 @@ window.CityLighting.install(map);
     window.addEventListener('keydown', e => {
       if (e.code !== 'KeyT' || e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target;
-      if (t && (/^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName) || t.isContentEditable)) return;
+      if (window.isTypingTarget ? window.isTypingTarget(t) : (t && (/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName) || t.isContentEditable))) return;
       startTour();
     });
   }
@@ -2880,7 +2899,7 @@ window.CityLighting.install(map);
     window.addEventListener('keydown', e => {
       if (e.code !== 'KeyP' || e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target;
-      if (t && (/^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName) || t.isContentEditable)) return;
+      if (window.isTypingTarget ? window.isTypingTarget(t) : (t && (/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName) || t.isContentEditable))) return;
       document.documentElement.classList.toggle('clip');
       // P and ?clip=1 must mean the same thing. Chrome is CSS and follows the
       // class on its own; the labels are map layers and do not, so they are

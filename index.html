@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <script>/* ?clip=1 = cinematic capture: scene only, no chrome (style.css .clip rules).
        ?clip=1&drive=1 additionally keeps the joystick and BOOST, because a
        phone has no WASD and ?clip=1 alone gives it a frame it cannot walk in
@@ -83,7 +83,7 @@
     <div id="hud-snapshot"></div>
   </div>
   <div id="controls-hint">
-    <span class="desktop-hint">WASD move &nbsp;|&nbsp; drag to look &nbsp;|&nbsp; Q/E or wheel for altitude &nbsp;|&nbsp; Shift boost &nbsp;|&nbsp; R reset &nbsp;|&nbsp; P photo &nbsp;|&nbsp; T tour</span>
+    <span class="desktop-hint">WASD move &nbsp;|&nbsp; drag to look &nbsp;|&nbsp; Q/E or wheel for altitude &nbsp;|&nbsp; Shift boost &nbsp;|&nbsp; R reset &nbsp;|&nbsp; P photo &nbsp;|&nbsp; T tour &nbsp;|&nbsp; G graphics</span>
     <span class="mobile-hint">Joystick to move &nbsp;|&nbsp; BOOST to sprint &nbsp;|&nbsp; swipe to look &nbsp;|&nbsp; two fingers for altitude</span>
   </div>
 
@@ -228,10 +228,10 @@
        NOT a <script src>, so harness-drift.mjs is unaffected.
        ──────────────────────────────────────────────────────────────────────── -->
   <template id="wf-privacy-copy">
-    <span data-k="line">Your schedule stays on this device — saved in this browser only, never uploaded anywhere, and Delete wipes it for good.</span>
+    <span data-k="line">Your schedule stays in this browser and is never uploaded. Importing a calendar link contacts its provider. Delete wipes it for good.</span>
     <span data-k="deleteBtn">Delete my schedule</span>
     <span data-k="deleted">Deleted. Nothing of it is left in this browser.</span>
-    <span data-k="empty">No schedule saved on this device yet.</span>
+    <span data-k="empty">No schedule saved in this browser yet.</span>
     <span data-k="confirm">Delete it? This cannot be undone.</span>
   </template>
   <!-- Walk to class (docs/walk/*.md). Self-booting off window.__map like

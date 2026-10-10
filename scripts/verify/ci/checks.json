@@ -256,6 +256,9 @@
   },
   "_tools": "Not checks: no path to a non-zero exit (they photograph or print), or they need inputs only a human supplies (two checkouts, a PNG, a plan file). Running them proves nothing.",
   "tools": {
+    "visual-audit.mjs": "the visual audit walker: needs a group (proof, finder, boot, chrome, walk, modes) and writes pictures plus assertions.json; run it on a rented GPU (docs/visual-audit-2026-10-10.md section 8), not as a check",
+    "va-debug-webgl.mjs": "visual audit helper: prints what the page does when the browser has no WebGL; no verdict of its own",
+    "va-veil.mjs": "visual audit helper: photographs the first screen and the loading card; no verdict of its own",
     "geometry-memory-upload.mjs": "Offline regression requiring separately supplied SHA-pinned THREE r159 sources; codec and lifecycle checks run without those fixtures. Run with --source before merging memory changes.",
     "moire.mjs": "meter: needs --out, writes frames for moire-report.py and prints scores; no verdict of its own",
     "roof-tiles.mjs": "needs --against, a recorded run of the renderer from before the roof tiles (a second checkout), on hardware GL; see docs/roof-tiles.md",

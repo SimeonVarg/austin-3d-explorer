@@ -54,3 +54,5 @@ body.live-here #wf-imp { position:fixed; z-index:90; }
   #live-here section, #live-here details { padding:12px 18px; }
   #lh-toggle { left:12px; top:12px; } .lh-map-label { font-size:10px; }
 }
+/* H03: the Compare toggle and the home labels on the map get the app's gold keyboard focus ring. */
+#lh-toggle:focus-visible,.lh-map-label:focus-visible{outline:var(--focus-ring,2px solid #f5a623);outline-offset:var(--focus-ring-offset,2px)}
