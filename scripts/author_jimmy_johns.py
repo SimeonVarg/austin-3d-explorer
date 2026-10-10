@@ -41,11 +41,12 @@ PARAPET = 0.8         # SCAN: the rim reads 7.3 to 7.9 m; PHOTO/FIT: the coping 
 FACE_V_A = 10.68      # v of the north wall's NE end (A); the north wall's width the photograph is scaled from
 ROOF_ITEMS = [dict(plan=[9.0, 10.4, 1.8, 4.4], h=0.75, tone='roofFlat')]    # SCAN: a 7.7 to 7.8 m box on the deck, west side
 
-# ---- colours: photographed at dawn in cloud, then set by ratio. The wall reads #5c5b60 on the shaded north face and
+# ---- colours: photographed at dawn in cloud, then set so the day render matches the photograph's ratios (wall 0.75 of the photographed wall, pane 0.8 of the wall;
+#      the app's day light tints everything blue, so the albedos are warmer and lighter than the photograph).  The wall reads #5c5b60 on the shaded north face and
 #      #817e85 on the west face; the window frames #131419, the awning #211f22, the valance #611d21 in the same light. ----
 COLOURS = {
-    'wall': '#8b8a90', 'coping': '#9d9ca1', 'sill': '#a3a2a6', 'roofFlat': '#6e6e70',
-    'awning': '#1d1c20', 'valance': '#a3202b', 'frame': '#16171b', 'pane': '#4f4e4d', 'shop': '#3a2e25',
+    'wall': '#a9a6a6', 'coping': '#9d9ca1', 'sill': '#a3a2a6', 'roofFlat': '#6e6e70',
+    'awning': '#1d1c20', 'valance': '#a3202b', 'frame': '#16171b', 'pane': '#7a797c', 'shop': '#3a2e25',
     'door': '#30241b', 'shutter': '#37363d', 'signRed': '#b3202f', 'signDark': '#2d2e33', 'neon': '#e5532b',
     'roundelBlack': '#1b1b1f', 'roundelRed': '#b3202f', 'steel': '#25262a', 'concrete': '#8d8c91', 'roundelWhite': '#e6e3dc',
 }
@@ -255,6 +256,7 @@ def sign_spec(text, font, v_centre, w, h, z0, tone, face_v0=V0):
 def main():
     d = {
         'name': "Jimmy John's", 'id': ID,
+        'replaceFrontage': True,   # hide the generic storefront slabs and door skins (places.js, entrances.js) drawn on this building's old walls
         'sources': {
             'footprint': 'data/snapshots/2026-10-05/buildings.detailed.geojson, feature ' + ID,
             'reference': "one street photograph of the whole building (the owner's walk of 2026-09-29), its north wall flattened with rectify_face.py, and the 2021 laser scan",
@@ -265,7 +267,7 @@ def main():
         'levels': {'floors': [0, 3.7, ROOF_Z]},
         'colours': {k: {'hex': v} for k, v in COLOURS.items()},
         'skins': {'wall': {'kind': 'flat', 'field': 'wall'}},
-        'materials': {'wall': 'brick'},
+        'materials': {'wall': {'type': 'brick', 'strength': 0.3}},   # painted brick: the courses show, lightly
         'blocks': [],
         'detailMeshes': [],
         'open': ['East and south walls are in no photograph: plain painted brick, no windows drawn.',
@@ -285,7 +287,7 @@ def main():
     block = {'id': 'shell', 'plan': [U0, U1, V0, V1], 'z0': 0, 'z1': ROOF_Z,
              'bands': [{'z0': 0, 'z1': ROOF_Z, 'skin': 'wall'}],
              'faces': {'u0': {'bands': [{'z0': 0, 'z1': ROOF_Z, 'skin': 'wall', 'signs': signs_north}]}},
-             'roofTone': 'roofFlat', 'parapet': PARAPET, 'parapetTone': 'coping',
+             'roofTone': 'roofFlat', 'parapet': PARAPET, 'parapetTone': 'wall',
              'roofItems': ROOF_ITEMS, '_src': 'SCAN for the height; PHOTO for the north wall'}
     d['blocks'].append(block)
     for tone, mesh in build().items():
