@@ -62,6 +62,12 @@ await page.waitForFunction(() => !document.getElementById('veil'), null, { timeo
 await page.waitForFunction(() => { const A = window.slopesApartments; return !!(A && A.count.done && A.group); }, null, { timeout: PARAMS.buildWaitMs, polling: 1000 });
 if (!(await page.evaluate(() => !!(window.slopes && window.slopes.packSet)))) { console.log('FAIL: this checkout has no slopes.packSet (the packed layout is not here)'); await browser.__done(); process.exit(1); }
 
+// ISOLATE WHAT THE SWITCH CHANGES. On a busy machine the rest of the city never holds still between two shots (map tiles, name labels, trees and the
+// "Modes" badge were still arriving: a control that moves 38% to 99% of the pixels). The packed layout only changes how the apartment meshes are drawn, so
+// every MapLibre layer except the custom three.js one (the slopes layer, which draws the apartments and every other builder mesh) is hidden: what is
+// left is the sky, the three.js meshes and the page's fixed controls, which are the same in every shot.
+const hidden = await page.evaluate(() => { const m = window.__map; let n = 0; for (const l of m.getStyle().layers) if (l.type !== 'custom') { try { m.setLayoutProperty(l.id, 'visibility', 'none'); n++; } catch (e) {} } return n; });
+console.log(`hid ${hidden} MapLibre layers; the custom (three.js) layers stay`);
 const tris = [];
 async function rebuild(packed) {
   const r = await page.evaluate(async packed => {
