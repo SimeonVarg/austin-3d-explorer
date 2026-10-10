@@ -742,6 +742,8 @@ async function finderGroup() {
         await page.evaluate(m => { const b = document.querySelector('.fd-mode[data-mode="' + m + '"]'); if (b) b.click(); }, m); await page.waitForTimeout(1500);
         await shot(page, vp, `finder-8-mode-${m}`, 'commute mode ' + m);
       }
+      // bus mode, so the first home is one where the bus is the answer and the live bus line can show
+      await page.evaluate(() => { const b = document.querySelector('.fd-mode[data-mode="bus"]'); if (b) b.click(); }); await page.waitForTimeout(1500);
       await page.evaluate(() => { const l = document.querySelector('.fd-results'); if (l) l.scrollTop = 0; });
       await click(page, '.fd-item .fd-row'); await page.waitForTimeout(5000);
       await shot(page, vp, 'finder-9-home-selected', 'first home selected (flight + route + detail)');
