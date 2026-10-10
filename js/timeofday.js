@@ -580,7 +580,7 @@
   }
 
   function startAuto(map, slider, play) {
-    if (play) { play.textContent = '❚❚'; play.classList.add('playing'); }
+    if (play) { play.textContent = '❚❚'; play.classList.add('playing'); play.title = play.ariaLabel = 'Pause the day/night cycle'; }
     let last = performance.now();
     let p = slider ? parseFloat(slider.value) : (window.__todCurrentP ?? TOD_DEFAULT_P);
     _autoDir = 1;
@@ -603,7 +603,7 @@
   function stopAuto(play) {
     if (_autoRaf) cancelAnimationFrame(_autoRaf);
     _autoRaf = null;
-    if (play) { play.textContent = '▶'; play.classList.remove('playing'); }
+    if (play) { play.textContent = '▶'; play.classList.remove('playing'); play.title = play.ariaLabel = 'Play the day/night cycle'; }
   }
 
   window.TOD_DEFAULT_P   = TOD_DEFAULT_P;
