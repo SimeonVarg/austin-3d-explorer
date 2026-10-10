@@ -63,7 +63,7 @@ try {
   const setState = async state => {
     await page.evaluate(on => { CAMPUS_LANDSCAPE.instancing.on = on; campusLandscape.rebuild(); }, state !== 'plain');
     await page.waitForFunction(() => campusLandscape.group && campusLandscape.count.trees > 0, null, { timeout: 120000 });
-    await waitForApartmentBuild(page);
+    // (The apartments are not rebuilt by a planting rebuild, so there is nothing more to wait for here; the first load waited for them.)
   };
   const pass = async (state, label) => {
     await setState(state);
