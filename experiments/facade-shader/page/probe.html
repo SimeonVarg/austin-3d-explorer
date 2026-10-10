@@ -1,0 +1,101 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>chip probe</title>
+<!-- Dev-only (experiments/facade-shader). What limits a graphics chip for THIS app: triangles, small triangles, vertex work, vertex bytes, pixels, pixel work.
+     Each test is the minimum over interleaved repetitions of a GPU-synchronised batch. Run it on a QUIET machine (nothing else drawing). -->
+<canvas id="c" width="16" height="16"></canvas>
+<script type="module">
+const gl = document.getElementById('c').getContext('webgl2', { antialias: false, powerPreference: 'high-performance' });
+const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+const W = 1440, H = 900;
+const mk = (t, s) => { const sh = gl.createShader(t); gl.shaderSource(sh, s); gl.compileShader(sh); if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh)); return sh; };
+const prog = (vs, fs) => { const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p; };
+const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex); gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, W, H); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+gl.viewport(0, 0, W, H); gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
+const sync = () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+
+// ---- shaders ----
+const VS_TRIVIAL = `#version 300 es
+layout(location=0) in vec2 p; out vec2 uv; void main(){ uv=p; gl_Position=vec4(p,0.5,1.0); }`;
+// the app's lighting formula (what every authored vertex pays), plus a position decode like the packed format
+const VS_APP = `#version 300 es
+precision highp float;
+layout(location=0) in vec2 p; layout(location=1) in vec4 nrm; layout(location=2) in vec4 cd; layout(location=3) in vec4 cg; layout(location=4) in vec4 cn;
+uniform vec3 lp; uniform vec3 lc; uniform float li, mp; out vec3 col; out vec2 uv;
+void main(){ vec3 color=(mp<=0.5)?mix(cd.rgb,cg.rgb,mp*2.0):mix(cg.rgb,cn.rgb,(mp-0.5)*2.0); float cv=dot(color,vec3(0.2126,0.7152,0.0722)); color+=vec3(0.03);
+  float d=clamp(dot(normalize(nrm.xyz),lp),0.0,1.0); d=mix(1.0-li,max(1.0-cv+li,1.0),d); col=clamp(color*d*lc,vec3(0.0),vec3(1.0)); uv=p; gl_Position=vec4(p,0.5,1.0); }`;
+const FS_TRIVIAL = `#version 300 es
+precision mediump float; in vec2 uv; out vec4 o; void main(){ o=vec4(0.2,0.4,0.6,1.0); }`;
+const FS_COL = `#version 300 es
+precision mediump float; in vec3 col; in vec2 uv; out vec4 o; void main(){ o=vec4(col,1.0); }`;
+// the window pattern with its derivatives and a dozen cumulative terms: a stand-in for the facade shader's per-pixel work
+const FS_HEAVY = `#version 300 es
+precision highp float; in vec2 uv; uniform float k; out vec4 o;
+float cum(float x,float P,float a,float b,float i0,float i1){ if(i1<=i0||x<=0.0||b<=a) return 0.0; float kk=floor(x/P); float c=(clamp(kk,i0,i1)-i0)*(b-a); if(kk>=i0&&kk<i1) c+=clamp(x-kk*P-a,0.0,b-a); return c; }
+float cov(float x,float h,float P,float a,float b,float i0,float i1){ h=max(h,1e-4); return (cum(x+h,P,a,b,i0,i1)-cum(x-h,P,a,b,i0,i1))/(2.0*h); }
+void main(){ vec2 s=uv*40.0+k; vec2 fw=0.5*(abs(dFdx(s))+abs(dFdy(s)));
+  float c1=cov(s.x,fw.x,1.79,0.2,1.55,0.0,22.0)*cov(s.y,fw.y,2.63,1.15,2.6,0.0,24.0);
+  float c2=cov(s.x,fw.x,1.79,0.25,1.5,0.0,22.0)*cov(s.y,fw.y,2.63,1.2,2.55,0.0,24.0);
+  o=vec4(vec3(c1,c2,c1*c2),1.0); }`;
+const P = { tr: prog(VS_TRIVIAL, FS_TRIVIAL), app: prog(VS_APP, FS_COL), heavy: prog(VS_TRIVIAL, FS_HEAVY) };
+
+// ---- meshes: a grid of cells over clip space [-1,1]^2 scaled to cover `cover` of the screen, 2 triangles a cell ----
+function grid(cellsX, cellsY, spanX, spanY, stride) {
+  const nv = (cellsX + 1) * (cellsY + 1), vb = new ArrayBuffer(nv * stride), f = new Float32Array(vb), u8 = new Uint8Array(vb);
+  for (let j = 0; j <= cellsY; j++) for (let i = 0; i <= cellsX; i++) { const o = (j * (cellsX + 1) + i); f[o * stride / 4] = (i / cellsX * 2 - 1) * spanX; f[o * stride / 4 + 1] = (j / cellsY * 2 - 1) * spanY; u8[o * stride + 8] = 0; u8[o * stride + 9] = 0; u8[o * stride + 10] = 127; for (let k = 12; k < Math.min(stride, 24); k++) u8[o * stride + k] = 90 + (k * 7 + i * 3) % 100; }
+  const idx = new Uint32Array(cellsX * cellsY * 6); let n = 0;
+  for (let j = 0; j < cellsY; j++) for (let i = 0; i < cellsX; i++) { const a = j * (cellsX + 1) + i, b = a + 1, c = a + cellsX + 1, d = c + 1; idx.set([a, b, d, a, d, c], n); n += 6; }
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, vb, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, stride, 0);
+  if (stride >= 24) { gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.BYTE, true, stride, 8); gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.UNSIGNED_BYTE, true, stride, 12); gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 4, gl.UNSIGNED_BYTE, true, stride, 16); gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 4, gl.UNSIGNED_BYTE, true, stride, 20); }
+  const ibo = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+  return { vao, tris: idx.length / 3, verts: nv, bytes: vb.byteLength + idx.byteLength };
+}
+const quad = (() => { const vao = gl.createVertexArray(); gl.bindVertexArray(vao); const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]), gl.STATIC_DRAW); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0); gl.bindVertexArray(null); return vao; })();
+
+async function bench(fn, { frames = 5, reps = 7 } = {}) {
+  fn(); fn(); sync(); const t = [];
+  for (let r = 0; r < reps; r++) { const t0 = performance.now(); for (let i = 0; i < frames; i++) fn(); sync(); t.push((performance.now() - t0) / frames); await new Promise(r => setTimeout(r, 0)); }
+  return Math.min(...t);
+}
+const setApp = () => { gl.uniform3f(gl.getUniformLocation(P.app, 'lp'), 0.5, -0.35, 1.0); gl.uniform3f(gl.getUniformLocation(P.app, 'lc'), 1, 1, 1); gl.uniform1f(gl.getUniformLocation(P.app, 'li'), 0.28); gl.uniform1f(gl.getUniformLocation(P.app, 'mp'), 0.1); };
+const out = { renderer: dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER), W, H, tests: {} };
+const T = out.tests;
+
+// 1. triangle count at a fixed tiny footprint (sub-pixel triangles) and at ~1 px: trivial vertex and fragment work
+async function trisTest(name, cx, cy, spanX, spanY, program, stride, setup) {
+  const m = grid(cx, cy, spanX, spanY, stride);
+  gl.useProgram(program); setup && setup();
+  const ms = await bench(() => { gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.bindVertexArray(m.vao); gl.drawElements(gl.TRIANGLES, m.tris * 3, gl.UNSIGNED_INT, 0); });
+  T[name] = { ms: +ms.toFixed(3), triangles: m.tris, vertices: m.verts, MtriPerS: +(m.tris / ms / 1000).toFixed(1), MvertPerS: +(m.verts / ms / 1000).toFixed(1), bytes: m.bytes };
+}
+const px = n => n / (W / 2);                                          // n pixels in clip units
+await trisTest('tiny-1M (0.02 px each)', 1000, 500, px(64), px(64) * H / W, P.tr, 8);
+await trisTest('tiny-2M (0.01 px each)', 1414, 707, px(64), px(64) * H / W, P.tr, 8);
+await trisTest('tiny-4M (0.005 px each)', 2000, 1000, px(64), px(64) * H / W, P.tr, 8);
+await trisTest('onepx-2.6M (about 0.5 px each, whole screen)', 1440, 900, 1, 1, P.tr, 8);
+await trisTest('onepx-2.6M, app vertex shader, 24 B vertex', 1440, 900, 1, 1, P.app, 24, setApp);
+await trisTest('onepx-2.6M, app vertex shader, 56 B vertex', 1440, 900, 1, 1, P.app, 56, setApp);
+await trisTest('big-2.6M? (8 px each, 160k tris over the screen)', 180, 112, 1, 1, P.tr, 8);
+
+// 2. pixels: K full-screen quads, trivial and heavy fragment work
+async function fillTest(name, program, K, setup) {
+  gl.useProgram(program); setup && setup();
+  const ms = await bench(() => { gl.bindVertexArray(quad); for (let i = 0; i < K; i++) gl.drawArrays(gl.TRIANGLES, 0, 6); });
+  T[name] = { ms: +ms.toFixed(3), layers: K, GpixPerS: +(K * W * H / ms / 1e6).toFixed(2), nsPerPixelLayer: +(ms * 1e6 / (K * W * H)).toFixed(3) };
+}
+await fillTest('fill trivial x8', P.tr, 8); await fillTest('fill trivial x32', P.tr, 32);
+await fillTest('fill facade-like shader x4', P.heavy, 4, () => gl.uniform1f(gl.getUniformLocation(P.heavy, 'k'), 0.3)); await fillTest('fill facade-like shader x16', P.heavy, 16, () => gl.uniform1f(gl.getUniformLocation(P.heavy, 'k'), 0.3));
+
+// 3. the app's own workload, from the rates above: 6.5 M vertices and 3.1 M triangles of authored buildings, about 36% of a 1440x900 frame covered, overdraw 3
+const t1 = T['onepx-2.6M (about 0.5 px each, whole screen)'], tf = T['fill trivial x32'];
+out.appWorkloadEstimate = {
+  basis: 'vertex/triangle bound time = 3.1M triangles / measured triangle rate (1 px triangles, app vertex shader, 24 B); pixel bound time = covered pixels x overdraw 3 / measured trivial fill rate',
+  triangleBoundMs: +(3.1e6 / (T['onepx-2.6M, app vertex shader, 24 B vertex'].triangles / T['onepx-2.6M, app vertex shader, 24 B vertex'].ms)).toFixed(2),
+  pixelBoundMs: +(0.36 * W * H * 3 / (tf.GpixPerS * 1e6) * 1e3).toFixed(2),
+};
+window.__probe = out; window.__probeReady = true;
+</script>
