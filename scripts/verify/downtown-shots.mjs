@@ -17,12 +17,12 @@
  * is fitted to a photograph.
  *
  * Each view is shot TWICE on each side and the second frame is kept
- * (scripts/verify/README.md). With DT_FLICKER=1 each side also takes a frame
+ * (scripts/verify/README.md). With --flicker (or DT_FLICKER=1) each side also takes a frame
  * with the camera turned 0.3 degrees and prints how much of the picture moved,
  * for the roofs the coplanar check lists (a z-fight shows as a change far
  * larger than a 0.3 degree turn can make).
  *
- * Usage:  node downtown-shots.mjs [shots-downtown.json] [--out DIR]
+ * Usage:  node downtown-shots.mjs [shots-downtown.json] [--out DIR] [--flicker]
  *   --out / VERIFY_OUT where the pictures go (default scripts/verify/shots/downtown)
  *   DT_BEFORE=<url>    base URL of the BEFORE files, or `none` to shoot AFTER only
  *   DT_ONLY=a,b        only these view names
@@ -38,11 +38,13 @@ const ARGS = process.argv.slice(2);
 const outAt = ARGS.indexOf('--out');
 const OUT = (outAt >= 0 ? ARGS.splice(outAt, 2)[1] : null) ||
   process.env.VERIFY_OUT || path.join(HERE, 'shots', 'downtown');
-const SHOTS = JSON.parse(fs.readFileSync(ARGS[0] || path.join(HERE, 'shots-downtown.json'), 'utf8'));
 const BEFORE = process.env.DT_BEFORE ||
   'https://raw.githubusercontent.com/SimeonVarg/austin-3d-explorer/main/';
 const ONLY = process.env.DT_ONLY ? new Set(process.env.DT_ONLY.split(',')) : null;
-const FLICKER = process.env.DT_FLICKER === '1';
+const flickAt = ARGS.indexOf('--flicker');
+if (flickAt >= 0) ARGS.splice(flickAt, 1);
+const FLICKER = flickAt >= 0 || process.env.DT_FLICKER === '1';
+const SHOTS = JSON.parse(fs.readFileSync(ARGS[0] || path.join(HERE, 'shots-downtown.json'), 'utf8'));
 const SWAPPED = ['data/tiles/outer.pmtiles', 'data/outer_tower_palette.json'];
 // Walls painted at once and no name labels: the same switches the CI pictures use.
 const QUERY = '?intro=0&drift=0&facadepace=0&timeofdaypace=0&labels=0';
