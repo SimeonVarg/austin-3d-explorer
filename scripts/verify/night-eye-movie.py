@@ -64,14 +64,31 @@ for v in views:
             ox, oy = (k % 2) * (cw * 3 + 6), (k // 2) * (ch * 3 + 26 + 6)
             d.text((ox + 6, oy + 4), nm + f'   (patch at {x},{y}, 3x)', fill=(235, 235, 235), font=f2); sheet.paste(t, (ox, oy + 26))
         sheet.save(os.path.join(out, f'{v}-crop-3x.png'))
-        # the glare skirt: the brightest patch, old against new, 3x
-        px = a0.convert('L'); bx, by, bv = 0, 0, -1
-        lp = a0.convert('L').load(); lb = before.convert('L').load()
-        for yy in range(int(H * 0.2), H - 60, 6):
-            for xx in range(60, W - 60, 6):
-                if lp[xx, yy] > bv: bv, bx, by = lp[xx, yy], xx, yy
-        gw, gh = 130, 80; gx, gy = max(0, min(W - gw, bx - gw // 2)), max(0, min(H - gh, by - gh // 2))
-        g0 = before.crop((gx, gy, gx + gw, gy + gh)).resize((gw * 3, gh * 3), Image.NEAREST); g1 = a0.crop((gx, gy, gx + gw, gy + gh)).resize((gw * 3, gh * 3), Image.NEAREST)
-        gs = Image.new('RGB', (gw * 6 + 6, gh * 3 + 26), (10, 12, 20)); d = ImageDraw.Draw(gs)
-        d.text((6, 4), f'old night   (brightest patch at {gx},{gy}, 3x)', fill=(235, 235, 235), font=f2); d.text((gw * 3 + 12, 4), 'new night (glare skirt, shimmer)', fill=(255, 225, 160), font=f2)
-        gs.paste(g0, (0, 26)); gs.paste(g1, (gw * 3 + 6, 26)); gs.save(os.path.join(out, f'{v}-glare-crop-3x.png'))
+        # the glare skirt: the same frozen frame with the glare lobes off and on (night-eye.mjs --only movie writes both), around the brightest
+        # warm cluster; third panel = the difference times 8. Also the mean light the glare adds, and its fall-off with distance from the cluster.
+        g0f, g1f = os.path.join(src, f'{v}-glare0.png'), os.path.join(src, f'{v}-glare1.png')
+        if os.path.exists(g0f) and os.path.exists(g1f):
+            G0, G1 = Image.open(g0f).convert('RGB'), Image.open(g1f).convert('RGB'); p0, p1 = G0.load(), G1.load(); Wd, Hd = G0.size
+            best, bx, by = -1, 0, 0
+            for yy in range(int(Hd * 0.2), Hd - 70, 6):
+                for xx in range(70, Wd - 70, 6):
+                    r, g, b = p0[xx, yy]
+                    sc = (r + g + b) if (r > b + 25 and r > 200) else 0
+                    if sc > best: best, bx, by = sc, xx, yy
+            gw, gh = 140, 90; gx, gy = max(0, min(Wd - gw, bx - gw // 2)), max(0, min(Hd - gh, by - gh // 2))
+            tot = 0; n = 0; prof = {}
+            for yy in range(Hd):
+                for xx in range(Wd):
+                    d = sum(abs(p1[xx, yy][k] - p0[xx, yy][k]) for k in range(3)) / 3.0
+                    tot += d; n += 1
+                    r_ = int(((xx - bx) ** 2 + (yy - by) ** 2) ** 0.5 // 10)
+                    if r_ < 12: a = prof.setdefault(r_, [0, 0]); a[0] += d; a[1] += 1
+            print(v, 'glare adds on average %.3f of 255 per channel over the whole frame' % (tot / n), '; around the brightest cluster (10 px rings):', ' '.join('%.1f' % (prof[k][0] / prof[k][1]) for k in sorted(prof)))
+            diff = Image.new('RGB', (gw, gh)); dp = diff.load(); c0, c1 = G0.crop((gx, gy, gx + gw, gy + gh)).load(), G1.crop((gx, gy, gx + gw, gy + gh)).load()
+            for yy in range(gh):
+                for xx in range(gw): dp[xx, yy] = tuple(min(255, max(0, c1[xx, yy][k] - c0[xx, yy][k]) * 8) for k in range(3))
+            tiles = [G0.crop((gx, gy, gx + gw, gy + gh)), G1.crop((gx, gy, gx + gw, gy + gh)), diff]
+            gs = Image.new('RGB', (gw * 9 + 12, gh * 3 + 26), (10, 12, 20)); d = ImageDraw.Draw(gs)
+            for k, (t, nm) in enumerate(zip(tiles, ['glare off', 'glare on', 'what the glare adds (x8)'])):
+                d.text((k * (gw * 3 + 6) + 6, 4), nm + f'   ({gx},{gy}, 3x)', fill=(235, 235, 235), font=f2); gs.paste(t.resize((gw * 3, gh * 3), Image.NEAREST), (k * (gw * 3 + 6), 26))
+            gs.save(os.path.join(out, f'{v}-glare-crop-3x.png'))

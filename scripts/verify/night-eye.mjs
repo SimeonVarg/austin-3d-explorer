@@ -239,7 +239,14 @@ await stage('movie', async () => {
   for (const v of M.views) {
     const pose = TUNE.poses[v];
     await settle(before, pose); await before.screenshot({ path: path.join(dir, `${v}-before.jpg`), type: 'jpeg', quality: 90 });
-    await settle(after, pose); await waitStable(after); await after.evaluate(() => { window.CityNight.eye.twinkle = 1; });
+    await settle(after, pose); await waitStable(after);
+    // the glare alone: the same frozen frame with the glare lobes off and on (lossless), so the skirt can be drawn and measured
+    for (const g of [0, 1]) {
+      await after.evaluate(g => { window.CityNight.eye.glare = g; window.CityNight.hold(1000); }, g);
+      await after.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
+      await after.waitForTimeout(600); await after.screenshot({ path: path.join(dir, `${v}-glare${g}.png`) });
+    }
+    await after.evaluate(() => { window.CityNight.eye.twinkle = 1; window.CityNight.eye.glare = 1; });
     for (let k = 0; k < M.fps * M.seconds; k++) {
       await after.evaluate(ms => window.CityNight.hold(ms), 1000 + Math.round(k * 1000 / M.fps));
       await after.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
