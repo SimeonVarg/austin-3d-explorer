@@ -36,8 +36,8 @@ const idx = indexObstacles(obstacles);
   ok(house.ghost === disk2.ghost && house.time === disk2.time, 'data/air/house.json (the house ghost) is exactly what the autopilot flies now', house.time + ' s');
 }
 
-const gates = Sim.Game ? new Sim.Game(course, field).gates : [];
-if (BREAK) { gates[5].z = 30; gates[5].r = 24; gates[5].x += 0; }
+const gates = new Sim.Game(course, field).gates;
+if (BREAK) { gates[5].z = 30; gates[5].r = 24; }       // drop gate 5 (Dobie | Ion) to street height, inside the buildings
 // ── shape ─────────────────────────────────────────────────────────────
 ok(gates.length >= 18 && gates.length <= 24, 'the course has 18 to 24 rings', gates.length);
 ok(gates.every(g => g.r >= 14 && g.r <= 30), 'ring radii are 14 to 30 m');
@@ -56,7 +56,6 @@ ok(worstW >= AIR.gates.margin, `... and by the raw footprints, exactly (closest:
 
 // ── reachable ─────────────────────────────────────────────────────────
 {
-  const S = { ...gates[0], x: Sim.Game ? new Sim.Game(course, field).start.x : 0 };
   let bad = [];
   for (let i = 0; i < gates.length; i++) {
     const prev = i === 0 ? new Sim.Game(course, field).start : gates[i - 1];
