@@ -1,0 +1,54 @@
+== round 1 real load 98.50 104.72 104.18
+geometry identical to the recorded in-app build (sha256, all 8 arrays): true
+rep 0: 9868 ms wall, 11041 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 1: 9619 ms wall, 10856 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 2: 13334 ms wall, 9316 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+min 9619 ms   (spread 9619-13334)
+== round 1 js-hint load 153.48 117.12 108.67
+geometry identical to the recorded in-app build (sha256, all 8 arrays): true
+rep 0: 7232 ms wall, 8939 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 1: 7926 ms wall, 8408 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 2: 8140 ms wall, 7214 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+min 7232 ms   (spread 7232-8140)
+== round 1 wasm-exact load 167.53 123.62 111.30
+geometry identical to the recorded in-app build (sha256, all 8 arrays): true
+rep 0: 10182 ms wall, 7197 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 1: 3022 ms wall, 5277 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 2: 3661 ms wall, 4175 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+min 3022 ms   (spread 3022-10182)
+== round 2 real load 156.78 124.36 111.87
+geometry identical to the recorded in-app build (sha256, all 8 arrays): true
+rep 0: 4982 ms wall, 9060 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 1: 5516 ms wall, 9013 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 2: 4057 ms wall, 6492 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+min 4057 ms   (spread 4057-5516)
+== round 2 js-hint load 118.34 117.70 109.77
+geometry identical to the recorded in-app build (sha256, all 8 arrays): true
+rep 0: 5625 ms wall, 7610 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 1: 5020 ms wall, 6844 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 2: 5347 ms wall, 5949 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+min 5020 ms   (spread 5020-5625)
+== round 2 wasm-exact load 91.71 111.79 107.84
+geometry identical to the recorded in-app build (sha256, all 8 arrays): true
+rep 0: 4405 ms wall, 6188 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 1: 3532 ms wall, 6845 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 2: 5284 ms wall, 4155 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+min 3532 ms   (spread 3532-5284)
+== round 3 real load 80.83 108.36 106.68
+geometry identical to the recorded in-app build (sha256, all 8 arrays): true
+rep 0: 6484 ms wall, 9653 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 1: 6210 ms wall, 9152 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 2: 5159 ms wall, 6932 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+min 5159 ms   (spread 5159-6484)
+== round 3 js-hint load 71.19 104.49 105.34
+geometry identical to the recorded in-app build (sha256, all 8 arrays): true
+rep 0: 12957 ms wall, 8600 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 1: 10301 ms wall, 8145 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 2: 5391 ms wall, 6480 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+min 5391 ms   (spread 5391-12957)
+== round 3 wasm-exact load 141.02 117.50 110.00
+geometry identical to the recorded in-app build (sha256, all 8 arrays): true
+rep 0: 7511 ms wall, 7103 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 1: 8011 ms wall, 7077 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+rep 2: 3146 ms wall, 4412 ms cpu  built=198 blocks=1978 faces=16654 cells=644425  triangles=3113629 vertices=6523203  geometry bytes=347 MB
+min 3146 ms   (spread 3146-8011)

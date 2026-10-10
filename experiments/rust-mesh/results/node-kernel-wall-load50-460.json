@@ -1,0 +1,851 @@
+{
+ "host": "Intel(R) Core(TM) i7-8569U CPU @ 2.80GHz x8",
+ "node": "v26.5.1",
+ "dir": "/private/tmp/claude-501/scratch/stream-full",
+ "rounds": 9,
+ "records": 1704992,
+ "summary": {
+  "app": {
+   "cold": {
+    "min": 3008.7238169999996,
+    "median": 7756.360736,
+    "max": 12660.361063,
+    "n": 9
+   },
+   "warm": {
+    "min": 3900.3646289999997,
+    "median": 6892.2138620000005,
+    "max": 11704.782398,
+    "n": 18
+   },
+   "maxRssMB": {
+    "min": 1.6447410583496094,
+    "median": 1.6530990600585938,
+    "max": 1698.66015625,
+    "n": 9
+   },
+   "identicalToApp": true,
+   "triangles": 3113629
+  },
+  "typed": {
+   "cold": {
+    "min": 4864.651539,
+    "median": 6209.491481000001,
+    "max": 9655.962347,
+    "n": 9
+   },
+   "warm": {
+    "min": 2745.868166,
+    "median": 7389.476936,
+    "max": 14431.221516000001,
+    "n": 18
+   },
+   "maxRssMB": {
+    "min": 1.6268234252929688,
+    "median": 1.6536636352539062,
+    "max": 1695.16015625,
+    "n": 9
+   },
+   "identicalToApp": true,
+   "triangles": 3113629
+  },
+  "wasm": {
+   "cold": {
+    "min": 1351.0381820000002,
+    "median": 3514.2532090000004,
+    "max": 7498.674918000001,
+    "n": 9
+   },
+   "warm": {
+    "min": 1249.9858239999999,
+    "median": 3591.5591540000005,
+    "max": 5425.503899999998,
+    "n": 18
+   },
+   "maxRssMB": {
+    "min": 1.4504776000976562,
+    "median": 1.4527969360351562,
+    "max": 1487.046875,
+    "n": 9
+   },
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "copyInMs": {
+    "min": 103.3123779999969,
+    "median": 232.62801000000218,
+    "max": 961.0413110000009,
+    "n": 9
+   },
+   "processMs": {
+    "min": 1193.3760599999991,
+    "median": 2920.9869890000027,
+    "max": 5182.2911000000095,
+    "n": 9
+   },
+   "instantiateMs": {
+    "min": 0.13846600000033504,
+    "median": 0.17625799999950686,
+    "max": 18.090452999999798,
+    "n": 9
+   },
+   "wasmMiB": 649.875
+  },
+  "wasm-copy": {
+   "cold": {
+    "min": 2071.9923249999997,
+    "median": 4905.066210000001,
+    "max": 7797.923644,
+    "n": 9
+   },
+   "warm": {
+    "min": 2437.0572700000002,
+    "median": 4516.868953,
+    "max": 6918.513536999999,
+    "n": 18
+   },
+   "maxRssMB": {
+    "min": 1.4101638793945312,
+    "median": 1.4123153686523438,
+    "max": 1446.78125,
+    "n": 9
+   },
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "copyInMs": {
+    "min": 139.32792800000243,
+    "median": 215.90422399999807,
+    "max": 1066.6488859999772,
+    "n": 9
+   },
+   "processMs": {
+    "min": 1980.059115999993,
+    "median": 3407.260389,
+    "max": 3880.955544999968,
+    "n": 9
+   },
+   "instantiateMs": {
+    "min": 0.12623999999959779,
+    "median": 0.2517550000002302,
+    "max": 23.273619999999937,
+    "n": 9
+   },
+   "wasmMiB": 649.875
+  },
+  "materialize": {
+   "cold": {
+    "min": 287.32058400000005,
+    "median": 576.8024139999998,
+    "max": 1073.2214359999998,
+    "n": 9
+   },
+   "warm": {
+    "min": 290.6552489999999,
+    "median": 2414.036975,
+    "max": 7043.961558,
+    "n": 18
+   },
+   "maxRssMB": {
+    "min": 0.7562522888183594,
+    "median": 0.7568397521972656,
+    "max": 774.859375,
+    "n": 9
+   },
+   "identicalToApp": true
+  }
+ },
+ "rows": [
+  {
+   "impl": "app",
+   "records": 1704992,
+   "cold": 11967.491569,
+   "warms": [
+    9370.152431,
+    9346.837398999996
+   ],
+   "maxRssMB": 1.6530990600585938,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 0,
+   "load1": 67.3
+  },
+  {
+   "impl": "typed",
+   "records": 1704992,
+   "cold": 6209.491481000001,
+   "warms": [
+    6447.994017999999,
+    6924.9639640000005
+   ],
+   "maxRssMB": 1.6496429443359375,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 0,
+   "load1": 90.7
+  },
+  {
+   "impl": "wasm",
+   "records": 1704992,
+   "cold": 3417.18565,
+   "warms": [
+    3591.5591540000005,
+    3608.5781260000003
+   ],
+   "maxRssMB": 1.4527969360351562,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.4010490000000573,
+   "copyMs": 516.4132040000059,
+   "procMs": 2953.381333000003,
+   "wasmPages": 10398,
+   "round": 0,
+   "load1": 85.8
+  },
+  {
+   "impl": "wasm-copy",
+   "records": 1704992,
+   "cold": 3939.492915,
+   "warms": [
+    3228.794758,
+    4251.974938000001
+   ],
+   "maxRssMB": 1.4127578735351562,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 23.273619999999937,
+   "copyMs": 190.65066299999125,
+   "procMs": 3455.452156000005,
+   "wasmPages": 10398,
+   "round": 0,
+   "load1": 84.8
+  },
+  {
+   "impl": "materialize",
+   "records": 1704992,
+   "cold": 593.2402400000001,
+   "warms": [
+    341.7907610000002,
+    4449.571606000001
+   ],
+   "maxRssMB": 0.7569046020507812,
+   "identicalToApp": null,
+   "round": 0,
+   "load1": 86.2
+  },
+  {
+   "impl": "materialize",
+   "records": 1704992,
+   "cold": 445.7240350000002,
+   "warms": [
+    330.8811390000001,
+    3996.242737
+   ],
+   "maxRssMB": 0.7565956115722656,
+   "identicalToApp": null,
+   "round": 1,
+   "load1": 97.2
+  },
+  {
+   "impl": "wasm-copy",
+   "records": 1704992,
+   "cold": 4905.066210000001,
+   "warms": [
+    4174.320448999999,
+    2937.4208609999987
+   ],
+   "maxRssMB": 1.4122390747070312,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.2705070000010892,
+   "copyMs": 309.318858000006,
+   "procMs": 2223.9313010000005,
+   "wasmPages": 10398,
+   "round": 1,
+   "load1": 90.4
+  },
+  {
+   "impl": "wasm",
+   "records": 1704992,
+   "cold": 4535.975533,
+   "warms": [
+    4220.134166000001,
+    3939.0844450000004
+   ],
+   "maxRssMB": 1.4522857666015625,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.18638300000020536,
+   "copyMs": 961.0413110000009,
+   "procMs": 2968.1148639999956,
+   "wasmPages": 10398,
+   "round": 1,
+   "load1": 81
+  },
+  {
+   "impl": "typed",
+   "records": 1704992,
+   "cold": 4864.651539,
+   "warms": [
+    4441.514836,
+    5927.275943000002
+   ],
+   "maxRssMB": 1.6578521728515625,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 1,
+   "load1": 89.8
+  },
+  {
+   "impl": "app",
+   "records": 1704992,
+   "cold": 3008.7238169999996,
+   "warms": [
+    4453.470074999999,
+    4443.193035
+   ],
+   "maxRssMB": 1.6496162414550781,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 1,
+   "load1": 79.2
+  },
+  {
+   "impl": "app",
+   "records": 1704992,
+   "cold": 5404.260854,
+   "warms": [
+    4036.9244609999996,
+    5343.392886
+   ],
+   "maxRssMB": 1.6502914428710938,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 2,
+   "load1": 68.5
+  },
+  {
+   "impl": "typed",
+   "records": 1704992,
+   "cold": 5773.935305000001,
+   "warms": [
+    4087.9252419999993,
+    2745.868166
+   ],
+   "maxRssMB": 1.6530952453613281,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 2,
+   "load1": 62
+  },
+  {
+   "impl": "wasm",
+   "records": 1704992,
+   "cold": 1351.0381820000002,
+   "warms": [
+    1249.9858239999999,
+    1315.7373710000002
+   ],
+   "maxRssMB": 1.4528236389160156,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.14603100000022096,
+   "copyMs": 116.7252150000063,
+   "procMs": 1193.3760599999991,
+   "wasmPages": 10398,
+   "round": 2,
+   "load1": 55.7
+  },
+  {
+   "impl": "wasm-copy",
+   "records": 1704992,
+   "cold": 5801.600356999999,
+   "warms": [
+    6126.269599000001,
+    4741.993990000001
+   ],
+   "maxRssMB": 1.4101638793945312,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.12623999999959779,
+   "copyMs": 214.64511699998366,
+   "procMs": 3722.9464120000175,
+   "wasmPages": 10398,
+   "round": 2,
+   "load1": 50.9
+  },
+  {
+   "impl": "materialize",
+   "records": 1704992,
+   "cold": 351.75894800000015,
+   "warms": [
+    467.028693,
+    7043.961558
+   ],
+   "maxRssMB": 0.7562522888183594,
+   "identicalToApp": null,
+   "round": 2,
+   "load1": 134.9
+  },
+  {
+   "impl": "materialize",
+   "records": 1704992,
+   "cold": 799.0851630000002,
+   "warms": [
+    570.758906,
+    6298.224923999999
+   ],
+   "maxRssMB": 0.7564315795898438,
+   "identicalToApp": null,
+   "round": 3,
+   "load1": 166.3
+  },
+  {
+   "impl": "wasm-copy",
+   "records": 1704992,
+   "cold": 7614.589859000001,
+   "warms": [
+    4137.805350999999,
+    6755.002971000002
+   ],
+   "maxRssMB": 1.4109725952148438,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.2328330000018468,
+   "copyMs": 341.41677700001674,
+   "procMs": 3880.955544999968,
+   "wasmPages": 10398,
+   "round": 3,
+   "load1": 206.9
+  },
+  {
+   "impl": "wasm",
+   "records": 1704992,
+   "cold": 3027.3925409999997,
+   "warms": [
+    5015.087223999999,
+    5425.503899999998
+   ],
+   "maxRssMB": 1.4526138305664062,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.16146200000002864,
+   "copyMs": 232.62801000000218,
+   "procMs": 5182.2911000000095,
+   "wasmPages": 10398,
+   "round": 3,
+   "load1": 295.2
+  },
+  {
+   "impl": "typed",
+   "records": 1704992,
+   "cold": 4983.636471,
+   "warms": [
+    14431.221516000001,
+    10994.377138000003
+   ],
+   "maxRssMB": 1.6268234252929688,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 3,
+   "load1": 308.5
+  },
+  {
+   "impl": "app",
+   "records": 1704992,
+   "cold": 12660.361063,
+   "warms": [
+    8292.363966000003,
+    11704.782398
+   ],
+   "maxRssMB": 1.6501922607421875,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 3,
+   "load1": 363.2
+  },
+  {
+   "impl": "app",
+   "records": 1704992,
+   "cold": 7297.915955999999,
+   "warms": [
+    6892.2138620000005,
+    7678.999780000002
+   ],
+   "maxRssMB": 1.6447410583496094,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 4,
+   "load1": 397.2
+  },
+  {
+   "impl": "typed",
+   "records": 1704992,
+   "cold": 8400.702579,
+   "warms": [
+    6889.255174999998,
+    12535.525933
+   ],
+   "maxRssMB": 1.6514549255371094,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 4,
+   "load1": 412.9
+  },
+  {
+   "impl": "wasm",
+   "records": 1704992,
+   "cold": 3554.956653,
+   "warms": [
+    2224.4613230000004,
+    1924.415570000001
+   ],
+   "maxRssMB": 1.4504776000976562,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.13846600000033504,
+   "copyMs": 103.3123779999969,
+   "procMs": 1815.885245999998,
+   "wasmPages": 10398,
+   "round": 4,
+   "load1": 424.2
+  },
+  {
+   "impl": "wasm-copy",
+   "records": 1704992,
+   "cold": 7797.923644,
+   "warms": [
+    6918.513536999999,
+    4989.987557
+   ],
+   "maxRssMB": 1.4106597900390625,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.15750200000184122,
+   "copyMs": 1066.6488859999772,
+   "procMs": 3551.1025459999873,
+   "wasmPages": 10398,
+   "round": 4,
+   "load1": 415.7
+  },
+  {
+   "impl": "materialize",
+   "records": 1704992,
+   "cold": 576.8024139999998,
+   "warms": [
+    1873.311279999999,
+    5269.7734420000015
+   ],
+   "maxRssMB": 0.7567024230957031,
+   "identicalToApp": null,
+   "round": 4,
+   "load1": 442.8
+  },
+  {
+   "impl": "materialize",
+   "records": 1704992,
+   "cold": 879.2319390000002,
+   "warms": [
+    290.6552489999999,
+    4807.026166
+   ],
+   "maxRssMB": 0.7568397521972656,
+   "identicalToApp": null,
+   "round": 5,
+   "load1": 448.1
+  },
+  {
+   "impl": "wasm-copy",
+   "records": 1704992,
+   "cold": 2733.2614120000003,
+   "warms": [
+    5187.270896999999,
+    4010.71061
+   ],
+   "maxRssMB": 1.4123153686523438,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.1392360000008921,
+   "copyMs": 215.90422399999807,
+   "procMs": 3295.9100039999994,
+   "wasmPages": 10398,
+   "round": 5,
+   "load1": 454
+  },
+  {
+   "impl": "wasm",
+   "records": 1704992,
+   "cold": 4667.427684,
+   "warms": [
+    2094.1274569999996,
+    1985.115523999999
+   ],
+   "maxRssMB": 1.4525566101074219,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.17625799999950686,
+   "copyMs": 157.1051990000051,
+   "procMs": 1751.5566739999977,
+   "wasmPages": 10398,
+   "round": 5,
+   "load1": 461
+  },
+  {
+   "impl": "typed",
+   "records": 1704992,
+   "cold": 5232.981937,
+   "warms": [
+    7389.476936,
+    8957.489570999998
+   ],
+   "maxRssMB": 1.6536636352539062,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 5,
+   "load1": 440.1
+  },
+  {
+   "impl": "app",
+   "records": 1704992,
+   "cold": 7756.360736,
+   "warms": [
+    5468.977757000001,
+    7074.768458999999
+   ],
+   "maxRssMB": 1684.515625,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 5,
+   "load1": 390.8
+  },
+  {
+   "impl": "app",
+   "records": 1704992,
+   "cold": 11087.253659999998,
+   "warms": [
+    6949.948751000002,
+    5746.7617869999995
+   ],
+   "maxRssMB": 1698.66015625,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 6,
+   "load1": 366.8
+  },
+  {
+   "impl": "typed",
+   "records": 1704992,
+   "cold": 9655.962347,
+   "warms": [
+    8205.513908,
+    8088.2938920000015
+   ],
+   "maxRssMB": 1681.5234375,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 6,
+   "load1": 348.1
+  },
+  {
+   "impl": "wasm",
+   "records": 1704992,
+   "cold": 3514.2532090000004,
+   "warms": [
+    4585.388982,
+    3230.534147999999
+   ],
+   "maxRssMB": 1487.046875,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 9.451508000000103,
+   "copyMs": 286.43653299999824,
+   "procMs": 2920.9869890000027,
+   "wasmPages": 10398,
+   "round": 6,
+   "load1": 353.8
+  },
+  {
+   "impl": "wasm-copy",
+   "records": 1704992,
+   "cold": 2071.9923249999997,
+   "warms": [
+    2437.0572700000002,
+    4573.586066999999
+   ],
+   "maxRssMB": 1446.55078125,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.2517550000002302,
+   "copyMs": 232.894008999996,
+   "procMs": 3407.260389,
+   "wasmPages": 10398,
+   "round": 6,
+   "load1": 350.5
+  },
+  {
+   "impl": "materialize",
+   "records": 1704992,
+   "cold": 287.32058400000005,
+   "warms": [
+    501.9568919999997,
+    3583.2507480000004
+   ],
+   "maxRssMB": 774.58203125,
+   "identicalToApp": null,
+   "round": 6,
+   "load1": 329.5
+  },
+  {
+   "impl": "materialize",
+   "records": 1704992,
+   "cold": 449.1988630000001,
+   "warms": [
+    347.00155600000016,
+    2414.036975
+   ],
+   "maxRssMB": 774.68359375,
+   "identicalToApp": null,
+   "round": 7,
+   "load1": 330.9
+  },
+  {
+   "impl": "wasm-copy",
+   "records": 1704992,
+   "cold": 3429.08629,
+   "warms": [
+    4516.868953,
+    4124.449000999999
+   ],
+   "maxRssMB": 1446.78125,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 1.090849000000162,
+   "copyMs": 139.32792800000243,
+   "procMs": 2483.855462999991,
+   "wasmPages": 10398,
+   "round": 7,
+   "load1": 321.9
+  },
+  {
+   "impl": "wasm",
+   "records": 1704992,
+   "cold": 1645.7084200000002,
+   "warms": [
+    3224.7310730000004,
+    1810.2286489999997
+   ],
+   "maxRssMB": 1485.125,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 18.090452999999798,
+   "copyMs": 145.97973900000034,
+   "procMs": 1639.846086999998,
+   "wasmPages": 10398,
+   "round": 7,
+   "load1": 303.8
+  },
+  {
+   "impl": "typed",
+   "records": 1704992,
+   "cold": 6810.165242000001,
+   "warms": [
+    5256.554592999999,
+    8398.544724999998
+   ],
+   "maxRssMB": 1693.78125,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 7,
+   "load1": 278.3
+  },
+  {
+   "impl": "app",
+   "records": 1704992,
+   "cold": 10968.339299,
+   "warms": [
+    8188.18915,
+    4991.971372
+   ],
+   "maxRssMB": 1695.8203125,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 7,
+   "load1": 271.4
+  },
+  {
+   "impl": "app",
+   "records": 1704992,
+   "cold": 3462.394835,
+   "warms": [
+    3900.3646289999997,
+    5400.791338999999
+   ],
+   "maxRssMB": 1688.765625,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 8,
+   "load1": 270.9
+  },
+  {
+   "impl": "typed",
+   "records": 1704992,
+   "cold": 7408.7267999999995,
+   "warms": [
+    8824.059433999999,
+    6426.315402
+   ],
+   "maxRssMB": 1695.16015625,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "round": 8,
+   "load1": 280.6
+  },
+  {
+   "impl": "wasm",
+   "records": 1704992,
+   "cold": 7498.674918000001,
+   "warms": [
+    3970.807226000001,
+    5389.679792000003
+   ],
+   "maxRssMB": 1485.03125,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.14552399999956833,
+   "copyMs": 540.1140539999869,
+   "procMs": 4835.005994999992,
+   "wasmPages": 10398,
+   "round": 8,
+   "load1": 328.7
+  },
+  {
+   "impl": "wasm-copy",
+   "records": 1704992,
+   "cold": 5891.836873,
+   "warms": [
+    5983.014331999999,
+    2555.4602159999995
+   ],
+   "maxRssMB": 1444.15625,
+   "identicalToApp": true,
+   "triangles": 3113629,
+   "instantiateMs": 0.32540200000221375,
+   "copyMs": 169.56956600000558,
+   "procMs": 1980.059115999993,
+   "wasmPages": 10398,
+   "round": 8,
+   "load1": 383.8
+  },
+  {
+   "impl": "materialize",
+   "records": 1704992,
+   "cold": 1073.2214359999998,
+   "warms": [
+    444.2825849999999,
+    3669.81109
+   ],
+   "maxRssMB": 774.859375,
+   "identicalToApp": null,
+   "round": 8,
+   "load1": 411.7
+  }
+ ]
+}
