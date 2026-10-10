@@ -48,7 +48,7 @@ for (const m of man.meshes) {
   const c = m.cull; if (!c) throw new Error('mesh ' + m.name + ' has no cull ranges; dump with the culling arrays');
   const sph = view(c.sph), start = view(c.start), count = view(c.count);
   for (let i = 0; i < c.n; i++) if (count[i] > 0) chunkSrc.push({ m, i, sph: [sph[i * 4], sph[i * 4 + 1], sph[i * 4 + 2], sph[i * 4 + 3]], start: start[i], count: count[i] });
-  const g = view(m.attrs.aGrad); for (let v = 0; v < g.length; v += 2) { if (g[v] > gxMax) gxMax = g[v]; if (g[v + 1] > gyMax) gyMax = g[v + 1]; }
+  if (m.attrs.aGrad && !m.attrs.aGrad.missing) { const g = view(m.attrs.aGrad); for (let v = 0; v < g.length; v += 2) { if (g[v] > gxMax) gxMax = g[v]; if (g[v + 1] > gyMax) gyMax = g[v + 1]; } }   // the apartments carry no gradient attribute at all (it is 0, 0 in the shader)
 }
 nChunks = chunkSrc.length;
 if (nChunks > 32000) throw new Error('chunk id must fit a signed int16: ' + nChunks);
@@ -68,7 +68,7 @@ const table = new Float32Array(nChunks * 4), chunks = new Float32Array(nChunks *
 let vOff = 0, iOff = 0, maxErr = 0, errSum = 0, errN = 0, framed = 0;
 const q8 = (v, max) => v <= 0 ? 0 : Math.max(1, Math.min(255, Math.round(v / max * 255)));
 spans.forEach((ch, ci) => {
-  const m = ch.m, P = view(m.attrs.position), N = view(m.attrs.normal), D = view(m.attrs.cDay), G = view(m.attrs.cGold), Ni = view(m.attrs.cNight), Gr = view(m.attrs.aGrad), F = view(m.attrs.aFacet), S = m.attrs.aSurface && !m.attrs.aSurface.missing ? view(m.attrs.aSurface) : null;
+  const m = ch.m, P = view(m.attrs.position), N = view(m.attrs.normal), D = view(m.attrs.cDay), G = view(m.attrs.cGold), Ni = view(m.attrs.cNight), Gr = m.attrs.aGrad && !m.attrs.aGrad.missing ? view(m.attrs.aGrad) : null, F = view(m.attrs.aFacet), S = m.attrs.aSurface && !m.attrs.aSurface.missing ? view(m.attrs.aSurface) : null;
   const sIsHalf = S && m.attrs.aSurface.type === 'Uint16Array';
   const idx = view(m.index);
   // bbox centre and extent of this building's vertices
@@ -84,8 +84,8 @@ spans.forEach((ch, ci) => {
     v16[o * 12] = qx; v16[o * 12 + 1] = qy; v16[o * 12 + 2] = qz; u16[o * 12 + 3] = ci;
     const e = Math.max(Math.abs(qx * scale + cx - P[v * 3]), Math.abs(qy * scale + cy - P[v * 3 + 1]), Math.abs(qz * scale + cz - P[v * 3 + 2])); if (e > maxErr) maxErr = e; errSum += e; errN++;
     v8[o * 24 + 8] = Math.round(N[v * 3] * 127); v8[o * 24 + 9] = Math.round(N[v * 3 + 1] * 127); v8[o * 24 + 10] = Math.round(N[v * 3 + 2] * 127); v8[o * 24 + 11] = F[v] > 0.5 ? 127 : 0;
-    u8[o * 24 + 12] = D[v * 3]; u8[o * 24 + 13] = D[v * 3 + 1]; u8[o * 24 + 14] = D[v * 3 + 2]; u8[o * 24 + 15] = q8(Gr[v * 2], gxMax);
-    u8[o * 24 + 16] = G[v * 3]; u8[o * 24 + 17] = G[v * 3 + 1]; u8[o * 24 + 18] = G[v * 3 + 2]; u8[o * 24 + 19] = q8(Gr[v * 2 + 1], gyMax);
+    u8[o * 24 + 12] = D[v * 3]; u8[o * 24 + 13] = D[v * 3 + 1]; u8[o * 24 + 14] = D[v * 3 + 2]; u8[o * 24 + 15] = Gr ? q8(Gr[v * 2], gxMax) : 0;
+    u8[o * 24 + 16] = G[v * 3]; u8[o * 24 + 17] = G[v * 3 + 1]; u8[o * 24 + 18] = G[v * 3 + 2]; u8[o * 24 + 19] = Gr ? q8(Gr[v * 2 + 1], gyMax) : 0;
     u8[o * 24 + 20] = Ni[v * 3]; u8[o * 24 + 21] = Ni[v * 3 + 1]; u8[o * 24 + 22] = Ni[v * 3 + 2];
     const kind = S ? Math.round(sIsHalf ? half(S[v * 4]) : S[v * 4]) : 0; u8[o * 24 + 23] = Math.max(0, Math.min(255, kind)); kinds[kind] = (kinds[kind] || 0) + 1;
   }
@@ -97,7 +97,7 @@ spans.forEach((ch, ci) => {
 const vBytes = totalVerts * STRIDE, iBytes = totalIdx * 4;
 const align = n => (n + 3) & ~3;
 const meta = { format: 'flyover-apartments-packed-1', stride: STRIDE, vertexCount: totalVerts, vertexBytes: vBytes, indexType: 'u32', indexCount: totalIdx, indexOffset: align(vBytes), chunkCount: nChunks,
-  tableOffset: align(vBytes) + iBytes, chunkOffset: align(vBytes) + iBytes + table.byteLength, gradScale: [gxMax / 255, gyMax / 255], origin: man.origin, kinds };
+  tableOffset: align(vBytes) + iBytes, chunkOffset: align(vBytes) + iBytes + table.byteLength, gradScale: [(gxMax || 1) / 255, (gyMax || 1) / 255], origin: man.origin, kinds };
 const out = Buffer.alloc(meta.chunkOffset + chunks.byteLength);
 Buffer.from(vb).copy(out, 0); Buffer.from(ib.buffer).copy(out, meta.indexOffset); Buffer.from(table.buffer).copy(out, meta.tableOffset); Buffer.from(chunks.buffer).copy(out, meta.chunkOffset);
 fs.writeFileSync(path.join(PRIVATE, 'apartments.packed.json'), JSON.stringify(meta));

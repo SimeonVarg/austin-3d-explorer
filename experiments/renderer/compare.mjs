@@ -57,10 +57,12 @@ async function shootApp() {
     const isolate = () => page.evaluate(() => {
       const m = window.__map, A = window.slopesApartments, S = window.slopes;
       let hidden = 0;
-      for (const l of m.getStyle().layers) if (l.id !== 'slopes-mesh' && l.layout?.visibility !== 'none') { try { m.setLayoutProperty(l.id, 'visibility', 'none'); hidden++; } catch (e) {} }
+      // every layer MapLibre holds, custom ones included (getStyle() leaves them out): the GL sky and the depth fog are custom layers
+      const ids = Array.from(new Set([...(m.style._order || []), ...Object.keys(m.style._layers || {}), ...m.getStyle().layers.map(l => l.id)]));
+      for (const id of ids) if (id !== 'slopes-mesh' && m.getLayoutProperty(id, 'visibility') !== 'none') { try { m.setLayoutProperty(id, 'visibility', 'none'); hidden++; } catch (e) {} }
       let removed = 0;
       for (const g of [...S.root.children]) if (g !== A.group && !g.getObjectById(A.group.id)) { S.root.remove(g); removed++; }
-      return { hidden, removed, kept: S.root.children.map(c => c.name || c.type), visibleLayers: m.getStyle().layers.filter(l => l.layout?.visibility !== 'none').map(l => l.id) };
+      return { hidden, removed, kept: S.root.children.map(c => c.name || c.type), visibleLayers: ids.filter(id => m.getLayoutProperty(id, 'visibility') !== 'none') };
     });
     console.log('isolate', JSON.stringify((({ visibleLayers, ...r }) => ({ ...r, visibleLayers }))(await isolate())));
     for (const p of POSES) {
@@ -97,8 +99,9 @@ async function shootApp() {
     }
     // timing loop on the last pose: how long a repaint of the isolated scene takes (software: invalid)
     frames.bench = await page.evaluate(async () => {
-      const m = window.__map, G = window.__glc; G.threeMs = 0; const N = 30; const t = performance.now();
-      for (let i = 0; i < N; i++) await new Promise(r => { m.once('render', () => r()); m.triggerRepaint(); });
+      const m = window.__map, G = window.__glc, gl = m.painter.context.gl, px = new Uint8Array(4); G.threeMs = 0; const N = 30; G.mute = true; const t = performance.now();
+      for (let i = 0; i < N; i++) { await new Promise(r => { m.once('render', () => r()); m.triggerRepaint(); }); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); }
+      G.mute = false;
       return { frames: N, wallMsPerFrame: +((performance.now() - t) / N).toFixed(2), threeJsMsPerFrame: +(G.threeMs / N).toFixed(2) };
     });
     frames.errors = errors.slice(0, 8);
@@ -136,9 +139,11 @@ async function shootProto(frames) {
     out.timeline = await page.evaluate(() => window.__proto.timeline);
     // bench: 60 draws each followed by gl.finish()
     out.bench = MODE === 'maplibre' ? null : await page.evaluate(async (f) => {
-      const N = 60, t = performance.now(); let sub = 0;
-      for (let i = 0; i < N; i++) { const s = window.__proto.drawFrame(f); sub += s.submitMs; }
-      const gl = document.getElementById('c').getContext('webgl2'); gl.finish();
+      const N = 60, t = performance.now(); let sub = 0; const gl0 = document.getElementById('c').getContext('webgl2'), px = new Uint8Array(4);
+      window.__glc.mute = true;
+      for (let i = 0; i < N; i++) { const s = window.__proto.drawFrame(f); sub += s.submitMs; gl0.readPixels(0, 0, 1, 1, gl0.RGBA, gl0.UNSIGNED_BYTE, px); }
+      window.__glc.mute = false;
+      const gl = document.getElementById('c').getContext('webgl2'); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));   // readPixels, not finish: finish does not wait on every driver
       return { frames: N, wallMsPerFrame: +((performance.now() - t) / N).toFixed(2), cpuSubmitMsPerFrame: +(sub / N).toFixed(3) };
     }, { matrix: frames.views[POSES[POSES.length - 1].name].matrix, u: frames.views[POSES[POSES.length - 1].name].u });
     out.errors = errors.slice(0, 8);

@@ -27,7 +27,7 @@ export function glCounterInit() {
   if (window.__glc) return;
   const G = window.__glc = { phase: 'maplibre', canvases: new Map(), bufBytes: 0, ctxCount: 0 };
   const classify = n => {
-    if (/^draw(Elements|Arrays|RangeElements)/.test(n)) return 'draw';
+    if (/^(multiDraw|draw)(Elements|Arrays|RangeElements)/.test(n)) return 'draw';
     if (n === 'useProgram') return 'program';
     if (/^bind(Texture|Sampler)$/.test(n) || n === 'activeTexture') return 'texbind';
     if (/^bind(Buffer|BufferBase|BufferRange|VertexArray)$/.test(n)) return 'bufbind';
@@ -78,6 +78,10 @@ export function glCounterInit() {
         } finally { G.mute = false; }
         if (isDraw) {
           const a = arguments; let count = 0, inst = 1;
+          if (/^multiDraw/.test(n)) {                       // (mode, counts, countsOffset, type, offsets, offsetsOffset, drawcount [, instanceCounts...]): one call
+            const cs = a[1], co = a[2] || 0, dc = a[6]; let sum = 0; for (let i = 0; i < dc; i++) sum += cs[co + i];
+            if (a[0] === 4) s.tris += sum / 3; return orig.apply(this, arguments);
+          }
           if (/Arrays/.test(n)) count = a[2]; else if (/RangeElements/.test(n)) count = a[3]; else count = a[1];
           if (/Instanced/.test(n)) inst = a[a.length - 1];
           if (a[0] === 4) s.tris += (count / 3) * inst; else if (a[0] === 5 || a[0] === 6) s.tris += Math.max(0, count - 2) * inst;

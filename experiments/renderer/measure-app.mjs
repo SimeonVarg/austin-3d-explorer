@@ -142,9 +142,9 @@ async function runArm(arm) {
       await page.waitForTimeout(4000);
       await page.evaluate(() => new Promise(r => { const m = window.__map; if (m.loaded()) return r(); m.once('idle', () => r()); setTimeout(r, 20000); }));
       res.bench[name] = await page.evaluate(async () => {
-        const m = window.__map, gl = m.painter.context.gl, G = window.__glc, ts = []; G.threeMs = 0;
+        const m = window.__map, gl = m.painter.context.gl, G = window.__glc, ts = [], px = new Uint8Array(4); G.threeMs = 0;
         G.mute = true;     // the GL call counters off: they cost CPU time of their own and must not be in a frame time
-        for (let i = 0; i < 45; i++) { const t = performance.now(); await new Promise(r => { m.once('render', () => r()); m.triggerRepaint(); }); gl.finish(); ts.push(performance.now() - t); }
+        for (let i = 0; i < 45; i++) { const t = performance.now(); await new Promise(r => { m.once('render', () => r()); m.triggerRepaint(); }); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); ts.push(performance.now() - t); }
         G.mute = false; ts.splice(0, 5); ts.sort((a, b) => a - b);
         return { frames: ts.length, minMs: +ts[0].toFixed(2), medianMs: +ts[ts.length >> 1].toFixed(2), p90Ms: +ts[Math.floor(ts.length * 0.9)].toFixed(2), threeJsMsPerFrame: +(G.threeMs / 45).toFixed(2) };
       });
