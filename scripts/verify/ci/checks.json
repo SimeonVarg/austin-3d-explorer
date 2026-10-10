@@ -112,6 +112,7 @@
     "orbit-check.mjs": {"est_s": 130},
     "outer-check.mjs": {"est_s": 100},
     "outer-facade-parity.mjs": {"est_s": 220},
+    "outer-count.mjs": {"est_s": 900, "timeout_s": 2700},
     "outer-homes.mjs": {"est_s": 300},
     "outer-trees.mjs": {"est_s": 300},
     "pattern-lowpass.mjs": {"est_s": 10},

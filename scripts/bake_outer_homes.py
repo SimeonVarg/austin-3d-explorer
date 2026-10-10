@@ -771,9 +771,12 @@ def stage_d(log):
             R[:, 2].astype(np.uint8), R[:, 3].astype(np.uint8), da, inner(5), R[:, 6].astype(np.uint8), R[:, 7].astype(np.uint8),
             inner(8), inner(9)]
     body = head + wall_pal + cent.tobytes() + b"".join(c.tobytes() for c in cols)
-    gz = gzip.compress(body, 9, mtime=0)
+    # STORED AS IT IS. Both hosts compress a .bin on the wire themselves (measured 2026-10-10: Vercel with brotli
+    # at its quality 3, GitHub Pages with gzip at about level 5), and that is within 2 % of gzip -9 done here. So the
+    # browser needs no DecompressionStream, which Safari before 16.4 does not have. `gz` is only for the report.
+    gz = gzip.compress(body, 5, mtime=0)
     with open(OUT, "wb") as f:
-        f.write(gz)
+        f.write(body)
     pickle.dump(dict(builds=builds, roof_pal=["#%02x%02x%02x" % tuple(int(v) for v in c) for c in cent]), open(cache("d"), "wb"))
     # ── the ring: which prisms this layer took, and scan heights for the ones that stay ──
     ring = json.load(open(RING, encoding="utf-8"))["features"]
@@ -825,7 +828,7 @@ def stage_d(log):
     with open(SPLIT, "w", encoding="utf-8") as f:
         json.dump({"note": "written by scripts/bake_outer_homes.py; read by scripts/bake_outer.py apply_homes_split()",
                    "drop": drop, "heights": heights}, f, separators=(",", ":"))
-    rep = dict(counts=dict(cnt), buildings=len(builds), rectangles=n, raw_bytes=len(body), gzip_bytes=len(gz),
+    rep = dict(counts=dict(cnt), buildings=len(builds), rectangles=n, file_bytes=len(body), wire_bytes_gzip_5=len(gz),
                bytes_per_building=round(len(gz) / len(builds), 2),
                roof_colours_measured=int(len(allc)), roof_palette=N_ROOF, roof_quantisation_rgb_rms=round(float(np.sqrt((dmin ** 2).mean())), 1),
                ring_prisms_taken=len(drop), ring_prisms_that_stay_and_the_scan_covers=stay, ring_prisms_raised=len(heights))

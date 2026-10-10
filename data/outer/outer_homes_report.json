@@ -49,7 +49,7 @@
  },
  "d": {
   "buildings": 39807,
-  "bytes_per_building": 10.6,
+  "bytes_per_building": 10.67,
   "counts": {
    "buildings": 39807,
    "dropped_gone": 298,
@@ -63,15 +63,15 @@
    "rect_inferred": 2423,
    "rect_scan": 51338
   },
-  "gzip_bytes": 422031,
-  "raw_bytes": 645424,
+  "file_bytes": 645424,
   "rectangles": 53761,
   "ring_prisms_raised": 164,
   "ring_prisms_taken": 4889,
-  "ring_prisms_that_stay_and_the_scan_covers": 978,
+  "ring_prisms_that_stay_and_the_scan_covers": 980,
   "roof_colours_measured": 49896,
   "roof_palette": 64,
-  "roof_quantisation_rgb_rms": 5.1
+  "roof_quantisation_rgb_rms": 5.1,
+  "wire_bytes_gzip_5": 424689
  },
  "sources": {
   "footprints": "Overture Maps buildings (OpenStreetMap contributors, ODbL; Microsoft ML Buildings, CDLA-Permissive-2.0)",

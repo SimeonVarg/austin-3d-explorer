@@ -92,23 +92,36 @@ downtown's to answer for now.
 
 ## Bytes (measured, the joined result against `main`)
 
-Archives as they are (already compressed inside), text as `gzip -9`.
+On the wire: the tile archive as it is (compressed inside), text as `gzip -9`,
+and the two new `.bin` files as each host compresses them (see below).
 
-| File | `main` | joined |
-|---|---:|---:|
-| `data/tiles/outer.pmtiles` | 2,392,254 | 1,469,103 |
-| `data/outer_homes.bin` (new) | 0 | 422,031 |
-| `data/outer_trees.bin` (new) | 0 | 137,981 |
-| `js/outer-homes.js` (new) | 0 | 11,057 |
-| `js/outer-trees.js` (new) | 0 | 10,391 |
-| `js/mobile.js` | 13,335 | 13,747 |
-| `index.html` | 5,984 | 6,181 |
-| `data/outer_tower_palette.json` | 1,151 | 1,151 |
-| **Total** | **2,412,724** | **2,071,642** |
+| File | `main` | joined, GitHub Pages | joined, Vercel |
+|---|---:|---:|---:|
+| `data/tiles/outer.pmtiles` | 2,392,254 | 1,469,103 | 1,469,103 |
+| `data/outer_homes.bin` (new; 645,424 on disk) | 0 | 424,689 | 414,554 |
+| `data/outer_trees.bin` (new; 369,866 on disk) | 0 | 142,269 | 137,827 |
+| `js/outer-homes.js` (new) | 0 | 14,246 | 14,246 |
+| `js/outer-trees.js` (new) | 0 | 10,444 | 10,444 |
+| `js/mobile.js` | 13,335 | 13,747 | 13,747 |
+| `index.html` | 5,984 | 6,181 | 6,181 |
+| `data/outer_tower_palette.json` | 1,151 | 1,151 | 1,151 |
+| **Total** | **2,412,724** | **2,081,830** | **2,067,253** |
 
-**341 KB smaller than `main`** (14 %). On their own branches the archive was
-2,367,623 bytes (downtown) and 1,492,898 (outer). The two new files are fetched
-whole, after the loading veil lifts; a phone fetches only the houses file.
+**331 KB smaller than `main` on GitHub Pages, 345 KB on Vercel.** On their own
+branches the archive was 2,367,623 bytes (downtown) and 1,492,898 (outer). The
+two new files are fetched whole, after the loading veil lifts; a phone fetches
+only the houses file.
+
+**The two files are stored uncompressed, and that is a decision.** They used to
+be gzip inside, opened in the page with `DecompressionStream`, which Safari
+before 16.4 does not have. Both live hosts already compress a `.bin` on the
+wire (checked 2026-10-10 on a served `.pmtiles`: Vercel answers
+`content-encoding: br`, GitHub Pages `gzip`; their levels were found by
+matching served sizes of three files: brotli quality 3, gzip about level 5).
+Wire bytes of the two files together: own gzip -9 packing 560,012 on either
+host; stored raw 552,381 on Vercel and 566,958 on GitHub Pages. Within 2 %
+either way, so the design that needs no feature test wins. A host that did not
+compress `.bin` would send 1.0 MB.
 
 ## Phones and weak chips
 
@@ -124,13 +137,13 @@ Chrome's phone emulation (390 x 844, DPR 3, `?lite=1`), **not a phone**.
 | triangles drawn, spawn view | 315,960 in 41 draws | 4,228 in 13 draws |
 | triangles drawn, highest view | 657,260 in 76 draws | 10,528 in 24 draws |
 | vertex buffers on the GPU | 2.26 MB | 0.34 MB |
-| kept in JavaScript | 0.65 MB decoded + 2.26 MB copies | 0.65 MB decoded (copies freed on upload) |
+| kept in JavaScript | 0.65 MB file + 2.26 MB copies | 0.65 MB file (copies freed on upload) |
 | **Trees** built | 196,109 | none |
 | triangles drawn, spawn view | 196,648 in 43 draws | 0 |
 | triangles drawn, over Tarrytown | 766,352 in 13 draws | 0 |
 | triangles drawn, highest view | 0 (below zoom 14, where the campus trees start too) | 0 |
 | vertex buffers on the GPU | 6.48 MB | 0 |
-| kept in JavaScript | 0.37 MB decoded + 6.48 MB copies | 0 |
+| kept in JavaScript | 0.37 MB file + 6.48 MB copies | 0 |
 | `data/outer_homes.bin` fetched | once, after the veil | once, 0.07 s after the veil lifted |
 | `data/outer_trees.bin` fetched | once, after the veil | **never** |
 
@@ -143,11 +156,11 @@ Chrome's phone emulation (390 x 844, DPR 3, `?lite=1`), **not a phone**.
 | `outerHomeWindows: false` | phone, lighter | no windows (6 fewer triangles a house) |
 | `outerTrees: false` | phone, lighter | no outer trees and no fetch. A phone drew no back-yard tree before either. A number is the share built. |
 
-The `safe` tier (no three.js layer at all) draws neither and fetches neither,
-by construction (both modules wait for the three.js scene); not run. On the
-desktop the houses follow the "City beyond campus" slider (performance preset:
-0.45) and the trees the tree density slider (0.52 / 0.675 / 1); `?homes=0`,
-`?homewindows=0` and `?outertrees=0` switch each off and skip its fetch.
+On the desktop the houses follow the "City beyond campus" slider (performance
+preset: 0.45) and the trees the tree density slider (0.52 / 0.675 / 1);
+`?homes=0`, `?homewindows=0` and `?outertrees=0` switch each off and skip its
+fetch. `outer-budget.mjs --phone --budget outerHomes=0` (the budget line set
+to 0 for one run), run once: **neither file is fetched** on the phone tier.
 
 **Whole-page memory on the phone profile** (`mobile-memory.mjs`, `main` against
 the join, three interleaved reps, minimum and range, MB):
@@ -178,6 +191,39 @@ differences, not the absolutes):
 its distance from the eye: every tree with a trunk within 900 m; every fourth
 tree at twice the width to 3 km; every sixteenth at four times the width
 beyond. The ground covered is the same at each step.
+
+## Nobody gets less city than `main`
+
+The houses layer took 4,882 house-sized boxes out of the ring. Where the
+three.js scene is off (the phone's `safe` tier, `?slopes=0`, three.js not
+loaded, a lost scene) it cannot draw them back. So there `js/outer-homes.js`
+draws plain MapLibre boxes instead, from the same file, with the ring's own
+colour-by-the-hour rule and each house's own wall colour: flat tops, no
+windows, no new download. Which buildings: the ring's own
+kind of rule (footprint at least 100 m2 + 150 m2 per km from the core or
+downtown; `OUTER_HOMES.flat`), so they stand where the ring's stood. That is
+6,790 buildings, and **98.5 % of the boxes `main` drew get a box back on the
+same spot** (most of the rest are outlines the 2021 scan found nothing on). The
+boxes follow the same "City beyond campus" density as the ring.
+
+![With the 3D layer off: main, and this branch](shots/city-join/slopes-off.jpg)
+
+`scripts/verify/outer-count.mjs` counts the outer city's buildings in five ways
+of opening the page, on `main` and on this branch, and fails if any is lower.
+**Measured**:
+
+| Case | `main` | this branch | drawn how |
+|---|---:|---:|---|
+| desktop, default | 5,977 | 40,904 | 1,097 ring boxes + 39,807 houses in the scene |
+| phone `safe` tier (`?lite=safe`) | 2,535 | 3,843 | 788 ring boxes + 3,055 plain boxes |
+| `?slopes=0` | 5,977 | 7,887 | 1,097 ring boxes + 6,790 plain boxes |
+| phone tier (`?lite=1`) | 2,535 | 3,700 | 788 ring boxes + 2,912 houses in the scene |
+| no `DecompressionStream` | 5,977 | 40,904 | as the default: the files are no longer packed |
+
+The phone rows are at the phone's own density (0.45) on both sides.
+`outer-count.mjs --break` switches the houses off and fails all five, as it
+must. The check runs in CI against `outer-count-baseline.json` (main's five
+numbers, written by `--main URL --write-baseline`).
 
 ## The trees' look: the owner's call
 
@@ -229,6 +275,7 @@ The owner's photographs were not used.
 
 `downtown-accuracy.py`, `downtown-data.py`, `coplanar.mjs --gate`,
 `measure_outer.py`, `harness-drift.mjs`, `suite-lint.mjs` (no browser);
+`outer-count.mjs` (five cases against `main`);
 `outer-homes.mjs` (14 assertions) and `outer-trees.mjs` (11) on hardware GL.
 All pass. Pictures with the outer city or downtown in frame will move.
 
@@ -243,9 +290,7 @@ All pass. Pictures with the outer city or downtown in frame will move.
 3. **The big outer buildings are still flat tan boxes**: the 981 house-sized
    boxes the ring kept and every apartment block, school and shop outside
    downtown. Downtown's method (levels from the scan) would fit them.
-4. On the `safe` tier and with `?slopes=0` the outer city has 4,882 fewer
-   boxes than `main`, because the houses that replaced them need the three.js
-   layer. A browser without `DecompressionStream` (Safari before 16.4) draws no
-   houses and no outer trees.
+4. Where the three.js scene is off, the houses that come back are plain boxes
+   and the trees do not come back at all (`main` drew none there either).
 5. 8,662 complex roofs are one gable; trees have no species; one tree per 10 m
    cell is a count for the cover, not a census.

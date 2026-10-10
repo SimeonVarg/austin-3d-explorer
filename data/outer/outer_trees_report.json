@@ -1,5 +1,5 @@
 {
- "bytes_per_tree": 0.7,
+ "bytes_per_tree": 0.73,
  "cell_m": 10.0,
  "counts": {
   "canopy_cells": 298087,
@@ -10,11 +10,11 @@
   "dropped_other_lanes_or_outside": 50963,
   "trees": 196109
  },
+ "file_bytes": 369866,
  "grid": [
   862,
   858
  ],
- "gzip_bytes": 137981,
  "height_pcts_m": {
   "p10": 8.4,
   "p50": 11.8,
@@ -88,6 +88,6 @@
   }
  },
  "plane_fit_worst_m": 1.721,
- "raw_bytes": 369866,
- "source": "StratMap Bexar & Travis Counties Lidar 2021, TxGIO, CC0-1.0 (vegetation classes 3 to 5)"
+ "source": "StratMap Bexar & Travis Counties Lidar 2021, TxGIO, CC0-1.0 (vegetation classes 3 to 5)",
+ "wire_bytes_gzip_5": 142269
 }

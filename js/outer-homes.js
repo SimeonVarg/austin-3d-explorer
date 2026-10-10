@@ -26,7 +26,9 @@
  *
  * Public (window) API:
  *   OUTER_HOMES              the taste block (below)
- *   outerHomes.stats()       counts, bytes, chunks drawn in the last update
+ *   outerHomes.stats()       counts, bytes, chunks drawn in the last update,
+ *                            `mode` ('scene' | 'boxes' | null) and
+ *                            `buildingsDrawn`
  *   outerHomes.rebuild()     drop and rebuild from the decoded file
  *   applyOuterHomes(map)     re-read the knobs (density, switch, pitch)
  */
@@ -88,6 +90,23 @@
       // eave, and at most glowMax times. 0 = windows keep their size.
       glowMetres: 500, glowMax: 4,
     },
+    // WHERE THE 3D LAYER IS OFF (the phone's `safe` tier, ?slopes=0, three.js
+    // not loaded, a lost graphics scene) nothing above can draw, and the ring
+    // no longer holds the 4,882 house-sized boxes it handed to this layer. So
+    // nobody gets less city than before: the buildings the ring's own KIND of
+    // rule would keep are drawn as plain MapLibre boxes from the same file
+    // (flat tops, wall colour, no windows). The rule is scripts/bake_outer.py's
+    // shape: footprint >= areaFloor + areaPerKm x the distance in km from the
+    // nearer of the core and downtown boxes, so they stand where the ring's
+    // stood (dense beside campus, thinning outward). The ring's own numbers
+    // (115, 170) put a box back on 96.4 % of the 4,882 it gave up; these two
+    // put one back on 98.5 % (most of the rest are outlines the 2021 scan found
+    // nothing on), 6,804 buildings in all. Measured; and
+    // scripts/verify/outer-count.mjs holds the count to main's in five cases.
+    // The boxes are thinned by the same "City beyond campus" density as the
+    // ring. `roofShare`: how far up the roof's rise the flat top sits.
+    flat: { on: true, areaFloor: 100, areaPerKm: 150, roofShare: 0.5,
+            core: [-97.752, 30.276, -97.726, 30.296], downtown: [-97.7580, 30.2560, -97.7280, 30.2770] },
     // PHONES (js/mobile.js LITE.budget.outerHomes, read below). The share of
     // each chunk's houses a phone builds and draws, biggest first: 0.15 is
     // about what the ring drew before this layer took its houses (4,897 of
@@ -108,13 +127,18 @@
   })();
 
   const KIND_FLAT = 0, KIND_GABLE = 1, KIND_HIP = 2, KIND_GABLE_ACROSS = 3;
-  const count = { done: false, houses: 0, rects: 0, built: 0, chunks: 0, drawn: 0, bytes: 0, gpuBytes: 0, templateTriangles: 0, ms: 0, error: null };
-  let _map = null, _data = null, _group = null, _material = null, _lastDensity = null;
+  const count = { done: false, mode: null, houses: 0, rects: 0, built: 0, chunks: 0, drawn: 0, buildingsDrawn: 0, flatBoxes: 0, bytes: 0, gpuBytes: 0, templateTriangles: 0, ms: 0, error: null };
+  let _map = null, _data = null, _group = null, _material = null, _lastDensity = null, _flat = false;
+  const FLAT_SRC = 'austin-outer-homes', FLAT_LAYER = 'outer-homes-flat';
+  let _flatBuildings = 0, _flatDensity = null;
 
   // ── the file ────────────────────────────────────────────────────────────
   //
-  // data/outer_homes.bin, little-endian, gzip (decoded here, so it does not
-  // matter whether the host compresses .bin):
+  // data/outer_homes.bin, little-endian. STORED AS IT IS: both hosts compress
+  // a .bin on the wire themselves (measured 2026-10-10: Vercel brotli, GitHub
+  // Pages gzip), and that is within 2 % of packing it here, so the page needs
+  // no DecompressionStream, which Safari before 16.4 does not have. A file
+  // that IS gzip is still read where the browser can (an older bake).
   //   0   4  'OHM1'
   //   4   4  u32 n            rectangles
   //   8   8  f64 lon0         south-west corner of the frame
@@ -466,9 +490,11 @@
       const m = H.phoneShare == null ? idx.length : Math.max(1, Math.ceil(idx.length * Math.min(1, H.phoneShare)));
       const A = new Float32Array(m * 4), B = new Float32Array(m * 3), K = new Float32Array(m * 2);
       const wallC = new Uint8Array(m * 3), roofC = new Uint8Array(m * 3);
+      const firsts = new Uint32Array(m + 1);       // buildings among the first j rectangles
       let sx = 0, sy = 0, top = 0, r2 = 0;
       for (let j = 0; j < m; j++) {
         const k = idx[order[j]];
+        firsts[j + 1] = firsts[j] + ((d.kind[k] & 4) ? 1 : 0);
         let L = d.hl[k] * d.stepSize, W = d.hw[k] * d.stepSize;
         let ang = d.ang[k] * Math.PI / 256;
         let kind = d.kind[k] & 3;
@@ -499,6 +525,7 @@
       const mesh = new T.Mesh(geom, _material);
       mesh.name = 'homes-chunk';
       mesh.userData.total = m;
+      mesh.userData.firsts = firsts;
       mesh.userData.centre = [cx, cy];
       mesh.userData.radius = r2;
       // Layer 1: the main camera sees it, the sun-shadow cameras (layer 0 only)
@@ -529,7 +556,7 @@
       const c = _map.getCenter();
       eye = window.slopes.toLocal(c.lng, c.lat, 0);
     }
-    let drawn = 0;
+    let drawn = 0, buildings = 0;
     for (const mesh of _group.children) {
       const total = mesh.userData.total;
       let nIn = Math.max(1, Math.round(total * dens));
@@ -540,19 +567,118 @@
       mesh.visible = nIn > 0;
       mesh.geometry.instanceCount = nIn;
       drawn += nIn;
+      buildings += mesh.userData.firsts[nIn];
     }
-    count.drawn = drawn;
+    count.drawn = drawn; count.buildingsDrawn = buildings;
     _lastDensity = dens;
+  }
+
+  // ── where the 3D layer is off: the biggest houses as plain boxes ─────────
+  //
+  // One GeoJSON source built in the page from the file already fetched, one
+  // fill-extrusion layer under `outer-3d`, the ring's own paint. See
+  // OUTER_HOMES.flat for the why and the share.
+  const hx = c => '#' + c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+  const mix3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  function flatFeatures() {
+    const d = _data, H = OUTER_HOMES, n = d.n;
+    const mLat = 111320, mLon = mLat * Math.cos(d.lat0 * Math.PI / 180);
+    // buildings (a first rectangle and the wings after it), and the ring's own rule for which of them it kept
+    const all = [];
+    for (let k = 0; k < n; k++) {
+      const a = 4 * d.hl[k] * d.hw[k] * d.stepSize * d.stepSize;
+      if ((d.kind[k] & 4) || !all.length) all.push({ k0: k, k1: k + 1, area: a });
+      else { all[all.length - 1].k1 = k + 1; all[all.length - 1].area += a; }
+    }
+    const out = (lon, lat, r) => Math.hypot(Math.max(r[0] - lon, 0, lon - r[2]) * mLon, Math.max(r[1] - lat, 0, lat - r[3]) * mLat);
+    const b = all.filter(q => {
+      const lon = d.lon0 + d.x[q.k0] * d.stepXY / mLon, lat = d.lat0 + d.y[q.k0] * d.stepXY / mLat;
+      const km = Math.min(out(lon, lat, H.flat.core), out(lon, lat, H.flat.downtown)) / 1000;
+      return q.area >= H.flat.areaFloor + H.flat.areaPerKm * km;
+    });
+    // biggest first, and each carries its place in that order as `d`, so the "City beyond campus" density thins
+    // these boxes the way it thins the ring's (the layer's filter is `d` <= density)
+    b.sort((p, q) => q.area - p.area || p.k0 - q.k0);
+    const keep = b.length;
+    _flatBuildings = keep;
+    const tint = hex3(H.goldenTint), feats = [];
+    for (let i = 0; i < keep; i++) for (let k = b[i].k0; k < b[i].k1; k++) {
+      const L = d.hl[k] * d.stepSize, W = d.hw[k] * d.stepSize, ang = d.ang[k] * Math.PI / 256;
+      const c = Math.cos(ang), s2 = Math.sin(ang), x = d.x[k] * d.stepXY, y = d.y[k] * d.stepXY;
+      const ring = [[1, 1], [-1, 1], [-1, -1], [1, -1], [1, 1]].map(([su, sv]) =>
+        [+(d.lon0 + (x + su * L * c - sv * W * s2) / mLon).toFixed(6), +(d.lat0 + (y + su * L * s2 + sv * W * c) / mLat).toFixed(6)]);
+      const kind = d.kind[k] & 3, wi = Math.min(d.wall[k] * 3, d.wallPal.length - 3);
+      const day = [d.wallPal[wi], d.wallPal[wi + 1], d.wallPal[wi + 2]];
+      const h = d.eave[k] * d.stepH + (kind ? d.rise[k] * d.stepH * H.flat.roofShare : 0);
+      feats.push({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] },
+        properties: { h: +h.toFixed(1), d: +((i + 1) / keep).toFixed(4), wd: hx(day), wg: hx(mix3(day, tint, H.goldenMix)),
+                      wn: hx(mix3(day.map(v => v * H.nightDark), H.nightCool, H.nightMix)) } });
+    }
+    count.flatBoxes = feats.length;
+    return { type: 'FeatureCollection', features: feats };
+  }
+  function syncFlat(map) {
+    // the ring's own colour-by-the-hour expression and its pitch fade, copied: the boxes ARE ring boxes to the eye
+    if (!_flat || !map.getLayer(FLAT_LAYER)) return;
+    const dens = Math.max(0, Math.min(1, densityNow()));
+    if (dens !== _flatDensity) {
+      try { map.setFilter(FLAT_LAYER, dens >= 1 ? null : ['<=', ['get', 'd'], dens]); } catch (e) {}
+      _flatDensity = dens; _lastDensity = dens;
+      count.buildingsDrawn = Math.floor(_flatBuildings * dens + 1e-9); count.drawn = count.buildingsDrawn;
+    }
+    if (!map.getLayer('outer-3d')) return;
+    for (const prop of ['fill-extrusion-color', 'fill-extrusion-opacity']) {
+      try {
+        const v = map.getPaintProperty('outer-3d', prop);
+        if (v != null && JSON.stringify(v) !== JSON.stringify(map.getPaintProperty(FLAT_LAYER, prop))) map.setPaintProperty(FLAT_LAYER, prop, v);
+      } catch (e) {}
+    }
+  }
+  function setFlat(map, on) {
+    if (on && !_flat) {
+      const t0 = performance.now();
+      if (!map.getSource(FLAT_SRC)) map.addSource(FLAT_SRC, { type: 'geojson', data: flatFeatures(), ...(window.PATTERN_TILING || { maxzoom: 15, tolerance: 1.5 }) });
+      if (!map.getLayer(FLAT_LAYER)) {
+        map.addLayer({
+          id: FLAT_LAYER, type: 'fill-extrusion', source: FLAT_SRC,
+          minzoom: OUTER_HOMES.minZoom,
+          paint: {
+            'fill-extrusion-color': ['to-color', ['get', 'wd'], '#888888'],
+            'fill-extrusion-height': ['get', 'h'],
+            'fill-extrusion-base': 0,
+            'fill-extrusion-opacity': 1,
+            'fill-extrusion-vertical-gradient': true,
+          },
+        }, map.getLayer('outer-3d') ? 'outer-3d' : undefined);
+      }
+      _flat = true; _flatDensity = null;
+      count.mode = 'boxes'; count.ms = +(performance.now() - t0).toFixed(1);
+      syncFlat(map);
+    } else if (!on && _flat) {
+      try { if (map.getLayer(FLAT_LAYER)) map.removeLayer(FLAT_LAYER); if (map.getSource(FLAT_SRC)) map.removeSource(FLAT_SRC); } catch (e) {}
+      _flat = false; count.flatBoxes = 0;
+      if (count.mode === 'boxes') count.mode = null;
+    }
+  }
+
+  /** Is the three.js scene there to draw into, right now? */
+  function sceneUp() {
+    const S = window.slopes, L = window.LITE_PROFILE;
+    return !!(window.SLOPES && window.SLOPES.on && window.THREE && S && S.root && !(L && L.sceneUnavailable));
   }
 
   window.applyOuterHomes = function applyOuterHomes(map) {
     map = map || _map;
     const S = window.slopes;
-    if (!map || !S || !_data) return;
-    const want = !!(OUTER_HOMES.on && window.SLOPES && window.SLOPES.on && (!window.OUTER || window.OUTER.on));
+    if (!map || !_data) return;
+    const ringOn = !window.OUTER || window.OUTER.on;
+    const scene = sceneUp();
+    const want = !!(OUTER_HOMES.on && scene && ringOn);
+    const wantFlat = !!(OUTER_HOMES.on && !scene && ringOn && OUTER_HOMES.flat.on);
     try {
-      if (want && !_group) { _group = build(); S.add(_group); }
-      else if (!want && _group) { S.remove(_group); disposeGroup(_group); _group = null; }
+      if (want && !_group) { setFlat(map, false); _group = build(); S.add(_group); count.mode = 'scene'; }
+      else if (!want && _group) { S.remove(_group); disposeGroup(_group); _group = null; count.drawn = 0; count.buildingsDrawn = 0; if (count.mode === 'scene') count.mode = null; }
+      setFlat(map, wantFlat);
     } catch (e) {
       count.error = String(e && e.message || e);
       console.warn('[outer-homes]', count.error, '- houses not drawn');
@@ -568,7 +694,7 @@
   }
 
   window.outerHomes = {
-    stats() { return { ...count, density: _lastDensity, group: !!_group }; },
+    stats() { return { ...count, density: _lastDensity, group: !!_group, flat: _flat }; },
     rebuild() {
       if (_group) { window.slopes.remove(_group); disposeGroup(_group); _group = null; }
       window.applyOuterHomes();
@@ -579,13 +705,19 @@
   };
 
   // ── boot ────────────────────────────────────────────────────────────────
+  let _sceneTries = 0;
   async function boot() {
     const map = window.__map, S = window.slopes;
     if (!OUTER_HOMES.on) { count.done = true; return true; }
-    if (!map || !S || !S.root || !window.THREE) return false;
+    if (!map) return false;
     // After the ring: the houses are the ring's small buildings, and the ring
     // is what tells a visitor the city has loaded. Never ahead of it.
     if (!map.getLayer('outer-3d') && !(window.OUTER && window.OUTER.on === false)) return false;
+    // The three.js scene, where it is coming: wait for it (js/slopes.js gives
+    // three.js 60 s to load). Where it is switched off, or never comes, the
+    // boxes are drawn instead (OUTER_HOMES.flat).
+    const sceneComing = !!(window.SLOPES && window.SLOPES.on) && !(window.LITE_PROFILE && window.LITE_PROFILE.sceneUnavailable);
+    if (sceneComing && !sceneUp() && ++_sceneTries < 400) return false;
     // ... and never ahead of the city itself. The file is 0.4 MB that nothing on
     // campus needs, so it waits for the loading veil to lift (or fetchAfterMs,
     // whichever is first) instead of joining the queue of the first seconds.
@@ -595,13 +727,15 @@
       const buf = await fetchBin(OUTER_HOMES.url);
       count.bytes = buf.byteLength;
       _data = decode(buf);
+      count.houses = 0; for (let k = 0; k < _data.n; k++) if (_data.kind[k] & 4) count.houses++;
+      count.rects = _data.n;
     } catch (e) {
       count.error = String(e && e.message || e);
       console.warn('[outer-homes]', count.error, '- houses not drawn');
       count.done = true;
       return true;
     }
-    S.onSwitch(() => window.applyOuterHomes(map));
+    if (S && typeof S.onSwitch === 'function') S.onSwitch(() => window.applyOuterHomes(map));
     const orig = window.applySlopesSettings;
     if (typeof orig === 'function' && !orig.__homesHooked) {
       const wrapped = function (m) { const r = orig.apply(this, arguments); try { window.applyOuterHomes(m); } catch (e) {} return r; };
@@ -610,23 +744,30 @@
     }
     const origOuter = window.applyOuterSettings;
     if (typeof origOuter === 'function' && !origOuter.__homesHooked) {
-      const wrapped = function (m) { const r = origOuter.apply(this, arguments); try { update(); } catch (e) {} return r; };
+      const wrapped = function (m) { const r = origOuter.apply(this, arguments); try { update(); syncFlat(m || map); } catch (e) {} return r; };
       wrapped.__homesHooked = true;
       window.applyOuterSettings = wrapped;
     }
+    const origColors = window.applyOuterColors;
+    if (typeof origColors === 'function' && !origColors.__homesHooked) {
+      const wrapped = function (m) { const r = origColors.apply(this, arguments); try { syncFlat(m || map); } catch (e) {} return r; };
+      wrapped.__homesHooked = true;
+      window.applyOuterColors = wrapped;
+    }
     let lastWalk = null;
     const onMove = () => {
+      if (_flat) { syncFlat(map); return; }
       const walking = map.getPitch() > OUTER_HOMES.walkPitch;
       if (walking || walking !== lastWalk || densityNow() !== _lastDensity) { lastWalk = walking; update(); }
     };
     map.on('move', onMove);
     window.applyOuterHomes(map);
     count.done = true;
-    console.log('[outer-homes]', count.houses, 'buildings,', count.rects, 'rectangles in', count.chunks, 'chunks,', count.ms, 'ms');
+    console.log('[outer-homes]', count.houses, 'buildings,', count.rects, 'rectangles;', count.mode === 'boxes' ? count.flatBoxes + ' drawn as plain boxes (no 3D layer)' : count.chunks + ' chunks, ' + count.ms + ' ms');
     return true;
   }
   (function wait(tries) {
-    boot().then(ok => { if (!ok && tries < 600) setTimeout(() => wait(tries + 1), 200); })
+    boot().then(ok => { if (!ok && tries < 1200) setTimeout(() => wait(tries + 1), 200); })
       .catch(e => { count.error = String(e && e.message || e); count.done = true; console.warn('[outer-homes]', e); });
   })(0);
 })();

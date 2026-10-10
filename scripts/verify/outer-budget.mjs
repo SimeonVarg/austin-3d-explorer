@@ -13,6 +13,7 @@
  *   node outer-budget.mjs                      desktop profile
  *   node outer-budget.mjs --phone              the phone profile (390 x 844, DPR 3, touch, ?lite=1)
  *   node outer-budget.mjs --phone --query homes=0     with a layer switched off by its flag
+ *   node outer-budget.mjs --phone --budget outerHomes=0   one line of the phone budget, changed for this run
  *   node outer-budget.mjs --json FILE
  *
  * Exit 0 unless it could not run. For the page's whole memory on the phone
@@ -44,6 +45,16 @@ page.on('request', r => { const m = /data\/(outer_homes|outer_trees)\.bin/.exec(
 let veilGoneAt = null;
 const firstFetch = {};
 page.on('request', r => { const m = /data\/(outer_homes|outer_trees)\.bin/.exec(r.url()); if (m && !firstFetch[m[1]]) firstFetch[m[1]] = Date.now() - t0; });
+// --budget outerHomes=0 : rewrite one line of the phone budget (js/mobile.js LITE.budget) for this run only
+const BUDGET = arg('--budget');
+if (BUDGET) {
+  const [key, value] = BUDGET.split('=');
+  await page.route('**/js/mobile.js*', async route => {
+    const res = await route.fetch();
+    const body = (await res.text()).replace(new RegExp('(\\n\\s*' + key + ':\\s*)[^,\\n]+,'), '$1' + value + ',');
+    await route.fulfill({ response: res, body });
+  });
+}
 await page.route('**/js/controls.js*', r => r.fulfill({ contentType: 'application/javascript', body: 'function initControls(){return function(){};}' }));
 await page.addInitScript(() => {
   const t = setInterval(() => { if (window.cancelGraphicsAutoDetect) { window.cancelGraphicsAutoDetect(); clearInterval(t); } }, 20);
@@ -86,7 +97,7 @@ const out = await page.evaluate(async (VIEWS) => {
   }
   return res;
 }, VIEWS);
-out.fetched = fetched; out.firstFetchMs = firstFetch; out.veilGoneMs = veilGoneAt; out.phone = PHONE; out.query = q;
+out.budgetOverride = BUDGET || null; out.fetched = fetched; out.firstFetchMs = firstFetch; out.veilGoneMs = veilGoneAt; out.phone = PHONE; out.query = q;
 console.log(JSON.stringify(out, null, 1));
 if (arg('--json')) fs.writeFileSync(arg('--json'), JSON.stringify(out, null, 1));
 await browser.close();

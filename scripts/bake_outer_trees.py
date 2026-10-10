@@ -15,7 +15,7 @@ back-yard oak from the next; what a resident knows is WHERE the canopy is and
 how tall. So the file is a grid:
 
     10 m cells over the box, 4 bits a cell: 0 = no tree, else the height of the
-    canopy in that cell in 2 m steps. About 0.6 bytes a tree after gzip.
+    canopy in that cell in 2 m steps. About 0.7 bytes a tree on the wire.
 
 and the browser plants one tree per marked cell (a little off-centre, by a hash
 of the cell, so the grid does not show), as tall as the cell says and wide
@@ -176,9 +176,12 @@ def main():
               float(np.abs(A @ k_lat - lat.ravel()).max()) * 111320)
     head = b"OTR1" + struct.pack("<IIff", nr, nc, cm, H_STEP) + struct.pack("<6d", *k_lon, *k_lat)
     body = head + packed.tobytes()
-    gz = gzip.compress(body, 9, mtime=0)
+    # STORED AS IT IS. Both hosts compress a .bin on the wire themselves (measured 2026-10-10: Vercel with brotli
+    # at its quality 3, GitHub Pages with gzip at about level 5), and that is within 2 % of gzip -9 done here. So the
+    # browser needs no DecompressionStream, which Safari before 16.4 does not have. `gz` is only for the report.
+    gz = gzip.compress(body, 5, mtime=0)
     with open(OUT, "wb") as f:
-        f.write(gz)
+        f.write(body)
 
     # canopy per area, for the accuracy table: the scan, and what the grid will draw
     areas = {}
@@ -192,7 +195,7 @@ def main():
             d[1] += float(frac[i, j])
             d[2] += int(occ[i, j])
     hs = top[occ]
-    rep = dict(counts=counts, grid=[nr, nc], cell_m=cm, raw_bytes=len(body), gzip_bytes=len(gz),
+    rep = dict(counts=counts, grid=[nr, nc], cell_m=cm, file_bytes=len(body), wire_bytes_gzip_5=len(gz),
                bytes_per_tree=round(len(gz) / max(1, counts["trees"]), 2), plane_fit_worst_m=round(err, 3),
                height_pcts_m={"p10": round(float(np.percentile(hs, 10)), 1), "p50": round(float(np.percentile(hs, 50)), 1),
                               "p90": round(float(np.percentile(hs, 90)), 1)},
@@ -202,7 +205,7 @@ def main():
     with open(REPORT, "w", encoding="utf-8") as f:
         json.dump(rep, f, indent=1, sort_keys=True)
     print(json.dumps({k: v for k, v in rep.items() if k != "per_area"}))
-    print("wrote", OUT, len(gz), "bytes in %.0f s" % (time.time() - t0))
+    print("wrote", OUT, len(body), "bytes (%d on the wire as gzip -5) in %.0f s" % (len(gz), time.time() - t0))
 
 
 if __name__ == "__main__":

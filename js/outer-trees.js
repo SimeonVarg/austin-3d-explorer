@@ -119,7 +119,8 @@
 
   // ── the file ────────────────────────────────────────────────────────────
   //
-  // data/outer_trees.bin, little-endian, gzip:
+  // data/outer_trees.bin, little-endian, stored as it is (the host compresses it on
+  // the wire; js/outer-homes.js has the measurement). A gzip file is still read:
   //   0   4  'OTR1'
   //   4   4  u32 rows      8  4  u32 columns     (row 0 is the north edge)
   //  12   4  f32 cell, metres            16  4  f32 metres per height level
