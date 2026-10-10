@@ -22,7 +22,7 @@ import { BASE, launch } from './chrome.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PARAMS = {
-  shotQuery: 'intro=0&drift=0&namelabels=0&facadepace=0&timeofdaypace=0',   // ci/pictures.mjs LOOK.shotQuery plus shot.mjs's own
+  shotQuery: 'intro=0&drift=0&namelabels=0&facadepace=0&timeofdaypace=0',   // walltiers=0 is added below: see the comment there   // ci/pictures.mjs LOOK.shotQuery plus shot.mjs's own
   phone: { width: 390, height: 844, dpr: 3, query: 'lite=1' },
   desktop: { width: 1440, height: 900, dpr: 1 },
   maxMovedPixels: 0,            // "on" may move no more pixels than the control moves
@@ -46,7 +46,7 @@ const page = await browser.newPage({ viewport: { width: VP.width, height: VP.hei
 const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 200)); });
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
-const q = [PARAMS.shotQuery, 'buildworker=0', PHONE ? PARAMS.phone.query : '', opt('--query', '')].filter(Boolean).join('&');
+const q = [PARAMS.shotQuery, 'buildworker=0', 'walltiers=0', PHONE ? PARAMS.phone.query : '', opt('--query', '')].filter(Boolean).join('&');
 await page.goto(`${BASE}/_harness.html?${q}`, { waitUntil: 'domcontentloaded', timeout: PARAMS.loadMs });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: PARAMS.loadMs });
 await page.waitForFunction(() => {
