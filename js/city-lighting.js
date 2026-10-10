@@ -54,9 +54,11 @@
   // perspective shrinks it up to another 2-4x: the atlas has no mips, so the wall is point-sampled below one texel a pixel. The cure is the far
   // pattern filter that was already here (a box of taps over the pixel's own footprint), on EVERY device and from the camera outward rather
   // than only past 150 m on a graphics card. Named values: nearM / fullM are where it fades in.
+  const dbg=new URLSearchParams(location.search).get('moiredbg')||'';   // TEMPORARY (experiment toggles)
   const moire={on:new URLSearchParams(location.search).get('moirefix')==='1'&&new URLSearchParams(location.search).get('moirewalls')!=='0',   // off by default, with js/slopes.js MOIRE_DEFAULT_ON
     nearM:0,fullM:60,mode:1,mainOn:patternFilter.on};
-  if(moire.on)patternFilter.on=true;
+  moire.split=moire.on&&!dbg.includes('nosplit');
+  if(moire.on&&!dbg.includes('nopf'))patternFilter.on=true;
   patternFilter.compiled=patternFilter.on;
   // Diffuse sky fill, in linear light. Upward-facing surfaces see more sky.
   // Shared by both building renderers; zeroes reproduce the previous balance.
@@ -241,7 +243,7 @@
       if(nearEdge>.02&&a.z>0.0&&a.z<1.0)return mix(distant,shadowSample(u_sunShadow0,a),smoothstep(.02,.07,nearEdge));
       return distant;
     }
-    // cityShade measures the sun's visibility (the shadow maps) and hands the rest to cityShadeLit. The split is for js/slopes.js's
+    ${moire.split?`// cityShade measures the sun's visibility (the shadow maps) and hands the rest to cityShadeLit. The split is for js/slopes.js's
     // moire fix, which shades a wall face's mean tones at the same point: it reuses cityVisibility instead of reading the maps again.
     float cityVisibility=1.0;
     vec3 cityShadeLit(vec3 original,vec3 albedo,vec3 pos,vec3 normal,float glass,float visibility);
@@ -250,10 +252,11 @@
       cityVisibility=sunlightVisibility(pos,normalize(normal));
       return cityShadeLit(original,albedo,pos,normal,glass,cityVisibility);
     }
-    vec3 cityShadeLit(vec3 original,vec3 albedo,vec3 pos,vec3 normal,float glass,float visibility) {
+    vec3 cityShadeLit(vec3 original,vec3 albedo,vec3 pos,vec3 normal,float glass,float visibility) {`:`vec3 cityShade(vec3 original,vec3 albedo,vec3 pos,vec3 normal,float glass) {`}
       if(u_sunlight.x<.5||u_sunPresence.x<=0.0)return original;
       vec3 n=normalize(normal),view=normalize(u_eye-pos);
       float facing=max(dot(n,u_sunDirection),0.0);
+      ${moire.split?'':'float visibility=sunlightVisibility(pos,n);'}
       float skyFill=u_citySkyFill.x+u_citySkyFill.y*max(n.z,0.0);
       vec3 diffuse=linearColour(albedo)*(linearColour(u_shadeColour)*(u_sunlight.y+skyFill)+
         linearColour(u_sunColour)*facing*visibility*u_sunlight.z);

@@ -285,6 +285,7 @@
     "geometry-memory-upload.mjs": "Offline regression requiring separately supplied SHA-pinned THREE r159 sources; codec and lifecycle checks run without those fixtures. Run with --source before merging memory changes.",
     "moire.mjs": "meter: needs --out, writes frames for moire-report.py and prints scores; no verdict of its own",
     "moire-clip.mjs": "photographs: frames for a before | after moving picture of the moire fix (camera travel, fix off and on); needs --out and a real GPU; no verdict",
+    "moire-off.mjs": "meter: is the moire fix set off pixel-identical to ?moirefix=0 (two page loads, six views); needs --out and a real GPU; exits 0 unless --gate",
     "moire-bar.mjs": "meter: the moire bar (error and flicker of each view against its flat-wall floor, with the meter's own noise); needs --out and a real GPU for the 4x4 truth frame; exits 0 unless --gate",
     "roof-tiles.mjs": "needs --against, a recorded run of the renderer from before the roof tiles (a second checkout), on hardware GL; see docs/roof-tiles.md",
     "_o4-eastnorth.mjs": "probe",

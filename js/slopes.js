@@ -410,6 +410,7 @@
   const MOIRE_DEFAULT_ON = false;
   const MOIRE = {
     on: switchOf('moirefix', MOIRE_DEFAULT_ON),
+    dbg: q.get('moiredbg') || '',   // TEMPORARY
     // TASTE AND TUNING. Each is one named value; the URL forms are for an A/B on a live page.
     // px: how many pixels ACROSS a wall face's feature length is (see faceClose: two window widths for a window as wide as its pier). Under px[0]
     // a cell is drawn as its row's mean, over px[1] as itself, a smooth blend between. pxV: the same UP the wall, toward the whole face's mean.
@@ -423,6 +424,7 @@
     edgeRes: 0.1,                       // metres per texel of those two strips (the finest edge they can place; under edgePx texels to a pixel the cell draws itself)
     edgePx: [1.0, 2.0],                 // pixel size in strip texels: no smoothing under [0], full over [1]
     withSmoothEdges: q.get('moiresmooth') === '1',   // false = the authored buildings' part is off in a multisampled context (see the frame code)
+    nightEdge: 0,                       // how much the wall side of a window's edge is turned down at night (0 = not, 1 = to nothing at full night): the face's MEAN glass is not that pane's lit or dark tone
     through: 1,                         // 1 = a recessed pane's edge is looked up where the pixel's ray crosses the wall plane (0 = where the pane itself is)
     footprint: Number(q.get('moirefoot')) > 0 ? Number(q.get('moirefoot')) : 1,   // the pixel's size on the wall as a multiple of the measured one (1 = a box of the pixel's own spread)
     parallax: q.get('moireparallax') === '0' ? 0 : 1,   // 1 = a far mean leaves out the glass that the window reveals hide at this view angle
@@ -436,7 +438,7 @@
   window.MoireFix = {
     params: MOIRE,
     /** every live value back to what the page loaded with (a meter flips them between pictures) */
-    reset() { for (const k of ['px', 'pxV', 'edgePx']) MOIRE[k] = MOIRE_DEFAULTS[k].slice(); for (const k of ['parallax', 'edge', 'goldSlope', 'footprint', 'through']) MOIRE[k] = MOIRE_DEFAULTS[k]; },
+    reset() { for (const k of ['px', 'pxV', 'edgePx']) MOIRE[k] = MOIRE_DEFAULTS[k].slice(); for (const k of ['parallax', 'edge', 'goldSlope', 'footprint', 'through', 'nightEdge']) MOIRE[k] = MOIRE_DEFAULTS[k]; },
     set(mode) {
       const m = typeof mode === 'number' ? mode : { off: 0, on: 1, flat: 2, rows: 3 }[mode];
       if (!(m >= 0 && m <= 3)) throw new Error('MoireFix.set: off, on, flat or rows');
@@ -556,7 +558,7 @@
     // held in float textures. The same cDay / cGold / cNight / aFacet / aSurface / normal values the attributes would have held.
     attribute vec2 aPack;
     uniform sampler2D u_packTones;
-    #ifdef MOIRE_FACES
+    #if defined(MOIRE_FACES) && !defined(MOIRE_LOWP)
     // highp, and it matters: a sampler without a precision is LOWP in a vertex shader, and on ANGLE's desktop-GL backend (an NVIDIA L4) the
     // fetched value then came back with about eleven bits. A unit normal survives that; a wall face's NUMBER (thousands) lost its low two bits,
     // so every face read a neighbour's record.
@@ -670,7 +672,7 @@
     const call = 'cityShade(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse)';
     if (!core.includes(call)) { console.warn('[slopes] the moire fix cannot find FRAG\'s cityShade call; it is off'); MOIRE.on = false; return ''; }
     // a class shade reuses the visibility the cell's own shading has just measured (js/city-lighting.js cityVisibility): no second shadow read
-    const far = core.replace(call, 'cityShadeLit(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse,cityVisibility)');
+    const far = window.CityLighting.moire.split ? core.replace(call, 'cityShadeLit(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse,cityVisibility)') : core;
     return `
     #if defined(MOIRE_FACES) && !defined(FACADE_FILTER)
     #define MOIRE_ACTIVE 1
@@ -781,7 +783,7 @@ ${reflect}      }
         if(lit>0.0)G+=lit*moireFar(moireLit(r3.rgb,r4.rgb,r6.rgb,n),r3.rgb,r6.rgb,glass);
       }
       vec3 col=own;
-      if(edge>0.0)col=mix(own,ownGlass>0.5?mix(O,own,cover):mix(own,G,cover),edge);
+      if(edge>0.0)col=mix(own,ownGlass>0.5?mix(O,own,cover):mix(own,G,cover*(1.0-u_moireD.y*u_cityNight.x)),edge);
       if(W>0.0) {
         // a recessed pane is partly hidden by its own reveal at this angle; the reveal draws itself, so the mean is of what is left
         vec3 view=normalize(u_eye-v_pos);
@@ -1394,7 +1396,7 @@ ${SHADE_CORE}${SHADE_DETAIL}      #ifdef MOIRE_ACTIVE
     const b3 = hex => { let c = bytes.get(hex); if (!c) { const f = hexToRgb01(hex); c = [Math.round(f[0] * 255), Math.round(f[1] * 255), Math.round(f[2] * 255)]; bytes.set(hex, c); } return c; };
     let F = null;
     T.faceOpen = (z0, z1, len, origin, along, outward) => {
-      if (!MOIRE.on || T.facesOff || !(z1 > z0)) return 0;
+      if (!MOIRE.on || T.facesOff || MOIRE.dbg.includes('nofaces') || !(z1 > z0)) return 0;
       const n = Math.max(1, Math.ceil((z1 - z0) / MOIRE.rowRes - 1e-6));
       if (n > RW || T.nFaces >= 65535) return 0;
       if (T.rowX + n > RW) { T.rowX = 0; T.rowY++; }
@@ -1567,6 +1569,7 @@ ${SHADE_CORE}${SHADE_DETAIL}      #ifdef MOIRE_ACTIVE
     };
     if (tables.tex.faces) {
       Object.assign(parts.uniforms, { u_moireFaces: { value: tables.tex.faces }, u_moireRowA: { value: tables.tex.rowA }, u_moireRowB: { value: tables.tex.rowB }, u_moireFine: { value: tables.tex.fine } });
+      if (MOIRE.dbg.includes('lowp')) parts.defines.MOIRE_LOWP = 1;
       Object.assign(parts.defines, { MOIRE_FACES: 1, MOIRE_TEXW: W, MOIRE_FACE_TEXELS: MOIRE.FACE_TEXELS, MOIRE_ROW_W: MOIRE.ROW_W.toFixed(1) });
     }
     return parts;
@@ -2170,7 +2173,7 @@ ${SHADE_CORE}${SHADE_DETAIL}      #ifdef MOIRE_ACTIVE
       const moireMode=MOIRE.on?(MOIRE.mode===1&&_moireSamples>0&&!MOIRE.withSmoothEdges?0:MOIRE.mode):0;
       U.u_moire.value.set(moireMode,MOIRE.px[0],MOIRE.px[1],MOIRE.parallax);
       U.u_moireB.value.set(MOIRE.pxV[0],MOIRE.pxV[1],MOIRE.goldSlope,0);
-      U.u_moireD.value.set(MOIRE.through,0,0,0);
+      U.u_moireD.value.set(MOIRE.through,MOIRE.nightEdge,0,0);
       U.u_moireC.value.set(MOIRE.edge&&MOIRE.mode===1?1:0,MOIRE.edgePx[0],MOIRE.edgePx[1],MOIRE.footprint);
       U.u_nightLamps.value=window.CityNight?.tune.on?window.CityNight.lamps(U.u_p.value):-1;
       U.u_nightWallAmbient.value=window.CityNight?.tune.wallAmbient??0;
