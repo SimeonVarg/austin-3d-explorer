@@ -4,12 +4,12 @@
  * parallel, and timing runs must not disturb each other). Not a check: no verdict, exit code is the last failure.
  * Listed under laptop_only in ci/checks.json.
  *
- *   node perf-walltiers-suite.mjs [--steps load,pics,mem,picsnow] [--reps N]
+ *   node perf-walltiers-suite.mjs [--steps load,pics,mem[,picsnow]] [--reps N]
  *
  * Steps (each its own fresh Chrome per load; settings are in each tool's header and are printed in its output):
  *   load  scripts/perf/load-profile.mjs, throttle 1,4 crossed with {?walltiers=0, default}, --reps (default 5),
  *         interleaved; reports min / median / max per arm of time to city ready, initFacades, worker busy ms, ...
- *   mem   scripts/verify/mobile-memory.mjs (phone profile), 2 reps per arm, the two arms one after the other
+ *   mem   scripts/verify/mobile-memory.mjs (phone profile), 1 rep per arm, the two arms one after the other
  *   pics  the ten cameras of ci/poses.json shot with the old and the new painting on the SAME server, twice for
  *         the old one (its own noise), with walls painted in paced jobs (the real page) and again with
  *         facadepace=0&timeofdaypace=0 (walls at once), then ci/pictures.mjs --compare on each
@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
 const arg = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
-const STEPS = arg('--steps', 'load,pics,mem,picsnow').split(',');
+const STEPS = arg('--steps', 'load,pics,mem').split(',');
 const REPS = +arg('--reps', 5);
 const OUT = process.env.VERIFY_OUT || '/tmp/perf-walltiers-suite';
 const URLB = process.env.VERIFY_URL || 'http://127.0.0.1:8442';
@@ -48,7 +48,7 @@ const pictures = (mode, base, sides) => {
 };
 if (STEPS.includes('pics')) pictures('paced', 'namelabels=0', [['before', '&walltiers=0'], ['after', ''], ['again', '&walltiers=0']]);
 if (STEPS.includes('mem')) {
-  [['eager', '?drift=0&walltiers=0'], ['lazy', '?drift=0'], ['eager', '?drift=0&walltiers=0'], ['lazy', '?drift=0']].forEach(([name, q], i) => {
+  [['eager', '?drift=0&walltiers=0'], ['lazy', '?drift=0']].forEach(([name, q], i) => {
     run('mem-' + name, 'mobile-memory.mjs', ['--arms', name + '=' + URLB, '--query', q, '--reps', '1', '--out', path.join(OUT, 'mem-' + name + '-' + i)]);
   });
 }
