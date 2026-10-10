@@ -2157,7 +2157,11 @@
         const roll = scatter && window.CityNight ? window.CityNight.hash(seed, 'facade-window', r, c) : hash01(seed, r, paneIndex);
         const isLit = night > 0.05 && roll < occupancy;
         if (isLit) {
-          let tone = pickTone((scatter && window.CityNight ? window.CityNight.hash(seed, 'facade-tone', r, c) : hash01(seed + 1009, r, paneIndex)) * warmBias);
+          const toneRoll = (scatter && window.CityNight ? window.CityNight.hash(seed, 'facade-tone', r, c) : hash01(seed + 1009, r, paneIndex));
+          // Offices are lit with 4000-5000 K white, not the warm mix a home gets (js/city-night.js, eye.officeCool: share of an office
+          // family's lit windows that take a neutral or cool-white tone; ?officecool=0 puts the old mix back).
+          const officeCool = (mat === 'tw' || mat === 'tg') ? (window.CityNight?.eye?.officeCool || 0) : 0;
+          let tone = pickTone(toneRoll < officeCool ? 0.70 + 0.27 * (toneRoll / officeCool) : toneRoll * warmBias);
           const bRoll = hash01(seed + 2003, r, c);
           let bright = PANE_BRIGHT_MIN + (PANE_BRIGHT_MAX - PANE_BRIGHT_MIN) * (1 - bRoll * bRoll);
           if (hash01(seed + 3001, r, c) < HOT_PANE_RATE) {

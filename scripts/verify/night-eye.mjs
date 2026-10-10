@@ -35,6 +35,8 @@ export const TUNE = {
     // Street level: a person on the Drag, and a person on a West Campus roof looking east over the city.
     'drag-eye': { p: 0.95, center: [-97.74180, 30.28680], zoom: 19.6, pitch: 80, bearing: 356 },
     'west-far': { p: 0.95, center: [-97.74330, 30.28270], zoom: 17.0, pitch: 76, bearing: 90 },
+    // A far skyline: downtown, one to three kilometres away, from a low camera south of campus.
+    'skyline': { p: 0.95, center: [-97.74300, 30.27400], zoom: 15.4, pitch: 80, bearing: 5 },
   },
   determinism: { pose: 'tower-night', loads: 2, tolerance: 12 },
   sequence: { pose: 'west-far', frames: 8, stepMs: 250, nearM: 250, farM: 900, litLuma: 70,
@@ -118,6 +120,18 @@ async function settle(page, pose) {
   await page.evaluate(() => window.__map.triggerRepaint());
   await page.waitForTimeout(1500);
 }
+/** Wait until the picture itself has stopped changing: with the clock held and the shimmer off, two screenshots 2 s apart must be the same bytes.
+ *  A scene still streaming in (far tiles, outer buildings) makes every "variance over time" number a lie, and on a slower machine it is. */
+async function waitStable(page, maxMs = 150000) {
+  await page.evaluate(() => { window.CityNight.eye.twinkle = 0; window.CityNight.eye.drift = false; window.CityNight.hold(1000); });
+  const t0 = Date.now(); let tries = 0;
+  for (;;) {
+    await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
+    const a = await page.screenshot(); await page.waitForTimeout(2000); const b = await page.screenshot(); tries++;
+    if (Buffer.compare(a, b) === 0) { console.log(`  scene stable after ${tries} tries, ${Math.round((Date.now() - t0) / 1000)} s`); return true; }
+    if (Date.now() - t0 > maxMs) { console.log(`  WARN: scene still changing after ${Math.round(maxMs / 1000)} s`); return false; }
+  }
+}
 async function shot(page, file) { await page.screenshot({ path: file }); await page.waitForTimeout(500); await page.screenshot({ path: file }); return file; }
 
 const stage = async (name, fn) => {
@@ -180,11 +194,58 @@ await stage('pictures', async () => {
 });
 
 // ======================================================================================================
+// 2b. COLOUR: the mean colour of the lit pixels over downtown (offices) and over West Campus (homes), old night against new.
+// ======================================================================================================
+await stage('colour', async () => {
+  const dir = path.join(OUT, 'colour'); fs.mkdirSync(dir, { recursive: true });
+  const POSES = { 'offices-downtown': { p: 0.95, center: [-97.74300, 30.26900], zoom: 16.2, pitch: 62, bearing: 20 },
+                  'homes-westcampus': { p: 0.95, center: [-97.74330, 30.28270], zoom: 16.6, pitch: 62, bearing: 0 } };
+  data.colour = {};
+  const pages = { before: await open('nighteye=0&nightfreeze=1'), after: await open('nightfreeze=1') };
+  for (const [name, pose] of Object.entries(POSES)) for (const arm of ['before', 'after']) {
+    await settle(pages[arm], pose); const f = await shot(pages[arm], path.join(dir, `${arm}-${name}.png`));
+    const im = decodePNG(f); let n = 0, r = 0, g = 0, b = 0;
+    for (let i = 0; i < im.data.length; i += im.bpp) { const l = 0.2126 * im.data[i] + 0.7152 * im.data[i + 1] + 0.0722 * im.data[i + 2]; if (l >= 110) { n++; r += im.data[i]; g += im.data[i + 1]; b += im.data[i + 2]; } }
+    const m = [r / n, g / n, b / n].map(v => +v.toFixed(1));
+    (data.colour[name] ||= {})[arm] = { litPixels: n, meanRGB: m, blueOverRed: +(m[2] / m[0]).toFixed(3) };
+    console.log(`colour ${name.padEnd(17)} ${arm.padEnd(6)} ${n} lit pixels, mean rgb(${m}), blue/red ${(m[2] / m[0]).toFixed(3)}`);
+  }
+  const d = k => data.colour['offices-downtown'][k].blueOverRed - data.colour['homes-westcampus'][k].blueOverRed;
+  console.log(`colour: offices minus homes, blue/red: before ${d('before').toFixed(3)}, after ${d('after').toFixed(3)}`);
+  report('colour: offices read cooler than homes by more after than before', d('after') > d('before') + 0.02, `${d('before').toFixed(3)} -> ${d('after').toFixed(3)}`);
+  for (const p of Object.values(pages)) await p.close();
+});
+
+// ======================================================================================================
+// 2c. MOVIE: the frames of an animated before | after (the owner judges motion from motion). 6 s at 15 fps, a hand-stepped clock.
+//     The old night does not move, so it is one frame. Compose with scripts/verify/night-eye-movie.py.
+// ======================================================================================================
+await stage('movie', async () => {
+  const M = { views: (opt('--views', 'skyline,west-far')).split(/[,&+]/), fps: 15, seconds: 6 };
+  const dir = path.join(OUT, 'movie'); fs.mkdirSync(dir, { recursive: true });
+  const before = await open('nighteye=0&nightfreeze=1'), after = await open('nightfreeze=1&twinkle=1');
+  for (const v of M.views) {
+    const pose = TUNE.poses[v];
+    await settle(before, pose); await before.screenshot({ path: path.join(dir, `${v}-before.jpg`), type: 'jpeg', quality: 90 });
+    await settle(after, pose); await waitStable(after); await after.evaluate(() => { window.CityNight.eye.twinkle = 1; });
+    for (let k = 0; k < M.fps * M.seconds; k++) {
+      await after.evaluate(ms => window.CityNight.hold(ms), 1000 + Math.round(k * 1000 / M.fps));
+      await after.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
+      await after.waitForTimeout(120);
+      await after.screenshot({ path: path.join(dir, `${v}-after-${String(k).padStart(3, '0')}.jpg`), type: 'jpeg', quality: 90 });
+    }
+    console.log(`movie ${v}: ${M.fps * M.seconds} frames written`);
+  }
+  data.movie = { views: M.views, fps: M.fps, seconds: M.seconds };
+  await before.close(); await after.close();
+});
+
+// ======================================================================================================
 // 3. SEQUENCE: eight frames, 0.25 s apart, on a frozen clock that is stepped by hand.
 // ======================================================================================================
 await stage('sequence', async () => {
   const S = TUNE.sequence, pose = TUNE.poses[opt('--pose', S.pose)], dir = path.join(OUT, 'sequence'); fs.mkdirSync(dir, { recursive: true });
-  const page = await open('nightfreeze=1&twinkle=1'); await settle(page, pose);
+  const page = await open('nightfreeze=1&twinkle=1'); await settle(page, pose); data.sceneStable = await waitStable(page);
   const eyeSet = opt('--eye', null);   // JSON of CityNight.eye overrides for an experiment, e.g. '{"windowAmp":0.5}'
   if (eyeSet) await page.evaluate(o => Object.assign(window.CityNight.eye, o), JSON.parse(eyeSet));
   data.sequenceEye = await page.evaluate(() => { const e = window.CityNight.eye; return { windowAmp: e.windowAmp, lampAmp: e.lampAmp, nearM: e.nearM, farM: e.farM, glare: e.glare }; });
@@ -264,13 +325,24 @@ await stage('sequence', async () => {
 // ======================================================================================================
 await stage('live', async () => {
   const L = TUNE.live;
-  for (const [label, q, want] of [['shimmer on', 'twinkle=1', true], ['shimmer off', 'twinkle=0', false], ['frozen', 'nightfreeze=1&twinkle=1', false]]) {
+  // [label, query, what to do to the page after load, expect redraws?]. The default arm passes no shimmer switch at all: it is what a
+  // visitor on a graphics card gets. The two low-tier arms put the page where a phone or an integrated chip would be.
+  const arms = [
+    ['card, default', '', null, true],
+    ['card, twinkle=0', 'twinkle=0', null, false],
+    ['card, frozen night', 'nightfreeze=1&twinkle=1', null, false],
+    ['integrated chip (no card)', '', () => { window.GFX_GPU_CARD = () => false; }, false],
+    ['phone profile', '', () => { window.LITE_PROFILE = Object.assign(window.LITE_PROFILE || {}, { on: true }); }, false],
+  ];
+  for (const [label, q, prep, want] of arms) {
     const page = await open(q); await settle(page, TUNE.poses[L.pose]);
+    if (prep) await page.evaluate(prep);
     await page.evaluate(() => window.dispatchEvent(new Event('pointermove')));   // someone is at the screen (the ticker stops after 5 idle minutes)
-    const fps = await page.evaluate(sec => new Promise(r => { let n = 0; const m = window.__map; const f = () => n++; m.on('render', f); setTimeout(() => { m.off('render', f); r(n / sec); }, sec * 1000); }), L.seconds);
-    data.live = data.live || {}; data.live[label] = +fps.toFixed(1);
-    console.log(`live ${label.padEnd(12)} ${fps.toFixed(1)} frames a second on a parked camera`);
-    report(`live: parked night camera, ${label}: ${want ? 'redraws' : 'does not redraw'}`, want ? fps >= L.minFps : fps <= 1, `${fps.toFixed(1)} fps`);
+    const frames = await page.evaluate(sec => new Promise(r => { let n = 0; const m = window.__map; const f = () => n++; m.on('render', f); setTimeout(() => { m.off('render', f); r(n); }, sec * 1000); }), L.seconds);
+    const fps = frames / L.seconds;
+    data.live = data.live || {}; data.live[label] = { frames, fps: +fps.toFixed(1) };
+    console.log(`live ${label.padEnd(28)} ${frames} frames in ${L.seconds} s on a parked camera (${fps.toFixed(1)} a second)`);
+    report(`live: parked night camera, ${label}: ${want ? 'redraws' : 'draws 0 extra frames'}`, want ? fps >= L.minFps : frames <= 1, `${frames} frames`);
     await page.close();
   }
 });
