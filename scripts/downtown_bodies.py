@@ -55,6 +55,7 @@ B = {
     "authored_share": 0.40,        # this much under a hand-modelled tower = part of it
     "replace_share": 0.30,         # an old feature this far under a new building is replaced
     "authored_keepout_m": 1.0,     # upper levels keep this far from a hand-modelled tower
+    "under_tower_share": 0.5,      # a level that keeps less than this of itself is the tower's
     "level_min_area_m2": 16.0,     # same floor as the massing bake's
     "wing_min_area_m2": 40.0,      # a measured wing beside a hand-modelled shaft
     "wing_min_rise_m": 2.5,
@@ -489,15 +490,25 @@ def build(bo, feats, rep):
             for k in range(1, len(tops)):
                 top, plans = lv[k]
                 polys = []
+                under_tower = False
                 for rings in plans:
                     q = _rings_m(bo, rings)
                     # nothing of this building is drawn inside a hand-modelled
-                    # tower: that volume is the tower's
+                    # tower: that volume is the tower's. A level that is MOSTLY
+                    # under one is the tower's own overhang seen by the scan
+                    # (The Independent's cantilevers over its garage); it and
+                    # everything above it is left to the tower.
                     if not lm_keepout.is_empty:
+                        full_area = q.area
                         q = q.difference(lm_keepout).buffer(0)
+                        if q.area < B["under_tower_share"] * full_area:
+                            under_tower = True
+                            continue
                     for part in (q.geoms if q.geom_type == "MultiPolygon" else [q]):
                         if part.geom_type == "Polygon" and part.area >= B["level_min_area_m2"]:
                             polys.append(part)
+                if under_tower and not polys:
+                    break
                 if not polys:
                     continue
                 lvl_area = sum(q.area for q in polys)

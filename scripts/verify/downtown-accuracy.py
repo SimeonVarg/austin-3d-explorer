@@ -64,6 +64,7 @@ ROOF_MIN = 2.5          # metres; below this a cell is ground
 MISSING_COVER = 0.30    # the app draws on less than this share of the outline
 AUTHORED_COVER = 0.40
 OTHER_COVER = 0.35
+LATE_M = 8.0            # a published height this far above the scan = built since
 INNER_M = 1.5           # roof height is read this far inside the outline...
 INNER_MIN_CELLS = 6     # ...when at least this many cells are
 
@@ -188,6 +189,7 @@ def main():
                       .get("downtown_bodies") or {}).get("state") or {}
 
     rows = []
+    late_ids = set()
     unit_cells = np.zeros((grid.ny, grid.nx), bool)
     for r in massing["rows"]:
         if not r.get("dt"):
@@ -229,7 +231,17 @@ def main():
         drawn_top = round(float(d.max()), 1) if d.size else 0.0
         if claim:
             row["public"] = round(float(claim), 1)
-        scored = r["st"] == "scan"
+        # A published height far above anything the scan saw means the tower was
+        # still rising when the plane flew (Sixth and Guadalupe read 35 m).
+        # Only for the hand-modelled towers, which are built to that figure: for
+        # any other building a full scan beats a table (the list gives the 1929
+        # Norwood Tower 100 m; the scan and its 15 floors say 56).
+        late = bool(a_cover >= AUTHORED_COVER and pub and r.get("max") is not None
+                    and pub > r["max"] + LATE_M)
+        if late:
+            row["scan_state"] = "late"
+            late_ids.add(r["id"])
+        scored = r["st"] == "scan" and not late
         if scored:
             s_roof = s_in[s_in >= ROOF_MIN]
             row["scan"] = round(float(np.percentile(s_roof, 90)), 1) if s_roof.size \
@@ -329,7 +341,7 @@ def main():
     own = in_dt & (other < ROOF_MIN)
     lateish = np.zeros_like(own)
     for r in massing["rows"]:
-        if r.get("dt") and (r["st"] != "scan" or r["src"] == "city"):
+        if r.get("dt") and (r["st"] != "scan" or r["src"] == "city" or r["id"] in late_ids):
             rr, cc = grid.cells(grid.poly(r["g"]))
             lateish[rr, cc] = True
     cmp = own & ~lateish
