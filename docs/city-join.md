@@ -48,6 +48,57 @@ now stays out of the districts (`outer_homes_lib.excluded_building`), treats
 downtown's stacked pieces as buildings, and never lists a box in another
 lane's area for removal.
 
+**A re-make keeps each part's density rank.** `--downtown-only` ranks a new
+downtown part against the plain low buildings around downtown, and the houses
+layer has since taken 4,900 of those out of the ring. Run again on the joined
+ring it ranked the same 520 downtown parts sparser than the full bake does, so
+a phone would have drawn fewer of them. `downtown_bodies.patch` now gives a
+part the rank it already had. Running the four lines above on the joined ring
+changes nothing (checked: same file).
+
+## One roof tie: 415 Colorado's crown
+
+The flush-top fix (`decoplanar()` in `scripts/downtown_bodies.py`) raises the
+smaller of two flush parts of two colours. Two parts of the **same** plan area
+have no smaller: the first in the file was raised, and on 415 Colorado that
+was the glass screen, so its cream crown turned blue. The tie now has a stated
+rule (`B["proud_tie_order"]`), in this order:
+
+1. the part that **carries the light** (`lmEmit`) is raised: a lit rim stands
+   on the screen it caps;
+2. else the **body** (the part with the lower base) is raised: its top is the
+   roof, and a band or edge of the same plan stays under it;
+3. else the glass part; 4. else the lighter day colour.
+
+This is also what `main` drew: the app draws the light layer after the glass
+layer and the glass layer after the plain one, so the later one covered the
+other. **Counted: 62 ties in four towers** (areas within 2 %; 61 are exactly
+equal).
+
+| Tower | Ties | Raised | Stays below | Decided by | Against the join as pushed |
+|---|---:|---|---|---|---|
+| 415 Colorado | 20 | crown rim (cream, lit) | crown glass screen | light | **changed back to `main`'s cream** |
+| 415 Colorado | 1 | the tower body | its top floor band | body | same |
+| The Austonian | 16 | crown glass screen | crown rim | body | same |
+| Indeed Tower | 24 | glazed roof | roof edge | body | same |
+| Colorado Tower | 1 | the tower body | its top floor band | body | same |
+
+So 40 heights move by 0.08 m (20 rims up, 20 screens down) and nothing else in
+the file changes. A rule tried first, "glass always stays below", turned
+Indeed Tower's glazed roof white and gave the Austonian a white ring; the
+pictures caught it. `decoplanar()` also now starts from the flush state every
+time (the towers' heights are written to 0.1 m, so a second decimal is its own
+earlier lift and is taken off first): a second run gives the same file, and a
+change to the rule takes effect without a full bake.
+
+![415 Colorado's crown: main, the join as pushed, with the tie rule](shots/city-join/roof-tie-415.jpg)
+
+![The other three towers with a tie: unchanged](shots/city-join/roof-tie-others.jpg)
+
+Made-up cameras, the laptop's graphics card. `coplanar.mjs --gate`: 371 pairs
+before and after (all of one colour inside the towers). Downtown's measure:
+the same file of numbers, byte for byte.
+
 ## Neither side lost: the numbers, side by side
 
 All **measured**, each lane's own script, on each branch's own data and on the
@@ -97,18 +148,20 @@ and the two new `.bin` files as each host compresses them (see below).
 
 | File | `main` | joined, GitHub Pages | joined, Vercel |
 |---|---:|---:|---:|
-| `data/tiles/outer.pmtiles` | 2,392,254 | 1,469,057 | 1,469,057 |
+| `data/tiles/outer.pmtiles` | 2,392,254 | 1,469,065 | 1,469,065 |
 | `data/outer_homes.bin` (new; 645,424 on disk) | 0 | 424,689 | 414,554 |
 | `data/outer_trees.bin` (new; 369,866 on disk) | 0 | 142,269 | 137,827 |
 | `js/outer-homes.js` (new) | 0 | 14,339 | 14,339 |
 | `js/outer-trees.js` (new) | 0 | 10,444 | 10,444 |
-| `js/mobile.js` | 13,335 | 13,747 | 13,747 |
-| `index.html` | 5,984 | 6,181 | 6,181 |
+| `js/mobile.js` | 13,331 | 13,744 | 13,744 |
+| `index.html` | 6,012 | 6,209 | 6,209 |
 | `data/outer_tower_palette.json` | 1,151 | 1,151 | 1,151 |
-| **Total** | **2,412,724** | **2,081,877** | **2,067,300** |
+| **Total** | **2,412,748** | **2,081,910** | **2,067,333** |
 
 **331 KB smaller than `main` on GitHub Pages, 345 KB on Vercel.** On their own
-branches the archive was 2,367,623 bytes (downtown) and 1,492,898 (outer). The
+branches the archive was 2,367,623 bytes (downtown) and 1,492,898 (outer); the
+data bot rebuilds it on GitHub and its copy differs from this one by under 100
+bytes. The
 two new files are fetched whole, after the loading veil lifts; a phone fetches
 only the houses file.
 
@@ -278,6 +331,9 @@ The owner's photographs were not used.
 `outer-count.mjs` (five cases against `main`);
 `outer-homes.mjs` (14 assertions) and `outer-trees.mjs` (11) on hardware GL.
 All pass. Pictures with the outer city or downtown in frame will move.
+`downtown-shots.mjs` photographs and cannot fail on a difference, so it is
+listed under `tools` in `scripts/verify/ci/checks.json` and CI does not run it
+(it ran past the 1800 s ceiling there once).
 
 ## What is still wrong
 

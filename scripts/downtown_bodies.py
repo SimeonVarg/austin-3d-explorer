@@ -68,6 +68,20 @@ B = {
     # (scripts/verify/downtown-data.py); the coplanar check's own step is 0.01.
     "proud_m": (0.08, 0.04, 0.02),
     "proud_overlap": 0.25,         # the coplanar check's own share is 0.30
+    # Two flush parts of the same plan area (a crown's glass screen and the rim
+    # that caps it): "the smaller" names neither, so the tie has its own rule,
+    # in this order. The part that is raised is the one the roof shows.
+    #   emit   the part that carries the light (lmEmit) is raised: a lit rim
+    #          stands on the screen it caps
+    #   body   else the part with the lower base, the body, is raised: its top
+    #          IS the roof, and a band or edge of the same plan stays under it
+    #   glass  else the glass part
+    #   light  else the lighter day colour
+    # This is also what the app drew before the flush pairs were settled (the
+    # light layer is drawn after the glass layer, the glass layer after the
+    # plain one), so no roof changes colour against that.
+    "proud_tie_share": 0.02,       # areas within this share of each other are a tie
+    "proud_tie_order": ("emit", "body", "glass", "light"),
 
     # a level that is roof plant rather than a storey: small AND low
     "plant_share": 0.22,           # of the outline's area
@@ -592,6 +606,19 @@ def build(bo, feats, rep):
     return kept, new
 
 
+def _tie_rank(f):
+    """Higher = this part is the one raised when two flush parts tie on area."""
+    p = f["properties"]
+    wd = p.get("wd") or "#000000"
+    luma = 0.2126 * int(wd[1:3], 16) + 0.7152 * int(wd[3:5], 16) + 0.0722 * int(wd[5:7], 16)
+    by = {"emit": 1 if p.get("lmEmit") else 0, "body": -p.get("b", 0),
+          "glass": 1 if p.get("lmGlass") else 0, "light": luma}
+    return tuple(by[k] for k in B["proud_tie_order"])
+
+
+TIES = []      # the last run's ties: (tower, raised part, part left below, m2)
+
+
 def decoplanar(feats):
     """No two differently coloured parts of one hand-modelled tower end flush.
 
@@ -601,14 +628,36 @@ def decoplanar(feats):
     A real pier, rim or cap stands a little proud of the glazing, so the smaller
     part of each pair is raised by a few centimetres (B["proud_m"], one round
     per entry, so a chain of three is settled in turn). Same-coloured pairs are left: either face paints the same pixel.
-    Changes nothing on a second run (no flush pair is left to find).
+
+    TWO PARTS OF THE SAME AREA have no "smaller": B["proud_tie_order"] says
+    which is raised (a lit rim over the screen it caps; else the body over a
+    band or edge of its own plan). Before that rule the first in the file was
+    raised, which put blue glass on 415 Colorado's cream crown. A rule tried
+    first, "glass stays below", turned Indeed Tower's glazed roof white.
+
+    A SECOND RUN DECIDES AGAIN FROM THE FLUSH STATE. The tower builders write
+    every height to 0.1 m, so a second decimal on a hand-modelled part is this
+    function's own lift from an earlier run. It is taken off first. So a run
+    over a ring that was already settled gives the same ring, and a change to
+    the rule takes effect without a full bake.
     """
+    del TIES[:]
+    sums, total = {}, 0.0
+    for step in B["proud_m"]:
+        total = round(total + step, 2)
+        sums[round(total * 100) % 10] = total
+    assert 0 not in sums and len(sums) == len(B["proud_m"]), \
+        "proud_m: every running sum needs its own, non-zero, second decimal"
     groups = {}
     for f in feats:
         lm = f["properties"].get("lm")
         if lm:
             groups.setdefault(lm, []).append(f)
-    raised = 0
+            digit = round(f["properties"]["h"] * 100) % 10
+            if digit:
+                assert digit in sums, "a hand-modelled part with a height not on 0.1 m: %r" % (f["properties"],)
+                f["properties"]["h"] = round(f["properties"]["h"] - sums[digit], 1)
+    raised, seen = 0, set()
     for lm, group in groups.items():
         polys = {}
         for step in B["proud_m"]:
@@ -638,11 +687,19 @@ def decoplanar(feats):
                         if a["properties"]["wd"] == b["properties"]["wd"]:
                             continue
                         qb = polys[id(b)]
-                        small, big = (a, b) if qa.area <= qb.area else (b, a)
                         if qb.is_empty or qa.intersection(qb).area <= \
                                 B["proud_overlap"] * min(qa.area, qb.area):
                             continue
-                        lift[id(small)] = small
+                        if abs(qa.area - qb.area) <= B["proud_tie_share"] * max(qa.area, qb.area):
+                            up, down = (a, b) if _tie_rank(a) >= _tie_rank(b) else (b, a)
+                            if (id(up), id(down)) not in seen:
+                                seen.add((id(up), id(down)))
+                                TIES.append((lm, up["properties"].get("part"), down["properties"].get("part"),
+                                             round(min(qa.area, qb.area) * 111320 * 111320
+                                                   * math.cos(math.radians(qa.centroid.y)), 1)))
+                        else:
+                            up = a if qa.area < qb.area else b
+                        lift[id(up)] = up
             if not lift:
                 break
             for f in lift.values():
@@ -655,9 +712,21 @@ def patch(bo, path, check=False):
     """Re-make downtown inside an already baked ring (no raw extract needed)."""
     fc = _load(path)
     rep = {}
+    # A part this ring already holds keeps its density rank `d`. build() ranks a
+    # new part against the plain low buildings around downtown, and the houses
+    # layer has since taken 4,900 of those out of the ring (--homes-split), so a
+    # re-make on today's ring would rank the same 520 downtown parts sparser
+    # than the full bake does (PASS F runs before the split there).
+    had_d = {json.dumps(f["geometry"]["coordinates"], separators=(",", ":")): f["properties"]["d"]
+             for f in fc["features"] if "d" in f["properties"]}
     kept, new = build(bo, fc["features"], rep)
+    for f in new:
+        d = had_d.get(json.dumps(f["geometry"]["coordinates"], separators=(",", ":")))
+        if d is not None and "d" in f["properties"]:
+            f["properties"]["d"] = d
     out = kept + new
     rep["downtown_bodies"]["proud_parts"] = decoplanar(out)
+    rep["downtown_bodies"]["proud_ties"] = len(TIES)
     out, rep["downtown_bodies"]["pads_dropped"] = bo.settle_green(out)
     if not check:
         with open(path, "w", encoding="utf-8") as f:
@@ -673,7 +742,7 @@ def patch(bo, path, check=False):
         # recorded: the report must not change when nothing else does.
         full.setdefault("downtown_detail", {})["downtown_bodies"] = {
             k: v for k, v in rep["downtown_bodies"].items()
-            if k not in ("old_removed", "proud_parts", "pads_dropped")}
+            if k not in ("old_removed", "proud_parts", "proud_ties", "pads_dropped")}
         with open(bo.REPORT, "w", encoding="utf-8") as f:
             json.dump(full, f, indent=2)
     short = dict(rep["downtown_bodies"])

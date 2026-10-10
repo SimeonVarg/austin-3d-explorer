@@ -258,6 +258,7 @@
   },
   "_tools": "Not checks: no path to a non-zero exit (they photograph or print), or they need inputs only a human supplies (two checkouts, a PNG, a plan file). Running them proves nothing.",
   "tools": {
+    "downtown-shots.mjs": "photographs: downtown before and after from made-up cameras, two page loads a view; never fails on a difference, and ran past the 1800 s ceiling on a runner",
     "visual-audit.mjs": "the visual audit walker: needs a group (proof, finder, boot, chrome, walk, modes) and writes pictures plus assertions.json; run it on a rented GPU (docs/visual-audit-2026-10-10.md section 8), not as a check",
     "va-debug-webgl.mjs": "visual audit helper: prints what the page does when the browser has no WebGL; no verdict of its own",
     "va-veil.mjs": "visual audit helper: photographs the first screen and the loading card; no verdict of its own",

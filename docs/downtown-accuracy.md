@@ -105,7 +105,8 @@ tag within 3 m for 90 % of 532.
    towers (a pier, rim or cap finishing flush with the glass it stands
    against), 529 of one colour, 166 park pads laid on each other. Now 372, all
    of one colour except 6 outside downtown. Fixed in the bake: the smaller part
-   of each two-colour pair stands 2 to 8 cm proud; a park pad inside a bigger
+   of each two-colour pair stands 2 to 8 cm proud (two parts of the same area:
+   the lit rim, else the body; see `docs/city-join.md`); a park pad inside a bigger
    pad of its own tone is dropped (131 of them, city-wide) and each tone has
    its own height.
 
