@@ -77,6 +77,8 @@ export async function startChrome(opts = {}) {
     ...(gl === 'hardware'
       ? ['--ignore-gpu-blocklist', '--enable-gpu-rasterization']
       : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']),
+    // a root user (a rented machine) cannot start Chrome's sandbox
+    ...(process.getuid && process.getuid() === 0 ? ['--no-sandbox'] : []),
     ...(opts.args || []),
     'about:blank',
   ];
