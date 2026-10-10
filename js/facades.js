@@ -3858,6 +3858,9 @@
     veilId: 'veil',
     // `?wtcap=0` turns the cap off (every image painted in the request), for the A/B of the burst length.
     cap: !/[?&]wtcap=0(?:&|$)/.test(location.search),
+    // Also answer flat when the running mean of a real paint would push the request past `syncBudgetMs` times this.
+    meanGuard: true,
+    meanGuardX: 2,
   };
   ATLAS.WALLTIERS = WALLTIERS;
   const WT = window.__facadeWallTiers = {
@@ -3866,7 +3869,7 @@
     // Paints that happen in the same call stack are one tile's request: how long the biggest such run held the thread.
     bursts: 0, burstMsMax: 0, burstImagesMax: 0,
     // Every request that painted or answered anything: [performance.now() at its start, images, ms, answered flat]
-    burstLog: [], placeholders: 0,
+    burstLog: [], placeholders: 0, syncPainted: 0, syncMs: 0, flatMs: 0, addMs: 0,
   };
   const _burst = { ms: 0, n: 0, open: false, start: 0, flat: 0 };
   window.facadeWallTiersStats = () => ({
@@ -3907,7 +3910,9 @@
     const c = bucket ? lerpHexAt(bucket, _atlasP) : [128, 128, 128];
     const d = new Uint8Array(res * res * 4);
     const r = Math.round(c[0]), g = Math.round(c[1]), b = Math.round(c[2]);
-    for (let i = 0; i < d.length; i += 4) { d[i] = r; d[i + 1] = g; d[i + 2] = b; d[i + 3] = 255; }
+    // one 32-bit store per pixel; the byte order is the machine's, so the bytes come out R, G, B, 255 either way
+    new Uint32Array(d.buffer).fill(PM_LITTLE_ENDIAN ? ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0
+                                                    : ((r << 24) | (g << 16) | (b << 8) | 255) >>> 0);
     return { width: res, height: res, data: d };
   }
   function flushBurst() {
@@ -3926,7 +3931,12 @@
     if (!_burst.open) { _burst.open = true; _burst.start = t0; queueMicrotask(flushBurst); }
     const { fam, idx } = parseId(info.id);
     // Cap: only after the veil has gone, only when the paced repaint can finish the job, never for the first image.
-    const flat = WALLTIERS.cap && PACE.on && _burst.n > 0 && t0 - _burst.start >= WALLTIERS.syncBudgetMs && !veilUp();
+    // Over budget when the request has already used its ms, OR when this image alone is expected to (the running mean
+    // of the real paints so far: with the main thread slowed 4x a single image is a long task, and then none is painted
+    // in the request at all).
+    const mean = WT.syncPainted ? WT.syncMs / WT.syncPainted : 0;
+    const flat = WALLTIERS.cap && PACE.on && (t0 - _burst.start >= WALLTIERS.syncBudgetMs ||
+                 (WALLTIERS.meanGuard && t0 - _burst.start + mean > WALLTIERS.syncBudgetMs * WALLTIERS.meanGuardX)) && !veilUp();
     try {
       const img = flat ? wallPlaceholder(fam, idx, info.tier) : tileData(fam, idx, _atlasP, info.tier);
       map.addImage(key, img, { pixelRatio: tierPixelRatio(info.tier) });
@@ -3943,6 +3953,7 @@
     const ms = performance.now() - t0;
     WT.painted++; if (info.tier.id) WT.paintedFar++; else WT.paintedNear++;
     WT.paintMs += ms;
+    if (flat) WT.flatMs += ms; else { WT.syncPainted++; WT.syncMs += ms; }
     _burst.ms += ms; _burst.n++;
     if (flat) { _burst.flat++; _burst.map = map; WT.placeholders++; }
     if (ms > WT.paintMsMax) WT.paintMsMax = +ms.toFixed(2);

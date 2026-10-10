@@ -46,9 +46,10 @@ function constText(name) {
 function build(on) {
   const painted = [];                 // tileData calls: [fam, idx, tier.id]
   const released = [];                // js/image-memory.js release calls: keys
+  let tick = 0;                       // the clock moves 5 ms at every reading
   const queued = [], repaints = [];   // microtasks (the end of a call stack), requestAnchorRepaint calls
   const sandbox = {
-    window: { ImageMemory: { release: (m, key, input) => { released.push(key); return input ? 1 : 0; } } }, location: { search: on ? '' : '?walltiers=0' }, performance: { now: () => Date.now() },
+    window: { ImageMemory: { release: (m, key, input) => { released.push(key); return input ? 1 : 0; } } }, location: { search: on ? '' : '?walltiers=0' }, performance: { now: () => (tick += 5) },
     queueMicrotask: (f) => queued.push(f), console,
   };
   const ctx = vm.createContext(sandbox);
@@ -64,6 +65,7 @@ function build(on) {
     // WT and its burst counter exactly as written
     'const WT = {', src.slice(src.indexOf('on: WALLTIERS.on, deferred: 0'), src.indexOf('};', src.indexOf('on: WALLTIERS.on, deferred: 0')) + 2),
     'const _burst = { ms: 0, n: 0, open: false, start: 0, flat: 0, map: null };',
+    'const PM_LITTLE_ENDIAN = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;',
     'const PACE = { on: true }; const palette = [{}]; const lerpHexAt = () => [10, 200, 30]; const mulOf = () => 1;',
     'const tierRes = t => 8 / t.div; const requestAnchorRepaint = (m) => __repaints.push(m);',
     fnText('parseId'), fnText('veilUp'), fnText('wallPlaceholder'), fnText('flushBurst'),
@@ -142,7 +144,7 @@ function build(on) {
 // ── the burst cap: after the veil, a request paints only until its budget is spent, the rest is answered flat ──
 {
   const S = build(true);
-  S.api.WALLTIERS.syncBudgetMs = -1;           // every image after the first is over budget
+  S.api.WALLTIERS.syncBudgetMs = 1;            // the clock moves 5 ms a reading: every image after the first is over budget
   for (const id of ['mh03', 'tg07', 'lo01']) S.api.ensureImages(S.map, id, 0.3);
   S.askMany(['mh03x', 'tg07x', 'lo01x', 'mh03']);
   assert.equal(S.painted.length, 1, 'only the first image of the request was drawn for real');
@@ -157,10 +159,25 @@ function build(on) {
   assert.equal(S.repaints.length, 1, 'one repaint request for the whole request, after its call stack');
   assert.equal(JSON.stringify(S.api.WT.burstLog.map(b => [b[1], b[3]])), '[[4,3]]', 'the burst log says 4 images, 3 of them flat');
   // the budget is a switch: ?wtcap=0 paints everything in the request
-  const T = build(true); T.api.WALLTIERS.syncBudgetMs = -1; T.api.WALLTIERS.cap = false;
+  const T = build(true); T.api.WALLTIERS.syncBudgetMs = 1; T.api.WALLTIERS.cap = false;
   for (const id of ['mh03', 'tg07']) T.api.ensureImages(T.map, id, 0.3);
   T.askMany(['mh03x', 'tg07x', 'mh03']);
   assert.equal(T.painted.length, 3); assert.equal(T.api.WT.placeholders, 0); assert.equal(T.repaints.length, 0);
+}
+
+// ── the mean guard: when one real paint is already expected to blow the budget, even the first image is answered flat ──
+{
+  const S = build(true);
+  for (const id of ['mh03', 'tg07']) S.api.ensureImages(S.map, id, 0.3);
+  S.api.WT.syncPainted = 4; S.api.WT.syncMs = 4 * 100;      // the running mean is 100 ms a paint, the budget 16 (guard 2x = 32)
+  S.askMany(['mh03x', 'tg07x']);
+  assert.equal(S.painted.length, 0, 'no real paint in a request when the mean paint is far over the budget');
+  assert.equal(S.api.WT.placeholders, 2);
+  const U = build(true);
+  U.api.ensureImages(U.map, 'mh03', 0.3);
+  U.api.WT.syncPainted = 4; U.api.WT.syncMs = 4 * 5;        // mean 5 ms: the first image is painted for real
+  U.askMany(['mh03x']);
+  assert.equal(U.painted.length, 1);
 }
 
 // ── OFF (?walltiers=0): the old eager path, every tier at registration ──
