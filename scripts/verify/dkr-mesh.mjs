@@ -90,5 +90,6 @@ try{
  }
  check('no page errors',results.errors.length===0,results.errors);
  fs.writeFileSync(`${OUT}/dkr-results.json`,JSON.stringify(results,null,2));
+ if(!results.checks.every(c=>c.ok))process.exitCode=1;   // the assert below already throws; this makes the exit code explicit
  assert.ok(results.checks.every(c=>c.ok),'DKR verification failed');
 }finally{await browser.__done();}

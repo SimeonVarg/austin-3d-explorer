@@ -954,6 +954,19 @@ and nothing is in the browser or OS cache. `isolate.mjs` waits on the map's own
 `idle` event instead, which is why it will happily draw the same layer at the
 same pose and appear to contradict the screenshot.
 
+The same trap, one layer up (2026-10-09). MapLibre's `idle` does not see the
+app's own paced work: walls are stamped in jobs after the camera stops
+(`__facadePace.busy`) and the authored apartment buildings are built in chunks
+(`slopesApartments.count.done`). A shot before they finish shows one building
+in its plain stand-in, in one shoot only. In CI that reads as a changed patch
+on a building the pull request cannot touch. `shot.mjs` now waits until both
+are quiet for three reads in a row (60 s at most a view). On the CI software
+renderer the wall job never finishes at all, so the picture runs also load the
+page with `facadepace=0&timeofdaypace=0` (`LOOK.shotQuery` in `ci/pictures.mjs`):
+walls are then painted at once, and every shoot sees the same finished city. If a flag still lands on a building the
+change cannot touch, run again before merging, and look for the next thing
+`idle` cannot see.
+
 This cost three wrong diagnoses in one session — "the camera is aimed wrong",
 then "the layer is being occluded", then "it is a real defect at this pose".
 The discriminator is cheap: **run the same pose twice.** If the second run shows
