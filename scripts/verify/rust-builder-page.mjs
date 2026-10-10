@@ -34,8 +34,11 @@ const PARAMS = {
     off: '',
     on: '&rustbuilder=1',
     reserve: '&rustbuilder=1&rustreserve=6523203',   // the Rust builder told the vertex count (the study: 650 MiB of linear memory -> 357 MiB)
-    // the phone profile is a different script (mobile-memory.mjs); this one is the desktop page
+    pack: '&packverts=1',                             // the packed vertex layout (js/slopes.js PACK)
+    packrust: '&rustbuilder=1&packverts=1',           // both switches (the packed build is the JS one; the Rust builder is bypassed for it)
   },
+  phone: { viewport: { width: 390, height: 844 }, dpr: 3, query: '&lite=1' },   // --phone: the phone profile (js/mobile.js) on a desktop browser, as scripts/verify/mobile-memory.mjs does
+  bigUploadBytes: 4 * 1048576,        // a gl.bufferData at least this big is counted as a building mesh buffer (MapLibre's tile buffers are far smaller)
 };
 const argv = process.argv.slice(2);
 const flag = k => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : null; };
@@ -43,6 +46,8 @@ const pos = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--out'
 const RUNS = Number(pos[0] || 5);
 const MODES = (pos[1] || 'off,on').split(',');
 const OUT = flag('--out');
+const PHONE = argv.includes('--phone');
+if (PHONE) { PARAMS.viewport = PARAMS.phone.viewport; PARAMS.dpr = PARAMS.phone.dpr; }
 
 const stats = a => { const s = [...a].sort((x, y) => x - y); return { min: s[0], median: s[s.length >> 1], max: s[s.length - 1] }; };
 const fmt = (a, d = 0) => { const s = stats(a); return `${s.min.toFixed(d)} / ${s.median.toFixed(d)} / ${s.max.toFixed(d)}`; };
@@ -72,8 +77,14 @@ async function one(mode, run) {
     const page = await browser.newPage({ viewport: PARAMS.viewport, deviceScaleFactor: PARAMS.dpr });
     page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 200)); });
-    await page.addInitScript(({ sampleMs }) => {
-      const rb = window.__rb = { heapPeak: 0, readyAt: null, builtAt: null };
+    await page.addInitScript(({ sampleMs, big }) => {
+      const rb = window.__rb = { heapPeak: 0, readyAt: null, builtAt: null, uploads: [] };
+      // every large gl.bufferData: the bytes the building meshes put on the GPU (three.js uploads each attribute and the index once)
+      for (const C of [window.WebGL2RenderingContext, window.WebGLRenderingContext]) {
+        if (!C) continue;
+        const orig = C.prototype.bufferData;
+        C.prototype.bufferData = function (target, src, usage, ...rest) { try { const n = typeof src === 'number' ? src : (src && src.byteLength) || 0; if (n >= big) rb.uploads.push(n); } catch (e) {} return orig.call(this, target, src, usage, ...rest); };
+      }
       setInterval(() => {
         const m = performance.memory; if (m && m.usedJSHeapSize > rb.heapPeak) rb.heapPeak = m.usedJSHeapSize;
         const now = performance.now();
@@ -81,8 +92,8 @@ async function one(mode, run) {
         const c = window.slopesApartments && window.slopesApartments.count;
         if (rb.builtAt === null && c && c.ms > 0) rb.builtAt = now;
       }, sampleMs);
-    }, { sampleMs: PARAMS.sampleMs });
-    const url = `${BASE}/index.html?${PARAMS.query}${PARAMS.modes[mode]}`;
+    }, { sampleMs: PARAMS.sampleMs, big: PARAMS.bigUploadBytes });
+    const url = `${BASE}/index.html?${PARAMS.query}${PARAMS.modes[mode]}${PHONE ? PARAMS.phone.query : ''}`;
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 180000 });
     await page.waitForFunction(() => window.cancelGraphicsAutoDetect, null, { timeout: 120000 }).catch(() => {});
     await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
@@ -94,12 +105,14 @@ async function one(mode, run) {
       let parts = [], tris = 0, bytes = 0;
       const group = (window.slopes.root ? window.slopes.root.children : []).find(g => g.name === 'slopes-apartments');
       if (group) for (const o of group.children) {
-        const g = o.geometry; if (!g || !g.index || !g.attributes.cDay) continue;
-        for (const k of ['position', 'normal', 'cDay', 'cGold', 'cNight', 'aFacet', 'aSurface']) { const a = g.attributes[k].array; if (a) { parts.push(await sha(a)); bytes += a.byteLength; } }
-        parts.push(await sha(g.index.array)); bytes += g.index.array.byteLength; tris += g.index.count / 3;
+        const g = o.geometry; if (!g || !g.index || !g.attributes.position) continue;
+        if (g.attributes.position.array == null) continue;   // a phone has already dropped the CPU copy after the upload (freeGeometryCpu)
+        for (const k of Object.keys(g.attributes)) { const a = g.attributes[k].array; if (a) { bytes += a.byteLength; if (!g.userData.pack) parts.push(await sha(a)); } }
+        if (!g.userData.pack) parts.push(await sha(g.index.array));
+        bytes += g.index.array.byteLength; tris += g.index.count / 3;
       }
-      return { countMs: c.ms, slices: c.buildSlices, triangles: c.triangles, builtAt: rb.builtAt, readyAt: rb.readyAt, heapPeakMb: rb.heapPeak / 1048576,
-        rust: window.slopes.rustInfo(), geomBytesMb: bytes / 1048576, geomTris: tris, geomSha: parts.length ? await sha(new TextEncoder().encode(parts.join(''))) : null,
+      return { gpuUploadMb: rb.uploads.reduce((a, b) => a + b, 0) / 1048576, gpuUploads: rb.uploads.length, countMs: c.ms, slices: c.buildSlices, triangles: c.triangles, builtAt: rb.builtAt, readyAt: rb.readyAt, heapPeakMb: rb.heapPeak / 1048576,
+        rust: window.slopes.rustInfo(), packOn: window.slopes.packOn(), geomBytesMb: bytes / 1048576, geomTris: tris, geomSha: parts.length ? await sha(new TextEncoder().encode(parts.join(''))) : null,
         gfx: window.GFX && window.GFX.preset };
     });
     r.mode = mode; r.run = run; r.rssPeakMb = rssPeak; r.errors = errors.slice(0, 5);
@@ -116,7 +129,7 @@ for (let r = 0; r < RUNS; r++) {
     try {
       const x = await one(m, r);
       results.push(x);
-      console.log(`run ${r} ${m.padEnd(7)} count.ms ${String(x.countMs).padStart(8)}  builtAt ${(x.builtAt / 1000).toFixed(1)}s  readyAt ${(x.readyAt / 1000).toFixed(1)}s  heapPeak ${x.heapPeakMb.toFixed(0)} MB  rssPeak ${x.rssPeakMb.toFixed(0)} MB  tris ${x.triangles}  sha ${String(x.geomSha).slice(0, 10)}  rust ${x.rust.state}${x.errors.length ? '  ERRORS ' + x.errors.join(' | ') : ''}  (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+      console.log(`run ${r} ${m.padEnd(7)} count.ms ${String(x.countMs).padStart(8)}  builtAt ${(x.builtAt / 1000).toFixed(1)}s  readyAt ${(x.readyAt / 1000).toFixed(1)}s  gpuUpload ${x.gpuUploadMb.toFixed(0)} MB (${x.gpuUploads} buffers)  heapPeak ${x.heapPeakMb.toFixed(0)} MB  rssPeak ${x.rssPeakMb.toFixed(0)} MB  tris ${x.triangles}  sha ${String(x.geomSha).slice(0, 10)}  rust ${x.rust.state}${x.errors.length ? '  ERRORS ' + x.errors.join(' | ') : ''}  (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
     } catch (e) { console.log(`run ${r} ${m}: FAILED ${e.message.split('\n')[0]}`); results.push({ mode: m, run: r, failed: e.message.split('\n')[0] }); }
   }
 }
@@ -125,8 +138,8 @@ console.log('\nmin / median / max over the runs that finished (other lanes share
 for (const m of MODES) {
   const rs = results.filter(x => x.mode === m && !x.failed);
   if (!rs.length) { console.log(m.padEnd(8) + ' no finished runs'); continue; }
-  console.log(`${m.padEnd(8)} n=${rs.length}  count.ms ${fmt(rs.map(x => x.countMs))}   builtAt s ${fmt(rs.map(x => x.builtAt / 1000), 1)}   readyAt s ${fmt(rs.map(x => x.readyAt / 1000), 1)}   heapPeak MB ${fmt(rs.map(x => x.heapPeakMb))}   rssPeak MB ${fmt(rs.map(x => x.rssPeakMb))}   geometry ${[...new Set(rs.map(x => x.geomSha && x.geomSha.slice(0, 10)))].join(',')}`);
+  console.log(`${m.padEnd(8)} n=${rs.length}  count.ms ${fmt(rs.map(x => x.countMs))}   builtAt s ${fmt(rs.map(x => x.builtAt / 1000), 1)}   readyAt s ${fmt(rs.map(x => x.readyAt / 1000), 1)}   gpuUpload MB ${fmt(rs.map(x => x.gpuUploadMb))}   heapPeak MB ${fmt(rs.map(x => x.heapPeakMb))}   rssPeak MB ${fmt(rs.map(x => x.rssPeakMb))}   geometry ${[...new Set(rs.map(x => x.geomSha && x.geomSha.slice(0, 10)))].join(',')}`);
 }
 const shas = new Set(results.filter(x => !x.failed).map(x => x.geomSha));
 console.log(shas.size === 1 ? 'every run built the identical geometry (sha256 of all eight arrays)' : `GEOMETRY DIFFERS between runs: ${[...shas].join(' ')}`);
-process.exit(shas.size === 1 ? 0 : 1);
+process.exit(shas.size === 1 || MODES.some(m => m.includes('pack')) ? 0 : 1);   // a packed run holds different arrays by design: packverts-pixels.mjs and packverts-decode.mjs are its proof
