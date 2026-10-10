@@ -28,7 +28,7 @@ for(const site of s.sites){
     assert.ok(Math.hypot(...cross(b.map((v,i)=>v-a[i]),c.map((v,i)=>v-a[i])))>1e-8,'degenerate tower face');
   }
   // Drum glass strips are the tall glass quads with an outward normal; they must sit behind the brick piers.
-  const strips=faces.filter(f=>f.key==='glass'&&f.normal&&f.points[2][2]-f.points[0][2]>s.glass*0.9);
+  const strips=faces.filter(f=>f.key===s.glassTone&&f.normal&&f.points[2][2]-f.points[0][2]>s.glass*0.9);
   assert.equal(strips.length,s.strips*s.stripColumns,site.id+': glass strip count');
   for(const f of strips)for(const p of f.points)
     assert.ok(Math.hypot(p[0]-site.x,p[1]-site.y)<s.drumRadius-0.1,'glass must sit behind masonry, not coplanar');

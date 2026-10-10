@@ -58,6 +58,7 @@
       strips: 8, stripShare: 0.62, stripColumns: 2, stripRows: 12,
       lanternPanes: 16, capFaces: 16, lowerFaces: 8, phaseDeg: 18,
       pierSegments: 2, mullion: 0.07,
+      glassTone: 'black',      // PHOTO: dark navy glass. The shared 'glass' tone mirrors the sky and drew it pale blue (docs/photo-audit.md, check 7b)
       // Small square windows in the lower body (PHOTO: one row of four on one face, 0.6 m, 1.2 m apart,
       // about 1 m under the pale band; every other face INFERRED the same).
       windowSize: 0.6, windowPitch: 1.25, windowDrop: 1.0, windowProud: 0.03,
@@ -373,7 +374,7 @@
     const lan=ring(s.lanternRadius,s.lanternPanes);
     for(let i=0;i<lan.length;i++){
       const a=lan[i],b=lan[(i+1)%lan.length];
-      quad(B,[...a,zLant],[...b,zLant],[...b,zRim],[...a,zRim],'glass');
+      quad(B,[...a,zLant],[...b,zLant],[...b,zRim],[...a,zRim],TUNE.roundTowers.glassTone);
       beam(B,[...a,zLant],[...a,zRim],s.mullion,'towerFrame');
     }
     slab(B,ring(s.ledgeRadius,TUNE.towerSegments),zLedge,zLant,'towerStone');
@@ -391,7 +392,7 @@
       for(let j=0;j<s.stripColumns;j++){
         const u=lerp(g0,g1,j/s.stripColumns), v=lerp(g0,g1,(j+1)/s.stripColumns), m=(u+v)/2;
         const rr=s.drumRadius-s.glassRecess;
-        quad(B,at(rr,u,zGlassBot),at(rr,v,zGlassBot),at(rr,v,zGlassTop),at(rr,u,zGlassTop),'glass',out(m));
+        quad(B,at(rr,u,zGlassBot),at(rr,v,zGlassBot),at(rr,v,zGlassTop),at(rr,u,zGlassTop),TUNE.roundTowers.glassTone,out(m));
         // Pale lintel, a little proud of the brick.
         const lr=s.drumRadius+s.lintelProud;
         quad(B,at(lr,u,zGlassTop),at(lr,v,zGlassTop),at(lr,v,zLedge),at(lr,u,zLedge),'towerStone',out(m));
@@ -425,7 +426,7 @@
       for(let j=0;j<count;j++){
         const mid=0.5+(j-(count-1)/2)*s.windowPitch/len, w=s.windowSize/len/2;
         const P=(u,z)=>[lerp(a[0],b[0],u)+nrm[0]*s.windowProud,lerp(a[1],b[1],u)+nrm[1]*s.windowProud,z];
-        quad(B,P(mid-w,z0),P(mid+w,z0),P(mid+w,z1),P(mid-w,z1),'glass',nrm);
+        quad(B,P(mid-w,z0),P(mid+w,z0),P(mid+w,z1),P(mid-w,z1),TUNE.roundTowers.glassTone,nrm);
       }
     }
   }
