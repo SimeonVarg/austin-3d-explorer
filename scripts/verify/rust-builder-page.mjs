@@ -33,6 +33,7 @@ const PARAMS = {
   modes: {
     off: '',
     on: '&rustbuilder=1',
+    rustcopy: '&rustbuilder=1&rustcopy=1',            // EXPERIMENT: the Rust builder, its arrays copied into JS memory so the module's memory is freed
     reserve: '&rustbuilder=1&rustreserve=6523203',   // the Rust builder told the vertex count (the study: 650 MiB of linear memory -> 357 MiB)
     packmerge: '&packverts=1&packmerge=1',            // packed AND merged: identical vertices stored once, 16-bit indices, about 83 meshes (js/slopes.js PACK.merge)
     pack: '&packverts=1',                             // the packed vertex layout (js/slopes.js PACK)

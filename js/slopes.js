@@ -2195,7 +2195,7 @@ ${window.RoofTiles.apply}
       .then(m => m.loadRustBuilder({
         wasmUrl: RUST.wasmUrl, stageRecords: RUST.stageRecords, reserveVertices: RUST.reserveVertices,
         shapeOps, hexToRgb01, three: () => window.THREE, info: RUST_INFO,
-        toneKey, packOverflow, toneBits: PACK.toneBits, byteFloats,   // for packed builds (?packverts=1)
+        toneKey, packOverflow, toneBits: PACK.toneBits, byteFloats, copyOut: q.get('rustcopy') === '1',   // for packed builds (?packverts=1)
       }))
       .then(factory => { _rustBuild = factory; RUST_INFO.state = 'ready'; })
       .catch(e => { RUST_INFO.state = 'failed'; RUST_INFO.error = String(e && e.message || e); console.warn('[slopes] ?rustbuilder=1: the Rust builder did not load; building in JS —', RUST_INFO.error); });

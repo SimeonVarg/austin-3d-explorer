@@ -68,7 +68,7 @@ async function compile(wasmUrl) {
  * Compile the module once and return `buildRust(initialCapacity)`, a drop-in for js/slopes.js build().
  * `module` (a WebAssembly.Module) replaces the fetch; the parity check uses it.
  */
-export async function loadRustBuilder({ wasmUrl, module, stageRecords = 8192, reserveVertices = 0, shapeOps, hexToRgb01, three, info, toneKey, packOverflow, toneBits = 14, byteFloats = null }) {
+export async function loadRustBuilder({ wasmUrl, module, stageRecords = 8192, reserveVertices = 0, shapeOps, hexToRgb01, three, info, toneKey, packOverflow, toneBits = 14, byteFloats = null, copyOut = false }) {
   const t0 = (typeof performance !== 'undefined' ? performance.now() : 0);
   const mod = module || await compile(wasmUrl);
   if (info) info.compileMs = +((typeof performance !== 'undefined' ? performance.now() : 0) - t0).toFixed(1);
@@ -190,14 +190,16 @@ export async function loadRustBuilder({ wasmUrl, module, stageRecords = 8192, re
           return g;
         }
         // Views of the module's memory, not copies: see the header. Nothing may grow this memory from here on.
-        g.setAttribute('position', new T.BufferAttribute(new Float32Array(m, X.position_ptr(), v * 3), 3));
-        g.setAttribute('normal', new T.BufferAttribute(new Float32Array(m, X.normal_ptr(), v * 3), 3));
-        g.setAttribute('cDay', new T.BufferAttribute(new Uint8Array(m, X.day_ptr(), v * 3), 3, true));
-        g.setAttribute('cGold', new T.BufferAttribute(new Uint8Array(m, X.golden_ptr(), v * 3), 3, true));
-        g.setAttribute('cNight', new T.BufferAttribute(new Uint8Array(m, X.night_ptr(), v * 3), 3, true));
-        g.setAttribute('aFacet', new T.BufferAttribute(new Uint8Array(m, X.facet_ptr(), v), 1, false));
-        g.setAttribute('aSurface', new T.BufferAttribute(new Float32Array(m, X.surface_ptr(), v * 4), 4));
-        g.setIndex(new T.BufferAttribute(new Uint32Array(m, X.index_ptr(), X.index_count()), 1));
+        // EXPERIMENT (?rustcopy=1, benchmark branch only): copy each array into fresh JS memory so the module's memory can be freed, to see what its views hold.
+        const cp = a => (copyOut ? a.slice() : a);
+        g.setAttribute('position', new T.BufferAttribute(cp(new Float32Array(m, X.position_ptr(), v * 3)), 3));
+        g.setAttribute('normal', new T.BufferAttribute(cp(new Float32Array(m, X.normal_ptr(), v * 3)), 3));
+        g.setAttribute('cDay', new T.BufferAttribute(cp(new Uint8Array(m, X.day_ptr(), v * 3)), 3, true));
+        g.setAttribute('cGold', new T.BufferAttribute(cp(new Uint8Array(m, X.golden_ptr(), v * 3)), 3, true));
+        g.setAttribute('cNight', new T.BufferAttribute(cp(new Uint8Array(m, X.night_ptr(), v * 3)), 3, true));
+        g.setAttribute('aFacet', new T.BufferAttribute(cp(new Uint8Array(m, X.facet_ptr(), v)), 1, false));
+        g.setAttribute('aSurface', new T.BufferAttribute(cp(new Float32Array(m, X.surface_ptr(), v * 4)), 4));
+        g.setIndex(new T.BufferAttribute(cp(new Uint32Array(m, X.index_ptr(), X.index_count())), 1));
         if (info) info.lastWasmBytes = m.byteLength;
         g.computeBoundingSphere();
         return g;
