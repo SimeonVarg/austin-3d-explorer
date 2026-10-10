@@ -704,6 +704,9 @@ function boot() {
   function renderList() {
     const R = S.result, list = $('.fd-list');
     list.replaceChildren();
+    // The list is rebuilt, so the live line's box is gone: stop its poll NOW (a deselected home must not leave the bus feeds
+    // polling until the next timer finds the box detached; the browser look saw one trip-feed request after "deselect").
+    if (S.liveStop) { S.liveStop(); S.liveStop = null; }
     if (!R) return;
     $('.fd-list-title').textContent = C.listTitle(R.ranked.length);
     for (const r of R.ranked) {

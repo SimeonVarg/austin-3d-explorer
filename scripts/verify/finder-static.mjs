@@ -225,6 +225,7 @@ ok(/js\\\/wayfind\\\.js/.test(finder) && /s\.src = own;/.test(finder), 'it is th
   ok(/acquire\(L\.TL, false\)/.test(flive), 'the buses on the map hold the poll without the trip feed');
   ok(/else if \(held\) \{ L\.TL\.detach\(\); held\(\); held = null; \}/.test(flive), 'an empty route list detaches the layer and lets go of the poll');
   ok(/stop\(\) \{ stopped = true; routes = \[\]; if \(held\) \{ if \(TLref\) TLref\.detach\(\); held\(\); held = null; \} \}/.test(flive), 'stop() detaches the layer and lets go of the poll');
+  ok(/function renderList\(\) \{\s*const R = S\.result, list = \$\('\.fd-list'\);\s*list\.replaceChildren\(\);\s*if \(S\.liveStop\) \{ S\.liveStop\(\); S\.liveStop = null; \}/.test(finder), 'rebuilding the list stops the live line at once (a deselected home leaves nothing polling)');
   ok(/if \(v === 'pill'\) \{ S\.trip = null; stopLiveBuses\(\); \}/.test(finder), 'hiding the finder stops the live buses');
   ok(/if \(!S\.liveOn \|\| !FINDER\.liveBuses\.available \|\| S\.view === 'pill' \|\| !S\.loaded\) \{ stopLiveBuses\(\); return; \}/.test(finder), 'with the switch off (or the finder hidden) the live buses are stopped, not paused');
   ok(/\$\('\.fd-livebuses input'\)\.onchange = \(e\) => \{ S\.liveOn = e\.target\.checked; syncLiveBuses\(\); \};/.test(finder), 'the switch is the only thing that turns the live buses on');
