@@ -223,11 +223,6 @@
   "_laptop_only": "Timing. Frame times on a shared cloud CPU with a software rasteriser measure the runner, not the code (README: 'right for pixel assertions and useless for timing'). These stay on a quiet laptop.",
   "laptop_only": {
     "apts-perf.mjs": "timing",
-    "perf-frame-profile.mjs": "timing: scripts/perf wrapper for the AWS GPU runner; measures frame time, no verdict",
-    "perf-aws-suite.mjs": "timing: runs the scripts/perf tools in sequence on the AWS GPU runner, no verdict",
-    "perf-swap-strip.mjs": "timing/pictures: frames of a newly reached area being answered flat then painted for real, no verdict",
-    "perf-walltiers-suite.mjs": "timing: the wall-tiers A/B (?walltiers=0 against the default) on the AWS GPU runner, in sequence, no verdict",
-    "perf-load-profile.mjs": "timing: scripts/perf wrapper for the AWS GPU runner; measures cold-load time, no verdict",
     "arts-perf.mjs": "timing",
     "drag-perf.mjs": "timing",
     "facade-perf.mjs": "timing",
@@ -265,6 +260,11 @@
   },
   "_tools": "Not checks: no path to a non-zero exit (they photograph or print), or they need inputs only a human supplies (two checkouts, a PNG, a plan file). Running them proves nothing.",
   "tools": {
+    "perf-frame-profile.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): scripts/perf wrapper for the AWS GPU runner; measures frame time, no verdict",
+    "perf-aws-suite.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): runs the scripts/perf tools in sequence on the AWS GPU runner, no verdict",
+    "perf-load-profile.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): scripts/perf wrapper for the AWS GPU runner; measures cold-load time, no verdict",
+    "perf-swap-strip.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): frames of a newly reached area being answered flat then painted for real, no verdict",
+    "perf-walltiers-suite.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): the wall-tiers A/B (?walltiers=0 against the default) on the AWS GPU runner, in sequence, no verdict",
     "downtown-shots.mjs": "photographs: downtown before and after from made-up cameras, two page loads a view; never fails on a difference, and ran past the 1800 s ceiling on a runner",
     "visual-audit.mjs": "the visual audit walker: needs a group (proof, finder, boot, chrome, walk, modes) and writes pictures plus assertions.json; run it on a rented GPU (docs/visual-audit-2026-10-10.md section 8), not as a check",
     "va-debug-webgl.mjs": "visual audit helper: prints what the page does when the browser has no WebGL; no verdict of its own",
