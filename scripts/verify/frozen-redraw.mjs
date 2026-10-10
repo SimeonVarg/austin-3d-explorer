@@ -139,6 +139,7 @@ const pairs = (files, tol) => { let worst = { over: 0, any: 0, max: 0 }, distinc
 
 for (const view of VIEWS) {
   const page = await open(view);
+  console.log('  page state', JSON.stringify(await page.evaluate(() => { const G = window.GFX || {}; return { preset: G.preset, bloom: G.bloom, godRays: G.godRays, flare: G.flare, autoExposure: G.autoExposure, renderScale: G.renderScale, msaa: G.msaa, ae: window.__ae && window.__ae(), lamps: window.__nightLights && window.__nightLights.count, tod: window.__todCurrentP, pr: window.devicePixelRatio, size: [window.__map.getCanvas().width, window.__map.getCanvas().height] }; })));
   const { files, logs } = await draws(page, view, 'base', TUNE.redraws);
   const r = pairs(files, TUNE.tolerance);
   data.views[view] = { base: r };
