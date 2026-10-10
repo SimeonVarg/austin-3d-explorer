@@ -2069,6 +2069,8 @@ ${window.RoofTiles.apply}
     rustReady: null, get rustBuilder() { return !!_rustBuild; }, rustInfo: () => RUST_INFO, withRustFallback,
     // ?packverts=1: a fresh set of tone/normal tables for one build (pass it as build(cap, { pack }) and material({ pack })), or null
     // when the switch is off or this GPU cannot read float textures in the vertex shader (WebGL2 only): callers then build as before.
+    // the Web Worker seam (js/build-worker.js): set the local origin the way onAdd() does, with no map
+    initOrigin: () => { originMerc = maplibregl.MercatorCoordinate.fromLngLat({ lng: SLOPES.origin[0], lat: SLOPES.origin[1] }, 0); originScale = originMerc.meterInMercatorCoordinateUnits(); },
     packTables, packOn: () => PACK.on, packInfo: () => ({ toneBits: PACK.toneBits, texWidth: PACK.texWidth }),
     // a test seam, not a feature: flip the switch at run time so ONE page can build the apartments both ways (scripts/verify/packverts-pixels.mjs
     // rebuilds with slopesApartments.rebuild() and photographs each); a visitor sets it only through ?packverts=1
