@@ -37,7 +37,7 @@ The shader wall removes 3 to 5 times the shimmer error of the unfiltered geometr
 
 **First three roadmap steps (section 6):** (1) run the probe and the lab on the Intel Mac and one phone when idle; (2) cover every plain `bays`/`flat` tower with `verify-recipe.mjs` as the gate; (3) put it behind `?facadeshader=1` with the renderer study's compare harness and the moire meter as the gate.
 
-**The call to action (section 8, last):** build the one out-of-the-box thing the measurements point to. See there.
+**The call to action (section 8, last):** build **Facet**, a compiler from the recipes to shader walls, baked near geometry and an error budget a build can fail on. A first version is built and measured in this pull request: its generated shader is pixel-identical to the hand-written one, 26 times cheaper than the geometry on the L4, and within 1.1 to 1.5 times the error of 4x MSAA across a 40 m to 1,600 m sweep; it covers 16% of the catalog's windowed walls so far.
 
 **What I could not measure:** anything on the Intel chip or a phone; the shader's cost on a weak chip (estimated 1 to 2 ms at 1440x900); night windows, balconies, frames; the MapLibre walls (section 7).
 
@@ -308,3 +308,7 @@ First three steps for the lead: 1 (measure the Intel chip), 2 (cover the plain t
 ### 8.2 How this was made, for the record
 
 Three consults with Astra (Azure, a few cents each): one for its own idea before seeing mine (it proposed a city compiler whose output includes tested error budgets, which is what Facet became), one red-team of the Facet design (it argued a new language buys nothing over JSON: accepted, so Facet's IR is generated, not typed), and one on the built v0 (order of widening, the phone gate). The question files and its answers are under `~/flyover-mail/council/2026-10-10-gfx-*`. Every browser run was on the AWS runner (no browser was started on the Mac); because that workflow keeps one pending run per group, one of my dispatches at 08:52 UTC replaced another lane's pending run (38039374123), which that lane may need to start again.
+
+---
+
+**Call to action: build Facet.** One source (the recipes you already have), compiled by one tool into shader walls, baked near geometry and a quality budget a build can fail on, replacing the three copies of the facade rule the app carries today. v0 exists and works on one tower. Next: widen it to uneven floors and frame rings (16% to 60% of the catalog's windowed walls), and before that, measure the weakest phone and the Intel Mac with the probe, because 200 times fewer triangles is a result about triangles, not yet about phones.
