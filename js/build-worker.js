@@ -40,9 +40,9 @@ async function init({ base: b, three }) {
   self.maplibregl = { MercatorCoordinate: class {
     constructor(x, y, z = 0) { this.x = x; this.y = y; this.z = z; }
     static fromLngLat(ll, alt = 0) { const lat = ll.lat; return new this((180 + ll.lng) / 360, (180 - (180 / Math.PI) * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))) / 360, alt / (EARTH * Math.cos(lat * Math.PI / 180))); }
-    meterInMercatorCoordinateUnits() { return 1 / (EARTH * Math.cos(this.toLngLat().lat * Math.PI / 180)); }
+    meterInMercatorCoordinateUnits() { return 1 / EARTH * (1 / Math.cos(this.toLngLat().lat * Math.PI / 180)); } // MapLibre 5.24.0 order of operations: 1 / earthCircumference * mercatorScale(lat); the product rounds differently
     toLngLat() { const y2 = 180 - this.y * 360; return { lng: this.x * 360 - 180, lat: 360 / Math.PI * Math.atan(Math.exp(y2 * Math.PI / 180)) - 90 }; }
-    toAltitude() { return this.z * EARTH * Math.cos(this.toLngLat().lat * Math.PI / 180); }
+    toAltitude() { return this.z * (EARTH * Math.cos(this.toLngLat().lat * Math.PI / 180)); }
   } };
   const loose = () => new Proxy({}, { get: (t, k) => k === Symbol.toPrimitive ? () => '' : (k in t ? t[k] : '') });
   Object.assign(self, { CityLighting: loose(), RoofTiles: loose(), GroundTexture: loose(), CityTexture: loose() });

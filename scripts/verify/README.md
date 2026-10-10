@@ -744,6 +744,7 @@ the count the real page makes):
 
 - `generator-split.mjs` — direct run against pure pass + replay on FRESH registries: meshes byte-identical, the recorded list equals the direct run's registry
   calls in content and order, the registries (night profiles, fixtures, wall-pattern texture bytes and rows) equal. `--break` drops one entry and must fail.
+- `mercator-stub-parity.mjs` — the worker's stand-in for `maplibregl.MercatorCoordinate` (the text in `js/build-worker.js`, not a copy) against the real maplibre-gl 5.24.0 over a grid across Austin, compared with `===` for `fromLngLat`, the metre, the altitude and `toLngLat`. Node only, needs `MAPLIBRE_JS=` outside the repo (SKIP without it, quarantined). Why it exists: the Node parity checks run the stub on both sides, so a stub that rounds differently from MapLibre passes them and still moves `apartments.position`/`.normal` in the page. `--break` restores the old order of operations: must exit 1.
 - `build-worker-parity.mjs` — a real `worker_threads` thread running the unmodified `js/build-worker.js`, then this process (empty registries) running
   `buildOnce()` with the worker's result, exactly the page's path: meshes, tallies, per-building records, failed list, registry calls and state, cull
   starts and every facade-filter face (its wall frame, even a derived one, rebuilt from data) equal. `--break` moves the worker's footprints and must fail.
