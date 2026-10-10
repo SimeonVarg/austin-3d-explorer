@@ -148,6 +148,7 @@
     "walkmeter.mjs": {"est_s": 190},
     "wasm-mesh-parity.mjs": {"est_s": 20},
     "packverts-decode.mjs": {"est_s": 10},
+    "rust-packed-parity.mjs": {"est_s": 15},
     "walkwidth.mjs": {"est_s": 160},
     "wallplane.mjs": {"est_s": 10},
     "westcampus-probe.mjs": {"est_s": 80},
