@@ -555,7 +555,8 @@ async function proofGroup() {
       check('E03', 'the Switch modes pill does not overlap the open graphics menu', !over, lp && gp && `launcher visible=${lp.vis}`);
       const foot = await page.evaluate(() => [...document.querySelectorAll('#gfx-foot button')].map(b => Math.round(b.getBoundingClientRect().height)));
       const touch = await page.evaluate(() => document.documentElement.classList.contains('has-touch'));
-      if (touch) check('G03', 'menu footer buttons are at least 44 px tall on touch', foot.length && foot.every(h => h >= 43.5), foot.join(','));
+      const footShown = foot.filter(h => h > 0);
+      if (touch) check('G03', 'menu footer buttons are at least 44 px tall on touch', footShown.length && footShown.every(h => h >= 43.5), foot.join(','));
       // G02: Explore over the open graphics sheet (phone)
       if (W <= 640) {
         await page.evaluate(() => document.getElementById('explore-toggle').click()); await page.waitForTimeout(700);
@@ -630,6 +631,7 @@ async function proofGroup() {
         const a = await p3.evaluate(() => { const c = window.__map.getCenter(); return [c.lng, c.lat, window.__map.getZoom()]; });
         await p3.waitForTimeout(5000);
         const b = await p3.evaluate(() => { const c = window.__map.getCenter(); return [c.lng, c.lat, window.__map.getZoom()]; });
+        if (rm === 'reduce') await shot(p3, vp, 'proof-A10-reduced-motion', 'reduced motion, 6 s after the veil lifted', { noMetrics: true });
         const moved = Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]) + Math.abs(b[2] - a[2]) * 0.01;
         await c3.close(); return moved;
       };
