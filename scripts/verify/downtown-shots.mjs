@@ -32,8 +32,10 @@ import { chromium } from 'playwright-core';
 import { BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const HERE = path.dirname(new URL(import.meta.url).pathname);
+// fileURLToPath, not URL.pathname: on Windows the latter is '/C:/...' and joins to 'C:\\C:\\...'
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ARGS = process.argv.slice(2);
 const outAt = ARGS.indexOf('--out');
 const OUT = (outAt >= 0 ? ARGS.splice(outAt, 2)[1] : null) ||
