@@ -136,7 +136,7 @@ await stage('determinism', async () => {
     // diagnosis arms: switch one part off at a time to find what still moves in a frozen night
     frozen_eye0: 'nightfreeze=1&nighteye=0', frozen_glare0: 'nightfreeze=1&glare=0', frozen_tw0: 'nightfreeze=1&twinkle=0',
     frozen_drift0: 'nightfreeze=1&nightdrift=0', frozen_colour0: 'nightfreeze=1&nightcolour=0', frozen_ae0: 'nightfreeze=1|ae0' };
-  const want = (opt('--arms', 'before,after_unfrozen,after_frozen,after_frozen_seed7')).split(',');
+  const want = (opt('--arms', 'before,after_unfrozen,after_frozen,after_frozen_seed7')).split(/[,&+]/);   // '&' or '+' so an arm list can ride in a comma-separated workflow input
   const arms = Object.fromEntries(want.map(k => [k, ALL[k]]));
   data.determinism = {};
   for (const [arm, q] of Object.entries(arms)) {
