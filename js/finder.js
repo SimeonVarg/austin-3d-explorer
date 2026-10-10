@@ -71,7 +71,9 @@ const FINDER = {
     pollMs: 300,
     rememberClosed: true,
   },
-  phoneMaxW: 650,                 // at or under this width the panel is a bottom sheet
+  // The bottom-sheet layout (and the in-sheet compare table) applies when this media query matches: a narrow window,
+  // or a touch screen up to a tablet's width. KEEP IN SYNC WITH the @media line above ".fd-handle" in finder.css.
+  sheetQuery: '(max-width: 650px), (pointer: coarse) and (max-width: 1024px)',
   prefsKey: 'austin3d.finder.ui', // per-viewer prefs ONLY: major id, mode, heat, closed
 
   data: {
@@ -187,7 +189,8 @@ const FINDER = {
     majorNone: 'No major matches. Try a shorter word.',
     or: 'or',
     importBtn: 'Import my class schedule',
-    importNote: 'Your schedule stays on this device.',
+    importNote: 'Your schedule stays in this browser and is never uploaded. Importing a calendar link contacts its provider.',
+    importOff: 'Schedule import is turned off for this visit.',
     importUnavailable: 'The schedule import could not load. Reload to try again.',
     usingSchedule: (n, b) => 'Using your schedule: ' + n + (n === 1 ? ' class meeting' : ' class meetings') +
       ' a week in ' + b + (b === 1 ? ' building.' : ' buildings.'),
@@ -238,10 +241,10 @@ const FINDER = {
     loading: 'Loading paths and homes…',
     loadFail: 'The finder could not load its data. Reload to try again.',
     sourcesTitle: 'Where these numbers come from',
-    sources: (asOf) => 'Walking: OpenStreetMap paths (walking graph ' + (asOf || 'snapshot') +
-      '), brisk to slow pace, lights and stairs included. Buses: CapMetro timetable. Buses in the list are the weekday-morning timetable (class days), counted only where a bus beats walking by 3 minutes; live times appear under a home you select, and the walk to the stop follows the walking paths. ' +
+    sources: (asOf) => 'Walking: OpenStreetMap paths (' + (asOf || 'snapshot') +
+      '), at a brisk to slow pace, with traffic lights and stairs counted, to the bus stop too. Buses: CapMetro timetable. The list counts one ride, no transfers, on class days (weekday mornings), and only where the bus beats walking by 3 minutes; live times appear under a home you select. ' +
       'Majors: the 2026–27 catalog’s first three years, with the rooms those courses used in Fall 2026. ' +
-      'Riverside has no 3D buildings yet; its pins and colours are still exact.',
+      'Riverside has no 3D buildings yet, but its pins and colours are accurate.',
     pinLabel: (n, name, t) => '#' + n + ' ' + name + ', ' + t + ' minutes',
   },
 };
@@ -274,6 +277,8 @@ function boot() {
     liveOn: FINDER.liveBuses.on && FINDER.liveBuses.available, liveH: null, glideId: 0,
   };
   const prefs = loadPrefs();
+  S.preferMajor = !!prefs.preferMajor;   // "use a major instead" survives a reload (I12)
+  S.restoredPref = true;
   if (prefs.mode && FINDER.copy.modes[prefs.mode]) S.mode = prefs.mode;
   if (typeof prefs.heat === 'boolean') S.heat = prefs.heat;
   if (prefs.major) S.majorId = prefs.major;
@@ -340,6 +345,8 @@ function boot() {
   $('.fd-or').textContent = C.or;
   $('.fd-import').textContent = C.importBtn;
   $('.fd-import').title = C.importNote;
+  // Said out loud under the button, not only as a hover tooltip a touch screen never shows (I11).
+  { const note = el('p', 'fd-import-note', C.importNote); $('.fd-import-row').after(note); }
   $('.fd-mode-lab').textContent = C.modeLabel;
   $('.fd-heat span').textContent = C.heatToggle;
   $('.fd-heat input').checked = S.heat;
@@ -366,13 +373,23 @@ function boot() {
     n.addEventListener('keyup', (e) => e.stopPropagation());
   }
 
+  // Walk / Bus / Either is a radio group: the arrow keys move between its buttons (I13).
+  $('.fd-modes').addEventListener('keydown', (e) => {
+    const k = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key]; if (!k) return;
+    const bs = [...$('.fd-modes').querySelectorAll('.fd-mode')], i = bs.indexOf(document.activeElement); if (i < 0) return;
+    e.preventDefault(); const n = bs[(i + k + bs.length) % bs.length]; n.focus(); n.click();
+  });
+  // The finder shares the screen with Explore and, on a sheet layout, with the Graphics and Recommendations sheets:
+  // they take turns (I01, I02). Each of them announces itself with an event; the finder steps back to its pill.
+  window.addEventListener('explore:opened', () => { if (S.view !== 'pill') setView('pill', false); });
+  window.addEventListener('panel:opened', () => { if (isPhone() && S.view !== 'pill') setView('pill', false); });
   pill.onclick = () => setView(isPhone() ? 'peek' : 'open', true);
   $('.fd-hide').onclick = () => setView('pill', true);
   $('.fd-handle').onclick = () => setView(S.view === 'open' ? 'peek' : 'open', true);
   $('.fd-heat input').onchange = (e) => { S.heat = e.target.checked; savePrefs(); drawHeat(); };
   $('.fd-livebuses input').onchange = (e) => { S.liveOn = e.target.checked; syncLiveBuses(); };
   $('.fd-import').onclick = openImport;
-  $('.fd-swap').onclick = () => { S.preferMajor = !S.preferMajor; recompute(); };
+  $('.fd-swap').onclick = () => { S.preferMajor = !S.preferMajor; savePrefs(); recompute(); };
   window.addEventListener('resize', () => { if (S.view === 'peek' && !isPhone()) setView('open'); else placeTray(); });
   // Desktop: the tray floats beside the panel. Phone: it sits inside the
   // sheet above the list (finder.css says why).
@@ -438,7 +455,7 @@ function boot() {
   // ══════════════════════════════════════════════════════════════════════════
   // VIEW STATE AND THE FIRST VISIT
   // ══════════════════════════════════════════════════════════════════════════
-  function isPhone() { return innerWidth <= FINDER.phoneMaxW; }
+  function isPhone() { return matchMedia(FINDER.sheetQuery).matches; }
   function setView(v, byUser) {
     if (v === 'pill' && S.liveStop) { S.liveStop(); S.liveStop = null; }   // a hidden finder polls nothing
     if (v === 'pill') { S.trip = null; S.glideId++; stopLiveBuses(); }
@@ -453,6 +470,9 @@ function boot() {
     placeTray();
     $('.fd-handle').setAttribute('aria-label', v === 'open' ? C.collapse : C.expand);
     if (byUser && FINDER.firstVisit.rememberClosed) { prefs.closed = !shown; savePrefs(); }
+    // Hiding the panel must not drop keyboard focus on the page: it goes to the pill that now stands in for it (I13).
+    if (v === 'pill' && byUser) requestAnimationFrame(() => pill.focus());
+    if (shown && isPhone()) window.dispatchEvent(new CustomEvent('menus:close-panels'));
     if (shown) { if (S.loaded) renderAll(); else ensureLoaded(); }
     else { clearCity(); tray.hidden = true; }
   }
@@ -504,7 +524,7 @@ function boot() {
   }
   function savePrefs() {
     // Only the four UI choices. Never the schedule, never a building list.
-    const p = { major: S.majorId || null, mode: S.mode, heat: S.heat, closed: !!prefs.closed };
+    const p = { major: S.majorId || null, mode: S.mode, heat: S.heat, closed: !!prefs.closed, preferMajor: !!S.preferMajor };
     try { localStorage.setItem(FINDER.prefsKey, JSON.stringify(p)); } catch (e) {}
   }
 
@@ -537,7 +557,7 @@ function boot() {
   }
   async function openImport() {
     const ok = await ensureImport();
-    if (!ok) { status(C.importUnavailable, true); return; }
+    if (!ok) { status(q.get('walk') === '0' ? C.importOff : C.importUnavailable, true); return; }
     window.wayfindImportOpen();
     // While the import screen is up, body.fd-importing lets finder.css move
     // the sheet out of its way on a phone (the two stacked, phase 2).
@@ -555,7 +575,7 @@ function boot() {
     if (!core) { S.pendingSchedule = { s }; return; }
     const pairs = s ? core.scheduleTargets(s) : [];
     S.schedule = pairs.length ? pairs : null;
-    if (S.schedule) S.preferMajor = false;
+    if (S.schedule) { S.preferMajor = S.restoredPref ? !!prefs.preferMajor : false; S.restoredPref = false; }
     if (S.loaded) recompute();
   }
   window.addEventListener('wayfind:schedule', (e) => useSchedule(e.detail));

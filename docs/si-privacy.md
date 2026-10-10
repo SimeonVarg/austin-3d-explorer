@@ -415,8 +415,10 @@ cd scripts/verify && VERIFY_URL=http://127.0.0.1:8915 node r6-arraybuffer.mjs
 
 ## 1. The promise, and the one sentence that makes it
 
-> **Your schedule stays on this device — saved in this browser only, never
-> uploaded anywhere, and Delete wipes it for good.**
+> **Your schedule stays in this browser and is never uploaded. Importing a
+> calendar link contacts its provider. Delete wipes it for good.**
+> (Reworded 2026-10-10, visual audit B17/B18: the old line said "this device"
+> and "never uploaded anywhere", which the calendar-link path does not match.)
 
 Three clauses, because there are exactly three things a student wants to know,
 and each is a claim this round can actually back:
