@@ -119,6 +119,12 @@ console.log(`generated ${g.vs.length + g.fs.length} bytes of GLSL; wall package 
 
 // 5. the budget logic on a made-up sweep
 const b = budget([{ dist: 55, bayPx: 11.7, errF: 0.3, errNear: 0.15, flickF: 0.7, flickNear: 0.25 }, { dist: 230, bayPx: 2.8, errF: 1.6, errNear: 1.1, flickF: 3.3, flickNear: 1.7 }, { dist: 1100, bayPx: 0.6, errF: 5.9, errNear: 5.4, flickF: 8.2, flickNear: 5.9 }], 1.5);
-check(b.switchBayPx > 2.8 && b.switchBayPx < 11.7, 'budget switch should lie between the 55 m and 230 m rows, got ' + b.switchBayPx);
-console.log(`budget logic: gate 1.5 puts the switch at ${b.switchBayPx.toFixed(1)} pixels a bay`);
+check(!b.pass && b.geometryAtDistances.join() === '55' && b.switchBayPx > 2.8 && b.switchBayPx < 11.7, 'only the 55 m row exceeds the gate: a clean near/far switch: ' + JSON.stringify([b.geometryAtDistances, b.switchBayPx]));
+const b1 = budget([{ dist: 55, bayPx: 11.7, errF: 0.2, errNear: 0.15, flickF: 0.3, flickNear: 0.25 }, { dist: 230, bayPx: 2.8, errF: 3.2, errNear: 1.1, flickF: 3.3, flickNear: 1.7 }, { dist: 500, bayPx: 1.3, errF: 3.0, errNear: 2.7, flickF: 6, flickNear: 3.2 }], 1.5);
+check(!b1.pass && b1.switchBayPx === null, 'a failure in the middle is not a clean split and must not invent a switch');
+const b2 = budget([{ dist: 55, bayPx: 11.7, errF: 0.5, errNear: 0.15, flickF: 0.7, flickNear: 0.25 }, { dist: 230, bayPx: 2.8, errF: 1.2, errNear: 1.1, flickF: 3.3, flickNear: 1.7 }], 1.5);
+check(!b2.pass && b2.switchBayPx > 2.8 && b2.switchBayPx < 11.7, 'near-only failure should give a switch between the rows');
+const b3 = budget([{ dist: 55, bayPx: 11.7, errF: 0.2, errNear: 0.15, flickF: 0.3, flickNear: 0.25 }], 1.5);
+check(b3.pass, 'a sweep inside the gates passes');
+console.log('budget logic: three cases (all outside, near-field only outside, all inside) behave');
 console.log(fails ? `${fails} FAILURE(S)` : 'facet selftest: all checks pass'); process.exit(fails ? 1 : 0);

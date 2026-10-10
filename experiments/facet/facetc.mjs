@@ -41,10 +41,10 @@ if (cmd === 'compile') {
   console.log(`facetc: ${ir.name}: layers [${rep.layers}] -> ${rep.walls} walls, ${rep.triangles} triangles, ${rep.wallPackageBytes} bytes (geometry: ${rep.geometryTriangles} triangles, ${rep.geometryBytesApp} bytes in the app's arrays); wrote ${OUT}`);
 } else if (cmd === 'budget') {
   const sweep = JSON.parse(fs.readFileSync(opt('--sweep'), 'utf8'));
-  const b = budget(sweep, +opt('--gate', '1.5'));
+  const b = budget(sweep, +opt('--gate', '1.5'), +opt('--flick-gate', '2.0'));
   fs.mkdirSync(path.dirname(path.resolve(opt('--out', OUT + '/budget.json'))), { recursive: true });
   fs.writeFileSync(path.resolve(opt('--out', OUT + '/budget.json')), JSON.stringify(b, null, 1));
-  console.log(`budget: gate ${b.gate}; worst error ratio ${b.worstRatioErr.toFixed(2)}; use geometry when a bay is wider than ${b.switchBayPx.toFixed(2)} px (nearer than about ${b.geometryNearerThan} m in the sweep)`);
+  console.log(`budget: gate ${b.gate} (error ratio) and ${b.flickGate} (flicker ratio); worst error ratio ${b.worstRatioErr.toFixed(2)}, worst flicker ratio ${b.worstRatioFlick.toFixed(2)}; ${b.pass ? 'PASS at every distance swept' : 'outside the gate at ' + b.geometryAtDistances.join(', ') + ' m'}; ${b.note}`);
 } else if (cmd === 'refuse') {
   const dir = path.join(REPO, 'data/apartments'); const tally = { accepted: { uses: 0, metres: 0 }, refused: { uses: 0, metres: 0 } }; const why = {}; const byBuilding = [];
   for (const f of fs.readdirSync(dir)) {

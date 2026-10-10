@@ -214,11 +214,14 @@ export function bake(ir, walls) {
  * gate: the most the shader wall may be worse than the competing geometry, as a ratio of the mean error. Returns the representation per range:
  * geometry where the ratio is above the gate (closer than switchBayPx pixels a bay), the shader wall elsewhere.
  */
-export function budget(sweep, gate, byFlicker = true) {
+export function budget(sweep, gate, flickGate = 2.0) {
   const rows = sweep.map(r => ({ ...r, ratioErr: r.errF / Math.max(r.errNear, 1e-6), ratioFlick: r.flickF / Math.max(r.flickNear, 1e-6) }));
-  const ok = r => r.ratioErr <= gate && (!byFlicker || r.ratioFlick <= gate * 1.6);
-  const shaderRows = rows.filter(ok), geomRows = rows.filter(r => !ok(r));
-  const switchBayPx = geomRows.length ? Math.max(...geomRows.map(r => r.bayPx)) : 0;
-  const firstShader = shaderRows.filter(r => r.bayPx < (switchBayPx || Infinity)).sort((a, b) => b.bayPx - a.bayPx)[0];
-  return { gate, switchBayPx: firstShader && geomRows.length ? (switchBayPx + firstShader.bayPx) / 2 : switchBayPx, rows, worstRatioErr: Math.max(...rows.map(r => r.ratioErr)), geometryNearerThan: geomRows.length ? Math.min(...geomRows.map(r => r.dist)) : null, note: 'use geometry when a bay is wider than switchBayPx pixels; the shader wall otherwise' };
+  for (const r of rows) r.pass = r.ratioErr <= gate && r.ratioFlick <= flickGate;
+  const failing = rows.filter(r => !r.pass).sort((x, y) => x.dist - y.dist), passing = rows.filter(r => r.pass).sort((x, y) => x.dist - y.dist);
+  // a clean budget is "geometry nearer than D": every failing row is nearer than every passing row. Otherwise report the failing distances as they are.
+  const monotone = failing.length && passing.length && failing.at(-1).dist < passing[0].dist;
+  const switchBayPx = monotone ? (failing.at(-1).bayPx + passing[0].bayPx) / 2 : (failing.length ? null : 0);
+  return { gate, flickGate, worstRatioErr: Math.max(...rows.map(r => r.ratioErr)), worstRatioFlick: Math.max(...rows.map(r => r.ratioFlick)), pass: !failing.length,
+    switchBayPx, geometryAtDistances: failing.map(r => r.dist), rows,
+    note: !failing.length ? 'the shader wall is inside the gate at every distance swept: no switch distance is needed for this skin (geometry stays only for what the shader cannot draw)' : monotone ? 'use geometry when a bay is wider than switchBayPx pixels; the shader wall otherwise' : 'the shader wall is outside the gate only at the listed distances (not a clean near/far split): widen the gate or look at those views' };
 }

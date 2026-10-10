@@ -43,9 +43,10 @@ try {
   result.sweep = rows; fs.writeFileSync(path.join(OUT, 'sweep.json'), JSON.stringify(rows, null, 1));
   const b = budget(rows.map(r => ({ dist: r.dist, bayPx: r.bayPx, errF: r.errF, errNear: r.errNear, flickF: r.flickF, flickNear: r.flickNear })), GATE);
   result.budget = b; fs.writeFileSync(path.join(OUT, 'budget.json'), JSON.stringify(b, null, 1));
-  console.log(`BUDGET gate ${GATE}: worst error ratio F / A4 ${b.worstRatioErr.toFixed(2)}; geometry when a bay is wider than ${b.switchBayPx.toFixed(2)} px (nearer than ${b.geometryNearerThan} m in this sweep)`);
+  console.log(`BUDGET gate ${GATE}: worst error ratio F / A4 ${b.worstRatioErr.toFixed(2)}, worst flicker ratio ${b.worstRatioFlick.toFixed(2)}; ${b.note}`);
   // hybrid: geometry with MSAA at or below the switch distance, the shader wall beyond it
-  const hyb = rows.map(r => ({ dist: r.dist, uses: r.bayPx > b.switchBayPx ? 'geometry 4x MSAA' : 'Facet shader wall', err: r.bayPx > b.switchBayPx ? r.errNear : r.errF, flick: r.bayPx > b.switchBayPx ? r.flickNear : r.flickF, errNear: r.errNear, popAtSwitch: r.FvsA4 }));
+  const sw = b.switchBayPx == null ? (b.pass ? 0 : Infinity) : b.switchBayPx;   // pass: shader everywhere; no clean split: report only
+  const hyb = rows.map(r => ({ dist: r.dist, uses: r.bayPx > sw ? 'geometry 4x MSAA' : 'Facet shader wall', err: r.bayPx > sw ? r.errNear : r.errF, flick: r.bayPx > sw ? r.flickNear : r.flickF, errNear: r.errNear, popAtSwitch: r.FvsA4 }));
   result.hybrid = hyb; console.log('hybrid:', JSON.stringify(hyb.map(h => [h.dist, h.uses, h.err])));
   // frame time for the compiler's shader against the hand-written one and the geometry, a city of 100 towers
   const city = { name: 'city', dist: 650, el: 30, az: 200, tz: 30 };
