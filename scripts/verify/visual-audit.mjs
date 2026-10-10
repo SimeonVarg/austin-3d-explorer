@@ -636,7 +636,7 @@ async function proofGroup() {
         await c3.close(); return moved;
       };
       const still = await mk('reduce'), normal = await mk('no-preference');
-      check('A10', 'with reduced motion the camera stays put after the veil lifts; without it, it flies', still < 1e-5 && normal > 1e-4, `reduce=${still.toExponential(1)} normal=${normal.toExponential(1)}`);
+      check('A10', 'with reduced motion the camera does not fly after the veil lifts (MapLibre jumps; without the setting it flies)', still < 1e-5 && normal > 1e-4, `reduce=${still.toExponential(1)} normal=${normal.toExponential(1)}`);
     });
 
     // ── A11 the loader caption size, one early frame ───────────────────────────────────────────────────────

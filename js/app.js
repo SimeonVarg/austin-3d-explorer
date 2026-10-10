@@ -2073,9 +2073,7 @@ window.CityLighting.install(map);
     const liveHere = q.get('livehere') === '1' && q.get('walk') !== '0';
     // A phone on a lighter tier (js/mobile.js) skips the flight: it is the
     // load's memory peak, and that tier exists because the peak did not fit.
-    // A visitor who asked their system for reduced motion does not get the 12 s opening flight (A10).
-    const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    const doIntro = !doTour && !doSlider && !liveHere && q.get('intro') !== '0' && !reduceMotion &&
+    const doIntro = !doTour && !doSlider && !liveHere && q.get('intro') !== '0' &&
                     !(PHONE_BUDGET && PHONE_BUDGET.intro === false);
     const flight = doIntro ? primeIntro() : null;   // jumps to INTRO.start
     // Shot A primes ITS first waypoint under the veil, the same way the intro
