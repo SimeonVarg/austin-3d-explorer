@@ -25,7 +25,7 @@ const REPS = +arg('--reps', 5), MEMREPS = +arg('--memreps', 3);
 const ARMS = arg('--arms', 'off,on,pack,packrust,worker');
 const OUT = process.env.VERIFY_OUT || '/tmp/perf-rustpack-suite';
 const URLB = process.env.VERIFY_URL || 'http://127.0.0.1:8442';
-const QUERY = { off: '', on: 'rustbuilder=1', pack: 'packverts=1', packrust: 'rustbuilder=1&packverts=1', worker: 'buildworker=1', workerpack: 'buildworker=1&packverts=1' };
+const QUERY = { off: '', on: 'rustbuilder=1', pack: 'packverts=1', packrust: 'rustbuilder=1&packverts=1', packmerge: 'packverts=1&packmerge=1', worker: 'buildworker=1', workerpack: 'buildworker=1&packverts=1' };
 let code = 0;
 const run = (name, file, args, env = {}) => {
   console.log(`\n===== ${name} =====`);

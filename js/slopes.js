@@ -371,6 +371,11 @@
     toneBits: 14,
     texWidth: 4096,      // width of both tables' float textures, in texels (a tone takes 4 texels in one row, a normal 1)
     normalHash0: 1 << 14, // the normal interner's first hash-table size (it doubles at half full)
+    // ?packmerge=1 (needs ?packverts=1; default OFF): the finished mesh is rewritten as several meshes of at most `mergeChunkVertices` vertices each, with 16-bit
+    // indices, and vertices that are identical (the same position bits and the same word) are stored once. Triangles keep their order. The JS store does it.
+    merge: q.get('packmerge') === '1',
+    mergeChunkVertices: 65535,   // the most a 16-bit index can address
+    mergeHash: 1 << 18,          // a chunk's vertex hash table (open addressing, at most a quarter full)
   };
   const PACK_TONES = 2 ** PACK.toneBits, PACK_NLOW = 2 ** (15 - PACK.toneBits);
   const RUST_INFO = { on: RUST.on, state: RUST.on ? 'loading' : 'off', compileMs: 0, builds: 0, error: null };
@@ -1365,7 +1370,7 @@ ${window.RoofTiles.apply}
   function build(initialCapacity = 1 << 16, opts) {
     // The Rust builder, when the page asked for it (?rustbuilder=1), it has loaded, and this caller opted in.
     // With opts.pack (?packverts=1) it writes the packed layout itself and fills the same tables object (js/slopes-rust.js).
-    if (_rustBuild && opts && opts.wasm) {
+    if (_rustBuild && opts && opts.wasm && !(opts.pack && PACK.merge)) {   // (?packmerge=1 is written by the JS store)
       try { return _rustBuild(initialCapacity, opts); }
       catch (e) { rustFallback(e); }   // the module would not even start (out of memory, a bad instance): the JS builder, now and from here on
     }
@@ -1567,7 +1572,57 @@ ${window.RoofTiles.apply}
       return g;
     }
     function facet(v) { _facet = v ? 1 : 0; }
-    return { tri, triN, quad, polygon, extrude, geometry, facet, get triangles() { return tris; } };
+    /** ?packmerge=1: the packed mesh as several meshes with 16-bit indices and identical vertices stored once (see PACK.merge); triangles keep their order */
+    function geometries() {
+      const MAXV = PACK.mergeChunkVertices, HS = PACK.mergeHash, HM = HS - 1;
+      const out = [];
+      const hash = new Int32Array(HS);
+      let cpos = new Float32Array(MAXV * 3), cw = new Uint16Array(MAXV * 2), cidx = new Uint16Array(3 * 16384), nv = 0, ni = 0;
+      let cposb = new Uint32Array(cpos.buffer);
+      const used = [];   // hash slots to clear
+      const hashOf = (a, b, c, lo, hi) => { let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35) ^ Math.imul(c ^ 0x165667b1, 0x27d4eb2f) ^ Math.imul(lo | (hi << 16), 0x2c1b3c6d); h ^= h >>> 15; h = Math.imul(h, 0x2545f491); return h ^ (h >>> 13); };
+      const pb = new Uint32Array(P.buffer, P.byteOffset, P.length);
+      const flush = () => {
+        if (!ni) return;
+        const g = new T.BufferGeometry();
+        g.setAttribute('position', new T.BufferAttribute(cpos.slice(0, nv * 3), 3));
+        g.setAttribute('aPack', new T.BufferAttribute(cw.slice(0, nv * 2), 2, false));
+        g.setIndex(new T.BufferAttribute(cidx.slice(0, ni), 1));
+        g.userData.pack = PK;
+        g.computeBoundingSphere();
+        out.push(g);
+        for (const s of used) hash[s] = 0;
+        used.length = 0; nv = 0; ni = 0;
+      };
+      const find = v => {   // the chunk-local index of source vertex v, adding it if new; -1 when the chunk is full
+        const a = pb[v * 3], b = pb[v * 3 + 1], c = pb[v * 3 + 2], lo = PW[v * 2], hi = PW[v * 2 + 1];
+        let i = hashOf(a, b, c, lo, hi) & HM;
+        for (;;) {
+          const e = hash[i];
+          if (!e) break;
+          const k = e - 1;
+          if (cposb[k * 3] === a && cposb[k * 3 + 1] === b && cposb[k * 3 + 2] === c && cw[k * 2] === lo && cw[k * 2 + 1] === hi) return k;
+          i = (i + 1) & HM;
+        }
+        if (nv >= MAXV) return -1;
+        const k = nv++;
+        cposb[k * 3] = a; cposb[k * 3 + 1] = b; cposb[k * 3 + 2] = c; cw[k * 2] = lo; cw[k * 2 + 1] = hi;
+        hash[i] = k + 1; used.push(i);
+        return k;
+      };
+      for (let t = 0; t < nI; t += 3) {
+        // a triangle goes into the current chunk only if all three of its vertices fit; otherwise the chunk is closed and the triangle opens the next
+        let a = find(IDX[t]), b = a < 0 ? -1 : find(IDX[t + 1]), c = b < 0 ? -1 : find(IDX[t + 2]);
+        if (a < 0 || b < 0 || c < 0) { flush(); a = find(IDX[t]); b = find(IDX[t + 1]); c = find(IDX[t + 2]); }
+        if (ni + 3 > cidx.length) { const g2 = new Uint16Array(cidx.length * 2); g2.set(cidx); cidx = g2; }
+        cidx[ni++] = a; cidx[ni++] = b; cidx[ni++] = c;
+      }
+      flush();
+      return out;
+    }
+    const api = { tri, triN, quad, polygon, extrude, geometry, facet, get triangles() { return tris; } };
+    if (PK && PACK.merge) api.geometries = geometries;
+    return api;
   }
 
   /**

@@ -34,6 +34,7 @@ const PARAMS = {
     off: '',
     on: '&rustbuilder=1',
     reserve: '&rustbuilder=1&rustreserve=6523203',   // the Rust builder told the vertex count (the study: 650 MiB of linear memory -> 357 MiB)
+    packmerge: '&packverts=1&packmerge=1',            // packed AND merged: identical vertices stored once, 16-bit indices, about 83 meshes (js/slopes.js PACK.merge)
     pack: '&packverts=1',                             // the packed vertex layout (js/slopes.js PACK)
     packrust: '&rustbuilder=1&packverts=1',           // both switches (the Rust builder writes the packed layout when the Rust-packed pull request is in; else the JS one does)
     worker: '&buildworker=1',                         // the generator + builder in a Web Worker (js/build-worker.js), the main thread replays what it registers
@@ -114,9 +115,13 @@ async function one(mode, run) {
         if (!g.userData.pack) parts.push(await sha(g.index.array));
         bytes += g.index.array.byteLength; tris += g.index.count / 3;
       }
+      // frame time with the buildings on screen: 240 frames of a slow turn at the spawn view, p50 / p90 of the gaps (the packed shader reads two textures per
+      // vertex and ?packmerge=1 draws about 83 meshes: this is where either would show)
+      const dts = []; { const m = window.__map; let last = performance.now(), b = m.getBearing(); await new Promise(res => { const step = () => { const now = performance.now(); dts.push(now - last); last = now; b += 0.25; m.setBearing(b); if (dts.length < 240) requestAnimationFrame(step); else res(); }; requestAnimationFrame(step); }); }
+      const fs = dts.slice(10).sort((a, b) => a - b), frameP50 = fs[fs.length >> 1], frameP90 = fs[Math.floor(fs.length * 0.9)];
       if (window.gc) { window.gc(); window.gc(); }   // the settled heap: after a forced collection, once the build has landed
       const heapSettledMb = performance.memory ? performance.memory.usedJSHeapSize / 1048576 : 0;
-      return { heapSettledMb, longTaskMaxMs: rb.longTaskMax, longTaskTotalMs: rb.longTaskTotal, longTasks: rb.longTasks, workerState: window.__aptsBuild && window.__aptsBuild.buildWorkerState ? window.__aptsBuild.buildWorkerState() : null, gpuUploadMb: rb.uploads.reduce((a, b) => a + b, 0) / 1048576, gpuUploads: rb.uploads.length, countMs: c.ms, slices: c.buildSlices, triangles: c.triangles, builtAt: rb.builtAt, readyAt: rb.readyAt, heapPeakMb: rb.heapPeak / 1048576,
+      return { frameP50, frameP90, heapSettledMb, longTaskMaxMs: rb.longTaskMax, longTaskTotalMs: rb.longTaskTotal, longTasks: rb.longTasks, workerState: window.__aptsBuild && window.__aptsBuild.buildWorkerState ? window.__aptsBuild.buildWorkerState() : null, gpuUploadMb: rb.uploads.reduce((a, b) => a + b, 0) / 1048576, gpuUploads: rb.uploads.length, countMs: c.ms, slices: c.buildSlices, triangles: c.triangles, builtAt: rb.builtAt, readyAt: rb.readyAt, heapPeakMb: rb.heapPeak / 1048576,
         rust: window.slopes.rustInfo(), packOn: window.slopes.packOn(), geomBytesMb: bytes / 1048576, geomTris: tris, geomSha: parts.length ? await sha(new TextEncoder().encode(parts.join(''))) : null,
         gfx: window.GFX && window.GFX.preset };
     });
@@ -134,7 +139,7 @@ for (let r = 0; r < RUNS; r++) {
     try {
       const x = await one(m, r);
       results.push(x);
-      console.log(`run ${r} ${m.padEnd(7)} count.ms ${String(x.countMs).padStart(8)}  builtAt ${(x.builtAt / 1000).toFixed(1)}s  readyAt ${(x.readyAt / 1000).toFixed(1)}s  gpuUpload ${x.gpuUploadMb.toFixed(0)} MB (${x.gpuUploads} buffers)  heapPeak ${x.heapPeakMb.toFixed(0)} MB (settled ${x.heapSettledMb.toFixed(0)})  longest task ${x.longTaskMaxMs.toFixed(0)} ms (${x.longTasks} over 50 ms)  rssPeak ${x.rssPeakMb.toFixed(0)} MB  tris ${x.triangles}  sha ${String(x.geomSha).slice(0, 10)}  rust ${x.rust.state}${x.errors.length ? '  ERRORS ' + x.errors.join(' | ') : ''}  (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+      console.log(`run ${r} ${m.padEnd(7)} count.ms ${String(x.countMs).padStart(8)}  builtAt ${(x.builtAt / 1000).toFixed(1)}s  readyAt ${(x.readyAt / 1000).toFixed(1)}s  gpuUpload ${x.gpuUploadMb.toFixed(0)} MB (${x.gpuUploads} buffers)  heapPeak ${x.heapPeakMb.toFixed(0)} MB (settled ${x.heapSettledMb.toFixed(0)})  frame p50 ${x.frameP50.toFixed(1)} ms p90 ${x.frameP90.toFixed(1)}  longest task ${x.longTaskMaxMs.toFixed(0)} ms (${x.longTasks} over 50 ms)  rssPeak ${x.rssPeakMb.toFixed(0)} MB  tris ${x.triangles}  sha ${String(x.geomSha).slice(0, 10)}  rust ${x.rust.state}${x.errors.length ? '  ERRORS ' + x.errors.join(' | ') : ''}  (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
     } catch (e) { console.log(`run ${r} ${m}: FAILED ${e.message.split('\n')[0]}`); results.push({ mode: m, run: r, failed: e.message.split('\n')[0] }); }
   }
 }
@@ -143,7 +148,7 @@ console.log('\nmin / median / max over the runs that finished (other lanes share
 for (const m of MODES) {
   const rs = results.filter(x => x.mode === m && !x.failed);
   if (!rs.length) { console.log(m.padEnd(8) + ' no finished runs'); continue; }
-  console.log(`${m.padEnd(8)} n=${rs.length}  count.ms ${fmt(rs.map(x => x.countMs))}   builtAt s ${fmt(rs.map(x => x.builtAt / 1000), 1)}   readyAt s ${fmt(rs.map(x => x.readyAt / 1000), 1)}   gpuUpload MB ${fmt(rs.map(x => x.gpuUploadMb))}   heapPeak MB ${fmt(rs.map(x => x.heapPeakMb))}   settled MB ${fmt(rs.map(x => x.heapSettledMb))}   longest task ms ${fmt(rs.map(x => x.longTaskMaxMs))}   rssPeak MB ${fmt(rs.map(x => x.rssPeakMb))}   geometry ${[...new Set(rs.map(x => x.geomSha && x.geomSha.slice(0, 10)))].join(',')}`);
+  console.log(`${m.padEnd(8)} n=${rs.length}  count.ms ${fmt(rs.map(x => x.countMs))}   builtAt s ${fmt(rs.map(x => x.builtAt / 1000), 1)}   readyAt s ${fmt(rs.map(x => x.readyAt / 1000), 1)}   gpuUpload MB ${fmt(rs.map(x => x.gpuUploadMb))}   heapPeak MB ${fmt(rs.map(x => x.heapPeakMb))}   settled MB ${fmt(rs.map(x => x.heapSettledMb))}   frame p50 ms ${fmt(rs.map(x => x.frameP50), 1)}   longest task ms ${fmt(rs.map(x => x.longTaskMaxMs))}   rssPeak MB ${fmt(rs.map(x => x.rssPeakMb))}   geometry ${[...new Set(rs.map(x => x.geomSha && x.geomSha.slice(0, 10)))].join(',')}`);
 }
 const shas = new Set(results.filter(x => !x.failed).map(x => x.geomSha));
 console.log(shas.size === 1 ? 'every run built the identical geometry (sha256 of all eight arrays)' : `GEOMETRY DIFFERS between runs: ${[...shas].join(' ')}`);
