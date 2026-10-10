@@ -1,0 +1,1164 @@
+{
+ "when": "2026-10-10T08:21:04.976Z",
+ "hardware": true,
+ "quality": {
+  "street-55m": {
+   "view": "street-55m",
+   "dist": 55,
+   "mPerPx": 0.152,
+   "bayPx": 11.74,
+   "arms": {
+    "A": {
+     "err": {
+      "n": 87357,
+      "mean": 1.552,
+      "p99": 17.5
+     },
+     "errDetail": {
+      "n": 42317,
+      "mean": 3.202,
+      "p99": 20.1
+     },
+     "errFlat": {
+      "n": 45040,
+      "mean": 0.002,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 87854,
+      "mean": 1.735,
+      "p99": 19.29
+     },
+     "band": 1.227,
+     "flicker": {
+      "mean": 2.105,
+      "p99": 14.49
+     }
+    },
+    "B": {
+     "err": {
+      "n": 87357,
+      "mean": 0.302,
+      "p99": 7.83
+     },
+     "errDetail": {
+      "n": 42317,
+      "mean": 0.621,
+      "p99": 7.96
+     },
+     "errFlat": {
+      "n": 45040,
+      "mean": 0.003,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 87854,
+      "mean": 0.491,
+      "p99": 8.96
+     },
+     "band": 0.353,
+     "flicker": {
+      "mean": 0.711,
+      "p99": 6.51
+     }
+    },
+    "Bt": {
+     "err": {
+      "n": 87357,
+      "mean": 0.444,
+      "p99": 7.83
+     },
+     "errDetail": {
+      "n": 42317,
+      "mean": 0.858,
+      "p99": 8.17
+     },
+     "errFlat": {
+      "n": 45040,
+      "mean": 0.055,
+      "p99": 0.33
+     },
+     "errWithEdges": {
+      "n": 87854,
+      "mean": 0.632,
+      "p99": 8.67
+     },
+     "band": 0.448,
+     "flicker": {
+      "mean": 0.839,
+      "p99": 6.57
+     }
+    },
+    "A4": {
+     "err": {
+      "n": 87357,
+      "mean": 0.148,
+      "p99": 3.79
+     },
+     "errDetail": {
+      "n": 42317,
+      "mean": 0.303,
+      "p99": 4.71
+     },
+     "errFlat": {
+      "n": 45040,
+      "mean": 0.002,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 87854,
+      "mean": 0.187,
+      "p99": 4.04
+     },
+     "band": 0.114,
+     "flicker": {
+      "mean": 0.25,
+      "p99": 2.77
+     }
+    }
+   },
+   "pixels": {
+    "interior": 87357,
+    "interiorPct": 34.12,
+    "flatOfInterior": 51.6,
+    "edge": 497
+   },
+   "cross": {
+    "B vs truth(A)": {
+     "n": 87357,
+     "mean": 0.669,
+     "p99": 7.75
+    },
+    "Bt vs truth(A)": {
+     "n": 87357,
+     "mean": 0.727,
+     "p99": 7.75
+    },
+    "A4 vs truth(A)": {
+     "n": 87357,
+     "mean": 0.148,
+     "p99": 3.79
+    },
+    "truth(B) vs truth(A)": {
+     "n": 87357,
+     "mean": 0.448,
+     "p99": 4.21
+    },
+    "A vs truth(B)": {
+     "n": 87357,
+     "mean": 1.647,
+     "p99": 16
+    }
+   }
+  },
+  "near-110m": {
+   "view": "near-110m",
+   "dist": 110,
+   "mPerPx": 0.305,
+   "bayPx": 5.87,
+   "arms": {
+    "A": {
+     "err": {
+      "n": 33953,
+      "mean": 3.209,
+      "p99": 20.17
+     },
+     "errDetail": {
+      "n": 27144,
+      "mean": 4.008,
+      "p99": 21.42
+     },
+     "errFlat": {
+      "n": 6809,
+      "mean": 0.026,
+      "p99": 0.25
+     },
+     "errWithEdges": {
+      "n": 34767,
+      "mean": 3.948,
+      "p99": 37.19
+     },
+     "band": 2.267,
+     "flicker": {
+      "mean": 4.047,
+      "p99": 22.86
+     }
+    },
+    "B": {
+     "err": {
+      "n": 33953,
+      "mean": 0.648,
+      "p99": 8.19
+     },
+     "errDetail": {
+      "n": 27144,
+      "mean": 0.809,
+      "p99": 11.4
+     },
+     "errFlat": {
+      "n": 6809,
+      "mean": 0.006,
+      "p99": 0.25
+     },
+     "errWithEdges": {
+      "n": 34767,
+      "mean": 1.447,
+      "p99": 37.19
+     },
+     "band": 0.695,
+     "flicker": {
+      "mean": 1.437,
+      "p99": 22.32
+     }
+    },
+    "Bt": {
+     "err": {
+      "n": 33953,
+      "mean": 0.862,
+      "p99": 9.13
+     },
+     "errDetail": {
+      "n": 27144,
+      "mean": 1.064,
+      "p99": 11.75
+     },
+     "errFlat": {
+      "n": 6809,
+      "mean": 0.059,
+      "p99": 0.33
+     },
+     "errWithEdges": {
+      "n": 34767,
+      "mean": 1.656,
+      "p99": 37.19
+     },
+     "band": 0.799,
+     "flicker": {
+      "mean": 1.591,
+      "p99": 22.31
+     }
+    },
+    "A4": {
+     "err": {
+      "n": 33953,
+      "mean": 0.369,
+      "p99": 4.88
+     },
+     "errDetail": {
+      "n": 27144,
+      "mean": 0.461,
+      "p99": 5.27
+     },
+     "errFlat": {
+      "n": 6809,
+      "mean": 0.005,
+      "p99": 0.25
+     },
+     "errWithEdges": {
+      "n": 34767,
+      "mean": 0.518,
+      "p99": 7.44
+     },
+     "band": 0.241,
+     "flicker": {
+      "mean": 0.622,
+      "p99": 3.47
+     }
+    }
+   },
+   "pixels": {
+    "interior": 33953,
+    "interiorPct": 13.26,
+    "flatOfInterior": 20.1,
+    "edge": 814
+   },
+   "cross": {
+    "B vs truth(A)": {
+     "n": 33953,
+     "mean": 1.147,
+     "p99": 11.17
+    },
+    "Bt vs truth(A)": {
+     "n": 33953,
+     "mean": 1.27,
+     "p99": 11.54
+    },
+    "A4 vs truth(A)": {
+     "n": 33953,
+     "mean": 0.369,
+     "p99": 4.88
+    },
+    "truth(B) vs truth(A)": {
+     "n": 33953,
+     "mean": 0.707,
+     "p99": 4.69
+    },
+    "A vs truth(B)": {
+     "n": 33953,
+     "mean": 3.271,
+     "p99": 19.44
+    }
+   }
+  },
+  "mid-230m": {
+   "view": "mid-230m",
+   "dist": 230,
+   "mPerPx": 0.637,
+   "bayPx": 2.81,
+   "arms": {
+    "A": {
+     "err": {
+      "n": 6564,
+      "mean": 6.404,
+      "p99": 25.75
+     },
+     "errDetail": {
+      "n": 6407,
+      "mean": 6.561,
+      "p99": 25.75
+     },
+     "errFlat": {
+      "n": 157,
+      "mean": 0,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 6910,
+      "mean": 7.896,
+      "p99": 52.06
+     },
+     "band": 3.304,
+     "flicker": {
+      "mean": 7.856,
+      "p99": 32.34
+     }
+    },
+    "B": {
+     "err": {
+      "n": 6564,
+      "mean": 1.586,
+      "p99": 14.48
+     },
+     "errDetail": {
+      "n": 6407,
+      "mean": 1.625,
+      "p99": 14.48
+     },
+     "errFlat": {
+      "n": 157,
+      "mean": 0,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 6910,
+      "mean": 3.319,
+      "p99": 52.06
+     },
+     "band": 1.492,
+     "flicker": {
+      "mean": 3.253,
+      "p99": 31.14
+     }
+    },
+    "Bt": {
+     "err": {
+      "n": 6564,
+      "mean": 1.83,
+      "p99": 14.48
+     },
+     "errDetail": {
+      "n": 6407,
+      "mean": 1.875,
+      "p99": 14.6
+     },
+     "errFlat": {
+      "n": 157,
+      "mean": 0,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 6910,
+      "mean": 3.551,
+      "p99": 52.06
+     },
+     "band": 1.527,
+     "flicker": {
+      "mean": 3.385,
+      "p99": 31.16
+     }
+    },
+    "A4": {
+     "err": {
+      "n": 6564,
+      "mean": 1.127,
+      "p99": 7.08
+     },
+     "errDetail": {
+      "n": 6407,
+      "mean": 1.154,
+      "p99": 7.08
+     },
+     "errFlat": {
+      "n": 157,
+      "mean": 0,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 6910,
+      "mean": 1.411,
+      "p99": 14.88
+     },
+     "band": 0.48,
+     "flicker": {
+      "mean": 1.721,
+      "p99": 5.58
+     }
+    }
+   },
+   "pixels": {
+    "interior": 6564,
+    "interiorPct": 2.56,
+    "flatOfInterior": 2.4,
+    "edge": 346
+   },
+   "cross": {
+    "B vs truth(A)": {
+     "n": 6564,
+     "mean": 2.275,
+     "p99": 15.5
+    },
+    "Bt vs truth(A)": {
+     "n": 6564,
+     "mean": 2.438,
+     "p99": 15.67
+    },
+    "A4 vs truth(A)": {
+     "n": 6564,
+     "mean": 1.127,
+     "p99": 7.08
+    },
+    "truth(B) vs truth(A)": {
+     "n": 6564,
+     "mean": 1.158,
+     "p99": 6.08
+    },
+    "A vs truth(B)": {
+     "n": 6564,
+     "mean": 6.376,
+     "p99": 22.48
+    }
+   }
+  },
+  "far-500m": {
+   "view": "far-500m",
+   "dist": 500,
+   "mPerPx": 1.386,
+   "bayPx": 1.29,
+   "arms": {
+    "A": {
+     "err": {
+      "n": 1235,
+      "mean": 11.1,
+      "p99": 23.75
+     },
+     "errDetail": {
+      "n": 1235,
+      "mean": 11.1,
+      "p99": 23.75
+     },
+     "errFlat": {
+      "n": 0,
+      "mean": 0,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 1388,
+      "mean": 13.758,
+      "p99": 59.5
+     },
+     "band": 3.825,
+     "flicker": {
+      "mean": 12.161,
+      "p99": 33.9
+     }
+    },
+    "B": {
+     "err": {
+      "n": 1235,
+      "mean": 3.382,
+      "p99": 18.33
+     },
+     "errDetail": {
+      "n": 1235,
+      "mean": 3.382,
+      "p99": 18.33
+     },
+     "errFlat": {
+      "n": 0,
+      "mean": 0,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 1388,
+      "mean": 6.89,
+      "p99": 59.5
+     },
+     "band": 3.721,
+     "flicker": {
+      "mean": 6.003,
+      "p99": 32.57
+     }
+    },
+    "Bt": {
+     "err": {
+      "n": 1235,
+      "mean": 3.34,
+      "p99": 16.83
+     },
+     "errDetail": {
+      "n": 1235,
+      "mean": 3.34,
+      "p99": 16.83
+     },
+     "errFlat": {
+      "n": 0,
+      "mean": 0,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 1388,
+      "mean": 6.853,
+      "p99": 59.5
+     },
+     "band": 3.404,
+     "flicker": {
+      "mean": 5.944,
+      "p99": 32.54
+     }
+    },
+    "A4": {
+     "err": {
+      "n": 1235,
+      "mean": 2.678,
+      "p99": 8.08
+     },
+     "errDetail": {
+      "n": 1235,
+      "mean": 2.678,
+      "p99": 8.08
+     },
+     "errFlat": {
+      "n": 0,
+      "mean": 0,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 1388,
+      "mean": 3.37,
+      "p99": 22.35
+     },
+     "band": 0.721,
+     "flicker": {
+      "mean": 3.272,
+      "p99": 7.91
+     }
+    }
+   },
+   "pixels": {
+    "interior": 1235,
+    "interiorPct": 0.48,
+    "flatOfInterior": 0,
+    "edge": 153
+   },
+   "cross": {
+    "B vs truth(A)": {
+     "n": 1235,
+     "mean": 4.482,
+     "p99": 20.63
+    },
+    "Bt vs truth(A)": {
+     "n": 1235,
+     "mean": 4.355,
+     "p99": 19.46
+    },
+    "A4 vs truth(A)": {
+     "n": 1235,
+     "mean": 2.678,
+     "p99": 8.08
+    },
+    "truth(B) vs truth(A)": {
+     "n": 1235,
+     "mean": 1.767,
+     "p99": 6.98
+    },
+    "A vs truth(B)": {
+     "n": 1235,
+     "mean": 11.118,
+     "p99": 21.44
+    }
+   }
+  },
+  "far-grazing": {
+   "view": "far-grazing",
+   "dist": 500,
+   "mPerPx": 1.386,
+   "bayPx": 1.29,
+   "arms": {
+    "A": {
+     "err": {
+      "n": 1386,
+      "mean": 10.379,
+      "p99": 29.46
+     },
+     "errDetail": {
+      "n": 1384,
+      "mean": 10.367,
+      "p99": 29.46
+     },
+     "errFlat": {
+      "n": 2,
+      "mean": 18.5,
+      "p99": 18.5
+     },
+     "errWithEdges": {
+      "n": 1491,
+      "mean": 12.23,
+      "p99": 57
+     },
+     "band": 5.182,
+     "flicker": {
+      "mean": 10.575,
+      "p99": 33.68
+     }
+    },
+    "B": {
+     "err": {
+      "n": 1386,
+      "mean": 3.363,
+      "p99": 18.44
+     },
+     "errDetail": {
+      "n": 1384,
+      "mean": 3.366,
+      "p99": 18.44
+     },
+     "errFlat": {
+      "n": 2,
+      "mean": 1.677,
+      "p99": 1.83
+     },
+     "errWithEdges": {
+      "n": 1491,
+      "mean": 5.708,
+      "p99": 57
+     },
+     "band": 4.61,
+     "flicker": {
+      "mean": 5.302,
+      "p99": 31.45
+     }
+    },
+    "Bt": {
+     "err": {
+      "n": 1386,
+      "mean": 3.352,
+      "p99": 17.85
+     },
+     "errDetail": {
+      "n": 1384,
+      "mean": 3.356,
+      "p99": 17.85
+     },
+     "errFlat": {
+      "n": 2,
+      "mean": 0.51,
+      "p99": 0.52
+     },
+     "errWithEdges": {
+      "n": 1491,
+      "mean": 5.698,
+      "p99": 57
+     },
+     "band": 4.398,
+     "flicker": {
+      "mean": 5.26,
+      "p99": 31.36
+     }
+    },
+    "A4": {
+     "err": {
+      "n": 1386,
+      "mean": 2.382,
+      "p99": 8.58
+     },
+     "errDetail": {
+      "n": 1384,
+      "mean": 2.385,
+      "p99": 8.58
+     },
+     "errFlat": {
+      "n": 2,
+      "mean": 0.375,
+      "p99": 0.42
+     },
+     "errWithEdges": {
+      "n": 1491,
+      "mean": 2.571,
+      "p99": 14.42
+     },
+     "band": 0.693,
+     "flicker": {
+      "mean": 3.018,
+      "p99": 5.85
+     }
+    }
+   },
+   "pixels": {
+    "interior": 1386,
+    "interiorPct": 0.54,
+    "flatOfInterior": 0.1,
+    "edge": 105
+   },
+   "cross": {
+    "B vs truth(A)": {
+     "n": 1386,
+     "mean": 4.167,
+     "p99": 19.33
+    },
+    "Bt vs truth(A)": {
+     "n": 1386,
+     "mean": 4.062,
+     "p99": 19.67
+    },
+    "A4 vs truth(A)": {
+     "n": 1386,
+     "mean": 2.382,
+     "p99": 8.58
+    },
+    "truth(B) vs truth(A)": {
+     "n": 1386,
+     "mean": 1.958,
+     "p99": 6.63
+    },
+    "A vs truth(B)": {
+     "n": 1386,
+     "mean": 10.379,
+     "p99": 27.29
+    }
+   }
+  },
+  "vfar-1100m": {
+   "view": "vfar-1100m",
+   "dist": 1100,
+   "mPerPx": 3.049,
+   "bayPx": 0.59,
+   "arms": {
+    "A": {
+     "err": {
+      "n": 225,
+      "mean": 15.894,
+      "p99": 25.9
+     },
+     "errDetail": {
+      "n": 225,
+      "mean": 15.894,
+      "p99": 25.9
+     },
+     "errFlat": {
+      "n": 0,
+      "mean": 0,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 304,
+      "mean": 20.758,
+      "p99": 65.54
+     },
+     "band": 4.693,
+     "flicker": {
+      "mean": 17.852,
+      "p99": 36.41
+     }
+    },
+    "B": {
+     "err": {
+      "n": 225,
+      "mean": 5.915,
+      "p99": 20.35
+     },
+     "errDetail": {
+      "n": 225,
+      "mean": 5.915,
+      "p99": 20.35
+     },
+     "errFlat": {
+      "n": 0,
+      "mean": 0,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 304,
+      "mean": 13.37,
+      "p99": 65.54
+     },
+     "band": 5.64,
+     "flicker": {
+      "mean": 8.215,
+      "p99": 34.03
+     }
+    },
+    "Bt": {
+     "err": {
+      "n": 225,
+      "mean": 5.786,
+      "p99": 19.85
+     },
+     "errDetail": {
+      "n": 225,
+      "mean": 5.786,
+      "p99": 19.85
+     },
+     "errFlat": {
+      "n": 0,
+      "mean": 0,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 304,
+      "mean": 13.274,
+      "p99": 65.54
+     },
+     "band": 5.337,
+     "flicker": {
+      "mean": 8.262,
+      "p99": 33.96
+     }
+    },
+    "A4": {
+     "err": {
+      "n": 225,
+      "mean": 5.437,
+      "p99": 15.83
+     },
+     "errDetail": {
+      "n": 225,
+      "mean": 5.437,
+      "p99": 15.83
+     },
+     "errFlat": {
+      "n": 0,
+      "mean": 0,
+      "p99": 0
+     },
+     "errWithEdges": {
+      "n": 304,
+      "mean": 6.696,
+      "p99": 27.6
+     },
+     "band": 0.987,
+     "flicker": {
+      "mean": 5.934,
+      "p99": 10.62
+     }
+    }
+   },
+   "pixels": {
+    "interior": 225,
+    "interiorPct": 0.09,
+    "flatOfInterior": 0,
+    "edge": 79
+   },
+   "cross": {
+    "B vs truth(A)": {
+     "n": 225,
+     "mean": 8.188,
+     "p99": 23.9
+    },
+    "Bt vs truth(A)": {
+     "n": 225,
+     "mean": 7.996,
+     "p99": 23.9
+    },
+    "A4 vs truth(A)": {
+     "n": 225,
+     "mean": 5.437,
+     "p99": 15.83
+    },
+    "truth(B) vs truth(A)": {
+     "n": 225,
+     "mean": 3.157,
+     "p99": 9.02
+    },
+    "A vs truth(B)": {
+     "n": 225,
+     "mean": 15.065,
+     "p99": 26.23
+    }
+   }
+  }
+ },
+ "perf": {
+  "1 tower, 1440x900": {
+   "W": 1440,
+   "H": 900,
+   "towers": 1,
+   "parts": "facade",
+   "coveredPct": 2.8,
+   "trianglesA": 42252,
+   "trianglesB": 196,
+   "A": {
+    "wallMin": 0.02,
+    "wallMed": 0.035,
+    "gpuMin": 0.009,
+    "reps": 7
+   },
+   "B": {
+    "wallMin": 0.02,
+    "wallMed": 0.03,
+    "gpuMin": 0.003,
+    "reps": 7
+   }
+  },
+  "1 tower close, 1440x900": {
+   "W": 1440,
+   "H": 900,
+   "towers": 1,
+   "parts": "facade",
+   "coveredPct": 13.5,
+   "trianglesA": 42252,
+   "trianglesB": 196,
+   "A": {
+    "wallMin": 0.02,
+    "wallMed": 0.03,
+    "gpuMin": 0.011,
+    "reps": 7
+   },
+   "B": {
+    "wallMin": 0.025,
+    "wallMed": 0.04,
+    "gpuMin": 0.008,
+    "reps": 7
+   }
+  },
+  "100 towers (city of 4.2M triangles), 1440x900": {
+   "W": 1440,
+   "H": 900,
+   "towers": 100,
+   "parts": "facade",
+   "coveredPct": 33.6,
+   "trianglesA": 4225200,
+   "trianglesB": 19600,
+   "A": {
+    "wallMin": 0.905,
+    "wallMed": 0.915,
+    "gpuMin": 0.899,
+    "reps": 7
+   },
+   "B": {
+    "wallMin": 0.05,
+    "wallMed": 0.065,
+    "gpuMin": 0.039,
+    "reps": 7
+   }
+  },
+  "100 towers, 3840x2160": {
+   "W": 3840,
+   "H": 2160,
+   "towers": 100,
+   "parts": "facade",
+   "coveredPct": 32.2,
+   "trianglesA": 4225200,
+   "trianglesB": 19600,
+   "A": {
+    "wallMin": 0.92,
+    "wallMed": 0.935,
+    "gpuMin": 0.91,
+    "reps": 7
+   },
+   "B": {
+    "wallMin": 0.18,
+    "wallMed": 0.19,
+    "gpuMin": 0.166,
+    "reps": 7
+   }
+  },
+  "100 towers + podiums, 1440x900": {
+   "W": 1440,
+   "H": 900,
+   "towers": 100,
+   "parts": "all",
+   "coveredPct": 51,
+   "trianglesA": 4558500,
+   "trianglesB": 352900,
+   "A": {
+    "wallMin": 0.99,
+    "wallMed": 1,
+    "gpuMin": 0.975,
+    "reps": 7
+   },
+   "B": {
+    "wallMin": 0.12,
+    "wallMed": 0.135,
+    "gpuMin": 0.105,
+    "reps": 7
+   }
+  },
+  "100 towers, 640x400": {
+   "W": 640,
+   "H": 400,
+   "towers": 100,
+   "parts": "facade",
+   "coveredPct": 33.6,
+   "trianglesA": 4225200,
+   "trianglesB": 19600,
+   "A": {
+    "wallMin": 0.9,
+    "wallMed": 0.91,
+    "gpuMin": 0.894,
+    "reps": 7
+   },
+   "B": {
+    "wallMin": 0.035,
+    "wallMed": 0.045,
+    "gpuMin": 0.019,
+    "reps": 7
+   }
+  }
+ },
+ "info": {
+  "renderer": "ANGLE (NVIDIA Corporation, NVIDIA L4/PCIe/SSE2, OpenGL ES 3.2)",
+  "vendor": "Google Inc. (NVIDIA Corporation)",
+  "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+  "timerQuery": true,
+  "maxTex": 32768,
+  "maxRB": 32768,
+  "maxSamples": 8,
+  "anisotropic": true,
+  "multiDraw": true
+ },
+ "stats": {
+  "A": {
+   "triangles": 42252,
+   "vertices": 84504,
+   "bytesPacked24": 2535120,
+   "bytesAppFormat": 4732224,
+   "drawCalls": 1
+  },
+  "B": {
+   "triangles": 196,
+   "vertices": 392,
+   "bytes": 21560,
+   "drawCalls": 1
+  },
+  "rest": {
+   "triangles": 3333,
+   "vertices": 6967,
+   "bytes": 207204
+  },
+  "walls": 98,
+  "windows": null
+ },
+ "overdraw": {
+  "1 tower, mid-230m": {
+   "view": "mid-230m",
+   "W": 1440,
+   "H": 900,
+   "towers": 1,
+   "A": {
+    "coveredPct": 2.84,
+    "fragmentsPerCoveredPixel": 2.11,
+    "max": 8,
+    "fragmentsM": 0.078
+   },
+   "B": {
+    "coveredPct": 2.84,
+    "fragmentsPerCoveredPixel": 1.27,
+    "max": 3,
+    "fragmentsM": 0.047
+   }
+  },
+  "1 tower, street-55m": {
+   "view": "street-55m",
+   "W": 1440,
+   "H": 900,
+   "towers": 1,
+   "A": {
+    "coveredPct": 34.53,
+    "fragmentsPerCoveredPixel": 2.42,
+    "max": 11,
+    "fragmentsM": 1.082
+   },
+   "B": {
+    "coveredPct": 34.53,
+    "fragmentsPerCoveredPixel": 1.39,
+    "max": 5,
+    "fragmentsM": 0.621
+   }
+  },
+  "100 towers, city view": {
+   "view": "city",
+   "W": 1440,
+   "H": 900,
+   "towers": 100,
+   "A": {
+    "coveredPct": 33.62,
+    "fragmentsPerCoveredPixel": 2.03,
+    "max": 23,
+    "fragmentsM": 0.883
+   },
+   "B": {
+    "coveredPct": 33.62,
+    "fragmentsPerCoveredPixel": 1.36,
+    "max": 8,
+    "fragmentsM": 0.592
+   }
+  }
+ },
+ "taa": {
+  "mid-230m": {
+   "view": "mid-230m",
+   "alpha": 0.15,
+   "frames": 20,
+   "scoredFrames": 12,
+   "taa": {
+    "errMean": 4.758,
+    "flickerMean": 5.326
+   },
+   "plain": {
+    "errMean": 6.627,
+    "flickerMean": 8.653
+   }
+  },
+  "far-500m": {
+   "view": "far-500m",
+   "alpha": 0.15,
+   "frames": 20,
+   "scoredFrames": 12,
+   "taa": {
+    "errMean": 5.925,
+    "flickerMean": 6.69
+   },
+   "plain": {
+    "errMean": 11.319,
+    "flickerMean": 13.015
+   }
+  },
+  "vfar-1100m": {
+   "view": "vfar-1100m",
+   "alpha": 0.15,
+   "frames": 20,
+   "scoredFrames": 12,
+   "taa": {
+    "errMean": 7.596,
+    "flickerMean": 8.595
+   },
+   "plain": {
+    "errMean": 14.954,
+    "flickerMean": 17.621
+   }
+  }
+ },
+ "errors": [
+  "Failed to load resource: the server responded with a status of 404 (File not found)"
+ ]
+}
