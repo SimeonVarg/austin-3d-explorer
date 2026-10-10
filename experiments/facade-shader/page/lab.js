@@ -81,6 +81,7 @@ uniform float u_aa;          // footprint multiplier: 1 = a pixel-wide box (tast
 uniform float u_parallax;    // 1 = the recess is drawn, 0 = flat glass
 uniform float u_alpha;
 uniform float u_count;       // > 0: write this value instead of a colour (overdraw counting)
+uniform float u_kernel;      // 0: box filter, 1: tent (triangle) filter
 out vec4 o;
 // integral from 0 to x of a train of pulses [i*P + a, i*P + b], i in [i0, i1): closed form, no loop
 float cum(float x, float P, float a, float b, float i0, float i1) {
@@ -95,21 +96,42 @@ float cov(float x, float h, float P, float a, float b, float i0, float i1) {
   h = max(h, 1e-4);
   return (cum(x + h, P, a, b, i0, i1) - cum(x - h, P, a, b, i0, i1)) / (2.0 * h);
 }
+// the integral of cum(): lets a TENT kernel (triangle filter) be a closed form too: tent(x, h) = (C2(x+h) - 2 C2(x) + C2(x-h)) / h^2
+float cum2(float x, float P, float a, float b, float i0, float i1) {
+  if (i1 <= i0 || x <= 0.0 || b <= a) return 0.0;
+  float w = b - a, n = i1 - i0, k = floor(x / P), r = x - k * P;
+  float R = 0.5 * w * w + w * (P - b);
+  float m = clamp(k, i0, i1) - i0;
+  float full = P * w * 0.5 * m * (m - 1.0) + R * m;                       // whole periods that carry a pulse: sum of (i - i0) w P + R
+  if (k > i1) full += (k - i1) * n * w * P;                               // whole periods after the last pulse: cum is flat at n w
+  float ck = (k <= i0) ? 0.0 : (k >= i1 ? n * w : (k - i0) * w);         // cum at the start of this period
+  float part = ck * r;
+  if (k >= i0 && k < i1) part += (r <= a) ? 0.0 : (r <= b ? 0.5 * (r - a) * (r - a) : 0.5 * w * w + w * (r - b));
+  return full + part;
+}
+float covTent(float x, float h, float P, float a, float b, float i0, float i1) {
+  h = max(h, 1e-4);
+  return (cum2(x + h, P, a, b, i0, i1) - 2.0 * cum2(x, P, a, b, i0, i1) + cum2(x - h, P, a, b, i0, i1)) / (h * h);
+}
+float filt(float x, float h, float P, float a, float b, float i0, float i1) {
+  return u_kernel > 0.5 ? covTent(x, h * 1.41421356, P, a, b, i0, i1) : cov(x, h, P, a, b, i0, i1);
+}
 void main() {
   if (u_count > 0.0) { o = vec4(u_count, 0.0, 0.0, 1.0); return; }
   vec3 t = vec3(-v_n.y, v_n.x, 0.0);
   vec3 v = normalize(v_wp - u_cam);
   float vn = dot(v, v_n);
-  vec2 fw = 0.5 * u_aa * (abs(dFdx(v_sz)) + abs(dFdy(v_sz)));
+  // the pixel's footprint on the wall, as the box that has the same variance as the pixel: the L2 length of the two screen derivatives
+  vec2 fw = 0.5 * u_aa * sqrt(dFdx(v_sz) * dFdx(v_sz) + dFdy(v_sz) * dFdy(v_sz));
   float mod_ = v_bay.x, a = v_bay.y, b = v_bay.z, i0 = v_bay.w, i1 = v_i1;
   // where the ray goes on after the wall plane, down to the glass plane: the shift of the glass seen through the opening
   float tt = u_parallax * u_reveal / max(-vn, 0.02);
   vec2 d = vec2(dot(v, t), v.z) * tt;
   float sill = u_win.y, h = u_win.z, pitch = u_win.x, rows = u_win.w;
-  float openX = cov(v_sz.x, fw.x, mod_, a, b, i0, i1);
-  float openZ = cov(v_sz.y, fw.y, pitch, sill, sill + h, 0.0, rows);
-  float glassX = cov(v_sz.x, fw.x, mod_, a + max(0.0, -d.x), b - max(0.0, d.x), i0, i1);
-  float glassZ = cov(v_sz.y, fw.y, pitch, sill + max(0.0, -d.y), sill + h - max(0.0, d.y), 0.0, rows);
+  float openX = filt(v_sz.x, fw.x, mod_, a, b, i0, i1);
+  float openZ = filt(v_sz.y, fw.y, pitch, sill, sill + h, 0.0, rows);
+  float glassX = filt(v_sz.x, fw.x, mod_, a + max(0.0, -d.x), b - max(0.0, d.x), i0, i1);
+  float glassZ = filt(v_sz.y, fw.y, pitch, sill + max(0.0, -d.y), sill + h - max(0.0, d.y), 0.0, rows);
   float co = openX * openZ, cg = min(glassX * glassZ, co);
   o = vec4(v_litW * (1.0 - co) + v_litR * (co - cg) + v_litG * cg, u_alpha);
 }`;
@@ -219,7 +241,7 @@ function camera(v, w, h) {
 }
 
 // ------------------------------------------------------------------------------------------------ drawing
-const state = { light: meta.light.day, tones: meta.tones, aa: 1.0, parallax: 1.0, rest: true, count: 0 };
+const state = { light: meta.light.day, tones: meta.tones, aa: 1.0, parallax: 1.0, rest: true, count: 0, kernel: 0 };
 const f3 = a => new Float32Array(a.map(x => x / 255));
 function setLight(L) {
   for (const prog of [progGeo, progFac]) {
@@ -239,7 +261,7 @@ function drawScene(arm, parts, cam, shiftNdc) {
   if (withFacade && arm === 'B') {
     gl.useProgram(progFac.p); gl.bindVertexArray(meshB.vao);
     gl.uniformMatrix4fv(progFac.U.u_matrix, false, cam.M); gl.uniform2f(progFac.U.u_shift, shiftNdc[0], shiftNdc[1]);
-    gl.uniform3fv(progFac.U.u_cam, cam.eye); gl.uniform1f(progFac.U.u_aa, state.aa); gl.uniform1f(progFac.U.u_parallax, state.parallax); gl.uniform1f(progFac.U.u_alpha, 1.0); gl.uniform1f(progFac.U.u_count, state.count);
+    gl.uniform3fv(progFac.U.u_cam, cam.eye); gl.uniform1f(progFac.U.u_aa, state.aa); gl.uniform1f(progFac.U.u_parallax, state.parallax); gl.uniform1f(progFac.U.u_alpha, 1.0); gl.uniform1f(progFac.U.u_count, state.count); gl.uniform1f(progFac.U.u_kernel, state.kernel);
     gl.drawElementsInstanced(gl.TRIANGLES, meshB.count, gl.UNSIGNED_SHORT, 0, instCount);
   }
   gl.useProgram(progGeo.p);
@@ -288,16 +310,17 @@ const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
 
 // ------------------------------------------------------------------------------------------------ the quality measurement (the moire meter's method, on the lab's own scene)
 const STEP_PX = 0.3, FRAMES = 8, SS = 4, FLAT_LEVELS = 2.5;
-async function quality(view, { W = 640, H = 400, arms = ['A', 'B', 'A4'], pictures = true } = {}) {
+async function quality(view, { W = 640, H = 400, arms = ['A', 'B', 'Bt', 'A4'], pictures = true } = {}) {
   const cam = camera(view, W, H);
   const t1 = target(W, H, false), t4 = target(W, H, true), tS = target(W * SS, H * SS, false);
   const res = { view: view.name, dist: view.dist, mPerPx: +(2 * view.dist * Math.tan(FOV / 2) / H).toFixed(3), bayPx: +(R.bay / (2 * view.dist * Math.tan(FOV / 2) / H)).toFixed(2), arms: {} };
-  const one = (arm, step) => { const sh = [2 * step * STEP_PX / W, 0]; const ms = arm === 'A4'; const tgt = ms ? t4 : t1; frame(arm === 'A4' ? 'A' : arm, 'all', tgt, cam, sh, ms); return read(tgt); };
-  const truthOf = (arm, step) => { const sh = [2 * step * STEP_PX / W, 0]; frame(arm === 'A4' ? 'A' : arm, 'all', tS, cam, sh, false); return boxDown(read(tS), W, H, SS); };
+  const baseOf = arm => arm === 'A4' ? 'A' : arm === 'Bt' ? 'B' : arm;
+  const one = (arm, step) => { const sh = [2 * step * STEP_PX / W, 0]; const ms = arm === 'A4'; const tgt = ms ? t4 : t1; state.kernel = arm === 'Bt' ? 1 : 0; frame(baseOf(arm), 'all', tgt, cam, sh, ms); state.kernel = 0; return read(tgt); };
+  const truthOf = (arm, step) => { const sh = [2 * step * STEP_PX / W, 0]; state.kernel = 0; frame(arm, 'all', tS, cam, sh, false); return boxDown(read(tS), W, H, SS); };
   const imgs = {};
   const cached = {};
   for (const arm of arms) {
-    const baseArm = arm === 'A4' ? 'A' : arm;
+    const baseArm = baseOf(arm);
     const sums = { s: new Float32Array(W * H * 3), s2: new Float32Array(W * H * 3) };
     let r0 = null, tr0 = null;
     for (let i = 0; i < FRAMES; i++) {
@@ -329,7 +352,7 @@ async function quality(view, { W = 640, H = 400, arms = ['A', 'B', 'A4'], pictur
   }
   // cross: the analytic pixel against the geometry's own supersampled picture
   if (imgs.A && imgs.B) {
-    res.cross = { 'B vs truth(A)': stat(imgs.B.r, imgs.A.t, interior), 'truth(B) vs truth(A)': stat(imgs.B.t, imgs.A.t, interior), 'A vs truth(B)': stat(imgs.A.r, imgs.B.t, interior) };
+    res.cross = { 'B vs truth(A)': stat(imgs.B.r, imgs.A.t, interior), 'Bt vs truth(A)': stat(imgs.Bt.r, imgs.A.t, interior), 'A4 vs truth(A)': stat(imgs.A4.r, imgs.A.t, interior), 'truth(B) vs truth(A)': stat(imgs.B.t, imgs.A.t, interior), 'A vs truth(B)': stat(imgs.A.r, imgs.B.t, interior) };
   }
   if (pictures && imgs.A && imgs.B) {
     const cv = document.createElement('canvas'); cv.width = W * 5; cv.height = H; const cx = cv.getContext('2d'); const id = cx.createImageData(W * 5, H);

@@ -12,8 +12,8 @@ const src = fs.readFileSync(path.join(HERE, 'page/lab.js'), 'utf8');
 const glsl = name => { const m = src.match(new RegExp('float ' + name + '\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n\\}')); if (!m) throw new Error('no ' + name + ' in lab.js'); return m[0]; };
 const toJs = t => t.replace(/float (\w+)\(([^)]*)\)/, (_, n, a) => `function ${n}(${a.replace(/float /g, '')})`).replace(/\bfloat (\w+) =/g, 'let $1 =').replace(/\bfloat (\w+);/g, 'let $1;').replace(/\bclamp\(/g, 'clamp(').replace(/\bfloor\(/g, 'Math.floor(').replace(/\bmax\(/g, 'Math.max(').replace(/(\d)\.0\b/g, '$1.0');
 const clamp = (x, a, b) => Math.min(Math.max(x, a), b);
-const code = toJs(glsl('cum')) + '\n' + toJs(glsl('cov')) + '\nreturn { cum, cov };';
-const { cum, cov } = new Function('clamp', code)(clamp);
+const code = ['cum', 'cov', 'cum2', 'covTent'].map(n => toJs(glsl(n))).join('\n') + '\nreturn { cum, cov, cum2, covTent };';
+const { cum, cov, cum2, covTent } = new Function('clamp', code)(clamp);
 let fails = 0; const check = (ok, msg) => { if (!ok) { fails++; console.log('FAIL', msg); } };
 
 // 1. cov() against brute-force sampling of a pulse train, many footprints
@@ -28,6 +28,18 @@ for (let t = 0; t < 400; t++) {
 }
 check(worst < 2e-3, `cov differs from brute force by ${worst}`);
 console.log(`cov() against 400 random footprints sampled 4000 times each: worst difference ${worst.toExponential(2)}`);
+
+// 1b. the tent kernel (triangle filter), also in closed form, against brute force
+let worstT = 0;
+for (let t = 0; t < 400; t++) {
+  const P = 0.5 + rnd() * 3, a = rnd() * P * 0.4, b = a + rnd() * (P - a) * 0.9, i0 = Math.floor(rnd() * 2), i1 = i0 + 1 + Math.floor(rnd() * 20);
+  const x = rnd() * P * (i1 + 2), h = Math.pow(10, -2 + rnd() * 2.2);
+  const N = 6000; let acc = 0, wsum = 0;
+  for (let k = 0; k < N; k++) { const tt = -h + (k + 0.5) / N * 2 * h, wgt = (h - Math.abs(tt)) / (h * h) * (2 * h / N), xs = x + tt, i = Math.floor(xs / P), ph = xs - i * P; if (i >= i0 && i < i1 && ph >= a && ph < b) acc += wgt; wsum += wgt; }
+  worstT = Math.max(worstT, Math.abs(acc - covTent(x, h, P, a, b, i0, i1)), Math.abs(wsum - 1) * 0);
+}
+check(worstT < 2e-3, `covTent differs from brute force by ${worstT}`);
+console.log(`covTent() against 400 random footprints: worst difference ${worstT.toExponential(2)}`);
 
 // 2. the shader's per-wall numbers (bayParams) give the same windows as the rule (windowsFor): integrate cov over each window
 const meta = JSON.parse(fs.readFileSync(path.join(HERE, 'fixture/dobie-twenty21.json'), 'utf8')), r = meta.recipe;

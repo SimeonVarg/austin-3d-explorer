@@ -50,7 +50,7 @@ try {
       if (r.picture) { fs.writeFileSync(path.join(OUT, `quality-${name}.png`), Buffer.from(r.picture.split(',')[1], 'base64')); delete r.picture; }
       result.quality[name] = r;
       const a = r.arms;
-      console.log(`${name.padEnd(12)} ${r.mPerPx} m/px, ${r.bayPx} px/bay, ${r.pixels.interiorPct}% facade px | err mean A ${a.A.err.mean} B ${a.B.err.mean} A4x ${a.A4.err.mean} | detail A ${a.A.errDetail.mean} B ${a.B.errDetail.mean} | band A ${a.A.band} B ${a.B.band} | flicker A ${a.A.flicker.mean} B ${a.B.flicker.mean} A4x ${a.A4.flicker.mean} | B vs truth(A) ${r.cross['B vs truth(A)'].mean} | ${((Date.now() - t) / 1000).toFixed(0)} s`);
+      console.log(`${name.padEnd(12)} ${r.mPerPx} m/px, ${r.bayPx} px/bay, ${r.pixels.interiorPct}% facade px | err mean A ${a.A.err.mean} B ${a.B.err.mean} Btent ${a.Bt.err.mean} A4x ${a.A4.err.mean} | band A ${a.A.band} B ${a.B.band} Btent ${a.Bt.band} A4x ${a.A4.band} | flicker A ${a.A.flicker.mean} B ${a.B.flicker.mean} Btent ${a.Bt.flicker.mean} A4x ${a.A4.flicker.mean} | B vs truth(A) ${r.cross['B vs truth(A)'].mean} Btent ${r.cross['Bt vs truth(A)'].mean} | ${((Date.now() - t) / 1000).toFixed(0)} s`);
     }
   }
   if (!flag('--no-extra')) {
