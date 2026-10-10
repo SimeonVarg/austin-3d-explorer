@@ -1,0 +1,6 @@
+synthetic edge cases (6062 records: bent/degenerate quads, triN, facet runs, flipped winding): js-typed MATCH, rust-wasm MATCH  (8690 triangles)
+stream: 1704992 records -> 3113629 triangles, 6523203 vertices (stream-full)
+MATCH    js-app (js/slopes.js build() verbatim): triangles=3113629 (equals the in-app build, sha256 in expected.json)
+MATCH    js-typed (tuned JS, no allocations): triangles=3113629 (equals the in-app build, sha256 in expected.json)
+MATCH    rust-wasm (meshkernel.wasm): triangles=3113629 (equals the in-app build, sha256 in expected.json)
+PASS: all builders produce byte-identical buffers

@@ -7,6 +7,11 @@ research/
 scripts/
 docs/
 
+# Studies: fixtures, benchmark results and prototype builds. Nothing here is fetched by the running
+# site. (The one wasm file a page DOES fetch, wasm/meshkernel.wasm behind ?rustbuilder=1, lives in
+# wasm/ and is deliberately not listed; scripts/verify/publish-lists.mjs holds both facts.)
+experiments/
+
 # Build inputs for the outer-ring bake, not read at runtime.
 data/outer/
 
