@@ -352,8 +352,8 @@
               }
             }
           }
-          cA = clamp(cA, 0.0, 1.0); cH = clamp(cH, 0.0, 1.0); cS = clamp(cS, 0.0, 1.0); cF = clamp(cF, 0.0, 1.0); co = clamp(co, 0.0, 1.0); cg = clamp(cg, 0.0, co); cm = clamp(cm, 0.0, 1.0);
-          if (cA > 0.0) { float a = cA; vec3 inv = vec3(1.0 / max(a, 1e-4)); D = mix(D, aD * inv, a); G = mix(G, aG * inv, a); Nn = mix(Nn, aN * inv, a); }
+          float cARaw = max(cA, 1e-4); cA = clamp(cA, 0.0, 1.0); cH = clamp(cH, 0.0, 1.0); cS = clamp(cS, 0.0, 1.0); cF = clamp(cF, 0.0, 1.0); co = clamp(co, 0.0, 1.0); cg = clamp(cg, 0.0, co); cm = clamp(cm, 0.0, 1.0);
+          if (cA > 0.0) { vec3 inv = vec3(1.0 / cARaw); D = mix(D, aD * inv, cA); G = mix(G, aG * inv, cA); Nn = mix(Nn, aN * inv, cA); }
           if (cH > 0.0) { int h = int(t6.y + .5); D = mix(D, FTn(h, 0).rgb, cH); G = mix(G, FTn(h, 1).rgb, cH); Nn = mix(Nn, FTn(h, 2).rgb, cH); }
           if (cS > 0.0) { int h = int(t6.w + .5); D = mix(D, FTn(h, 0).rgb, cS); G = mix(G, FTn(h, 1).rgb, cS); Nn = mix(Nn, FTn(h, 2).rgb, cS); }
           if (cF > 0.0) { int h = int(t5.w + .5); D = mix(D, FTn(h, 0).rgb, cF); G = mix(G, FTn(h, 1).rgb, cF); Nn = mix(Nn, FTn(h, 2).rgb, cF); }
