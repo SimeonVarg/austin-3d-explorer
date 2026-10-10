@@ -20,4 +20,4 @@ for (const impl of impls) {
   summary[impl] = { cold: stat(m.map(r => r.cold)), coldCpu: stat(m.map(r => r.coldCpu)), warm: stat(m.flatMap(r => r.warms)), warmCpu: stat(m.flatMap(r => r.warmCpus)), maxRssMB: stat(m.map(r => r.maxRssMB)), identicalToApp: m.every(r => r.identicalToApp !== false), triangles: m[0].triangles,
     ...(m[0].copyMs != null ? { copyInMs: stat(m.map(r => r.copyMs)), processMs: stat(m.map(r => r.procMs)), instantiateMs: stat(m.map(r => r.instantiateMs)), wasmMiB: m[0].wasmPages * 64 / 1024 } : {}) };
 }
-console.log(JSON.stringify({ host: `${os.cpus()[0].model} x${os.cpus().length}`, node: process.version, dir, rounds, records: rows[0]?.records, summary, rows }, null, 1));
+console.log(JSON.stringify({ host: `${os.arch()} laptop-class CPU x${os.cpus().length} threads`, node: process.version, dir: path.basename(dir), rounds, records: rows[0]?.records, summary, rows }, null, 1));

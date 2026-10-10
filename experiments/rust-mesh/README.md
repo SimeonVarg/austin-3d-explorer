@@ -20,7 +20,8 @@ What is here:
 | `bench-one.mjs`, `bench-node.mjs` | interleaved Node benchmark, one fresh process per run (cold JIT like a page load) |
 | `bench-browser.html`, `bench-browser.mjs` | the same in headless Chrome with real GL (through `gpu-run.mjs`) |
 | `analysis/` | bytes-on-the-wire study (`pack-size.mjs`), the route search (`route-bench.mjs`), the bus protobuf (`protobuf-decode.mjs`) |
-| `results/` | the raw JSON of the runs quoted in the study |
+| `results/` | the raw output of the runs quoted in the study. Host and stream paths are written generically (`x64 laptop-class CPU`, `stream-full`) on purpose. |
+| `../../scripts/verify/rust-study-numbers.mjs` | the check that the study's headline numbers recompute from `results/` (runs in CI; no browser) |
 
 ## Commands (all from the repo root unless noted; Node 22+; no sudo, no global installs)
 
@@ -51,12 +52,13 @@ HINT=6523203 node profile/node-apartments-build.mjs 3              # JS builder 
 node blur/compare-and-bench.mjs both                   # the facade-blur kernel
 node profile/record-stream.mjs /tmp/stream-full        # record the full 1.7 M-call stream (364 MB) and the in-app sha256s
 node compare.mjs /tmp/stream-full                      # the three builders against the REAL build: byte-identical
-node bench-node.mjs /tmp/stream-full 9 > results/node.json
+node bench-node.mjs /tmp/stream-full 6 app,typed,typed-exact,wasm,materialize > results/node-kernel-cpu.json
+node bench-node.mjs /tmp/stream-full 6 wasm-exact,app,materialize > results/node-kernel-cpu-wasm-exact.json   # the vertex-count-known row
 node analysis/pack-size.mjs /tmp/stream-full           # wire bytes: recipes vs baked meshes
 node analysis/route-bench.mjs
 # browser: one at a time on this Mac, through the lane gate
-NOGPU=1 node bench-browser.mjs /tmp/stream-full 5 > results/browser.json        # CPU only: no GPU slot needed
-NOGPU=1 node bench-browser-build.mjs 4 real,wasm,wasm-exact > results/browser-build.json   # whole generator in Chrome
+NOGPU=1 node bench-browser.mjs /tmp/stream-full 5 > results/browser-kernel-nogpu.json        # CPU only: no GPU slot needed
+NOGPU=1 node bench-browser-build.mjs 4 real,wasm,wasm-exact > results/browser-build-real-wasm.json   # whole generator in Chrome
 node ~/Projects/astra-pipe/tools/gpu-run.mjs --label rust -- node bench-browser.mjs /tmp/stream-full 3 wasm,typed   # with real WebGL: times gl.bufferData too
 # (bench-browser.mjs imports playwright-core; scripts/verify/node_modules has it after `cd scripts/verify && npm install`)
 ```

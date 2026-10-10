@@ -27,4 +27,4 @@ const summary = {};
 for (const impl of impls) { const m = rows.filter(r => r.impl === impl && !r.error); if (!m.length) continue;
   summary[impl] = { cold: stat(m.map(r => r.cold)), warm: stat(m.flatMap(r => r.warms)), compileMs: stat(m.map(r => r.compileMs)), instantiateMs: stat(m.map(r => r.instantiateMs)), copyInMs: stat(m.map(r => r.copyInMs)), processMs: stat(m.map(r => r.processMs)),
     uploadMs: stat(m.flatMap(r => r.upload || [])), uploadMB: m.find(r => r.uploadMB)?.uploadMB, jsHeapMB: stat(m.map(r => r.jsHeapMB)), wasmMiB: m.find(r => r.wasmMiB)?.wasmMiB, fetchMs: stat(m.map(r => r.fetchMs)) }; }
-console.log(JSON.stringify({ host: `${os.cpus()[0].model} x${os.cpus().length}`, ua: rows[0]?.ua, renderer: rows.find(r => r.renderer)?.renderer, rounds, summary, rows }, null, 1));
+console.log(JSON.stringify({ host: `${os.arch()} laptop-class CPU x${os.cpus().length} threads`, ua: rows[0]?.ua, renderer: rows.find(r => r.renderer)?.renderer, rounds, summary, rows }, null, 1));
