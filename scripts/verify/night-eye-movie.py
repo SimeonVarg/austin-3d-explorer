@@ -3,7 +3,7 @@
 
     python3 night-eye-movie.py <movie-dir> <out-dir> [--fps 15]
 
-Per view: <view>-before-after.webp (old night left, new night right, labelled), and <view>-crop-3x.png (a far patch of lit windows at 3x:
+Per view: <view>-before-after.webp (old night left, new night right, labelled; --gif adds a gif, about 35 MB), and <view>-crop-3x.png (a far patch of lit windows at 3x:
 old, then the new night at three moments) . Needs Pillow."""
 import sys, glob, os
 from PIL import Image, ImageDraw, ImageFont
@@ -50,12 +50,12 @@ for v in views:
     if out_frames:
         dur = round(1000 / fps)
         out_frames[0].save(os.path.join(out, f'{v}-before-after.webp'), save_all=True, append_images=out_frames[1:], duration=dur, loop=0, quality=78, method=4)
-        out_frames[0].save(os.path.join(out, f'{v}-before-after.gif'), save_all=True, append_images=out_frames[1:], duration=dur, loop=0, optimize=True)
+        if '--gif' in sys.argv: out_frames[0].save(os.path.join(out, f'{v}-before-after.gif'), save_all=True, append_images=out_frames[1:], duration=dur, loop=0, optimize=True)   # about 35 MB: only on request
         print(v, len(out_frames), 'frames ->', os.path.join(out, f'{v}-before-after.webp'))
         # 3x crop of a far patch of lit windows: old, then new at three moments
         a0 = Image.open(frames[0]).convert('RGB')
         cw, ch = 200, 120
-        x, y = lit_window(a0, cw, ch, int(H * 0.15), int(H * 0.62))
+        x, y = lit_window(a0, cw, ch, int(H * 0.22), int(H * 0.52))   # far rows: above the middle of the frame
         pick = [before, a0, Image.open(frames[min(5, len(frames) - 1)]).convert('RGB'), Image.open(frames[min(11, len(frames) - 1)]).convert('RGB')]
         names = ['old night', 'new night, t = 0.00 s', 'new night, t = 0.33 s', 'new night, t = 0.73 s']
         tiles = [im.crop((x, y, x + cw, y + ch)).resize((cw * 3, ch * 3), Image.NEAREST) for im in pick]

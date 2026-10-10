@@ -154,21 +154,33 @@ await stage('determinism', async () => {
   const arms = Object.fromEntries(want.map(k => [k, ALL[k]]));
   data.determinism = {};
   for (const [arm, q] of Object.entries(arms)) {
-    const files = [];
+    const files = [], bare = [];
     for (let i = 0; i < D.loads; i++) {
       const [qq, flag] = String(q).split('|');
       const page = await open(qq); if (flag === 'ae0') await page.evaluate(() => { window.GFX.autoExposure = false; window.applyGraphics(); });
       await settle(page, pose);
       console.log(`  ${arm}-${i} exposure ${JSON.stringify(await page.evaluate(() => window.__ae && window.__ae()))} lamps ${await page.evaluate(() => window.__nightLights && window.__nightLights.count)}`);
       files.push(await shot(page, path.join(dir, `${arm}-${i}.png`)));
+      // The same load again with the name labels and the page's own buttons hidden: they are separate systems with their own timing (labels
+      // fade in at load-dependent moments), and what this claim is about is the night city under them.
+      await page.evaluate(() => { for (const l of window.__map.getStyle().layers) if (l.type === 'symbol') window.__map.setLayoutProperty(l.id, 'visibility', 'none'); });
+      await page.addStyleTag({ content: 'body > *:not(#map) { visibility: hidden !important; }' });
+      await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
+      await page.waitForTimeout(1500);
+      bare.push(await shot(page, path.join(dir, `${arm}-nolabels-${i}.png`)));
       if (i === 0 && arm === 'before') data.renderer = await gpu(page);
       await page.close();
     }
     const d = diff(files[0], files[1], D.tolerance, path.join(dir, `moved-${arm}.png`));
-    data.determinism[arm] = d;
+    const db = diff(bare[0], bare[1], D.tolerance, path.join(dir, `moved-${arm}-nolabels.png`));
+    data.determinism[arm] = d; data.determinism[arm + '-nolabels'] = db;
     console.log(`determinism ${arm.padEnd(18)} moved ${d.pctOver}% of pixels by more than ${D.tolerance}; ${d.pctAny}% by any amount; biggest change ${d.max}/255; share moved per cell (8x5) ${JSON.stringify(d.gridPctOver)}`);
+    console.log(`determinism ${(arm + ' (no labels)').padEnd(18)} moved ${db.pctOver}% over ${D.tolerance}; ${db.pctAny}% by any amount; biggest change ${db.max}/255`);
   }
-  if (data.determinism.after_frozen) report('determinism: the frozen night moves 0% between two loads', data.determinism.after_frozen.pctAny === 0, `${data.determinism.after_frozen.pctAny}% any, ${data.determinism.after_frozen.pctOver}% over ${D.tolerance}`);
+  if (data.determinism.after_frozen) {
+    report('determinism: the frozen night city moves 0% between two loads (labels and buttons hidden)', data.determinism['after_frozen-nolabels'].pctAny === 0, `${data.determinism['after_frozen-nolabels'].pctAny}% any, ${data.determinism['after_frozen-nolabels'].pctOver}% over ${D.tolerance}`);
+    report('determinism: the frozen page as a person sees it, labels included (their timing is a separate system)', data.determinism.after_frozen.pctOver <= 0.1, `${data.determinism.after_frozen.pctAny}% any, ${data.determinism.after_frozen.pctOver}% over ${D.tolerance}`);
+  }
   if (data.determinism.after_frozen_seed7) report('determinism: a different seed is a different night (the switch does something)', diff(path.join(dir, 'after_frozen-0.png'), path.join(dir, 'after_frozen_seed7-0.png'), 0).pctAny > 0);
 });
 
