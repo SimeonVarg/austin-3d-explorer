@@ -194,9 +194,8 @@ node scripts/verify/outer-homes.mjs [--out DIR] [--perf]
 ## What is still wrong
 
 1. **Trees.** The 2021 scan has 38.0 % of the outer city under vegetation 3 m
-   or taller; the app draws crowns over 2.4 %. Tarrytown is 49 % canopy and is
-   drawn with 0.6 %. This is now the biggest difference between the picture
-   and the place, and the scan raster to fix it is already built.
+   or taller; with only this step the app draws crowns over 2.4 %. Step 2
+   (`docs/outer-trees.md`) plants them from the same scan.
 2. **Walls are a guess.** Colour by area mix, no windows, no doors, no
    porches, no fences. A resident will recognise the roofs and the street
    pattern from the air, not their own front.

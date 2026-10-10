@@ -113,6 +113,7 @@
     "outer-check.mjs": {"est_s": 100},
     "outer-facade-parity.mjs": {"est_s": 220},
     "outer-homes.mjs": {"est_s": 300},
+    "outer-trees.mjs": {"est_s": 300},
     "pattern-lowpass.mjs": {"est_s": 10},
     "places-check.mjs": {"est_s": 300},
     "plazawalk.mjs": {"args": ["{out}"], "est_s": 910},
