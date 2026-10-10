@@ -363,6 +363,22 @@ await ok('attach(map, {layers, routes}) draws only the buses of those routes; se
   b.T.detach(); b.T.stop();
 });
 
+// 5c. a map that has a style but is not 'loaded' (tiles still arriving) takes the layers now; one with no style waits for 'load'
+await ok('attach() on a map whose tiles are still loading draws now; with no style yet it waits for load', async () => {
+  const b = boot(), busy = fakeMap(), once = {};
+  busy.isStyleLoaded = () => false; busy.getStyle = () => ({ layers: [] }); busy.once = (e, f) => { once[e] = f; };
+  b.T.attach(busy, { layers: ['vehicles'], routes: ['10'] }); b.T.start(b.opts({})); await flush();
+  assert.ok(busy.layers['transit-live-vehicles'] && !once.load, 'layers added at once, no wait for a load event that may never come');
+  b.T.detach(); b.T.stop();
+  const b2 = boot(), bare = fakeMap();
+  bare.isStyleLoaded = () => false; bare.getStyle = () => undefined; bare.once = (e, f) => { once[e] = f; };
+  b2.T.attach(bare); await flush();
+  assert.equal(Object.keys(bare.layers).length, 0, 'no style yet: nothing added'); assert.ok(once.load, 'it waits for load');
+  bare.isStyleLoaded = () => true; once.load();
+  assert.ok(bare.layers['transit-live-vehicles'], 'and draws when the style loads');
+  b2.T.detach(); b2.T.stop();
+});
+
 // 6. scheduled(): tomorrow's first trips
 await ok('real bake: no baked trip reaches any stop before 02:00, so a look-ahead past midnight has nothing to miss; a re-bake that does is still covered', async () => {
   const d = JSON.parse(fs.readFileSync(here('../../data/transit-live.json')));

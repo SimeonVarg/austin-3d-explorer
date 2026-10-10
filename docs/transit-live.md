@@ -154,6 +154,21 @@ Layers added by `attach(map)`: sources `transit-live-vehicles|stops|lines`, laye
 (the app style has no glyph server we could rely on): vehicle features carry `route` (short
 name), `color`, `bearing` and `id` for a popup, and stop features carry `id` and `name`.
 
+## Only some routes, only the buses (2026-10-10, the finder's "Show live buses")
+
+```js
+TransitLive.attach(map, { layers: ['vehicles'], routes: ['20', '801'] });   // the buses layer only, only those routes
+TransitLive.setRoutes(['20']);        // change the routes without re-attaching; null = every route, [] = none
+TransitLive.vehiclesGeo(['20']);      // the buses as GeoJSON for those routes; vehiclesGeo(null) = all; no argument = what attach/setRoutes chose
+```
+`attach(map)` with no options is unchanged. Routes are matched on the short name or the id. These are filters on what is drawn: no
+address the module asks for depends on them. The finder holds the poll through a count (`acquire()` in `js/finder-live.js`) because
+the live line, the buses on the map and the pathfinder row can all be showing at once: `TransitLive.start()` runs for the first
+user, `stop()` for the last, and the trip feed (260 KB) only while a user that shows departures is on screen.
+
+`plan(slice, from, to, {beatsWalkS})` takes the margin per call (default `ROUTE.busBeatsWalkS`); the ranking, the live line and the
+pathfinder row each use their own.
+
 ## Review fixes (2026-10-10)
 
 An independent review of the first version found real faults; each is fixed and has a test in

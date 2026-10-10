@@ -502,7 +502,10 @@
       S.only = opts && Array.isArray(opts.routes) ? new Set(opts.routes.map(String)) : null;
       loadBake().then(() => {
         if (S.map !== map) return;
-        if (map.isStyleLoaded && !map.isStyleLoaded()) map.once('load', () => { if (S.map === map) addLayers(map); });
+        // isStyleLoaded() is also false while tiles are loading, which is most of the time on a map that is flying: the
+        // 'load' event would then never come. A map that has a style can take a source and a layer now.
+        const hasStyle = () => { try { const st = map.getStyle && map.getStyle(); return !!(st && st.layers); } catch (e) { return false; } };
+        if (map.isStyleLoaded && !map.isStyleLoaded() && !hasStyle()) map.once('load', () => { if (S.map === map) addLayers(map); });
         else addLayers(map);
       }).catch(e => { S.veh.error = 'schedule: ' + String((e && e.message) || e); });
     } catch (e) { S.veh.error = String(e && e.message || e); }
