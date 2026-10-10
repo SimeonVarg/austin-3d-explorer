@@ -43,6 +43,21 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const med = a => { const s = [...a].sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
 
 // runs in the page: fly, return when done
+// wraps every styledata / data listener of the map with a timer, to name the expensive one
+const PROBE = `(() => {
+  const m = window.__map, acc = window.__listenerCost = {};
+  const L = m._listeners || {};
+  for (const ev of ['styledata', 'data']) {
+    const arr = L[ev] || [];
+    for (let i = 0; i < arr.length; i++) {
+      const fn = arr[i]; if (typeof fn !== 'function') continue;
+      const name = ev + ' #' + i + ' ' + String(fn).replace(/\\s+/g, ' ').slice(0, 110);
+      acc[name] = { n: 0, ms: 0 };
+      arr[i] = function () { const t = performance.now(); try { return fn.apply(this, arguments); } finally { const e = acc[name]; e.n++; e.ms += performance.now() - t; } };
+    }
+  }
+  return Object.keys(acc).length;
+})()`;
 const FLIGHT = `(async (poses) => {
   const m = window.__map, wait = (ms) => new Promise(r => setTimeout(r, ms));
   const settle = async (cap) => { await Promise.race([new Promise(r => m.once('idle', () => r())), wait(cap)]); await wait(600); };
@@ -87,10 +102,17 @@ async function runOnce(throttle, qi, rep) {
       if (Date.now() - tNav > MAX) { console.error(`[${label}] hit the ceiling before ready; last state ${JSON.stringify(st)}; page errors ${JSON.stringify(pageErrors)}`); throw new Error('no reveal'); }
     }
     const ev = async (expr) => (await page.send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true })).result.value;
+    // listener timers are installed BEFORE the flight but AFTER the opening flight (which is the burst we are after): the
+    // probe is for the cost of one addImage, which any later flat answer pays too
+    const probed = await ev(PROBE);
     const flight = await ev(`${FLIGHT}(${JSON.stringify(POSES)}).then(r => JSON.stringify(r))`);
-    const data = JSON.parse(await ev(`JSON.stringify({
+    // what one addImage costs on a settled page, and which styledata / data listeners it wakes
+    await ev(`(async () => { const m = window.__map; const N = 20; for (const k in window.__listenerCost) { window.__listenerCost[k].n = 0; window.__listenerCost[k].ms = 0; }
+      const t = performance.now(); for (let i = 0; i < N; i++) m.addImage('__probe' + i, { width: 8, height: 8, data: new Uint8Array(256) });
+      window.__addProbe = { n: N, ms: performance.now() - t }; await new Promise(r => setTimeout(r, 50)); for (let i = 0; i < N; i++) m.removeImage('__probe' + i); return 1; })()`);
+    const data = JSON.parse(await ev(`JSON.stringify({ addProbe: window.__addProbe,
       reveal: window.__perf.marks.introReveal, veilGone: window.__perf.marks.veilGone, wt: window.facadeWallTiersStats && window.facadeWallTiersStats(),
-      gaps: window.__gaps, pace: window.__facadePace, nowMs: performance.now(), url: location.href })`));
+      gaps: window.__gaps, pace: window.__facadePace, listeners: window.__listenerCost, probed: null, nowMs: performance.now(), url: location.href })`));
     const res = { label, throttle, qi, query: QARMS[qi], rep, flight: JSON.parse(flight), machine: machineLoad(), chrome: chrome.version.product, ...data };
     fs.writeFileSync(path.join(OUT, `${label}.json`), JSON.stringify(res));
     return res;
@@ -144,6 +166,10 @@ for (const k of keys) {
   for (const [name, f] of rows) { const v = rs.map(r => { try { return f(r); } catch (e) { return null; } }).filter(x => x != null && isFinite(x)); out.push(`${name.padEnd(58)} ${stat(v)}   [${v.map(fmt).join(', ')}]`); }
   const worst = rs.map(r => r.wt.burstLog.filter(b => b[0] > r.reveal).sort((a, b) => b[2] - a[2]).slice(0, 3).map(b => `+${Math.round(b[0] - r.reveal)}ms: ${b[1]} img ${b[2]} ms (${b[3]} flat)`).join('; '));
   rs.forEach((r, i) => {
+    if (r.addProbe) out.push(`  [r${i + 1}] one map.addImage of an 8x8 image on the settled page: ${fmt(r.addProbe.ms / r.addProbe.n)} ms (${r.addProbe.n} in a row); listeners it woke, ms per call: ` +
+      Object.entries(r.listeners || {}).filter(([, v]) => v.n).sort((a, b) => b[1].ms - a[1].ms).slice(0, 6).map(([k, v]) => `${fmt(v.ms / Math.max(1, v.n))} ms x${v.n} ${k}`).join(' || '));
+    out.push(`  [r${i + 1}] wall images: real paints ${r.wt.syncPainted} (${fmt(r.wt.syncMs)} ms), flat answers ${r.wt.placeholders} (${fmt(r.wt.flatMs)} ms), map.addImage inside them ${fmt(r.wt.addMs)} ms`);
+    out.push(`  [r${i + 1}] images asked after the reveal (s after reveal, flat flag): ` + (r.wt.askLog || []).filter(a => a[0] > r.reveal).map(a => `${((a[0] - r.reveal) / 1000).toFixed(1)}:${a[1]}${a[2] ? '*' : ''}`).join(' '));
     const big = r.wt.burstLog.filter(b => b[0] > r.reveal && b[2] >= 20).map(b => `+${Math.round(b[0] - r.reveal)}ms ${b[1]}img ${b[2]}ms ${b[3]}flat`);
     out.push(`  [r${i + 1}] post-reveal bursts >= 20 ms (${big.length}): ${big.join(' | ')}; slowest single images ${JSON.stringify(r.wt.slow)}; frame gaps >100 ms: ${JSON.stringify(r.gaps.filter(g => g[1] > 100 && g[0] >= r.flight.startedAt).map(g => [Math.round(g[0] - r.reveal), g[1]]))}`);
   });

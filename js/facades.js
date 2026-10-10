@@ -3870,6 +3870,8 @@
     bursts: 0, burstMsMax: 0, burstImagesMax: 0,
     // Every request that painted or answered anything: [performance.now() at its start, images, ms, answered flat]
     burstLog: [], placeholders: 0, syncPainted: 0, syncMs: 0, flatMs: 0, addMs: 0,
+    // [performance.now(), image id, flat?] for every image a tile asked for (capped): the flight's own shopping list
+    askLog: [],
   };
   const _burst = { ms: 0, n: 0, open: false, start: 0, flat: 0 };
   window.facadeWallTiersStats = () => ({
@@ -3939,7 +3941,10 @@
                  (WALLTIERS.meanGuard && t0 - _burst.start + mean > WALLTIERS.syncBudgetMs * WALLTIERS.meanGuardX)) && !veilUp();
     try {
       const img = flat ? wallPlaceholder(fam, idx, info.tier) : tileData(fam, idx, _atlasP, info.tier);
+      const a0 = performance.now();
       map.addImage(key, img, { pixelRatio: tierPixelRatio(info.tier) });
+      WT.addMs += performance.now() - a0;
+      if (WT.askLog.length < 2000) WT.askLog.push([+t0.toFixed(1), key, flat ? 1 : 0]);
       // js/image-memory.js drops MapLibre's second copy of the pixels for images added inside initFacades; this is
       // not inside it, so ask for the same release.
       if (window.ImageMemory && window.ImageMemory.release) window.ImageMemory.release(map, key, img);
