@@ -48,6 +48,9 @@ VOLUME_SIZE_GB="${AWS_GPU_VOLUME_SIZE_GB:-100}"
 RESULT_BUCKET="${AWS_GPU_RESULT_BUCKET:-}"            # S3 bucket for results
 REPO="${AWS_GPU_REPO:-https://github.com/SimeonVarg/austin-3d-explorer.git}"
 REF="main"
+MODE="${AWS_GPU_MODE:-checks}"       # checks = the listed --check scripts; pr-suite = the whole PR suite (pr-suite.sh)
+SUITE_ONLY="${AWS_GPU_SUITE_ONLY:-}" # pr-suite only: run just these checks (comma-separated), empty = the whole suite
+WAIT_SCALE="${AWS_GPU_WAIT_SCALE:-1}" # pr-suite only: PW_WAIT_SCALE (1 = the checks' own waits; the free GitHub machines use 3)
 
 # The public SSM parameter that holds the current Deep Learning Base GPU AMI
 # (Ubuntu 22.04) id for the region. VERIFY ON FIRST REAL RUN: AWS renames these
@@ -85,6 +88,9 @@ while [ $# -gt 0 ]; do
     --max-runtime)    MAX_RUNTIME_MIN="$2"; shift 2 ;;
     --idle-timeout)   IDLE_TIMEOUT_MIN="$2"; shift 2 ;;
     --region)         REGION="$2"; shift 2 ;;
+    --mode)           MODE="$2"; shift 2 ;;
+    --only)           SUITE_ONLY="$2"; shift 2 ;;
+    --wait-scale)     WAIT_SCALE="$2"; shift 2 ;;
     --key-name)       KEY_NAME="$2"; shift 2 ;;
     --print)          PRINT=1; shift ;;
     --dry-run)        DRYRUN=1; shift ;;
@@ -139,6 +145,9 @@ render_user_data() {
     -e "s|@@IDLE_TIMEOUT_MIN@@|${IDLE_TIMEOUT_MIN}|g" \
     -e "s|@@RESULT_BUCKET@@|${RESULT_BUCKET}|g" \
     -e "s|@@PROJECT_TAG@@|${PROJECT_TAG}|g" \
+    -e "s|@@MODE@@|${MODE}|g" \
+    -e "s|@@SUITE_ONLY@@|${SUITE_ONLY}|g" \
+    -e "s|@@WAIT_SCALE@@|${WAIT_SCALE}|g" \
     "$USER_DATA_SRC" \
   | awk -v checks="$CHECKS_JSON" '{gsub(/@@CHECKS_JSON@@/, checks); print}'
 }
@@ -226,7 +235,9 @@ launch_with() {
   INSTANCE_TYPE="$type"
   build_run_args "$AMI_ID"
   echo "== run-instances (${type}) =="
-  aws "${RUN_ARGS[@]}"
+  # Print the instance id and nothing else: the full response carries the AWS account number, and a workflow's log
+  # is PUBLIC (this repository is public). The id is also how the workflow finds this run's results.
+  if [ "$DRYRUN" -eq 1 ]; then aws "${RUN_ARGS[@]}"; else aws "${RUN_ARGS[@]}" --query 'Instances[].InstanceId' --output text | sed 's/^/INSTANCE /'; fi
 }
 
 set +e
@@ -240,5 +251,6 @@ if [ $CODE -ne 0 ] && echo "$OUT" | grep -q "InsufficientInstanceCapacity"; then
   CODE=$?
   set -e
 fi
-echo "$OUT"
+# Mask any 12-digit number (an AWS account id inside an error message) before it reaches a public log.
+echo "$OUT" | sed -E 's/[0-9]{12}/************/g'
 exit $CODE

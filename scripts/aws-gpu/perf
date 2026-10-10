@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+#
+# perf - ONE command: time the app on the rented GPU machine and print the tables.
+#
+#   scripts/aws-gpu/perf                       # the speed suite at main
+#   scripts/aws-gpu/perf --ref mac/speed-profile   # at a branch (until PR #435 is on main, the suite lives there)
+#
+# What it does: starts the "AWS GPU checks" workflow with the one check perf-aws-suite.mjs (it runs the scripts/perf
+# tools ONE AFTER ANOTHER, because the machine's other mode runs listed checks in parallel and parallel runs disturb
+# each other's timings), waits for the run, downloads this run's results only, and prints the suite's output: the
+# load-time table (1x and 4x CPU throttle, 3 cold loads, min / median / max), the frame-time table, phone-size memory
+# and the apartment buffer sizes.
+#
+# Needs: gh (signed in, write access to the repository). Takes about 25 minutes and costs about $0.40
+# (g6.2xlarge, $0.98 an hour). Timings are comparable only with other runs on the same machine type; the quiet-machine
+# rule is met by construction (the box runs nothing else). Read the settings each table prints with it.
+set -euo pipefail
+REF=main; MAX=60; OUT="${PERF_OUT:-./perf-out}"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --ref) REF="$2"; shift 2 ;;
+    --max-runtime) MAX="$2"; shift 2 ;;
+    --out) OUT="$2"; shift 2 ;;
+    -h|--help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "unknown argument: $1" >&2; exit 1 ;;
+  esac
+done
+command -v gh >/dev/null || { echo "gh is not installed" >&2; exit 1; }
+ME="$(gh api user --jq .login)"
+SINCE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+gh workflow run aws-gpu.yml --ref main -f ref="$REF" -f checks=perf-aws-suite.mjs -f max_runtime="$MAX"
+echo "started at $SINCE; looking for the run ..."
+RUN=""
+for _ in $(seq 1 30); do
+  sleep 5
+  RUN="$(gh run list --workflow aws-gpu.yml --user "$ME" --limit 5 --json databaseId,createdAt --jq "[.[]|select(.createdAt >= \"$SINCE\")]|sort_by(.createdAt)|.[0].databaseId // empty")"
+  [ -n "$RUN" ] && break
+done
+[ -n "$RUN" ] || { echo "could not find the run" >&2; exit 1; }
+echo "run $RUN (it waits its turn when another machine run is going: only one machine at a time)"
+gh run watch "$RUN" --exit-status >/dev/null || echo "the run did not finish green; printing what came back"
+rm -rf "$OUT"; mkdir -p "$OUT"
+gh run download "$RUN" -n aws-gpu-results -D "$OUT" 2>/dev/null || { echo "no results artifact" >&2; exit 1; }
+IID="$(grep -ho 'i-[0-9a-f]\{8,\}' "$OUT/launch.log" 2>/dev/null | head -1)"
+F="$(ls -t "$OUT"/results/*"${IID:-i-}"*/out/perf-aws-suite/stdout.txt "$OUT"/results/*/*"${IID:-i-}"*/out/perf-aws-suite/stdout.txt 2>/dev/null | head -1 || true)"
+[ -n "$F" ] || F="$(ls -t "$OUT"/results/*/out/perf-aws-suite/stdout.txt "$OUT"/results/*/*/out/perf-aws-suite/stdout.txt 2>/dev/null | head -1)"
+[ -n "$F" ] || { echo "the suite printed nothing; look in $OUT/results" >&2; exit 1; }
+echo; echo "== $F =="; cat "$F"
