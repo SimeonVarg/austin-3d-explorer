@@ -26,7 +26,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
 try {
-  await page.goto(`${BASE}/index.html`, { waitUntil: 'load', timeout: 120000 });
+  await page.goto(`${BASE}/index.html?drift=0`, { waitUntil: 'load', timeout: 120000 });
   await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded()
     && window.facadeMeasured, null, { timeout: 120000 });
