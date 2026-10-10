@@ -38,7 +38,7 @@
       this.state = 'ready'; this.t = 0; this.cd = 0; this.steps = 0; this.accum = 0;
       this.rec = []; this.tail = 0; this.finishedAt = null; this.splits = []; this.events.length = 0;
     }
-    startCountdown() { if (this.state === 'ready') { this.state = 'countdown'; this.cd = this.P.countdownS; } }
+    startCountdown(seconds) { if (this.state === 'ready') { this.state = 'countdown'; this.cd = seconds == null ? this.P.countdownS : seconds; } }
     /** Total time to display: running clock with penalties. */
     clock() { return this.state === 'finished' ? this.race.finishTime : this.race.clock(this.t); }
 

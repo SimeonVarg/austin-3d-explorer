@@ -62,7 +62,7 @@
       bankFollow: 0.40,                      // the camera rolls this share of the craft's bank
       lookAheadM: 70,                        // m, the camera looks at a point this far ahead of the craft
       fovBase: 58, fovMax: 70,               // vertical FOV, deg, at cruise / at vMax
-      pitchMin: 4, pitchMax: 82,             // MapLibre pitch limits for the chase (deg from straight down)
+      pitchMin: 4, pitchMax: 86,             // MapLibre pitch limits for the chase (deg from straight down)
       maxPitchMap: 88,                       // app.js passes maxPitch 88
     },
 
