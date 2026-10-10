@@ -37,7 +37,7 @@ The shader wall removes 3 to 5 times the shimmer error of the unfiltered geometr
 
 **First three roadmap steps (section 6):** (1) a phone: the probe and one fixed route with the sky upload and the wall rendering each switched off in turn, and the app (flag off | on) timed on the Intel chip (the probe itself is done); (2) widen coverage (the in-app module already takes 39.7% of the city's triangles; see 8.2 and 8.3); (3) make the flag's compare harness and the moire meter the gate for turning it on by default.
 
-**The call to action (section 8, last):** build **Facet**, a compiler from the recipes to shader walls, baked near geometry and an error budget a build can fail on. Built and measured in this pull request: the lab version is pixel-identical to the hand-written shader and 23 times cheaper than the geometry on the L4; **in the app behind `?facadeshader=1` it takes 39.7% of the city's triangles (1.24 M, measured against the real generator over the whole catalog), drops the apartment mesh from 347 to 218 MB and the GL buffers by 129 MB, draws the same pictures (0.4 to 1.9% of pixels differ; lit windows work), and costs +33 KB of script only when on. Its moire score is NOT yet better than the geometry's (worse at the far view, from a dark bias whose fix is committed but was not yet measured)**.
+**The call to action (section 8, last):** build **Facet**, a compiler from the recipes to shader walls, baked near geometry and an error budget a build can fail on. Built and measured in this pull request: the lab version is pixel-identical to the hand-written shader and 23 times cheaper than the geometry on the L4; **in the app behind `?facadeshader=1` it takes 39.7% of the city's triangles (1.24 M, measured against the real generator over the whole catalog), drops the apartment mesh from 347 to 218 MB and the GL buffers by 129 MB, draws the same pictures (0.4 to 1.9% of pixels differ; lit windows work), and costs +33 KB of script only when on. Its moire score is NOT yet reliably better than the geometry's (mixed across three A/B runs; a far-view dark bias is unexplained)**.
 
 **What I could not measure:** a phone; the whole page (flag off | on) timed on the Intel chip; the shader inside the real scene on a weak chip; the MapLibre walls (section 7).
 
@@ -356,24 +356,24 @@ How it keeps the look: the window grid comes from the generator's OWN resolved w
 
 ### 8.4 Night: lit windows in the shader walls
 
-A window's night colour is part of the per-window table the module builds from the generator's own resolved windows: for each window, `lit ? (nightTone or the layer's lit tone) : (the unlit colour the city-night module gives a closed room's glass, else the glass tone's own night colour)`, exactly the colour `tileFace` gives that window's glass cell. The shader paints the window with it into the `night` colour the app's emission and lamp code already reads, so the same lit rooms light up, with the app's own `cityEmission`. **Node check:** the night colour of the glass in the table equals the generator's glass cell's night colour at **77,155 sampled window points with 0 differences** (stub city-night: the real module's unlit rule is applied by the hook in the app, not in Node). **In the app (AWS L4, night hour p = 0.90):** the lit rooms are there and in the same places; the whole-frame difference to the geometry is 0.43 to 1.1% of pixels moved and a mean difference of 0.17 to 0.73 of 255 (table below). Two bugs the pictures found and the module fixed: the first in-app run faded the window grid to the piece's mean colour at about one window a pixel and the lit windows washed out (`docs/graphics-basics-study-2026-10-10/facet-app-run1/west-campus-night-off-on.png`); the closed-form integral is exact at any footprint, so the fade now starts at 3.5 windows a pixel. A pixel straddling a window is also now lit in proportion to its glass share (see 8.5).
+A window's night colour is part of the per-window table the module builds from the generator's own resolved windows: for each window, `lit ? (nightTone or the layer's lit tone) : (the unlit colour the city-night module gives a closed room's glass, else the glass tone's own night colour)`, exactly the colour `tileFace` gives that window's glass cell. The shader paints the window with it into the `night` colour the app's emission and lamp code already reads, so the same lit rooms light up, with the app's own `cityEmission`. **Node check:** the night colour of the glass in the table equals the generator's glass cell's night colour at **77,155 sampled window points with 0 differences** (a stub city-night: the real module's unlit rule is applied by the hook in the app, not in Node). **In the app (AWS L4, night hour p = 0.90):** the lit rooms are there, in the same places (`west-campus-night-off-on.jpg`); the whole-frame difference to the geometry is 0.45 to 1.2% of pixels moved with a mean difference of 0.17 to 1.5 of 255 (table below). Two things the pictures found and the module fixed: the first in-app run faded the window grid to the piece's mean colour at about one window a pixel, and the lit windows washed out (`facet-app-run1/west-campus-night-off-on.png`); the closed-form integral is exact at any footprint, so the fade now starts at 3.5 windows a pixel. And a pixel straddling a window is now lit in proportion to its glass share.
 
 ### 8.5 The app, flag off against flag on: pictures, bytes, memory, moire
 
-`scripts/verify/facet-app.mjs` (pictures, bytes, GL counters) and `moire-meter.mjs` (the meter of PR #437, copied here) on the AWS L4, headless Chrome, 1440x900, flag off then on, same server. **Pictures** (off on the left, on the right, then moved pixels in magenta; the crops are the 560x330 window with the most change; whole frames beside them) are in `docs/graphics-basics-study-2026-10-10/facet-app-run2/pictures/`: `spawn-day|night-off-on.jpg`, `west-campus-day|night-off-on.jpg`, `drag-street-day|night-off-on.jpg` and the `-whole-off-on-moved.jpg` of each. Run 2 is the version with the window-grid fade fixed (run 1 is kept in `facet-app-run1/`).
+`scripts/verify/facet-app.mjs` (pictures, bytes, GL counters) and `moire-meter.mjs` (the meter of PR #437, copied here) on the AWS L4, headless Chrome, 1440x900, flag off then on, same server; runs 1 to 3 are kept under `docs/graphics-basics-study-2026-10-10/facet-app-run1|2|3/`, the tables below are run 3 (the version with the window-grid fade fixed and the glass fraction applied continuously). **Pictures** (off on the left, on the right; the crops are the 560x330 window with the most change, whole frames with the moved pixels in magenta beside them) are in `docs/graphics-basics-study-2026-10-10/facet-app-run3/pictures/`: `spawn-day|night-off-on.jpg`, `west-campus-day|night-off-on.jpg`, `drag-street-day|night-off-on.jpg` and the `-whole-off-on-moved.jpg` of each. Public cameras only (the spawn view, West Campus, the Drag).
 
 Pixels that moved more than 12/255 between flag off and on, over the whole frame (the authored buildings are a third to a half of it):
 
 | camera and hour | pixels moved more than 12/255 | mean absolute difference (0-255, whole frame) |
 |---|---:|---:|
-| spawn-day | 1.874% | 0.602 |
-| spawn-night | 1.116% | 0.727 |
-| west-campus-day | 0.793% | 0.381 |
-| west-campus-night | 0.427% | 0.172 |
-| drag-street-day | 1.752% | 0.657 |
-| drag-street-night | 0.815% | 0.436 |
+| spawn-day | 1.975% | 0.609 |
+| spawn-night | 1.213% | 0.698 |
+| west-campus-day | 0.73% | 0.3 |
+| west-campus-night | 0.451% | 0.167 |
+| drag-street-day | 1.786% | 0.78 |
+| drag-street-night | 0.766% | 1.518 |
 
-**What changed in the page** (same table, measured; GL bytes are the page's counters after the six shots):
+**What changed in the page** (measured; GL bytes are the page's counters after the six shots; this run took all 39.7% of the triangles, before the five filtered buildings were excluded):
 
 | | flag off | flag on | change |
 |---|---:|---:|---:|
@@ -383,31 +383,33 @@ Pixels that moved more than 12/255 between flag off and on, over the whole frame
 | of which the flag's own arrays and three data textures (piece records, window table, tones) | 0 | 2.9 MB geometry, 4.0 MB textures | |
 | GL buffer bytes held after the six shots | 549.0 MB | 419.8 MB | -129.1 MB (-23.5%) |
 | GL texture bytes held after the six shots | 83.9 MB | 85.1 MB | +1.1 MB (+1.4%) |
-| JavaScript the page downloads | 3,601,445 | 3,634,430 | +32,985 (+0.9%) |
-| everything the page downloads | 40,980,420 | 41,013,405 | +32,985 (+0.1%) |
+| JavaScript the page downloads | 3,601,445 | 3,636,323 | +34,878 (+1.0%) |
+| everything the page downloads | 40,980,420 | 41,015,298 | +34,878 (+0.1%) |
 | GL programs used | 44 | 45 | |
 
-What the flag does NOT change when off: the page downloads nothing new. It does change one file: `js/slopes-apartments.js` carries the loader and the hook lines, **+1,908 bytes raw, +608 bytes gzipped** (measured against main). With the flag on the page also downloads `js/facet-walls.js` (32,730 bytes raw, 10,697 gzipped).
+With the flag OFF the page downloads nothing new. It does change one file: `js/slopes-apartments.js` carries the loader and the hook lines, **+1,908 bytes raw, +608 bytes gzipped** (measured against main); with the flag ON the page also downloads `js/facet-walls.js` (about 33 KB raw, 11 KB gzipped).
 
 **The moire meter, as the meter reports it** (each arm against its own 4x4 supersampled truth; authored-building pixels only; `err`, `band`, `flicker` as in section 3.4; lower is better):
 
 | view | authored-building pixels | err off / on | band off / on | flicker off / on | p99 err off / on |
 |---|---:|---|---|---|---|
-| west-far | 56% / 56% of the frame | 2.73 / 5.48 | 1.15 / 3.71 | 3.99 / 8.69 | 20.4 / 38.4 |
-| west-mid | 12% / 18% of the frame | 4.21 / 8.32 | 2.65 / 6.94 | 6.96 / 8.42 | 24.1 / 59.0 |
-| drag-mid | 31% / 37% of the frame | 1.95 / 2.16 | 0.95 / 1.14 | 2.32 / 2.09 | 21.3 / 28.6 |
+| west-far | 56% / 59% of the frame | 3.69 / 2.63 | 1.93 / 1.52 | 5.87 / 3.66 | 54.9 / 19.6 |
+| west-mid | 14% / 12% of the frame | 2.07 / 6.41 | 0.83 / 5.01 | 2.67 / 11.47 | 22.3 / 74.0 |
+| drag-mid | 31% / 31% of the frame | 3.61 / 3.19 | 2.53 / 2.23 | 5.62 / 4.69 | 64.3 / 19.8 |
 
-**This is not the result the idea predicted, and it needs saying plainly.** On the meter's own terms the shader walls are *worse* than the geometry at the far and middle views (err 2.73 to 5.48 and 4.21 to 8.32) and equal at the street view (1.95 to 2.16). Two cautions about the table: the meter's flag-off numbers move a lot between runs of the same page (run 1 read 2.29 and 4.06 for west-mid and drag-mid, run 2 read 4.21 and 1.95: the sky, the tile loading and the animated clouds are not frozen), so only differences of about two times mean anything; and each arm is scored against its own truth, which cannot say whether the two arms draw the same picture. The same run's saved pictures can say that (`scripts/verify/facet-meter-cross.py`): the shader's 1x frame, the geometry's 1x frame and the geometry's supersampled truth over the pixels the authored layer draws in both arms:
+**Mixed, and noisy, and not the clean win the lab promised.** Run 3: the far view reads better with the flag on (err 3.69 to 2.63, flicker 5.87 to 3.66), the street view about equal (3.61 to 3.19), the middle view **worse** (2.07 to 6.41; its flicker 2.67 to 11.47). Two cautions. The meter's flag-off numbers move a lot between runs of the same page (west-far read 2.75, 2.73 and 3.69 in the three runs, drag-mid 4.06, 1.95 and 3.61), because the sky, tile loading and animated clouds are not frozen, so a single difference under about two times means little. And each arm is scored against its own truth, which cannot say whether the two arms draw the same picture: the same run's saved pictures can (`scripts/verify/facet-meter-cross.py`: the shader's 1x frame, the geometry's 1x frame and the geometry's supersampled truth, over the pixels the authored layer draws in both arms):
 
 | view | geometry 1x vs geometry truth | **shader 1x vs geometry truth** | shader truth vs geometry truth | shader 1x vs its own truth | mean level: geometry truth / shader 1x |
 |---|---:|---:|---:|---:|---|
-| west-far | 2.77 | **6.59** | 3.34 | 3.76 | 94.2 / 90.8 |
-| west-mid | 2.56 | **4.39** | 2.03 | 3.19 | 108.9 / 109.6 |
-| drag-mid | 1.80 | **2.28** | 0.20 | 2.22 | 86.0 / 85.8 |
+| west-far | 2.76 | **5.75** | 3.32 | 2.77 | 94.2 / 91.1 |
+| west-mid | 2.33 | **4.30** | 2.02 | 2.66 | 108.8 / 109.6 |
+| drag-mid | 7.20 | **7.22** | 5.63 | 1.76 | 91.6 / 86.0 |
 
-Reading it: at the street view the shader wall and the geometry draw the same picture at high resolution (0.20 apart), and the shader's 1x frame is still no closer to the truth than the geometry's (2.28 against 1.80). At the far view the shader's own high-resolution picture is 3.3 away from the geometry's and **3 levels darker on average** (91 against 94), so the shader walls are biased dark, not just noisy. The cause found by reading the shader against the app's: the app's window effects (the sky reflected in glass, window light at night, the wall's night ambient) switch on a whole pixel at a time, right for a cell and wrong for a pixel that is 40% window, and a curtain wall like Dobie's is 42% glass, under the 50% a threshold needs, so the reflection is never applied at 1x. The fix is in the module (the glass fraction of the pixel drives those effects continuously; commit "the glass fraction of a pixel drives window light, reflection and emission continuously") and **was not yet measured on the GPU when this was written** (the AWS run for it was queued behind other lanes). Until it is, the honest status of the in-app flag is: it draws the right pictures (0.4 to 1.9% of pixels differ, from lit windows to the frames), it removes 39.7% of the authored triangles and 129 MB of GL buffers, **and its moire score is not yet better than the geometry's: at the far view it is worse.** The lab result of section 3.4 (the shader wall 3 to 5 times better than unfiltered geometry on one isolated tower) did not carry over to the app unchanged.
+Reading it. **The two arms draw the same picture at high resolution at the middle and street views** (the shader's truth is 2.0 and 0.2 away from the geometry's in runs 2 and 1; the street figures here are inflated by a noisy geometry arm, 7.2 against its own truth). **At the far view the shader's picture is about 3 levels darker on average (91.1 against 94.2) in all three runs**, a bias that the glass-fraction fix did not remove, so its cause is still open (candidates: the recess's parallax at grazing angles counting too much window as reveal; the per-pixel lighting of a composite instead of per tone; accent and spandrel tones). And **the middle view is worse in all three runs (aptErr 3.18/8.32/6.41 against 2.29/4.21/2.07)**. The pictures show why: the worst pixels are in the towers of the five buildings that already have a filtered-texture fix for exactly this problem (`js/facade-filter.js`: Union on 24th, 21 Rio, The Standard, Villas on Rio, Yugo Waterloo): replacing a fitted texture low-pass with the general analytic filter loses on those. **So the module now leaves those five buildings alone** (36.7% of the city's triangles instead of 39.7%, Node-verified: `facet/module-check-keep-filtered.json`); that change was pushed after run 3 and its A/B run was queued when this was written (the numbers above do not include it).
 
-**Not measured:** the page's frame time flag off against on (on the Intel chip or on the L4: the app bench takes pictures and counters, no timing); the GPU cost of the interpreter shader at the app's real pixel counts (the probe's facade-like shader is the nearest, 0.31 ns a pixel on the Intel chip); a phone.
+What it does deliver, measured: **39.7% of the authored triangles removed (36.7% with the five buildings kept), 129 MB fewer GL buffers, 130 MB fewer CPU arrays, +1.1 MB of textures, +35 KB of script only when on, pictures within 0.45 to 2% of pixels of the geometry's, lit windows working.** What it does not yet deliver is a better moire score than the geometry in the real app.
+
+**Not measured:** the page's frame time flag off against on (on the Intel chip or the L4; the app bench takes pictures and counters, no timing); the GPU cost of the interpreter shader at the app's real pixel counts (the probe's facade-like shader is the nearest: 0.31 ns a pixel on the Intel chip); a phone; and the far-view dark bias's cause.
 
 ### 8.6 How this was made, for the record
 
@@ -415,4 +417,4 @@ Three consults with Astra (Azure, a few cents each): one for its own idea before
 
 ---
 
-**Call to action: build Facet.** One source (the recipes you already have), compiled by one tool into shader walls, baked near geometry and a quality budget a build can fail on, replacing the three copies of the facade rule the app carries today. It exists: a lab version on one tower, and an in-app flag that takes 39.7% of the city's triangles and 129 MB of GPU buffers, with a Node check against the real generator over the whole catalog. What is left is the part that matters for the owner's actual complaint: **make the shader wall's moire score beat the geometry's in the real app** (the fix for the far-view dark bias is committed and waits on one GPU run; then widen coverage past 39.7%, and measure a phone). Do not turn the flag on by default until that number is in.
+**Call to action: build Facet.** One source (the recipes you already have), compiled by one tool into shader walls, baked near geometry and a quality budget a build can fail on, replacing the three copies of the facade rule the app carries today. It exists: a lab version on one tower, and an in-app flag that takes 39.7% of the city's triangles and 129 MB of GPU buffers, with a Node check against the real generator over the whole catalog. What is left is the part that matters for the owner's actual complaint: **make the shader wall's moire score beat the geometry's in the real app** (the far view is better in the latest run and the middle view worse, because the five buildings that already have a filter were being replaced: they are now left alone, and that change waits on one GPU run; the far-view dark bias is still unexplained; then widen coverage, and measure a phone). Do not turn the flag on by default until that number is in.
