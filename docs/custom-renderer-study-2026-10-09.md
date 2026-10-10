@@ -82,10 +82,10 @@ Note on the `noslopes` arm: with `?slopes=0` the authored buildings are replaced
 | `maplibre-gl.css` | 70,024 B | 10,078 B | 8,996 B | |
 | `three.min.js` r159 | 668,024 B | 165,855 B | 147,000 B | 41 ms / 243 ms (noisy) |
 | `pmtiles.js` 3.0.6 | 48,555 B | 11,529 B | 11,055 B | 8 ms / 34 ms |
-| the two frameworks together | 1.72 MB | 441 KB | 394 KB | about 100 ms / 430 ms |
+| the two frameworks together | 1,724,861 B | 441,016 B | 394,104 B | about 100 ms / 430 ms (both together, plus pmtiles 8 ms / 34 ms) |
 | the app's own 51 scripts | 3,536,520 B | 1,212,174 B | | not measured |
 
-(Measured off the files; parse is from the end of the response to the script's `load` event, so it includes compile and the top-level run. 4x is Chrome's CPU throttle, a stand-in for a mid-range phone, not a phone.) **The frameworks are a third of the JavaScript bytes (1.72 of 5.26 MB raw) and about 1% of the load time** on any machine measured; the app's own code is the larger part. The wire total of a cold load is 48 MB, 41 MB of it data JSON (speed study, `serve.py`, uncompressed; about 6.4 MB gzip). Replacing the frameworks is therefore a poor way to win bytes or parse time; baking the data is a good one.
+(Measured off the files; parse is from the end of the response to the script's `load` event, so it includes compile and the top-level run. 4x is Chrome's CPU throttle, a stand-in for a mid-range phone, not a phone.) **The frameworks are a third of the JavaScript bytes (1,773,416 of 5,309,936 bytes raw, pmtiles included) and under 1% of the load time** on any machine measured (about 105 ms of parse against 20 to 100 s of load); the app's own code is the larger part. The wire total of a cold load is 48 MB, 41 MB of it data JSON (speed study, `serve.py`, uncompressed; about 6.4 MB gzip). Replacing the frameworks is therefore a poor way to win bytes or parse time; baking the data is a good one.
 
 ### 2.5 Memory held
 
