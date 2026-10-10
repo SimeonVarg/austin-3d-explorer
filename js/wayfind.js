@@ -8775,7 +8775,7 @@
     stairsFree: (d) => 'a step-free way is ' + d + ' further',
     stairsFreeShorter: (d) => 'a step-free way is ' + d + ' shorter',
     stairsFreeSame: 'a step-free way is no further',
-    signals: (n) => 'Crosses ' + n + ' signalised crossings',
+    signals: (n) => 'Crosses ' + n + ' signalised crossing' + (n === 1 ? '' : 's'),
     // ── the three ways a real schedule breaks this router ─────────────────
     // Each says WHICH KIND of gap it is, because the three need three
     // different things from a person and lumping them into "can't route
