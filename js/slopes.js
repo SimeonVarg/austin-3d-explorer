@@ -422,6 +422,7 @@
     edge: q.get('moireedge') !== '0',
     edgeRes: 0.1,                       // metres per texel of those two strips (the finest edge they can place; under edgePx texels to a pixel the cell draws itself)
     edgePx: [1.0, 2.0],                 // pixel size in strip texels: no smoothing under [0], full over [1]
+    withSmoothEdges: q.get('moiresmooth') === '1',   // false = the authored buildings' part is off in a multisampled context (see the frame code)
     through: 1,                         // 1 = a recessed pane's edge is looked up where the pixel's ray crosses the wall plane (0 = where the pane itself is)
     footprint: Number(q.get('moirefoot')) > 0 ? Number(q.get('moirefoot')) : 1,   // the pixel's size on the wall as a multiple of the measured one (1 = a box of the pixel's own spread)
     parallax: q.get('moireparallax') === '0' ? 0 : 1,   // 1 = a far mean leaves out the glass that the window reveals hide at this view angle
@@ -1012,7 +1013,7 @@ ${SHADE_CORE}${SHADE_DETAIL}      #ifdef MOIRE_ACTIVE
     }`;
 
   // ── State ───────────────────────────────────────────────────────────────
-  let _map = null, _gl = null;
+  let _map = null, _gl = null, _moireSamples = -1;   // (the context's sample count, read once: THE MOIRE FIX stands down under Smooth edges)
   let scene = null, root = null, camera = null, renderer = null, dirLight = null;
   let U = null;                 // the shared uniforms, built once THREE exists
   let originMerc = null, originScale = 0;
@@ -2162,7 +2163,12 @@ ${SHADE_CORE}${SHADE_DETAIL}      #ifdef MOIRE_ACTIVE
       U.u_shopCeiling.value.set(shop.sideShade,shop.ceilingShade,shop.lightWidth,shop.lightLength);
       for(const key of ['Wall','Floor','Merch','Light'])U['u_shop'+key].value.set(...hexToRgb01(shop[key.toLowerCase()]));
       U.u_materialP.value=window.CityNight?.materialP(U.u_p.value)??U.u_p.value;
-      U.u_moire.value.set(MOIRE.on?MOIRE.mode:0,MOIRE.px[0],MOIRE.px[1],MOIRE.parallax);
+      // With Smooth edges on (a multisampled context) the authored buildings' part stands down unless MOIRE.withSmoothEdges: four real samples
+      // place a window's edge better than the strips do, and measured with both on the score was WORSE than main (far campus error 3.09 -> 3.97).
+      // The meter's flat and rows modes (2, 3) are left alone.
+      if(_moireSamples<0&&_gl){try{_moireSamples=_gl.getParameter(_gl.SAMPLES)|0;}catch(e){_moireSamples=0;}}
+      const moireMode=MOIRE.on?(MOIRE.mode===1&&_moireSamples>0&&!MOIRE.withSmoothEdges?0:MOIRE.mode):0;
+      U.u_moire.value.set(moireMode,MOIRE.px[0],MOIRE.px[1],MOIRE.parallax);
       U.u_moireB.value.set(MOIRE.pxV[0],MOIRE.pxV[1],MOIRE.goldSlope,0);
       U.u_moireD.value.set(MOIRE.through,0,0,0);
       U.u_moireC.value.set(MOIRE.edge&&MOIRE.mode===1?1:0,MOIRE.edgePx[0],MOIRE.edgePx[1],MOIRE.footprint);

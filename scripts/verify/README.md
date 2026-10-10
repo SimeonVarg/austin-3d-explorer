@@ -1918,6 +1918,10 @@ Six traps, each one cost a run or more:
 - **An arm must set every value it depends on.** Arms run in turn at every frame; one that changes a parameter and does
   not put it back hands the next arm its state. `MoireFix.reset()` is the first thing each arm does.
 
+Under Smooth edges (`--msaa 1`) the authored buildings' part of the fix stands down (`MOIRE.withSmoothEdges`): measured
+with both on, the score was worse than main, and Smooth edges alone lowers error more than the fix does. Pass
+`--q moiresmooth=1` to measure the two together.
+
 `--xarm "name=<js>"` adds an arm for tuning a parameter inside one page load (held to main's truth), e.g.
 `--xarm "wide=window.MoireFix.reset();window.MoireFix.params.footprint=1.4;window.MoireFix.set(1)"`.
 
