@@ -330,6 +330,8 @@ const rows = [
   ['initFacades call ms (main thread)', r => (r.calls.find(c => c[0] === 'initFacades') || [])[2]],
   ['wall images painted when asked: count', r => r.facadeWT && r.facadeWT.painted],
   ['wall images painted when asked: main-thread ms', r => r.facadeWT && r.facadeWT.paintMs],
+  ['wall images painted when asked: longest run in one tile request, ms', r => r.facadeWT && r.facadeWT.burstMsMax],
+  ['wall images painted when asked: most images in one tile request', r => r.facadeWT && r.facadeWT.burstImagesMax],
   ['paint workers: busy ms (sum of all jobs)', r => r.facadeWT && r.facadeWT.workerMs],
   ['paint workers: jobs (combos)', r => r.facadeWT && r.facadeWT.workerCombos],
   ['facade paced jobs started / finished', r => r.facadePace && r.facadePace.jobs],

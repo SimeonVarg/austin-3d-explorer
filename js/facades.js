@@ -2621,7 +2621,7 @@
   function ensureImages(map, id, p) {
     // WALL TIERS: nothing is painted here. The image is painted the first time a
     // tile asks for it (lazyWallImage), at the hour and zoom anchor current then.
-    if (WALLTIERS.on) { WT.deferred++; return 0; }
+    if (WALLTIERS.on) { WT.deferred++; armWallTiers(map); return 0; }
     const { fam, idx } = parseId(id);
     let added = false;
     for (const t of TIERS) {
@@ -3852,7 +3852,10 @@
   const WT = window.__facadeWallTiers = {
     on: WALLTIERS.on, deferred: 0, painted: 0, paintedFar: 0, paintedNear: 0, paintMs: 0, paintMsMax: 0,
     rawHits: 0, unknown: 0, failed: 0, workerMs: 0, workerCombos: 0, slow: [],
+    // Paints that happen in the same call stack are one tile's request: how long the biggest such run held the thread.
+    bursts: 0, burstMsMax: 0, burstImagesMax: 0,
   };
+  const _burst = { ms: 0, n: 0, open: false };
   window.facadeWallTiersStats = () => ({
     ...WT, slow: WT.slow.slice(), paintMs: Math.round(WT.paintMs * 10) / 10,
     comboCount: combos.length, tierCount: TIERS.length,
@@ -3892,6 +3895,16 @@
     const ms = performance.now() - t0;
     WT.painted++; if (info.tier.id) WT.paintedFar++; else WT.paintedNear++;
     WT.paintMs += ms;
+    _burst.ms += ms; _burst.n++;
+    if (!_burst.open) {
+      _burst.open = true;
+      queueMicrotask(() => {
+        WT.bursts++;
+        if (_burst.ms > WT.burstMsMax) WT.burstMsMax = +_burst.ms.toFixed(1);
+        if (_burst.n > WT.burstImagesMax) WT.burstImagesMax = _burst.n;
+        _burst.ms = 0; _burst.n = 0; _burst.open = false;
+      });
+    }
     if (ms > WT.paintMsMax) WT.paintMsMax = +ms.toFixed(2);
     if (WT.slow.length < WALLTIERS.slowKeep || ms > WT.slow[WT.slow.length - 1][1]) {
       WT.slow.push([key, +ms.toFixed(2)]);
