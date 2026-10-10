@@ -415,7 +415,9 @@
     g.computeBoundingSphere();
     base.dispose();
     const mesh = new T.Mesh(g, mat); mesh.name = 'apartments-facet';
-    mesh.userData.disposeFacade = () => { tFd.dispose(); tWt.dispose(); tFt.dispose(); mat.dispose(); }; mesh.frustumCulled = true;
+    // NOT userData.disposeFacade: js/slopes.js hides every child that has one from the sun shadow pass (a facade-filter overlay adds no shadow). Facet walls
+    // ARE the building's shadow caster, so their textures are freed when the geometry is (every rebuild path disposes the geometry).
+    g.addEventListener('dispose', () => { tFd.dispose(); tWt.dispose(); tFt.dispose(); mat.dispose(); }); mesh.frustumCulled = true;
     stats.bytes = { fd: fdArr.byteLength, wt: wtArr.byteLength, ft: ftArr.byteLength, geometry: geo.pos.length * 4 + geo.nrm.length * 4 + geo.tan.length * 4 + geo.uv.length * 4 + geo.piece.length * 4 + geo.idx.length * 4 };
     return mesh;
   }
