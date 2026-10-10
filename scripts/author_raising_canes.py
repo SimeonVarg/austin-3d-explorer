@@ -46,6 +46,7 @@ TOWERS = {
     'east':  dict(plan=[2.5, 5.5, 8.0, 10.3], top=6.1),     # SCAN 6.0 to 6.1 m at u 2.5-5.5 on the east wall; PHOTO (east view): door + round sign
     'west':  dict(plan=[10.5, 14.5, 0.9, 2.6], top=6.1),    # SCAN 6.0 to 6.2 m at u 10.5-14.5 on the west wall; PHOTO (north view): narrow tower, vertical sign
     'southwest': dict(plan=[28.5, 30.6, 0.2, 2.2], top=6.0),  # SCAN 5.9 to 6.2 m; no photograph (INFERRED plain beige)
+    'annex': dict(plan=[22.2, 26.4, 10.0, 11.95], top=5.3),   # PHOTO (east view, left end): a beige volume with ONE small window where the first draft had two big rust-wall windows; its width and u are read off the camera (+-1.5 m)
 }
 ROOF_ITEMS = [   # SCAN: boxes standing on the roof (air-conditioning units, 5.8 to 6.0 m top); PHOTO: grey boxes behind the east parapet
     dict(plan=[13.5, 16.5, 3.0, 8.0], top=6.0), dict(plan=[8.0, 9.5, 4.0, 7.5], top=5.9),
@@ -53,7 +54,7 @@ ROOF_ITEMS = [   # SCAN: boxes standing on the roof (air-conditioning units, 5.8
 
 # ---- colours: photographed, overcast, then set by ratio. R: rust 128, beige 199, brick 154 in the photograph ----
 COLOURS = {
-    'rust': '#8a4a33', 'beige': '#c9bda4', 'brick': '#a89680', 'black': '#26272b', 'shopDark': '#34312f',
+    'rust': '#8a4a33', 'beige': '#c9bda4', 'brick': '#a89680', 'black': '#26272b', 'shopDark': '#58554f',
     'signRed': '#b3202a', 'muralRed': '#9c1f27', 'white': '#f1ede6', 'yellow': '#f2c230', 'roofFlat': '#7a7b78',
     'pylonRed': '#8c0b1c',
 }
@@ -75,12 +76,13 @@ OPENINGS = [
     # north end: window under its own awning left of the tower (ends 2.68 so its frame stops at the tower's side, v 2.75), two windows under the canopy (PHOTO north view)
     ('N', 1.55, 2.68, 'win'), ('N', 3.1, 4.95, 'win'), ('N', 5.25, 7.4, 'win'), ('N', 8.0, 9.7, 'win'),
     # east wall: wing windows and the door in the east tower (PHOTO east view); u 18 on is INFERRED
-    ('E', 0.4, 2.1, 'win'), ('E', 3.55, 4.55, 'door'), ('E', 6.2, 9.0, 'win'), ('E', 9.8, 10.5, 'win'),
-    ('E', 19.2, 21.8, 'win'), ('E', 22.6, 25.2, 'win'),
+    # (the east view shows plain wall and a downpipe between the window at u 6.2-9 and the red panel: no window at u 9.8-10.5)
+    ('E', 0.4, 2.1, 'win'), ('E', 3.55, 4.55, 'door'), ('E', 6.2, 9.0, 'win'),
+    ('E', 23.7, 24.6, 'win'),   # the annex's one small window (PHOTO, east view)
     # west wall: two windows under two awnings, a door in the west tower (PHOTO north view)
     ('W', 4.4, 7.0, 'win'), ('W', 7.6, 10.0, 'win'), ('W', 11.8, 13.2, 'door'), ('W', 15.2, 17.4, 'win'),
 ]
-AWNINGS = [('E', 5.9, 9.3), ('E', 0.2, 2.4), ('W', 4.2, 7.2), ('W', 7.4, 10.2), ('N', 7.9, 9.9), ('E', 19.0, 22.0), ('E', 22.4, 25.4)]
+AWNINGS = [('E', 5.9, 9.3), ('E', 0.2, 2.4), ('W', 4.2, 7.2), ('W', 7.4, 10.2), ('N', 7.9, 9.9)]
 CANOPIES = [('N', 1.5, 9.5, 1.0), ('E', 2.4, 5.7, 1.1), ('W', 11.3, 13.7, 1.0)]   # wall, from, to, depth
 
 # ---- the signs: a red board with white lettering and a yellow strip (PHOTO). Plain shapes and the dot font only. ----
@@ -96,7 +98,7 @@ SIGN_LINES = [   # text, dot, gap, tone, bottom z above the board's foot, width 
 ]
 MURAL_LINES = [("CANE'S", 0.06, 0.06, 'white', 1.55), ('ONE LOVE', 0.05, 0.05, 'white', 0.95)]   # PHOTO: the words on the red panel
 MURAL = dict(u0=11.0, u1=14.0, z0=0.8, z1=3.0)   # PHOTO (east view): the red wall panel, ONE LOVE (Austin)
-PYLON = dict(u0=-0.7, u1=0.0, v0=2.0, v1=3.5, z0=0.5, z1=4.8)   # PHOTO (north view): the big red numeral 1 at the corner of the north tower
+PYLON = dict(u0=-0.7, u1=0.0, v0=2.0, v1=3.5, z0=0.5, z1=4.8, stem=0.95, flag_z=3.6)   # PHOTO (north view): the big red numeral 1 at the corner of the north tower
 DECIMALS = 3
 
 
@@ -214,7 +216,8 @@ def build():
     # red mural panel on the east wall, and the pylon "1"
     meshes['muralRed'].wall_box('E', MURAL['u0'], MURAL['u1'], MURAL['z0'], MURAL['z1'], 0.0, 0.05, plane_of('E', MURAL['u0'], MURAL['u1']))
     P = PYLON
-    meshes['pylonRed'].box(P['u0'], P['u1'], P['v0'], P['v1'], P['z0'], P['z1'])
+    meshes['pylonRed'].box(P['u0'], P['u1'], P['v0'], P['v0'] + P['stem'], P['z0'], P['z1'])      # the stem of the 1
+    meshes['pylonRed'].box(P['u0'], TOWERS['north']['plan'][0], P['v0'] + P['stem'], P['v1'], P['flag_z'], P['z1'])   # its flag, on the side that faces east (the photograph's left)
     # sign boards on the tower faces (the lettering is added as dot-font `signs` on the tower blocks)
     for tower, key, centre, zb in SIGNS:
         u0, u1, v0, v1 = TOWERS[tower]['plan']
@@ -251,7 +254,7 @@ def main():
         'materials': {'brick': 'brick'},
         'blocks': [],
         'detailMeshes': [],
-        'open': ['The south end (u 18 to 30.6) is not in any photograph: plain rust stucco with two windows.',
+        'open': ['The south end beyond the annex (u 22 to 30.6) is not in any photograph: plain rust stucco.',
                  'Awnings are flat slabs, not sloped. The freestanding pole sign, the roof railing, the ramp and the planters are not drawn.'],
     }
     # the shell
