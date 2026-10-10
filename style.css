@@ -303,7 +303,7 @@ html.timelapse #tod-slider{pointer-events:none}
 #hud-title{font-size:12.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
 #hud-snapshot{font-size:10px;opacity:.5;margin-top:1px;letter-spacing:.04em}
 
-#controls-hint{position:absolute;bottom:calc(24px + var(--safe-bottom));left:50%;transform:translateX(-50%);
+#controls-hint{position:absolute;bottom:calc(38px + var(--safe-bottom));left:50%;transform:translateX(-50%);
   background:rgba(18,11,4,.5);backdrop-filter:blur(8px);
   border:1px solid rgba(255,190,90,.12);border-radius:999px;
   padding:6px 16px;color:rgba(245,223,160,.7);font-size:11.5px;letter-spacing:.02em;
@@ -316,7 +316,7 @@ body.flying #controls-hint{opacity:0}
    (the desktop hint is ~560px, the credit ~310px with its margin) the two
    overlap. Below that width the hint moves up one credit row (the same 42px
    the "Switch modes" pill uses). Phones have their own rule further down. */
-@media(min-width:521px) and (max-width:1200px){#controls-hint{bottom:42px}}
+@media(min-width:521px) and (max-width:1200px){#controls-hint{bottom:calc(42px + var(--safe-bottom))}}
 body.flying #hud{opacity:.35}
 
 /* The side panels used to be `pointer-events:none` for the whole of `.flying`,

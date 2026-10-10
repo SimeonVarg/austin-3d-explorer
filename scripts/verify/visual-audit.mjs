@@ -677,13 +677,13 @@ async function proofGroup() {
       check('B18', 'the privacy line says a calendar link contacts its provider', /contacts its provider/i.test(priv), priv.replace(/\s+/g, ' ').slice(0, 120));
       // B20: a chip by keyboard
       await p6.evaluate(() => { const s = document.getElementById('wf-sheet'); if (s) s.scrollTop = 0; });
+      const touch = await p6.evaluate(() => document.documentElement.classList.contains('has-touch'));
+      const sizes = await p6.evaluate(() => Object.fromEntries(['.wf-item', '.wf-eg', '#wf-close', '.wf-x'].map(s => { const e = document.querySelector(s); if (!e) return [s, null]; const r = e.getBoundingClientRect(); const a = getComputedStyle(e, '::after'); return [s, [Math.round(r.width), Math.round(r.height), a.content]]; })));
+      if (touch) check('H05', 'walk chips reach 44 px on touch, and the small marks get a larger hit area', sizes['.wf-eg'] && sizes['.wf-eg'][1] >= 43.5 && ['#wf-close', '.wf-x'].every(s => !sizes[s] || sizes[s][2] === '""'), JSON.stringify(sizes));
       await p6.evaluate(() => { const c = document.querySelector('.wf-eg'); if (c) c.focus(); }); await p6.keyboard.press('Enter'); await p6.waitForTimeout(500);
       const val = await p6.evaluate(() => (document.getElementById('wf-to') || {}).value);
       check('B20', 'a keyboard Enter on an example chip fills the To field', !!val, val);
       await shot(p6, vp, 'proof-B20-chip-keyboard', 'after Enter on the first example chip');
-      const touch = await p6.evaluate(() => document.documentElement.classList.contains('has-touch'));
-      const sizes = await p6.evaluate(() => Object.fromEntries(['.wf-item', '.wf-eg', '#wf-close', '.wf-x'].map(s => { const e = document.querySelector(s); if (!e) return [s, null]; const r = e.getBoundingClientRect(); const a = getComputedStyle(e, '::after'); return [s, [Math.round(r.width), Math.round(r.height), a.content]]; })));
-      if (touch) check('H05', 'walk rows and chips reach 44 px on touch', ['.wf-item', '.wf-eg'].every(s => !sizes[s] || sizes[s][1] >= 43.5), JSON.stringify(sizes));
       await p6.evaluate(() => { const i = document.getElementById('wf-to'); if (i) i.focus(); }); await p6.keyboard.press('Tab'); await p6.keyboard.press('Shift+Tab'); await p6.waitForTimeout(200);
       const ring = await p6.evaluate(() => { const e = document.activeElement; const cs = getComputedStyle(e); return cs.outlineStyle + ' ' + cs.outlineWidth + ' ' + cs.outlineColor; });
       check('H06', 'a focused walk text field shows a gold ring', /solid/.test(ring) && /245, 166, 35/.test(ring), ring);

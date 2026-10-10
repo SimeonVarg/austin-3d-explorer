@@ -1491,6 +1491,7 @@ precision highp float; uniform highp sampler2D uT; uniform float uK; out vec4 o;
     const est = card.querySelector('#load-estimate'); est.className = 'load-fail'; est.style.display = 'block'; est.textContent = t('fail.webgl.body');
     const btn = document.getElementById('mode-launcher'); if (btn) btn.hidden = true;
   }
+  window.loaderWebglFailed = webglFailed;
   const isWebglError = m => /requestedAttributes|Failed to initialize WebGL|webglcontextcreationerror/i.test(String(m || ''));
   window.addEventListener('error', e => { if (isWebglError(e.message) || isWebglError(e.error && e.error.message)) webglFailed(); });
   window.addEventListener('unhandledrejection', e => { if (isWebglError(e.reason && (e.reason.message || e.reason))) webglFailed(); });

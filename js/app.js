@@ -562,6 +562,13 @@
       ...(PHONE_BUDGET && PHONE_BUDGET.tileCacheSize != null ? { maxTileCacheSize: PHONE_BUDGET.tileCacheSize } : {}),
     });
     window.__map = map;
+    // MapLibre does not throw when the browser gives it no WebGL context: it fires an error nobody is listening for
+    // yet and returns a map that never loads. Ask the canvas whether it holds a context (an existing one is
+    // returned, so this never creates a second) and, if not, tell the loading card to say so (A09).
+    try {
+      const cv = map.getCanvas();
+      if (cv && !(cv.getContext('webgl2') || cv.getContext('webgl')) && window.loaderWebglFailed) window.loaderWebglFailed();
+    } catch (e) {}
     // THE STYLELESS GAP. When the graphics context is lost, MapLibre destroys
     // its style (map.style is null) until the restore. On CI's slow renderer a
     // texture refresh on a timer landed in that gap and threw "reading
