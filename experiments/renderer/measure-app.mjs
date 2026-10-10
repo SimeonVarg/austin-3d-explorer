@@ -143,8 +143,9 @@ async function runArm(arm) {
       await page.evaluate(() => new Promise(r => { const m = window.__map; if (m.loaded()) return r(); m.once('idle', () => r()); setTimeout(r, 20000); }));
       res.bench[name] = await page.evaluate(async () => {
         const m = window.__map, gl = m.painter.context.gl, G = window.__glc, ts = []; G.threeMs = 0;
+        G.mute = true;     // the GL call counters off: they cost CPU time of their own and must not be in a frame time
         for (let i = 0; i < 45; i++) { const t = performance.now(); await new Promise(r => { m.once('render', () => r()); m.triggerRepaint(); }); gl.finish(); ts.push(performance.now() - t); }
-        ts.splice(0, 5); ts.sort((a, b) => a - b);
+        G.mute = false; ts.splice(0, 5); ts.sort((a, b) => a - b);
         return { frames: ts.length, minMs: +ts[0].toFixed(2), medianMs: +ts[ts.length >> 1].toFixed(2), p90Ms: +ts[Math.floor(ts.length * 0.9)].toFixed(2), threeJsMsPerFrame: +(G.threeMs / 45).toFixed(2) };
       });
       console.log('bench', name, JSON.stringify(res.bench[name]), SOFTWARE ? '(software: not valid for timing)' : '');
@@ -155,12 +156,14 @@ async function runArm(arm) {
     await page.evaluate(({ p }) => { const m = window.__map; m.jumpTo({ center: p.center, zoom: p.zoom, pitch: p.pitch, bearing: p.bearing }); }, { p: ALL[0] });
     await page.waitForTimeout(2500);
     await cdp.send('Profiler.start');
+    await page.evaluate(() => { window.__glc.mute = true; });
     const prof = await page.evaluate(async (dur) => {
       const m = window.__map; const t0 = performance.now(); let frames = 0, b = m.getBearing();
       await new Promise(r => { const step = () => { frames++; m.jumpTo({ bearing: b + (performance.now() - t0) * 0.012 }); if (performance.now() - t0 < dur) requestAnimationFrame(step); else r(); }; step(); });
       return { frames, ms: Math.round(performance.now() - t0) };
     }, 12000);
     const { profile } = await cdp.send('Profiler.stop');
+    await page.evaluate(() => { window.__glc.mute = false; });
     const byId = new Map(profile.nodes.map(n => [n.id, n]));
     const self = new Map(); const dts = profile.timeDeltas; let total = 0;
     profile.samples.forEach((id, i) => { const d = dts[i] || 0; total += d; self.set(id, (self.get(id) || 0) + d); });
