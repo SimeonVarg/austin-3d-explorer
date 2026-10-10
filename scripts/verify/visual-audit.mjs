@@ -711,6 +711,11 @@ async function finderGroup() {
       const pill = await box(page, '#fd-pill');
       check('FD', 'the finder pill is on screen on a default visit', pill && pill.vis, pill && JSON.stringify([Math.round(pill.x), Math.round(pill.y), Math.round(pill.w), Math.round(pill.h)]));
       check('FD', 'the finder pill is at least 44 px tall on touch', !vp.hasTouch || (pill && pill.h >= 43.5), pill && pill.h);
+      const pill40 = await box(page, '#fd-pill');
+      if (vp.hasTouch) check('I07', 'the finder pill is at least 44 px tall on touch', pill40 && pill40.h >= 43.5, pill40 && pill40.h);
+      const fcss = await page.evaluate(() => { const cs = (sel, p) => { const e = document.querySelector(sel); return e ? getComputedStyle(e)[p] : null; }; return { glass: cs('#finder', 'backgroundColor'), kicker: cs('.fd-kicker', 'fontSize') }; });
+      check('I05', 'the finder panel background is opaque', /rgb\(15, 9, 2\)|rgba\(15, 9, 2, 1\)/.test(fcss.glass || ''), fcss.glass);
+      check('I08', 'the finder kicker text is at least 12 px', parseFloat(fcss.kicker) >= 12, fcss.kicker);
       await page.keyboard.press('Tab'); await page.keyboard.press('Tab');
       // 2. the pill beside every other control, with each menu open
       await page.evaluate(() => document.getElementById('gfx-button').click()); await page.waitForTimeout(700);
@@ -718,6 +723,8 @@ async function finderGroup() {
       await page.evaluate(() => document.getElementById('gfx-close').click());
       await page.evaluate(() => document.getElementById('explore-toggle').click()); await page.waitForTimeout(600);
       await shot(page, vp, 'finder-3-pill-with-explore', 'Explore open with the pill showing');
+      const pillVis = await page.evaluate(() => getComputedStyle(document.getElementById('fd-pill')).visibility);
+      check('I01', 'the finder pill is hidden while the Explore menu is open', pillVis === 'hidden', pillVis);
       await page.evaluate(() => document.getElementById('explore-toggle').click());
       // 3. the open panel from the pill
       await click(page, '#fd-pill'); await page.waitForTimeout(1800);
@@ -729,9 +736,16 @@ async function finderGroup() {
       const { ctx, page } = await newPage(vp);
       await go(page, '/?finder=1&intro=0&drift=0'); await ready(page, 5000); await page.waitForTimeout(2500);
       await shot(page, vp, 'finder-5-open', '?finder=1 on arrival');
+      const sheet = await box(page, '#finder');
+      const wantSheet = W <= 650 || (vp.hasTouch && W <= 1024);
+      check('J02', wantSheet ? 'on this screen the finder is a bottom sheet (full width, bottom anchored)' : 'on this screen the finder is a left panel', sheet && (wantSheet ? (sheet.w >= W - 2 && sheet.y + sheet.h >= H - 2) : (sheet.w < W * 0.5)), sheet && JSON.stringify([sheet.x, sheet.y, sheet.w, sheet.h].map(Math.round)));
+      const fnt = await page.evaluate(() => { const e = document.querySelector('.fd-card-name'); return e ? getComputedStyle(e).fontFamily : 'n/a'; });
+      log('  card-name font (only exists with a compare tray):', fnt);
       const root = await box(page, '#finder');
       check('FD', 'the finder panel is visible with ?finder=1', root && root.vis, root && JSON.stringify([Math.round(root.x), Math.round(root.y), Math.round(root.w), Math.round(root.h)]));
       if (phone) { await click(page, '.fd-handle'); await page.waitForTimeout(900); await shot(page, vp, 'finder-5b-handle-toggled', 'handle pressed (peek <-> open)'); }
+      const modeH = await page.evaluate(() => { const b = document.querySelector('.fd-mode'); return b ? b.getBoundingClientRect().height : 0; });
+      if (vp.hasTouch) check('I07', 'the Walk/Bus/Either buttons are at least 44 px tall on touch', modeH >= 43.5, modeH);
       await page.fill('#fd-major', 'comp').catch(() => {}); await page.waitForTimeout(700);
       await shot(page, vp, 'finder-6-major-typing', 'typing "comp" in the major picker');
       await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter'); await page.waitForTimeout(2500);
@@ -773,6 +787,8 @@ async function finderGroup() {
       await shot(page, vp, 'finder-15-night-open', 'night: the panel open');
       await page.evaluate(() => document.getElementById('gfx-button').click()); await page.waitForTimeout(700);
       await shot(page, vp, 'finder-16-with-graphics-open', 'finder open, then the graphics menu opened');
+      const finderStill = await page.evaluate(() => !document.getElementById('finder').hidden);
+      if (phone || vp.hasTouch) check('I02', 'opening the graphics menu closes the finder sheet on a sheet layout', !finderStill, finderStill ? 'finder still open' : '');
       await page.evaluate(() => document.getElementById('gfx-close').click());
       await page.evaluate(() => document.getElementById('explore-toggle').click()); await page.waitForTimeout(700);
       await shot(page, vp, 'finder-17-with-explore-open', 'finder open, then Explore opened');
@@ -784,7 +800,10 @@ async function finderGroup() {
       fs.writeFileSync(path.join(OUT, `finder-focus-${vp.name}.json`), JSON.stringify(seen, null, 1));
       await shot(page, vp, 'finder-18-keyboard', 'after ten Tabs');
       // hide, then reload: remembered closed
+      await page.evaluate(() => document.getElementById('fd-pill').click()); await page.waitForTimeout(1500);
       await click(page, '.fd-hide'); await page.waitForTimeout(800);
+      const focused = await page.evaluate(() => document.activeElement && document.activeElement.id);
+      check('I13', 'after hiding the finder keyboard focus is on its pill', focused === 'fd-pill', focused);
       await shot(page, vp, 'finder-19-hidden', 'hidden: back to the pill');
       await page.reload({ waitUntil: 'domcontentloaded' }); await ready(page, 5000);
       await shot(page, vp, 'finder-20-after-reload', 'reload after hiding (should stay a pill)');
