@@ -2869,7 +2869,7 @@ window.CityLighting.install(map);
     window.addEventListener('keydown', e => {
       if (e.code !== 'KeyT' || e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target;
-      if (t && (/^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName) || t.isContentEditable)) return;
+      if (window.isTypingTarget ? window.isTypingTarget(t) : (t && (/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName) || t.isContentEditable))) return;
       startTour();
     });
   }
@@ -2882,7 +2882,7 @@ window.CityLighting.install(map);
     window.addEventListener('keydown', e => {
       if (e.code !== 'KeyP' || e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target;
-      if (t && (/^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName) || t.isContentEditable)) return;
+      if (window.isTypingTarget ? window.isTypingTarget(t) : (t && (/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName) || t.isContentEditable))) return;
       document.documentElement.classList.toggle('clip');
       // P and ?clip=1 must mean the same thing. Chrome is CSS and follows the
       // class on its own; the labels are map layers and do not, so they are

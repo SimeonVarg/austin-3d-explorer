@@ -2061,11 +2061,24 @@
     btn.addEventListener('click', () => toggle(panel.classList.contains('hidden')));
 
     // `G` is a settings key, not a movement key, so it does not collide with
-    // WASD/QE. Ignore it while a control has focus or the slider would eat it.
+    // WASD/QE. It is ignored only where the visitor is typing (a text field, a
+    // select): a focused button or slider does not eat a letter, so G, P and T
+    // keep working after the visitor clicks one of them (B01). It also leaves
+    // Ctrl/Cmd/Alt+G to the browser ("find next") (B03). `window.isTypingTarget`
+    // is shared with the P and T keys in js/app.js.
+    window.isTypingTarget = function (t) {
+      if (!t) return false;
+      if (t.isContentEditable || /^(SELECT|TEXTAREA)$/.test(t.tagName)) return true;
+      return t.tagName === 'INPUT' && !/^(range|checkbox|radio|button|submit|reset|file|color|image)$/i.test(t.type || 'text');
+    };
+    // Escape closes the menu, as it already closes the recommendations box beside it (B02).
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !panel.classList.contains('hidden')) toggle(false);
+    });
     window.addEventListener('keydown', e => {
       if (e.key !== 'g' && e.key !== 'G') return;
-      const t = e.target;
-      if (t && /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (window.isTypingTarget(e.target)) return;
       toggle(panel.classList.contains('hidden'));
     });
 
