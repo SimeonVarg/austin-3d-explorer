@@ -194,15 +194,23 @@ for (const s of SHOTS) {
   // patch on a building the pull request could not touch in the first run of three pull requests in a row, and
   // each one cost a second 45 minute run. Wait until both are quiet for three reads in a row (2 minutes at most).
   // A page without the flags passes straight through.
-  const wallsBusy = () => !!((window.__facadePace && window.__facadePace.busy) ||
-    (window.slopesApartments && window.slopesApartments.count && !window.slopesApartments.count.done));
+  const wallsBusy = () => {
+    const P = window.__facadePace, A = window.slopesApartments && window.slopesApartments.count;
+    return { pace: !!(P && P.busy), apartments: !!(A && !A.done),
+             jobs: P ? P.done : null, apartmentMs: A ? Math.round(A.ms || 0) : null };
+  };
   {
-    const t0 = Date.now(); let quiet = 0, waited = false;
-    while (quiet < 3 && Date.now() - t0 < 120000) {
-      if (await page.evaluate(wallsBusy)) { quiet = 0; waited = true; } else quiet++;
+    // WALL_WAIT_MS: the most to wait at one view. The first run of this wait in CI (software renderer) sat at its
+    // cap on every view, so when the cap is reached the line says WHICH of the two was still busy.
+    const cap = Number(process.env.WALL_WAIT_MS) || 60000;
+    const t0 = Date.now(); let quiet = 0, waited = false, last = null;
+    while (quiet < 3 && Date.now() - t0 < cap) {
+      last = await page.evaluate(wallsBusy);
+      if (last.pace || last.apartments) { quiet = 0; waited = true; } else quiet++;
       await page.waitForTimeout(500);
     }
-    if (waited) console.log(`walls still being drawn at ${s.name}: waited ${Date.now() - t0} ms`);
+    if (waited) console.log(`walls still being drawn at ${s.name}: waited ${Date.now() - t0} ms` +
+      (quiet < 3 ? ` and gave up (${JSON.stringify(last)})` : ''));
   }
   await page.evaluate(() => window.__map.triggerRepaint());
   await page.waitForTimeout(1500);
