@@ -12,9 +12,9 @@ repeat itself?
 
 ## What was found
 
-**On `main` as it ships, yes.** Both night cameras (`spawn-night`, `tower-night` of `ci/poses.json`), 8 redraws each,
+**On `main` as it ships, yes, almost always.** Both night cameras (`spawn-night`, `tower-night` of `ci/poses.json`), 8 redraws each,
 every pair of frames compared on the map's canvas: 0 pixels over 12/255 between any two (`spawn-night`: one distinct frame;
-`tower-night`: up to 6 distinct frames, 14 to 23 pixels by one level). The condition is a *finished* page: the cloud
+`tower-night`: up to 6 distinct frames, 14 to 23 pixels by one level). Over the runs on the final script: `tower-night` 3 of 3 clean; `spawn-night` 11 of 12 clean. The twelfth (and one earlier run, 446 pixels) landed in a different state: 34,278 pixels over 12/255 between redraws, **the same count as the auto-exposure-off case below**, which says it is the same state reached by another road; I did not find what puts a page there. That is why this is a hand-run check with a stated flake rate, not a gate. The condition is a *finished* page: the cloud
 panorama up (it is fetched when the browser is idle, up to seconds after the first paint), the shadow proxy built, the
 facade and apartment paced jobs done, and the sky clock held. `?skyfreeze=<ms>` (this branch, `js/sky.js`) holds the clock
 the stars twinkle and the clouds drift by; without it a still night sky changes by design (stars twinkle at about 1 Hz).
