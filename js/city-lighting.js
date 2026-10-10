@@ -43,7 +43,7 @@
   // so fewer taps per pixel for more pixels.
   const patternFilterQuery=new URLSearchParams(location.search).get('patfilter');
   const patNum=(k,d)=>{const v=new URLSearchParams(location.search).get(k);return v>''&&isFinite(v)?+v:d;};
-  const patternFilter={nearM:patNum('patnear',150),fullM:patNum('patfull',250),maxTaps:4,maxSpacing:2,cardsOnly:true,scatterFrom:8,scatterTo:12,
+  const patternFilter={nearM:patNum('patnear',150),fullM:patNum('patfull',250),maxTaps:4,maxSpacing:2,cardsOnly:true,scatterFrom:10.5,scatterTo:12.5,
     scatter:/[?&]patscatter=1/.test(location.search)};
   patternFilter.on=patternFilterQuery==='1'||(patternFilterQuery!=='0'&&(window.LITE_PROFILE?.on
     ? !!window.LITE_PROFILE.budget?.farPatternFilter
@@ -98,10 +98,13 @@
       float fx=length(dx*texels),fy=length(dy*texels);
       float nx=clamp(ceil(fx),1.0,u_cityPatternFilter.w),ny=clamp(ceil(fy),1.0,u_cityPatternFilter.w);
       if(nx*ny<=1.0)return point;
-      // Past maxTaps x maxSpacing texels the comb beats; ?patscatter moves the taps to a scattered set (w).
+      // Past maxTaps x maxSpacing texels the comb beats. ?patscatter lets a pixel use a scattered tap set (w is 0 or 1,
+      // picked per pixel by a screen-space dither that rises from scatterFrom to scatterTo texels): taps slid half way
+      // are worse than both layouts, so no pixel ever uses them. pattern-filter-taps.mjs checks it against the comb.
       vec2 gx=dx*min(1.0,nx*u_cityPatternFilterB.x/max(fx,1e-4));
       vec2 gy=dy*min(1.0,ny*u_cityPatternFilterB.x/max(fy,1e-4));
-      float w=u_cityPatternFilterB.y*smoothstep(${patternFilter.scatterFrom.toFixed(1)},${patternFilter.scatterTo.toFixed(1)},max(fx,fy));
+      float h=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));
+      float w=u_cityPatternFilterB.y*step(h+1e-5,smoothstep(${patternFilter.scatterFrom.toFixed(1)},${patternFilter.scatterTo.toFixed(1)},max(fx,fy)));
       vec4 sum=vec4(0.0);
       for(int i=0;i<${patternFilter.maxTaps};i++){
         if(float(i)>=nx)break;
