@@ -48,7 +48,8 @@ const log = (...a) => { const s = a.join(' '); logLines.push(s); console.log(s);
 const metrics = [];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-const browser = await launch(chromium, { gl: process.env.VA_GL || process.env.VERIFY_GL || 'hardware', maxMs: 3300000 });
+const glI = process.argv.indexOf('--gl');
+const browser = await launch(chromium, { gl: (glI > 0 ? process.argv[glI + 1] : null) || process.env.VA_GL || process.env.VERIFY_GL || 'hardware', maxMs: 3300000 });
 
 // ── helpers ───────────────────────────────────────────────────────────────────────────────────────────────
 async function newPage(vp, opts = {}) {
@@ -457,7 +458,346 @@ async function modesGroup() {
   }
 }
 
-const GROUPS = { boot, chrome: chromeGroup, walk: walkGroup, modes: modesGroup,
+
+// ═══ GROUP: proof ════════════════════════════════════════════════════════════════════════════════════════
+// One screen per fix the owner will notice, at one width, so the SAME script run on main and on the branch gives a
+// before | after pair per fix (ids start with "proof-"), plus assertions (assertions.json) for the keyboard fixes and the
+// sizes. Run it on both refs and compare with pairs.py. The ids are the finding ids from docs/visual-audit-2026-10-10.md.
+const assertions = [];
+function check(id, name, ok, detail) {
+  assertions.push({ id, name, ok: !!ok, detail: detail == null ? '' : String(detail).slice(0, 200) });
+  log(`  ${ok ? 'PASS' : 'FAIL'} [${id}] ${name}${detail != null && detail !== '' ? '  (' + String(detail).slice(0, 120) + ')' : ''}`);
+}
+async function shotRegion(page, vp, id, rect, note) {
+  const file = `${id}-${vp.name}.jpg`;
+  try {
+    await page.waitForTimeout(350);
+    await page.screenshot({ path: path.join(OUT, file), type: 'jpeg', quality: 85, clip: rect, timeout: 60000 });
+    log('  shot', file, note || ''); shotCount++;
+  } catch (e) { log('  SHOT FAILED', file, String(e.message).slice(0, 100)); }
+}
+const box = (page, sel) => page.evaluate(s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return { x: r.left, y: r.top, w: r.width, h: r.height, vis: cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 }; }, sel).catch(() => null);
+const clampRect = (vp, r) => { const x = Math.max(0, Math.floor(r.x)), y = Math.max(0, Math.floor(r.y)); return { x, y, width: Math.min(vp.viewport.width - x, Math.ceil(r.w)), height: Math.min(vp.viewport.height - y, Math.ceil(r.h)) }; };
+
+async function proofGroup() {
+  for (const vp of WANT) {
+    const W = vp.viewport.width, H = vp.viewport.height;
+    // ── A01 the 404 page, A09 the WebGL card: pages of their own ───────────────────────────────────────────
+    await step(`proof A01 404 ${vp.name}`, async () => {
+      const { ctx, page } = await newPage(vp);
+      const r = await page.goto(BASE + '/404.html', { waitUntil: 'load', timeout: 60000 }).catch(() => null);
+      await shot(page, vp, 'proof-A01-404', '404.html (before: the host default, taken on the live site)', { noMetrics: true });
+      check('A01', '404.html exists and links back to the map', r && r.status() === 200 && await page.$('a[href="/"]'), r && r.status());
+      await ctx.close();
+    });
+    await step(`proof A09 webgl ${vp.name}`, async () => {
+      const { ctx, page } = await newPage(vp, { init: () => {
+        const orig = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function (t, ...a) { if (/webgl/i.test(t)) return null; return orig.call(this, t, ...a); };
+      } });
+      await go(page, '/?intro=0&drift=0&finder=0'); await page.waitForTimeout(25000);
+      await shot(page, vp, 'proof-A09-nowebgl', 'WebGL refused, 25 s after load', { noMetrics: true });
+      const txt = await page.evaluate(() => (document.getElementById('load-city') || document.body).innerText.replace(/\s+/g, ' ').slice(0, 300));
+      check('A09', 'the loading card says the map needs WebGL', /needs WebGL/i.test(txt), txt.slice(0, 100));
+      await ctx.close();
+    });
+
+    // ── one city load: the chrome fixes ───────────────────────────────────────────────────────────────────
+    const { ctx, page } = await newPage(vp);
+    await go(page, `/?intro=0&drift=0&finder=0&p=${HOUR.day}`);
+    await page.waitForTimeout(3000);
+    // G01: credits right after load, before any touch (phone) — taken before the veil is waited on
+    await veilGone(page); await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect()); await page.waitForTimeout(2500);
+    await step(`proof G01 credits ${vp.name}`, async () => {
+      const bottom = { x: 0, y: Math.max(0, H - 130), width: W, height: 130 };
+      await shotRegion(page, vp, 'proof-G01-bottom', bottom, 'bottom strip before any touch: hint and credits');
+      const t = await box(page, '.maplibregl-ctrl-attrib a[href*="terms"]'), h = await box(page, '#controls-hint');
+      const covered = t && t.vis && h && h.vis && !(t.y + t.h < h.y || t.y > h.y + h.h || t.x + t.w < h.x || t.x > h.x + h.w);
+      check('G01', 'the Terms and credits link is not under the controls hint', !covered, JSON.stringify({ terms: t && [Math.round(t.y), t.vis], hint: h && [Math.round(h.y), h.vis] }));
+    });
+    await step(`proof F02 E04 icons ${vp.name}`, async () => {
+      const g = await box(page, '#gfx-button'), f = await box(page, '#fb-button');
+      if (g && f) await shotRegion(page, vp, 'proof-F02-topright', clampRect(vp, { x: Math.min(g.x, f.x) - 14, y: 0, w: W - Math.min(g.x, f.x) + 14, h: Math.max(g.y + g.h, f.y + f.h) + 14 }), 'the two top-right buttons');
+      const svg = await page.evaluate(() => { const b = document.getElementById('gfx-button'); return b ? b.innerHTML : ''; });
+      check('F02', 'the settings button is not the sun drawing', !/<circle cx="12" cy="12" r="3\.1"\/>/.test(svg), svg.slice(0, 60));
+      // E04: keyboard focus on the three buttons
+      await page.evaluate(() => document.activeElement && document.activeElement.blur());
+      const seen = {};
+      for (let k = 0; k < 14; k++) {
+        await page.keyboard.press('Tab'); await page.waitForTimeout(120);
+        const f2 = await page.evaluate(() => { const e = document.activeElement; if (!e) return null; const cs = getComputedStyle(e); const r = e.getBoundingClientRect(); return { id: e.id, outline: cs.outlineStyle + ' ' + cs.outlineWidth + ' ' + cs.outlineColor, r: [r.left, r.top, r.width, r.height] }; });
+        if (f2 && ['gfx-button', 'fb-button', 'tod-play'].includes(f2.id) && !seen[f2.id]) {
+          seen[f2.id] = f2;
+          await shotRegion(page, vp, `proof-E04-focus-${f2.id}`, clampRect(vp, { x: f2.r[0] - 24, y: f2.r[1] - 24, w: f2.r[2] + 48, h: f2.r[3] + 48 }), 'focus ring on ' + f2.id);
+        }
+      }
+      for (const id of ['gfx-button', 'fb-button', 'tod-play']) {
+        const f3 = seen[id]; const m = f3 && /(\d+(\.\d+)?)px/.exec(f3.outline);
+        check('E04', `${id} shows a 2 px gold focus ring`, f3 && /solid/.test(f3.outline) && m && parseFloat(m[1]) >= 2 && /245, 166, 35/.test(f3.outline), f3 && f3.outline);
+      }
+      await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    });
+    await step(`proof B06 B12 B07 menus ${vp.name}`, async () => {
+      // play button label
+      await page.evaluate(() => document.getElementById('tod-play').click()); await page.waitForTimeout(500);
+      const lab = await page.evaluate(() => document.getElementById('tod-play').getAttribute('aria-label'));
+      check('B06', 'while playing, the play button says Pause', /pause/i.test(lab), lab);
+      await page.evaluate(() => document.getElementById('tod-play').click());
+      // graphics menu: close mark size, text size, mode pill overlap
+      await page.evaluate(() => document.getElementById('gfx-button').click()); await page.waitForTimeout(700);
+      await shot(page, vp, 'proof-E03-gfx-open', 'graphics menu open (desktop: the mode pill used to overlap its corner)');
+      const cb = await box(page, '#gfx-close');
+      check('B07', 'the graphics close mark is a 34 px target', cb && cb.w >= 33.5 && cb.h >= 33.5, cb && `${cb.w}x${cb.h}`);
+      const small = await page.evaluate(() => Math.min(...[...document.querySelectorAll('#gfx-panel .gfx-hint,#gfx-panel .gfx-group-note,#gfx-panel .gfx-val,#gfx-panel .gfx-preset-say')].filter(e => e.getBoundingClientRect().width > 0).map(e => parseFloat(getComputedStyle(e).fontSize))));
+      check('E07', 'graphics menu secondary text is at least 12 px', small >= 12, small);
+      const lp = await box(page, '#mode-launcher'), gp = await box(page, '#gfx-panel');
+      const over = lp && lp.vis && gp && gp.vis && !(lp.x + lp.w <= gp.x || lp.x >= gp.x + gp.w || lp.y + lp.h <= gp.y || lp.y >= gp.y + gp.h);
+      check('E03', 'the Switch modes pill does not overlap the open graphics menu', !over, lp && gp && `launcher visible=${lp.vis}`);
+      const foot = await page.evaluate(() => [...document.querySelectorAll('#gfx-foot button')].map(b => Math.round(b.getBoundingClientRect().height)));
+      const touch = await page.evaluate(() => document.documentElement.classList.contains('has-touch'));
+      if (touch) check('G03', 'menu footer buttons are at least 44 px tall on touch', foot.length && foot.every(h => h >= 43.5), foot.join(','));
+      // G02: Explore over the open graphics sheet (phone)
+      if (W <= 640) {
+        await page.evaluate(() => document.getElementById('explore-toggle').click()); await page.waitForTimeout(700);
+        await shot(page, vp, 'proof-G02-explore-over-gfx', 'Explore opened while Graphics was open');
+        const still = await page.evaluate(() => !document.getElementById('gfx-panel').classList.contains('hidden'));
+        check('G02', 'opening Explore closes the Graphics sheet on a phone', !still, still ? 'graphics still open' : '');
+        await page.evaluate(() => document.getElementById('explore-toggle').click()); await page.waitForTimeout(300);
+      } else { await page.evaluate(() => document.getElementById('gfx-close').click()); }
+      await page.evaluate(() => { const c = document.getElementById('gfx-close'); if (c && !document.getElementById('gfx-panel').classList.contains('hidden')) c.click(); });
+      // recommendations box
+      await page.evaluate(() => document.getElementById('fb-button').click()); await page.waitForTimeout(600);
+      await shot(page, vp, 'proof-B12-feedback', 'recommendations box: the button says Open email');
+      const sendTxt = await page.evaluate(() => (document.getElementById('fb-send') || {}).textContent);
+      check('B12', 'the recommendations button says Open email', /open email/i.test(sendTxt), sendTxt);
+      if (touch) { const hs = await page.evaluate(() => ['fb-send', 'fb-copy', 'fb-name', 'fb-email'].map(i => Math.round(document.getElementById(i).getBoundingClientRect().height))); check('G03', 'recommendation buttons and fields are at least 44 px on touch', hs.every(h => h >= 43.5), hs.join(',')); }
+      await page.evaluate(() => document.getElementById('fb-close').click());
+    });
+    await step(`proof A12 safe-area ${vp.name}`, async () => {
+      // A real notch cannot be emulated; this sets the four inset variables the way env() would, to show the edge controls follow them.
+      const before = await page.evaluate(() => ['gfx-button', 'controls-hint'].map(i => { const r = document.getElementById(i).getBoundingClientRect(); return [r.top, r.bottom]; }));
+      await page.addStyleTag({ content: ':root{--safe-top:47px !important;--safe-bottom:34px !important}' });
+      await page.waitForTimeout(400);
+      const after = await page.evaluate(() => ['gfx-button', 'controls-hint'].map(i => { const r = document.getElementById(i).getBoundingClientRect(); return [r.top, r.bottom]; }));
+      await shot(page, vp, 'proof-A12-safe-area', 'with --safe-top 47px and --safe-bottom 34px set by hand', { noMetrics: true });
+      check('A12', 'the top button and the hint move with the safe-area variables (a notch cannot be emulated)', after[0][0] - before[0][0] >= 40 && before[1][1] - after[1][1] >= 30, JSON.stringify({ before, after }));
+    });
+    await ctx.close();
+
+    // ── keyboard (task 2): G P T after a button click, Escape ──────────────────────────────────────────────
+    await step(`proof keys ${vp.name}`, async () => {
+      const { ctx: c2, page: p2 } = await newPage(vp);
+      await go(p2, `/?intro=0&drift=0&finder=0&p=${HOUR.day}`); await ready(p2, 3000);
+      await p2.mouse.click(W / 2, H / 2).catch(() => {});
+      const open = () => p2.evaluate(() => !document.getElementById('gfx-panel').classList.contains('hidden'));
+      await p2.keyboard.press('KeyG'); await p2.waitForTimeout(400);
+      check('B01', 'G opens the graphics menu from the map', await open());
+      // close it with its own button (leaves keyboard focus on a button), then press G again
+      await p2.evaluate(() => document.getElementById('gfx-close').focus()); await p2.keyboard.press('Enter'); await p2.waitForTimeout(400);
+      check('B01', 'Enter on the close mark closes it', !(await open()));
+      await p2.evaluate(() => document.getElementById('fb-button').focus());
+      await p2.keyboard.press('KeyG'); await p2.waitForTimeout(500);
+      check('B01', 'G still works while a button has focus', await open(), 'focus was on ' + await p2.evaluate(() => document.activeElement && document.activeElement.id));
+      await p2.keyboard.press('Escape'); await p2.waitForTimeout(400);
+      check('B02', 'Escape closes the graphics menu', !(await open()));
+      await p2.keyboard.press('Control+KeyG'); await p2.waitForTimeout(300);
+      check('B03', 'Ctrl+G does not open the graphics menu', !(await open()));
+      await p2.evaluate(() => document.getElementById('tod-play').focus());
+      const clip0 = await p2.evaluate(() => document.documentElement.classList.contains('clip'));
+      await p2.keyboard.press('KeyP'); await p2.waitForTimeout(400);
+      const clip1 = await p2.evaluate(() => document.documentElement.classList.contains('clip'));
+      check('B01', 'P toggles photo mode while a button has focus', clip0 !== clip1, `${clip0} -> ${clip1}`);
+      await p2.keyboard.press('KeyP'); await p2.waitForTimeout(300);
+      await p2.evaluate(() => document.getElementById('gfx-button').focus());
+      const c0 = await p2.evaluate(() => { const m = window.__map; const c = m.getCenter(); return [c.lng, c.lat, m.getBearing()]; });
+      await p2.keyboard.press('KeyT'); await p2.waitForTimeout(2500);
+      const c1 = await p2.evaluate(() => { const m = window.__map; const c = m.getCenter(); return [c.lng, c.lat, m.getBearing(), m.isEasing()]; });
+      check('B01', 'T starts the tour while a button has focus (the camera moves)', Math.abs(c1[0] - c0[0]) + Math.abs(c1[1] - c0[1]) + Math.abs(c1[2] - c0[2]) / 100 > 1e-5 || c1[3], JSON.stringify([c0, c1]));
+      await p2.keyboard.press('Escape'); await p2.mouse.click(W / 2, H / 2).catch(() => {});
+      // typing in the feedback text must not trigger the shortcuts
+      await p2.evaluate(() => document.getElementById('fb-button').click()); await p2.waitForTimeout(400);
+      await p2.evaluate(() => document.getElementById('fb-text').focus()); await p2.keyboard.type('gpt'); await p2.waitForTimeout(300);
+      const clip2 = await p2.evaluate(() => document.documentElement.classList.contains('clip'));
+      check('B01', 'typing g, p, t in the recommendations text does not trigger shortcuts', !clip2 && !(await open()), `clip=${clip2}`);
+      await c2.close();
+    });
+
+    // ── A10 reduced motion: no opening flight ───────────────────────────────────────────────────────────────
+    await step(`proof A10 reduced motion ${vp.name}`, async () => {
+      const mk = async (rm) => {
+        const { ctx: c3, page: p3 } = await newPage(vp, { reducedMotion: rm });
+        await go(p3, '/?drift=0&finder=0'); await veilGone(p3); await p3.waitForTimeout(500);
+        const a = await p3.evaluate(() => { const c = window.__map.getCenter(); return [c.lng, c.lat, window.__map.getZoom()]; });
+        await p3.waitForTimeout(5000);
+        const b = await p3.evaluate(() => { const c = window.__map.getCenter(); return [c.lng, c.lat, window.__map.getZoom()]; });
+        const moved = Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]) + Math.abs(b[2] - a[2]) * 0.01;
+        await c3.close(); return moved;
+      };
+      const still = await mk('reduce'), normal = await mk('no-preference');
+      check('A10', 'with reduced motion the camera stays put after the veil lifts; without it, it flies', still < 1e-5 && normal > 1e-4, `reduce=${still.toExponential(1)} normal=${normal.toExponential(1)}`);
+    });
+
+    // ── A11 the loader caption size, one early frame ───────────────────────────────────────────────────────
+    await step(`proof A11 loader ${vp.name}`, async () => {
+      const { ctx: c4, page: p4 } = await newPage(vp);
+      p4.goto(BASE + '/?intro=0&drift=0&finder=0', { waitUntil: 'commit' }).catch(() => {});
+      await p4.waitForSelector('.load-caption', { timeout: 30000 }).catch(() => {});
+      await p4.waitForTimeout(1500);
+      await shot(p4, vp, 'proof-A11-loader', 'the loading card at about 2 s', { noMetrics: true });
+      const fs = await p4.evaluate(() => ['.load-caption', '.load-eyebrow', '#load-city footer'].map(s => { const e = document.querySelector(s); return e ? parseFloat(getComputedStyle(e).fontSize) : null; }));
+      check('A11', 'loader caption, eyebrow and footer are at least 12 px', fs.every(v => v != null && v >= 12), fs.join(','));
+      await c4.close();
+    });
+
+    // ── B22 compare panel ──────────────────────────────────────────────────────────────────────────────────
+    await step(`proof B22 compare ${vp.name}`, async () => {
+      const { ctx: c5, page: p5 } = await newPage(vp);
+      await go(p5, '/?livehere=1&intro=0&drift=0'); await ready(p5, 6000);
+      await shot(p5, vp, 'proof-B22-open', '?livehere=1 just opened');
+      const sel = await p5.evaluate(() => [...document.querySelectorAll('.lh-apartment')].map(b => b.getAttribute('aria-pressed')));
+      check('B22', 'no home is selected when the compare panel opens', sel.length > 0 && sel.every(v => v === 'false'), sel.join(','));
+      await p5.evaluate(() => { const e = document.getElementById('lh-example'); if (e) e.click(); }); await p5.waitForTimeout(1500);
+      await p5.evaluate(() => { const e = document.getElementById('lh-compare'); if (e) e.click(); }); await p5.waitForTimeout(9000);
+      await shot(p5, vp, 'proof-B22-compared', 'after Try example week and Compare my walks');
+      const sel2 = await p5.evaluate(() => ({ pressed: [...document.querySelectorAll('.lh-apartment')].map(b => b.getAttribute('aria-pressed')), tag: [...document.querySelectorAll('.lh-apartment')].map(b => !!b.querySelector('em')) }));
+      check('B22', 'after comparing, the home with the shortest walk is the selected one', sel2.pressed.filter(v => v === 'true').length === 1 && sel2.pressed.indexOf('true') === sel2.tag.indexOf(true), JSON.stringify(sel2));
+      await c5.close();
+    });
+
+    // ── B17 B18 privacy line, B20 chips by keyboard, H05 touch sizes, H06 focus on walk fields ───────────────
+    await step(`proof B17 walk ${vp.name}`, async () => {
+      const { ctx: c6, page: p6 } = await newPage(vp);
+      await go(p6, '/?walk=1&intro=0&drift=0&finder=0'); await ready(p6, 4000);
+      await p6.evaluate(() => document.getElementById('wf-button').click()); await p6.waitForTimeout(800);
+      await p6.evaluate(() => { const s = document.getElementById('wf-sheet'); if (s) s.scrollTop = 1e6; }); await p6.waitForTimeout(300);
+      await shot(p6, vp, 'proof-B17-walk-sheet-bottom', 'walk sheet scrolled to the bottom: the privacy line');
+      const priv = await p6.evaluate(() => (document.getElementById('wf-priv') || {}).innerText || '');
+      check('B18', 'the privacy line says a calendar link contacts its provider', /contacts its provider/i.test(priv), priv.replace(/\s+/g, ' ').slice(0, 120));
+      // B20: a chip by keyboard
+      await p6.evaluate(() => { const s = document.getElementById('wf-sheet'); if (s) s.scrollTop = 0; });
+      await p6.evaluate(() => { const c = document.querySelector('.wf-eg'); if (c) c.focus(); }); await p6.keyboard.press('Enter'); await p6.waitForTimeout(500);
+      const val = await p6.evaluate(() => (document.getElementById('wf-to') || {}).value);
+      check('B20', 'a keyboard Enter on an example chip fills the To field', !!val, val);
+      await shot(p6, vp, 'proof-B20-chip-keyboard', 'after Enter on the first example chip');
+      const touch = await p6.evaluate(() => document.documentElement.classList.contains('has-touch'));
+      const sizes = await p6.evaluate(() => Object.fromEntries(['.wf-item', '.wf-eg', '#wf-close', '.wf-x'].map(s => { const e = document.querySelector(s); if (!e) return [s, null]; const r = e.getBoundingClientRect(); const a = getComputedStyle(e, '::after'); return [s, [Math.round(r.width), Math.round(r.height), a.content]]; })));
+      if (touch) check('H05', 'walk rows and chips reach 44 px on touch', ['.wf-item', '.wf-eg'].every(s => !sizes[s] || sizes[s][1] >= 43.5), JSON.stringify(sizes));
+      await p6.evaluate(() => { const i = document.getElementById('wf-to'); if (i) i.focus(); }); await p6.keyboard.press('Tab'); await p6.keyboard.press('Shift+Tab'); await p6.waitForTimeout(200);
+      const ring = await p6.evaluate(() => { const e = document.activeElement; const cs = getComputedStyle(e); return cs.outlineStyle + ' ' + cs.outlineWidth + ' ' + cs.outlineColor; });
+      check('H06', 'a focused walk text field shows a gold ring', /solid/.test(ring) && /245, 166, 35/.test(ring), ring);
+      await c6.close();
+    });
+  }
+  fs.writeFileSync(path.join(OUT, 'assertions.json'), JSON.stringify(assertions, null, 1));
+  log(`== assertions: ${assertions.filter(a => a.ok).length} pass, ${assertions.filter(a => !a.ok).length} fail`);
+}
+
+// ═══ GROUP: finder ═══════════════════════════════════════════════════════════════════════════════════════
+// "Where should I live?" (js/finder.js): the pill, the open panel (?finder=1), the major picker, the three commute
+// modes, the ranked homes, a selected home with its live bus line, the compare tray, the heat ground, the sources
+// note, the schedule import door, hide and the remembered-closed state, the phone sheet (peek / open), and the way it
+// sits beside the other chrome (graphics menu, Explore, the mode pill).
+async function finderGroup() {
+  for (const vp of WANT) {
+    const W = vp.viewport.width, H = vp.viewport.height, phone = W <= 650;
+    const hasEl2 = (page, sel) => hasEl(page, sel);
+    // 1. the default visit: only a pill
+    await step(`finder pill ${vp.name}`, async () => {
+      const { ctx, page } = await newPage(vp);
+      await go(page, '/?intro=0&drift=0'); await ready(page, 5000);
+      await shot(page, vp, 'finder-1-pill', 'default visit: the Where should I live? pill');
+      const pill = await box(page, '#fd-pill');
+      check('FD', 'the finder pill is on screen on a default visit', pill && pill.vis, pill && JSON.stringify([Math.round(pill.x), Math.round(pill.y), Math.round(pill.w), Math.round(pill.h)]));
+      check('FD', 'the finder pill is at least 44 px tall on touch', !vp.hasTouch || (pill && pill.h >= 43.5), pill && pill.h);
+      await page.keyboard.press('Tab'); await page.keyboard.press('Tab');
+      // 2. the pill beside every other control, with each menu open
+      await page.evaluate(() => document.getElementById('gfx-button').click()); await page.waitForTimeout(700);
+      await shot(page, vp, 'finder-2-pill-with-graphics', 'graphics menu open with the pill showing');
+      await page.evaluate(() => document.getElementById('gfx-close').click());
+      await page.evaluate(() => document.getElementById('explore-toggle').click()); await page.waitForTimeout(600);
+      await shot(page, vp, 'finder-3-pill-with-explore', 'Explore open with the pill showing');
+      await page.evaluate(() => document.getElementById('explore-toggle').click());
+      // 3. the open panel from the pill
+      await click(page, '#fd-pill'); await page.waitForTimeout(1800);
+      await shot(page, vp, 'finder-4-open-from-pill', 'pill pressed: the panel');
+      await ctx.close();
+    });
+    // 4. ?finder=1 straight in, then the picker, modes, list, a home
+    await step(`finder panel ${vp.name}`, async () => {
+      const { ctx, page } = await newPage(vp);
+      await go(page, '/?finder=1&intro=0&drift=0'); await ready(page, 5000); await page.waitForTimeout(2500);
+      await shot(page, vp, 'finder-5-open', '?finder=1 on arrival');
+      const root = await box(page, '#finder');
+      check('FD', 'the finder panel is visible with ?finder=1', root && root.vis, root && JSON.stringify([Math.round(root.x), Math.round(root.y), Math.round(root.w), Math.round(root.h)]));
+      if (phone) { await click(page, '.fd-handle'); await page.waitForTimeout(900); await shot(page, vp, 'finder-5b-handle-toggled', 'handle pressed (peek <-> open)'); }
+      await page.fill('#fd-major', 'comp').catch(() => {}); await page.waitForTimeout(700);
+      await shot(page, vp, 'finder-6-major-typing', 'typing "comp" in the major picker');
+      await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter'); await page.waitForTimeout(2500);
+      await shot(page, vp, 'finder-7-ranked', 'a major chosen: the ranked homes');
+      const n = await page.evaluate(() => document.querySelectorAll('.fd-item').length);
+      check('FD', 'choosing a major lists homes', n > 0, n);
+      for (const m of ['walk', 'bus', 'either']) {
+        await page.evaluate(m => { const b = document.querySelector('.fd-mode[data-mode="' + m + '"]'); if (b) b.click(); }, m); await page.waitForTimeout(1500);
+        await shot(page, vp, `finder-8-mode-${m}`, 'commute mode ' + m);
+      }
+      await page.evaluate(() => { const l = document.querySelector('.fd-results'); if (l) l.scrollTop = 0; });
+      await click(page, '.fd-item .fd-row'); await page.waitForTimeout(5000);
+      await shot(page, vp, 'finder-9-home-selected', 'first home selected (flight + route + detail)');
+      await page.waitForTimeout(6000);
+      await shot(page, vp, 'finder-10-live-bus', 'six seconds later: the live bus line, if any');
+      const bus = await page.evaluate(() => ({ line: (document.querySelector('.fd-busline') || {}).textContent || null, live: (document.querySelector('.fd-live') || {}).innerText || null }));
+      log('  bus line:', JSON.stringify(bus));
+      fs.writeFileSync(path.join(OUT, `finder-bus-${vp.name}.json`), JSON.stringify(bus));
+      // compare tray: add three homes
+      for (let i = 0; i < 3; i++) { await page.evaluate(i => { const b = document.querySelectorAll('.fd-cmp')[i]; if (b) b.click(); }, i); await page.waitForTimeout(400); }
+      await page.waitForTimeout(800); await shot(page, vp, 'finder-11-compare-tray', 'three homes in the compare tray');
+      const tray = await box(page, '#fd-tray'); log('  tray:', JSON.stringify(tray));
+      await page.evaluate(() => { const c = document.querySelector('.fd-heat input'); if (c) c.click(); }); await page.waitForTimeout(2500);
+      await shot(page, vp, 'finder-12-heat', 'heat toggle: the ground coloured by minutes');
+      await page.evaluate(() => { const d = document.querySelector('.fd-src'); if (d) { d.open = true; d.scrollIntoView(); } }); await page.waitForTimeout(500);
+      await shot(page, vp, 'finder-13-sources', 'sources note open');
+      await page.evaluate(() => { const b = document.querySelector('.fd-import'); if (b) b.scrollIntoView(); });
+      await click(page, '.fd-import'); await page.waitForTimeout(1800);
+      await shot(page, vp, 'finder-14-import', 'schedule import door');
+      await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+      await ctx.close();
+    });
+    // 5. night, with the finder and with other panels, keyboard
+    await step(`finder night keys ${vp.name}`, async () => {
+      const { ctx, page } = await newPage(vp);
+      await go(page, `/?finder=1&intro=0&drift=0&p=${HOUR.night}`); await ready(page, 5000); await page.waitForTimeout(2500);
+      await shot(page, vp, 'finder-15-night-open', 'night: the panel open');
+      await page.evaluate(() => document.getElementById('gfx-button').click()); await page.waitForTimeout(700);
+      await shot(page, vp, 'finder-16-with-graphics-open', 'finder open, then the graphics menu opened');
+      await page.evaluate(() => document.getElementById('gfx-close').click());
+      await page.evaluate(() => document.getElementById('explore-toggle').click()); await page.waitForTimeout(700);
+      await shot(page, vp, 'finder-17-with-explore-open', 'finder open, then Explore opened');
+      await page.keyboard.press('Escape');
+      // keyboard walk through the panel
+      await page.evaluate(() => document.querySelector('#finder').scrollIntoView()); 
+      const seen = [];
+      for (let k = 0; k < 10; k++) { await page.keyboard.press('Tab'); await page.waitForTimeout(100); seen.push(await page.evaluate(() => { const e = document.activeElement; if (!e) return null; const cs = getComputedStyle(e); return { n: e.id ? '#' + e.id : e.tagName + '.' + String(e.className).slice(0, 24), outline: cs.outlineStyle + ' ' + cs.outlineWidth + ' ' + cs.outlineColor, inFinder: !!e.closest('#finder') }; })); }
+      fs.writeFileSync(path.join(OUT, `finder-focus-${vp.name}.json`), JSON.stringify(seen, null, 1));
+      await shot(page, vp, 'finder-18-keyboard', 'after ten Tabs');
+      // hide, then reload: remembered closed
+      await click(page, '.fd-hide'); await page.waitForTimeout(800);
+      await shot(page, vp, 'finder-19-hidden', 'hidden: back to the pill');
+      await page.reload({ waitUntil: 'domcontentloaded' }); await ready(page, 5000);
+      await shot(page, vp, 'finder-20-after-reload', 'reload after hiding (should stay a pill)');
+      await ctx.close();
+    });
+    // 6. phone: the sheet that opens by itself when the flight lands (the owner's choice, a one-line setting)
+    await step(`finder default landed ${vp.name}`, async () => {
+      const { ctx, page } = await newPage(vp);
+      await go(page, '/?drift=0'); await veilGone(page); await page.waitForTimeout(16000);
+      await shot(page, vp, 'finder-21-after-intro', 'default visit 16 s after the veil lifted (flight landed)');
+      await ctx.close();
+    });
+  }
+  fs.writeFileSync(path.join(OUT, 'assertions.json'), JSON.stringify(assertions, null, 1));
+}
+
+const GROUPS = { finder: finderGroup, proof: proofGroup, boot, chrome: chromeGroup, walk: walkGroup, modes: modesGroup,
   // every group in turn, one browser at a time (the owner's laptop lane allows one hardware browser)
   all: async () => { for (const g of [walkGroup, modesGroup, boot]) { try { await g(); } catch (e) { log('GROUP ERROR', e && e.message); } } } };
 if (!GROUPS[GROUP]) { console.error('usage: visual-audit.mjs <boot|chrome|walk|modes> [--vp phone,tablet,desktop]'); process.exit(2); }
