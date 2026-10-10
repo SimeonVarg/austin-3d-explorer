@@ -25,7 +25,8 @@ import { BASE, launch } from './chrome.mjs';
 
 const GROUP = process.argv[2];
 const vi = process.argv.indexOf('--vp');
-const OUT = path.resolve(process.env.VERIFY_OUT || 'va-out');
+const oi = process.argv.indexOf('--out');
+const OUT = path.resolve(oi > 0 ? process.argv[oi + 1] : (process.env.VERIFY_OUT || 'va-out'));
 fs.mkdirSync(OUT, { recursive: true });
 
 // ── taste/measurement parameters (one place) ──────────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ const log = (...a) => { const s = a.join(' '); logLines.push(s); console.log(s);
 const metrics = [];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-const browser = await launch(chromium, { gl: process.env.VA_GL || 'hardware', maxMs: 3300000 });
+const browser = await launch(chromium, { gl: process.env.VA_GL || process.env.VERIFY_GL || 'hardware', maxMs: 3300000 });
 
 // ── helpers ───────────────────────────────────────────────────────────────────────────────────────────────
 async function newPage(vp, opts = {}) {
