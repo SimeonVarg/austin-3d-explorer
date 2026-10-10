@@ -68,7 +68,7 @@ async function compile(wasmUrl) {
  * Compile the module once and return `buildRust(initialCapacity)`, a drop-in for js/slopes.js build().
  * `module` (a WebAssembly.Module) replaces the fetch; the parity check uses it.
  */
-export async function loadRustBuilder({ wasmUrl, module, stageRecords = 8192, reserveVertices = 0, shapeOps, hexToRgb01, three, info, toneKey, packOverflow, toneBits = 14 }) {
+export async function loadRustBuilder({ wasmUrl, module, stageRecords = 8192, reserveVertices = 0, shapeOps, hexToRgb01, three, info, toneKey, packOverflow, toneBits = 14, byteFloats = null }) {
   const t0 = (typeof performance !== 'undefined' ? performance.now() : 0);
   const mod = module || await compile(wasmUrl);
   if (info) info.compileMs = +((typeof performance !== 'undefined' ? performance.now() : 0) - t0).toFixed(1);
@@ -163,6 +163,9 @@ export async function loadRustBuilder({ wasmUrl, module, stageRecords = 8192, re
       const nt = X.tone_count(), nn = X.normal_count();
       if (nt * 16 > PK.tones.length) { let len = PK.tones.length || 4096; while (nt * 16 > len) len *= 2; const t = new Float32Array(len); t.set(PK.tones); PK.tones = t; }
       PK.tones.set(new Float32Array(m, X.tone_table_ptr() + seedTones * 64, (nt - seedTones) * 16), seedTones * 16);
+      // The module writes a colour as float32(byte / 255). The table must hold what THIS GPU makes of a normalised byte (js/slopes.js byteFloats): the same
+      // number on a GPU that divides, one ulp different on a GPU that multiplies by 1/255, and that ulp is what flipped night pixels in the first pixel check.
+      if (byteFloats) { const bf = byteFloats(); for (let i = seedTones; i < nt; i++) for (let c = 0; c < 3; c++) for (let k = 0; k < 3; k++) { const j = i * 16 + c * 4 + k; PK.tones[j] = bf[Math.round(PK.tones[j] * 255)]; } }
       const cls = new Uint32Array(m, X.tone_class_ptr(), nt);
       for (let i = seedTones; i < nt; i++) PK.toneOf.set(classKey[cls[i]], i);
       PK.nTones = nt;
