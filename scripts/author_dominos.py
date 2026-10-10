@@ -121,7 +121,7 @@ POST_W = 0.14
 # ---- colours: photographed in cloud, then set by ratio. Photograph: wall #878075, fascia #78404d, service door #282b30. ----
 COLOURS = {
     'wall': '#a79f8e', 'fascia': '#8a4356', 'roofFlat': '#77776f', 'coping': '#8a4356', 'signWhite': '#f4f2ee',
-    'frame': '#2a2b2e', 'shop': '#2d3033', 'serviceDoor': '#2b2e33', 'bulkhead': '#9a9486', 'post': '#9b2332',
+    'frame': '#2a2b2e', 'shop': '#4f4b48', 'serviceDoor': '#2b2e33', 'bulkhead': '#9a9486', 'post': '#9b2332',
     'soffit': '#5e534c', 'slab': '#6d6a64',
 }
 
