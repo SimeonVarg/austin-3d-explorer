@@ -32,7 +32,7 @@ import path from 'node:path';
 const argv = process.argv.slice(2);
 const arg = (k, d) => { const i = argv.indexOf('--' + k); return i < 0 ? d : argv[i + 1]; };
 const REP = arg('rep', '1');
-const URLQ = arg('q', '');
+const URLQ = arg('q', '?drift=0');   // drift=0: the idle cinema moves the camera and the hour after 25 s
 const OUTDIR = path.resolve(arg('out', 'shots/smear'));
 fs.mkdirSync(OUTDIR, { recursive: true });
 

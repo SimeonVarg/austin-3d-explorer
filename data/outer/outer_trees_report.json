@@ -1,0 +1,93 @@
+{
+ "bytes_per_tree": 0.73,
+ "cell_m": 10.0,
+ "counts": {
+  "canopy_cells": 298087,
+  "cells": 739596,
+  "dropped_beside_a_drawn_tree": 8441,
+  "dropped_in_a_carriageway": 15085,
+  "dropped_on_a_roof": 27489,
+  "dropped_other_lanes_or_outside": 50963,
+  "trees": 196109
+ },
+ "file_bytes": 369866,
+ "grid": [
+  862,
+  858
+ ],
+ "height_pcts_m": {
+  "p10": 8.4,
+  "p50": 11.8,
+  "p90": 16.1
+ },
+ "per_area": {
+  "(strips between areas)": {
+   "cells_with_a_tree_pct": 29.9,
+   "scan_canopy_pct": 33.7,
+   "trees": 3826
+  },
+  "Bouldin Creek": {
+   "cells_with_a_tree_pct": 37.3,
+   "scan_canopy_pct": 42.0,
+   "trees": 13361
+  },
+  "Central East": {
+   "cells_with_a_tree_pct": 25.5,
+   "scan_canopy_pct": 28.3,
+   "trees": 15489
+  },
+  "East Riverside": {
+   "cells_with_a_tree_pct": 30.5,
+   "scan_canopy_pct": 30.7,
+   "trees": 5920
+  },
+  "Hancock-Cherrywood": {
+   "cells_with_a_tree_pct": 25.6,
+   "scan_canopy_pct": 28.4,
+   "trees": 16545
+  },
+  "Holly-Cesar Chavez": {
+   "cells_with_a_tree_pct": 21.8,
+   "scan_canopy_pct": 25.2,
+   "trees": 9082
+  },
+  "Hyde Park": {
+   "cells_with_a_tree_pct": 29.7,
+   "scan_canopy_pct": 36.0,
+   "trees": 10229
+  },
+  "Old West Austin": {
+   "cells_with_a_tree_pct": 38.5,
+   "scan_canopy_pct": 44.4,
+   "trees": 12156
+  },
+  "Rosedale-Heritage": {
+   "cells_with_a_tree_pct": 30.0,
+   "scan_canopy_pct": 34.3,
+   "trees": 17035
+  },
+  "Tarrytown": {
+   "cells_with_a_tree_pct": 47.0,
+   "scan_canopy_pct": 49.0,
+   "trees": 34588
+  },
+  "Travis Heights-SoCo": {
+   "cells_with_a_tree_pct": 32.7,
+   "scan_canopy_pct": 38.7,
+   "trees": 13410
+  },
+  "West Lake shore": {
+   "cells_with_a_tree_pct": 47.1,
+   "scan_canopy_pct": 46.7,
+   "trees": 17336
+  },
+  "Zilker-Barton Hills": {
+   "cells_with_a_tree_pct": 47.1,
+   "scan_canopy_pct": 49.3,
+   "trees": 27132
+  }
+ },
+ "plane_fit_worst_m": 1.721,
+ "source": "StratMap Bexar & Travis Counties Lidar 2021, TxGIO, CC0-1.0 (vegetation classes 3 to 5)",
+ "wire_bytes_gzip_5": 142269
+}

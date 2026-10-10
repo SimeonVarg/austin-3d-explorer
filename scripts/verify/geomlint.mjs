@@ -25,6 +25,36 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DEFAULT = ['tower', 'westcampus', 'drag', 'arts', 'moody', 'roofscape', 'roofscape.detail', 'roofs'];
 
+// ── authored thin fixtures: long, narrow, and meant to be ───────────────
+// The SLIVER test below exists to catch a stray vertex. It cannot tell one from
+// a balcony rail, which is also 80 m long and 0.15 m wide, and since the storey
+// lines went on the West Campus towers (2e82632, 2026-08-16) and the roof bake
+// began writing string-course prisms (`f: "band"`, bake_roofs.py _band_feature)
+// there are 158 of those in the data, every one a correct, drawn part. They
+// were counted as defects, the check went red, and it was switched off, which
+// protects nothing. So a ring is NOT a sliver when the feature is one of
+// those named fixtures AND it is one storey-fixture tall (RISE_MAX). A stray
+// vertex on a wall is a whole building tall, and a stray vertex on ANY other
+// feature, including a band or a rail that is taller than a rail, still fails.
+const FIXTURE_S = new Set(['rail', 'raill', 'balc']);   // westcampus.geojson solids
+const RISE_MAX = 1.5;                                   // m; tallest real rail/course is 1.35
+const isFixture = (p) => {
+  const b = p.base != null ? p.base : p.b, ht = p.height != null ? p.height : p.h;
+  if (!(Number.isFinite(b) && Number.isFinite(ht)) || ht - b > RISE_MAX) return false;
+  return p.f === 'band' || (p.kind === 'solid' && FIXTURE_S.has(p.s));
+};
+// One known leftover, named by where it is so a rebake that moves it fails the
+// check again instead of being waved through. roofs.geojson #3353 is the west
+// facet of a hip roof at -97.7378,30.2887: 49 m long, 0.1 m wide, 4.9 m^2, 0.84 m
+// of rise. bake_roofs.py's own comment (survives_rounding) records that facet
+// joints leave slivers "thinner than a roof tile"; its drop threshold is 0.35 m^2,
+// this is 4.9. It is invisible, it is not a stray vertex (all four corners sit on
+// its neighbours' edges), and fixing it belongs in bake_roofs.py. An allowance
+// that no longer matches anything FAILS, so this list only ever shrinks.
+const KNOWN_SLIVERS = [
+  { file: 'roofs.geojson', v0: [-97.737828, 30.288745], b: 13.57, h: 14.41, az: 275 },
+];
+
 // detailed bbox from PASS_COMMON.md §0
 const BBOX = [-97.752, 30.276, -97.726, 30.296];
 
@@ -65,7 +95,8 @@ for (const path of files) {
   }
   const feats = gj.features || [];
   const issues = [];
-  let maxSpan = 0, maxSpanIdx = -1;
+  let maxSpan = 0, maxSpanIdx = -1, fixtures = 0, knownSlivers = 0;
+  const knownHit = new Set();
 
   feats.forEach((f, i) => {
     const p = f.properties || {};
@@ -120,7 +151,11 @@ for (const path of files) {
       // A sliver: long but with almost no area. This is the shape a stray
       // vertex makes, and it is how "a long line" gets on screen.
       if (span > 40 && ar / span < 0.6) {
-        issues.push(`${tag} ring${ri}: SLIVER span ${span.toFixed(0)} m, area ${ar.toFixed(1)} m^2 (w=${(ar / span).toFixed(2)} m)`);
+        const known = KNOWN_SLIVERS.findIndex(k => k.file === basename(path) && ri === 0
+          && ring[0][0] === k.v0[0] && ring[0][1] === k.v0[1] && p.b === k.b && p.h === k.h && p.az === k.az);
+        if (isFixture(p)) fixtures++;
+        else if (known >= 0) { knownHit.add(known); knownSlivers++; }
+        else issues.push(`${tag} ring${ri}: SLIVER span ${span.toFixed(0)} m, area ${ar.toFixed(1)} m^2 (w=${(ar / span).toFixed(2)} m)`);
       }
     });
 
@@ -133,9 +168,15 @@ for (const path of files) {
     }
   });
 
+  KNOWN_SLIVERS.forEach((k, i) => {
+    if (k.file === basename(path) && !knownHit.has(i))
+      issues.push(`KNOWN_SLIVERS[${i}] (${k.file} at ${k.v0}) matches nothing now: delete the allowance`);
+  });
   const label = basename(path).padEnd(26);
+  const note = fixtures || knownSlivers
+    ? `  [not slivers: ${fixtures} authored rails/bands, ${knownSlivers} named facet joint]` : '';
   if (!issues.length) {
-    console.log(`${label} ${String(feats.length).padStart(6)} features  clean   (largest ring ${maxSpan.toFixed(0)} m)`);
+    console.log(`${label} ${String(feats.length).padStart(6)} features  clean   (largest ring ${maxSpan.toFixed(0)} m)${note}`);
   } else {
     bad++;
     console.log(`${label} ${String(feats.length).padStart(6)} features  ${issues.length} ISSUE(S)  (largest ring ${maxSpan.toFixed(0)} m @ #${maxSpanIdx})`);

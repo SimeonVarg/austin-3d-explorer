@@ -122,7 +122,7 @@ page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.te
 
 // ════════════════════════════════════════════════════════════════════════════
 head('1. the app loads and this feature costs it nothing');
-await page.goto(BASE + '/index.html?walk=1', { waitUntil: 'load', timeout: 180000 });
+await page.goto(BASE + '/index.html?walk=1&drift=0', { waitUntil: 'load', timeout: 180000 });
 await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
 await page.waitForTimeout(1500);
 

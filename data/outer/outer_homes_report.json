@@ -1,0 +1,82 @@
+{
+ "a": {
+  "counts": {
+   "core_capitol_downtown": 5784,
+   "drawn_by_another_lane": 7,
+   "kept": 38523,
+   "outside_box": 202,
+   "rectangles": 50879,
+   "ring_keeps_it": 981,
+   "taken_from_ring": 0,
+   "too_small": 4201
+  },
+  "iou_area_weighted": 0.91,
+  "iou_below_0_7_pct": 0.57,
+  "iou_mean": 0.929,
+  "iou_p10": 0.833,
+  "rect_count": {
+   "1": 30293,
+   "2": 4104,
+   "3": 4126
+  }
+ },
+ "b": {
+  "decided_by": {
+   "flat": 6665,
+   "model": 31021,
+   "slopes": 8662
+  },
+  "measured": 38523,
+  "roof_kinds": {
+   "-1": 2581,
+   "0": 6665,
+   "1": 21630,
+   "2": 4978,
+   "3": 13075
+  }
+ },
+ "c": {
+  "footprint_verdicts": {
+   "gone": 298,
+   "hidden": 356,
+   "hidden_dropped": 1124,
+   "moved": 641,
+   "noscan": 1573,
+   "ok": 34531
+  },
+  "scan_only_buildings": 3358,
+  "scan_only_m2": 328568
+ },
+ "d": {
+  "buildings": 39807,
+  "bytes_per_building": 10.67,
+  "counts": {
+   "buildings": 39807,
+   "dropped_gone": 298,
+   "dropped_hidden_dropped": 1124,
+   "dropped_moved": 641,
+   "dropped_other_lane": 11,
+   "from_hidden": 355,
+   "from_noscan": 1573,
+   "from_ok": 34526,
+   "from_scan": 3353,
+   "rect_inferred": 2423,
+   "rect_scan": 51338
+  },
+  "file_bytes": 645424,
+  "rectangles": 53761,
+  "ring_prisms_raised": 164,
+  "ring_prisms_taken": 4889,
+  "ring_prisms_that_stay_and_the_scan_covers": 980,
+  "roof_colours_measured": 49896,
+  "roof_palette": 64,
+  "roof_quantisation_rgb_rms": 5.1,
+  "wire_bytes_gzip_5": 424689
+ },
+ "sources": {
+  "footprints": "Overture Maps buildings (OpenStreetMap contributors, ODbL; Microsoft ML Buildings, CDLA-Permissive-2.0)",
+  "heights_roofs_presence": "StratMap Bexar & Travis Counties Lidar 2021, TxGIO, CC0-1.0",
+  "roof_colour": "City of Austin 2025 aerial (one colour per building is read; no pixel is shipped)",
+  "wall_colour": "INFERRED per area; not measured"
+ }
+}

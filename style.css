@@ -1,3 +1,7 @@
+/* Safe-area insets (A12): the notch, the rounded corners and the home bar. Each is 0 on a screen without them, so
+   nothing moves there. Edge controls add the one they sit under. Parameters: change the four values to retune. */
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-right:env(safe-area-inset-right,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#1a1208}
 #map{position:absolute;inset:0}
@@ -290,7 +294,7 @@ html.timelapse #tod-slider{pointer-events:none}
 
 /* Chrome sits quietly over the scene: thin, low-contrast, and it fades out of
    the way once you start flying (js/app.js adds .flying to <body>). */
-#hud{position:absolute;top:16px;left:50%;transform:translateX(-50%);
+#hud{position:absolute;top:calc(16px + var(--safe-top));left:50%;transform:translateX(-50%);
   background:rgba(18,11,4,.55);backdrop-filter:blur(10px) saturate(1.1);
   border:1px solid rgba(255,190,90,.16);border-radius:999px;
   box-shadow:0 6px 24px rgba(0,0,0,.28);
@@ -299,7 +303,7 @@ html.timelapse #tod-slider{pointer-events:none}
 #hud-title{font-size:12.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
 #hud-snapshot{font-size:10px;opacity:.5;margin-top:1px;letter-spacing:.04em}
 
-#controls-hint{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
+#controls-hint{position:absolute;bottom:calc(38px + var(--safe-bottom));left:50%;transform:translateX(-50%);
   background:rgba(18,11,4,.5);backdrop-filter:blur(8px);
   border:1px solid rgba(255,190,90,.12);border-radius:999px;
   padding:6px 16px;color:rgba(245,223,160,.7);font-size:11.5px;letter-spacing:.02em;
@@ -312,7 +316,7 @@ body.flying #controls-hint{opacity:0}
    (the desktop hint is ~560px, the credit ~310px with its margin) the two
    overlap. Below that width the hint moves up one credit row (the same 42px
    the "Switch modes" pill uses). Phones have their own rule further down. */
-@media(min-width:521px) and (max-width:1200px){#controls-hint{bottom:42px}}
+@media(min-width:521px) and (max-width:1200px){#controls-hint{bottom:calc(42px + var(--safe-bottom))}}
 body.flying #hud{opacity:.35}
 
 /* The side panels used to be `pointer-events:none` for the whole of `.flying`,
@@ -524,7 +528,7 @@ html.has-touch #joystick-zone{display:block}
 #diff-controls button:hover{background:rgba(245,166,35,.4)}
 #diff-counter{font-size:12px;opacity:.7;flex:1;text-align:center}
 
-#tod-panel{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:10;
+#tod-panel{position:absolute;right:calc(14px + var(--safe-right));top:50%;transform:translateY(-50%);z-index:10;
   display:flex;flex-direction:column;align-items:center;gap:9px;
   background:rgba(18,11,4,.5);backdrop-filter:blur(10px) saturate(1.1);
   border:1px solid rgba(255,190,90,.16);border-radius:999px;padding:13px 9px;
@@ -603,15 +607,15 @@ html.has-touch #joystick-zone{display:block}
 /* ── Graphics menu (js/graphics.js) ───────────────────────────────────
    Built from JS, not markup, so _harness.html cannot drift out of sync with
    index.html — the previous duplication cost a debugging session. */
-#gfx-button{position:absolute;top:16px;right:16px;z-index:30;
+#gfx-button{position:absolute;top:calc(16px + var(--safe-top));right:calc(16px + var(--safe-right));z-index:30;
   width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:rgba(18,11,4,.55);backdrop-filter:blur(10px) saturate(1.1);
   border:1px solid rgba(255,190,90,.18);color:#f5dfa0;cursor:pointer;
   box-shadow:0 4px 16px rgba(0,0,0,.3);transition:background .15s,color .15s,transform .15s}
-#gfx-button:hover{background:rgba(245,166,35,.28);color:#fff3d4;transform:rotate(35deg)}
+#gfx-button:hover{background:rgba(245,166,35,.28);color:#fff3d4;transform:translateY(-1px)}
 #gfx-button.active{background:rgba(245,166,35,.42);color:#fff}
 
-#gfx-panel{position:absolute;top:60px;right:16px;z-index:30;width:306px;
+#gfx-panel{position:absolute;top:calc(60px + var(--safe-top));right:calc(16px + var(--safe-right));z-index:30;width:306px;
   max-height:calc(100vh - 132px);display:flex;flex-direction:column;
   background:rgba(16,10,3,.86);backdrop-filter:blur(16px) saturate(1.15);
   border:1px solid rgba(255,190,90,.2);border-radius:14px;
@@ -621,9 +625,12 @@ html.has-touch #joystick-zone{display:block}
 #gfx-head{display:flex;align-items:center;gap:8px;padding:11px 13px 9px;
   border-bottom:1px solid rgba(255,190,90,.13)}
 #gfx-title{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;flex:1}
-#gfx-fps{font-size:10.5px;font-variant-numeric:tabular-nums;opacity:.75;letter-spacing:.02em}
+#gfx-fps{font-size:var(--gfx-small-min);font-variant-numeric:tabular-nums;opacity:.75;letter-spacing:.02em}
 #gfx-fps.good{color:#8fd88f}#gfx-fps.ok{color:#f0c56a}#gfx-fps.bad{color:#e88a72}
-#gfx-close{background:none;border:none;color:rgba(245,223,160,.55);cursor:pointer;font-size:13px;padding:0 2px;line-height:1}
+/* --close-target: the size of a panel's close mark, a thumb-sized box around a 13px glyph (B07). */
+#gfx-panel,#fb-panel{--close-target:34px;--gfx-small-min:12px;--gfx-dim:rgba(245,223,160,.62)}   /* --gfx-small-min: the smallest text in the two menus (E07) */
+#gfx-close{background:none;border:none;color:rgba(245,223,160,.55);cursor:pointer;font-size:13px;padding:0;line-height:1;
+  min-width:var(--close-target);min-height:var(--close-target);display:flex;align-items:center;justify-content:center;margin:-8px -8px -8px 0}
 #gfx-close:hover{color:#f5a623}
 
 /* Each preset button is a NAME plus four words saying what you get. The second
@@ -636,7 +643,7 @@ html.has-touch #joystick-zone{display:block}
   border-radius:7px;color:rgba(245,223,160,.85);padding:5px 4px 6px;cursor:pointer;
   transition:background .14s,border-color .14s,color .14s}
 .gfx-preset-name{font-size:11.5px;line-height:1.2}
-.gfx-preset-say{font-size:9px;letter-spacing:.02em;opacity:.55;line-height:1.2}
+.gfx-preset-say{font-size:var(--gfx-small-min);letter-spacing:.02em;opacity:.7;line-height:1.2}
 .gfx-preset:hover{background:rgba(245,166,35,.26)}
 .gfx-preset.active{background:rgba(245,166,35,.44);border-color:rgba(245,190,90,.7);color:#fff8e6}
 .gfx-preset.active .gfx-preset-name{font-weight:600}
@@ -647,9 +654,9 @@ html.has-touch #joystick-zone{display:block}
 #gfx-body::-webkit-scrollbar-thumb{background:rgba(245,166,35,.3);border-radius:4px}
 .gfx-group{display:flex;flex-direction:column;gap:1px;
   margin:11px 0 5px;padding-bottom:4px;border-bottom:1px solid rgba(255,190,90,.09)}
-.gfx-group-name{font-size:9.5px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
+.gfx-group-name{font-size:var(--gfx-small-min);font-weight:600;letter-spacing:.15em;text-transform:uppercase;
   color:rgba(245,166,35,.72)}
-.gfx-group-note{font-size:9.5px;letter-spacing:.01em;color:rgba(245,223,160,.42);line-height:1.3}
+.gfx-group-note{font-size:var(--gfx-small-min);letter-spacing:.01em;color:var(--gfx-dim);line-height:1.3}
 
 /* TWO LINES PER CONTROL — name + value, then the slider — and a third only on
    the handful of rows that carry a hint (js/graphics.js SCHEMA).
@@ -666,11 +673,11 @@ html.has-touch #joystick-zone{display:block}
 .gfx-rowhead{display:flex;align-items:center;gap:9px}
 .gfx-name{flex:1;min-width:0;font-size:12px;opacity:.95;line-height:1.25}
 .gfx-row input[type=range]{width:100%;min-width:0;height:16px;margin:1px 0 0;accent-color:#f5a623;cursor:pointer}
-.gfx-val{flex:none;text-align:right;font-size:10.5px;opacity:.62;font-variant-numeric:tabular-nums}
+.gfx-val{flex:none;text-align:right;font-size:var(--gfx-small-min);opacity:.8;font-variant-numeric:tabular-nums}
 .gfx-check{flex:none;width:15px;height:15px;accent-color:#f5a623;cursor:pointer}
 /* Dim and small on purpose: a hint is there when you go looking for it and out
    of the way when you are scanning names. */
-.gfx-hint{font-size:9.5px;line-height:1.3;color:rgba(245,223,160,.42)}
+.gfx-hint{font-size:var(--gfx-small-min);line-height:1.3;color:var(--gfx-dim)}
 
 #gfx-foot{display:flex;gap:6px;padding:9px 13px 11px;border-top:1px solid rgba(255,190,90,.13)}
 #gfx-foot button{flex:1;background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.26);
@@ -691,7 +698,7 @@ html.has-touch #joystick-zone{display:block}
    Same visual family as the graphics panel — it is the same corner, the same
    glass, the same amber — so the two read as one set of controls rather than
    as two different apps stacked on top of each other. */
-#fb-button{position:absolute;top:16px;right:58px;z-index:30;
+#fb-button{position:absolute;top:calc(16px + var(--safe-top));right:calc(58px + var(--safe-right));z-index:30;
   width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:rgba(18,11,4,.55);backdrop-filter:blur(10px) saturate(1.1);
   border:1px solid rgba(255,190,90,.18);color:#f5dfa0;cursor:pointer;
@@ -699,7 +706,7 @@ html.has-touch #joystick-zone{display:block}
 #fb-button:hover{background:rgba(245,166,35,.28);color:#fff3d4;transform:translateY(-1px)}
 #fb-button.active{background:rgba(245,166,35,.42);color:#fff}
 
-#fb-panel{position:absolute;top:60px;right:16px;z-index:30;width:306px;
+#fb-panel{position:absolute;top:calc(60px + var(--safe-top));right:calc(16px + var(--safe-right));z-index:30;width:306px;
   max-height:calc(100vh - 132px);display:flex;flex-direction:column;
   background:rgba(16,10,3,.88);backdrop-filter:blur(16px) saturate(1.15);
   border:1px solid rgba(255,190,90,.2);border-radius:14px;
@@ -708,7 +715,8 @@ html.has-touch #joystick-zone{display:block}
 #fb-head{display:flex;align-items:center;gap:8px;padding:11px 13px 9px;
   border-bottom:1px solid rgba(255,190,90,.13)}
 #fb-title{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;flex:1}
-#fb-close{background:none;border:none;color:rgba(245,223,160,.55);cursor:pointer;font-size:13px;padding:0 2px;line-height:1}
+#fb-close{background:none;border:none;color:rgba(245,223,160,.55);cursor:pointer;font-size:13px;padding:0;line-height:1;
+  min-width:var(--close-target);min-height:var(--close-target);display:flex;align-items:center;justify-content:center;margin:-8px -8px -8px 0}
 #fb-close:hover{color:#f5a623}
 #fb-body{overflow-y:auto;padding:11px 13px 4px;flex:1;display:flex;flex-direction:column;gap:8px;
   overscroll-behavior:contain}
@@ -863,8 +871,11 @@ html.has-touch #joystick-zone{display:block}
 
 /* Attribution: present (license) but quiet — the old orange links were the
    brightest text in every golden-hour frame. */
-.maplibregl-ctrl-attrib{font-size:10px!important;background:rgba(20,12,4,.55)!important;color:rgba(245,223,160,.5)!important;opacity:.75}
-.maplibregl-ctrl-attrib a{color:rgba(245,223,160,.65)!important}
+/* The map credits, and the only link to Terms and credits (E05). Named so one line retunes them. */
+:root{--attrib-size:12px;--attrib-size-phone:11px;--attrib-bg:rgba(20,12,4,.82);--attrib-ink:rgba(245,223,160,.82);--attrib-link:#f5dfa0}
+@media(max-width:640px){:root{--attrib-size:var(--attrib-size-phone)}}   /* the phone bar sits under the hint: keep it compact */
+.maplibregl-ctrl-attrib{font-size:var(--attrib-size)!important;background:var(--attrib-bg)!important;color:var(--attrib-ink)!important;opacity:1}
+.maplibregl-ctrl-attrib a{color:var(--attrib-link)!important}
 .maplibregl-ctrl-top-left,.maplibregl-ctrl-top-right{display:none}
 
 /* Narrow screens: the hint and the attribution bar sat on top of each other,
@@ -881,7 +892,7 @@ html.has-touch #joystick-zone{display:block}
      side padding are the two values, and at 9.5px/9px the same sentence
      measures ~362 px — inside the glass with ~15 px of margin either side.
      Both are named; change either one and the other still holds. */
-  #controls-hint{--hint-fs:9.5px;bottom:38px;font-size:var(--hint-fs);padding:5px 9px}
+  #controls-hint{--hint-fs:9.5px;bottom:calc(38px + var(--safe-bottom));font-size:var(--hint-fs);padding:5px 9px}
   #hud{max-width:calc(100vw - 32px);padding:6px 16px}
   #hud-title{font-size:11px}
   /* The date pill already shows the snapshot date — the HUD needn't repeat it
@@ -893,7 +904,7 @@ html.has-touch #joystick-zone{display:block}
   /* The title pill runs almost the full width at this size, so the second
      top-right button stacks UNDER the gear instead of beside it. Derived from
      --touch-min: 16px inset + one button + 8px of air. */
-  #fb-button{top:calc(16px + var(--touch-min) + 8px);right:16px}
+  #fb-button{top:calc(16px + var(--safe-top) + var(--touch-min) + 8px);right:calc(16px + var(--safe-right))}
   /* ...and with the buttons stacked, the toast clears BOTH of them. */
   #gfx-toast{top:calc(16px + 2 * (var(--touch-min) + 8px))}
 }
@@ -1074,7 +1085,7 @@ html.has-touch #joystick-zone{display:block}
   --wf-out-edge:rgba(255,190,90,.34);
 }
 
-#wf-button{position:absolute;top:16px;left:16px;z-index:30;
+#wf-button{position:absolute;top:calc(16px + var(--safe-top));left:calc(16px + var(--safe-left));z-index:30;
   width:var(--touch-min);height:var(--touch-min);border-radius:12px;
   display:grid;place-items:center;
   background:var(--wf-glass);backdrop-filter:blur(10px) saturate(1.1);
@@ -1088,7 +1099,7 @@ html.has-touch #joystick-zone{display:block}
    the list is the one child allowed to give up height, so the sheet can be
    capped at any height at all and the head, the two fields, the examples and
    the footer are still whole. */
-#wf-sheet{position:absolute;top:68px;left:16px;z-index:30;width:344px;max-width:calc(100vw - 32px);
+#wf-sheet{position:absolute;top:calc(68px + var(--safe-top));left:calc(16px + var(--safe-left));z-index:30;width:344px;max-width:calc(100vw - 32px);
   background:var(--wf-glass-solid);backdrop-filter:blur(14px) saturate(1.1);
   border:1px solid rgba(255,190,90,.18);border-radius:var(--wf-radius);
   box-shadow:var(--wf-shadow);color:var(--wf-ink);font-size:12.5px;overflow:hidden;
@@ -1097,7 +1108,7 @@ html.has-touch #joystick-zone{display:block}
 #wf-strip.hidden,#wf-egs.hidden,#wf-chev.hidden{display:none}
 #wf-head{display:flex;align-items:center;justify-content:space-between;
   padding:10px 10px 8px 14px;border-bottom:1px solid var(--wf-edge-soft)}
-#wf-head .wf-h{font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;
+#wf-head .wf-h{font-size:var(--wf-small-min);font-weight:700;letter-spacing:.17em;text-transform:uppercase;
   color:var(--wf-dim)}
 #wf-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;
   width:30px;height:30px;display:grid;place-items:center;padding:0;border-radius:8px}
@@ -1109,7 +1120,7 @@ html.has-touch #joystick-zone{display:block}
    menu item; the field column stops short of it rather than running under it. */
 #wf-ends{position:relative;padding:6px 40px 6px 0}
 .wf-row{position:relative;display:flex;align-items:center;gap:7px;padding:4px 0 4px 12px;flex:none}
-.wf-lab{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+.wf-lab{font-size:var(--wf-small-min);font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--wf-dimmer);width:28px;flex:none}
 .wf-row input{flex:1;min-width:0;background:rgba(255,255,255,.055);
   border:1px solid var(--wf-edge-soft);
@@ -1163,22 +1174,22 @@ html.has-touch #joystick-zone{display:block}
    can tap: it answers "what does this field want" with an example rather than a
    sentence, and it is gone the moment a character is typed. */
 #wf-egs{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:6px 14px 2px;flex:none}
-.wf-eg-lab{font-size:9.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+.wf-eg-lab{font-size:var(--wf-small-min);font-weight:700;letter-spacing:.15em;text-transform:uppercase;
   color:var(--wf-dimmer);margin-right:1px}
 .wf-eg{background:rgba(255,255,255,.06);border:1px solid var(--wf-edge-soft);
-  border-radius:8px;color:#ffcf7a;font:inherit;font-size:11.5px;font-weight:700;
+  border-radius:8px;color:#ffcf7a;font:inherit;font-size:var(--wf-small-min);font-weight:700;
   letter-spacing:.05em;padding:5px 10px;cursor:pointer}
 .wf-eg:hover{background:var(--wf-hot);color:#fff3d4}
 .wf-hint{padding:7px 14px;font-size:var(--wf-small);color:var(--wf-dimmer);line-height:1.45;flex:none}
 .wf-foot{padding:8px 14px 10px;border-top:1px solid rgba(255,190,90,.11);
-  font-size:9.5px;color:var(--wf-dimmer);line-height:1.55;flex:none}
+  font-size:var(--wf-small-min);color:var(--wf-dimmer);line-height:1.55;flex:none}
 
 /* ══ THE ANSWER ═════════════════════════════════════════════════════════════
    One bar. It takes the row below the top buttons — `body.wf-routed` hides
    #hud, so nothing else wants it — and it holds, in this order: what is left
    (only while the view is on the route), the whole-journey figures, the strip,
    the destination and its door, and the passing-period line. */
-#wf-pill{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:11;
+#wf-pill{position:absolute;top:calc(16px + var(--safe-top));left:50%;transform:translateX(-50%);z-index:11;
   width:min(560px,calc(100vw - 120px));
   background:var(--wf-glass);backdrop-filter:blur(12px) saturate(1.12);
   border:1px solid var(--wf-edge);border-radius:var(--wf-radius);
@@ -1452,6 +1463,16 @@ body.wf-live #wf-orig{display:none}
   color:rgba(248,234,208,.72);font-weight:500;min-width:0}
 .wf-door-ic{width:12px;height:12px;flex:none;opacity:.75;transform:translateY(.5px)}
 body.wf-live #wf-sub{margin-top:2px}
+/* THE BUS ROW (js/wayfind.js busRowSync): one dim line under a long walk when a bus is faster. Hidden when empty, and
+   while walking it steps aside like the other small print. */
+#wf-busrow{margin-top:5px;font-size:11px;line-height:1.35;color:#cfeaff}
+#wf-busrow[hidden]{display:none}
+#wf-busrow p{margin:2px 0 0}
+#wf-busrow .fd-live-note{color:#e8c98a}
+#wf-busrow .fd-live-credit{color:rgba(255,255,255,.45);font-size:9.5px}
+#wf-busrow .fd-live-line.is-live::before{content:'';display:inline-block;width:6px;height:6px;margin-right:5px;
+  border-radius:50%;background:#5fe08a;vertical-align:1px}
+body.wf-live #wf-busrow{display:none}
 /* ROUND 6: AND WHILE YOU ARE WALKING IT WAITS UNTIL YOU ARE NEARLY THERE.
    Photographed at 390 x 844 walking JES -> WEL, `Entrances are on this side`
    is the LONGEST line on the bar and it was on screen for the whole six
@@ -1521,7 +1542,7 @@ body.wf-live:not(.wf-near) #wf-sub .wf-mk-b{opacity:.55}
    back at 227 px. `and then right` is a nicety; `Tight for a 15-minute passing
    period` is the reason a student opened this at all. */
 #wf-verdict:not(:empty)+#wf-then2{display:none}
-#wf-verdict{font-size:11.5px;font-weight:700;letter-spacing:.01em;
+#wf-verdict{font-size:var(--wf-small-min);font-weight:700;letter-spacing:.01em;
   padding:4px 8px;border-radius:7px;display:inline-block;
   --wf-over:#ffb4a2;      /* both ends of the range over the period */
   --wf-tight:#ffd79a}     /* the range crosses it */
@@ -1716,7 +1737,7 @@ body.wf-live #wf-footrow{margin-top:6px}
 body.wf-live #wf-headline{display:none}
 
 #wf-card{margin-top:10px;padding-top:10px;border-top:1px solid var(--wf-edge-soft);
-  text-align:left;font-size:11.5px;line-height:1.5;
+  text-align:left;font-size:var(--wf-small-min);line-height:1.5;
   /* the card must never run off the bottom of a phone: it gives up height and
      scrolls inside itself rather than pushing the bar's own actions off screen */
   max-height:calc(100vh - var(--wf-card-clear,220px));overflow-y:auto}
@@ -1750,7 +1771,7 @@ body.wf-live #wf-headline{display:none}
    is one continuous walk however tall a row grows when its text wraps. The two
    ends stop the thread at their own mark rather than running past it. */
 #wf-steps{margin:1px 0 9px}
-.wf-steps-h{font-size:9.5px;font-weight:700;letter-spacing:.15em;
+.wf-steps-h{font-size:var(--wf-small-min);font-weight:700;letter-spacing:.15em;
   text-transform:uppercase;color:var(--wf-dimmer);margin-bottom:6px}
 .wf-step{display:flex;align-items:center;gap:9px;min-height:var(--wf-step-h)}
 .wf-si{flex:none;width:var(--wf-mk-w);align-self:stretch;position:relative;
@@ -1789,7 +1810,7 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 .wf-toggle input{accent-color:#f5a623;cursor:pointer;width:17px;height:17px}
 .wf-chips{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0 4px}
 .wf-chip{background:rgba(255,255,255,.06);border:1px solid var(--wf-edge);
-  border-radius:999px;color:inherit;font:inherit;font-size:11.5px;padding:6px 13px;cursor:pointer}
+  border-radius:999px;color:inherit;font:inherit;font-size:var(--wf-small-min);padding:6px 13px;cursor:pointer}
 .wf-chip:hover{background:rgba(245,166,35,.24)}
 .wf-chip.on{background:rgba(245,166,35,.38);color:#fff;border-color:rgba(245,166,35,.6)}
 .wf-chip-x{display:grid;place-items:center;width:30px;height:30px;padding:0;border-radius:50%}
@@ -1837,7 +1858,7 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 #wf-imp.hidden,#wf-imp-tabs.hidden{display:none}
 #wf-imp-head{display:flex;align-items:center;justify-content:space-between;
   padding:10px 10px 8px 14px;border-bottom:1px solid var(--wf-edge-soft);flex:none}
-#wf-imp-title{font-size:11px;font-weight:700;letter-spacing:.17em;
+#wf-imp-title{font-size:var(--wf-small-min);font-weight:700;letter-spacing:.17em;
   text-transform:uppercase;color:var(--wf-dim)}
 #wf-imp-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;
   width:30px;height:30px;display:grid;place-items:center;padding:0;border-radius:8px}
@@ -1853,7 +1874,7 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
   border-bottom:1px solid var(--wf-edge-soft)}
 .wf-imp-tab{flex:1;min-width:0;background:rgba(255,255,255,.05);
   border:1px solid var(--wf-edge-soft);border-radius:9px;color:var(--wf-dim);
-  font:inherit;font-size:11.5px;font-weight:700;letter-spacing:.04em;
+  font:inherit;font-size:var(--wf-small-min);font-weight:700;letter-spacing:.04em;
   padding:0 6px;height:32px;cursor:pointer;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wf-imp-tab:hover{background:var(--wf-hot);color:#fff3d4}
@@ -1916,16 +1937,16 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
   border:1px solid var(--wf-edge-soft);border-radius:10px;color:#fff6e2;
   font:inherit;font-size:14px;padding:0 11px;height:40px;outline:none;
   transition:border-color .12s,background .12s}
-.wf-imp-in::placeholder{color:rgba(248,234,208,.30);font-size:11px;letter-spacing:0}
+.wf-imp-in::placeholder{color:rgba(248,234,208,.30);font-size:var(--wf-small-min);letter-spacing:0}
 .wf-imp-in:focus{border-color:rgba(245,166,35,.55);background:rgba(255,255,255,.09)}
 .wf-imp-ta{height:auto;min-height:82px;padding:9px 11px;line-height:1.5;
   resize:vertical;font-size:12.5px}
-.wf-imp-ta::placeholder{font-size:11px;line-height:1.5}
-.wf-imp-hint{font-size:10px;color:var(--wf-dimmer);line-height:1.45;margin-top:5px}
+.wf-imp-ta::placeholder{font-size:var(--wf-small-min);line-height:1.5}
+.wf-imp-hint{font-size:var(--wf-small-min);color:var(--wf-dimmer);line-height:1.45;margin-top:5px}
 /* THE SEPARATOR BETWEEN TWO WAYS OF DOING THE SAME THING. A word on a rule,
    because two controls stacked with nothing between them read as two steps. */
 .wf-imp-or{display:flex;align-items:center;gap:8px;margin:11px 0;
-  font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--wf-dimmer)}
+  font-size:var(--wf-small-min);letter-spacing:.16em;text-transform:uppercase;color:var(--wf-dimmer)}
 .wf-imp-or::before,.wf-imp-or::after{content:"";flex:1;height:1px;
   background:var(--wf-edge-soft)}
 .wf-imp-file-btn{display:flex;align-items:center;justify-content:center;gap:8px;
@@ -1945,7 +1966,7 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 .wf-imp-err{display:flex;align-items:flex-start;gap:8px;
   padding:9px 10px;border-radius:10px;background:var(--wf-imp-bad-bg);
   border:1px solid var(--wf-imp-bad-edge);color:var(--wf-imp-bad);
-  font-size:11px;line-height:1.5}
+  font-size:var(--wf-small-min);line-height:1.5}
 .wf-imp-err-ic{width:15px;height:15px;flex:none;margin-top:1px}
 
 /* ══ WHAT HAPPENED ═════════════════════════════════════════════════════════ */
@@ -2014,9 +2035,9 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
   border:1px solid var(--wf-edge);border-radius:10px;color:var(--wf-dim);
   font:inherit;font-size:12px;font-weight:700;padding:10px 14px;cursor:pointer}
 .wf-imp-back:hover{background:rgba(255,255,255,.07);color:var(--wf-ink)}
-.wf-imp-none{flex:1;font-size:11px;color:var(--wf-dimmer);line-height:1.45}
+.wf-imp-none{flex:1;font-size:var(--wf-small-min);color:var(--wf-dimmer);line-height:1.45}
 .wf-imp-note{padding:8px 14px 10px;border-top:1px solid rgba(255,190,90,.11);
-  font-size:9.5px;color:var(--wf-dimmer);line-height:1.55;flex:none}
+  font-size:var(--wf-small-min);color:var(--wf-dimmer);line-height:1.55;flex:none}
 
 /* THE DOOR IN, in the search panel. A ROW and not a chip: the four chips above
    it fill a field, this one changes screens, and mixing the two in one strip
@@ -2031,7 +2052,7 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 .wf-imp-entry-ic{width:17px;height:17px;flex:none;color:var(--wf-accent)}
 .wf-imp-entry-t{flex:1;min-width:0}
 .wf-imp-entry-lab{display:block;font-size:12.5px;font-weight:700}
-.wf-imp-entry-sub{display:block;font-size:9.5px;color:var(--wf-dimmer);
+.wf-imp-entry-sub{display:block;font-size:var(--wf-small-min);color:var(--wf-dimmer);
   margin-top:1px;line-height:1.4}
 .wf-imp-entry-go{width:14px;height:14px;flex:none;color:var(--wf-dimmer)}
 
@@ -2211,13 +2232,13 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 
 /* Loading postcard and launcher: taste values are scoped tokens. */
 :root{--load-bg:#101b23;--load-panel:#1b2931;--load-ink:#f6ecdc;--load-muted:#b5bfc0;--load-accent:#f6b85e;--load-border:#3c4a4e;--load-radius:18px;--load-width:1100px}
-#veil.loading-v2{background:radial-gradient(ellipse at 25% 70%,#314148 0,transparent 60%),var(--load-bg);pointer-events:auto;color:var(--load-ink);overflow:auto}
+#veil.loading-v2{background:radial-gradient(ellipse at 25% 70%,#314148 0,transparent 60%),var(--load-bg);--load-small-min:12px;pointer-events:auto;color:var(--load-ink);overflow:auto}
 #veil.loading-v2.lift{pointer-events:none}
 #load-city{width:min(var(--load-width),92%);display:grid;grid-template-columns:1.3fr 1fr;gap:50px;align-items:center;padding:36px 0}
-.load-eyebrow{font-size:11px;letter-spacing:.23em;color:var(--load-accent);margin-bottom:24px}
+.load-eyebrow{font-size:var(--load-small-min);letter-spacing:.23em;color:var(--load-accent);margin-bottom:24px}
 #load-city h1{font-size:clamp(32px,3.6vw,48px);line-height:1.08;max-width:530px;font-weight:600;letter-spacing:-.035em}
 .load-subtitle{font-size:16px;line-height:1.6;color:var(--load-muted);max-width:380px;margin-top:20px}
-.load-caption{font-size:9px;letter-spacing:.12em;color:var(--load-muted)}
+.load-caption{font-size:var(--load-small-min);letter-spacing:.12em;color:var(--load-muted)}
 .load-card{padding:28px;border:1px solid var(--load-border);border-radius:var(--load-radius);background:var(--load-panel)}
 .load-heading{display:flex;justify-content:space-between;gap:16px;align-items:center}.load-heading h2{font-size:17px;font-weight:600}#load-percent{color:var(--load-accent);font-variant-numeric:tabular-nums}
 .load-rail{height:5px;background:var(--load-border);border-radius:5px;overflow:hidden;margin:18px 0 12px}.load-rail i{display:block;height:100%;background:var(--load-accent);transform:scaleX(0);transform-origin:left;transition:transform .2s}
@@ -2231,8 +2252,8 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 #load-estimate .load-odo i:first-child::before{content:"\00a0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"}
 #load-stages{display:grid;gap:15px;font-size:12px}#load-stages>div{display:flex;justify-content:space-between;gap:12px}#load-stages>div span:last-child{color:var(--load-muted);text-align:right}
 .load-choice{border-top:1px solid var(--load-border);margin-top:25px;padding-top:22px}.load-choice h3{font-size:16px}.load-choice p{font-size:13px;color:var(--load-muted);line-height:1.5;margin:10px 0 18px}
-#load-modes,.mode-go{border:0;border-radius:9px;background:var(--load-accent);color:#202225;padding:14px 16px;font-weight:650;font-size:14px;cursor:pointer;width:100%}.load-choice small{display:block;font-size:11px;color:var(--load-muted);margin-top:12px;text-align:center}
-#load-city footer{grid-column:1/-1;font-size:11px;color:var(--load-muted);letter-spacing:.06em}
+#load-modes,.mode-go,.load-retry{border:0;border-radius:9px;background:var(--load-accent);color:#202225;padding:14px 16px;font-weight:650;font-size:14px;cursor:pointer;width:100%}.load-choice small{display:block;font-size:11px;color:var(--load-muted);margin-top:12px;text-align:center}
+#load-city footer{grid-column:1/-1;font-size:var(--load-small-min);color:var(--load-muted);letter-spacing:.06em}
 /* "Switch modes" never covers the map credit (a licence requirement) or the
    touch controls. On a desktop it sits one credit row up: the credit's 10px
    margin + its 24px bar + 8px of air. Wherever the stick and BOOST show, it
@@ -2244,10 +2265,48 @@ html.has-touch{--launcher-bottom:var(--drive-clear)}
    that edge), so the pill goes small and sits just over the credit, under
    BOOST: the credit row is 34px, plus 6px of air. */
 @media(max-height:520px){:root,html.has-touch{--launcher-bottom:40px}}
-#mode-launcher{position:fixed;right:16px;bottom:var(--launcher-bottom);z-index:59;background:var(--load-panel);color:var(--load-ink);border:1px solid var(--load-border);border-radius:24px;padding:12px 18px;cursor:pointer;box-shadow:0 4px 20px #0005}#mode-launcher[hidden]{display:none}
+/* Not on top of an open menu on a desktop either (E03): the phone rule above did this only for touch screens. */
+body.gfx-open #mode-launcher,body.fb-open #mode-launcher{visibility:hidden}
+#mode-launcher{position:fixed;right:calc(16px + var(--safe-right));bottom:var(--launcher-bottom);z-index:59;background:var(--load-panel);color:var(--load-ink);border:1px solid var(--load-border);border-radius:24px;padding:12px 18px;cursor:pointer;box-shadow:0 4px 20px #0005}#mode-launcher[hidden]{display:none}
 @media(max-height:520px){#mode-launcher{right:10px;padding:10px 14px;font-size:12px}}
 #mode-dialog{margin:auto;width:min(710px,94vw);max-height:90dvh;overflow:auto;border:1px solid var(--load-border);border-radius:var(--load-radius);background:var(--load-bg);color:var(--load-ink);padding:26px;box-shadow:0 20px 70px #0008}#mode-dialog::backdrop{background:#050d14c9}.mode-header{display:flex;align-items:center;justify-content:space-between;gap:15px}.mode-header h2{font-size:24px}.mode-header button{font-size:27px;color:var(--load-ink);border:0;background:none;width:44px;height:44px;cursor:pointer}.mode-intro{font-size:13px;color:var(--load-muted);line-height:1.5;margin:10px 0 20px}.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mode-option{display:flex;align-items:start;gap:10px;padding:14px;border:1px solid var(--load-border);border-radius:10px;cursor:pointer}.mode-option:has(input:checked){border-color:var(--load-accent);background:var(--load-panel)}.mode-option input{margin-top:3px;accent-color:var(--load-accent)}.mode-option strong{display:block;font-size:14px}.mode-option small{display:block;color:var(--load-muted);font-size:12px;line-height:1.5;margin-top:6px}.mode-settings{display:flex;gap:16px;margin:20px 0}.mode-settings label{flex:1;font-size:12px;color:var(--load-muted)}.mode-settings select{display:block;width:100%;background:var(--load-panel);color:var(--load-ink);border:1px solid var(--load-border);border-radius:6px;padding:10px 6px;margin-top:7px}#mode-dialog :focus-visible,#load-city :focus-visible,#mode-launcher:focus-visible{outline:2px solid var(--load-accent);outline-offset:4px}
 .load-route{animation:load-route-pulse 2.5s ease-in-out infinite}@keyframes load-route-pulse{50%{opacity:.35}}
-@media(max-width:650px){#load-city{display:flex;flex-direction:column;gap:20px;padding:28px 0;width:90%;margin:auto}.load-eyebrow{margin-bottom:14px}#load-city h1{font-size:32px;max-width:340px}.load-subtitle{font-size:13px;margin-top:12px}.load-story .mvh-stack{max-width:320px;margin-top:0;margin-left:auto;margin-right:auto;--mvh-w:min(100%,320px)}.load-caption{font-size:8px;text-align:center}.load-card{width:100%;padding:20px}#load-stages{gap:10px;font-size:11px}#load-estimate{margin-bottom:18px}.load-choice{margin-top:18px;padding-top:16px}.load-choice p{margin:7px 0 12px}#load-city footer{font-size:10px}.mode-grid{grid-template-columns:1fr}#mode-dialog{padding:18px}.mode-settings{gap:8px}#mode-launcher{right:10px;padding:10px 14px;font-size:12px}}
+@media(max-width:650px){#load-city{display:flex;flex-direction:column;gap:20px;padding:28px 0;width:90%;margin:auto}.load-eyebrow{margin-bottom:14px}#load-city h1{font-size:32px;max-width:340px}.load-subtitle{font-size:13px;margin-top:12px}.load-story .mvh-stack{max-width:320px;margin-top:0;margin-left:auto;margin-right:auto;--mvh-w:min(100%,320px)}.load-caption{text-align:center}.load-card{width:100%;padding:20px}#load-stages{gap:10px;font-size:11px}#load-estimate{margin-bottom:18px}.load-choice{margin-top:18px;padding-top:16px}.load-choice p{margin:7px 0 12px}#load-city footer{font-size:var(--load-small-min)}.mode-grid{grid-template-columns:1fr}#mode-dialog{padding:18px}.mode-settings{gap:8px}#mode-launcher{right:10px;padding:10px 14px;font-size:12px}}
 @media(prefers-reduced-motion:reduce){.load-route{animation:none}.load-rail i{transition:none}}
 @media(max-width:650px){.mode-settings select{font-size:16px}}
+
+/* Keyboard focus (E04): one visible ring for the app's own buttons and the map credits. The browser's default is a
+   thin near-black line that vanishes on the dark glass. Named: change the colour or width here. */
+:root{--focus-ring:2px solid #f5a623;--focus-ring-offset:2px}
+#gfx-button:focus-visible,#fb-button:focus-visible,#tod-play:focus-visible,#joy-boost:focus-visible,
+#gfx-close:focus-visible,#fb-close:focus-visible,.gfx-preset:focus-visible,#gfx-foot button:focus-visible,
+#fb-panel button:focus-visible,.maplibregl-ctrl-attrib a:focus-visible,.maplibregl-ctrl-attrib-button:focus-visible{
+  outline:var(--focus-ring);outline-offset:var(--focus-ring-offset)}
+
+/* The loading card's failure line (A09): readable body text instead of the 12px time line. */
+#load-estimate.load-fail{font-size:15px;line-height:1.5;color:var(--load-ink);margin:14px 0 4px}
+
+/* Touch minimum (G03): the app's own 44 px floor (--touch-min) for the buttons and fields in the two menus and the
+   mode pill that were 24 to 39 px. Applies on touch screens of any width, so a tablet gets it too. */
+html.has-touch #gfx-foot button,html.has-touch #fb-send,html.has-touch #fb-copy,html.has-touch .gfx-preset,
+html.has-touch #mode-launcher,html.has-touch #fb-panel input[type=text],html.has-touch #fb-panel input[type=email]{
+  min-height:var(--touch-min)}
+
+/* ── Walk sheet and importer on touch screens (H05, H06) ─────────────────────────────────────────────────────────
+   H05: the walk controls were 24 to 38 px. Rows and buttons take the 44 px floor; the small icon marks keep their
+   look and get a larger invisible hit area (--touch-pad on every side). */
+:root{--touch-pad:9px}
+html.has-touch .wf-item,html.has-touch .wf-act,html.has-touch .wf-imp-tab,html.has-touch .wf-eg,html.has-touch #wf-priv-del{
+  min-height:var(--touch-min)}
+html.has-touch .wf-x::after,html.has-touch #wf-close::after,html.has-touch #wf-swap::after,html.has-touch #wf-imp-close::after{
+  content:"";position:absolute;inset:calc(var(--touch-pad) * -1)}
+html.has-touch #wf-close,html.has-touch #wf-imp-close{position:relative}
+/* H06: the walk and importer text fields showed focus only as a border colour change. */
+.wf-row input:focus-visible,.wf-imp-in:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-ring-offset)}
+/* H01: the first-paint veil mark does not fade in when the visitor asked for reduced motion. */
+@media(prefers-reduced-motion:reduce){#veil-mark{animation:none}}
+
+/* K03: the walk sheet and importer text floor, and K01: the mode pill steps aside for them on touch screens. */
+:root{--wf-small-min:12px}
+html.has-touch body:has(#wf-sheet:not(.hidden)) #mode-launcher,
+html.has-touch body:has(#wf-imp:not(.hidden)) #mode-launcher{visibility:hidden}

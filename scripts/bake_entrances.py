@@ -6608,8 +6608,12 @@ def retire_gearing_court_entry(feats):
         if math.hypot(x - cx, y - cy) <= rule["center_tolerance_m"]:
             matches.append(eid)
     assert matches == [rule["frozen_eid"]], (
-        "Gearing court retirement: expected one frozen spatial entry, got %s"
-        % matches)
+        "Gearing court retirement: expected one frozen spatial entry, got %s. "
+        "If the number is merely different, the bake is on a different snapshot "
+        "(%s) than the one data/entrances.geojson was baked from: a newer snapshot "
+        "has fewer candidates and renumbers every later eid. Pin it with "
+        "SNAP_DATE=<the file's own `snapshot`> (2026-10-09: 2026-08-27 gives 239)."
+        % (matches, SNAP_DATE))
     eid = matches[0]
     group = [f for f in feats if f["properties"]["eid"] == eid]
     assert group == groups[eid], "Gearing court retirement: mixed entry ownership"
@@ -6731,7 +6735,159 @@ def retire_excluded_only():
     print("Excluded building entries: retired %d pieces; other entries unchanged" % (before - len(out["features"])))
 
 
+# ── RE-SEAT ONTO A WALL THAT MOVED (2026-10-09) ───────────────────────
+# 8396ee8 (2026-09-14) moved two walls that doors had been seated on, and the
+# doors stayed behind: GDC's atrium glass went back from GDC_ATRIUM_RECESS 0.9 to
+# 5.0 m (bake_heroes.py), and EER's solid cage at the creek was replaced by two
+# thin glass planes, `west_entry_glass` and `east_entry_glass`. GDC entrance 165
+# and EER entrance 333 were left 4.5-4.7 m in the air in front of them, which is
+# what scripts/verify/wallplane.mjs counts. A full bake cannot be run to fix it
+# (see retire_gearing_court_entry's frozen eid), so, like the --retire-* modes,
+# this changes ONLY the entrances named here and nothing else in the file.
+#
+# THE RULE: the wall is read, not remembered. It is the union of the pieces one
+# hero band draws (data/heroes.geojson; its one writer is bake_heroes.py), fitted
+# with its minimum rotated rectangle; its normal is the rectangle's short axis,
+# signed toward the door. The whole entrance is moved rigidly ALONG THAT NORMAL
+# until its leaf's near face stands PROUD_DOOR off the wall's outer face -- the
+# same standoff seat_on_drawn_wall() leaves -- and not a millimetre along the
+# wall. A seat vector `wp` (GDC 165 carries one, for ?wallplane=0) is moved by
+# the opposite amount, so it still lands on the pre-seat position it always did.
+# EER carries none and gets none: wallplane.mjs section D wants it that way.
+#
+# SAFE TO RUN TWICE: there is no marker. The door's distance from the wall is
+# measured every time, and a door already within RESEAT_TOL of its standoff is
+# left byte-for-byte alone. If the wall moves again, running it again follows.
+#
+# IT REFUSES, naming what it found, when the entrance is not the one expected
+# (id, building, role, piece count by kind), when its wall band is missing, when
+# the door is not in front of the wall's span, or when it is behind the wall's
+# face or further than RESEAT_MAX_M from it.
+RESEAT_ENTRANCES = (
+    {"eid": 165, "bid": "44e418d6-dd3a-48da-8e9d-c29e59593299", "ref": "GDC",
+     "role": "secondary", "hero": ("gdc", "atrium"),
+     "kinds": {"reveal": 3, "surround": 3, "door": 2, "glass": 2, "transom": 1}},
+    {"eid": 333, "bid": "8f0abac0-44ed-4e4a-861a-cc95dfc7b429", "ref": "EER",
+     "role": "main", "hero": ("eer", "west_entry_glass"),
+     "kinds": {"rail": 12, "glass": 6, "door": 4, "step": 4, "reveal": 3,
+               "surround": 3, "transom": 1}},
+)
+HEROES = os.path.join(ROOT, "data", "heroes.geojson")
+RESEAT_TOL_M = 0.03      # m; within this of the standoff is already seated
+RESEAT_MAX_M = 8.0       # m; further out than this is not this wall's door
+
+
+def _reseat_measure(group, heroes, slug, band):
+    """Where the door's leaf stands against the wall one hero band draws.
+
+    Returns (gap_m, n_out, why): gap is the leaf's near face minus the wall's
+    outer face along the outward normal; n_out is the unit normal in metres.
+    On anything unexpected gap is None and `why` says what was found.
+    """
+    panes = []
+    for f in heroes["features"]:
+        p = f["properties"]
+        g = f["geometry"]
+        if p.get("b") == slug and p.get("band") == band and g["type"] == "Polygon":
+            panes.append(Polygon([to_m(x, y) for x, y in g["coordinates"][0]]))
+    if not panes:
+        return None, None, "no %s/%s pieces in heroes.geojson" % (slug, band)
+    mr = unary_union(panes).minimum_rotated_rectangle
+    if mr.geom_type != "Polygon":
+        return None, None, "%s/%s is not a plane" % (slug, band)
+    c = list(mr.exterior.coords)[:4]
+    sides = sorted(((math.hypot(c[(i + 1) % 4][0] - c[i][0],
+                                c[(i + 1) % 4][1] - c[i][1]), i) for i in range(4)))
+    thick, length = sides[0][0], sides[-1][0]
+    i = sides[-1][1]
+    tx, ty = _norm(c[(i + 1) % 4][0] - c[i][0], c[(i + 1) % 4][1] - c[i][1])
+    nx, ny = -ty, tx
+    cx, cy = mr.centroid.x, mr.centroid.y
+    leaf = [to_m(x, y) for f in group if f["properties"]["k"] == "door"
+            for x, y in f["geometry"]["coordinates"][0]]
+    if not leaf:
+        return None, None, "entrance has no door leaf"
+    mx = sum(p[0] for p in leaf) / len(leaf)
+    my = sum(p[1] for p in leaf) / len(leaf)
+    if (mx - cx) * nx + (my - cy) * ny < 0:
+        nx, ny = -nx, -ny
+    along = (mx - cx) * tx + (my - cy) * ty
+    if abs(along) > length / 2.0:
+        return None, None, ("door is %.2f m along a %.2f m wall: not in front of it"
+                            % (along, length))
+    near = min((x - cx) * nx + (y - cy) * ny for x, y in leaf)
+    gap = near - thick / 2.0
+    if gap < 0.0 or gap > RESEAT_MAX_M:
+        return None, None, ("leaf's near face is %.2f m from the wall's outer face "
+                            "(expected 0..%.1f m)" % (gap, RESEAT_MAX_M))
+    return gap, (nx, ny), None
+
+
+def reseat_entrances_only():
+    """Re-seat the named entrances onto the walls their building draws today."""
+    with open(OUT, encoding="utf-8") as fh:
+        out = json.load(fh)
+    with open(HEROES, encoding="utf-8") as fh:
+        heroes = json.load(fh)
+    plan = []
+    for rule in RESEAT_ENTRANCES:
+        eid = rule["eid"]
+        group = [f for f in out["features"] if f["properties"]["eid"] == eid]
+        found = Counter(f["properties"]["k"] for f in group)
+        ids = sorted(set((f["properties"].get("bid"), f["properties"].get("ref"),
+                          f["properties"].get("role")) for f in group), key=str)
+        if (not group or ids != [(rule["bid"], rule["ref"], rule["role"])]
+                or found != rule["kinds"]):
+            sys.exit("Reseat refused: entrance %d is not the one expected.\n"
+                     "  expected %s %s %s %s\n  found    %d pieces, %s, %s"
+                     % (eid, rule["ref"], rule["bid"], rule["role"],
+                        dict(rule["kinds"]), len(group), dict(found), ids))
+        gap, n, why = _reseat_measure(group, heroes, *rule["hero"])
+        if gap is None:
+            sys.exit("Reseat refused: entrance %d (%s): %s" % (eid, rule["ref"], why))
+        plan.append((rule, group, gap, n))
+    changed = 0
+    for rule, group, gap, n in plan:
+        shift = gap - PROUD_DOOR
+        if abs(shift) <= RESEAT_TOL_M:
+            print("Reseat: entrance %d (%s) already stands %.2f m off %s/%s; unchanged"
+                  % (rule["eid"], rule["ref"], gap, *rule["hero"]))
+            continue
+        dlon = -n[0] * shift / KX
+        dlat = -n[1] * shift / M_LAT
+        before = to_ll(*(sum(v) / len(v) for v in zip(*(
+            to_m(x, y) for f in group if f["properties"]["k"] == "door"
+            for x, y in f["geometry"]["coordinates"][0][:-1]))))
+        for f in group:
+            for ring in f["geometry"]["coordinates"]:
+                for pt in ring:
+                    pt[0] = round(pt[0] + dlon, 7)
+                    pt[1] = round(pt[1] + dlat, 7)
+            wp = f["properties"].get("wp")
+            if wp:
+                f["properties"]["wp"] = [round(wp[0] - dlon, 7), round(wp[1] - dlat, 7)]
+        after = to_ll(*(sum(v) / len(v) for v in zip(*(
+            to_m(x, y) for f in group if f["properties"]["k"] == "door"
+            for x, y in f["geometry"]["coordinates"][0][:-1]))))
+        changed += 1
+        print("Reseat: entrance %d (%s) moved %.2f m along the normal of %s/%s "
+              "(door centre %s -> %s); %d pieces"
+              % (rule["eid"], rule["ref"], shift, *rule["hero"],
+                 before, after, len(group)))
+    if not changed:
+        print("Reseat: nothing to do; file not rewritten")
+        return
+    with open(OUT, "w", encoding="utf-8") as fh:
+        json.dump(out, fh, separators=(",", ":"))
+    print("  wrote %s (existing snapshot %s; placement not rerun)"
+          % (os.path.relpath(OUT, ROOT), out.get("snapshot")))
+
+
 def main():
+    if "--reseat-entrances-only" in sys.argv:
+        assert len(sys.argv) == 2, "Targeted re-seat cannot be combined with other flags"
+        reseat_entrances_only()
+        return
     if "--retire-excluded-only" in sys.argv:
         assert len(sys.argv) == 2, "Targeted retirement cannot be combined with other flags"
         retire_excluded_only()
@@ -6744,6 +6900,8 @@ def main():
         print("  --refresh / --refresh-ut: refresh source observations")
         print("  --retire-battle-east-only: migrate the two obsolete east arch assemblies")
         print("  --retire-excluded-only: remove stale-building entries without global placement")
+        print("  --reseat-entrances-only: move GDC 165 and EER 333 onto the walls their building")
+        print("    draws now (reads data/heroes.geojson); measured, so a second run changes nothing")
         return
     if "--retire-battle-east-only" in sys.argv:
         assert len(sys.argv) == 2, "Targeted retirement cannot be combined with other flags"

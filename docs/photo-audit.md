@@ -32,6 +32,13 @@ and which wall, before anything else.
 - Spacing of the rows ÷ spacing of the columns. It needs no scale, and it
   shows at once when bays are too narrow or storeys too tall.
 
+**1a. Count on the most square-on photograph, and never reuse a bay size.**
+Before any build, look through ALL photographs of the wall and pick the one
+taken most square-on. Count the bays there and measure one bay against the
+wall height. An old bay size in the code or the data is not evidence: it is
+a guess someone made for a generic wall. Take the rule (what is in one bay,
+bottom to top) from that same photograph, not from an oblique one.
+
 **1b. One real length.** Ratios do not give size. Fix the scale with one
 measured length: the wall height from the laser scan, or a wall length from
 the map outline. Then every ratio becomes metres.
@@ -77,6 +84,16 @@ base to tower, wall to roof)? Give each line as a part of the wall height.
 **5. What sits over what.** Is each window over an arch or over a post? Do
 upper columns line up with lower ones? Where does the rhythm stop (a blank
 stretch, a wider pier, a corner)?
+
+**5b. Depth needs a second line or a second view.** A camera fitted only to
+points on ONE wall cannot say how far back that wall stands: the fit moves the
+camera to suit any depth. Before you move a wall forward or back, add a ground
+line (a curb, a path edge) or a second wall to the fit, and check that the
+camera height it gives is a height a person holds a phone (1.4 to 2.1 m). And a
+frontal photograph cannot show how deep a recess is. For every recess (an
+arcade, a porch, a set-back storey) find the oblique photograph, and measure
+there: recess depth ÷ pier width, and pier depth ÷ pier width. Compare the
+render from that same oblique camera, not from the front.
 
 **6. Colour, by measurement.** Take the middle colour of each material in the
 photograph and in the render. Light differs, so compare RATIOS between
@@ -161,7 +178,16 @@ made or sharpened.
   wall was checked only in a dusk render. By day its window bands were bare
   wall (the glass sat behind one wall sheet) and then sky blue (the shared
   glass tone). Check 7b.
+- 2026-10-09, found by the main lane: the DKR stadium west wall was first built
+  from an oblique photograph on the generic 6.2 m bay. A near-frontal photograph
+  was in the same set all along: it gives 12.6 m bays, ONE tall ribbed panel to
+  a bay (not two), slit windows, and a narrow pylon. Check 1a.
 - 2026-10-07. Three photographs filed under one building showed another
   building: check 0.
 - 2026-10-03. "can't see the sign cuz the tree": check 9, from the camera of
   the photograph, with what blocks the view left in.
+- 2026-10-10, found by a builder and the main lane on Norman Hackerman: the
+  brick face was placed at three different depths in three drafts (8 m apart)
+  from one-wall camera fits, and the rebuilt arcade matched the front
+  photograph while the side photograph showed its bays far too shallow.
+  Check 5b.

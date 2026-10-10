@@ -49,7 +49,7 @@
   toggle.onclick=()=>{root.hidden=false;toggle.hidden=true;$('hide').focus();};
   root.addEventListener('keydown',e=>e.stopPropagation());
   root.addEventListener('keyup',e=>e.stopPropagation());
-  let rows=[], codes=[], result=null, homeIndex=0, revision=0, activeLeg=null, street=false, ready=false;
+  let rows=[], codes=[], result=null, homeIndex=0, picked=false, revision=0, activeLeg=null, street=false, ready=false;
   const fmt = t => t ? `${Math.round(t.lo)}–${Math.round(t.hi)} min` : 'Unavailable';
   const dayNames={MO:'Monday',TU:'Tuesday',WE:'Wednesday',TH:'Thursday',FR:'Friday',SA:'Saturday',SU:'Sunday'};
   function button(text, action, host) { const b=document.createElement('button'); b.textContent=text;b.onclick=action;host.append(b);return b; }
@@ -87,7 +87,7 @@
     $('homes').replaceChildren();
     const ranked=result?.complete ? [...result.apartments].sort((a,b)=>a.total.distM-b.total.distM) : [];
     tune.homes.forEach((home,i)=>{
-      const b=button('',()=>selectHome(i,true),$('homes'));b.className='lh-apartment';b.setAttribute('aria-pressed',String(i===homeIndex));
+      const b=button('',()=>selectHome(i,true),$('homes'));b.className='lh-apartment';b.setAttribute('aria-pressed',String(picked&&i===homeIndex));
       const title=document.createElement('strong');title.textContent=home.name;const address=document.createElement('span');address.textContent=home.address;b.append(title,address);
       if(result){const a=result.apartments[i],metric=document.createElement('b');metric.textContent=fmt(a.total);b.append(metric);
         if(ranked[0]===a){const tag=document.createElement('em');tag.textContent='SHORTEST ESTIMATED HOME WALK';b.append(tag);}}
@@ -97,7 +97,7 @@
   }
   function duration(){return matchMedia('(prefers-reduced-motion: reduce)').matches?0:tune.duration;}
   function selectHome(i,fly){
-    homeIndex=i;renderHomes();clearMap();
+    homeIndex=i;picked=true;renderHomes();clearMap();
     if(fly&&window.__map){const h=tune.homes[i];window.__map.stop();window.__map.flyTo({center:h.center,zoom:h.zoom,pitch:h.pitch,bearing:h.bearing,duration:duration(),padding:noPadding});}
     if(result)renderDay();
   }
@@ -177,6 +177,8 @@
     const answer=await C.compare(snapshot,tune.homes,(a,b)=>window.wayfindStairs(a,b,{geom:true,avoidStairs:avoid}),new Set(codes.map(c=>c.code)));
     if(token!==revision)return;
     $('compare').disabled=false;if(answer.error){note(answer.error,true);return;}
+    // Nobody picked a home: open on the one with the shortest estimated walk, not on the first in the list (B22).
+    if(!picked){const ok=answer.apartments.map((a,i)=>[a,i]).filter(([a])=>a.ok&&a.total&&a.total.distM!=null).sort((x,y)=>x[0].total.distM-y[0].total.distM);homeIndex=ok.length?ok[0][1]:0;picked=true;}
     result=answer;renderHomes();renderDay();note(answer.complete?'Comparison ready. Choose an apartment and a walk.':'Some walks are unavailable. No overall ranking shown.',!answer.complete);
     $('editor').open=false;root.scrollTop=0;
   }
@@ -191,7 +193,7 @@
       const stats=window.wayfindStats();$('source').textContent='Path data: '+(stats.asOf||'OpenStreetMap snapshot')+'. Building data and route coverage can differ.';
       const wait=()=>{const map=window.__map;if(!map?.getStyle()?.layers?.length)return setTimeout(wait,150);
         for(const [i,h] of tune.homes.entries()){const el=document.createElement('button');el.className='lh-map-label';el.textContent=h.name;el.onclick=()=>{root.hidden=false;toggle.hidden=true;selectHome(i,true);};new maplibregl.Marker({element:el}).setLngLat(h.point).addTo(map);}
-        selectHome(0,true);
+        // No home is picked or flown to when the panel opens (B22): the visitor chooses, or the comparison does.
       };wait();
     }catch(e){note('Could not load mapped paths. Reload to try again.',true);}
   }
