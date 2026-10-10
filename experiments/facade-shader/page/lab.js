@@ -256,25 +256,35 @@ function setLight(L) {
   gl.uniform4f(progFac.U.u_win, R.rowPitch, R.window.sill, R.window.h, R.rowCount);
   gl.uniform1f(progFac.U.u_reveal, R.reveal);
 }
+const customArms = {};          // name -> ({ cam, shiftNdc, builtin, view }) : draws the facade part of a custom arm (experiments/facet registers some)
 function drawScene(arm, parts, cam, shiftNdc) {
   const withFacade = parts !== 'rest', withRest = parts !== 'facade';
-  if (withFacade && arm === 'B') {
+  if (withFacade && customArms[arm]) { customArms[arm]({ cam, shiftNdc, view: state.view, builtin: a => drawFacade(a, cam, shiftNdc) }); }
+  else if (withFacade) drawFacade(arm, cam, shiftNdc);
+  if (withRest) drawRest(cam, shiftNdc);
+  gl.bindVertexArray(null);
+}
+function drawFacade(arm, cam, shiftNdc) {
+  if (arm === 'B') {
     gl.useProgram(progFac.p); gl.bindVertexArray(meshB.vao);
     gl.uniformMatrix4fv(progFac.U.u_matrix, false, cam.M); gl.uniform2f(progFac.U.u_shift, shiftNdc[0], shiftNdc[1]);
     gl.uniform3fv(progFac.U.u_cam, cam.eye); gl.uniform1f(progFac.U.u_aa, state.aa); gl.uniform1f(progFac.U.u_parallax, state.parallax); gl.uniform1f(progFac.U.u_alpha, 1.0); gl.uniform1f(progFac.U.u_count, state.count); gl.uniform1f(progFac.U.u_kernel, state.kernel);
     gl.drawElementsInstanced(gl.TRIANGLES, meshB.count, gl.UNSIGNED_SHORT, 0, instCount);
   }
-  gl.useProgram(progGeo.p);
-  gl.uniformMatrix4fv(progGeo.U.u_matrix, false, cam.M); gl.uniform2f(progGeo.U.u_shift, shiftNdc[0], shiftNdc[1]);
-  if (withFacade && arm !== 'B') {
+  else {
+    gl.useProgram(progGeo.p);
+    gl.uniformMatrix4fv(progGeo.U.u_matrix, false, cam.M); gl.uniform2f(progGeo.U.u_shift, shiftNdc[0], shiftNdc[1]);
     gl.bindVertexArray(meshA.vao); gl.uniform3fv(progGeo.U.u_centre, meshA.centre); gl.uniform1f(progGeo.U.u_scale, meshA.scale); gl.uniform1f(progGeo.U.u_alpha, 1.0); gl.uniform1f(progGeo.U.u_count, state.count);
     gl.drawElementsInstanced(gl.TRIANGLES, meshA.count, gl.UNSIGNED_INT, 0, instCount);
   }
-  if (withRest) {
+}
+function drawRest(cam, shiftNdc) {
+  {
+    gl.useProgram(progGeo.p);
+    gl.uniformMatrix4fv(progGeo.U.u_matrix, false, cam.M); gl.uniform2f(progGeo.U.u_shift, shiftNdc[0], shiftNdc[1]);
     gl.bindVertexArray(meshRest.vao); gl.uniform3fv(progGeo.U.u_centre, meshRest.centre); gl.uniform1f(progGeo.U.u_scale, meshRest.scale); gl.uniform1f(progGeo.U.u_alpha, 0.5); gl.uniform1f(progGeo.U.u_count, state.count);
     gl.drawElementsInstanced(gl.TRIANGLES, meshRest.count, gl.UNSIGNED_INT, 0, instCount);
   }
-  gl.bindVertexArray(null);
 }
 function frame(arm, parts, tg, cam, shiftNdc, msaa) {
   const T = msaa ? tg.ms : tg.plain;
@@ -310,12 +320,13 @@ const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
 
 // ------------------------------------------------------------------------------------------------ the quality measurement (the moire meter's method, on the lab's own scene)
 const STEP_PX = 0.3, FRAMES = 8, SS = 4, FLAT_LEVELS = 2.5;
-async function quality(view, { W = 640, H = 400, arms = ['A', 'B', 'Bt', 'A4'], pictures = true } = {}) {
+async function quality(view, { W = 640, H = 400, arms = ['A', 'B', 'Bt', 'A4'], pictures = true, pictureArms = ['A', 'B'] } = {}) {
+  state.view = view;
   const cam = camera(view, W, H);
   const t1 = target(W, H, false), t4 = target(W, H, true), tS = target(W * SS, H * SS, false);
   const res = { view: view.name, dist: view.dist, mPerPx: +(2 * view.dist * Math.tan(FOV / 2) / H).toFixed(3), bayPx: +(R.bay / (2 * view.dist * Math.tan(FOV / 2) / H)).toFixed(2), arms: {} };
-  const baseOf = arm => arm === 'A4' ? 'A' : arm === 'Bt' ? 'B' : arm;
-  const one = (arm, step) => { const sh = [2 * step * STEP_PX / W, 0]; const ms = arm === 'A4'; const tgt = ms ? t4 : t1; state.kernel = arm === 'Bt' ? 1 : 0; frame(baseOf(arm), 'all', tgt, cam, sh, ms); state.kernel = 0; return read(tgt); };
+  const baseOf = arm => arm === 'Bt' ? 'B' : (arm.endsWith('4') ? arm.slice(0, -1) : arm);
+  const one = (arm, step) => { const sh = [2 * step * STEP_PX / W, 0]; const ms = arm.endsWith('4'); const tgt = ms ? t4 : t1; state.kernel = arm === 'Bt' ? 1 : 0; frame(baseOf(arm), 'all', tgt, cam, sh, ms); state.kernel = 0; return read(tgt); };
   const truthOf = (arm, step) => { const sh = [2 * step * STEP_PX / W, 0]; state.kernel = 0; frame(arm, 'all', tS, cam, sh, false); return boxDown(read(tS), W, H, SS); };
   const imgs = {};
   const cached = {};
@@ -350,17 +361,23 @@ async function quality(view, { W = 640, H = 400, arms = ['A', 'B', 'Bt', 'A4'], 
     const fl = []; for (let p = 0; p < N; p++) if (interior[p]) { let s = 0; for (let c = 0; c < 3; c++) { const m = A.flick.s[p * 3 + c] / FRAMES, v = Math.max(0, A.flick.s2[p * 3 + c] / FRAMES - m * m); s += Math.sqrt(v); } fl.push(s / 3); }
     A.flicker = { mean: +mean(fl).toFixed(3), p99: +q(fl, 0.99).toFixed(2) }; delete A.flick;
   }
-  // cross: the analytic pixel against the geometry's own supersampled picture
-  if (imgs.A && imgs.B) {
-    res.cross = { 'B vs truth(A)': stat(imgs.B.r, imgs.A.t, interior), 'Bt vs truth(A)': stat(imgs.Bt.r, imgs.A.t, interior), 'A4 vs truth(A)': stat(imgs.A4.r, imgs.A.t, interior), 'truth(B) vs truth(A)': stat(imgs.B.t, imgs.A.t, interior), 'A vs truth(B)': stat(imgs.A.r, imgs.B.t, interior) };
+  // cross: every other arm's 1x picture against the geometry's own supersampled picture; and the pairs that tell how far two ways of drawing the same wall are apart
+  if (imgs.A) {
+    res.cross = {};
+    for (const arm of arms) if (arm !== 'A') res.cross[arm + ' vs truth(A)'] = stat(imgs[arm].r, imgs.A.t, interior);
+    if (imgs.B) { res.cross['truth(B) vs truth(A)'] = stat(imgs.B.t, imgs.A.t, interior); res.cross['A vs truth(B)'] = stat(imgs.A.r, imgs.B.t, interior); }
+    if (imgs.F && imgs.B) res.cross['F vs B (the compiler against the hand-written shader)'] = stat(imgs.F.r, imgs.B.r, interior);
+    if (imgs.F && imgs.A4) res.cross['F vs A4 (the switch)'] = stat(imgs.F.r, imgs.A4.r, interior);
+    if (imgs.A && imgs.A4) res.cross['A vs A4'] = stat(imgs.A.r, imgs.A4.r, interior);
   }
-  if (pictures && imgs.A && imgs.B) {
+  const [pa, pb] = pictureArms;
+  if (pictures && imgs[pa] && imgs[pb]) {
     const cv = document.createElement('canvas'); cv.width = W * 5; cv.height = H; const cx = cv.getContext('2d'); const id = cx.createImageData(W * 5, H);
-    const put = (panel, fn) => { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const p = y * W + x, o = (y * (W * 5) + panel * W + x) * 4, src = (H - 1 - y) * W + x; const c = fn(src); id.data[o] = c[0]; id.data[o + 1] = c[1]; id.data[o + 2] = c[2]; id.data[o + 3] = 255; } };
+    const put = (panel, fn) => { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const o = (y * (W * 5) + panel * W + x) * 4, src = (H - 1 - y) * W + x; const c = fn(src); id.data[o] = c[0]; id.data[o + 1] = c[1]; id.data[o + 2] = c[2]; id.data[o + 3] = 255; } };
     const rgb = u => i => [u[i * 4], u[i * 4 + 1], u[i * 4 + 2]];
-    put(0, rgb(imgs.A.r)); put(1, rgb(imgs.B.r)); put(2, rgb(imgs.A.t));
-    put(3, i => [0, 1, 2].map(c => Math.min(255, 6 * Math.abs(imgs.A.r[i * 4 + c] - imgs.A.t[i * 4 + c]))));
-    put(4, i => [0, 1, 2].map(c => Math.min(255, 6 * Math.abs(imgs.B.r[i * 4 + c] - imgs.A.t[i * 4 + c]))));
+    put(0, rgb(imgs[pa].r)); put(1, rgb(imgs[pb].r)); put(2, rgb(imgs.A.t));
+    put(3, i => [0, 1, 2].map(c => Math.min(255, 6 * Math.abs(imgs[pa].r[i * 4 + c] - imgs.A.t[i * 4 + c]))));
+    put(4, i => [0, 1, 2].map(c => Math.min(255, 6 * Math.abs(imgs[pb].r[i * 4 + c] - imgs.A.t[i * 4 + c]))));
     cx.putImageData(id, 0, 0); res.picture = cv.toDataURL('image/png');
   }
   return res;
@@ -388,17 +405,18 @@ function gridInstances(n, spacing) {
   const out = []; for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) out.push((i - (n - 1) / 2) * spacing, (j - (n - 1) / 2) * spacing, 0);
   return out;
 }
-async function perf({ W, H, towers, view, parts = 'facade', reps = 7, frames = 20 }) {
+async function perf({ W, H, towers, view, parts = 'facade', reps = 7, frames = 20, arms = null }) {
   setInstances(towers === 1 ? [0, 0, 0] : gridInstances(Math.round(Math.sqrt(towers)), 90));
   const cam = camera(view, W, H), tg = target(W, H, false);
   const order = ['A', 'B', 'A', 'B', 'A', 'B'];   // interleaved; minimum over the repetitions inside each
   const res = {};
-  for (const arm of ['A', 'B']) {
+  const armList = arms || ['A', 'B'];
+  for (const arm of armList) {
     const r = await timeIt(arm, () => frame(arm, parts, tg, cam, [0, 0], false), tg, { frames, reps });
     res[arm] = r;
   }
   // a second interleaved pass, keep the minimum of both passes
-  for (const arm of ['B', 'A']) {
+  for (const arm of armList.slice().reverse()) {
     const r = await timeIt(arm, () => frame(arm, parts, tg, cam, [0, 0], false), tg, { frames, reps });
     res[arm].wallMin = Math.min(res[arm].wallMin, r.wallMin); if (r.gpuMin != null) res[arm].gpuMin = res[arm].gpuMin == null ? r.gpuMin : Math.min(res[arm].gpuMin, r.gpuMin);
   }
@@ -479,6 +497,8 @@ window.__lab = {
     walls: meta.faces.length, windows: null,
   }),
   quality: (viewName, opts) => quality(VIEWS.find(v => v.name === viewName), opts),
+  qualityView: (view, opts) => quality(view, opts),
+  internals: { getInstCount: () => instCount, gl, meta, R, program, camera, state, customArms, SHADE, FAC_FS, FAC_VS, meshB, instBuf, setInstances, target, frame, read },
   overdraw: (viewName, o) => overdraw(Object.assign({}, VIEWS.find(v => v.name === viewName) || o.view), o),
   taa: (viewName, o) => taa(VIEWS.find(v => v.name === viewName), o),
   perf: opts => perf({ ...opts, view: opts.view || VIEWS.find(v => v.name === (opts.viewName || 'mid-230m')) }),
