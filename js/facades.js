@@ -1655,6 +1655,7 @@
       used.add(id);
     }
     combos = [...used];
+    try { warmFromFeatures(features); } catch (e) { /* the warm-up is only a head start */ }
     return { buckets: palette.length, patterns: combos.length };
   }
 
@@ -1675,6 +1676,7 @@
       p.wf = fam;
       if (combos.indexOf(p.wp) === -1) combos.push(p.wp);
     }
+    try { warmFromFeatures(features, true); } catch (e) { /* only a head start */ }
   };
 
   // The stadium's perimeter wall is baked geometry, not a building feature, so
@@ -1710,6 +1712,7 @@
       // on screen — see ensureImages.
       added += ensureImages(map, p.wp, window.__todCurrentP != null ? window.__todCurrentP : 0.5);
     }
+    try { warmFromFeatures(features, true, map); } catch (e) { /* only a head start */ }
     return added;
   };
 
@@ -2192,6 +2195,7 @@
   // sizes, and only the prefilter differs. Drawing once and blurring three ways
   // is what keeps a three-tier atlas from costing three times the repaint.
   let _rawKey = null, _raw = null;
+  const _rawLru = new Map();   // WALL TIERS: the last few drawings, newest last
 
   /** Texels per repeat in the NEAR tier for one family. */
   function famRes(fam) { return RES * mulOf(fam); }
@@ -2204,9 +2208,21 @@
     // like it had no effect: the tile was correct and stale.
     const key = fam + '|' + bucketIdx + '|' + p + '|' + _zAnchor + '|' + (window.CityNight?.tune.windowScatter !== false);
     if (_rawKey === key) return _raw;
+    // WALL TIERS (see WALLTIERS): the two tiers of one combo are asked for by
+    // different tiles at different moments, so the one-deep cache above misses
+    // and the drawing would be made twice. A few drawings are kept instead.
+    const keep = WALLTIERS.on && WALLTIERS.rawCache > 0;
+    if (keep) {
+      const hit = _rawLru.get(key);
+      if (hit) { _rawLru.delete(key); _rawLru.set(key, hit); _rawKey = key; _raw = hit; WT.rawHits++; return hit; }
+    }
     const { d, RESF, mottle } = drawRaw(fam, bucketIdx, p);
     if (mottle) applyMottle(d, RESF, SCALE, mottle);
     _rawKey = key; _raw = d;
+    if (keep) {
+      _rawLru.set(key, d);
+      while (_rawLru.size > WALLTIERS.rawCache) _rawLru.delete(_rawLru.keys().next().value);
+    }
     return d;
   }
 
@@ -2606,6 +2622,9 @@
 
   /** Every tier's image for one combo, registered if missing. */
   function ensureImages(map, id, p) {
+    // WALL TIERS: nothing is painted here. The image is painted the first time a
+    // tile asks for it (lazyWallImage), at the hour and zoom anchor current then.
+    if (WALLTIERS.on) { WT.deferred++; armWallTiers(map); return 0; }
     const { fam, idx } = parseId(id);
     let added = false;
     for (const t of TIERS) {
@@ -3634,7 +3653,7 @@
   // held in `palette` and can be re-elected under us (adoptBaked, a new
   // snapshot, registerFacadeBuckets). Anything that moves the palette or the
   // measured registry has to say so here or a stale tile survives forever.
-  window.facadeInvalidateAtlasSig = () => _imgSig.clear();
+  window.facadeInvalidateAtlasSig = () => { _imgSig.clear(); _rawLru.clear(); };
 
   // Combos OUTSIDE, tiers INSIDE, so rawTile's one-deep cache actually hits:
   // repainting three tiers costs ONE draw plus three resamples, not three draws.
@@ -3661,6 +3680,9 @@
     for (const tier of tiers) {
       const key = id + tier.id;
       if (_imgSig.get(key) === sig && map.hasImage && map.hasImage(key)) continue;
+      // WALL TIERS: an image no tile has asked for yet is not repainted into
+      // existence; it is painted when asked, at whatever hour is current then.
+      if (WALLTIERS.on && !(map.hasImage && map.hasImage(key))) continue;
       try {
         if (map.hasImage && map.hasImage(key)) map.updateImage(key, tileData(fam, idx, p, tier));
         else map.addImage(key, tileData(fam, idx, p, tier), { pixelRatio: tierPixelRatio(tier) });
@@ -3782,6 +3804,362 @@
   };
   ATLAS.PACE = PACE;
 
+  /**
+   * ══════════════════════════════════════════════════════════════════
+   *  WALL TIERS: PAINT A WALL IMAGE WHEN A TILE FIRST ASKS FOR IT
+   * ══════════════════════════════════════════════════════════════════
+   *
+   * WHAT IT COST (docs/speed-2026-10-09.md, rank 1). `initFacades` and every
+   * later registration (`registerFacadeBuckets`, `quantiseStadiumFacades`, the
+   * downtown towers) painted EVERY image of EVERY combo at boot, in this frame:
+   * the whole palette in both tiers, ~2.4 s of main thread on the loaded Mac
+   * (1.4 s on a quiet 8-core box, 5.3 s with the page main thread slowed 4x),
+   * and every time-of-day or zoom-anchor repaint then redrew the same set again
+   * in the background workers (about 22 s of worker CPU in one cold load).
+   * Most of it is never looked at: a tier is read only by tiles of its zooms
+   * (a tile at zoom z asks for the images the pattern step names at z-1, z and
+   * z+1, so the near tier is read only by tiles at z16 and above, and a
+   * downtown tower that is only ever seen from far away never needs its near
+   * image at all).
+   *
+   * WHAT THIS DOES INSTEAD, and none of it changes a pixel of any image:
+   *   - nothing is painted at registration; the combo is only recorded;
+   *   - MapLibre asks for an image by firing `styleimagemissing` from inside the
+   *     tile worker's request for its pattern images (`_getImagesForIds`, in
+   *     MapLibre 5.24.0 and before the tile gets its atlas), so the image is
+   *     painted RIGHT THEN, synchronously, with the same `tileData` the eager
+   *     path used, at the hour and zoom anchor current at that moment. The tile
+   *     therefore never sees a hole;
+   *   - the repaints (hour, zoom anchor; paced or not) touch only images that
+   *     exist, so a tier nobody asked for costs nothing, ever;
+   *   - the two tiers of one combo come from the same drawing, so the last few
+   *     drawings are kept (`rawCache`) instead of drawn twice.
+   *
+   * WHAT YOU SEE DIFFERENTLY: nothing at rest. While the page loads the images
+   * are painted as the tiles arrive instead of all at once before the first
+   * layer; later, a view that reaches a combo or tier not seen before paints it
+   * in that tile's arrival (a few ms per image) instead of finding it ready.
+   *
+   * Every threshold is here. `?walltiers=0` restores the eager path in the same
+   * checkout for an A/B; it is independent of `?facadepace=0`.
+   */
+  const WALLTIERS = {
+    on: !/[?&]walltiers=0(?:&|$)/.test(location.search),
+    // Drawings kept so the second tier of a combo does not draw it again.
+    // 6 mul-4 drawings are ~6 MB, 6 template drawings ~1.5 MB.
+    rawCache: 6,
+    // The stats object keeps this many of the slowest single paints, in ms.
+    slowKeep: 5,
+    // THE BURST CAP. One tile request can name dozens of images the page has not painted yet (49 in one request at
+    // 640 ms at 1x, 2.6 s with the main thread slowed 4x). Behind the veil that is only load time; after the veil
+    // lifts it is a frozen frame. So once the veil is gone, a request paints synchronously only until it has used
+    // this many ms; every further image is answered AT ONCE with a flat wall of the pattern's own colour at the
+    // current hour, and painted for real in the paint workers (the paced repaint), which `updateImage`s it.
+    // The first image of a request is always painted, so a request never runs more than this plus one image.
+    syncBudgetMs: +((location.search.match(/[?&]wtbudget=(\d+)/) || [])[1] ?? 16),   // `?wtbudget=0`: every image flat (to look at it)
+    // The element whose presence (before the reveal) means "the veil is up, nobody is looking". No element: the cap applies.
+    veilId: 'veil',
+    // `?wtcap=0` turns the cap off (every image painted in the request), for the A/B of the burst length.
+    cap: !/[?&]wtcap=0(?:&|$)/.test(location.search),
+    // WARM: the opening flight is deterministic, and the first request that meets its end view froze the page for 1.2 s
+    // (34 images, 3 s after the veil lifted). Behind the veil, in the paint workers, the images the flight is going to
+    // ask for are painted and added, so those requests find them. Everything else stays lazy.
+    //
+    // THE RULE (not a list of ids, which goes stale at the next bake): a pattern is warmed when a building that wears it
+    // lies within `nearM` metres of a waypoint of the flight, in BOTH tiers, or within `farM` metres, far tier only; and
+    // the downtown tower buckets are warmed in the tier `outerTowers` names. The waypoints are the flight's own
+    // INTRO.start / crest / end (js/app.js); scripts/verify/facade-walltiers.mjs fails when they stop matching.
+    warm: {
+      on: !/[?&]wtwarm=0(?:&|$)/.test(location.search),
+      points: [[-97.7420, 30.2680], [-97.7404, 30.2748], [-97.7365, 30.2900]],
+      nearM: 700,
+      farM: 2500,
+      outerTowers: 'both',    // 'both' | 'far' | 'near' | '' (none)
+      budgetMs: 6,            // main-thread ms a frame may spend drawing and adding warm images
+      commitsPerFrame: 2,     // images added (map.addImage) in one frame
+    },
+    // Every map.addImage fires a style `data` event, and every app listener of `styledata` (basemap cleanup, layer
+    // sweeps, sky and fog placement, label sync, ...) runs for it. A request that adds 34 images ran them 34 times. With
+    // this on, the events of a request (or of one warm-up frame) are held back and ONE is fired when it ends.
+    // `?wtcoalesce=0` turns it off.
+    coalesce: !/[?&]wtcoalesce=0(?:&|$)/.test(location.search),
+    // Also answer flat when the running mean of a real paint would push the request past `syncBudgetMs` times this.
+    meanGuard: true,
+    meanGuardX: 2,
+  };
+  ATLAS.WALLTIERS = WALLTIERS;
+  const WT = window.__facadeWallTiers = {
+    on: WALLTIERS.on, deferred: 0, painted: 0, paintedFar: 0, paintedNear: 0, paintMs: 0, paintMsMax: 0,
+    rawHits: 0, unknown: 0, failed: 0, workerMs: 0, workerCombos: 0, slow: [],
+    // Paints that happen in the same call stack are one tile's request: how long the biggest such run held the thread.
+    bursts: 0, burstMsMax: 0, burstImagesMax: 0,
+    // Every request that painted or answered anything: [performance.now() at its start, images, ms, answered flat]
+    burstLog: [], placeholders: 0, styleEventsHeld: 0, styleEventsFired: 0, syncPainted: 0, syncMs: 0, flatMs: 0, addMs: 0,
+    // [performance.now(), image id, flat?] for every image a tile asked for (capped): the flight's own shopping list
+    askLog: [],
+    warm: { planned: 0, committed: 0, skipped: 0, stale: 0, startedAt: 0, doneAt: 0, mainMs: 0, workerMs: 0 },
+  };
+  const _burst = { ms: 0, n: 0, open: false, start: 0, flat: 0 };
+  window.facadeWallTiersStats = () => ({
+    ...WT, slow: WT.slow.slice(), paintMs: Math.round(WT.paintMs * 10) / 10,
+    comboCount: combos.length, tierCount: TIERS.length,
+  });
+  /** Which combo and tier an image id names, if it names one of ours. */
+  function wallKeyInfo(key) {
+    if (typeof key !== 'string' || key.length < 3) return null;
+    // The longest suffix first, so a tier id that ends another is not mistaken for it.
+    let hit = null;
+    for (const t of TIERS) {
+      if (t.id && key.length > t.id.length && key.endsWith(t.id)) {
+        const base = key.slice(0, -t.id.length);
+        if (combos.indexOf(base) !== -1 && (!hit || t.id.length > hit.tier.id.length)) hit = { id: base, tier: t };
+      }
+    }
+    if (hit) return hit;
+    if (combos.indexOf(key) === -1) return null;
+    const near = TIERS.find(t => !t.id);
+    return near ? { id: key, tier: near } : null;
+  }
+  /**
+   * Paint one image, now. Called from `styleimagemissing`, i.e. from inside
+   * MapLibre's own image request for a tile, which looks the image up again
+   * straight after the event.
+   */
+  // "The veil is up" ends at the REVEAL (window.__intro.reason is set), not when the veil element is removed: the
+  // veil fades for up to 2.6 s after the reveal while the city is already moving under it.
+  // ── hold back the style events of a batch of addImage calls, fire one at the end ──
+  const _quiet = { depth: 0, held: 0, style: null, orig: undefined };
+  function quietOpen(map) {
+    if (!WALLTIERS.coalesce || _quiet.depth) { if (_quiet.depth) _quiet.depth++; return; }
+    const st = map && map.style;
+    if (!st || typeof st.fire !== 'function') return;
+    _quiet.depth = 1; _quiet.held = 0; _quiet.style = st;
+    _quiet.orig = Object.prototype.hasOwnProperty.call(st, 'fire') ? st.fire : undefined;
+    const P = Object.getPrototypeOf(st);
+    st.fire = function (event, props) {
+      const type = typeof event === 'string' ? event : event && event.type;
+      const kind = typeof event === 'string' ? props && props.dataType : event && event.dataType;
+      if (type === 'data' && kind === 'style') { _quiet.held++; return this; }
+      return (_quiet.orig || P.fire).apply(this, arguments);
+    };
+  }
+  function quietClose() {
+    if (!_quiet.depth) return;
+    if (--_quiet.depth) return;
+    const st = _quiet.style, held = _quiet.held;
+    if (_quiet.orig) st.fire = _quiet.orig; else delete st.fire;
+    _quiet.style = null; _quiet.orig = undefined; _quiet.held = 0;
+    WT.styleEventsHeld += held;
+    if (held) { try { st.fire('data', { dataType: 'style' }); WT.styleEventsFired++; } catch (e) { /* a listener threw; it would have in the loop too */ } }
+  }
+
+  function veilUp() {
+    if (window.__intro && window.__intro.reason) return false;
+    return typeof document !== 'undefined' && !!document.getElementById(WALLTIERS.veilId);
+  }
+  /** A flat wall of the pattern's own colour at the current hour, the size of the real image. */
+  function wallPlaceholder(fam, idx, tier) {
+    const res = tierRes(tier) * mulOf(fam);
+    const bucket = palette[idx] || palette[0];
+    const c = bucket ? lerpHexAt(bucket, _atlasP) : [128, 128, 128];
+    const d = new Uint8Array(res * res * 4);
+    const r = Math.round(c[0]), g = Math.round(c[1]), b = Math.round(c[2]);
+    // one 32-bit store per pixel; the byte order is the machine's, so the bytes come out R, G, B, 255 either way
+    new Uint32Array(d.buffer).fill(PM_LITTLE_ENDIAN ? ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0
+                                                    : ((r << 24) | (g << 16) | (b << 8) | 255) >>> 0);
+    return { width: res, height: res, data: d };
+  }
+  function flushBurst() {
+    quietClose();
+    WT.bursts++;
+    if (_burst.ms > WT.burstMsMax) WT.burstMsMax = +_burst.ms.toFixed(1);
+    if (_burst.n > WT.burstImagesMax) WT.burstImagesMax = _burst.n;
+    if (WT.burstLog.length < 600) WT.burstLog.push([+_burst.start.toFixed(1), _burst.n, +_burst.ms.toFixed(1), _burst.flat]);
+    const flat = _burst.flat, map = _burst.map;
+    _burst.ms = 0; _burst.n = 0; _burst.open = false; _burst.flat = 0; _burst.map = null;
+    // The flat answers are painted for real by the paced repaint: one retarget per request, after the request's own
+    // call stack, so the tile's atlas is born after the retarget (its wrap border is rewritten too, see ATLAS_BORDER).
+    if (flat && map) requestAnchorRepaint(map);
+  }
+  function lazyWallImage(map, key, info) {
+    const t0 = performance.now();
+    if (!_burst.open) { _burst.open = true; _burst.start = t0; quietOpen(map); queueMicrotask(flushBurst); }
+    const { fam, idx } = parseId(info.id);
+    // Cap: only after the veil has gone, only when the paced repaint can finish the job, never for the first image.
+    // Over budget when the request has already used its ms, OR when this image alone is expected to (the running mean
+    // of the real paints so far: with the main thread slowed 4x a single image is a long task, and then none is painted
+    // in the request at all).
+    const mean = WT.syncPainted ? WT.syncMs / WT.syncPainted : 0;
+    const flat = WALLTIERS.cap && PACE.on && (t0 - _burst.start >= WALLTIERS.syncBudgetMs ||
+                 (WALLTIERS.meanGuard && t0 - _burst.start + mean > WALLTIERS.syncBudgetMs * WALLTIERS.meanGuardX)) && !veilUp();
+    try {
+      const img = flat ? wallPlaceholder(fam, idx, info.tier) : tileData(fam, idx, _atlasP, info.tier);
+      const a0 = performance.now();
+      map.addImage(key, img, { pixelRatio: tierPixelRatio(info.tier) });
+      WT.addMs += performance.now() - a0;
+      if (WT.askLog.length < 2000) WT.askLog.push([+t0.toFixed(1), key, flat ? 1 : 0]);
+      // js/image-memory.js drops MapLibre's second copy of the pixels for images added inside initFacades; this is
+      // not inside it, so ask for the same release.
+      if (window.ImageMemory && window.ImageMemory.release) window.ImageMemory.release(map, key, img);
+      // A flat answer has NO signature: the paced repaint sees it as out of date and paints the real image over it.
+      if (!flat) _imgSig.set(key, drawSig(fam, _atlasP));
+    } catch (e) {
+      WT.failed++;
+      if (!_warnedUpdate) { _warnedUpdate = true; console.warn('[facades] wall image failed on ' + key + ': ' + e.message); }
+      return;
+    }
+    const ms = performance.now() - t0;
+    WT.painted++; if (info.tier.id) WT.paintedFar++; else WT.paintedNear++;
+    WT.paintMs += ms;
+    if (flat) WT.flatMs += ms; else { WT.syncPainted++; WT.syncMs += ms; }
+    _burst.ms += ms; _burst.n++;
+    if (flat) { _burst.flat++; _burst.map = map; WT.placeholders++; }
+    if (ms > WT.paintMsMax) WT.paintMsMax = +ms.toFixed(2);
+    if (WT.slow.length < WALLTIERS.slowKeep || ms > WT.slow[WT.slow.length - 1][1]) {
+      WT.slow.push([key, +ms.toFixed(2)]);
+      WT.slow.sort((a, b) => b[1] - a[1]);
+      if (WT.slow.length > WALLTIERS.slowKeep) WT.slow.length = WALLTIERS.slowKeep;
+    }
+  }
+  // ── WARM: the opening flight's set, painted behind the veil in the paint workers ──
+  const _warm = { plan: new Map(), queue: [], ready: [], raf: 0, timer: 0, map: null, started: false, done: false };
+  function warmMetres(c, lng, lat) {
+    const dx = (lng - c[0]) * Math.cos(c[1] * Math.PI / 180) * 111320, dy = (lat - c[1]) * 110540;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  const warmTiersOf = (which) => (which === 'both' ? TIERS : which === 'far' ? TIERS.filter(t => t.id) :
+                                  which === 'near' ? TIERS.filter(t => !t.id) : []);
+  function warmAdd(id, tiers) {
+    if (!tiers.length) return;
+    let e = _warm.plan.get(id);
+    if (!e) _warm.plan.set(id, e = new Set());
+    for (const t of tiers) e.add(t.id);
+  }
+  /** The rule, over the buildings the palette was just stamped on. Called from stampAll. */
+  function warmFromFeatures(features, append, map) {
+    const W = WALLTIERS.warm;
+    if (!append) _warm.plan = new Map();
+    if (!W.on || !WALLTIERS.on) return;
+    for (const f of features) {
+      const p = f.properties, g = f.geometry;
+      if (!p || !p.wp || !g || !g.coordinates) continue;
+      let v = g.coordinates;
+      while (Array.isArray(v) && Array.isArray(v[0])) v = v[0];     // first vertex of the first ring
+      if (!Array.isArray(v) || v.length < 2) continue;
+      let best = Infinity;
+      for (const c of W.points) { const d = warmMetres(c, v[0], v[1]); if (d < best) best = d; }
+      if (best <= W.nearM) warmAdd(p.wp, TIERS);
+      else if (best <= W.farM) warmAdd(p.wp, TIERS.filter(t => t.id));
+    }
+    // registered after initFacades (the stadium, the west campus): the warm-up is already running, extend it
+    if (append && map && _warm.started) warmStart(map);
+  }
+  function armWarm() {
+    if (_warm.raf || _warm.timer) return;
+    if (typeof document !== 'undefined' && document.hidden) _warm.timer = setTimeout(() => { _warm.timer = 0; warmPump(); }, 50);
+    else _warm.raf = requestAnimationFrame(() => { _warm.raf = 0; warmPump(); });
+  }
+  /** Start (or extend) the warm-up once the combos exist. Needs the paced path and its workers, else everything stays lazy. */
+  function warmStart(map) {
+    const W = WALLTIERS.warm;
+    if (!W.on || !WALLTIERS.on || !PACE.on || !map) return;
+    _warm.map = map;
+    const items = [];
+    for (const [id, set] of _warm.plan) {
+      if (combos.indexOf(id) === -1) continue;
+      items.push({ id, tiers: TIERS.filter(t => set.has(t.id)) });
+    }
+    // the near tier first (it is the expensive one and the one a sudden view needs), then by name for a stable order
+    items.sort((a, b) => (b.tiers.length - a.tiers.length) || (a.id < b.id ? -1 : 1));
+    for (const it of items) { _warm.queue.push(it); WT.warm.planned += it.tiers.length; }
+    _warm.plan = new Map();
+    if (!_warm.started) { _warm.started = true; WT.warm.startedAt = +performance.now().toFixed(1); }
+    _warm.done = false;
+    armWarm();
+  }
+  /** A bucket registered later (the downtown towers): warm it in the tier the rule names. */
+  function warmBucket(map, id) {
+    const tiers = warmTiersOf(WALLTIERS.warm.outerTowers);
+    if (!WALLTIERS.warm.on || !tiers.length) return;
+    _warm.plan.set(id, new Set(tiers.map(t => t.id)));
+    warmStart(map);
+  }
+  function warmDispatch(slot, item, map) {
+    const { fam, idx } = parseId(item.id);
+    const tiers = item.tiers.filter(t => !(map.hasImage && map.hasImage(item.id + t.id)));
+    if (!tiers.length) { WT.warm.skipped += item.tiers.length; return false; }
+    WT.warm.skipped += item.tiers.length - tiers.length;
+    paceDispatch(slot, item.id, drawSig(fam, _atlasP), tiers, true);
+    return true;
+  }
+  function warmCommit(map, job) {
+    const { fam } = parseId(job.id);
+    if (drawSig(fam, _atlasP) !== job.sig) { WT.warm.stale += job.tiers.length; return; }
+    for (let i = 0; i < job.tiers.length; i++) {
+      const t = job.tiers[i], key = t.key;
+      if (map.hasImage && map.hasImage(key)) { WT.warm.skipped++; continue; }     // a tile asked first and got it painted
+      const img = { width: t.res, height: t.res, data: new Uint8Array(job.outs[i]) };
+      try {
+        map.addImage(key, img, { pixelRatio: t.pr });
+        if (window.ImageMemory && window.ImageMemory.release) window.ImageMemory.release(map, key, img);
+        _imgSig.set(key, job.sig);
+        if (job.pms && job.pms[i]) primePremultiplied(map, key, new Uint8Array(job.pms[i]));
+        WT.warm.committed++;
+      } catch (e) { WT.failed++; }
+    }
+  }
+  function warmPump() {
+    const map = _warm.map, W = WALLTIERS.warm;
+    if (!map) return;
+    const t0 = performance.now();
+    let wrote = 0;
+    quietOpen(map);
+    try {
+      while (_warm.ready.length && wrote < W.commitsPerFrame && (wrote === 0 || performance.now() - t0 < W.budgetMs)) {
+        warmCommit(map, _warm.ready.shift()); wrote++;
+      }
+    } finally { quietClose(); }
+    const pool = _pace.poolDead ? [] : pacePool();
+    if (!pool.length) { _warm.queue.length = 0; _warm.ready.length = 0; }     // no workers: everything stays lazy
+    while (_warm.queue.length && performance.now() - t0 < W.budgetMs) {
+      const slot = paceIdleSlot(pool);
+      if (!slot) break;
+      warmDispatch(slot, _warm.queue.shift(), map);
+    }
+    WT.warm.mainMs = +(WT.warm.mainMs + performance.now() - t0).toFixed(1);
+    let inflight = 0;
+    for (const j of _pace.inflight.values()) if (j.warm) inflight++;
+    if (_warm.queue.length || _warm.ready.length || inflight) { armWarm(); return; }
+    if (!_warm.done) {
+      _warm.done = true; WT.warm.doneAt = +performance.now().toFixed(1);
+      if (!_pace.job && _pace.pool && _pace.pool.length && PACE.workerIdleMs > 0 && !_pace.idleTimer) {
+        _pace.idleTimer = setTimeout(paceReleasePool, PACE.workerIdleMs);
+      }
+    }
+  }
+
+  function armWallTiers(map) {
+    if (!WALLTIERS.on || map.__facadeWallTiers) return;
+    map.__facadeWallTiers = true;
+    map.on('styleimagemissing', (e) => {
+      if (!e || map.hasImage(e.id)) return;
+      const info = wallKeyInfo(e.id);
+      if (!info) { WT.unknown++; return; }
+      lazyWallImage(map, e.id, info);
+    });
+  }
+  /** Paint every image that is missing, as the eager path did. Used by the verification entry points. */
+  function paintAllWallImages(map) {
+    if (!WALLTIERS.on) return;
+    for (const id of combos) {
+      for (const t of TIERS) {
+        const key = id + t.id;
+        if (!(map.hasImage && map.hasImage(key))) lazyWallImage(map, key, { id, tier: t });
+      }
+    }
+  }
+  window.facadePaintAllWallImages = (map) => paintAllWallImages(map);
+
   const _pace = {
     job: false, map: null, queue: [], queued: new Set(), inflight: new Map(),
     ready: [], raf: 0, timer: 0, lastMove: 0, seq: 0,
@@ -3809,9 +4187,17 @@
   function comboCurrent(map, id, sig) {
     for (const t of TIERS) {
       const key = id + t.id;
-      if (_imgSig.get(key) !== sig || !(map.hasImage && map.hasImage(key))) return false;
+      const has = !!(map.hasImage && map.hasImage(key));
+      if (!has && WALLTIERS.on) continue;      // not asked for yet: nothing to keep current
+      if (_imgSig.get(key) !== sig || !has) return false;
     }
     return true;
+  }
+
+  /** The tiers of a combo that hold an image now (all of them unless WALLTIERS is on). */
+  function presentTiers(map, id) {
+    if (!WALLTIERS.on) return TIERS;
+    return TIERS.filter(t => map.hasImage && map.hasImage(id + t.id));
   }
 
   /** Combo ids the in-view tiles' pattern atlases reference. */
@@ -3899,6 +4285,7 @@
   function facadePaintWorkerMain() {
     self.onmessage = function (e) {
       const j = e.data;
+      const w0 = typeof performance !== 'undefined' ? performance.now() : 0;
       try {
         const raw = new Uint8ClampedArray(j.raw);
         if (j.mottle) applyMottle(raw, j.RESF, j.SCALE, j.mottle);
@@ -3914,7 +4301,8 @@
           // El() of the same bytes, for the atlas patch MapLibre will do next.
           if (j.pm) pms.push(premultiplyInto(new Uint8Array(d.buffer), new Uint8Array(d.length)).buffer);
         }
-        self.postMessage({ seq: j.seq, outs: outs, pms: pms }, outs.concat(pms));
+        self.postMessage({ seq: j.seq, outs: outs, pms: pms,
+          ms: typeof performance !== 'undefined' ? performance.now() - w0 : 0 }, outs.concat(pms));
       } catch (err) {
         self.postMessage({ seq: j.seq, error: String((err && err.message) || err) });
       }
@@ -3974,6 +4362,7 @@
     PS.workers = 0;
     // Everything in flight comes back to the queue and is painted here.
     for (const job of _pace.inflight.values()) {
+      if (job.warm) continue;                       // the warm-up is a head start; the lazy path covers what it dropped
       if (!_pace.queued.has(job.id)) { _pace.queue.unshift(job.id); _pace.queued.add(job.id); }
     }
     _pace.inflight.clear();
@@ -3988,10 +4377,13 @@
       PS.workerErrors++;
       console.warn('[facades] paint worker failed (' + msg.error + '); painting on the main thread');
       paceKillPool();
-      if (!_pace.queued.has(job.id)) { _pace.queue.unshift(job.id); _pace.queued.add(job.id); }
+      if (!job.warm && !_pace.queued.has(job.id)) { _pace.queue.unshift(job.id); _pace.queued.add(job.id); }
     } else {
+      WT.workerMs += msg.ms || 0; WT.workerCombos++;
+      if (job.warm) WT.warm.workerMs += msg.ms || 0;
       job.outs = msg.outs;
       job.pms = msg.pms || [];
+      if (job.warm) { _warm.ready.push(job); armWarm(); return; }
       _pace.ready.push(job);
     }
     armPump();
@@ -4006,16 +4398,16 @@
   }
 
   /** Draw one combo here, hand its arithmetic to a worker. */
-  function paceDispatch(slot, id, sig) {
+  function paceDispatch(slot, id, sig, only, warm) {
     const { fam, idx } = parseId(id);
     const { d, RESF, mottle } = drawRaw(fam, idx, _atlasP);
     const mul = mulOf(fam);
-    const tiers = TIERS.map(t => {
+    const tiers = (only || presentTiers(_pace.map, id)).map(t => {
       const sp = softenParams(fam, t);
       return { key: id + t.id, div: t.div, res: tierRes(t) * mul, r: sp.r, a: sp.a, pr: tierPixelRatio(t) };
     });
     const seq = ++_pace.seq;
-    _pace.inflight.set(seq, { id, sig, tiers });
+    _pace.inflight.set(seq, warm ? { id, sig, tiers, warm: true } : { id, sig, tiers });
     slot.busy++;
     slot.w.postMessage({
       seq, raw: d.buffer, RESF, SCALE,
@@ -4039,6 +4431,7 @@
     for (let i = 0; i < job.tiers.length; i++) {
       const t = job.tiers[i], key = t.key;
       if (_imgSig.get(key) === job.sig && map.hasImage && map.hasImage(key)) continue;
+      if (WALLTIERS.on && !(map.hasImage && map.hasImage(key))) continue;
       const img = { width: t.res, height: t.res, data: new Uint8Array(job.outs[i]) };
       try {
         if (map.hasImage && map.hasImage(key)) map.updateImage(key, img);
@@ -4090,7 +4483,7 @@
       const id = _pace.queue[0];
       const sig = drawSig(parseId(id).fam, _atlasP);
       let inFlight = false;
-      for (const j of _pace.inflight.values()) if (j.id === id && j.sig === sig) { inFlight = true; break; }
+      for (const j of _pace.inflight.values()) if (!j.warm && j.id === id && j.sig === sig) { inFlight = true; break; }   // a warm job only ADDS missing images: it never brings a held one up to date
       if (comboCurrent(map, id, sig) || inFlight) {
         _pace.queue.shift(); _pace.queued.delete(id);
         continue;
@@ -4221,8 +4614,10 @@
     if (want !== _zAnchor) {
       _zAnchor = want;
       _rawKey = null;
-      if (map) paintTiers(map, TIERS, _atlasP);
-    }
+      // Verification entry point: it repaints "every tier", so under WALL TIERS the
+      // images nobody has asked for yet are painted too, as the eager path had.
+      if (map) { paintAllWallImages(map); paintTiers(map, TIERS, _atlasP); }
+    } else if (map) paintAllWallImages(map);
     return _zAnchor;
   };
 
@@ -4243,6 +4638,10 @@
     try { window.facadeGridAudit(); } catch (e) { /* audit must never break init */ }
     _atlasP = p;
     _tierP.clear();
+    // WALL TIERS: the images are painted as tiles ask for them, so the handler
+    // has to be in place before the first layer that names a pattern.
+    armWallTiers(map);
+    try { warmStart(map); } catch (e) { /* ditto */ }
     // ALL tiers at boot, not just the visible one: the `step` can select a tier
     // the moment the camera moves, and MapLibre paints an unregistered pattern
     // id transparent — a building-shaped hole, which is the failure mode
@@ -4495,6 +4894,7 @@
       if (combos.indexOf(id) === -1) combos.push(id);
       // Every tier, or the first zoom that crosses a stop paints a hole.
       ensureImages(map, id, p);
+      if (opts.key === 'outer-tower') warmBucket(map, id);
       return id;
     });
     _registeredSets.set(key, ids);

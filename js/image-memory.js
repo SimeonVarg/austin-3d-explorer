@@ -78,7 +78,20 @@
       };
     }
   }
-  window.ImageMemory = { tune, reclaim, stats(map) {
+  // An image added from outside the two wrapped methods above (js/facades.js WALL TIERS adds each wall image from
+  // MapLibre's own `styleimagemissing`) hands itself over here, and gets exactly the release the wrapped calls get.
+  function release(map, id, input) {
+    if (!map || !supported() || !tune.on) return 0;
+    const state = arm(map), image = manager(map)?.images?.[id];
+    if (!state || !image || image.userImage !== input) return 0;
+    const size = inputBytes(input, image);
+    if (!size) return 0;
+    image.userImage = undefined;
+    state.releasedBytes += size;
+    state.releasedImages++;
+    return size;
+  }
+  window.ImageMemory = { tune, reclaim, release, stats(map) {
     const state = maps.get(map);
     return { supported: supported(), pendingImages: state?.candidates.size || 0,
       releasedImages: state?.releasedImages || 0, releasedBytes: state?.releasedBytes || 0 };
