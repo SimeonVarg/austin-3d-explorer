@@ -409,6 +409,8 @@ Reading it. **The two arms draw nearly the same picture at high resolution at th
 
 What it does deliver, measured: **39.7% of the authored triangles removed (36.7% with the five buildings kept), 129 MB fewer GL buffers, 130 MB fewer CPU arrays, +1.1 MB of textures, +35 KB of script only when on, pictures within 0.45 to 2% of pixels of the geometry's, lit windows working.** What it does not yet deliver is a better moire score than the geometry in the real app.
 
+**Status of the last change:** the run that measures the five-buildings-kept version is queued behind other lanes' AWS runs (my dispatch of `facet-app-bench.mjs` on this branch is waiting its turn in `aws-dispatch.sh`; its results will be the newest `graphics-basics-study-*/out/facet-app-bench` in the AWS runner's artifact, and `scripts/verify/facet-app-tables.py <dir> run4` rebuilds the tables above from it).
+
 **Not measured:** the page's frame time flag off against on (on the Intel chip or the L4; the app bench takes pictures and counters, no timing); the GPU cost of the interpreter shader at the app's real pixel counts (the probe's facade-like shader is the nearest: 0.31 ns a pixel on the Intel chip); a phone; and the far-view dark bias's cause.
 
 ### 8.6 How this was made, for the record
