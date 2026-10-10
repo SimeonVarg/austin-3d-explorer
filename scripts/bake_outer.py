@@ -47,6 +47,13 @@ DEDUP. The new box swallows both the core snapshot and the Capitol Complex
 
     Usage:  python scripts/bake_outer.py [snapshot-date]
             python scripts/bake_outer.py --landmarks-only [--check]
+            python scripts/bake_outer.py --downtown-only [--check]
+
+`--downtown-only` re-makes the downtown buildings inside an already baked ring
+from data/outer/downtown_massing.json (scripts/downtown_bodies.py) and touches
+nothing else. A full bake runs the same step at its end. It exists because the
+raw Overture extract is 60 MB, is not in the repo, and the release it was cut
+from is no longer published, so a full bake cannot be repeated everywhere.
 """
 import json
 import math
@@ -58,6 +65,7 @@ import sys
 from downtown_landmarks import LANDMARKS, build_landmark, patch_landmarks
 from downtown_tower_identities import TOWER_IDENTITIES, build_tower_identity
 from downtown_facade_profiles import PROFILES, profile_for
+import downtown_bodies
 
 from shapely.geometry import shape, Polygon
 from shapely.strtree import STRtree
@@ -380,6 +388,12 @@ GREEN_TONES = {
 }
 # OSM tag -> tone. `pitch` and `playground` are lawn: at this distance a ball
 # field is a green rectangle and giving it its own tone buys nothing.
+# How overlapping pads are kept from sharing a top face (settle_green below).
+GREEN_SETTLE = {
+    "inside": 0.95,                       # this far inside a bigger same-tone pad = dropped
+    "order": ("wood", "lawn", "plaza"),   # bottom to top
+    "step_m": 0.04,                       # height between tones
+}
 GREEN_USE = {
     "park": "lawn", "garden": "lawn", "pitch": "lawn", "playground": "lawn",
     "dog_park": "lawn", "grass": "lawn", "recreation_ground": "lawn",
@@ -1299,8 +1313,64 @@ def green_pads(rep):
             })
             n["kept"] += 1
             n["by_tone"][tone] = n["by_tone"].get(tone, 0) + 1
+    out, n["dropped_inside_same_tone"] = settle_green(out)
     rep["green"] = n
     return out
+
+
+def settle_green(feats):
+    """Park pads may not share a top face (the cause of 166 coplanar pairs).
+
+    The pads come from OpenStreetMap as drawn: a lawn inside a park inside a
+    bigger park, a plaza inside a lawn. All of them were extruded to the same
+    0.45 m, so wherever two overlap they shared a top. 136 of those pairs are
+    two pads of the SAME tone (nothing to see, but a polygon paid for twice);
+    30 are two DIFFERENT tones, where which colour shows is depth-buffer luck.
+
+      * a pad that lies (GREEN_SETTLE["inside"]) inside a bigger pad of its own
+        tone is dropped: the bigger pad already paints that ground;
+      * each tone gets its own height, so a plaza in a park sits on the lawn
+        and a wood under both, by GREEN_SETTLE["step_m"] each.
+
+    Works on any list of ring features; everything that is not a pad passes
+    through untouched. Called by green_pads() and by --downtown-only.
+    """
+    tone_of = {v[0]: k for k, v in GREEN_TONES.items()}
+    pads = [(i, f) for i, f in enumerate(feats) if f["properties"].get("k") == "g"]
+    polys = {}
+    for i, f in pads:
+        try:
+            polys[i] = Polygon(f["geometry"]["coordinates"][0]).buffer(0)
+        except Exception:  # noqa: BLE001
+            polys[i] = Polygon()
+    order = sorted(polys, key=lambda i: -polys[i].area)
+    tree = STRtree([polys[i] for i in order])
+    drop = set()
+    for i in order:
+        q = polys[i]
+        if q.is_empty:
+            continue
+        tone = tone_of.get(feats[i]["properties"].get("wd"))
+        for j in tree.query(q):
+            j = order[int(j)]
+            if j == i or j in drop or polys[j].area <= q.area:
+                continue
+            if tone_of.get(feats[j]["properties"].get("wd")) != tone:
+                continue
+            if q.intersection(polys[j]).area >= GREEN_SETTLE["inside"] * q.area:
+                drop.add(i)
+                break
+    out = []
+    for i, f in enumerate(feats):
+        if i in drop:
+            continue
+        if f["properties"].get("k") == "g":
+            tone = tone_of.get(f["properties"].get("wd"))
+            if tone in GREEN_SETTLE["order"]:
+                f["properties"]["h"] = round(
+                    DT["green_h_m"] + GREEN_SETTLE["step_m"] * GREEN_SETTLE["order"].index(tone), 2)
+        out.append(f)
+    return out, len(drop)
 
 
 def main():
@@ -1676,6 +1746,15 @@ def main():
             del o[k]
     out += extra
 
+    # ── PASS F: downtown from the measured massing ────────────────────
+    # Every downtown building that is not hand-modelled is replaced by its
+    # measured levels (scripts/downtown_bodies.py). Last, so it sees the ring
+    # exactly as --downtown-only does.
+    if DT["on"] and os.path.exists(downtown_bodies.MASSING):
+        kept_old, new_dt = downtown_bodies.build(sys.modules[__name__], out, detail_rep)
+        out = kept_old + new_dt
+        detail_rep["downtown_bodies"]["proud_parts"] = downtown_bodies.decoplanar(out)
+
     fc = {"type": "FeatureCollection", "features": out}
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(fc, f, separators=(",", ":"))
@@ -1774,5 +1853,7 @@ def main():
 if __name__ == "__main__":
     if "--landmarks-only" in sys.argv:
         print(json.dumps(patch_landmarks(sys.modules[__name__], OUT, "--check" in sys.argv), indent=2))
+    elif "--downtown-only" in sys.argv:
+        print(json.dumps(downtown_bodies.patch(sys.modules[__name__], OUT, "--check" in sys.argv), indent=2))
     else:
         main()
