@@ -455,7 +455,9 @@ async function modesGroup() {
   }
 }
 
-const GROUPS = { boot, chrome: chromeGroup, walk: walkGroup, modes: modesGroup };
+const GROUPS = { boot, chrome: chromeGroup, walk: walkGroup, modes: modesGroup,
+  // every group in turn, one browser at a time (the owner's laptop lane allows one hardware browser)
+  all: async () => { for (const g of [walkGroup, modesGroup, boot]) { try { await g(); } catch (e) { log('GROUP ERROR', e && e.message); } } } };
 if (!GROUPS[GROUP]) { console.error('usage: visual-audit.mjs <boot|chrome|walk|modes> [--vp phone,tablet,desktop]'); process.exit(2); }
 log(`== visual-audit ${GROUP} @ ${BASE} ${new Date().toISOString()}`);
 try { await GROUPS[GROUP](); } catch (e) { log('GROUP ERROR', e && e.stack ? e.stack : e); }
