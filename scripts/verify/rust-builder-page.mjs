@@ -22,7 +22,7 @@
 import { chromium } from 'playwright-core';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import { BASE, launch, HW_ARGS, MARK_ARG } from './chrome.mjs';
+import { BASE, launch, glArgsFor, MARK_ARG } from './chrome.mjs';
 
 const PARAMS = {
   query: 'intro=0&drift=0&namelabels=0&facadepace=0&timeofdaypace=0',   // the deterministic page the pictures use; no opening flight to steal the main thread
@@ -59,11 +59,12 @@ function treeRssMb(rootPid) {
 }
 
 async function one(mode, run) {
+  const tag = `${process.pid}-${run}-${mode}-${Date.now()}`;
   const browser = await launch(chromium, {
     maxMs: PARAMS.waitReadyMs + 120000,
-    args: [...HW_ARGS, '--enable-precise-memory-info', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling', MARK_ARG],
+    args: [...glArgsFor(process.env.VERIFY_GL || 'hardware'), `--rustwire-run=${tag}`, '--enable-precise-memory-info', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling', MARK_ARG],
   });
-  const pid = browser.process()?.pid;
+  const pid = Number(execFileSync('sh', ['-c', `ps -A -o pid=,command= | grep -- "--rustwire-run=${tag}" | grep -v -- "--type=" | grep -v grep | head -1 | awk '{print $1}'`], { encoding: 'utf8' }).trim()) || 0;   // the browser's own process: playwright-core has no browser.process()
   let rssPeak = 0;
   const rssTimer = setInterval(() => { const m = treeRssMb(pid); if (m > rssPeak) rssPeak = m; }, PARAMS.rssSampleMs);
   const errors = [];
