@@ -28,7 +28,7 @@ const PARAMS = {
   query: 'intro=0&drift=0&namelabels=0&facadepace=0&timeofdaypace=0',   // the deterministic page the pictures use; no opening flight to steal the main thread
   viewport: { width: 1440, height: 900 }, dpr: 1,
   sampleMs: 50, rssSampleMs: 400,
-  waitReadyMs: 420000,                // one run's ceiling for the build to finish and the veil to lift
+  waitReadyMs: 1200000,               // one run's ceiling for the build to finish and the veil to lift (this Mac has been at load average 200 to 590: a page load there takes many minutes)
   settleMs: 3000,                     // after both, so the last memory peak is seen
   modes: {
     off: '',
