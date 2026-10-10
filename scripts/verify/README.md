@@ -425,6 +425,15 @@ and 390x844, inside the frame and clear of the title pill and buttons.
 The notice stands down under `navigator.webdriver` on purpose: this suite runs
 SwiftShader for exact pixels, and a card over the city would move every one.
 
+### A photograph-built shop front replaces the generic one only while it is drawn (Oct 10 2026)
+
+`node places-ownfront.mjs` (no browser, no server) runs the real `js/places.js` in a vm with a stub map and a stand-in for
+`window.slopesApartments`. `PLACES.ownFront` lists buildings whose recipe draws its own shop front (Raising Cane's); the
+generic slab is removed from them only while the recipe's mesh group is in the scene and holds that building. Six cases:
+no recipe loaded, no mesh group, a stale `built` list after a drop, another building's recipe, drawn at load, and a recipe
+that lands late and is then dropped (the front follows it both ways, with one data push per change). `--break` puts the
+old "hide whenever listed" rule back and must exit 1; `--source <file>` runs it on another copy of `places.js`.
+
 ### A broken browser cache must not take a map layer with it (Oct 4 2026)
 
 `node tile-heal-source.mjs` (no browser, no server) runs the real `js/tiles.js`

@@ -13,6 +13,9 @@ Every number sits in a table below and is marked:
 Frame: the app's own oriented box of the OSM outline: +u runs along the long side (south-south-west, 18.7 deg
 west of south), +v turns 90 deg anticlockwise from it (east-south-east). u = 0 is the NORTH end wall.
 Run: python3 scripts/author_raising_canes.py  (writes the file; running it again gives the identical file).
+Check only: python3 scripts/author_raising_canes.py --check [recipe.json]  (default: the committed recipe). Exit 1 if any detail
+face lies entirely inside a block (a window, door, awning or canopy drawn behind the wall it belongs to). The write run makes
+the same check on what it is about to write and refuses to write (exit 1) when it fails.
 """
 from pathlib import Path
 import json
@@ -60,10 +63,17 @@ GLASS_Z = (0.95, 2.75)         # PHOTO: glass from just over the brick base to u
 CANOPY_Z, CANOPY_T = 2.85, 0.14    # PHOTO: the black canopy over the north windows and the doors, top of the slab
 AWNING = dict(z0=2.95, z1=3.55, out=1.25)   # PHOTO: the black standing-seam awnings, 1.2 m out, 0.6 m deep on the slope
 FRAME_W, GLASS_PROUD, FRAME_PROUD = 0.07, 0.10, 0.06
-# each: wall, a, b (metres along the wall), kind. wall N = u 0 (north end, along v); E = v 10.0 (along u); W = v 1.3 (along u)
+# Every detail stands this far (m) OUT from the outer face of the block it belongs to: the wall (shell) or the tower that
+# carries it. Zero would leave the back of each box in the wall plane; this keeps it just clear of it. The face is worked
+# out from the blocks (outer_plane below), never typed in, so a tower that grows out of a wall carries its own door.
+STANDOFF = 0.02
+BURIED_EPS = 0.005     # m: a detail face counts as inside a block only if every corner is deeper than this
+# each: wall, a, b (metres along the wall), kind. wall N = the north end (along v); E = the east side (along u); W = the west
+# side (along u). The wall's position at a..b comes from the blocks: u 0 or the north tower, v 10.0 / 10.3 / 11.9 on the east
+# side, v 1.3 or the west tower on the west side (outer_plane).
 OPENINGS = [
-    # north end: window under its own awning left of the tower, two windows under the canopy (PHOTO north view)
-    ('N', 1.55, 2.7, 'win'), ('N', 3.1, 4.95, 'win'), ('N', 5.25, 7.4, 'win'), ('N', 8.0, 9.7, 'win'),
+    # north end: window under its own awning left of the tower (ends 2.68 so its frame stops at the tower's side, v 2.75), two windows under the canopy (PHOTO north view)
+    ('N', 1.55, 2.68, 'win'), ('N', 3.1, 4.95, 'win'), ('N', 5.25, 7.4, 'win'), ('N', 8.0, 9.7, 'win'),
     # east wall: wing windows and the door in the east tower (PHOTO east view); u 18 on is INFERRED
     ('E', 0.4, 2.1, 'win'), ('E', 3.55, 4.55, 'door'), ('E', 6.2, 9.0, 'win'), ('E', 9.8, 10.5, 'win'),
     ('E', 19.2, 21.8, 'win'), ('E', 22.6, 25.2, 'win'),
@@ -122,39 +132,87 @@ class Mesh:
             fwd = sum(nrm[i] * want[i] for i in range(3)) > 0
             self.t.extend([[n, n + 1, n + 2], [n, n + 2, n + 3]] if fwd else [[n, n + 2, n + 1], [n, n + 3, n + 2]])
 
-    def wall_box(self, wall, a, b, z0, z1, off0, off1):
-        """A box on a wall: a..b along it, from `off0` to `off1` metres out from the wall plane."""
+    def wall_box(self, wall, a, b, z0, z1, off0, off1, plane):
+        """A box on a wall: a..b along it, from `off0` to `off1` metres out from `plane` (the outer face of the block
+        that carries it, from outer_plane) plus STANDOFF."""
+        o0, o1 = off0 + STANDOFF, off1 + STANDOFF
         if wall == 'N':
-            self.box(-off1, -off0, a, b, z0, z1)
+            self.box(plane - o1, plane - o0, a, b, z0, z1)
         elif wall == 'E':
-            self.box(a, b, 10.0 + off0, 10.0 + off1, z0, z1)
+            self.box(a, b, plane + o0, plane + o1, z0, z1)
         else:
-            self.box(a, b, 1.3 - off1, 1.3 - off0, z0, z1)
+            self.box(a, b, plane - o1, plane - o0, z0, z1)
 
 
-def wall_plane(wall, a, b):
-    return {'N': ('u', 0.0), 'E': ('v', 10.0), 'W': ('v', 1.3)}[wall]
+def _edge_cross(ring, axis, t):
+    """Coordinates on the other axis where the polygon outline crosses the line axis == t."""
+    out = []
+    for i in range(len(ring)):
+        p, q = ring[i], ring[(i + 1) % len(ring)]
+        if (p[axis] - t) * (q[axis] - t) < 0 or (p[axis] == t and q[axis] == t):
+            if p[axis] == q[axis]:
+                out += [p[1 - axis], q[1 - axis]]
+            else:
+                k = (t - p[axis]) / (q[axis] - p[axis])
+                out.append(p[1 - axis] + k * (q[1 - axis] - p[1 - axis]))
+        elif p[axis] == t:
+            out.append(p[1 - axis])
+    return out
+
+
+def outer_plane(wall, a, b, step=0.05):
+    """(outermost, innermost) position of the blocks' outer face along a..b of a wall: u for N (smallest), v for E (largest)
+    and W (smallest). The shell is the ring; a tower counts wherever its plan crosses the span. Details sit on the
+    outermost, so nothing is left behind a tower that stands proud of the wall."""
+    n = max(1, int(round((b - a) / step)))
+    ts = [a + (b - a) * i / n for i in range(n + 1)]
+    ring = RING
+    vals = []
+    for t in ts:
+        if wall == 'N':      # along v; the face is the smallest u
+            c = _edge_cross(ring, 1, t)
+            cand = ([min(c)] if c else []) + [tw['plan'][0] for tw in TOWERS.values() if tw['plan'][2] <= t <= tw['plan'][3]]
+            vals.append(min(cand))
+        else:                # along u; E: the largest v, W: the smallest v
+            c = _edge_cross(ring, 0, t)
+            tows = [tw['plan'] for tw in TOWERS.values() if tw['plan'][0] <= t <= tw['plan'][1]]
+            if wall == 'E':
+                vals.append(max(([max(c)] if c else []) + [p[3] for p in tows]))
+            else:
+                vals.append(min(([min(c)] if c else []) + [p[2] for p in tows]))
+    return (min(vals), max(vals)) if wall == 'N' or wall == 'W' else (max(vals), min(vals))
+
+
+def plane_of(wall, a, b, level=True):
+    """The outer face under a..b. `level`: the span must not cross a step in the wall (a window or a door has one plane)."""
+    out, inn = outer_plane(wall, a, b)
+    if level and abs(out - inn) > 1e-6:
+        raise SystemExit('detail %s %.2f..%.2f crosses a step in the wall (%.2f to %.2f): split it' % (wall, a, b, out, inn))
+    return out
 
 
 def build():
     meshes = {k: Mesh() for k in ('dkGlass', 'black', 'signRed', 'muralRed', 'white', 'yellow', 'pylonRed')}
-    # windows: a black frame and the dark glass in front of it
+    # windows: a black frame and the dark glass in front of it. Each sits on the outer face of the block under it.
     for wall, a, b, kind in OPENINGS:
         z0, z1 = GLASS_Z if kind == 'win' else (0.1, 2.3)
-        meshes['black'].wall_box(wall, a, b, z0 - FRAME_W, z1 + FRAME_W, 0, FRAME_PROUD) if False else None
-        meshes['black'].wall_box(wall, a - FRAME_W, b + FRAME_W, z0 - FRAME_W, z1 + FRAME_W, 0.0, FRAME_PROUD)
-        meshes['dkGlass'].wall_box(wall, a, b, z0, z1, 0.0, GLASS_PROUD)
+        pl = plane_of(wall, a, b)
+        meshes['black'].wall_box(wall, a - FRAME_W, b + FRAME_W, z0 - FRAME_W, z1 + FRAME_W, 0.0, FRAME_PROUD, pl)
+        meshes['dkGlass'].wall_box(wall, a, b, z0, z1, 0.0, GLASS_PROUD, pl)
         if b - a > 1.8 and kind == 'win':       # PHOTO: the wide windows have one mullion down the middle
             m = (a + b) / 2
-            meshes['black'].wall_box(wall, m - 0.03, m + 0.03, z0, z1, 0.0, GLASS_PROUD + 0.02)
+            meshes['black'].wall_box(wall, m - 0.03, m + 0.03, z0, z1, 0.0, GLASS_PROUD + 0.02, pl)
     # canopies (slab on the wall) and awnings (a thin box, sloping not drawn: INFERRED as a flat black slab)
-    for wall, a, b, d in CANOPIES:
-        meshes['black'].wall_box(wall, a, b, CANOPY_Z - CANOPY_T, CANOPY_Z, 0.0, d)
+    for wall, a, b, d in CANOPIES:      # one slab may run across a step (the north and door towers): it starts at the INNERMOST
+        # face, so it is joined to the wall along its whole length and has a straight front edge; where a tower stands proud
+        # the slab's back sits inside the tower, never a face of it (the check below only looks at whole faces)
+        meshes['black'].wall_box(wall, a, b, CANOPY_Z - CANOPY_T, CANOPY_Z, 0.0, d, outer_plane(wall, a, b)[1])
     for wall, a, b in AWNINGS:
-        meshes['black'].wall_box(wall, a, b, AWNING['z1'] - 0.1, AWNING['z1'], 0.0, AWNING['out'] * 0.55)
-        meshes['black'].wall_box(wall, a, b, AWNING['z0'], AWNING['z0'] + 0.12, AWNING['out'] * 0.55, AWNING['out'])
+        pl = plane_of(wall, a, b)
+        meshes['black'].wall_box(wall, a, b, AWNING['z1'] - 0.1, AWNING['z1'], 0.0, AWNING['out'] * 0.55, pl)
+        meshes['black'].wall_box(wall, a, b, AWNING['z0'], AWNING['z0'] + 0.12, AWNING['out'] * 0.55, AWNING['out'], pl)
     # red mural panel on the east wall, and the pylon "1"
-    meshes['muralRed'].wall_box('E', MURAL['u0'], MURAL['u1'], MURAL['z0'], MURAL['z1'], 0.0, 0.05)
+    meshes['muralRed'].wall_box('E', MURAL['u0'], MURAL['u1'], MURAL['z0'], MURAL['z1'], 0.0, 0.05, plane_of('E', MURAL['u0'], MURAL['u1']))
     P = PYLON
     meshes['pylonRed'].box(P['u0'], P['u1'], P['v0'], P['v1'], P['z0'], P['z1'])
     # sign boards on the tower faces (the lettering is added as dot-font `signs` on the tower blocks)
@@ -173,6 +231,9 @@ def build():
 def main():
     d = {
         'name': "Raising Cane's", 'id': ID,
+        # remove the generic storefront slabs, doors and brand label that share this building id (js/slopes-apartments.js
+        # hides the places-* and entrances-* layers for it); the recipe draws its own doors, glass and sign
+        'replaceFrontage': True,
         'sources': {
             'footprint': 'data/snapshots/2026-10-05/buildings.detailed.geojson, feature ' + ID,
             'reference': "four street photographs of the restaurant, taken 2026-10-03, and the 2021 laser scan read in the recipe's own (u, v) frame",
@@ -221,7 +282,95 @@ def main():
     return d
 
 
+def _in_poly(ring, u, v):
+    """Point in polygon (ray casting) and the distance to the outline."""
+    inside, dmin = False, 1e9
+    for i in range(len(ring)):
+        (x1, y1), (x2, y2) = ring[i], ring[(i + 1) % len(ring)]
+        if (y1 > v) != (y2 > v) and u < x1 + (v - y1) * (x2 - x1) / (y2 - y1):
+            inside = not inside
+        dx, dy = x2 - x1, y2 - y1
+        k = 0.0 if dx == dy == 0 else max(0.0, min(1.0, ((u - x1) * dx + (v - y1) * dy) / (dx * dx + dy * dy)))
+        dmin = min(dmin, math.hypot(u - (x1 + k * dx), v - (y1 + k * dy)))
+    return inside, dmin
+
+
+def depth_in_block(blk, p):
+    """How far inside the block the point p = (u, v, z) is, in metres (0 or less: on the surface or outside)."""
+    plan = blk['plan']
+    if isinstance(plan, dict):
+        ring = plan['ring']
+        inside, dist = _in_poly(ring, p[0], p[1])
+        d_plan = dist if inside else -dist
+    else:
+        u0, u1, v0, v1 = plan
+        d_plan = min(p[0] - u0, u1 - p[0], p[1] - v0, v1 - p[1])
+    return min(d_plan, p[2] - blk['z0'], blk['z1'] - p[2])
+
+
+def buried_faces(d):
+    """Every detail triangle whose three corners are all deeper than BURIED_EPS inside ONE block: it is drawn behind a wall.
+    Returns [(mesh id, box number, block id, depth of the shallowest corner)]. A face lying ON a wall is not buried."""
+    out = []
+    for m in d['detailMeshes']:
+        for i, tri in enumerate(m['triangles']):
+            pts = [m['vertices'][j] for j in tri]
+            for blk in d['blocks']:
+                depth = min(depth_in_block(blk, p) for p in pts)
+                if depth > BURIED_EPS:
+                    out.append((m['id'], i // 10, blk['id'], depth))
+                    break
+    return out
+
+
+def report_buried(d):
+    """Print the buried details, one line per box (ten triangles each); return how many boxes."""
+    boxes = {}
+    for mid, box, blk, depth in buried_faces(d):
+        k = (mid, box)
+        n, deepest, _ = boxes.get(k, (0, 0.0, blk))
+        boxes[k] = (n + 1, max(deepest, depth), blk)
+    for (mid, box), (n, deepest, blk) in sorted(boxes.items()):
+        vs = [d_ for d_ in d['detailMeshes'] if d_['id'] == mid][0]['vertices'][box * 20:(box + 1) * 20]
+        lo = [round(min(p[i] for p in vs), 2) for i in range(3)]
+        hi = [round(max(p[i] for p in vs), 2) for i in range(3)]
+        print('  BURIED %s box %d: %d of 10 triangles inside block %s, up to %.2f m deep; u %s..%s v %s..%s z %s..%s'
+              % (mid, box, n, blk, deepest, lo[0], hi[0], lo[1], hi[1], lo[2], hi[2]))
+    return len(boxes)
+
+
+def report_unregistered(d, index_path):
+    """A new building recipe must be registered or the old generic box stays standing INSIDE the new walls: its file, id and
+    name in data/apartments/index.json (files, replacedBuildingIds, replacedNames) and replaceFrontage in the recipe (removes
+    the generic storefront slabs). Returns the number of missing pieces, each printed."""
+    idx = json.loads(Path(index_path).read_text(encoding='utf-8'))
+    missing = []
+    if PATH.name not in [Path(f).name for f in idx.get('buildings', idx.get('files', []))]:
+        missing.append('index.json does not list ' + PATH.name)
+    if d.get('id') not in idx.get('replacedBuildingIds', []):
+        missing.append('index.json replacedBuildingIds lacks ' + str(d.get('id')))
+    if d.get('name') not in idx.get('replacedNames', []):
+        missing.append('index.json replacedNames lacks ' + str(d.get('name')))
+    if d.get('replaceFrontage') is not True:
+        missing.append('the recipe has no replaceFrontage: true (the generic storefront slabs would stay)')
+    for m in missing:
+        print('  UNREGISTERED:', m)
+    return len(missing)
+
+
 if __name__ == '__main__':
+    import sys
+    INDEX = PATH.parent / 'index.json'
+    if '--check' in sys.argv:
+        rest = [a for a in sys.argv[1:] if a != '--check']
+        src = Path(rest[0]) if rest else PATH
+        doc = json.loads(src.read_text(encoding='utf-8'))
+        n = report_buried(doc)
+        print('%s: %d detail boxes buried inside a block' % (src, n))
+        u = report_unregistered(doc, INDEX)
+        sys.exit(1 if (n or u) else 0)
     d = main()
+    if report_buried(d):
+        sys.exit('refusing to write: details are drawn inside the blocks they belong to')
     PATH.write_text(compact(json.dumps(d, indent=1)), encoding='utf-8')
-    print('wrote', PATH, len(PATH.read_bytes()), 'bytes')
+    print('wrote', PATH, len(PATH.read_bytes()), 'bytes; no detail face is inside a block')
