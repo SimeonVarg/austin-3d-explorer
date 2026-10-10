@@ -111,6 +111,10 @@
     // tell "the shopfronts are invisible" apart from "the labels are covering
     // them" without rebuilding anything.
     labels: q.get('placelabels') !== '0',
+    // Host buildings whose recipe (data/apartments/) draws its OWN shopfront, sign and awnings from a photograph.
+    // The generic slab (bulkhead, glass, brand fascia, awning, entry) is not drawn on them; the name label stays.
+    // One entry per building: its footprint id. Raising Cane's: scripts/author_raising_canes.py.
+    ownFront: ['b32544f3-3221-480b-86bd-236b0eeb7be1'],
     minZoom: 15,
     // "restaurant names are a bit too visible from afar". They were: shop names
     // started at z16 in BOLD white on a saturated brand halo, while building names
@@ -437,6 +441,7 @@
       const r = await fetch(DATA);
       if (!r.ok) throw new Error(DATA + ': ' + r.status);
       gj = await r.json();
+      if (PLACES.ownFront.length) gj.features = gj.features.filter(f => f.properties.kind === 'label' || !PLACES.ownFront.includes(f.properties.bid));
     } catch (e) {
       console.warn('[places]', e.message, '- pass not drawn');
       return;
