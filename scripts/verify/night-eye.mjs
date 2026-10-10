@@ -40,7 +40,7 @@ export const TUNE = {
   },
   determinism: { pose: 'tower-night', loads: 2, tolerance: 12 },
   sequence: { pose: 'west-far', frames: 8, stepMs: 250, nearM: 250, farM: 900, litLuma: 70,
-              minFarOverNear: 3, minFarCv: 0.03, maxNearCv: 0.01, farMaxM: 6000, warmMargin: 8 },
+              minFarOverNear: 3, minFarCv: 0.03, maxNearCv: 0.01, farMaxM: 6000, warmMargin: 8, offSdMax: 2.5 },
   cost: { pose: 'tower-night', reps: 7, frames: 24, maxExtraMs: 2.0 },
   live: { seconds: 3, minFps: 8, pose: 'tower-night' },
 };
@@ -291,7 +291,7 @@ await stage('sequence', async () => {
   const stats = (st, label, mapFile) => {
     const pick = lb => frames.filter(f => f[0] === st && f[1] === lb).map(f => decodePNG(f[3]));
     const imgs = pick(label), ref = decodePNG(frames.find(f => f[0] === st && f[1] === 'off' && f[2] === 0)[3]);
-    const offs = pick('off').concat(pick('off-again'));   // pixels that move with the shimmer OFF (labels fading, sky, a bloom update) are not the shimmer: they are left out
+    const offs = pick('off').concat(pick('off-again'));   // pixels that move a lot with the shimmer OFF (labels fading, stars) are not the shimmer: they are left out; the small noise that remains (a bloom update, one level) is measured as the floor
     const lumaSd = (set, i) => { const ls = set.map(im => 0.2126 * im.data[i] + 0.7152 * im.data[i + 1] + 0.0722 * im.data[i + 2]); const mu = ls.reduce((a, c) => a + c, 0) / ls.length; return Math.sqrt(ls.reduce((a, c) => a + (c - mu) * (c - mu), 0) / ls.length); };
     let excluded = 0;
     const W = ref.width, H = ref.height, hCss = rowDist.length, band = { near: { n: 0, s: 0, cv: 0, c2: 0, vary: 0 }, far: { n: 0, s: 0, cv: 0, c2: 0, vary: 0 } };
@@ -304,7 +304,7 @@ await stage('sequence', async () => {
         const l0 = 0.2126 * ref.data[i] + 0.7152 * ref.data[i + 1] + 0.0722 * ref.data[i + 2];
         const lit = l0 >= STAGES[st] && ref.data[i] >= ref.data[i + 2] + S.warmMargin;   // warm: a window or a lamp, not a white star or a pale wall
         let mu = 0, ss = 0, sd = 0;
-        if (lit && (b || vis) && lumaSd(offs, i) > 0.5) { excluded++; if (vis) { const o = (y * W + x) * 3; vis[o] = 255; vis[o + 1] = 200; } continue; }
+        if (lit && (b || vis) && lumaSd(offs, i) > S.offSdMax) { excluded++; if (vis) { const o = (y * W + x) * 3; vis[o] = 255; vis[o + 1] = 200; } continue; }
         if (lit && (b || vis)) { const ls = imgs.map(im => 0.2126 * im.data[i] + 0.7152 * im.data[i + 1] + 0.0722 * im.data[i + 2]); mu = ls.reduce((a, c) => a + c, 0) / ls.length; ls.forEach(v => ss += (v - mu) * (v - mu)); sd = Math.sqrt(ss / ls.length); }
         if (lit && b) { const B = band[b]; B.n++; B.s += sd * sd; const cv = sd / Math.max(1, mu); B.cv += cv; B.c2 += cv * cv; if (cv > 0.01) B.vary++; }
         if (vis) { const o = (y * W + x) * 3; if (!lit) { vis[o] = ref.data[i] >> 2; vis[o + 1] = ref.data[i + 1] >> 2; vis[o + 2] = ref.data[i + 2] >> 2; } else if (sd / Math.max(1, mu) > 0.01) { vis[o + 1] = 255; } else { vis[o] = 255; vis[o + 2] = 255; } }
@@ -325,9 +325,11 @@ await stage('sequence', async () => {
     }
   }
   const off = stats('final', 'off'), offAgain = stats('final', 'off-again');
+  data.sequence.floor = { final: { off, offAgain } };
+  console.log(`sequence noise floor (shimmer off) near cv ${off.near.cvMean}, far cv ${off.far.cvMean} rms ${off.far.cvRms}`);
   const first = variants[0], on = data.sequence.variants[first].final;
   report('sequence: lit pixels were found in both bands', on.near.n > 50 && on.far.n > 50, `near ${on.near.n}, far ${on.far.n}`);
-  report('sequence: with shimmer off nothing moves, at the start and again at the end (the measurement is clean)', (off.far.variance ?? 0) <= 0.25 && (off.near.variance ?? 0) <= 0.25 && (offAgain.far.variance ?? 0) <= 0.25, `far ${off.far.variance}/${offAgain.far.variance}, near ${off.near.variance}/${offAgain.near.variance}`);
+  report('sequence: with shimmer off nothing moves, at the start and again at the end (the measurement is clean)', (off.far.cvRms ?? 0) <= 0.01 && (off.near.cvRms ?? 0) <= 0.01 && (offAgain.far.cvRms ?? 0) <= 0.01, `far ${off.far.cvRms}/${offAgain.far.cvRms}, near ${off.near.cvRms}/${offAgain.near.cvRms} (coefficient of variation, rms)`);
   report(`sequence [${first}]: far lights shimmer in the final frame`, on.far.cvMean >= S.minFarCv, `mean coefficient of variation ${on.far.cvMean} (want >= ${S.minFarCv}); ${on.far.shareVarying} of lit pixels move`);
   report(`sequence [${first}]: near lights hold still in the final frame`, on.near.cvMean == null || on.near.cvMean <= S.maxNearCv, `coefficient of variation ${on.near.cvMean} (want <= ${S.maxNearCv})`);
   report(`sequence [${first}]: far varies much more than near`, on.near.variance == null || on.far.variance / Math.max(on.near.variance, 0.01) >= S.minFarOverNear, `variance ratio ${on.near.variance == null ? 'n/a' : (on.far.variance / Math.max(on.near.variance, 0.01)).toFixed(1)} (want >= ${S.minFarOverNear})`);
