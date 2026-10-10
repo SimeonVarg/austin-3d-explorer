@@ -172,6 +172,18 @@ const HOME = at(0, 200), DEST = at(1500, -150);
   eq(FB.busLeg(s, HOME, at(3500, 200), { walkAll: [4000, 5000] }), null, 'ranking is direct only: BUS.transfers = 0 finds nothing here');
 }
 
+// 8. Which buildings get a route: the top few, and the heaviest bus building if it is not among them.
+{
+  const L = (code, w, how) => ({ code, w, how });
+  const legs = [L('A', 0.4, 'walk'), L('B', 0.3, 'walk'), L('C', 0.2, 'walk'), L('D', 0.07, 'bus'), L('E', 0.03, 'bus')];
+  eq(FB.drawLegs(legs, 3).map((l) => l.code), ['A', 'B', 'C', 'D'], 'three walks and the heaviest bus building (D, not E)');
+  eq(FB.drawLegs([L('A', 0.5, 'bus'), L('B', 0.3, 'walk'), L('C', 0.2, 'walk'), L('D', 0.1, 'walk')], 3).map((l) => l.code), ['A', 'B', 'C'], 'a bus building already in the top three is not added twice');
+  eq(FB.drawLegs([L('A', 0.5, 'walk'), L('B', 0.5, 'walk')], 3).map((l) => l.code), ['A', 'B'], 'no bus building: just the top');
+  eq(FB.drawLegs([], 3), [], 'no legs');
+  const given = [L('B', 0.2, 'walk'), L('A', 0.8, 'bus')]; FB.drawLegs(given, 1);
+  eq(given.map((l) => l.code), ['B', 'A'], 'the caller\'s list is not reordered');
+}
+
 console.log(`PASS A  hand-computed cases (${pass} checks)`);
 
 // ══════════════════════════════════════════════════════════════════════════

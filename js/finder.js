@@ -992,8 +992,9 @@ function boot() {
       return p[p.length - 1];
     };
     const R = S.result;
-    const legs = r.score.legs.map((l, i) => ({ ...l, i: R.T.targets.findIndex(t => t.code === l.code) }))
-      .sort((a, b) => b.w - a.w).slice(0, FINDER.route.topN);
+    const all = r.score.legs.map((l, i) => ({ ...l, i: R.T.targets.findIndex(t => t.code === l.code) }));
+    // The top few by weight, plus the heaviest building reached by bus when it is not one of them (finder-bus.js drawLegs).
+    const legs = S.fb ? S.fb.drawLegs(all, FINDER.route.topN) : all.sort((a, b) => b.w - a.w).slice(0, FINDER.route.topN);
     for (const l of legs) {
       const tree = R.trees[l.i];
       if (!tree) continue;

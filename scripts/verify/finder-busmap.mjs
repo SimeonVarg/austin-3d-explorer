@@ -70,11 +70,13 @@ try {
   const framed = await page.evaluate(() => {
     const m = window.__map, fs = m.querySourceFeatures('finder-route'); if (!fs.length) return null;
     let w = 180, e = -180, s = 90, n = -90;
-    for (const f of fs) for (const c of (f.geometry.type === 'Point' ? [f.geometry.coordinates] : f.geometry.coordinates)) { w = Math.min(w, c[0]); e = Math.max(e, c[0]); s = Math.min(s, c[1]); n = Math.max(n, c[1]); }
-    m.stop(); const cam = m.cameraForBounds([[w, s], [e, n]], { padding: { top: 90, bottom: 90, left: 440, right: 90 } });
-    if (cam) m.jumpTo({ center: cam.center, zoom: Math.min(cam.zoom, 15.8), pitch: 35, bearing: 0 });
+    for (const f of fs) { const flat = f.geometry.coordinates.flat(Infinity); for (let i = 0; i + 1 < flat.length; i += 2) { w = Math.min(w, flat[i]); e = Math.max(e, flat[i]); s = Math.min(s, flat[i + 1]); n = Math.max(n, flat[i + 1]); } }
+    try {
+      m.stop(); const cam = m.cameraForBounds([[w, s], [e, n]], { padding: { top: 90, bottom: 90, left: 440, right: 90 } });
+      if (cam) m.jumpTo({ center: cam.center, zoom: Math.min(cam.zoom, 15.8), pitch: 35, bearing: 0 });
+    } catch (err) { return { error: String(err) }; }
     return { bounds: [w, s, e, n], zoom: m.getZoom() };
-  });
+  }).catch((err) => ({ error: String(err) }));
   note.framed = framed;
   await sleep(6000);
   await shot('03-trip-framed');

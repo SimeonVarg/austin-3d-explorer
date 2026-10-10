@@ -138,6 +138,19 @@ export function tripFeatures(slice, option, from, to, opts = {}) {
   return { feats, stops, pts };
 }
 
+/**
+ * Which class buildings get a route drawn: the `topN` that weigh most, AND the heaviest one reached by bus when it is not among
+ * them. A home that walks to its three main buildings but rides to its fourth is "by bus" for that fourth, and the first
+ * browser look showed the selected bus home with no bus drawn at all. `legs`: [{w, how, ...}]. Returns a new list, heaviest first
+ * (the extra bus leg last).
+ */
+export function drawLegs(legs, topN) {
+  const sorted = [...legs].sort((a, b) => b.w - a.w), top = sorted.slice(0, topN);
+  const bus = sorted.find((l) => l.how === 'bus');
+  if (bus && !top.includes(bus)) top.push(bus);
+  return top;
+}
+
 /** The short names of the routes a trip rides: ['20', '801']. Empty for no trip. */
 export function tripRoutes(option) {
   const out = [];
