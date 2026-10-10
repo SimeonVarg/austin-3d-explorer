@@ -2738,21 +2738,38 @@
 
   // `specs` defaults to the catalog; `area` (an APTS.areas entry) builds that
   // area's own group without resetting the core's counts, failures or list.
-  // ?buildworker=1: the apartment generator and the shared builder run in a Web Worker (js/build-worker.js, started by js/apartments-worker.js, which is
-  // imported only when the switch is on). Default OFF; with it off this file requests and starts nothing new.
-  const BUILD_WORKER = { on: new URLSearchParams(location.search).get('buildworker') === '1', state: 'off', moduleUrl: './apartments-worker.js' };
+  // ?buildworker=1|0: the apartment generator and the shared builder run in a Web Worker (js/build-worker.js, started by js/apartments-worker.js, which is
+  // imported only when the switch is on). With it off this file requests and starts nothing new. Anything that goes wrong (no Worker, a script that will not
+  // load, a throw mid-build, no answer within the timeouts) builds on this thread as without the switch, with one console line and no retry.
+  const BUILD_WORKER_DEFAULT_ON = false;            // the shipped default (decided by the measurements in the pull request)
+  const BUILD_WORKER_READY_MS = 30000;              // the worker's scripts (wall-patterns, three, slopes, night, roofs, apartments) must be loaded by then
+  const BUILD_WORKER_BUILD_MS = 240000;             // and the whole build answered by then (6 s on a laptop, a minute or two on a slow phone)
+  const _bwq = new URLSearchParams(location.search), _bw = _bwq.get('buildworker'), _bwt = +_bwq.get('buildworkertimeout') || 0;   // the timeout is a test seam
+  const BUILD_WORKER = { on: _bw === '1' ? true : _bw === '0' ? false : BUILD_WORKER_DEFAULT_ON, state: 'off', moduleUrl: './apartments-worker.js',
+    readyMs: _bwt || BUILD_WORKER_READY_MS, buildMs: _bwt || BUILD_WORKER_BUILD_MS };
   let _workerClient = null;
   function workerClient() {
-    return _workerClient || (_workerClient = import(BUILD_WORKER.moduleUrl).then(m => m.startBuildWorker()));
+    return _workerClient || (_workerClient = import(BUILD_WORKER.moduleUrl).then(m => m.startBuildWorker({ readyMs: BUILD_WORKER.readyMs, buildMs: BUILD_WORKER.buildMs })));
   }
   async function workerBuild(list) {
     const client = await workerClient();
     BUILD_WORKER.state = 'building';
-    const r = await client.build(list, { facadeFilter: !!window.FacadeFilter, gfxPreset: window.GFX && window.GFX.preset, lite: window.LITE_PROFILE ? { on: window.LITE_PROFILE.on, budget: window.LITE_PROFILE.budget } : null });
+    const S = window.slopes, packed = !!(S.packOn && S.packOn());
+    const r = await client.build(list, { facadeFilter: !!window.FacadeFilter, gfxPreset: window.GFX && window.GFX.preset, lite: window.LITE_PROFILE ? { on: window.LITE_PROFILE.on, budget: window.LITE_PROFILE.budget } : null,
+      byteFloats: packed && S.byteFloats ? Array.from(S.byteFloats()) : null });   // a worker has no GL: the page measures the byte rule and hands it over
     BUILD_WORKER.state = 'done';
+    // the worker's heap (the generator, its registries, the arrays it just handed over) goes with it: a build is its only job, and a rebuild starts a fresh one
+    client.terminate(); _workerClient = null;
     return r;
   }
-  if (BUILD_WORKER.on) { BUILD_WORKER.state = 'starting'; workerClient().catch(e => { BUILD_WORKER.state = 'failed'; console.warn('[slopes-apartments] ?buildworker=1: no worker —', e && e.message || e); }); }
+  // the worker is started now, so its scripts load while the page still fetches the catalog; a failure here is only noted (buildOnce reports it, once, when it builds)
+  if (BUILD_WORKER.on) { BUILD_WORKER.state = 'starting'; workerClient().catch(e => { BUILD_WORKER.state = 'failed'; BUILD_WORKER.why = e && e.message || String(e); }); }
+
+  // a test seam, not a feature (scripts/verify/build-worker-pixels.mjs): flip the switch at run time so ONE page can build the apartments both ways
+  function buildWorkerSet(on) {
+    BUILD_WORKER.on = !!on;
+    if (BUILD_WORKER.on && BUILD_WORKER.state === 'off') { BUILD_WORKER.state = 'starting'; workerClient().catch(e => { BUILD_WORKER.state = 'failed'; }); }
+  }
 
   async function build(specs, area, extra) {
     const S = window.slopes;
@@ -2780,7 +2797,11 @@
     // Anything that goes wrong there (no worker, a script that will not load, a thrown error) builds on this thread, as without the switch.
     if (BUILD_WORKER.on && !area && !rustOpts.fromWorker && !rustOpts.record && !rustOpts.noworker) {
       try { return await buildOnce(specs, area, { ...rustOpts, fromWorker: await workerBuild(specs || _data.buildings) }); }
-      catch (e) { console.warn('[slopes-apartments] ?buildworker=1: the worker build failed, building here instead —', e && e.message || e); BUILD_WORKER.state = 'failed'; }
+      catch (e) {
+        console.warn('[slopes-apartments] the build worker failed, building here instead —', e && e.message || e);
+        BUILD_WORKER.state = 'failed'; BUILD_WORKER.on = false;   // no second try in this page
+        if (_workerClient) _workerClient.then(c => c.terminate && c.terminate(), () => {});
+      }
     }
     const T = window.THREE, S = window.slopes;
     const t0 = performance.now();
@@ -3809,5 +3830,5 @@
     }, 150);
   })();
   // The Web Worker seam (js/build-worker.js, scripts/verify/build-worker-page.mjs): the generator's build() and its counts, with no page.
-  window.__aptsBuild = { buildWorkerState: () => BUILD_WORKER.state, build, count, resetCount, applyRegistrations, recordingRegistrations, specFrame, serializeFace, rehydrateFace, failed: () => [..._failed] };
+  window.__aptsBuild = { buildWorkerState: () => BUILD_WORKER.state, buildWorkerOn: () => BUILD_WORKER.on, buildWorkerSet,  build, count, resetCount, applyRegistrations, recordingRegistrations, specFrame, serializeFace, rehydrateFace, failed: () => [..._failed] };
 })();

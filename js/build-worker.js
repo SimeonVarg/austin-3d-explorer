@@ -57,7 +57,8 @@ async function init({ base: b, three }) {
   importScripts(js('slopes-roofs.js'));
   importScripts(js('slopes-apartments.js'));
 }
-async function run({ specs, gfxPreset, lite, facadeFilter }) {
+async function run({ specs, gfxPreset, lite, facadeFilter, byteFloats }) {
+  if (byteFloats && self.slopes.byteFloatsSet) self.slopes.byteFloatsSet(byteFloats);   // the page's measurement of its GPU's byte-to-float rule (js/slopes.js byteFloats), so a packed tone table is the page's, not the spec's
   self.GFX.preset = gfxPreset || 'balanced';
   self.LITE_PROFILE = lite && lite.on ? { on: true, budget: lite.budget } : undefined;
   // the page has a facade filter (js/facade-filter.js) or not; the generator only asks whether it EXISTS, and collects the faces it would rasterise
