@@ -166,6 +166,7 @@
   },
   "_quarantine": "Checks that do NOT run in CI, each with the reason. Broken on main itself, or cannot work without a GPU. Fix the check (or main), then delete its line here.",
   "quarantine": {
+    "air-smoke.mjs": "needs a GPU: boots air.html in a real browser, steps the autopilot and looks for the craft on the canvas (the map canvas is read back, so a software run is slow); run by hand on a cloud lane (acer-run.sh or scripts/colab/run.py), docs/air-race.md",
     "slopes-switch-console.mjs": "five real-page loads (the phone profile with the default, ?rustbuilder=0, =1, ?packverts=0, and a desktop default), each to the end of the apartment build; about 3 minutes a load on software rendering. Run it on the render lanes (Colab: scripts/colab/run.py, or the laptop lane): no ReferenceError in the console, the switches do what the URL says, the .wasm is requested only with ?rustbuilder=1",
     "pack-overflow-fallback.mjs": "needs three.js r159 outside the repo (THREE_JS=...); prints SKIP without it. Run it by hand: a packed build whose tone or normal table overflows is rebuilt unpacked, same triangles and position bytes, one console line",
     "finder-busmap-phone.mjs": "needs a GPU and the live bus feed: the finder's bus parts inside the bottom sheet of a touch screen (390 x 844), run by hand on a cloud lane",
