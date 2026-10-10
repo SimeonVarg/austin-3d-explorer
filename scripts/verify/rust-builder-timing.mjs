@@ -70,7 +70,9 @@ async function one(mode, run) {
     maxMs: PARAMS.waitReadyMs + 120000,
     args: [...glArgsFor(process.env.VERIFY_GL || 'hardware'), `--rustwire-run=${tag}`, '--enable-precise-memory-info', '--js-flags=--expose-gc', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling', MARK_ARG],
   });
-  const pid = Number(execFileSync('sh', ['-c', `ps -A -o pid=,command= | grep -- "--rustwire-run=${tag}" | grep -v -- "--type=" | grep -v grep | head -1 | awk '{print $1}'`], { encoding: 'utf8' }).trim()) || 0;   // the browser's own process: playwright-core has no browser.process()
+  // the browser's own process (playwright-core has no browser.process()); with no sh or ps (Windows) the browser's memory is simply not sampled
+  let pid = 0;
+  try { pid = Number(execFileSync('sh', ['-c', `ps -A -o pid=,command= | grep -- "--rustwire-run=${tag}" | grep -v -- "--type=" | grep -v grep | head -1 | awk '{print $1}'`], { encoding: 'utf8' }).trim()) || 0; } catch (e) { /* no sh or ps */ }
   let rssPeak = 0;
   const rssTimer = setInterval(() => { const m = treeRssMb(pid); if (m > rssPeak) rssPeak = m; }, PARAMS.rssSampleMs);
   const errors = [];
