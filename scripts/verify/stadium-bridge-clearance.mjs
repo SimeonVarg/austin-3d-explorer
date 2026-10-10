@@ -22,7 +22,7 @@ let group={},filtered=true;
 const point=p=>p,colour=k=>k,lerp=(a,b,t)=>a+(b-a)*t;
 `+slice('  function ll(','  const point =')+
 slice('  function collisionTri(','  function sectionPoint(')+
-slice('  function northEntrance(','  function officeTower(')+
+slice('  function northEntrance(','  function roundTower(')+
 slice('  function heightAt(','  window.slopesStadium=')+`
 globalThis.api={TUNE,ll,heightAt,northEntrance,box,
   enable(on){group=on?{}:null;},filter(on){filtered=on;}};`,ctx);

@@ -20,7 +20,7 @@ const up=[0,0,1], east=[1,0], north=[0,1];
 const lerp=(a,b,t)=>a+(b-a)*t, point=p=>p, colour=k=>k;
 const collisionTri=()=>{};
 ` + slice('  function quad(', '  function sectionPoint(') +
-slice('  function northFacade(', '  function officeTower(') +
+slice('  function northFacade(', '  function roundTower(') +
 'globalThis.api={TUNE,northFacade,northEntrance};', context);
 const { api } = context;
 if (process.argv.includes('--break')) api.TUNE.north.depth = 0;
