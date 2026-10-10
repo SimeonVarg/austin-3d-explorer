@@ -32,6 +32,13 @@ and which wall, before anything else.
 - Spacing of the rows ÷ spacing of the columns. It needs no scale, and it
   shows at once when bays are too narrow or storeys too tall.
 
+**1a. Count on the most square-on photograph, and never reuse a bay size.**
+Before any build, look through ALL photographs of the wall and pick the one
+taken most square-on. Count the bays there and measure one bay against the
+wall height. An old bay size in the code or the data is not evidence: it is
+a guess someone made for a generic wall. Take the rule (what is in one bay,
+bottom to top) from that same photograph, not from an oblique one.
+
 **1b. One real length.** Ratios do not give size. Fix the scale with one
 measured length: the wall height from the laser scan, or a wall length from
 the map outline. Then every ratio becomes metres.
@@ -187,6 +194,10 @@ made or sharpened.
   three independent ways (scan eave height, the camera's eye height against the
   horizon, one standard part such as a 0.22 m pane) before trusting a number
   chained from a guessed bay.
+- 2026-10-09, found by the main lane: the DKR stadium west wall was first built
+  from an oblique photograph on the generic 6.2 m bay. A near-frontal photograph
+  was in the same set all along: it gives 12.6 m bays, ONE tall ribbed panel to
+  a bay (not two), slit windows, and a narrow pylon. Check 1a.
 - 2026-10-07. Three photographs filed under one building showed another
   building: check 0.
 - 2026-10-03. "can't see the sign cuz the tree": check 9, from the camera of
