@@ -39,6 +39,12 @@ $GPU node experiments/renderer/compare.mjs --mode maplibre --phase proto   # sam
 $GPU node experiments/renderer/compare.mjs --break light --phase proto     # break it on purpose; the numbers must move
 ```
 
+Other tools, none needs the GPU queue: `node experiments/renderer/selftest.mjs` (smoke test of the renderer and the image metrics in software GL),
+`node experiments/renderer/measure-libs.mjs` (library bytes and parse time; needs `libs/` in the output folder: `curl` maplibre-gl@5.24.0,
+three@0.159.0, pmtiles@3.0.6 from unpkg into `<out>/libs/`), `node experiments/renderer/summarize.mjs` (prints the markdown tables from the JSON),
+`node experiments/renderer/compare.mjs --phase compare [--break light|quant|facet] [--mode maplibre]` (score existing pictures again). On the AWS
+runner: `gh workflow run aws-gpu.yml --ref main -f ref=<branch> -f checks=renderer-bench.mjs` (the workflow runs only from `main`; `ref` is the branch to check).
+
 `compare.mjs` writes, per view, `side-<view>.png` (app | prototype | moved pixels in magenta),
 `diff-<view>.png`, and `result.json` with the numbers, under `compare-<tag>/`.
 
@@ -53,6 +59,7 @@ $GPU node experiments/renderer/compare.mjs --break light --phase proto     # bre
 | `proto/maplibre.html/.js` | the same renderer as a custom layer in a real MapLibre map (path A as it would be wired) |
 | `measure-app.mjs` | GL calls per frame by phase (maplibre / three), layers by type, memory, library bytes, frame time, a V8 profile by file |
 | `compare.mjs` + `lib/images.mjs` | the automated test: same camera, two renderers, per-view difference and a side-by-side picture |
+| `selftest.mjs`, `measure-libs.mjs`, `summarize.mjs` | smoke test (no GPU), library bytes and parse time, markdown tables |
 | `lib/app.mjs` | opens the real app with GL call counters installed before any app script runs |
 | `scripts/verify/renderer-bench.mjs` | one entry that runs all of the above on the AWS GPU runner |
 
