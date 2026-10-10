@@ -1991,9 +1991,10 @@
     btn.title = 'Graphics settings (G)';
     btn.setAttribute('aria-label', 'Graphics settings');
     btn.innerHTML =
+      // Three sliders, because that is what the menu is. It used to be a sun, which is also the mark at the top of the
+      // time-of-day slider (F02).
       '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">' +
-      '<circle cx="12" cy="12" r="3.1"/><path d="M12 2.6v3M12 18.4v3M2.6 12h3M18.4 12h3' +
-      'M5.4 5.4l2.1 2.1M16.5 16.5l2.1 2.1M18.6 5.4l-2.1 2.1M7.5 16.5l-2.1 2.1"/></svg>';
+      '<path d="M4 4v6M4 14v6M12 4v2M12 10v10M20 4v10M20 18v2"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="20" cy="16" r="2"/></svg>';
     document.body.appendChild(btn);
 
     panel = el('gfx-panel');
