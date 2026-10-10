@@ -46,8 +46,10 @@ export function patchSlopes(src, { record = false, timeBuilder = false } = {}) {
 /** one line appended inside the IIFE so build() is reachable */
 export function patchApartments(src) {
   // FACET TAP (experiments/facet): report every wall piece the cell tiler is about to cut, with the recipe skin and the triangles it made
-  const site1 = "      tileFace(B, { W: sub, len, z0, z1, cut: cutAt ? cutAt(0) : null }, skin, P);";
-  const site2 = "      tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);";
+  // the two call sites, with and without the ?facadeshader hook line js/slopes-apartments.js now carries (the tap measures the cell tiler, so the hook stays off)
+  const pick = (a, b) => src.includes(a) ? a : b;
+  const site1 = pick("      tileFace(B, { W: sub, len, z0, z1, cut: cutAt ? cutAt(0) : null }, skin, P);", "      if (!(B.facetWalls && B.facetWalls.take(facetPiece(sub, len, z0, z1, ctx, skin, sk, band, P, cutAt ? cutAt(0) : null, spec)))) tileFace(B, { W: sub, len, z0, z1, cut: cutAt ? cutAt(0) : null }, skin, P);");
+  const site2 = pick("      tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);", "      if (!(B.facetWalls && B.facetWalls.take(facetPiece(subR, sHi - sLo, z0, z1, ctx, skin, sk, band, P, opts.cutAt ? opts.cutAt(sLo) : null, spec)))) tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);");
   if (!src.includes(site1) || !src.includes(site2)) throw new Error('js/slopes-apartments.js moved: the two tileFace call sites');
   const pre = "const rq_ = globalThis.__TF && globalThis.__TFQ ? [] : null; let q0_; if (rq_) { q0_ = B.quad; B.quad = function () { rq_.push(Array.prototype.slice.call(arguments, 0, 5)); return q0_.apply(this, arguments); }; }";
   src = src.replace(site1, "      { const t0_ = B.triangles; const cut_ = cutAt ? cutAt(0) : null; " + pre + " tileFace(B, { W: sub, len, z0, z1, cut: cut_ }, skin, P); if (rq_) B.quad = q0_; if (globalThis.__TF) globalThis.__TF({ spec, band, sk, ctx, skin, len, z0, z1, cut: cut_, inset: 0, tris: B.triangles - t0_, W: sub, P, key, quads: rq_ }); }");

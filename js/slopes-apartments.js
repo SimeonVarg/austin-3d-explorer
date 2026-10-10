@@ -1910,7 +1910,7 @@
       const ctx = { len, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
       const skin = resolveSkin(sk, ctx, P, ctx.key);
       openings(skin, band, len, z0, z1, spec, fl, P, sOff);
-      if (!(B.facet && B.facet.take(facetPiece(sub, len, z0, z1, ctx, skin, sk, band, P, cutAt ? cutAt(0) : null, spec)))) tileFace(B, { W: sub, len, z0, z1, cut: cutAt ? cutAt(0) : null }, skin, P);
+      if (!(B.facetWalls && B.facetWalls.take(facetPiece(sub, len, z0, z1, ctx, skin, sk, band, P, cutAt ? cutAt(0) : null, spec)))) tileFace(B, { W: sub, len, z0, z1, cut: cutAt ? cutAt(0) : null }, skin, P);
     }
     // the fixtures — balconies and signs — positioned by `s` along THIS
     // piece: an override region's own. A face's default bands' fixtures are
@@ -1987,7 +1987,7 @@
       const ctx = { len: sHi - sLo, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
       const skin = resolveSkin(sk, ctx, P, ctx.key);
       openings(skin, band, sHi - sLo, z0, z1, spec, fl, P, (opts.sOff || 0) + sLo);
-      if (!(B.facet && B.facet.take(facetPiece(subR, sHi - sLo, z0, z1, ctx, skin, sk, band, P, opts.cutAt ? opts.cutAt(sLo) : null, spec)))) tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);
+      if (!(B.facetWalls && B.facetWalls.take(facetPiece(subR, sHi - sLo, z0, z1, ctx, skin, sk, band, P, opts.cutAt ? opts.cutAt(sLo) : null, spec)))) tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);
     }
     // the returns: a wall across the recess at either end, where nothing recessed meets it
     const R = IS.returns, endwise = R != null && typeof R === 'object';
@@ -2679,7 +2679,7 @@
     const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices) : S.build();
     B.filtered=[];
     B.filterPending=[];
-    if (FACET_LOAD) { await FACET_LOAD; if (window.FACET) B.facet = window.FACET.collector(); }
+    if (FACET_LOAD) { await FACET_LOAD; if (window.FACET) B.facetWalls = window.FACET.collector(); }
     const built = area ? [] : (_built = []);
     const cancelled = () => area && area.gen !== gen;
     const discard = () => {
@@ -2785,7 +2785,7 @@
         g.add(mesh);
       });
       for(const m of B.filtered)g.add(m);
-      if (B.facet) { const fm = B.facet.finish(S); if (fm) { g.add(fm); C.facetQuads = B.facet.stats.quads; C.facetWindows = B.facet.stats.windows; if (window.slopesApartments) window.slopesApartments.facetStats = B.facet.stats; } }
+      if (B.facetWalls) { const fm = B.facetWalls.finish(S); if (fm) { g.add(fm); C.facetQuads = B.facetWalls.stats.quads; C.facetWindows = B.facetWalls.stats.windows; if (window.slopesApartments) window.slopesApartments.facetStats = B.facetWalls.stats; } }
       if (area) {
         g.userData.area = Object.assign(tallySince(), { name: area.name, built, triangles: B.triangles, material: mat, ms: +(performance.now() - t0).toFixed(1) });
         return g;
