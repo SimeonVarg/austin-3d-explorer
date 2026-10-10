@@ -3854,7 +3854,7 @@
     // current hour, and painted for real in the paint workers (the paced repaint), which `updateImage`s it.
     // The first image of a request is always painted, so a request never runs more than this plus one image.
     syncBudgetMs: 16,
-    // The element whose presence means "the veil is up, nobody is looking". No element, no veil: the cap applies.
+    // The element whose presence (before the reveal) means "the veil is up, nobody is looking". No element: the cap applies.
     veilId: 'veil',
     // `?wtcap=0` turns the cap off (every image painted in the request), for the A/B of the burst length.
     cap: !/[?&]wtcap=0(?:&|$)/.test(location.search),
@@ -3894,7 +3894,10 @@
    * MapLibre's own image request for a tile, which looks the image up again
    * straight after the event.
    */
+  // "The veil is up" ends at the REVEAL (window.__intro.reason is set), not when the veil element is removed: the
+  // veil fades for up to 2.6 s after the reveal while the city is already moving under it.
   function veilUp() {
+    if (window.__intro && window.__intro.reason) return false;
     return typeof document !== 'undefined' && !!document.getElementById(WALLTIERS.veilId);
   }
   /** A flat wall of the pattern's own colour at the current hour, the size of the real image. */
