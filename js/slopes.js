@@ -342,8 +342,12 @@
   //  (js/slopes-apartments.js asks for it with build(undefined, { wasm: true })) writes into Wasm memory and hands
   //  the finished arrays to three.js as views of that memory. Every other generator keeps the JS builder.
   // ══════════════════════════════════════════════════════════════════════
+  // The phone profile's defaults (js/mobile.js LITE.budget.rustBuilder / packTones: ON on a phone, OFF on a desktop); the URL overrides both ways
+  // (?rustbuilder=0|1, ?packverts=0|1). `budget` is null on a desktop.
+  const _budget = (window.LITE_PROFILE && window.LITE_PROFILE.budget) || {};
+  const switchOf = (name, phoneDefault) => { const v = q.get(name); return v === '1' ? true : v === '0' ? false : !!phoneDefault; };
   const RUST = {
-    on: q.get('rustbuilder') === '1',
+    on: switchOf('rustbuilder', _budget.rustBuilder),
     wasmUrl: 'wasm/meshkernel.wasm',   // the committed build of experiments/rust-mesh (scripts/verify/wasm-mesh-parity.mjs holds it to the source's hash)
     moduleUrl: './slopes-rust.js',     // the JS side of it, imported only when the switch is on (relative to this file)
     stageRecords: 8192,                // builder calls staged in Wasm memory before one process() call
@@ -363,12 +367,12 @@
   //  scripts/verify/packverts-decode.mjs proves that on the CPU, scripts/verify/packverts-pixels.mjs on the screen.
   // ══════════════════════════════════════════════════════════════════════
   const PACK = {
-    on: q.get('packverts') === '1',
+    on: switchOf('packverts', _budget.packTones),
     // The word is 32 bits: toneBits of tone index, 1 facet bit, and 31 - toneBits of normal index. MEASURED on the real catalog with the real js/city-night.js
     // (which picks a lit window's tone and brightness per window): 14,719 distinct tones and 94,312 distinct normals, so 14 bits (16,384) and 17 bits (131,072) is the
     // only split that fits, with 10% and 28% to spare. (An earlier 13/18 split was sized from a build with a stand-in night module that makes 1,266 tones, and
     // the real page overflowed it.) A build that overflows either table throws a packOverflow error and js/slopes-apartments.js rebuilds unpacked.
-    toneBits: 14,
+    toneBits: Math.min(15, Math.max(1, Math.floor(Number(q.get('packtonebits'))) || 14)),   // ?packtonebits=N is a TEST seam (a small N makes the tables overflow so the unpacked fallback can be exercised); leave it at 14
     texWidth: 4096,      // width of both tables' float textures, in texels (a tone takes 4 texels in one row, a normal 1)
     normalHash0: 1 << 14, // the normal interner's first hash-table size (it doubles at half full)
   };

@@ -163,6 +163,15 @@
       // Sep 30 2026: still off. Measured on vs off it barely moves the flight
       // peak (HANDOFF.md); it mainly lowers settled memory. Owner's call.
       packVertices: false,
+      // js/slopes.js, the authored buildings' vertex store. ON for a phone, OFF on a desktop (a desktop gets neither unless the URL says so).
+      // rustBuilder: the shared mesh builder as a 43 KB WebAssembly module (wasm/meshkernel.wasm, source in experiments/rust-mesh/): byte-identical
+      // buffers, about half the JS heap at the peak. packTones: ONE 32-bit word a vertex (an index into a tone table and a normal table, both float
+      // textures the vertex shader reads) instead of 55.7 bytes: the authored buildings' GPU upload 186 MB -> 67 MB on the phone profile, no time or frame cost.
+      // Measured on AWS (A10G), phone profile, min of 5, off vs both: peak JS heap 803 -> 521 MB, GPU upload 186 -> 67 MB, browser memory 3,295 -> 3,030 MB.
+      // Both fall back by themselves (a missing or failing .wasm -> the JS builder; a full tone or normal table -> the unpacked layout; docs in js/slopes.js).
+      // ?rustbuilder=0|1 and ?packverts=0|1 override either way. false = off. The wasm is never fetched where rustBuilder is off.
+      rustBuilder: true,
+      packTones: true,
       // js/slopes.js SLOPES.sunlight.shadowSize: the two sun shadow maps
       // (near, far). Desktop keeps 1536. Each map is a colour target plus a
       // depth buffer, 8 bytes a texel: 2 x 1536^2 x 8 = 37.7 MB at 1536,

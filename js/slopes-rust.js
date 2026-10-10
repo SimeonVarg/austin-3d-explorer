@@ -55,6 +55,7 @@ function wasm(fn) {
 const REC = 28;   // f64 per staged record: [op, tone, hasWant, want xyz, a xyz, b xyz, c xyz, d xyz, na xyz, nb xyz, nc xyz, facet]
 
 async function compile(wasmUrl) {
+  if (typeof WebAssembly === 'undefined' || !WebAssembly) throw new Error('this browser has no WebAssembly');
   // compileStreaming needs Content-Type: application/wasm; fall back to arrayBuffer() for a host that serves another type
   try { return await WebAssembly.compileStreaming(fetch(wasmUrl)); }
   catch (e) {

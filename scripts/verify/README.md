@@ -710,6 +710,20 @@ unpacked build. `--break` nudges one Rust-side coordinate by 1 mm and must fail 
 passes when "on" moves no more pixels than the control. `--phone` shoots the phone profile (390x844 @3x, `?lite=1`, chunked build),
 `--on "packverts=1&rustbuilder=1"` tries both switches, `--break` shoots "on" at a later hour and must fail.
 
+## The phone defaults and the fallbacks (`rust-load-fallbacks.mjs`, `pack-overflow-fallback.mjs`, added October 10 2026)
+
+`js/mobile.js` `LITE.budget.rustBuilder` and `packTones` (next to `packVertices`) turn the Rust builder and the packed vertex layout ON for the phone profile and leave them OFF on a desktop;
+`?rustbuilder=0|1` and `?packverts=0|1` override either way. Where the builder is off the `.wasm` is never fetched.
+
+`rust-load-fallbacks.mjs` — Node only, no browser, runs in CI. The real `js/slopes.js` is loaded the way the page loads it and one thing is broken at a time: the defaults
+(desktop, phone, each switch both ways, the fetch count), the `.wasm` loading (404, a blocked or failing fetch, bytes that are not WebAssembly, no WebAssembly at all, an out-of-memory
+instance), each ending in the JS builder with exactly one console line and the JS builder's bytes, unpacked and packed; a host serving the `.wasm` as `text/plain` and a browser without
+`compileStreaming`, which must still load it through the non-streaming path; and the byte-rule probe (no GL, a throwing context, a program that does not link, a throwing or garbage read-back,
+a pending GL error: the spec rule; a GPU that divides, one that multiplies by 1/255, one that is neither). `--break` nudges the JS result after each fallback and must fail.
+
+`pack-overflow-fallback.mjs` — needs three.js r159 outside the repo (SKIP without it; quarantined, run by hand). A packed build whose tone table overflows (`?packtonebits=4`, a test seam) is
+rebuilt unpacked: the same triangles, position and index bytes as the plain build, one console line. `--break` removes the overflow and must fail.
+
 ## Things that will waste your time if you don't know them
 
 - **`_harness.html` forces `preserveDrawingBuffer: true`.** That is the only way
