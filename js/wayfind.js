@@ -6642,12 +6642,16 @@
       row.appendChild(inp);
       const x = h('button', 'wf-x'); x.setAttribute('aria-label', SAY_UI.clearField);
       x.appendChild(icon(null, IC.close, 2.4));
-      x.addEventListener('mousedown', (ev) => {
+      const clearField = (ev) => {
         ev.preventDefault();
         inp.value = '';
         if (inp.id === 'wf-from') state.from = null; else state.to = null;
         inp.focus(); renderList(inp); syncClears();
-      });
+      };
+      x.addEventListener('mousedown', clearField);
+      // A keyboard press (Enter or Space on the focused button) arrives as a click with detail 0; a mouse click
+      // already ran on mousedown (B20).
+      x.addEventListener('click', (ev) => { if (ev.detail === 0) clearField(ev); });
       row.appendChild(x);
       return { row, inp, x };
     };
@@ -6680,12 +6684,14 @@
     egs.appendChild(h('span', 'wf-eg-lab', SAY_UI.tryLabel));
     for (const code of WF_UI.exampleCodes) {
       const c = h('button', 'wf-eg', code);
-      c.addEventListener('mousedown', (ev) => {
+      const useExample = (ev) => {
         ev.preventDefault();
         const inp = (document.activeElement === el.inFrom) ? el.inFrom : el.inTo;
         inp.value = code; inp.focus();
         renderList(inp); syncClears();
-      });
+      };
+      c.addEventListener('mousedown', useExample);
+      c.addEventListener('click', (ev) => { if (ev.detail === 0) { el.inTo.focus(); useExample(ev); } });   // keyboard press (B20)
       egs.appendChild(c);
     }
     sheet.appendChild(egs);
