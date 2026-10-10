@@ -31,7 +31,7 @@
     const auto = q.get('auto') === '1';
     const countdownS = q.has('countdown') ? Math.max(0, +q.get('countdown')) : AIR.countdownS;
     const night = { on: false };
-    S.manual = manual; S.auto = auto;
+    S.manual = manual; S.auto = auto;      // S.auto may be flipped live (the perf run starts the autopilot by hand)
 
     const readBest = () => { try { const v = +localStorage.getItem(BEST_KEY); return v > 0 ? v : null; } catch (e) { return null; } };
     const writeBest = t => { try { localStorage.setItem(BEST_KEY, String(t)); } catch (e) {} };
@@ -115,7 +115,7 @@
       ui.centre(`<small>${S.fromLink ? 'A ghost link: beat their time' : 'Skyline: ' + S.gates.length + ' rings, UT Tower to Darrell K Royal Stadium'}</small>`
         + `Press <b>Enter</b> or tap to start<small>${S.ref ? S.refLabel + ' to beat: ' + window.AirRace.fmt(S.refTime) : ''}</small>`, 'small');
       ui.setClock(0); ui.setGate(0, S.gates.length, S.gates[0].name); ui.setDelta(null);
-      if (auto || q.get('start') === '1') begin();
+      if (S.auto || q.get('start') === '1') begin();
     }
     function begin() {
       if (S.game.state !== 'ready') return;
@@ -130,7 +130,7 @@
     S.restart = restart; S.begin = begin;
 
     function inputNow() {
-      if (auto && S.game && S.game.state !== 'ready') {
+      if (S.auto && S.game && S.game.state !== 'ready') {
         const P = Object.assign({}, AIR, { autopilot: Object.assign({}, AIR.autopilot, { skill: S.autoSkill == null ? 1.0 : S.autoSkill }) });
         return window.AirAutopilot.control(S.game.craft, S.gates, Math.min(S.game.race.next, S.gates.length - 1), P);
       }
@@ -180,7 +180,7 @@
       }
       const states = S.gates.map((_, i) => { const r = g.race.results[i]; return r ? r.status : null; });
       S.layer.frame({ craft: c, ghost, states, next: g.race.next, clock: performance.now() / 1000, speedFrac: Math.max(0, Math.min(1, (c.v - AIR.flight.vCruise * 0.6) / (AIR.flight.vBoost - AIR.flight.vCruise * 0.6))),
-        showTrail: g.state === 'running' && AIR.look.lineToNext, showStreaks: AIR.look.windStreaks && window.AIR_BUDGET && window.AIR_BUDGET.layer.windStreaks, showCraft: true });
+        eye: { x: camera.state.ex, y: camera.state.ey, z: camera.state.ez }, showTrail: g.state === 'running' && AIR.look.lineToNext, showStreaks: AIR.look.windStreaks && window.AIR_BUDGET && window.AIR_BUDGET.layer.windStreaks, showCraft: true });
       map.triggerRepaint();
     }
     function frame(now) {
@@ -199,7 +199,7 @@
         return { i, name: gt.name, status: r ? r.status : 'miss', split: r ? r.split : null, d: r && ref != null ? r.split - ref : null }; });
       S.result = { time, misses: e.misses, rows };
       // finish a beat late so the last gate's flash is seen first
-      setTimeout(() => { S.ui.showFinish({ time, misses: e.misses, rows, best: prevBest, refLabel: S.ref ? S.refLabel : null, refTime: S.refTime }); S.ui.setLink(linkText().slice(0, 140) + '…'); }, auto ? 50 : 900);
+      setTimeout(() => { S.ui.showFinish({ time, misses: e.misses, rows, best: prevBest, refLabel: S.ref ? S.refLabel : null, refTime: S.refTime }); S.ui.setLink(linkText().slice(0, 140) + '…'); }, S.auto ? 50 : 900);
     }
     function linkText() {
       const g = S.game, str = window.AirGhost.encode(g.samples(), { course: 1, time: S.result ? S.result.time : g.clock(), misses: g.race.misses });
@@ -216,11 +216,11 @@
 
     // ── frame-time meter ──────────────────────────────────────────────
     const perf = { on: false, dts: [] };
-    function perfSample(dt) { if (perf.on) perf.dts.push(dt * 1000); }
-    S.perfStart = () => { perf.dts = []; perf.on = true; };
+    function perfSample(dt) { if (!perf.on) return; perf.dts.push(dt * 1000); if (perf.dts.length % 6 === 0) { perf.n = (perf.n || 0) + 1; if (!map.areTilesLoaded()) perf.loading = (perf.loading || 0) + 1; } }
+    S.perfStart = () => { perf.dts = []; perf.n = 0; perf.loading = 0; perf.on = true; };
     S.perfStop = () => { perf.on = false; const a = perf.dts.slice().sort((x, y) => x - y), n = a.length;
       if (!n) return null; const pc = p => a[Math.min(n - 1, Math.floor(p * n))], mean = a.reduce((s, v) => s + v, 0) / n;
-      return { frames: n, fpsMean: +(1000 / mean).toFixed(1), p50ms: +pc(0.5).toFixed(1), p95ms: +pc(0.95).toFixed(1), p99ms: +pc(0.99).toFixed(1), worstMs: +a[n - 1].toFixed(1), fpsP5low: +(1000 / pc(0.95)).toFixed(1) }; };
+      return { frames: n, fpsMean: +(1000 / mean).toFixed(1), p50ms: +pc(0.5).toFixed(1), p95ms: +pc(0.95).toFixed(1), p99ms: +pc(0.99).toFixed(1), worstMs: +a[n - 1].toFixed(1), fpsP5low: +(1000 / pc(0.95)).toFixed(1), tilesPendingShare: perf.n ? +(perf.loading / perf.n).toFixed(2) : null }; };
     function fpsBox() {
       const b = document.createElement('div'); b.style.cssText = 'position:fixed;right:10px;top:10px;z-index:99;font:12px ui-monospace,monospace;color:#7df9ff;background:rgba(0,0,0,.5);padding:4px 8px;border-radius:6px'; document.body.appendChild(b);
       let n = 0, t0 = performance.now(), worst = 0; const loop = () => { n++; const t = performance.now(); if (t - t0 >= 500) { b.textContent = Math.round(n * 1000 / (t - t0)) + ' fps'; n = 0; t0 = t; } requestAnimationFrame(loop); }; loop();

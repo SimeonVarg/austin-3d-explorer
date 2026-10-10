@@ -36,11 +36,11 @@ flight on every machine. Chase camera 24 m back and 7 m up, 0.12 s position lag,
 
 ## The course ("Skyline", `data/air/courses.json`)
 
-22 rings, built by `scripts/air/place-gates.mjs` from the real data (footprints and heights of the campus snapshot,
+23 rings, built by `scripts/air/place-gates.mjs` from the real data (footprints and heights of the campus snapshot,
 the Tower, West Campus, the downtown outer ring, the Capitol and the stadium). Start high over the UT Tower, down the
-Drag, between the West Campus towers (Moontower, 21 Rio, Ion), across to downtown, a slalom between named towers
-(Independent, 360, Republic, Frost, Austonian, 415 Colorado), around the Capitol dome, finish through a gate over
-Darrell K Royal Stadium. About 5.5 km, 80 s for a clean run. Every gate: ring radius 14 to 26 m, centre in clear
+Drag, between two West Campus towers (Dobie and Ion), across to downtown, a slalom through three real gaps (Indeed and One
+American, 415 Colorado and Frost, Austonian and JW Marriott), around the Capitol dome, finish through a gate over
+Darrell K Royal Stadium. 6.3 km, about 80 s for a clean run. Every gate: ring radius 16 to 30 m, centre in clear
 air at least 12 m (`AIR.gates.margin`) from every building, reachable from the previous gate by the real flight
 model (the autopilot flies the whole course in the test).
 

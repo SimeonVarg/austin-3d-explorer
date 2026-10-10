@@ -2,7 +2,7 @@
  * air-run.mjs — drives air.html in a real browser: frame-rate runs, stills and the recorded clip.
  * A TOOL, not a check (no pass/fail; it photographs and times). Listed under `tools` in ci/checks.json.
  *
- *   node air-run.mjs --mode perf  --out DIR [--variants on,lite,full] [--size 1280x720] [--secs 70]
+ *   node air-run.mjs --mode perf  --out DIR [--variants on:lite:full] [--size 1280x720] [--secs 70]
  *        the autopilot flies in real time (rAF); frame times in 10 s windows along the course. Variants: on = the air budget,
  *        lite = the integrated/phone step, full = the main page's whole city (?full=1&airbudget=0), same flight
  *   node air-run.mjs --mode stills --out DIR [--hour 0.12]
@@ -25,7 +25,7 @@ const A = process.argv.slice(2);
 const arg = (k, d) => { const i = A.indexOf('--' + k); return i >= 0 ? A[i + 1] : d; };
 // --gpu low asks Chrome for the integrated chip (the owner's-laptop stand-in): chrome.mjs reads VERIFY_GPU when it loads
 if (arg('gpu') === 'low') process.env.VERIFY_GPU = 'low';
-const { BASE, launch } = await import('./chrome.mjs');
+const { BASE, launch, HW_ARGS } = await import('./chrome.mjs');
 const MODE = arg('mode', 'probe'), OUT = arg('out', process.env.VERIFY_OUT || path.join(process.cwd(), 'air-out'));
 const [W, H] = arg('size', '1280x720').split('x').map(Number);
 const HOUR = arg('hour', '0.12'), BUDGET = arg('budget', 'on');
@@ -33,7 +33,9 @@ const EXTRA = arg('q', '');
 fs.mkdirSync(OUT, { recursive: true });
 const log = (...a) => console.log('[air-run]', ...a);
 
-const browser = await launch(chromium, { maxMs: 40 * 60 * 1000 });
+// --uncap lifts Chrome's 60 Hz frame cap (and vsync) so a fast GPU shows how fast it really is; without it a good machine reads 60
+const UNCAP = A.includes('--uncap');
+const browser = await launch(chromium, { maxMs: 60 * 60 * 1000, ...(UNCAP ? { args: [...HW_ARGS, '--disable-frame-rate-limit', '--disable-gpu-vsync'] } : {}) });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 const errors = [], warns = [];
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
@@ -49,11 +51,13 @@ async function open(query) {
   await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
 }
 const settle = (ms = 6000) => page.evaluate(ms => new Promise(res => {
-  const m = window.__air.map; const done = () => { clearTimeout(t); res(); };
-  const t = setTimeout(done, ms);
+  const m = window.__air.map; const t0 = performance.now(); let to = false; const done = () => { clearTimeout(t); res(to ? -1 : Math.round(performance.now() - t0)); };
+  const t = setTimeout(() => { to = true; done(); }, ms);
   const chk = () => { if (m.loaded() && m.areTilesLoaded()) done(); else m.once('idle', chk); };
   chk();
 }), ms);
+// two animation frames: the map has drawn what the last jumpTo asked for
+const drawn = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 const gl = () => page.evaluate(() => { const c = document.createElement('canvas'), g = c.getContext('webgl2'); const e = g && g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'unknown'; });
 const base = (more = '') => `manual=1&p=${HOUR}&airbudget=${BUDGET}&preset=balanced${EXTRA ? '&' + EXTRA : ''}${more}`;
 
@@ -81,27 +85,36 @@ async function runMode(MODE) {
     await shot('4-finish');
     fs.writeFileSync(path.join(OUT, 'timeline.json'), JSON.stringify(tl, null, 1));
   } else if (MODE === 'clip') {
-    const from = +arg('from', 36), secs = +arg('clipsecs', 20), fps = +arg('fps', 30);
+    const from = +arg('from', 36), secs = +arg('clipsecs', 20), fps = +arg('fps', 30), warmFps = 6;
     await open(base('&auto=1&countdown=0&ghost=house&hud=' + arg('hud', '1')));
+    // PASS 1, warm: fly the segment at 6 steps a second, waiting for the tiles each step, so the capture pass finds them cached
+    await page.evaluate(t => window.__air.seek(t), from);
+    await settle(30000);
+    let tw = Date.now(), slow = 0;
+    for (let k = 0; k < Math.round(secs * warmFps); k++) { await page.evaluate(dt => window.__air.advance(dt), 1 / warmFps); if ((await settle(4000)) < 0) slow++; }
+    log(`warm pass ${((Date.now() - tw) / 1000).toFixed(0)} s, ${slow} steps hit the 4 s ceiling`);
+    // PASS 2, capture: the same segment, 30 steps a second, one JPEG each
     await page.evaluate(t => window.__air.seek(t), from);
     await settle(20000);
     const frames = Math.round(secs * fps); fs.mkdirSync(path.join(OUT, 'frames'), { recursive: true });
-    const t0 = Date.now();
+    const t0 = Date.now(); let unsettled = 0;
     for (let k = 0; k < frames; k++) {
       await page.evaluate(dt => window.__air.advance(dt), 1 / fps);
-      await settle(5000);
+      await drawn();
+      if (!(await page.evaluate(() => window.__air.map.areTilesLoaded()))) { unsettled++; await settle(700); await drawn(); }
       await page.screenshot({ path: path.join(OUT, 'frames', String(k).padStart(4, '0') + '.jpg'), type: 'jpeg', quality: 92 });
-      if (k % 30 === 0) log(`frame ${k}/${frames}, ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+      if (k % 60 === 0) log(`frame ${k}/${frames}, ${((Date.now() - t0) / 1000).toFixed(0)} s, ${unsettled} waited for tiles`);
     }
+    log(`capture done: ${frames} frames, ${unsettled} needed a tile wait`);
   } else if (MODE === 'perf') {
-    const secs = +arg('secs', 70), win = 10, variants = arg('variants', 'on').split(',');
+    const secs = +arg('secs', 70), win = 10, variants = arg('variants', 'on').split(':');
     const results = [];
     for (const v of variants) {
       const q = v === 'full' ? 'airbudget=0&full=1' : `airbudget=${v}`;
-      await open(`p=${HOUR}&${q}&preset=balanced&auto=1&countdown=0&ghost=house&hud=0${EXTRA ? '&' + EXTRA : ''}`);
+      await open(`p=${HOUR}&${q}&preset=balanced&auto=0&countdown=0&ghost=house&hud=0${EXTRA ? '&' + EXTRA : ''}`);
       await settle(30000);
-      const out = { variant: v, gl: await gl(), size: `${W}x${H}`, windows: [] };
-      await page.evaluate(() => window.__air.begin());
+      const out = { variant: v, gl: await gl(), size: `${W}x${H}`, uncapped: UNCAP, windows: [] };
+      await page.evaluate(() => { window.__air.auto = true; window.__air.begin(); });
       for (let w = 0; w < secs / win; w++) {
         await page.evaluate(() => window.__air.perfStart());
         await page.waitForTimeout(win * 1000);

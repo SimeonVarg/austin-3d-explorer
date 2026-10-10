@@ -122,7 +122,12 @@
       const c = f.craft;
       craft.visible = f.showCraft !== false;
       poseTo(craft, c.x, c.y, c.z, c.yaw, c.pitch, c.roll);
-      if (f.ghost) { ghost.visible = true; poseTo(ghost, f.ghost.x, f.ghost.y, f.ghost.z, f.ghost.yaw, f.ghost.pitch, f.ghost.roll || 0); } else ghost.visible = false;
+      // The ghost fades out as it comes between the camera and the craft (it would fill the frame), and is gone inside 26 m of the eye.
+      if (f.ghost) {
+        const e = f.eye, d = e ? Math.hypot(f.ghost.x - e.x, f.ghost.y - e.y, f.ghost.z - e.z) : 99;
+        ghost.visible = d > 26; ghost.children[0].material.opacity = Math.min(0.62, Math.max(0, (d - 26) / 40) * 0.62);
+        if (ghost.visible) poseTo(ghost, f.ghost.x, f.ghost.y, f.ghost.z, f.ghost.yaw, f.ghost.pitch, f.ghost.roll || 0);
+      } else ghost.visible = false;
       const pulse = 1 + 0.05 * Math.sin(f.clock * 5);
       rings.forEach((r, i) => {
         const st = f.states[i] || 'todo';
