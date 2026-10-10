@@ -31,7 +31,8 @@ const PARAMS = {
   waitReadyMs: 1200000,               // one run's ceiling for the build to finish and the veil to lift (this Mac has been at load average 200 to 590: a page load there takes many minutes)
   settleMs: 3000,                     // after both, so the last memory peak is seen
   modes: {
-    off: '',
+    off: '&rustbuilder=0&packverts=0',   // both switches OFF explicitly (a phone profile turns them on by itself, js/mobile.js)
+    default: '',                          // no switch at all: what a visitor gets (desktop: both off; --phone: both ON)
     on: '&rustbuilder=1',
     reserve: '&rustbuilder=1&rustreserve=6523203',   // the Rust builder told the vertex count (the study: 650 MiB of linear memory -> 357 MiB)
     pack: '&packverts=1',                             // the packed vertex layout (js/slopes.js PACK)
