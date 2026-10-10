@@ -48,7 +48,11 @@ const ONLY = process.env.DT_ONLY ? new Set(process.env.DT_ONLY.split(',')) : nul
 const flickAt = ARGS.indexOf('--flicker');
 if (flickAt >= 0) ARGS.splice(flickAt, 1);
 const FLICKER = flickAt >= 0 || process.env.DT_FLICKER === '1';
-const SHOTS = JSON.parse(fs.readFileSync(ARGS[0] || path.join(HERE, 'shots-downtown.json'), 'utf8'));
+// A list named without a folder is looked for beside this script too: the lanes do not
+// all start it from scripts/verify.
+const listArg = ARGS[0] || 'shots-downtown.json';
+const SHOTS = JSON.parse(fs.readFileSync(
+  fs.existsSync(listArg) ? listArg : path.join(HERE, listArg), 'utf8'));
 const SWAPPED = ['data/tiles/outer.pmtiles', 'data/outer_tower_palette.json'];
 // Walls painted at once and no name labels: the same switches the CI pictures use.
 const QUERY = '?intro=0&drift=0&facadepace=0&timeofdaypace=0&labels=0';
