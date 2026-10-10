@@ -4381,15 +4381,14 @@
       return _zAnchor;
     }
     _zPinned = true;
-    // Verification entry point: it repaints "every tier", so under WALL TIERS the
-    // images nobody has asked for yet are painted first, as the eager path had.
-    if (map) paintAllWallImages(map);
     const want = Math.max(REF_ZOOM, Math.min(ATLAS.MAX_ZOOM_ANCHOR, Math.floor(z)));
     if (want !== _zAnchor) {
       _zAnchor = want;
       _rawKey = null;
-      if (map) paintTiers(map, TIERS, _atlasP);
-    }
+      // Verification entry point: it repaints "every tier", so under WALL TIERS the
+      // images nobody has asked for yet are painted too, as the eager path had.
+      if (map) { paintAllWallImages(map); paintTiers(map, TIERS, _atlasP); }
+    } else if (map) paintAllWallImages(map);
     return _zAnchor;
   };
 
