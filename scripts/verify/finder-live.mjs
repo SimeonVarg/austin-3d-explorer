@@ -1,7 +1,7 @@
 /**
  * finder-live.mjs — the sentences of the finder's live bus line (js/finder-live.js), checked in node.
  * No browser, no network. Every expected sentence is written out here by hand.
- * Usage: node scripts/verify/finder-live.mjs [--break]     (--break changes one word: it must fail)
+ * Usage: node scripts/verify/finder-live.mjs [--break | --break=day]     (--break changes one word, --break=day drops the weekend reason: each must fail)
  */
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -9,7 +9,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const L = await import(pathToFileURL(path.join(ROOT, 'js', 'finder-live.js')).href);
 if (process.argv.includes('--break')) L.LIVE.say.live = (m) => 'in ' + m + ' min';
+if (process.argv.includes('--break=day')) L.LIVE.say.offDay = () => '';        // the weekend reason is lost: the day checks must fail
 let pass = 0; const eq = (a, b, msg) => { assert.deepEqual(a, b, msg); pass++; };
+const ok_ = (c, msg) => { assert.ok(c, msg); pass++; };
 
 // Austin time, whatever the machine's zone: 2026-10-14 13:30 UTC is 08:30 on a Wednesday there (daylight time, UTC-5);
 // 2026-12-06 05:10 UTC is 23:10 on Saturday (standard time, UTC-6).
@@ -47,6 +49,24 @@ eq(L.describe(tt, 'GDC', true, true).lines, ['The bus timetable on this page has
 eq(L.describe({ options: [], reason: 'no bus is running at that time' }, 'GDC', true, true).lines, ['The bus timetable on this page has run out of date, so no timetable times are shown.'], 'expired, nothing running');
 eq(L.describe(opt([{ kind: 'walk' }, { kind: 'wait', live: true, inMin: 6, headway: 15 }, bus('20', 'A', 'B'), { kind: 'walk' }], 2280, 2400), 'GDC', true, true).lines,
   ['Bus to GDC now: 20 from A, in 6 min (live) · 38-40 min door to door'], 'expired timetable, but a live bus is still said');
+// WHY THE LINE DISAGREES WITH THE LIST. The list is the weekday class-time timetable; on a weekend or late at night the line says so
+// first, and only where it would otherwise contradict the list (walking wins, or no bus is running). Never a promise.
+{
+  const walkWins = { options: [], reason: 'walking is as fast as any bus', walk: { lo: 278.571, hi: 354.545, m: 300 } };
+  const none = { options: [], reason: 'no bus is running at that time' };
+  eq(L.describe(walkWins, 'GDC', true, false, { day: 6, minute: 600 }).lines, ['Today is Saturday: fewer buses. Walking to GDC is as quick as any bus: about 5-6 min.'], 'Saturday, walking wins');
+  eq(L.describe(none, 'GDC', true, false, { day: 0, minute: 600 }).lines, ['Today is Sunday: fewer buses. No bus is running right now (timetable).'], 'Sunday, no bus running');
+  eq(L.describe(none, 'GDC', true, false, { day: 3, minute: 23 * 60 + 10 }).lines, ['It is late: fewer buses. No bus is running right now (timetable).'], 'a weekday at 23:10');
+  eq(L.describe(walkWins, 'GDC', true, false, { day: 3, minute: 5 * 60 }).lines, ['It is late: fewer buses. Walking to GDC is as quick as any bus: about 5-6 min.'], 'a weekday at 05:00');
+  eq(L.describe(walkWins, 'GDC', true, false, { day: 3, minute: 510 }).lines, ['Walking to GDC is as quick as any bus: about 5-6 min.'], 'a weekday morning: no reason, the old sentence');
+  eq(L.describe(walkWins, 'GDC', true, false).lines, ['Walking to GDC is as quick as any bus: about 5-6 min.'], 'no time given: the old sentence');
+  eq(L.describe({ options: [], reason: 'no stop near the start' }, 'GDC', true, false, { day: 6, minute: 600 }).lines, ['No bus links this home and GDC right now.'], 'a missing link is not about the day');
+  eq(L.describe(opt([{ kind: 'walk' }, { kind: 'wait', live: false, headway: 30 }, bus('20', 'A', 'B'), { kind: 'walk' }], 2110, 3140), 'GDC', true, false, { day: 6, minute: 600 }).lines,
+    ['Bus to GDC now: 20 from A, about every 30 min (timetable) · 35-52 min door to door'], 'a bus that IS running on Saturday is just described: no disagreement, no reason');
+  eq([6 * 60 - 1, 6 * 60, 22 * 60 - 1, 22 * 60].map((m) => L.offReason({ day: 2, minute: m })), ['It is late: fewer buses. ', '', '', 'It is late: fewer buses. '], 'class hours are 06:00 up to 22:00');
+  eq(L.offReason(null), '', 'no time, no reason'); eq(L.offReason({ day: NaN, minute: 5 }), '', 'junk time, no reason');
+  ok_(L.offReason({ day: 6, minute: 0 }) === 'Today is Saturday: fewer buses. ', 'Saturday is named');
+}
 // No sentence may promise or give a clock time.
 for (const fn of Object.values(L.LIVE.say)) {
   const s = typeof fn === 'function' ? fn(7, 'X') : fn;

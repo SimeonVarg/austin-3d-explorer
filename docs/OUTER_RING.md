@@ -2,6 +2,13 @@
 
 **Branch:** `data/extend-radius`
 
+> **2026-10-10: the houses left this layer.** The ring's area cull kept 15.6 % of
+> the outer city's buildings. Every house-sized building outside downtown is now
+> drawn by `js/outer-homes.js` with a measured roof, from `data/outer_homes.bin`;
+> the ring keeps the towers, the streetwall, downtown and the big low-rise
+> buildings. Read `docs/outer-homes.md`. The counts below are the ring as it was
+> in July.
+
 The modelled world used to be 2.5 × 2.2 km. Fly two blocks past its edge in any
 direction and Austin stopped dead: no downtown, no Lady Bird Lake, no
 neighbourhoods, just the basemap plain running to the horizon. This pass adds
