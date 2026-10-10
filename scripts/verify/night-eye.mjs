@@ -242,7 +242,7 @@ await stage('movie', async () => {
     await settle(after, pose); await waitStable(after);
     console.log('  graphics state', JSON.stringify(await after.evaluate(() => { const G = window.GFX || {}; const fx = document.getElementById('fx-canvas'); return { bloom: G.bloom, godRays: G.godRays, flare: G.flare, autoExposure: G.autoExposure, renderScale: G.renderScale, fxCanvas: !!fx, fxBlank: fx && fx.dataset.blank, preserve: (() => { try { return window.__map.painter.context.gl.getContextAttributes().preserveDrawingBuffer; } catch (e) { return null; } })() }; })));
     // the glare alone: the same frozen frame with the glare lobes off and on (lossless), so the skirt can be drawn and measured
-    for (const g of [0, 1]) {
+    for (const g of [0, 1, 10]) {
       // The effects canvas (bloom and the glare lobes) is redrawn when the camera or the hour moves, not on every frame: nudge the bearing by a ten-thousandth of a degree.
       await after.evaluate(g => { window.CityNight.eye.glare = g; const m = window.__map; m.jumpTo({ bearing: m.getBearing() + (g ? 0.0001 : -0.0001) }); window.CityNight.hold(1000); }, g);
       await after.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));

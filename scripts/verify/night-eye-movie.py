@@ -96,11 +96,19 @@ for v in views:
                     r_ = int(((xx - bx) ** 2 + (yy - by) ** 2) ** 0.5 // 10)
                     if r_ < 12: a = prof.setdefault(r_, [0, 0]); a[0] += d; a[1] += 1
             print(v, 'glare adds on average %.3f of 255 per channel over the whole frame' % (tot / n), '; around the brightest cluster (10 px rings):', ' '.join('%.1f' % (prof[k][0] / prof[k][1]) for k in sorted(prof)))
-            diff = Image.new('RGB', (gw, gh)); dp = diff.load(); c0, c1 = G0.crop((gx, gy, gx + gw, gy + gh)).load(), G1.crop((gx, gy, gx + gw, gy + gh)).load()
-            for yy in range(gh):
-                for xx in range(gw): dp[xx, yy] = tuple(min(255, max(0, c1[xx, yy][k] - c0[xx, yy][k]) * 8) for k in range(3))
-            tiles = [G0.crop((gx, gy, gx + gw, gy + gh)), G1.crop((gx, gy, gx + gw, gy + gh)), diff]
+            diff = Image.new('RGB', (gw, gh)); dp = diff.load()
+            if os.path.exists(fx0f) and os.path.exists(fx1f):   # the exact skirt, x16
+                c0, c1 = F0.crop((gx, gy, gx + gw, gy + gh)).load(), F1.crop((gx, gy, gx + gw, gy + gh)).load()
+                for yy in range(gh):
+                    for xx in range(gw): dp[xx, yy] = tuple(min(255, max(0, c1[xx, yy][k] - c0[xx, yy][k]) * 16) for k in range(3))
+            else:
+                c0, c1 = G0.crop((gx, gy, gx + gw, gy + gh)).load(), G1.crop((gx, gy, gx + gw, gy + gh)).load()
+                for yy in range(gh):
+                    for xx in range(gw): dp[xx, yy] = tuple(min(255, max(0, c1[xx, yy][k] - c0[xx, yy][k]) * 8) for k in range(3))
+            g10f = os.path.join(src, f'{v}-glare10.png')
+            G10 = Image.open(g10f).convert('RGB') if os.path.exists(g10f) else G1
+            tiles = [G0.crop((gx, gy, gx + gw, gy + gh)), G10.crop((gx, gy, gx + gw, gy + gh)), diff]
             gs = Image.new('RGB', (gw * 9 + 12, gh * 3 + 26), (10, 12, 20)); d = ImageDraw.Draw(gs)
-            for k, (t, nm) in enumerate(zip(tiles, ['glare off', 'glare on', 'what the glare adds (x8)'])):
+            for k, (t, nm) in enumerate(zip(tiles, ['glare off', 'glare x10 (?glare=10)', 'default glare lobes (x16)'])):
                 d.text((k * (gw * 3 + 6) + 6, 4), nm + f'   ({gx},{gy}, 3x)', fill=(235, 235, 235), font=f2); gs.paste(t.resize((gw * 3, gh * 3), Image.NEAREST), (k * (gw * 3 + 6), 26))
             gs.save(os.path.join(out, f'{v}-glare-crop-3x.png'))
