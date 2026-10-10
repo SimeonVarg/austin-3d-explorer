@@ -169,7 +169,7 @@ head('1. the page pays nothing for a screen nobody opened');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 ok(!/schedconfirm/.test(html), 'index.html does not reference js/schedconfirm.js');
 
-await page.goto(BASE + '/index.html?walk=1', { waitUntil: 'load', timeout: 180000 });
+await page.goto(BASE + '/index.html?walk=1&drift=0', { waitUntil: 'load', timeout: 180000 });
 await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
 await page.waitForTimeout(1200);
 const atLoad = seen.filter(r => /schedconfirm|schedimg|tesseract|traineddata/i.test(r.url));

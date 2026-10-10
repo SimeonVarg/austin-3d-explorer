@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const src=fs.readFileSync(new URL('../../js/campus-landscape.js',import.meta.url),'utf8');
-const start=src.indexOf(' function detailMesh(B,f){'),end=src.indexOf(' function buildGardens(B){',start);
+const start=src.indexOf(' function detailMesh(B,f){'),end=src.indexOf(' function buildGardens(',start);
 assert.ok(start>=0&&end>start);
 const scope=vm.createContext({slopes:{toLocal:(lng,lat,z)=>({x:lng,y:lat,z})}});
 vm.runInContext(src.slice(start,end),scope);
