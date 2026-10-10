@@ -49,7 +49,8 @@ try {
     await page.waitForTimeout(PARAMS.settleMs);
     const s = await page.evaluate(() => {
       let tris = 0, packedMeshes = 0, meshes = 0;
-      window.slopesApartments.group.traverse(o => { const g = o.geometry; if (g && g.index && g.attributes.position) { meshes++; tris += g.index.count / 3; if (g.userData.pack) packedMeshes++; } });
+      // the generator's own meshes: 'apartments', 'apartments-2' ... (the group also holds the facade filter's overlay quads, 'filtered-facade', which are built another way and never packed)
+      window.slopesApartments.group.traverse(o => { const g = o.geometry; if (g && g.index && g.attributes.position && /^apartments(-\d+)?$/.test(o.name)) { meshes++; tris += g.index.count / 3; if (g.userData.pack) packedMeshes++; } });
       return { packOn: window.slopes.packOn(), rustBuilder: window.slopes.rustBuilder, rustState: window.slopes.rustInfo().state, packInfo: window.slopes.packInfo(), meshes, packedMeshes, tris };
     });
     await page.close();
