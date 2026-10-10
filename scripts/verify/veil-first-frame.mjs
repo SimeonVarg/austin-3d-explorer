@@ -17,7 +17,7 @@
  * Nothing here weakens another check; it only adds one.
  *
  *   VERIFY_URL=http://127.0.0.1:8480 node scripts/verify/veil-first-frame.mjs --out DIR [--reps 2] [--settle 8]
- *     [--poses spawn,start] [--throttle 1] [--gl hardware]
+ *     [--poses spawn,start] [--throttle 1] [--gl hardware] [--old 'veilgate=full'] [--new '']
  *
  * Settings printed with the numbers: 1280x800 at DPR 1, graphics auto-detect cancelled, `?drift=0&intro=0&clip=1`
  * plus the picture query (name labels off, facade/time-of-day pacing off: ci/pictures.mjs explains why).
@@ -41,7 +41,7 @@ const GL = arg('--gl', 'hardware');
 const SLACK = +arg('--slack', 0.05);
 const MAX = +arg('--max', 300) * 1000;
 const TOL = 12;
-const ARMS = [{ name: 'old', q: 'veilgate=full' }, { name: 'new', q: '' }];
+const ARMS = [{ name: 'old', q: arg('--old', 'veilgate=full') }, { name: 'new', q: arg('--new', '') }];   // --old/--new: the URL switches that make the two arms (for the auto-exposure change: --old aeveil=1)
 const PIC_Q = 'namelabels=0&facadepace=0&timeofdaypace=0';
 const START = { center: [-97.7420, 30.2680], zoom: 16.2, pitch: 78, bearing: 5 };   // INTRO.start in js/app.js
 fs.mkdirSync(OUT, { recursive: true });

@@ -21,15 +21,17 @@ const OUT = process.env.VERIFY_OUT || '/tmp/perf-veil-ab';
 const URLB = process.env.VERIFY_URL || 'http://127.0.0.1:8480';
 const REPS = arg('--reps', '5');
 const EXTRA = arg('--extra', '');
+const OLD = arg('--old', 'veilgate=full');   // the URL switch that restores the old behaviour in the old arm
+const NEW = arg('--new', '');
 let code = 0;
 if (!argv.includes('--skip-load')) {
   const q = 'drift=0' + (EXTRA ? '&' + EXTRA : '');
   const r = spawnSync('node', [path.join(HERE, '../perf/load-profile.mjs'), '--url', URLB + '/', '--throttle', '1,4', '--reps', REPS,
-    '--arms', `old=${q}&veilgate=full|new=${q}`, '--label', 'veil-ab', '--out', path.join(OUT, 'load')], { stdio: 'inherit', env: process.env });
+    '--arms', `old=${q}&${OLD}|new=${q}${NEW ? '&' + NEW : ''}`, '--label', 'veil-ab', '--out', path.join(OUT, 'load')], { stdio: 'inherit', env: process.env });
   if (r.status) { console.log(`[load] exit ${r.status}`); code = r.status; }
 }
 if (!argv.includes('--skip-pictures')) {
-  const r = spawnSync('node', [path.join(HERE, 'veil-first-frame.mjs'), '--out', path.join(OUT, 'pictures'), '--reps', '2'], { stdio: 'inherit', env: process.env });
+  const r = spawnSync('node', [path.join(HERE, 'veil-first-frame.mjs'), '--out', path.join(OUT, 'pictures'), '--reps', '2', '--old', OLD, '--new', NEW], { stdio: 'inherit', env: process.env });
   if (r.status) { console.log(`[pictures] exit ${r.status}`); code = r.status; }
 }
 process.exit(code);
