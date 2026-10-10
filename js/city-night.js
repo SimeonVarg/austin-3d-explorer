@@ -103,6 +103,7 @@
     glareLobes:[{w:96,blur:1.0,alpha:.12},{w:40,blur:1.0,alpha:.09}],
     glareTint:'#bcd0ff',
     glareNightOnly:true,
+    debug:false,         // true paints lit window texels by the path that draws them: green MapLibre glass, red bright non-glass, blue below the lit threshold, yellow authored buildings, cyan landmark glass
   };
   // Window palettes. Warm 2700 K homes with a few TVs; offices 4000-5000 K; shops stay on the old palette.
   const palettes={
@@ -127,7 +128,7 @@
     let px=.0013;try{const t=map?.transform;if(t)px=2*Math.tan(t.fov*Math.PI/360)/Math.max(1,t.height);}catch(e){}
     const late=eye.drift?smooth(eye.lateStart,1,p):0;
     U.u_cityEye.value.set(now()/1000,on?eye.windowAmp*eye.twinkle:0,px,late);
-    U.u_cityEye2.value.set(on?eye.lampAmp*eye.twinkle:0,eye.nearM,eye.farM,(on?1:0)+(eye.drift&&night>0?2:0));   // bit 0 shimmer, bit 1 slow change
+    U.u_cityEye2.value.set(on?eye.lampAmp*eye.twinkle:0,eye.nearM,eye.farM,(on?1:0)+(eye.drift&&night>0?2:0)+(eye.debug&&night>0?4:0));   // bit 0 shimmer, bit 1 slow change, bit 2 debug colours
   }
   // The shimmer needs frames: this app draws only when something changes. A parked night camera is redrawn at
   // eye.repaintHz while shimmer is on, the tab is visible, the camera is still and someone touched it lately.

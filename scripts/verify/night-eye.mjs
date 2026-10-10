@@ -241,6 +241,27 @@ await stage('movie', async () => {
 });
 
 // ======================================================================================================
+// 2d. DEBUG: lit window texels painted by the path that draws them (CityNight.eye.debug), to see which lights the shimmer reaches.
+// ======================================================================================================
+await stage('debug', async () => {
+  const dir = path.join(OUT, 'debug'); fs.mkdirSync(dir, { recursive: true });
+  const page = await open('nightfreeze=1&twinkle=1'); data.debug = {};
+  for (const name of (opt('--views', 'west-far,skyline,tower-night,spawn-night')).split(/[,&+]/)) {
+    await settle(page, TUNE.poses[name]); await waitStable(page);
+    await page.evaluate(() => { window.CityNight.eye.debug = true; window.CityNight.hold(1000); });
+    await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
+    await page.waitForTimeout(800);
+    const f = path.join(dir, `${name}.png`); await page.screenshot({ path: f });
+    await page.evaluate(() => { window.CityNight.eye.debug = false; });
+    const im = decodePNG(f); const c = { green: 0, red: 0, yellow: 0, cyan: 0 };
+    for (let i = 0; i < im.data.length; i += im.bpp) { const r = im.data[i], g = im.data[i + 1], b = im.data[i + 2];
+      if (g > 200 && r < 60 && b < 60) c.green++; else if (r > 200 && g < 60 && b < 60) c.red++; else if (r > 200 && g > 200 && b < 60) c.yellow++; else if (g > 200 && b > 200 && r < 60) c.cyan++; }
+    data.debug[name] = c; console.log(`debug ${name.padEnd(12)} MapLibre glass ${c.green}, bright non-glass ${c.red}, authored ${c.yellow}, landmark ${c.cyan}`);
+  }
+  await page.close();
+});
+
+// ======================================================================================================
 // 3. SEQUENCE: eight frames, 0.25 s apart, on a frozen clock that is stepped by hand.
 // ======================================================================================================
 await stage('sequence', async () => {
