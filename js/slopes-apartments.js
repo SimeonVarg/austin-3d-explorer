@@ -97,6 +97,30 @@
     lod: null,
     minzoom: 14,
     twoSided: true, // closed visual envelopes remain opaque from either flight direction
+    // DEBUG FILTER (moire meter): leave one class of detail out of the build, to see how much of a view's
+    // aliasing it carries. ?aptfeat=-reveal,-mullion  or  APARTMENTS.hide.reveal = true  then slopesApartments.rebuild().
+    // Classes: window (every window cell), region (frames, spandrels, heads, accents), reveal, mullion,
+    // arch, fin, pier, slab (balcony slabs), rail (balcony rails and posts), canopy, sign, facet, column,
+    // thin (reveal + mullion + arch + fin + pier + rail + canopy + sign + facet + column).
+    hide: Object.fromEntries((q.get('aptfeat') || '').split(',').filter(Boolean).map(k => [k.replace(/^-/, ''), true])),
+    // THIN DETAIL (2026-10-10, moire). Geometry thinner than a pixel is sampled once per pixel (or four times with
+    // Smooth edges), so it crawls and bands. A quad whose SHORT edge is under `maxM` metres, in a class listed in
+    // THIN_CLASSES (window reveals, mullions, rails, fins, piers, canopies, sign dots), is written to a second mesh with
+    // one extra vertex attribute: the vector across its short edge, 4 bytes. The vertex shader measures that vector on
+    // screen (w, in pixels), widens the quad by `haloPx` and the fragment shader gives it the coverage a one-pixel box
+    // filter would: alpha = the strip's overlap with a pixel, so a 0.3 px mullion is a steady 30 % line, not a flickering
+    // 100 % one every third frame, and the wall behind it keeps the other 70 %. Past `opaquePx` wide the geometry is
+    // drawn as it always was. A range of the mesh (one building) whose widest feature is under `dropPx` of coverage at the
+    // camera's distance is not drawn at all. `on: false` writes the old single mesh.
+    thin: {
+      on: q.has('aptthin') ? q.get('aptthin') !== '0' : false,
+      maxM: +(q.get('aptthinmax') || 0.6),           // short edge (m) under which a quad counts as thin
+      split: 0.15,                                    // two meshes: short edges up to this (rails, mullions, reveals), and above it (slabs, fins)
+      haloPx: +(q.get('apthalo') || 1),               // extra width, px, the soft edge needs (1 = a box filter's)
+      opaquePx: +(q.get('aptopaque') || 3),           // a feature this many px wide or more is drawn as plain geometry
+      dropPx: +(q.get('aptdrop') || 0.03),            // coverage under which a building's thin range is not drawn
+      edgeSlack: 0.7,                                 // a pixel spans less angle at the screen's edge than at its middle: drop later by this
+    },
     // DRAW ONLY THE BUILDINGS A CAMERA CAN SEE. Not a taste value: the
     // picture is byte-identical either way (see cullFor below). `on` is the
     // switch (?aptcull=0 for an A/B, or flip it live); `marginM` pads every
@@ -318,12 +342,120 @@
   const wantReveals = () => APTS.reveals && detailNow() >= APTS.revealsAbove;
   const wantSigns = () => APTS.signs && detailNow() >= APTS.signsAbove;
 
-  const count = { buildings: 0, blocks: 0, faces: 0, cells: 0, windows: 0, balconies: 0, signs: 0, signMissing: 0, roofs: 0, insets: 0, frames: 0, mod4Cells: 0, dominoes: 0, rakes: 0, fins: 0, piers: 0, openings: 0, canopies: 0, soffits: 0, chamfers: 0, holes: 0, triangles: 0, ms: 0, done: false, names: [], warnings: [] };
-  const RESET_KEYS = ['buildings', 'blocks', 'faces', 'cells', 'windows', 'balconies', 'signs', 'signMissing', 'roofs', 'insets', 'frames', 'mod4Cells', 'dominoes', 'rakes', 'fins', 'piers', 'openings', 'canopies', 'soffits', 'chamfers', 'holes'];
+  const count = { buildings: 0, blocks: 0, faces: 0, cells: 0, windows: 0, balconies: 0, signs: 0, signMissing: 0, roofs: 0, insets: 0, frames: 0, mod4Cells: 0, dominoes: 0, rakes: 0, fins: 0, piers: 0, openings: 0, canopies: 0, soffits: 0, chamfers: 0, holes: 0, triangles: 0, thinTriangles: 0, ms: 0, done: false, names: [], warnings: [] };
+  const RESET_KEYS = ['buildings', 'blocks', 'faces', 'cells', 'windows', 'balconies', 'signs', 'signMissing', 'roofs', 'insets', 'frames', 'mod4Cells', 'dominoes', 'rakes', 'fins', 'piers', 'openings', 'canopies', 'soffits', 'chamfers', 'holes', 'thinTriangles'];
   const resetCount = () => { for (const k of RESET_KEYS) count[k] = 0; count.names = []; count.warnings = []; };
   /** a warning the boot log carries once, and `count.warnings` keeps for the gate */
   const warned = new Set();
   function warnOnce(key, msg) { if (warned.has(key)) return; warned.add(key); count.warnings.push(msg); console.warn('[slopes-apartments] ' + msg); }
+
+  // ── detail classes (debug filter, APTS.hide) ─────────────────────────
+  // The class of detail being emitted right now. A build that hides nothing never reads it.
+  let _cls = 'cell';
+  const hidden = c => APTS.hide[c] || (APTS.hide.thin && THIN_CLASSES.has(c));
+  const THIN_CLASSES = new Set(['reveal', 'mullion', 'arch', 'fin', 'pier', 'rail', 'canopy', 'sign', 'facet', 'column']);
+  function inCls(c, fn) { const p = _cls; _cls = c; try { return fn(); } finally { _cls = p; } }
+  /** wrap a builder so the quads of a hidden class are never written (nothing is installed when nothing is hidden) */
+  function installGate(B, area) {
+    const hide = Object.keys(APTS.hide).some(k => APTS.hide[k]);
+    const T = window.THREE, S = window.slopes, BUD = (window.LITE_PROFILE && window.LITE_PROFILE.budget) || {};
+    const thin = APTS.thin.on && !(window.LITE_PROFILE && window.LITE_PROFILE.on) && !BUD.geometryChunkTris && !BUD.packVertices && !B.geometries && cullAvailable({}, T, S);
+    if (thin) {
+      const mats = [thinMaterial(APTS.thin.split), thinMaterial(APTS.thin.maxM)];
+      if (mats.every(Boolean)) { B.thin = [S.build(), S.build()]; B.thinMats = mats; } else warnOnce('thin-shader', 'thin detail: the slopes shaders changed shape, building without it');
+    }
+    if (!hide && !B.thin) return B;
+    const quad = B.quad;
+    B.quad = function (a, b, c, d, col, want) {
+      if (hide && hidden(_cls)) return undefined;
+      if (B.thin && THIN_CLASSES.has(_cls)) {
+        const ab = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]), bc = Math.hypot(c[0] - b[0], c[1] - b[1], c[2] - b[2]);
+        const short = Math.min(ab, bc);
+        // a parallelogram (a + c = b + d), thin on one side only
+        if (short <= APTS.thin.maxM && short > 1e-4 && Math.abs(a[0] + c[0] - b[0] - d[0]) + Math.abs(a[1] + c[1] - b[1] - d[1]) + Math.abs(a[2] + c[2] - b[2] - d[2]) < 1e-4)
+          return B.thin[short <= APTS.thin.split ? 0 : 1].quad(a, b, c, d, col, want);
+      }
+      return quad.call(this, a, b, c, d, col, want);
+    };
+    if (hide) for (const m of ['tri', 'triN', 'polygon', 'extrude']) {
+      const f = B[m];
+      B[m] = function () { return hidden(_cls) ? undefined : f.apply(this, arguments); };
+    }
+    return B;
+  }
+
+  // ── thin detail: shader and mesh (APTS.thin) ──────────────────────────
+  // The vertex shader's job: measure the vector across the quad's short edge on screen, move this edge out by half a
+  // halo, say where it is across the strip. The fragment shader's job: turn that into a pixel-box coverage.
+  const THIN_VERT_DECL = 'attribute vec4 aThin; uniform vec2 u_thinVP; uniform vec3 u_thinP; varying vec3 v_thin;\n';
+  const THIN_VERT_SET = `gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      v_thin = vec3(0.0, 1.0, 0.0);
+      vec3 thinD = aThin.xyz * THIN_DMAX;
+      if (dot(thinD, thinD) > 1e-10 && gl_Position.w > 1e-4) {
+        vec4 c1 = projectionMatrix * modelViewMatrix * vec4(position + thinD, 1.0);
+        if (c1.w > 1e-4) {
+          vec2 dd = c1.xy / c1.w * 0.5 * u_thinVP - gl_Position.xy / gl_Position.w * 0.5 * u_thinVP;
+          float w = length(dd);
+          float h = u_thinP.x * (1.0 - smoothstep(u_thinP.y - 1.0, u_thinP.y, w));
+          vec2 dir = w > 1e-4 ? dd / w : vec2(1.0, 0.0);
+          gl_Position.xy -= dir * (h / u_thinVP) * gl_Position.w;
+          v_thin = vec3((aThin.w > 0.5 ? 0.5 : -0.5) * (w + h), w, h);
+        }
+      }`;
+  const THIN_FRAG_DECL = 'varying vec3 v_thin;\n';
+  const THIN_FRAG_SET = `float thinA = 1.0;
+      if (v_thin.z > 0.0) thinA = min(clamp(((v_thin.y + v_thin.z) * 0.5 - abs(v_thin.x)) / v_thin.z, 0.0, 1.0), min(1.0, v_thin.y / v_thin.z));
+      gl_FragColor=vec4(col,baseColor.a*faceMix*thinA);`;
+  const THIN_VP = { value: null };
+  /** the apartments' material with the thin-detail shader; null when the slopes shaders no longer have the lines it patches */
+  function thinMaterial(dmax) {
+    const T = window.THREE, mat = window.slopes.material({ side: T.FrontSide });   // closed boxes: the far faces must not blend in a second time
+    const vSet = 'gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);', fSet = 'gl_FragColor=vec4(col,baseColor.a*faceMix);';
+    if (mat.vertexShader.split(vSet).length !== 2 || mat.fragmentShader.split(fSet).length !== 2) { mat.dispose(); return null; }
+    mat.vertexShader = THIN_VERT_DECL + mat.vertexShader.replace(vSet, THIN_VERT_SET);
+    mat.fragmentShader = THIN_FRAG_DECL + mat.fragmentShader.replace(fSet, THIN_FRAG_SET);
+    mat.defines = Object.assign({}, mat.defines, { THIN_DMAX: dmax.toFixed(4) });
+    if (!THIN_VP.value) THIN_VP.value = new T.Vector2(1, 1);
+    mat.uniforms.u_thinVP = THIN_VP;                       // U is shared by every slopes material; the others never declare these
+    mat.uniforms.u_thinP = { value: new T.Vector3(APTS.thin.haloPx, APTS.thin.opaquePx, 0) };
+    mat.transparent = true; mat.blending = T.NormalBlending; mat.depthWrite = true;
+    mat.needsUpdate = true;
+    return mat;
+  }
+  /**
+   * aThin for a finished thin geometry: per vertex, the vector to the opposite long edge (the quad's short edge), as
+   * bytes of `dmax`, and one bit that says which side of the strip this vertex is on. Read back from the index: a welded
+   * quad's corner sees its two neighbours across the short and the long edge (and the diagonal if it is in both triangles).
+   */
+  function addThinAttribute(g, dmax) {
+    const T = window.THREE, pos = g.attributes.position.array, idx = g.index.array, nV = g.attributes.position.count;
+    const nb = new Int32Array(nV * 3).fill(-1);
+    const add = (v, o) => { for (let k = 0; k < 3; k++) { if (nb[v * 3 + k] === o) return; if (nb[v * 3 + k] < 0) { nb[v * 3 + k] = o; return; } } };
+    for (let t = 0; t < idx.length; t += 3) { const a = idx[t], b = idx[t + 1], c = idx[t + 2]; add(a, b); add(a, c); add(b, a); add(b, c); add(c, a); add(c, b); }
+    const out = new Int8Array(nV * 4);
+    for (let v = 0; v < nV; v++) {
+      const o3 = v * 3, px = pos[o3], py = pos[o3 + 1], pz = pos[o3 + 2];
+      let best = -1, bl = Infinity, mx = 0;
+      const n = [];
+      for (let k = 0; k < 3; k++) if (nb[o3 + k] >= 0) n.push(nb[o3 + k]);
+      const len = o => Math.hypot(pos[o * 3] - px, pos[o * 3 + 1] - py, pos[o * 3 + 2] - pz);
+      if (n.length < 2) continue;                          // a lone triangle: no strip to measure
+      const L = n.map(len);
+      if (n.length === 3) mx = L.indexOf(Math.max(...L));  // the diagonal
+      else mx = -1;
+      for (let k = 0; k < n.length; k++) if (k !== mx && L[k] < bl) { bl = L[k]; best = n[k]; }
+      if (best < 0 || bl > dmax * 1.0001 || bl < 1e-5) continue;
+      const dx = pos[best * 3] - px, dy = pos[best * 3 + 1] - py, dz = pos[best * 3 + 2] - pz;
+      // the side bit: sign of the first component that is not rounding noise
+      const c = [dx, dy, dz]; let sgn = 1;
+      for (const x of c) if (Math.abs(x) > 0.05 * bl) { sgn = x > 0 ? 1 : -1; break; }
+      const o4 = v * 4;
+      out[o4] = Math.round(dx / dmax * 127); out[o4 + 1] = Math.round(dy / dmax * 127); out[o4 + 2] = Math.round(dz / dmax * 127);
+      out[o4 + 3] = sgn > 0 ? 127 : 0;
+    }
+    g.setAttribute('aThin', new T.BufferAttribute(out, 4, true));
+    return g;
+  }
 
   // ── small helpers ────────────────────────────────────────────────────
   const hx3 = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -755,7 +887,7 @@
     // entry court, a loggia) ride on the window record; the skin's windows
     // take the skin's reveal and its glass
     const revealOf = w => wantReveals() ? (w.reveal != null ? w.reveal : reveal) : 0;
-    const windows = (skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
+    const windows = (APTS.hide.window ? [] : skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
       .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, nightTone:w.nightTone, frame: w.frame, spandrel: w.spandrel, reveal: w.reveal, revealTone: w.revealTone, tone: w.tone, arch: w.arch, mullion: w.mullion, head: w.head, accent: w.accent, zTop: w.z1 }))
       .filter(w => rectInCut(w.s0, w.s1, w.z0, w.z1, cut));
     // THE FRAME. A window's `frame: { w, h, tone }` is a picture frame round
@@ -806,7 +938,7 @@
       const zt = w.zTop + (w.head && w.head.h > 0 ? w.head.h : 0) + (a.dz1 || 0);
       return { s0: Math.max(0, sa), s1: Math.min(len, sa + a.w), z0: Math.max(z0, w.z0 + (a.dz0 || 0)), z1: Math.min(z1, zt), col: P[a.tone] || P.wall, w };
     }).filter(r => r.s1 - r.s0 > 1e-4 && r.z1 - r.z0 > 1e-4);
-    const regions = framed.concat(spandrels, heads, accents);   // frames first: where a ring and a panel meet, the ring wins
+    const regions = APTS.hide.region ? [] : framed.concat(spandrels, heads, accents);   // frames first: where a ring and a panel meet, the ring wins
     // z cuts: the skin's row lines, every window's top and bottom, every frame's and spandrel's
     const zc = new Set([z0, z1]);
     for (const z of skin.rows(z0, z1)) if (z > z0 && z < z1) zc.add(+z.toFixed(4));
@@ -870,15 +1002,18 @@
       const P0 = (s, d, z) => W.at(s, d, z);
       const rc = (w.revealTone && P[w.revealTone]) || (w.tone ? (P[w.tone] || revealCol) : revealCol);
       // sill (faces up), head (faces down), jambs (face along the wall)
+      _cls = 'reveal';
       B.quad(P0(w.s0, -rv, w.z0), P0(w.s1, -rv, w.z0), P0(w.s1, 0, w.z0), P0(w.s0, 0, w.z0), rc, [0, 0, 1]);
       B.quad(P0(w.s0, 0, w.z1), P0(w.s1, 0, w.z1), P0(w.s1, -rv, w.z1), P0(w.s0, -rv, w.z1), rc, [0, 0, -1]);
       B.quad(P0(w.s0, -rv, w.z0), P0(w.s0, 0, w.z0), P0(w.s0, 0, w.z1), P0(w.s0, -rv, w.z1), rc, T);
       B.quad(P0(w.s1, 0, w.z0), P0(w.s1, -rv, w.z0), P0(w.s1, -rv, w.z1), P0(w.s1, 0, w.z1), rc, [-T[0], -T[1], 0]);
+      _cls = 'cell';
     }
     // A round-headed opening retains the rectangular tiler's cutout, then
     // closes only the two spandrels above its curved head. The glass remains
     // recessed; the arch soffit joins the wall to the pane along that curve.
     // Dimensions and tessellation belong to the building's window spec.
+    _cls = 'arch';
     for (const w of windows) if (w.arch) {
       const radius = (w.s1 - w.s0) / 2;
       const rise = Math.min(w.z1 - w.z0, w.arch.rise || radius);
@@ -901,6 +1036,7 @@
         }
       }
     }
+    _cls = 'mullion';
     for (const w of windows) if (w.mullion) {
       const m = w.mullion, width = m.w || APTS.mullion.w, col = P[m.tone || 'trim'] || P.frame;
       const d = -revealOf(w) + (m.proud ?? APTS.mullion.proud), radius = (w.s1-w.s0)/2;
@@ -915,11 +1051,13 @@
         faceQuad(B,W,w.s0+shrink,w.s1-shrink,z-width/2,z+width/2,d,col);
       }
     }
+    _cls = 'cell';
     // the blades standing proud of the wall: the skin's piers (on its bay
     // lines) and its fins (on their own pitch) — see blades()
     if (skin.piers) blades(B, W, skin.piers, len, z0, z1, P, cut);
     if (skin.fins) blades(B, W, skin.fins, len, z0, z1, P, cut);
     if (skin.facets) {
+      _cls = 'facet';
       const f = skin.facets, pw = f.w || APTS.facets.w, ph = f.h || APTS.facets.h, depth = f.depth || APTS.facets.depth;
       const nx = Math.max(1,Math.round(len/pw)), dx=len/nx;
       for(let i=0;i<nx;i++) for(let z=z0;z<z1-.01;z+=ph) {
@@ -932,6 +1070,7 @@
         }
       }
     }
+    _cls = 'cell';
     count.windows += windows.length;
     count.faces++;
   }
@@ -973,6 +1112,7 @@
     if (zb1 - zb0 < 0.02 || d <= 0) return 0;
     const skip = { back: off <= 1e-6, front: !!front };
     let n = 0;
+    const prevCls = _cls; _cls = spec.isPier ? 'pier' : 'fin';
     const one = (s0, s1, za, zz) => {
       if (s1 - s0 < 0.005 || zz - za < 0.005) return;
       if (!rectInCut(s0, s1, za, zz, cut)) return;
@@ -987,6 +1127,7 @@
     } else {
       for (const c of bladeCentres(spec, len)) one(Math.max(0, c - w / 2), Math.min(len, c + w / 2), zb0, zb1);
     }
+    _cls = prevCls;
     if (spec.isPier) count.piers += n; else count.fins += n;
     return n;
   }
@@ -1411,7 +1552,8 @@
       return;
     }
     const slab = P[spec.slabTone || 'slab'], rail = P[spec.railTone || 'rail'];
-    function railing(a, b, d0, d1, z0, z1) {
+    function railing(a, b, d0, d1, z0, z1) { return inCls('rail', () => railing1(a, b, d0, d1, z0, z1)); }
+    function railing1(a, b, d0, d1, z0, z1) {
       if (!(spec.railPitch > 0)) return box(B, W, a, b, d0, d1, z0, z1, rail, { back: true });
       const post = spec.railPost || rt;
       box(B, W, a, b, d0, d1, z1 - rt, z1, rail, { back: true });
@@ -1439,7 +1581,7 @@
         count.balconies++;
         continue;
       }
-      box(B, W, s0, s1, 0, proj, z, z + t, slab, { back: true });
+      inCls('slab', () => box(B, W, s0, s1, 0, proj, z, z + t, slab, { back: true }));
       // rails: front, and the two returns; a thin box each
       railing(s0, s1, proj - rt, proj, z + t, z + t + rh);
       railing(s0, s0 + rt, 0, proj - rt, z + t, z + t + rh);
@@ -1504,7 +1646,8 @@
   // is given (GrandMarc's two awnings, 3.85 and 3.60 m, which were boxes in
   // `deck` standing against the wall; Skyloft's sky-lounge soffit). `posts:
   // { pitch | at, w, tone, z0? }` stand under its outer edge from `z0` (0).
-  function canopy(B, W, spec, P) {
+  function canopy(B, W, spec, P) { return inCls('canopy', () => canopy1(B, W, spec, P)); }
+  function canopy1(B, W, spec, P) {
     const s0 = spec.s0, s1 = spec.s1 != null ? spec.s1 : spec.s0 + (spec.w || 3.0), d = spec.d || 1.0, t = spec.t != null ? spec.t : APTS.canopyT, off = spec.off || 0;
     const zTop = spec.z, z0 = zTop - t;
     if (s1 - s0 < 0.02 || d <= 0 || t <= 0) return;
@@ -1997,7 +2140,7 @@
         if (C.on === 'joints') for (let i = 0; i <= n; i++) at.push(from + i * mod);
         else for (let i = 0; i < n; i++) at.push(from + (i + 0.5) * mod);
       }
-      for (const c of at) box(B, W, c - w / 2, c + w / 2, -cd, 0, z0, z1, ctone, { top: true, bottom: true });
+      for (const c of at) inCls('column', () => box(B, W, c - w / 2, c + w / 2, -cd, 0, z0, z1, ctone, { top: true, bottom: true }));
     }
     count.insets++;
   }
@@ -2021,7 +2164,7 @@
       const d = insetOf(band);
       const Wb = d > 0 ? { at: (s, dd, z) => W.at(s, dd - d, z), T: W.T, N: W.N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n } : W;
       if (hasB) for (const bs of band.balconies) balconyStack(B, Wb, Object.assign({}, spec.balcony || {}, bs), floors, P, band.z1);
-      if (hasS) for (const sg of band.signs) sign(B, Wb, sg, P);
+      if (hasS) for (const sg of band.signs) inCls('sign', () => sign(B, Wb, sg, P));
       // a band's own fins: on the whole face at their pitch (a skin's ride on each piece with the skin)
       if (hasF) for (const fs of Array.isArray(band.fins) ? band.fins : [band.fins]) blades(B, Wb, fs, W.L, band.z0, band.z1, P, cut || null);
       if (hasC) for (const c of band.canopies) canopy(B, Wb, c, P);
@@ -2564,6 +2707,7 @@
   const CULL_REVISION = '159';          // the r159 internals named above; any other version keeps one plain draw
   const _cullMeshes = new Set();
   let _cullScene = null, _cullFrustum = null, _cullMatrix = null, _cullBroken = false;
+  const _thinV = { x: 0, y: 0, z: 0, w: 1, set(x, y, z, w) { this.x = x; this.y = y; this.z = z; this.w = w; return this; }, applyMatrix4(m) { const e = m.elements, x = this.x, y = this.y, z = this.z, w = this.w; this.x = e[0] * x + e[4] * y + e[8] * z + e[12] * w; this.y = e[1] * x + e[5] * y + e[9] * z + e[13] * w; this.z = e[2] * x + e[6] * y + e[10] * z + e[14] * w; this.w = e[3] * x + e[7] * y + e[11] * z + e[15] * w; return this; } };
   const _cullStats = { passes: 0, ranges: 0, drawnRanges: 0, drawnTriangles: 0, totalTriangles: 0 };
 
   function cullAvailable(B, T, S) {
@@ -2595,7 +2739,8 @@
     g.start = 0; g.count = c.total; groups.push(g);
   }
   function shownInScene(o) { let top = o; for (; o; o = o.parent) { if (!o.visible) return false; top = o; } return top === _cullScene; }
-  function cullFor(camera) {
+  function cullFor(camera, renderer) {
+    if (renderer && THIN_VP.value) { const gl = renderer.getContext(); THIN_VP.value.set(gl.drawingBufferWidth, gl.drawingBufferHeight); }
     const on = APTS.cull.on && !_cullBroken;
     let planes = null;
     if (on) {
@@ -2603,6 +2748,17 @@
       planes = _cullFrustum.setFromProjectionMatrix(_cullMatrix).planes;
     }
     let ranges = 0, drawnRanges = 0, drawn = 0, total = 0;
+    // thin ranges: the camera's eye and the angle one pixel spans (radians), main pass only (a sun-shadow pass keeps them all)
+    let eyeX = 0, eyeY = 0, eyeZ = 0, pxAngle = 0;
+    if (on && camera === window.slopes.camera && camera.projectionMatrixInverse) {
+      const inv = camera.projectionMatrixInverse, h = THIN_VP.value ? THIN_VP.value.y : 0;
+      if (h > 0) {
+        _thinV.set(0, 0, 1, 0).applyMatrix4(inv); eyeX = _thinV.x / _thinV.w; eyeY = _thinV.y / _thinV.w; eyeZ = _thinV.z / _thinV.w;
+        _thinV.set(0, 0, 0.9, 1).applyMatrix4(inv); const ax = _thinV.x / _thinV.w, ay = _thinV.y / _thinV.w, az = _thinV.z / _thinV.w;
+        _thinV.set(0, 2 / h, 0.9, 1).applyMatrix4(inv); const bx = _thinV.x / _thinV.w, by = _thinV.y / _thinV.w, bz = _thinV.z / _thinV.w;
+        pxAngle = Math.hypot(bx - ax, by - ay, bz - az) / Math.max(1e-6, Math.hypot(ax - eyeX, ay - eyeY, az - eyeZ));
+      }
+    }
     for (const mesh of _cullMeshes) {
       const c = mesh.userData.cull;
       if (!on) { fullGroups(mesh); continue; }
@@ -2616,6 +2772,8 @@
         let inside = true;
         for (let p = 0; p < 6; p++) { const P = planes[p], n = P.normal; if (n.x * wx + n.y * wy + n.z * wz + P.constant < r) { inside = false; break; } }
         if (!inside) { run = null; continue; }
+        // a thin range whose widest feature is under dropPx of a pixel even at the range's nearest point
+        if (c.thinM && pxAngle > 0 && c.thinM / (Math.max(0.5, Math.hypot(wx - eyeX, wy - eyeY, wz - eyeZ) + r) * pxAngle * APTS.thin.edgeSlack) < APTS.thin.dropPx) { run = null; continue; }
         drawnRanges++; drawn += c.count[i];
         if (run && run.start + run.count === c.start[i]) { run.count += c.count[i]; continue; }
         run = c.pool[used] || (c.pool[used] = { start: 0, count: 0, materialIndex: 0 });
@@ -2633,7 +2791,7 @@
       const prev = sc.onBeforeRender;
       sc.onBeforeRender = function (renderer, scene, camera) {
         if (_cullMeshes.size) {
-          try { cullFor(camera); }
+          try { cullFor(camera, renderer); }
           catch (e) {
             // Never leave a half-written group list: draw everything from now on.
             _cullBroken = true; console.error('[slopes-apartments] cull disabled', e);
@@ -2661,7 +2819,7 @@
     // js/slopes.js buildChunked): same triangles, a fraction of the peak.
     const BUD = (window.LITE_PROFILE && window.LITE_PROFILE.budget) || {};
     const chunkTris = area && APTS.areas.sliced ? Math.min(BUD.geometryChunkTris || Infinity, APTS.areas.geometryChunkTris) : BUD.geometryChunkTris;
-    const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices) : S.build();
+    const B = installGate(chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices) : S.build());
     B.filtered=[];
     B.filterPending=[];
     const built = area ? [] : (_built = []);
@@ -2692,11 +2850,13 @@
     // APTS.cull: where each building's triangles start in the index (the
     // builder writes three indices per triangle and nothing else).
     const cull = cullAvailable(area && APTS.areas.sliced && !BUD.geometryChunkTris && !BUD.packVertices ? {} : B, T, S) ? [] : null;
+    const cullT = B.thin && cull ? [[], []] : null;     // the same, for each thin mesh
     for (const spec of specs || _data.buildings) {
       // An area whose build was superseded (dropped, or the core rebuilding)
       // stops here and takes back what it had counted.
       if (cancelled()) { discard(); return null; }
       if (cull) cull.push(B.triangles * 3);
+      if (cullT) cullT.forEach((c, k) => c.push(B.thin[k].triangles * 3));
       const pendingStart=B.filterPending.length;
       B.allowFilter=APTS.facadeFilter.on&&APTS.facadeFilter.buildings.includes(spec.name)&&!!window.FacadeFilter;
       try {
@@ -2714,6 +2874,7 @@
     }
     if (cancelled()) { discard(); return null; }
     if (cull) cull.push(B.triangles * 3);   // anything after this is a range of its own
+    if (cullT) cullT.forEach((c, k) => c.push(B.thin[k].triangles * 3));
     const C = area ? {} : count;       // an area's slice and filter tallies are its own
     C.buildSlices = slices;
     let geom, mat;
@@ -2768,12 +2929,29 @@
         if (ranges) { mesh.userData.cull = ranges; fullGroups(mesh); watchCull(mesh); }
         g.add(mesh);
       });
+      if (B.thin) B.thin.forEach((Bt, k) => {
+        if (!Bt.triangles) return;
+        const geometry = addThinAttribute(Bt.geometry(), k ? APTS.thin.maxM : APTS.thin.split);
+        const bounds = cullT[k], index = geometry.index.array, positions = geometry.attributes.position.array;
+        const start = [], counts = [], spheres = [];
+        for (let r = 0; r + 1 < bounds.length; r++) {
+          const first = bounds[r], end = Math.min(bounds[r + 1], index.length);
+          if (end <= first) continue;
+          start.push(first); counts.push(end - first); spheres.push(...rangeSphere(index, positions, first, end, APTS.cull.marginM));
+        }
+        const ranges = { n: start.length, start, count: counts, sph: Float64Array.from(spheres), total: index.length, pool: [], thinM: k ? APTS.thin.maxM : APTS.thin.split };
+        const mesh = new T.Mesh(geometry, [B.thinMats[k]]);
+        mesh.name = 'apartments-thin-' + (k + 1);
+        mesh.userData.cull = ranges; fullGroups(mesh); watchCull(mesh);
+        count.thinTriangles = (count.thinTriangles || 0) + Bt.triangles;
+        g.add(mesh);
+      });
       for(const m of B.filtered)g.add(m);
       if (area) {
         g.userData.area = Object.assign(tallySince(), { name: area.name, built, triangles: B.triangles, material: mat, ms: +(performance.now() - t0).toFixed(1) });
         return g;
       }
-      count.triangles = B.triangles;
+      count.triangles = B.triangles + (B.thin ? B.thin[0].triangles + B.thin[1].triangles : 0);
       count.ms = +(performance.now() - t0).toFixed(1);
       _lastDetail = detailNow();
       return g;

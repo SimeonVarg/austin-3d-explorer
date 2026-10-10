@@ -47,7 +47,9 @@
  *     --frames N     motion steps (default 8)
  *     --arms "a=js|b=js"  runtime variants run in the SAME page load (one load, every arm on every
  *                    view; `m` is the map). Default: one arm, "main", which runs nothing.
- *     --json file    write the table as JSON
+ *     --sun p        time of day 0..1 (0 day, 0.5 sunset, 1 night; default 0.5)
+     --arms-outer   run every view under arm 1, then arm 2... (for arms that rebuild the buildings)
+     --json file    write the table as JSON
  * Run it through the machine's one-browser queue (gpu-run.mjs); software GL is
  * enough, the aliasing comes from the shader maths, not the chip.
  */
@@ -63,7 +65,7 @@ const FLAT_LEVELS = 2.5;                // truth 3x3 spread (0..255) that counts
 const MASK_LEVELS = 8;                  // |hidden - shown| that counts as a building pixel
 const FLOOR_SLACK = 1.5;                // "at the floor" = at or under this x floor (+FLOOR_ABS)
 const FLOOR_ABS = 0.15;                 // and never stricter than this many levels
-const SUN_P = 0.5;                      // time of day (app default, sunset)
+let SUN_P = 0.5;                        // time of day (app default, sunset; --sun 0 is full day)
 // Building layers hidden to find building pixels. Anything else stays: sky, ground,
 // roads, shadows, trees, signs. (ids are matched against MapLibre fill-extrusion layers)
 const NOT_BUILDING = /^(ground|props|capitol-ground|stadium-field|roofscape)/;
@@ -90,8 +92,11 @@ if (!OUT) { console.error('usage: moire-meter.mjs --out <dir> [--views a,b] [--m
 fs.mkdirSync(OUT, { recursive: true });
 { const sz = opt('--size', null); if (sz) [VIEW_W, VIEW_H] = sz.split('x').map(Number); }
 const SS = +opt('--ss', '4'), FRAMES = +opt('--frames', '8');
+SUN_P = +opt('--sun', String(SUN_P));
+const ARMS_OUTER = argv.includes('--arms-outer');   // arms outermost: an arm that rebuilds the city runs once, not once per view
 const MSAA = opt('--msaa', '0') === '1';
 const QS = (opt('--q', '') || '').split(',').map(s => s.trim()).filter(Boolean);
+QS.push('smooth=' + (MSAA ? 1 : 0));   // the saved setting alone did not reach the context in headless runs; ?smooth= is the app's own per-visit switch
 const ARMS = (opt('--arms', 'main=') || 'main=').split('|').map(a => { const i = a.indexOf('='); return { name: a.slice(0, i), js: a.slice(i + 1) }; });
 const want = (opt('--views', '') || '').split(',').filter(Boolean);
 const list = want.length ? VIEWS.filter(v => want.includes(v.name)) : VIEWS;
@@ -158,6 +163,14 @@ await page.evaluate(({ SS, FLAT_LEVELS, MASK_LEVELS, NOT_BUILDING, AUTHORED, STE
     for (let p = 0, o = 0, i = 0; p < w * h; p++, o += 3, i += 4) { im.data[i] = rgb3[o]; im.data[i + 1] = rgb3[o + 1]; im.data[i + 2] = rgb3[o + 2]; im.data[i + 3] = 255; } x.putImageData(im, 0, 0); return c.toDataURL('image/png'); };
   const pctl = (arr, q) => { if (!arr.length) return 0; const a = Float32Array.from(arr).sort(); return a[Math.min(a.length - 1, Math.floor(q * a.length))]; };
 
+  // For arms that change the generator (APARTMENTS.fins = false ...): rebuild the authored buildings and wait for them.
+  window.__rebuild = async function () {
+    window.slopesApartments.rebuild();
+    const t = Date.now();
+    await sleep(300);
+    while (!(window.slopesApartments.readyToReveal && window.slopesApartments.readyToReveal()) && Date.now() - t < 240000) await sleep(250);
+    await settle();
+  };
   window.__meter = async function (v, frames) {
     m.stop(); m.jumpTo({ center: v.center, zoom: v.zoom, pitch: v.pitch, bearing: v.bearing });
     if (window.applyTimeOfDay) window.applyTimeOfDay(m, SUN_P, true);
@@ -194,6 +207,7 @@ await page.evaluate(({ SS, FLAT_LEVELS, MASK_LEVELS, NOT_BUILDING, AUTHORED, STE
       if (f === 0) { truth0.push(tr); one0.push(Uint8ClampedArray.from(one.d)); }
     }
     await setScale(1);
+    const st = window.slopes && window.slopes.stats ? window.slopes.stats() : null;   // the last 1x frame: what the three.js layer drew
     const tr = truth0[0], one = one0[0];
     // -- flat truth (floor pixels) --
     const flat = new Uint8Array(N);
@@ -226,7 +240,7 @@ await page.evaluate(({ SS, FLAT_LEVELS, MASK_LEVELS, NOT_BUILDING, AUTHORED, STE
       return { n, err: n ? sErr / (n * frames) : 0, p99: pctl(errAll, 0.99), band: n ? sBand / (n * frames) : 0, flick: n ? sFl / n : 0, flickP99: pctl(flick, 0.99) };
     };
     const res = {
-      name: v.name, canvas: [W, H], mask: nMask / N, authored: nA / N, maplibre: nB / N,
+      name: v.name, canvas: [W, H], draw: st ? { tris: st.triangles, calls: st.calls } : null, mask: nMask / N, authored: nA / N, maplibre: nB / N,
       all: stat(p => mask[p]), apt: stat(p => src[p] === 1), mpl: stat(p => src[p] === 2),
       floor: stat(p => mask[p] && flat[p]), flatShare: (() => { let a = 0, b = 0; for (let p = 0; p < N; p++) if (mask[p]) { a++; if (flat[p]) b++; } return a ? b / a : 0; })(),
       pngOne: png((() => { const o = new Uint8ClampedArray(N * 3); for (let p = 0, i = 0, k = 0; p < N; p++, i += 4, k += 3) { o[k] = one[i]; o[k + 1] = one[i + 1]; o[k + 2] = one[i + 2]; } return o; })(), W, H),
@@ -238,9 +252,9 @@ await page.evaluate(({ SS, FLAT_LEVELS, MASK_LEVELS, NOT_BUILDING, AUTHORED, STE
 }, { SS, FLAT_LEVELS, MASK_LEVELS, NOT_BUILDING: NOT_BUILDING.source, AUTHORED, STEP_PX, SUN_P });
 
 const rows = [];
-for (const v of list) for (const arm of ARMS) {
+async function runOne(v, arm) {
   const tv = Date.now();
-  await page.evaluate(js => { const m = window.__map; if (js) new Function('m', js)(m); }, arm.js);
+  await page.evaluate(async js => { const m = window.__map; if (js) await new (Object.getPrototypeOf(async function () {}).constructor)('m', js)(m); }, arm.js);
   const r = await page.evaluate(([v, n]) => window.__meter(v, n), [v, FRAMES]);
   const b64 = k => Buffer.from(r[k].split(',')[1], 'base64');
   const tag = ARMS.length > 1 ? `${v.name}.${arm.name}` : v.name;
@@ -249,24 +263,28 @@ for (const v of list) for (const arm of ARMS) {
   fs.writeFileSync(path.join(OUT, `${tag}-mask.png`), b64('pngMask'));
   delete r.pngOne; delete r.pngTruth; delete r.pngMask;
   r.grp = v.grp; r.arm = arm.name; r.name = tag; rows.push(r);
-  console.error(`[meter] ${tag} ${((Date.now() - tv) / 1000).toFixed(0)}s mask ${(r.mask * 100).toFixed(1)}% err ${r.all.err.toFixed(2)} flick ${r.all.flick.toFixed(2)}`);
+  console.error(`[meter] ${tag} ${((Date.now() - tv) / 1000).toFixed(0)}s mask ${(r.mask * 100).toFixed(1)}% err ${r.all.err.toFixed(2)} flick ${r.all.flick.toFixed(2)} tris ${r.draw ? r.draw.tris : '-'}`);
 }
+if (ARMS_OUTER) { for (const arm of ARMS) for (const v of list) await runOne(v, arm); }
+else { for (const v of list) for (const arm of ARMS) await runOne(v, arm); }
 
 // ---- the table ---------------------------------------------------------------
 const f2 = x => x.toFixed(2), pad = (s, n) => String(s).padEnd(n), lp = (s, n) => String(s).padStart(n);
 const atFloor = (x, fl) => x <= fl * FLOOR_SLACK + FLOOR_ABS;
-console.log(`moire-meter  msaa=${MSAA ? 'on' : 'off'}  q=[${QS.join(',')}]  ${VIEW_W}x${VIEW_H} ss=${SS} frames=${FRAMES} step=${STEP_PX}px  floor rule: <= ${FLOOR_SLACK} x floor + ${FLOOR_ABS}`);
-console.log(pad('view', 22) + lp('bldg%', 6) + lp('aptShare', 9) + lp('err', 7) + lp('p99', 7) + lp('band', 7) + lp('flick', 7) + lp('flkP99', 7) + ' |' + lp('aptErr', 7) + lp('mplErr', 7) + ' |' + lp('flrErr', 7) + lp('flrP99', 7) + lp('flrFlk', 7) + lp('flat%', 6) + '  at-floor(err/p99/flk)');
+console.log(`moire-meter  msaa=${MSAA ? 'on' : 'off'} sun=${SUN_P}  q=[${QS.join(',')}]  ${VIEW_W}x${VIEW_H} ss=${SS} frames=${FRAMES} step=${STEP_PX}px  floor rule: <= ${FLOOR_SLACK} x floor + ${FLOOR_ABS}`);
+console.log(pad('view', 22) + lp('bldg%', 6) + lp('aptShare', 9) + lp('err', 7) + lp('p99', 7) + lp('band', 7) + lp('flick', 7) + lp('flkP99', 7) + ' |' + lp('aptErr', 7) + lp('mplErr', 7) + ' |' + lp('flrErr', 7) + lp('flrP99', 7) + lp('flrFlk', 7) + lp('flat%', 6) + lp('tris', 9) + '  at-floor(err/p99/flk)');
 for (const r of rows) {
   const a = r.all, fl = r.floor;
   const ok = [atFloor(a.err, fl.err), atFloor(a.p99, fl.p99), atFloor(a.flick, fl.flick)].map(b => b ? 'Y' : 'n').join('/');
-  console.log(pad(r.name, 22) + lp((r.mask * 100).toFixed(1), 6) + lp((r.authored / Math.max(r.mask, 1e-9) * 100).toFixed(0) + '%', 9) + lp(f2(a.err), 7) + lp(f2(a.p99), 7) + lp(f2(a.band), 7) + lp(f2(a.flick), 7) + lp(f2(a.flickP99), 7) + ' |' + lp(f2(r.apt.err), 7) + lp(f2(r.mpl.err), 7) + ' |' + lp(f2(fl.err), 7) + lp(f2(fl.p99), 7) + lp(f2(fl.flick), 7) + lp((r.flatShare * 100).toFixed(0), 6) + '  ' + ok);
+  console.log(pad(r.name, 22) + lp((r.mask * 100).toFixed(1), 6) + lp((r.authored / Math.max(r.mask, 1e-9) * 100).toFixed(0) + '%', 9) + lp(f2(a.err), 7) + lp(f2(a.p99), 7) + lp(f2(a.band), 7) + lp(f2(a.flick), 7) + lp(f2(a.flickP99), 7) + ' |' + lp(f2(r.apt.err), 7) + lp(f2(r.mpl.err), 7) + ' |' + lp(f2(fl.err), 7) + lp(f2(fl.p99), 7) + lp(f2(fl.flick), 7) + lp((r.flatShare * 100).toFixed(0), 6) + lp(r.draw ? r.draw.tris : '-', 9) + '  ' + ok);
 }
 for (const arm of ARMS) {
   const rs = rows.filter(r => r.arm === arm.name);
   const avg = k => rs.reduce((s, r) => s + r.all[k], 0) / rs.length;
   console.log(pad('MEAN ' + arm.name, 22) + lp('', 6) + lp('', 9) + lp(f2(avg('err')), 7) + lp(f2(avg('p99')), 7) + lp(f2(avg('band')), 7) + lp(f2(avg('flick')), 7) + lp(f2(avg('flickP99')), 7));
 }
+{ const aa = await page.evaluate(() => { const gl = window.__map.painter.context.gl; return { antialias: !!gl.getContextAttributes().antialias, samples: gl.getParameter(gl.SAMPLES), renderer: (gl.getExtension('WEBGL_debug_renderer_info') ? gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info').UNMASKED_RENDERER_WEBGL) : '?') }; });
+  console.log(`context: antialias=${aa.antialias} samples=${aa.samples} renderer=${aa.renderer}`); }
 { const h = await page.evaluate(() => ({ compiled: !!(window.CityLighting && window.CityLighting.patternFilter.compiled), failures: (window.CityLighting && window.CityLighting.stats.failures) || [], vertex: window.CityLighting && window.CityLighting.stats.vertexShaders, fragment: window.CityLighting && window.CityLighting.stats.fragmentShaders }));
   console.log(`city-lighting: pattern filter compiled=${h.compiled}, shader failures=${h.failures.length}${h.failures.length ? ' ' + JSON.stringify(h.failures).slice(0, 300) : ''}`); }
 if (errs.length) console.error('PAGE ERRORS:', [...new Set(errs)].slice(0, 5).join(' | '));
