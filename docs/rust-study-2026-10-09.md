@@ -359,8 +359,9 @@ Each row is a fresh Node process (cold JIT, as at page load), six rounds interle
 Reading it plainly: **Rust/Wasm is 2.7x less CPU than the shipped builder (3.7x with the count known) and 1.5x to 2x less than the
 best JS I could write.** About two thirds of the Rust saving (2,357 to 1,280 ms of the 1,485 to 1,722 ms) is also available in plain JS by passing the vertex
 count and returning views; the rest is Rust (the cause I did not isolate; the likely ones are V8's zero-fill-and-copy growth of seven
-typed arrays and its garbage collector seeing 347 MB of them). The "stream" costs the JS builders 150 ms more than
-shown (making the point arrays); in a real integration the generator writes numbers instead of arrays.
+typed arrays and its garbage collector seeing 347 MB of them). The shipped-builder row includes the 150 ms it takes to make the point arrays from the stream (the generator makes
+them anyway, `W.at()` returns one per point); the tuned-JS and Rust rows read the numbers straight from the stream, which is what a
+generator that writes into a buffer would do.
 
 Same comparison in headless Chrome 155 (`results/browser-kernel-nogpu.json`; no GPU needed; fresh page per run, 5 rounds
 interleaved; **wall** time because Chrome offers no per-page CPU clock, machine at load 51 to 199): shipped JS builder 2,321 /
