@@ -98,7 +98,7 @@
     // 2. Glare: the eye's point spread, as two soft lobes beside the existing tight bloom, cooler than the lamp.
     //    Angles are for the 58 degree lens; the canvas widths below are what set them. See graphics.js.
     glare:master?num('glare',1):0,
-    glareLobes:[{w:96,blur:1.0,alpha:.20},{w:40,blur:1.0,alpha:.16}],
+    glareLobes:[{w:96,blur:1.0,alpha:.12},{w:40,blur:1.0,alpha:.09}],
     glareTint:'#bcd0ff',
     glareNightOnly:true,
   };

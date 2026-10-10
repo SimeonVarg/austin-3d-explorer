@@ -47,6 +47,20 @@ The ACS register alias is explicit and keeps the existing field-source door;
 AF1 remains unavailable with its recorded reason. Identity recovery must not
 accept a door away from its wall or a link cutting through its building.
 
+## The night as the eye sees it (shimmer, glare, frozen night)
+
+`night-eye-offline.mjs` needs nothing but Node: the freeze switches and the seeded random, the uniforms each switch
+writes, the window palettes by building type, and that the shader hooks are wired in. It runs in CI.
+
+`night-eye.mjs` needs a graphics card (run it on the AWS runner, `scripts/aws-gpu/README.md`, one stage per check so
+four run at once and the timing stage can run alone): `--only determinism` (two loads of `tower-night`, unfrozen
+against `?nightfreeze=1`, with a picture of where pixels moved), `--only pictures` (before/after at night from four
+cameras), `--only sequence` (eight frames 0.25 s apart on a clock stepped by hand: temporal variance of far lit pixels
+against near ones), `--only live` (the repaint ticker on a parked camera), `--only cost` (milliseconds a frame with
+each part on and off, interleaved, minimum of the reps). Every threshold is in `TUNE` at the top of the file.
+The picture runs append `nightfreeze=1` (`LOOK.shotQuery` in `ci/pictures.mjs`). Research and switches:
+`docs/night-eye-2026-10-10.md`.
+
 ## Setup
 
 ```bash
