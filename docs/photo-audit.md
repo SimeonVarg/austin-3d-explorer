@@ -85,6 +85,16 @@ base to tower, wall to roof)? Give each line as a part of the wall height.
 upper columns line up with lower ones? Where does the rhythm stop (a blank
 stretch, a wider pier, a corner)?
 
+**5b. Depth needs a second line or a second view.** A camera fitted only to
+points on ONE wall cannot say how far back that wall stands: the fit moves the
+camera to suit any depth. Before you move a wall forward or back, add a ground
+line (a curb, a path edge) or a second wall to the fit, and check that the
+camera height it gives is a height a person holds a phone (1.4 to 2.1 m). And a
+frontal photograph cannot show how deep a recess is. For every recess (an
+arcade, a porch, a set-back storey) find the oblique photograph, and measure
+there: recess depth ÷ pier width, and pier depth ÷ pier width. Compare the
+render from that same oblique camera, not from the front.
+
 **6. Colour, by measurement.** Take the middle colour of each material in the
 photograph and in the render. Light differs, so compare RATIOS between
 materials (brick against plaster), and how much the colour varies inside one
@@ -176,3 +186,8 @@ made or sharpened.
   building: check 0.
 - 2026-10-03. "can't see the sign cuz the tree": check 9, from the camera of
   the photograph, with what blocks the view left in.
+- 2026-10-10, found by a builder and the main lane on Norman Hackerman: the
+  brick face was placed at three different depths in three drafts (8 m apart)
+  from one-wall camera fits, and the rebuilt arcade matched the front
+  photograph while the side photograph showed its bays far too shallow.
+  Check 5b.
