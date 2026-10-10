@@ -1971,6 +1971,7 @@ window.CityLighting.install(map);
     // Do not hold the veil for sources whose module DEFERS them past the opening flight (campus-storeys,
     // the entrance doors): see authoredViewReady(). false, or ?veilgate=full, waits for every source as before.
     gateSkipDeferred: true,
+    lateClauseMs: 90000,   // after the lift, re-apply the hiding clause on every style change for this long (see reveal())
     // Hold the veil until the authored apartments have built. Measured
     // 2026-09-15: letting the flight depart while they built in the
     // background (time-sliced) dropped the intro to 11-14 fps with 0.5 s
@@ -2176,6 +2177,22 @@ window.CityLighting.install(map);
       if (revealed) return;
       revealed = true;
       if (poll) clearInterval(poll);
+      // A source the gate no longer waits for (authoredViewReady) can add its layer after this point. Its hiding
+      // clause normally arrives from slopes-apartments.js's 500 ms poll before any geometry exists, but on a warm
+      // cache a source can load inside that gap and show the legacy shapes for a moment (Astra's review, 2026-10-10).
+      // So every style change for the next INTRO.lateClauseMs re-applies the clause the moment a planned layer is
+      // missing it: applySlopesApartments is the public, idempotent call the poll itself makes.
+      if (INTRO.gateSkipDeferred && !VEIL_GATE_FULL) {
+        const until = performance.now() + INTRO.lateClauseMs;
+        const onStyle = () => {
+          if (performance.now() > until) { map.off('styledata', onStyle); return; }
+          try {
+            const A = window.slopesApartments;
+            if (A && A.group && A.hidden.missing.length) window.applySlopesApartments(map);
+          } catch (e) {}
+        };
+        map.on('styledata', onStyle);
+      }
       const g = gate();
       dbg.waitedMs = Math.round(performance.now() - t0);
       dbg.reason = reason;
