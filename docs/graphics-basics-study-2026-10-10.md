@@ -35,11 +35,11 @@ The shader wall removes 3 to 5 times the shimmer error of the unfiltered geometr
 
 **The graphics basics, ranked (section 4):** 1. procedural facades (above); 2. bake offline; 3. anti-aliasing (shader walls for geometry, MSAA only where affordable, TAA is a whole-frame project); 4. texture basics (KTX2, arrays: moot wherever a shader replaces the atlas); 5. resolution scale (a safety net, measured +1.5 fps against +6 for two fewer passes); 6. GPU-driven drawing and a depth pre-pass (no gain on a weak chip, overdraw is already about 2); 7. WebGPU (not available in Safari on the owner's 2019 laptop, which cannot run macOS Tahoe, and MapLibre has no WebGPU path).
 
-**First three roadmap steps (section 6):** (1) run the probe and the lab on the Intel Mac and one phone when idle; (2) cover every plain `bays`/`flat` tower with `verify-recipe.mjs` as the gate; (3) put it behind `?facadeshader=1` with the renderer study's compare harness and the moire meter as the gate.
+**First three roadmap steps (section 6):** (1) a phone: the probe and one fixed route with the sky upload and the wall rendering each switched off in turn, and the app (flag off | on) timed on the Intel chip (the probe itself is done); (2) widen coverage (the in-app module already takes 39.7% of the city's triangles; see 8.2 and 8.3); (3) make the flag's compare harness and the moire meter the gate for turning it on by default.
 
 **The call to action (section 8, last):** build **Facet**, a compiler from the recipes to shader walls, baked near geometry and an error budget a build can fail on. A first version is built and measured in this pull request: its generated shader is pixel-identical to the hand-written one, 26 times cheaper than the geometry on the L4, and within 1.1 to 1.5 times the error of 4x MSAA across a 40 m to 1,600 m sweep; it covers 16% of the catalog's windowed walls so far.
 
-**What I could not measure:** anything on the Intel chip or a phone; the shader's cost on a weak chip (estimated 1 to 2 ms at 1440x900); night windows, balconies, frames; the MapLibre walls (section 7).
+**What I could not measure:** a phone; the whole page (flag off | on) timed on the Intel chip; the shader inside the real scene on a weak chip; the MapLibre walls (section 7).
 
 ## 2. What "the basics" are for this app
 
@@ -57,7 +57,7 @@ What measured evidence already says about which of the five limits the app:
 
 - **Not pixels, on the Acer.** `js/lod.js` (measured, headed Chrome, 3 interleaved reps): render scale 0.75 (44% fewer pixels) gave 31.0 to 32.5 fps; dropping two of 41 fill-extrusion passes gave 37.0 fps. A pass costs whether or not what is in it is legible.
 - **Not pixels, on the owner's Intel Mac in Safari.** `docs/perf/safari-frame-floor.md` (measured): a blank WebGL2 canvas of the same 3840x2040 size presents at 59 fps empty, 50 fps with eight full-screen fills, 53 fps with 4.5 million triangles. The real city costs 195 ms: 58 ms of it is one sky-canvas upload, the 82 building layers 25 ms, the authored mesh 22 to 35 ms, and 21 to 25 ms is the page's own stack.
-- **Not draw calls alone, on a weak chip.** The custom-renderer study (measured, Intel Iris Plus 655, shared Mac): one draw call instead of 100 gave no change in frame time for the same triangles; on the L4 it gave 3.8x.
+- **Not draw calls alone, on a weak chip.** The custom-renderer study (measured, Intel Iris Plus 655, shared Mac): one draw call instead of 100 gave no change in frame time for the same triangles; on the L4 it gave 3.8x. (Revised after the Intel probe in section 5: the 24 against 56 byte comparison in that study read the same only because the machine was shared; on a quiet Mac the vertex size changes the vertex rate 2.4 times.)
 - **Memory, on phones.** The tab dies at about 1.3 GB (WebKit gives no warning); 607 MB of that is wall-pattern atlases and 270 MB the built authored-building buffers.
 
 So the basics that matter for a weak chip are *how many things the pipeline is asked to handle that the screen cannot show* (sub-pixel triangles, a pass per layer, a pattern texture per tile) and *how many bytes sit resident for them*. That is the case for the lead idea.
