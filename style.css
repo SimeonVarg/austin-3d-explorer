@@ -2271,3 +2271,6 @@ body.gfx-open #mode-launcher,body.fb-open #mode-launcher{visibility:hidden}
 #gfx-close:focus-visible,#fb-close:focus-visible,.gfx-preset:focus-visible,#gfx-foot button:focus-visible,
 #fb-panel button:focus-visible,.maplibregl-ctrl-attrib a:focus-visible,.maplibregl-ctrl-attrib-button:focus-visible{
   outline:var(--focus-ring);outline-offset:var(--focus-ring-offset)}
+
+/* The loading card's failure line (A09): readable body text instead of the 12px time line. */
+#load-estimate.load-fail{font-size:15px;line-height:1.5;color:var(--load-ink);margin:14px 0 4px}

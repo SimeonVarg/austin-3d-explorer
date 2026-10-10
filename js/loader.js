@@ -22,6 +22,9 @@
     'story.flip_aria': "Flip the island over",
     'story.footer': "Built by Simeon Varghese",
     'card.title': "Still building",
+    // The map could not get a graphics context (A09). One of these replaces the progress card instead of a bar that never moves.
+    'fail.webgl.title': "This map needs WebGL",
+    'fail.webgl.body': "Your browser or device has it switched off, so the 3D city cannot draw. Try another browser, or turn on hardware acceleration in this one.",
     'card.progress_aria': "City loading progress",
     'estimate.usual': "{elapsed}s in. Beats sitting on I-35.",
     'estimate.slow': "{elapsed}s in. Okay, now it's I-35.",
@@ -253,6 +256,7 @@
     ['walk',{walk:'1'}]
   ].map(([id,params]) => [id, t('mode.'+id+'.title'), t('mode.'+id+'.desc'), params]);
   const files = new Map();
+  let webglDead = false;
   let graph = 'optional', sceneReady = false, revealed = false, timer, root, dialog, opener, clock = null;
   // shown: the highest reading so far. The measurement can dip (new data files are
   // discovered mid-load; the opening camera re-requests tiles under the veil, -10),
@@ -321,6 +325,7 @@
     } catch (e) { clock?.forEach(a => a.cancel()); clock = null; p.classList.remove('odo'); }
   }
   function update() {
+    if (webglDead) return;
     if (!root) return;
     const r = readings();
     const elapsed = (performance.now()-state.started)/1000;
@@ -636,7 +641,8 @@
               if (poly.length < 3) continue;
               for (const q of tri(poly)) { const v = lf(q[0], q[1]); f.push((v[0] - fr[0]) / (fr[1] - fr[0] || 1), (v[1] - fr[2]) / (fr[3] - fr[2] || 1), (v[2] - fr[4]) / (fr[5] - fr[4] || 1)); ymin = Math.min(ymin, q[1]); ymax = Math.max(ymax, q[1]); }
             }
-            if (!f.length) continue;            const row = F === 'T' ? 1 : clamp(((ymin + ymax) / 2 - Wz0) / (Wz1 - Wz0 || 1));
+            if (!f.length) continue;
+            const row = F === 'T' ? 1 : clamp(((ymin + ymax) / 2 - Wz0) / (Wz1 - Wz0 || 1));
             out.push({ f: new Float32Array(f), fc, c, row, ord: (r.dord[F] || 0) + out.filter(d => d.fc === fc).length, blink: sh.c === 'glint' });
           }
         }
@@ -1474,6 +1480,20 @@ precision highp float; uniform highp sampler2D uT; uniform float uK; out vec4 o;
     const alive = setInterval(() => { if (!cv.isConnected) { w.terminate(); ro.disconnect(); clearInterval(alive); } }, 1000);
     return (stack.turn = { worker: w, canvas: cv, box, at: t => new Promise(r => { atDone = r; w.postMessage({ at: t }); }) });
   }
+  // MapLibre throws when it cannot create a WebGL context, and that used to leave this card on its last reading
+  // ("Map: surveying the site") for ever, with the clock running. Name the problem and what to try instead (A09).
+  function webglFailed() {
+    if (webglDead) return;
+    webglDead = true; clearInterval(timer);
+    const card = root && root.querySelector('.load-card'); if (!card) return;
+    card.querySelector('.load-heading h2').textContent = t('fail.webgl.title');
+    for (const sel of ['#load-percent', '.load-rail', '#load-stages', '.load-choice']) { const e = card.querySelector(sel); if (e) e.style.display = 'none'; }
+    const est = card.querySelector('#load-estimate'); est.className = 'load-fail'; est.style.display = 'block'; est.textContent = t('fail.webgl.body');
+    const btn = document.getElementById('mode-launcher'); if (btn) btn.hidden = true;
+  }
+  const isWebglError = m => /requestedAttributes|Failed to initialize WebGL|webglcontextcreationerror/i.test(String(m || ''));
+  window.addEventListener('error', e => { if (isWebglError(e.message) || isWebglError(e.error && e.error.message)) webglFailed(); });
+  window.addEventListener('unhandledrejection', e => { if (isWebglError(e.reason && (e.reason.message || e.reason))) webglFailed(); });
   function openModes(event) { opener=event.currentTarget; dialog.showModal(); }
   function build() {
     const veil=document.getElementById('veil'); if(!veil)return;
