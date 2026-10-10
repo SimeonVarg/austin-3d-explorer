@@ -164,8 +164,11 @@ def main():
         return p.get("k") in ("g", "r") or p.get("lmThin") or p.get("lmEmit")
 
     drawn, ring_polys = rasterise(grid, ring, lambda p: p.get("h"), not_massing)
-    authored, _ = rasterise(grid, [f for f in ring if f["properties"].get("lm")],
-                            lambda p: 1.0)
+    authored, lm_polys = rasterise(grid, [f for f in ring if f["properties"].get("lm")],
+                                   lambda p: p.get("h"))
+    # A spire or a crown rim is narrower than a 2 m cell and can fall between
+    # cell centres, so a hand-modelled tower's TOP is read off its own pieces.
+    lm_tree = STRtree([q for q, _ in lm_polys]) if lm_polys else None
     other_feats = list(load(CAPITOL)["features"])
     snap = os.path.join(ROOT, "data", "snapshots", str(load(MANIFEST).get("latest")),
                         "buildings.detailed.geojson")
@@ -244,6 +247,9 @@ def main():
         # the crown and the spire; the scan's roof does not. Its height is
         # checked against the published figure, its shape against the scan.
         if a_cover >= AUTHORED_COVER and pub:
+            tops = [lm_polys[int(j)][1]["h"] for j in lm_tree.query(P)
+                    if lm_polys[int(j)][0].representative_point().within(P)]
+            drawn_top = round(max(tops), 1) if tops else drawn_top
             row["drawn"] = drawn_top
             row["dh"] = round(drawn_top - pub, 1)
             row["dh_ref"] = "public"

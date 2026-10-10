@@ -6,6 +6,8 @@
   "wing_gain": 0.01,
   "shaft_min_height_share": 0.5,
   "podium_min_cover": 0.7,
+  "stray_m": 3.0,
+  "stray_max_m2": 60.0,
   "min_shaft_area_m2": 250.0,
   "near_m": 40.0
  },
@@ -13,17 +15,18 @@
   "The Independent": {
    "outline": "w516271461",
    "viou_as_authored": 0.751,
-   "viou_seated": 0.81,
-   "viou_seated_with_wings": 0.81,
+   "viou_seated": 0.826,
+   "viou_seated_with_wings": 0.826,
+   "fit": "moved, own plan size",
    "center": [
     -97.751177,
     30.267771
    ],
    "r": [
-    -19.2,
-    19.2,
-    -19.0,
-    19.0
+    -21.0,
+    21.0,
+    -18.0,
+    18.0
    ],
    "bearing": 17.8,
    "podium": 27.5,
@@ -50,23 +53,24 @@
   "The Austonian": {
    "outline": "w204413181",
    "viou_as_authored": 0.495,
-   "viou_seated": 0.806,
-   "viou_seated_with_wings": 0.811,
+   "viou_seated": 0.774,
+   "viou_seated_with_wings": 0.829,
+   "fit": "moved, own plan size",
    "center": [
     -97.744586,
     30.264817
    ],
    "r": [
-    -12.3,
-    12.3,
-    -24.8,
-    24.8
+    -16.0,
+    16.0,
+    -20.0,
+    20.0
    ],
    "bearing": 18.3,
    "podium": 28.0,
    "shaft_top_m": 138.2,
    "shaft_area_m2": 1223,
-   "wings": false,
+   "wings": true,
    "was": {
     "center": [
      -97.744493,
@@ -89,6 +93,7 @@
    "viou_as_authored": 0.508,
    "viou_seated": 0.845,
    "viou_seated_with_wings": 0.845,
+   "fit": "measured plan",
    "center": [
     -97.742796,
     30.266377
@@ -124,17 +129,18 @@
   "360 Condominiums": {
    "outline": "w328839215",
    "viou_as_authored": 0.405,
-   "viou_seated": 0.714,
-   "viou_seated_with_wings": 0.746,
+   "viou_seated": 0.655,
+   "viou_seated_with_wings": 0.768,
+   "fit": "moved, own plan size",
    "center": [
     -97.749613,
     30.267284
    ],
    "r": [
-    -12.7,
-    12.7,
-    -27.8,
-    27.8
+    -15.0,
+    15.0,
+    -19.0,
+    19.0
    ],
    "bearing": 17.5,
    "podium": 28.3,
@@ -173,6 +179,7 @@
    "viou_as_authored": 0.73,
    "viou_seated": 0.818,
    "viou_seated_with_wings": 0.818,
+   "fit": "measured plan",
    "center": [
     -97.738867,
     30.256426
@@ -210,6 +217,7 @@
    "viou_as_authored": 0.608,
    "viou_seated": 0.848,
    "viou_seated_with_wings": 0.848,
+   "fit": "measured plan",
    "center": [
     -97.739161,
     30.258539
@@ -245,45 +253,15 @@
   "Northshore": {
    "outline": "w516273083",
    "viou_as_authored": 0.446,
-   "viou_seated": 0.647,
-   "viou_seated_with_wings": 0.717,
-   "center": [
-    -97.749208,
-    30.265335
-   ],
-   "r": [
-    -12.0,
-    12.0,
-    -26.7,
-    26.7
-   ],
-   "bearing": 18.3,
-   "podium": 26.6,
-   "shaft_top_m": 87.6,
-   "shaft_area_m2": 1288,
-   "wings": true,
-   "was": {
-    "center": [
-     -97.74951,
-     30.265319
-    ],
-    "r": [
-     -32,
-     32,
-     -17,
-     17
-    ],
-    "bearing": 18.0,
-    "podium": 24
-   },
-   "moved_m": 29.1,
-   "used": true
+   "used": false,
+   "why": "the form cannot take the measured seat (measured plan: pieces leave the outline or the top is lost; moved, own plan size: pieces leave the outline or the top is lost)"
   },
   "Seaholm Residences": {
    "outline": "w516271460",
    "viou_as_authored": 0.454,
    "viou_seated": 0.774,
    "viou_seated_with_wings": 0.787,
+   "fit": "measured plan",
    "center": [
     -97.752064,
     30.267239
@@ -319,23 +297,24 @@
   "Colorado Tower": {
    "outline": "w231123152",
    "viou_as_authored": 0.672,
-   "viou_seated": 0.895,
-   "viou_seated_with_wings": 0.895,
+   "viou_seated": 0.825,
+   "viou_seated_with_wings": 0.919,
+   "fit": "moved, own plan size",
    "center": [
     -97.744686,
     30.26588
    ],
    "r": [
-    -21.4,
-    21.4,
-    -27.4,
-    27.4
+    -17.0,
+    17.0,
+    -23.0,
+    23.0
    ],
    "bearing": 17.6,
    "podium": 47.7,
    "shaft_top_m": 109.2,
    "shaft_area_m2": 2348,
-   "wings": false,
+   "wings": true,
    "was": {
     "center": [
      -97.744689,
@@ -356,23 +335,24 @@
   "One American Center": {
    "outline": "w206163832",
    "viou_as_authored": 0.587,
-   "viou_seated": 0.809,
-   "viou_seated_with_wings": 0.809,
+   "viou_seated": 0.754,
+   "viou_seated_with_wings": 0.812,
+   "fit": "moved, own plan size",
    "center": [
     -97.743213,
     30.268638
    ],
    "r": [
-    -18.9,
-    18.9,
-    -29.8,
-    29.8
+    -20.0,
+    20.0,
+    -23.0,
+    23.0
    ],
    "bearing": 17.3,
    "podium": 40.4,
    "shaft_top_m": 86.5,
    "shaft_area_m2": 2245,
-   "wings": false,
+   "wings": true,
    "was": {
     "center": [
      -97.743209,
@@ -393,23 +373,24 @@
   "100 Congress": {
    "outline": "w206165495",
    "viou_as_authored": 0.486,
-   "viou_seated": 0.819,
-   "viou_seated_with_wings": 0.826,
+   "viou_seated": 0.656,
+   "viou_seated_with_wings": 0.854,
+   "fit": "moved, own plan size",
    "center": [
     -97.74487,
     30.264014
    ],
    "r": [
-    -16.4,
-    16.4,
-    -33.1,
-    33.1
+    -16.0,
+    16.0,
+    -21.0,
+    21.0
    ],
    "bearing": 18.2,
    "podium": 13.5,
    "shaft_top_m": 64.2,
    "shaft_area_m2": 2173,
-   "wings": false,
+   "wings": true,
    "was": {
     "center": [
      -97.744788,
@@ -431,16 +412,17 @@
    "outline": "w231123149",
    "viou_as_authored": 0.502,
    "viou_seated": 0.673,
-   "viou_seated_with_wings": 0.738,
+   "viou_seated_with_wings": 0.757,
+   "fit": "moved, own plan size",
    "center": [
     -97.742969,
     30.264579
    ],
    "r": [
-    -19.3,
-    19.3,
-    -31.1,
-    31.1
+    -16.0,
+    16.0,
+    -29.0,
+    29.0
    ],
    "bearing": 18.0,
    "podium": 33.5,
@@ -467,17 +449,18 @@
   "Fairmont Austin": {
    "outline": "w134786106",
    "viou_as_authored": 0.33,
-   "viou_seated": 0.891,
-   "viou_seated_with_wings": 0.905,
+   "viou_seated": 0.831,
+   "viou_seated_with_wings": 0.91,
+   "fit": "moved, own plan size",
    "center": [
     -97.738125,
     30.262331
    ],
    "r": [
-    -39.1,
-    39.1,
-    -15.6,
-    15.6
+    -31.0,
+    31.0,
+    -16.0,
+    16.0
    ],
    "bearing": 16.2,
    "podium": 39.4,
@@ -506,6 +489,7 @@
    "viou_as_authored": 0.78,
    "viou_seated": 0.875,
    "viou_seated_with_wings": 0.909,
+   "fit": "measured plan",
    "center": [
     -97.746973,
     30.26589
@@ -571,17 +555,18 @@
   "Indeed Tower": {
    "outline": "w957405853",
    "viou_as_authored": 0.495,
-   "viou_seated": 0.827,
-   "viou_seated_with_wings": 0.864,
+   "viou_seated": 0.627,
+   "viou_seated_with_wings": 0.873,
+   "fit": "moved, own plan size",
    "center": [
     -97.744267,
     30.268997
    ],
    "r": [
-    -19.0,
-    19.0,
-    -38.1,
-    38.1
+    -20.0,
+    20.0,
+    -25.0,
+    25.0
    ],
    "bearing": 18.3,
    "podium": 8.2,

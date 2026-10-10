@@ -58,6 +58,8 @@ SEAT = {
     "wing_gain": 0.01,         # ...and by this much more for the measured wings to be added
     "shaft_min_height_share": 0.5,   # the shaft's roof is at least this share of the top
     "podium_min_cover": 0.70,  # a podium covers at least this share of the outline
+    "stray_m": 3.0,            # a piece above the podium may reach this far past the outline
+    "stray_max_m2": 60.0,      # plan area of pieces allowed to lie mostly beyond that
     "min_shaft_area_m2": 250.0,
     "near_m": 40.0,            # a tower's centre may sit this far outside its outline
 }
@@ -198,22 +200,54 @@ def main():
             entry.update(used=False, why="the scan shows no separate shaft")
             out[name] = entry
             continue
-        try:
-            new = build_tower_identity(bo, name, cfg["height"], 0, footprint=ring, seat=seat)
-            bad = sum(1 for s in new if not Polygon(s["geometry"]["coordinates"][0]).is_valid)
-            if bad:
-                raise ValueError("%d invalid pieces" % bad)
-            entry["viou_seated"] = round(grid.score(new, outline), 3)
+        # Two candidates: the measured plan, and the measured place with the
+        # hand model's own plan size (turned to the measured long side). Some
+        # forms carry insets in metres that only fit the plan they were drawn
+        # for; such a form keeps its size and only moves.
+        aw, ad = cfg["r"][1] - cfg["r"][0], cfg["r"][3] - cfg["r"][2]
+        mw, md = seat["r"][1] - seat["r"][0], seat["r"][3] - seat["r"][2]
+        if (aw >= ad) != (mw >= md):
+            aw, ad = ad, aw
+        moved_only = dict(seat, r=[-aw / 2, aw / 2, -ad / 2, ad / 2])
+        tried = []
+        near = outline.buffer(SEAT["stray_m"])
+        for label, cand in (("measured plan", seat), ("moved, own plan size", moved_only)):
+            try:
+                new = build_tower_identity(bo, name, cfg["height"], 0, footprint=ring, seat=cand)
+            except Exception as exc:  # noqa: BLE001
+                tried.append("%s: %s" % (label, exc))
+                continue
+            stray, top_ok = 0.0, False
+            for sld in new:
+                pr = sld["properties"]
+                q = Polygon(bo.to_metres(sld["geometry"]["coordinates"][0]))
+                if not q.is_valid:
+                    stray = 1e9
+                    break
+                if pr.get("b", 0) >= cand["podium"] - 0.5 and q.area >= 10 \
+                        and q.intersection(near).area < 0.5 * q.area:
+                    stray += q.area
+                if pr["h"] >= cfg["height"] - 1.0 and q.representative_point().within(near):
+                    top_ok = True
+            if stray > SEAT["stray_max_m2"] or not top_ok:
+                tried.append("%s: pieces leave the outline or the top is lost" % label)
+                continue
             fp_w = profile_for(name, "commercial", cfg["height"], outline.area)
-            wing = downtown_bodies.wings(bo, row, seat["podium"], new,
+            wing = downtown_bodies.wings(bo, row, cand["podium"], new,
                                          PROFILES[fp_w]["wd"], fp_w, row["id"])
-            entry["viou_seated_with_wings"] = round(grid.score(new + wing, outline), 3)
-            seat["wings"] = bool(wing) and (entry["viou_seated_with_wings"]
-                                            >= entry["viou_seated"] + SEAT["wing_gain"])
-        except Exception as exc:  # noqa: BLE001 -- a form that cannot take the plan keeps its own
-            entry.update(used=False, why="the form cannot take the measured plan (%s)" % exc)
+            v0 = round(grid.score(new, outline), 3)
+            v1 = round(grid.score(new + wing, outline), 3)
+            use_w = bool(wing) and v1 >= v0 + SEAT["wing_gain"]
+            tried.append((v1 if use_w else v0, label, dict(cand, wings=use_w), v0, v1))
+        good = [t for t in tried if isinstance(t, tuple)]
+        if not good:
+            entry.update(used=False, why="the form cannot take the measured seat (%s)"
+                         % "; ".join(t for t in tried if isinstance(t, str)))
             out[name] = entry
+            print("  %-26s kept  %.2f  %s" % (name, entry["viou_as_authored"], entry["why"]))
             continue
+        best, label, seat, v0, v1 = max(good, key=lambda t: t[0])
+        entry["viou_seated"], entry["viou_seated_with_wings"], entry["fit"] = v0, v1, label
         entry.update(seat)
         entry["was"] = {"center": [round(v, 6) for v in cfg["center"]], "r": cfg["r"],
                         "bearing": cfg.get("bearing", TUNING["bearing"]),
@@ -221,14 +255,14 @@ def main():
         entry["moved_m"] = round(math.hypot(
             (seat["center"][0] - cfg["center"][0]) * bo.M_LON,
             (seat["center"][1] - cfg["center"][1]) * bo.M_LAT), 1)
-        best_new = entry["viou_seated_with_wings"] if seat["wings"] else entry["viou_seated"]
-        entry["used"] = best_new >= entry["viou_as_authored"] + SEAT["min_gain"]
+        entry["used"] = best >= entry["viou_as_authored"] + SEAT["min_gain"]
         if not entry["used"]:
             entry["why"] = "the seat does not measure better"
         out[name] = entry
-        print("  %-26s %s  %.2f -> %.2f (wings %.2f)  moved %5.1f m  podium %s -> %s  plan %s -> %s"
-              % (name, "USED" if entry["used"] else "kept", entry["viou_as_authored"],
-                 entry["viou_seated"], entry["viou_seated_with_wings"], entry["moved_m"], cfg["podium"], seat["podium"],
+        print("  %-26s %s  %.2f -> %.2f (%s%s)  moved %5.1f m  podium %s -> %s  plan %s -> %s"
+              % (name, "USED" if entry["used"] else "kept", entry["viou_as_authored"], best,
+                 label, ", wings" if seat["wings"] else "", entry["moved_m"],
+                 cfg["podium"], seat["podium"],
                  "%dx%d" % (cfg["r"][1] - cfg["r"][0], cfg["r"][3] - cfg["r"][2]),
                  "%.0fx%.0f" % (seat["r"][1] - seat["r"][0], seat["r"][3] - seat["r"][2])))
     doc = {
