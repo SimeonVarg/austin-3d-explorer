@@ -37,6 +37,9 @@
  */
 (function () {
   'use strict';
+  // The night clock (js/city-night.js): the real clock, or a frozen one under ?nightfreeze / ?nightseed so the stars hold still.
+  const skyNow = () => (window.CityNight && window.CityNight.now ? window.CityNight.now() : performance.now());
+
 
   const PI = Math.PI;
   const rad = d => d * PI / 180;
@@ -1443,7 +1446,7 @@
     // Azimuth where the panorama wraps, degrees. The check centres the camera on it.
     seamAz() {
       const e = cloudEntry(SKY_TUNE.cloudSet);
-      const r = SKY_TUNE.GL.ROT + e.rot + SKY_TUNE.GL.DRIFT * performance.now() / 60000;
+      const r = SKY_TUNE.GL.ROT + e.rot + SKY_TUNE.GL.DRIFT * skyNow() / 60000;
       return ((r % 360) + 360) % 360;
     },
     url() { return SKY_TUNE.GL.PANO[SKY_TUNE.cloudSet]; },
@@ -1562,7 +1565,7 @@
     gl.activeTexture(gl.TEXTURE0);
     if (pano) {
       gl.bindTexture(gl.TEXTURE_2D, pano.tex);
-      const drift = GT.DRIFT * performance.now() / 60000;
+      const drift = GT.DRIFT * skyNow() / 60000;
       const amt = GT.CLOUD_ALPHA * (1 - F.night * GT.NIGHT_FADE);
       const dim = 1 - (1 - GT.NIGHT_DIM) * F.night;
       gl.uniform4f(u.u_cl, amt, dim, pano.elevMax, GT.ROT + pano.rot + drift);
@@ -1604,7 +1607,7 @@
       gl.uniform1f(q.u_z, SKY_COMP.z);
       gl.uniform1f(q.u_px, gl.drawingBufferWidth / W);
       gl.uniform1f(q.u_bufH, gl.drawingBufferHeight);
-      gl.uniform1f(q.u_time, performance.now());
+      gl.uniform1f(q.u_time, skyNow());
       gl.uniform1f(q.u_str, F.starStr);
       gl.uniform1f(q.u_haloMag, GT.STAR_HALO_MAG);
       gl.uniform3f(q.u_tw, T.TWINKLE.MAG, T.TWINKLE.AMP, T.TWINKLE.SPEED);
@@ -2435,7 +2438,7 @@
     // the midpoint looked like midnight.
     if (B.stars > 0.02 && nStars > 0) {
       const TW = SKY_TUNE.TWINKLE;
-      const now = performance.now();
+      const now = skyNow();
       let drawn = 0;
       for (let si = 0; si < nStars; si++) {
         const s = stars[si];

@@ -81,6 +81,7 @@
     uniform mat4 u_sunShadowMatrix0, u_sunShadowMatrix1;
     uniform vec4 u_shadowSettings;
     uniform vec4 u_cityPatternFilter, u_cityPatternFilterB;
+    uniform vec4 u_cityEye, u_cityEye2;
     ${Array.from({length:8},(_,i)=>`uniform vec4 u_cityFixture${i}, u_cityFixtureColour${i};`).join('\n')}
   `;
   // The pattern fragment only (see patternFilter). `point` is MapLibre's own
@@ -109,6 +110,7 @@
       }
       return mix(point,sum/(nx*ny),fade);
     }`;
+  const E=window.CityNight?.eye||{footprintM:[3,12],hz:[2.2,6.8],colourWobble:.45,switchS:[150,900],offBase:.045,lateDropout:.18,officeExtra:1.3,nearM:300,farM:2600};
   const glsl = `
     vec3 linearColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(2.2)); }
     vec3 displayColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(1.0/2.2)); }
@@ -180,6 +182,47 @@
       if(u_cityNight.x<=0.0||mask<=0.0)return base;
       float lit=smoothstep(u_cityNight.z,u_cityNight.w,dot(source,vec3(.2126,.7152,.0722)));
       return mix(base,max(base,source*u_cityNight.y),u_cityNight.x*mask*lit);
+    }
+
+    // THE EYE AT NIGHT (docs/night-eye-2026-10-10.md). A lit window carries its own colour, and that colour is a
+    // stable per-window name (the room palette hashes every window), so hashing it names the window without any
+    // geometry. Returns the factor on the window's emission: brightness in all three channels, with a red/blue
+    // swing riding on the shimmer. Everything is a function of (name, seconds): no memory, no per-frame CPU.
+    highp uvec3 cityPcg(highp uvec3 v){v=v*1664525u+1013904223u;v.x+=v.y*v.z;v.y+=v.z*v.x;v.z+=v.x*v.y;v^=v>>16u;v.x+=v.y*v.z;v.y+=v.z*v.x;v.z+=v.x*v.y;return v;}
+    vec3 cityEyeGain(vec3 pos,vec3 src) {
+      int bits=int(u_cityEye2.w+.5);
+      if(bits==0||u_cityNight.x<=0.0)return vec3(1.0);
+      if(dot(src,vec3(.2126,.7152,.0722))<u_cityNight.z)return vec3(1.0);
+      highp uvec3 q=uvec3(clamp(floor(src*255.0+.5),0.0,255.0));
+      highp uvec3 h=cityPcg(uvec3(q.r|(q.g<<8u)|(q.b<<16u),9157u,23501u));
+      highp uvec3 h2=cityPcg(h^uvec3(1752346532u));
+      vec3 f=vec3(h>>8u)/16777216.0,g=vec3(h2>>8u)/16777216.0;
+      float t=u_cityEye.x,gain=1.0;vec3 tint=vec3(1.0);
+      if((bits&1)!=0) {
+        float d=distance(u_eye,pos);
+        float amp=u_cityEye.y*smoothstep(u_cityEye2.y,u_cityEye2.z,d)*(1.0-smoothstep(${E.footprintM[0].toFixed(2)},${E.footprintM[1].toFixed(2)},d*u_cityEye.z));
+        if(amp>0.0) {
+          float ph=dot(pos,vec3(.093,.071,.137));
+          float w1=mix(${E.hz[0].toFixed(3)},${E.hz[1].toFixed(3)},f.y),w2=mix(${E.hz[0].toFixed(3)},${E.hz[1].toFixed(3)},f.z),w3=mix(${E.hz[0].toFixed(3)},${E.hz[1].toFixed(3)},g.z);
+          float n=sin(6.2831853*(w1*t+g.x)+ph)+sin(6.2831853*(w2*t+g.y)+ph*1.7);
+          float m=sin(6.2831853*(w3*t+f.x)+ph*.6);
+          gain=max(.15,1.0+amp*n);
+          tint=vec3(1.0+${E.colourWobble.toFixed(3)}*amp*m,1.0,1.0-${E.colourWobble.toFixed(3)}*amp*m);
+        }
+      }
+      if((bits&2)!=0) {
+        float period=mix(${E.switchS[0].toFixed(1)},${E.switchS[1].toFixed(1)},f.y);
+        float ph2=dot(pos,vec3(.093,.071,.137));
+        float k=fract(t/period+g.z+f.x*7.0+ph2*.17);
+        float rest=smoothstep(${(1-E.offBase-.03).toFixed(3)},${(1-E.offBase).toFixed(3)},k)*(1.0-smoothstep(.985,1.0,k));
+        float office=smoothstep(-.02,.06,src.b-src.r);
+        float dark=u_cityEye.w*${E.lateDropout.toFixed(3)}*(1.0+${E.officeExtra.toFixed(3)}*office);
+        // The bedtime mixes the window's colour name with a 37 m x 11 m cell, so the same colour does not go dark everywhere at once.
+        highp uvec3 hc=cityPcg(uvec3(ivec3(floor(pos/vec3(37.0,37.0,11.0)))+ivec3(4096)));
+        float bed=fract(f.x+float(hc.x>>8u)/16777216.0);
+        gain*=(1.0-rest)*(1.0-smoothstep(bed,bed+.05,dark));
+      }
+      return gain*tint;
     }
     vec3 reflectedSky(vec3 r) {
       float height=smoothstep(0.0,u_reflectionSky.x,max(r.z,0.0));
@@ -673,8 +716,22 @@
       try {
         if(source.includes('uniform bool u_pitch_with_map;')&&source.includes('circle_center')) {
           kind='pool-vertex';
-          source=source.replace(/void main\(\s*(?:void)?\s*\)/,'uniform float u_cityPoolLift; void main()');
-          source=replace(source,'float ele=get_elevation(circle_center);','float ele=get_elevation(circle_center)+u_cityPoolLift;');
+          source=source.replace(/void main\(\s*(?:void)?\s*\)/,`uniform float u_cityPoolLift; uniform vec4 u_cityLampEye;
+            highp uvec3 cityPcg(highp uvec3 v){v=v*1664525u+1013904223u;v.x+=v.y*v.z;v.y+=v.z*v.x;v.z+=v.x*v.y;v^=v>>16u;v.x+=v.y*v.z;v.y+=v.z*v.x;v.z+=v.x*v.y;return v;}
+            void main()`);
+          // A lamp head's shimmer: its radius breathes by a per-lamp hash of its tile position and the clock.
+          // u_cityLampEye = (seconds, amplitude at full distance, near metres, camera-to-centre metres); amplitude
+          // is 0 on every circle layer but the lamp heads (set per draw below), so every other circle is untouched.
+          source=replace(source,'float ele=get_elevation(circle_center);',`float ele=get_elevation(circle_center)+u_cityPoolLift;
+            if(u_cityLampEye.y>0.0){
+              vec4 cp=projectTileWithElevation(circle_center,ele);
+              float dm=cp.w/u_camera_to_center_distance*u_cityLampEye.w;
+              float a=u_cityLampEye.y*smoothstep(u_cityLampEye.z,${E.farM.toFixed(1)},dm);
+              highp uvec3 h=cityPcg(uvec3(uint(max(circle_center.x,0.0)),uint(max(circle_center.y,0.0)),4093u));
+              vec3 f=vec3(h>>8u)/16777216.0;
+              float n=sin(6.2831853*(mix(${E.hz[0].toFixed(3)},${E.hz[1].toFixed(3)},f.x)*u_cityLampEye.x+f.z))+sin(6.2831853*(mix(${E.hz[0].toFixed(3)},${E.hz[1].toFixed(3)},f.y)*u_cityLampEye.x+f.x));
+              radius*=max(.3,1.0+a*n);
+            }`);
         } else if(source.includes('in vec4 a_normal_ed;')) {
           kind=source.includes('out vec4 v_lighting;')?'pattern-vertex':'solid-vertex';
           source=replace(source,'void main()',`uniform mat4 u_cityTileToLocal; out ${varying}\nvoid main()`);
@@ -714,7 +771,8 @@
               vec3 shaded=cityShade(cityBase*v_lighting.rgb/max(v_lighting.a,.0001),cityBase,v_cityPos,v_cityNormal,glass);
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
               shaded=cityLocalLight(shaded,min(cityBase*4.0,vec3(1.0)),v_cityPos,v_cityNormal,glass);
-              fragColor=vec4(cityEmission(shaded,cityBase,glass)*v_lighting.a,v_lighting.a);}`
+              vec3 lit=cityEmission(shaded,cityBase,glass);lit=shaded+(lit-shaded)*cityEyeGain(v_cityPos,cityBase);
+              fragColor=vec4(lit*v_lighting.a,v_lighting.a);}`
               :`if(u_citySolidSurface<.5){
               vec3 shaded=cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,0.0);
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
@@ -754,7 +812,7 @@
       if(!kinds.some(k=>k?.endsWith('-vertex')))return;
       if(!gl.getProgramParameter(program,gl.LINK_STATUS)){fail(gl.getProgramInfoLog(program));return;}
       if(kinds.includes('pool-vertex')){
-        programs.set(program,{poolLift:gl.getUniformLocation(program,'u_cityPoolLift')});
+        programs.set(program,{poolLift:gl.getUniformLocation(program,'u_cityPoolLift'),lampEye:gl.getUniformLocation(program,'u_cityLampEye')});
         stats.poolPrograms++;return;
       }
       const u={};
@@ -820,6 +878,16 @@
     function draw(native,args) {
       if(current?.poolLift){
         gl.uniform1f(current.poolLift,depthPool(painter.id)?(window.NIGHT_TUNE?.POOL_ELEVATION_M??0.25):0);
+        if(current.lampEye){
+          // Only the lamp heads shimmer, and only while the night clock says so (frame() sets u_cityEye2).
+          let a=0,t=0,dc=0;
+          if(painter.id==='night-streetlight-core'&&frame){
+            const e1=frame.U.u_cityEye?.value,e2=frame.U.u_cityEye2?.value,tr=painter.transform;
+            dc=tr&&tr.pixelsPerMeter>0?tr.cameraToCenterDistance/tr.pixelsPerMeter:0;
+            if(e1&&e2&&dc>0&&(Math.round(e2.w)&1)){a=e2.x;t=e1.x;}
+          }
+          gl.uniform4f(current.lampEye,t,a,frame?.U.u_cityEye2?.value.y??0,dc);
+        }
         stats.poolDraws++;return native(...args);
       }
       if(!current||!frame)return native(...args);
@@ -888,8 +956,10 @@
       U.u_cityPatternFilterB??={value:new THREE.Vector4()};
       U.u_cityPatternFilterB.value.set(patternFilter.maxSpacing,0,0,0);
       U.u_cityNight??={value:new THREE.Vector4()};
+      U.u_cityEye??={value:new THREE.Vector4()};U.u_cityEye2??={value:new THREE.Vector4()};
       const night=window.CityNight,t=night?.tune;
       U.u_cityNight.value.set(t?.on?night.lamps(window.__todCurrentP??.5):0,t?.emissionGain??1,...(t?.glassThreshold??[.26,.48]));
+      if(night?.uniforms)night.uniforms(U,window.__todCurrentP??.5,window.__map);
       if(window.slopes&&!U.u_cityLandmarkOrigins){
         const a=window.slopes.toLocal(...landmarkMaterials.waterline.center,0),b=window.slopes.toLocal(...landmarkMaterials.sixth.center,0);
         U.u_cityLandmarkOrigins={value:new THREE.Vector4(a.x,a.y,b.x,b.y)};

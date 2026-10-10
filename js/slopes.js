@@ -586,9 +586,9 @@ ${window.RoofTiles.apply}
       col=cityCrown(col,v_pos,v_normal);
       col=cityLocalLight(col,albedo,v_pos,v_normal,glazing);
       #ifdef FACADE_FILTER
-      col=cityEmission(col,night,glazing);
+      {vec3 lit=cityEmission(col,night,glazing);col=col+(lit-col)*cityEyeGain(v_pos,night);}
       #else
-      col=cityEmission(col,night,((kind>3.5&&kind<5.5)||shop)?1.0:0.0);
+      {vec3 lit=cityEmission(col,night,((kind>3.5&&kind<5.5)||shop)?1.0:0.0);col=col+(lit-col)*cityEyeGain(v_pos,night);}
       #endif
       if(kind>.5 && u_surfaceRange.x>.5) {
         vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);
@@ -1652,7 +1652,7 @@ ${window.RoofTiles.apply}
     U = {
       // Subclasses copy the uniform dictionary before their first render.
       // Allocate shared city values now so those copies keep the same holders.
-      u_citySkyFill:{value:new T.Vector2()},u_cityNight:{value:new T.Vector4()},
+      u_citySkyFill:{value:new T.Vector2()},u_cityNight:{value:new T.Vector4()},u_cityEye:{value:new T.Vector4()},u_cityEye2:{value:new T.Vector4()},
       u_cityCrown:{value:new T.Vector4()},u_cityCrownColour:{value:new T.Vector4()},
       ...Object.fromEntries(Array.from({length:8},(_,i)=>[
         ['u_cityFixture'+i,{value:new T.Vector4()}],

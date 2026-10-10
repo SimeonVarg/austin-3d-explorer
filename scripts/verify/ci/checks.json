@@ -103,6 +103,7 @@
     "motion-feel.mjs": {"est_s": 1200},
     "movement.mjs": {"timeout_s": 2400, "est_s": 530},
     "night-compare.mjs": {"args": ["--selftest"], "est_s": 10},
+    "night-eye-offline.mjs": {"est_s": 10},
     "night-lamps.mjs": {"est_s": 340},
     "night-lights.mjs": {"est_s": 30},
     "night-luma.mjs": {"timeout_s": 3600, "est_s": 530},
@@ -153,6 +154,7 @@
   },
   "_quarantine": "Checks that do NOT run in CI, each with the reason. Broken on main itself, or cannot work without a GPU. Fix the check (or main), then delete its line here.",
   "quarantine": {
+    "night-eye.mjs": "needs a GPU: its cost and live-repaint numbers are meaningless on the runner, and each part waits on a settled night. Run it on the AWS runner: scripts/aws-gpu/README.md, checks night-eye.mjs --only determinism etc.",
     "facadegrid.mjs": "cannot score on main (exit 2): 'only 1 template grid(s) were testable. This self-check has decayed to the point of proving nothing'",
     "mobile-mergecells.mjs": "cannot run on main (exit 2): 'APARTMENTS.mergeCells is not defined in this build', the switch it compares is gone",
     "tower-check.mjs": "red on main: belfry/shaft 0.251 (want 0.49) and cap/shaft 0.160 (want 0.45), the exact numbers HANDOFF records on the laptop; at night it also misses the orange flood on some runs",

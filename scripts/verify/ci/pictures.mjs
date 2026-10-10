@@ -59,7 +59,9 @@ export const LOOK = {
   // picture caught a different part-painted city: a changed patch on a building the pull request could not touch,
   // in the first run of three pull requests in a row. The two switches make the app paint walls at once, the old way.
   // The pixels at rest are the same; only WHEN they are painted differs.
-  shotQuery: 'namelabels=0&facadepace=0&timeofdaypace=0',
+  // nightfreeze=1 (2026-10-10): the night's lit windows, stars and shimmer are functions of a clock; frozen, two loads of a night view
+  // are the same picture (js/city-night.js, docs/night-eye-2026-10-10.md). On the base branch the switch is ignored.
+  shotQuery: 'namelabels=0&facadepace=0&timeofdaypace=0&nightfreeze=1',
 };
 
 const argv = process.argv.slice(2);
