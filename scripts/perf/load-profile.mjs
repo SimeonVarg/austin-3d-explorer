@@ -61,6 +61,9 @@ const PROFILE = flag('--profile');
 const TRACE = flag('--trace');
 const WARM = flag('--warm');
 const QUERY = arg('--query', 'drift=0');
+// --qarms 'walltiers=0;' : extra query strings, one arm each, separated by ';' (an empty string is the plain page).
+// Every throttle is crossed with every extra query, and the arms run interleaved like the throttles do.
+const QARMS = arg('--qarms', '').split(';');
 const SETTLE = +arg('--settle', 6000);
 const MAX = +arg('--max', 420000);
 const OUT = arg('--out', process.env.VERIFY_OUT || path.join(process.env.TMPDIR || '/tmp', 'load-profile'));
@@ -102,8 +105,8 @@ function classify(u) {
   return 'own other';
 }
 
-async function runOnce(throttle, rep, { profile, trace, warm }) {
-  const label = `t${throttle}${profile ? 'p' : ''}${trace ? 'tr' : ''}-r${rep}`;
+async function runOnce(throttle, rep, { profile, trace, warm, qi = 0 }) {
+  const label = `t${throttle}${QARMS.length > 1 ? 'q' + qi : ''}${profile ? 'p' : ''}${trace ? 'tr' : ''}-r${rep}`;
   if (REQUIRE_IDLE) {
     for (let waited = 0; ; waited += 15) {
       const idle = await idleSeconds();
@@ -146,7 +149,7 @@ async function runOnce(throttle, rep, { profile, trace, warm }) {
     }
     if (profile) { await page.send('Profiler.enable'); await page.send('Profiler.setSamplingInterval', { interval: 1000 }); await page.send('Profiler.start'); }
 
-    const url = URL0 + (URL0.includes('?') ? '&' : '?') + QUERY;
+    const url = URL0 + (URL0.includes('?') ? '&' : '?') + QUERY + (QARMS[qi] ? '&' + QARMS[qi] : '');
     const tNav = Date.now();
     await page.send('Page.navigate', { url });
     // wait: reveal + apartments done, then SETTLE ms, or MAX
@@ -187,7 +190,14 @@ async function runOnce(throttle, rep, { profile, trace, warm }) {
         nav:{dcl:nav.domContentLoadedEventEnd, load:nav.loadEventEnd, responseEnd:nav.responseEnd},
         intro: window.__intro?{waitedMs:window.__intro.waitedMs, reason:window.__intro.reason, missingAtLift:window.__intro.missingAtLift, gateOkAt:window.__intro.gateOkAt}:null,
         apartments: ap?{buildings:ap.buildings, blocks:ap.blocks, faces:ap.faces, cells:ap.cells, triangles:ap.triangles, ms:ap.ms, slices:ap.buildSlices, done:ap.done}:null,
-        facadePace: window.__facadePace||null, loading: window.__loading?{started:window.__loading.started,complete:window.__loading.complete,n:(window.__loading.history||[]).length}:null,
+        facadePace: window.__facadePace||null,
+        facadeWT: window.facadeWallTiersStats ? window.facadeWallTiersStats() : null,
+        facadeImages: (() => { try { const im = window.__map.style.imageManager.images, out = { n: 0, bytes: 0, far: 0, near: 0, other: 0, farBytes: 0, nearBytes: 0 };
+          const ids = new Set(window.facadePalette ? [] : []);
+          for (const k in im) { const d = im[k].data, b = d && d.data ? d.data.length : 0; out.n++; out.bytes += b;
+            if (/^[a-z]{2}\\d+x$/.test(k)) { out.far++; out.farBytes += b; } else if (/^[a-z]{2}\\d+$/.test(k)) { out.near++; out.nearBytes += b; } else out.other++; }
+          return out; } catch (e) { return null; } })(),
+        loading: window.__loading?{started:window.__loading.started,complete:window.__loading.complete,n:(window.__loading.history||[]).length}:null,
         gfx, gpuRenderer: dbg?gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL):null,
         gl:{draws:P.gl.draws,tris:Math.round(P.gl.tris),tex:P.gl.texBytes,buf:P.gl.bufBytes,peak:P.gl.peak,own:P.gl.own,calls:P.gl.calls},
         frames:{n:P.frames.length, over50:P.frames.filter(x=>x>50).length, over200:P.frames.filter(x=>x>200).length, max:Math.max(0,...P.frames.slice(0,100000))},
@@ -211,7 +221,7 @@ async function runOnce(throttle, rep, { profile, trace, warm }) {
       }
     }
     const loadAfter = machineLoad();
-    const res = { label, rep, throttle, profile: !!profile, trace: !!trace, gl: GL, phone: PHONE, query: QUERY, settleMs: SETTLE, wallToEndMs: wallToEnd,
+    const res = { label, rep, throttle, qi, query: QARMS[qi], profile: !!profile, trace: !!trace, gl: GL, phone: PHONE, baseQuery: QUERY, settleMs: SETTLE, wallToEndMs: wallToEnd,
       chrome: chrome.version.product, machine: { before: loadBefore, after: loadAfter }, ...data, cdpMetrics: metrics, heap, net, analysis, traceSummary, warm: warmRes };
     fs.writeFileSync(path.join(OUT, `${label}.json`), JSON.stringify(res, null, 1));
     return res;
@@ -272,24 +282,29 @@ function summariseTrace(events) {
 const results = [];
 const plan = [];
 const nonProfile = !PROFILE && !TRACE;
+const ARMLIST = [];
+for (const t of THROTTLES) for (let qi = 0; qi < QARMS.length; qi++) ARMLIST.push({ t, qi });
 for (let r = OFFSET + 1; r <= OFFSET + REPS; r++) {
-  const order = r % 2 ? THROTTLES : [...THROTTLES].reverse();   // A B, then B A: counterbalanced
-  for (const t of order) plan.push({ t, r });
+  const order = r % 2 ? ARMLIST : [...ARMLIST].reverse();   // A B, then B A: counterbalanced
+  for (const a of order) plan.push({ t: a.t, qi: a.qi, r });
 }
 console.error(`load-profile: ${plan.length} loads, url ${URL0}, gl ${GL}${PHONE ? ', phone' : ''}${PROFILE ? ', profiled' : ''}${TRACE ? ', traced' : ''}`);
 if (FROM) { for (const f of fs.readdirSync(FROM).sort()) if (MATCH.test(f)) results.push(JSON.parse(fs.readFileSync(path.join(FROM, f), 'utf8'))); }
-for (const { t, r } of FROM ? [] : plan) {
+for (const { t, r, qi } of FROM ? [] : plan) {
   const t0 = Date.now();
   try {
-    const res = await runOnce(t, r, { profile: PROFILE, trace: TRACE, warm: WARM && t === THROTTLES[0] });
+    const res = await runOnce(t, r, { profile: PROFILE, trace: TRACE, warm: WARM && t === THROTTLES[0], qi });
     results.push(res);
     const m = res.marks || {};
     console.error(`  ${res.label}: reveal ${m.introReveal ?? '-'} ms, apartmentsDone ${m.apartmentsDone ?? '-'}, firstRender ${m.mapFirstRender ?? '-'}, load avg ${res.machine.before.load1}->${res.machine.after.load1}, renderer ${res.gpuRenderer}, ${((Date.now() - t0) / 1000).toFixed(0)} s`);
-  } catch (e) { console.error(`  t${t}-r${r} FAILED: ${e.stack || e}`); }
+  } catch (e) { console.error(`  t${t}${QARMS.length > 1 ? 'q' + qi : ''}-r${r} FAILED: ${e.stack || e}`); }
 }
 
 // ---- report
-if (FROM) { const ts = [...new Set(results.map(r => r.throttle))].sort((a, b) => a - b); THROTTLES.length = 0; THROTTLES.push(...ts); }
+if (FROM) {
+  const ts = [...new Set(results.map(r => r.throttle))].sort((a, b) => a - b); THROTTLES.length = 0; THROTTLES.push(...ts);
+  const qs = []; for (const r of results) qs[r.qi || 0] = r.query || ''; QARMS.length = 0; QARMS.push(...qs.map(q => q || ''));
+}
 const out = [];
 const fmt = n => n == null ? '-' : String(Math.round(n));
 const stat = (arr) => arr.length ? `${fmt(Math.min(...arr))} / ${fmt(med(arr))} / ${fmt(Math.max(...arr))}` : '-';
@@ -312,15 +327,27 @@ const rows = [
   ['script duration (CDP ScriptDuration s*1000)', r => r.cdpMetrics.ScriptDuration * 1000],
   ['task duration (CDP TaskDuration s*1000)', r => r.cdpMetrics.TaskDuration * 1000],
   ['JS heap used MB', r => r.heap && r.heap.usedSize / 2 ** 20],
+  ['initFacades call ms (main thread)', r => (r.calls.find(c => c[0] === 'initFacades') || [])[2]],
+  ['wall images painted when asked: count', r => r.facadeWT && r.facadeWT.painted],
+  ['wall images painted when asked: main-thread ms', r => r.facadeWT && r.facadeWT.paintMs],
+  ['paint workers: busy ms (sum of all jobs)', r => r.facadeWT && r.facadeWT.workerMs],
+  ['paint workers: jobs (combos)', r => r.facadeWT && r.facadeWT.workerCombos],
+  ['facade paced jobs started / finished', r => r.facadePace && r.facadePace.jobs],
+  ['images the map holds: count', r => r.facadeImages && r.facadeImages.n],
+  ['images the map holds: facade far tier, MB (CPU copies)', r => r.facadeImages && r.facadeImages.farBytes / 2 ** 20],
+  ['images the map holds: facade near tier, MB (CPU copies)', r => r.facadeImages && r.facadeImages.nearBytes / 2 ** 20],
+  ['GL textures the page asked for, MB, all', r => r.gl && r.gl.tex / 2 ** 20],
+  ['GL textures the page asked for, MB, js/facades.js (tile pattern atlases)', r => r.gl && r.gl.own && r.gl.own['js/facades.js'] && r.gl.own['js/facades.js'].tex / 2 ** 20],
+  ['GL textures peak, MB', r => r.gl && r.gl.peak && r.gl.peak.tex / 2 ** 20],
   ['wire MB, all requests', r => r.net.total.enc / 2 ** 20],
   ['requests, all', r => r.net.total.n],
 ];
 out.push(`# load-profile report`);
 out.push(`url ${URL0}  gl ${GL}  ${PHONE ? 'phone 390x844 DPR3' : 'desktop 1280x800 DPR1.5'}  query ?${QUERY}  autodetect ${AUTODETECT ? 'on' : 'cancelled'}  profile ${PROFILE}  trace ${TRACE}  settle ${SETTLE} ms`);
 if (results[0]) out.push(`chrome ${results[0].chrome}  renderer ${results[0].gpuRenderer}  host cpus ${results[0].machine.before.cpus}`);
-for (const t of THROTTLES) {
-  const rs = results.filter(r => r.throttle === t);
-  out.push(`\n## CPU throttle ${t}x, ${rs.length} cold loads  (ms; min / median / max)`);
+for (const { t, qi } of THROTTLES.flatMap(t => QARMS.map((_, qi) => ({ t, qi })))) {
+  const rs = results.filter(r => r.throttle === t && (r.qi || 0) === qi);
+  out.push(`\n## CPU throttle ${t}x${QARMS.length > 1 ? `, extra query "${QARMS[qi]}"` : ''}, ${rs.length} cold loads  (ms; min / median / max)`);
   out.push(`machine load average before each rep: ${rs.map(r => r.machine.before.load1).join(', ')}`);
   for (const [name, f] of rows) { const v = rs.map(r => { try { return f(r); } catch (e) { return null; } }).filter(x => x != null && isFinite(x)); out.push(`${name.padEnd(46)} ${stat(v)}   [${v.map(fmt).join(', ')}]`); }
 }
