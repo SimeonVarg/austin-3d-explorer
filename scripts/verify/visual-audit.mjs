@@ -168,6 +168,7 @@ async function step(name, fn) {
 const hasEl = (page, sel) => page.evaluate(s => { const e = document.querySelector(s); if (!e) return false; const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return r.width > 0 && r.height > 0 && cs.display !== 'none' && cs.visibility !== 'hidden'; }, sel).catch(() => false);
 async function click(page, sel, label) {
   try { await page.click(sel, { timeout: 6000 }); return true; } catch (e) {
+    log('  pointer click refused', sel, String(e.message).split('\n').filter(l => /intercepts|not visible|outside|detached|stable|enabled/.test(l)).slice(0, 2).join(' | ').slice(0, 260));
     try { await page.evaluate(s => { const e = document.querySelector(s); if (e) e.click(); }, sel); log('  (click by script, not by pointer)', sel, label || ''); return !!(await page.$(sel)); } catch (e2) { log('  cannot click', sel); return false; }
   }
 }
