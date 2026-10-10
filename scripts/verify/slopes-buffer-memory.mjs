@@ -45,7 +45,12 @@ const THREE = { BufferAttribute, Float32BufferAttribute, BufferGeometry, ShaderM
 const context = vm.createContext({ window: { THREE, WallPatterns: { attach() {} } }, U: {}, VERT: '', FRAG: '',
   Float32Array: trackedArray(Float32Array), Uint8Array: trackedArray(Uint8Array), Uint32Array: trackedArray(Uint32Array),
   hexToRgb01: hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255) });
-const start = source.indexOf('  function build(');
+// build() calls shapeOps() (defined just above it) and reads `_rustBuild`, the loaded Rust builder (a `let` near the top of the IIFE, null until js/slopes-rust.js has
+// compiled the module). Lift both from the source as they are: with the switch off `_rustBuild` stays null and build() is the JS vertex store this check is about.
+const start = source.indexOf('  function shapeOps(');
+const rustDecl = source.indexOf('  let _rustBuild = null;');
+assert.ok(rustDecl >= 0, 'js/slopes.js moved: `let _rustBuild = null;`');
+vm.runInContext(source.slice(rustDecl, source.indexOf('\n', rustDecl)), context);
 const end = source.indexOf('\n  /**\n   * A wall frame', start);
 assert.ok(start >= 0 && end > start);
 vm.runInContext(source.slice(start, end), context);

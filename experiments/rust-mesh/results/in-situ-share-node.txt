@@ -1,0 +1,6 @@
+rep 0: build 8734 ms, inside tri/quad/triN 2914 ms = 33%  (timer overhead included on both)
+rep 1: build 7903 ms, inside tri/quad/triN 3122 ms = 40%  (timer overhead included on both)
+rep 2: build 6775 ms, inside tri/quad/triN 2957 ms = 44%  (timer overhead included on both)
+rep 3: build 6881 ms, inside tri/quad/triN 2851 ms = 41%  (timer overhead included on both)
+rep 4: build 8967 ms, inside tri/quad/triN 3496 ms = 39%  (timer overhead included on both)
+share of build inside the shared builder: min 33%  median 40%  max 44%
