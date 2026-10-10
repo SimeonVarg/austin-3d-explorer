@@ -1,3 +1,7 @@
+/* Safe-area insets (A12): the notch, the rounded corners and the home bar. Each is 0 on a screen without them, so
+   nothing moves there. Edge controls add the one they sit under. Parameters: change the four values to retune. */
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-right:env(safe-area-inset-right,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#1a1208}
 #map{position:absolute;inset:0}
@@ -290,7 +294,7 @@ html.timelapse #tod-slider{pointer-events:none}
 
 /* Chrome sits quietly over the scene: thin, low-contrast, and it fades out of
    the way once you start flying (js/app.js adds .flying to <body>). */
-#hud{position:absolute;top:16px;left:50%;transform:translateX(-50%);
+#hud{position:absolute;top:calc(16px + var(--safe-top));left:50%;transform:translateX(-50%);
   background:rgba(18,11,4,.55);backdrop-filter:blur(10px) saturate(1.1);
   border:1px solid rgba(255,190,90,.16);border-radius:999px;
   box-shadow:0 6px 24px rgba(0,0,0,.28);
@@ -299,7 +303,7 @@ html.timelapse #tod-slider{pointer-events:none}
 #hud-title{font-size:12.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
 #hud-snapshot{font-size:10px;opacity:.5;margin-top:1px;letter-spacing:.04em}
 
-#controls-hint{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
+#controls-hint{position:absolute;bottom:calc(24px + var(--safe-bottom));left:50%;transform:translateX(-50%);
   background:rgba(18,11,4,.5);backdrop-filter:blur(8px);
   border:1px solid rgba(255,190,90,.12);border-radius:999px;
   padding:6px 16px;color:rgba(245,223,160,.7);font-size:11.5px;letter-spacing:.02em;
@@ -524,7 +528,7 @@ html.has-touch #joystick-zone{display:block}
 #diff-controls button:hover{background:rgba(245,166,35,.4)}
 #diff-counter{font-size:12px;opacity:.7;flex:1;text-align:center}
 
-#tod-panel{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:10;
+#tod-panel{position:absolute;right:calc(14px + var(--safe-right));top:50%;transform:translateY(-50%);z-index:10;
   display:flex;flex-direction:column;align-items:center;gap:9px;
   background:rgba(18,11,4,.5);backdrop-filter:blur(10px) saturate(1.1);
   border:1px solid rgba(255,190,90,.16);border-radius:999px;padding:13px 9px;
@@ -603,7 +607,7 @@ html.has-touch #joystick-zone{display:block}
 /* ── Graphics menu (js/graphics.js) ───────────────────────────────────
    Built from JS, not markup, so _harness.html cannot drift out of sync with
    index.html — the previous duplication cost a debugging session. */
-#gfx-button{position:absolute;top:16px;right:16px;z-index:30;
+#gfx-button{position:absolute;top:calc(16px + var(--safe-top));right:calc(16px + var(--safe-right));z-index:30;
   width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:rgba(18,11,4,.55);backdrop-filter:blur(10px) saturate(1.1);
   border:1px solid rgba(255,190,90,.18);color:#f5dfa0;cursor:pointer;
@@ -611,7 +615,7 @@ html.has-touch #joystick-zone{display:block}
 #gfx-button:hover{background:rgba(245,166,35,.28);color:#fff3d4;transform:rotate(35deg)}
 #gfx-button.active{background:rgba(245,166,35,.42);color:#fff}
 
-#gfx-panel{position:absolute;top:60px;right:16px;z-index:30;width:306px;
+#gfx-panel{position:absolute;top:calc(60px + var(--safe-top));right:calc(16px + var(--safe-right));z-index:30;width:306px;
   max-height:calc(100vh - 132px);display:flex;flex-direction:column;
   background:rgba(16,10,3,.86);backdrop-filter:blur(16px) saturate(1.15);
   border:1px solid rgba(255,190,90,.2);border-radius:14px;
@@ -694,7 +698,7 @@ html.has-touch #joystick-zone{display:block}
    Same visual family as the graphics panel — it is the same corner, the same
    glass, the same amber — so the two read as one set of controls rather than
    as two different apps stacked on top of each other. */
-#fb-button{position:absolute;top:16px;right:58px;z-index:30;
+#fb-button{position:absolute;top:calc(16px + var(--safe-top));right:calc(58px + var(--safe-right));z-index:30;
   width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:rgba(18,11,4,.55);backdrop-filter:blur(10px) saturate(1.1);
   border:1px solid rgba(255,190,90,.18);color:#f5dfa0;cursor:pointer;
@@ -702,7 +706,7 @@ html.has-touch #joystick-zone{display:block}
 #fb-button:hover{background:rgba(245,166,35,.28);color:#fff3d4;transform:translateY(-1px)}
 #fb-button.active{background:rgba(245,166,35,.42);color:#fff}
 
-#fb-panel{position:absolute;top:60px;right:16px;z-index:30;width:306px;
+#fb-panel{position:absolute;top:calc(60px + var(--safe-top));right:calc(16px + var(--safe-right));z-index:30;width:306px;
   max-height:calc(100vh - 132px);display:flex;flex-direction:column;
   background:rgba(16,10,3,.88);backdrop-filter:blur(16px) saturate(1.15);
   border:1px solid rgba(255,190,90,.2);border-radius:14px;
@@ -885,7 +889,7 @@ html.has-touch #joystick-zone{display:block}
      side padding are the two values, and at 9.5px/9px the same sentence
      measures ~362 px — inside the glass with ~15 px of margin either side.
      Both are named; change either one and the other still holds. */
-  #controls-hint{--hint-fs:9.5px;bottom:38px;font-size:var(--hint-fs);padding:5px 9px}
+  #controls-hint{--hint-fs:9.5px;bottom:calc(38px + var(--safe-bottom));font-size:var(--hint-fs);padding:5px 9px}
   #hud{max-width:calc(100vw - 32px);padding:6px 16px}
   #hud-title{font-size:11px}
   /* The date pill already shows the snapshot date — the HUD needn't repeat it
@@ -897,7 +901,7 @@ html.has-touch #joystick-zone{display:block}
   /* The title pill runs almost the full width at this size, so the second
      top-right button stacks UNDER the gear instead of beside it. Derived from
      --touch-min: 16px inset + one button + 8px of air. */
-  #fb-button{top:calc(16px + var(--touch-min) + 8px);right:16px}
+  #fb-button{top:calc(16px + var(--safe-top) + var(--touch-min) + 8px);right:calc(16px + var(--safe-right))}
   /* ...and with the buttons stacked, the toast clears BOTH of them. */
   #gfx-toast{top:calc(16px + 2 * (var(--touch-min) + 8px))}
 }
@@ -1078,7 +1082,7 @@ html.has-touch #joystick-zone{display:block}
   --wf-out-edge:rgba(255,190,90,.34);
 }
 
-#wf-button{position:absolute;top:16px;left:16px;z-index:30;
+#wf-button{position:absolute;top:calc(16px + var(--safe-top));left:calc(16px + var(--safe-left));z-index:30;
   width:var(--touch-min);height:var(--touch-min);border-radius:12px;
   display:grid;place-items:center;
   background:var(--wf-glass);backdrop-filter:blur(10px) saturate(1.1);
@@ -1092,7 +1096,7 @@ html.has-touch #joystick-zone{display:block}
    the list is the one child allowed to give up height, so the sheet can be
    capped at any height at all and the head, the two fields, the examples and
    the footer are still whole. */
-#wf-sheet{position:absolute;top:68px;left:16px;z-index:30;width:344px;max-width:calc(100vw - 32px);
+#wf-sheet{position:absolute;top:calc(68px + var(--safe-top));left:calc(16px + var(--safe-left));z-index:30;width:344px;max-width:calc(100vw - 32px);
   background:var(--wf-glass-solid);backdrop-filter:blur(14px) saturate(1.1);
   border:1px solid rgba(255,190,90,.18);border-radius:var(--wf-radius);
   box-shadow:var(--wf-shadow);color:var(--wf-ink);font-size:12.5px;overflow:hidden;
@@ -1182,7 +1186,7 @@ html.has-touch #joystick-zone{display:block}
    #hud, so nothing else wants it — and it holds, in this order: what is left
    (only while the view is on the route), the whole-journey figures, the strip,
    the destination and its door, and the passing-period line. */
-#wf-pill{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:11;
+#wf-pill{position:absolute;top:calc(16px + var(--safe-top));left:50%;transform:translateX(-50%);z-index:11;
   width:min(560px,calc(100vw - 120px));
   background:var(--wf-glass);backdrop-filter:blur(12px) saturate(1.12);
   border:1px solid var(--wf-edge);border-radius:var(--wf-radius);
@@ -2248,7 +2252,7 @@ html.has-touch{--launcher-bottom:var(--drive-clear)}
    that edge), so the pill goes small and sits just over the credit, under
    BOOST: the credit row is 34px, plus 6px of air. */
 @media(max-height:520px){:root,html.has-touch{--launcher-bottom:40px}}
-#mode-launcher{position:fixed;right:16px;bottom:var(--launcher-bottom);z-index:59;background:var(--load-panel);color:var(--load-ink);border:1px solid var(--load-border);border-radius:24px;padding:12px 18px;cursor:pointer;box-shadow:0 4px 20px #0005}#mode-launcher[hidden]{display:none}
+#mode-launcher{position:fixed;right:calc(16px + var(--safe-right));bottom:var(--launcher-bottom);z-index:59;background:var(--load-panel);color:var(--load-ink);border:1px solid var(--load-border);border-radius:24px;padding:12px 18px;cursor:pointer;box-shadow:0 4px 20px #0005}#mode-launcher[hidden]{display:none}
 @media(max-height:520px){#mode-launcher{right:10px;padding:10px 14px;font-size:12px}}
 #mode-dialog{margin:auto;width:min(710px,94vw);max-height:90dvh;overflow:auto;border:1px solid var(--load-border);border-radius:var(--load-radius);background:var(--load-bg);color:var(--load-ink);padding:26px;box-shadow:0 20px 70px #0008}#mode-dialog::backdrop{background:#050d14c9}.mode-header{display:flex;align-items:center;justify-content:space-between;gap:15px}.mode-header h2{font-size:24px}.mode-header button{font-size:27px;color:var(--load-ink);border:0;background:none;width:44px;height:44px;cursor:pointer}.mode-intro{font-size:13px;color:var(--load-muted);line-height:1.5;margin:10px 0 20px}.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mode-option{display:flex;align-items:start;gap:10px;padding:14px;border:1px solid var(--load-border);border-radius:10px;cursor:pointer}.mode-option:has(input:checked){border-color:var(--load-accent);background:var(--load-panel)}.mode-option input{margin-top:3px;accent-color:var(--load-accent)}.mode-option strong{display:block;font-size:14px}.mode-option small{display:block;color:var(--load-muted);font-size:12px;line-height:1.5;margin-top:6px}.mode-settings{display:flex;gap:16px;margin:20px 0}.mode-settings label{flex:1;font-size:12px;color:var(--load-muted)}.mode-settings select{display:block;width:100%;background:var(--load-panel);color:var(--load-ink);border:1px solid var(--load-border);border-radius:6px;padding:10px 6px;margin-top:7px}#mode-dialog :focus-visible,#load-city :focus-visible,#mode-launcher:focus-visible{outline:2px solid var(--load-accent);outline-offset:4px}
 .load-route{animation:load-route-pulse 2.5s ease-in-out infinite}@keyframes load-route-pulse{50%{opacity:.35}}
