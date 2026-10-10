@@ -34,6 +34,10 @@
  *   one pair per gpu-run slot, so other browser users can interleave:  --reps 1 --rep-offset K (K = 0, 1, 2 ...)
  *   print the report from rep files already in DIR (no browser):  --from DIR [--match REGEX] [--throttle 1,4]
  *
+ * EXIT CODE: 0 only if every planned load ran and reached the reveal. A repetition that threw, or whose page never marked
+ * introReveal + apartmentsDone (a 500 on the main script, a crash, the ceiling), exits 1 and is named on stderr (lib/outcome.mjs).
+ * TARGET: only this machine unless --allow-live (or PERF_ALLOW_LIVE=1); a cold load is about 48 MB and the suite repeats it. Exit 2 if refused.
+ *
  * Run through the machine's browser queue:
  *   node ~/Projects/astra-pipe/tools/gpu-run.mjs --label speed -- node scripts/perf/load-profile.mjs ...
  * On a Mac that is also somebody's computer, --require-idle SECONDS (default 600 with --gl hardware)
@@ -45,6 +49,7 @@ import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { startChrome, machineLoad, idleSeconds } from './lib/cdp.mjs';
 import { analyse, formatTop } from './lib/cpuprofile.mjs';
+import { refuseLive, readiness, repsExitCode } from './lib/outcome.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '../..');
@@ -70,6 +75,7 @@ const LABEL = arg('--label', '');
 const OFFSET = +arg('--rep-offset', 0);
 const FROM = arg('--from', '');
 const MATCH = new RegExp(arg('--match', '^t\\d+-r\\d+\\.json$'));
+refuseLive(URL0);   // exit 2 unless the target is this machine or --allow-live was given
 fs.mkdirSync(OUT, { recursive: true });
 
 const WRAP = ['quantiseFacades', 'quantisePartFacades', 'mergeCapitolScene', 'applyUnion24', 'buildFacadeAtlas', 'treeFilter',
@@ -150,7 +156,7 @@ async function runOnce(throttle, rep, { profile, trace, warm }) {
     const tNav = Date.now();
     await page.send('Page.navigate', { url });
     // wait: reveal + apartments done, then SETTLE ms, or MAX
-    let state = null;
+    let state = null, timedOut = false;
     for (;;) {
       await sleep(500);
       try {
@@ -158,7 +164,7 @@ async function runOnce(throttle, rep, { profile, trace, warm }) {
         state = JSON.parse(r.result.value || 'null');
       } catch (e) { state = null; }
       if (state && state.m && state.m.introReveal && state.m.apartmentsDone && state.now - Math.max(state.m.introReveal, state.m.apartmentsDone) >= SETTLE) break;
-      if (Date.now() - tNav > MAX) { console.error(`[${label}] hit the ${MAX} ms ceiling before ready`); break; }
+      if (Date.now() - tNav > MAX) { console.error(`[${label}] hit the ${MAX} ms ceiling before ready`); timedOut = true; break; }
     }
     const wallToEnd = Date.now() - tNav;
     // collect
@@ -213,6 +219,8 @@ async function runOnce(throttle, rep, { profile, trace, warm }) {
     const loadAfter = machineLoad();
     const res = { label, rep, throttle, profile: !!profile, trace: !!trace, gl: GL, phone: PHONE, query: QUERY, settleMs: SETTLE, wallToEndMs: wallToEnd,
       chrome: chrome.version.product, machine: { before: loadBefore, after: loadAfter }, ...data, cdpMetrics: metrics, heap, net, analysis, traceSummary, warm: warmRes };
+    // a page that never reached the reveal (a 500 on the main script, a crash) is a FAILED repetition, not a row of '-' in the table
+    const rd = readiness(res.marks); res.ready = rd.ready && !timedOut; res.missingMarks = rd.missing; res.timedOut = timedOut;
     fs.writeFileSync(path.join(OUT, `${label}.json`), JSON.stringify(res, null, 1));
     return res;
   } finally {
@@ -270,6 +278,7 @@ function summariseTrace(events) {
 
 // ---------------------------------------------------------------------------------------------
 const results = [];
+let failures = 0;
 const plan = [];
 const nonProfile = !PROFILE && !TRACE;
 for (let r = OFFSET + 1; r <= OFFSET + REPS; r++) {
@@ -285,7 +294,7 @@ for (const { t, r } of FROM ? [] : plan) {
     results.push(res);
     const m = res.marks || {};
     console.error(`  ${res.label}: reveal ${m.introReveal ?? '-'} ms, apartmentsDone ${m.apartmentsDone ?? '-'}, firstRender ${m.mapFirstRender ?? '-'}, load avg ${res.machine.before.load1}->${res.machine.after.load1}, renderer ${res.gpuRenderer}, ${((Date.now() - t0) / 1000).toFixed(0)} s`);
-  } catch (e) { console.error(`  t${t}-r${r} FAILED: ${e.stack || e}`); }
+  } catch (e) { failures++; console.error(`  t${t}-r${r} FAILED: ${e.stack || e}`); }
 }
 
 // ---- report
@@ -350,4 +359,7 @@ const text = out.join('\n');
 fs.writeFileSync(path.join(OUT, `report${LABEL ? '-' + LABEL : ''}.txt`), text);
 fs.writeFileSync(path.join(OUT, `summary${LABEL ? '-' + LABEL : ''}.json`), JSON.stringify(results.map(({ analysis, traceSummary, ...r }) => ({ ...r, analysisTop: analysis && analysis.topSelf.slice(0, 10) })), null, 1));
 console.log(text);
-process.exit(0);
+// The exit code says whether the run measured anything: 0 only if every planned load ran and became ready (see lib/outcome.mjs).
+const outcome = repsExitCode({ planned: FROM ? 0 : plan.length, results, failures, from: !!FROM });
+for (const p of outcome.problems) console.error('load-profile: ' + p);
+process.exit(outcome.code);
