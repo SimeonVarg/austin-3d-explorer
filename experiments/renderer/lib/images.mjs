@@ -79,7 +79,7 @@ export function compareImages(a, b, { saveTo = null, labelA = 'app', labelB = 'p
 
 /** before | after | moved pixels, one PNG, panels at `scale` (nearest neighbour). No captions: the filename and the JSON name the sides. */
 export function sideBySide(a, b, diffPath, outPath, scale = 0.5) {
-  const d = decodePNG(fs.readFileSync(diffPath)); const D = rgbOf(d);
+  const d = decodePNG(diffPath); const D = rgbOf(d);
   const w = Math.floor(a.width * scale), h = Math.floor(a.height * scale), gap = 4;
   const out = new Uint8Array((w * 3 + gap * 2) * h * 3).fill(30); const OW = w * 3 + gap * 2;
   const put = (img, ox) => { for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const sx = Math.min(img.width - 1, Math.floor(x / scale)), sy = Math.min(img.height - 1, Math.floor(y / scale)); for (let c = 0; c < 3; c++) out[(y * OW + ox + x) * 3 + c] = img.rgb[(sy * img.width + sx) * 3 + c]; } };

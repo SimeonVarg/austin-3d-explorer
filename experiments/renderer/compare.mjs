@@ -155,7 +155,7 @@ function score(frames) {
   for (const p of POSES) {
     const a = path.join(APPDIR, `app-${p.name}.png`), b = path.join(DIR, `proto-${p.name}.png`);
     if (!fs.existsSync(a) || !fs.existsSync(b)) { rows.push({ name: p.name, error: 'missing picture' }); continue; }
-    const A = rgbOf(decodePNG(fs.readFileSync(a))), B = rgbOf(decodePNG(fs.readFileSync(b)));
+    const A = rgbOf(decodePNG(a)), B = rgbOf(decodePNG(b));
     const diffPath = path.join(DIR, `diff-${p.name}.png`);
     const r = compareImages(A, B, { saveTo: diffPath });
     sideBySide(A, B, diffPath, path.join(DIR, `side-${p.name}.png`));
