@@ -872,7 +872,8 @@ html.has-touch #joystick-zone{display:block}
 /* Attribution: present (license) but quiet — the old orange links were the
    brightest text in every golden-hour frame. */
 /* The map credits, and the only link to Terms and credits (E05). Named so one line retunes them. */
-:root{--attrib-size:12px;--attrib-bg:rgba(20,12,4,.82);--attrib-ink:rgba(245,223,160,.82);--attrib-link:#f5dfa0}
+:root{--attrib-size:12px;--attrib-size-phone:11px;--attrib-bg:rgba(20,12,4,.82);--attrib-ink:rgba(245,223,160,.82);--attrib-link:#f5dfa0}
+@media(max-width:640px){:root{--attrib-size:var(--attrib-size-phone)}}   /* the phone bar sits under the hint: keep it compact */
 .maplibregl-ctrl-attrib{font-size:var(--attrib-size)!important;background:var(--attrib-bg)!important;color:var(--attrib-ink)!important;opacity:1}
 .maplibregl-ctrl-attrib a{color:var(--attrib-link)!important}
 .maplibregl-ctrl-top-left,.maplibregl-ctrl-top-right{display:none}
