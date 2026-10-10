@@ -97,6 +97,8 @@
     lod: null,
     minzoom: 14,
     twoSided: true, // closed visual envelopes remain opaque from either flight direction
+    // Debug filter for the moire meter: ?aptfeat=-reveal,-mullion or APARTMENTS.hide.reveal=true, then rebuild(). Classes: window region reveal mullion arch fin pier slab rail canopy sign facet column thin(=all thin ones).
+    hide: Object.fromEntries((q.get('aptfeat') || '').split(',').filter(Boolean).map(k => [k.replace(/^-/, ''), true])),
     // DRAW ONLY THE BUILDINGS A CAMERA CAN SEE. Not a taste value: the
     // picture is byte-identical either way (see cullFor below). `on` is the
     // switch (?aptcull=0 for an A/B, or flip it live); `marginM` pads every
@@ -324,6 +326,20 @@
   /** a warning the boot log carries once, and `count.warnings` keeps for the gate */
   const warned = new Set();
   function warnOnce(key, msg) { if (warned.has(key)) return; warned.add(key); count.warnings.push(msg); console.warn('[slopes-apartments] ' + msg); }
+
+  // ── detail classes (debug filter, APTS.hide) ─────────────────────────
+  let _cls = 'cell';
+  const hidden = c => APTS.hide[c] || (APTS.hide.thin && THIN_CLASSES.has(c));
+  const THIN_CLASSES = new Set(['reveal', 'mullion', 'arch', 'fin', 'pier', 'rail', 'canopy', 'sign', 'facet', 'column']);
+  function inCls(c, fn) { const p = _cls; _cls = c; try { return fn(); } finally { _cls = p; } }
+  function installGate(B) {
+    if (!Object.keys(APTS.hide).some(k => APTS.hide[k])) return B;
+    for (const m of ['quad', 'tri', 'triN', 'polygon', 'extrude']) {
+      const f = B[m];
+      B[m] = function () { return hidden(_cls) ? undefined : f.apply(this, arguments); };
+    }
+    return B;
+  }
 
   // ── small helpers ────────────────────────────────────────────────────
   const hx3 = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -755,7 +771,7 @@
     // entry court, a loggia) ride on the window record; the skin's windows
     // take the skin's reveal and its glass
     const revealOf = w => wantReveals() ? (w.reveal != null ? w.reveal : reveal) : 0;
-    const windows = (skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
+    const windows = (APTS.hide.window ? [] : skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
       .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, nightTone:w.nightTone, frame: w.frame, spandrel: w.spandrel, reveal: w.reveal, revealTone: w.revealTone, tone: w.tone, arch: w.arch, mullion: w.mullion, head: w.head, accent: w.accent, zTop: w.z1 }))
       .filter(w => rectInCut(w.s0, w.s1, w.z0, w.z1, cut));
     // THE FRAME. A window's `frame: { w, h, tone }` is a picture frame round
@@ -806,7 +822,7 @@
       const zt = w.zTop + (w.head && w.head.h > 0 ? w.head.h : 0) + (a.dz1 || 0);
       return { s0: Math.max(0, sa), s1: Math.min(len, sa + a.w), z0: Math.max(z0, w.z0 + (a.dz0 || 0)), z1: Math.min(z1, zt), col: P[a.tone] || P.wall, w };
     }).filter(r => r.s1 - r.s0 > 1e-4 && r.z1 - r.z0 > 1e-4);
-    const regions = framed.concat(spandrels, heads, accents);   // frames first: where a ring and a panel meet, the ring wins
+    const regions = APTS.hide.region ? [] : framed.concat(spandrels, heads, accents);   // frames first: where a ring and a panel meet, the ring wins
     // z cuts: the skin's row lines, every window's top and bottom, every frame's and spandrel's
     const zc = new Set([z0, z1]);
     for (const z of skin.rows(z0, z1)) if (z > z0 && z < z1) zc.add(+z.toFixed(4));
@@ -870,15 +886,18 @@
       const P0 = (s, d, z) => W.at(s, d, z);
       const rc = (w.revealTone && P[w.revealTone]) || (w.tone ? (P[w.tone] || revealCol) : revealCol);
       // sill (faces up), head (faces down), jambs (face along the wall)
+      _cls = 'reveal';
       B.quad(P0(w.s0, -rv, w.z0), P0(w.s1, -rv, w.z0), P0(w.s1, 0, w.z0), P0(w.s0, 0, w.z0), rc, [0, 0, 1]);
       B.quad(P0(w.s0, 0, w.z1), P0(w.s1, 0, w.z1), P0(w.s1, -rv, w.z1), P0(w.s0, -rv, w.z1), rc, [0, 0, -1]);
       B.quad(P0(w.s0, -rv, w.z0), P0(w.s0, 0, w.z0), P0(w.s0, 0, w.z1), P0(w.s0, -rv, w.z1), rc, T);
       B.quad(P0(w.s1, 0, w.z0), P0(w.s1, -rv, w.z0), P0(w.s1, -rv, w.z1), P0(w.s1, 0, w.z1), rc, [-T[0], -T[1], 0]);
+      _cls = 'cell';
     }
     // A round-headed opening retains the rectangular tiler's cutout, then
     // closes only the two spandrels above its curved head. The glass remains
     // recessed; the arch soffit joins the wall to the pane along that curve.
     // Dimensions and tessellation belong to the building's window spec.
+    _cls = 'arch';
     for (const w of windows) if (w.arch) {
       const radius = (w.s1 - w.s0) / 2;
       const rise = Math.min(w.z1 - w.z0, w.arch.rise || radius);
@@ -901,6 +920,7 @@
         }
       }
     }
+    _cls = 'mullion';
     for (const w of windows) if (w.mullion) {
       const m = w.mullion, width = m.w || APTS.mullion.w, col = P[m.tone || 'trim'] || P.frame;
       const d = -revealOf(w) + (m.proud ?? APTS.mullion.proud), radius = (w.s1-w.s0)/2;
@@ -915,11 +935,13 @@
         faceQuad(B,W,w.s0+shrink,w.s1-shrink,z-width/2,z+width/2,d,col);
       }
     }
+    _cls = 'cell';
     // the blades standing proud of the wall: the skin's piers (on its bay
     // lines) and its fins (on their own pitch) — see blades()
     if (skin.piers) blades(B, W, skin.piers, len, z0, z1, P, cut);
     if (skin.fins) blades(B, W, skin.fins, len, z0, z1, P, cut);
     if (skin.facets) {
+      _cls = 'facet';
       const f = skin.facets, pw = f.w || APTS.facets.w, ph = f.h || APTS.facets.h, depth = f.depth || APTS.facets.depth;
       const nx = Math.max(1,Math.round(len/pw)), dx=len/nx;
       for(let i=0;i<nx;i++) for(let z=z0;z<z1-.01;z+=ph) {
@@ -932,6 +954,7 @@
         }
       }
     }
+    _cls = 'cell';
     count.windows += windows.length;
     count.faces++;
   }
@@ -973,6 +996,7 @@
     if (zb1 - zb0 < 0.02 || d <= 0) return 0;
     const skip = { back: off <= 1e-6, front: !!front };
     let n = 0;
+    const prevCls = _cls; _cls = spec.isPier ? 'pier' : 'fin';
     const one = (s0, s1, za, zz) => {
       if (s1 - s0 < 0.005 || zz - za < 0.005) return;
       if (!rectInCut(s0, s1, za, zz, cut)) return;
@@ -987,6 +1011,7 @@
     } else {
       for (const c of bladeCentres(spec, len)) one(Math.max(0, c - w / 2), Math.min(len, c + w / 2), zb0, zb1);
     }
+    _cls = prevCls;
     if (spec.isPier) count.piers += n; else count.fins += n;
     return n;
   }
@@ -1411,7 +1436,8 @@
       return;
     }
     const slab = P[spec.slabTone || 'slab'], rail = P[spec.railTone || 'rail'];
-    function railing(a, b, d0, d1, z0, z1) {
+    function railing(a, b, d0, d1, z0, z1) { return inCls('rail', () => railing1(a, b, d0, d1, z0, z1)); }
+    function railing1(a, b, d0, d1, z0, z1) {
       if (!(spec.railPitch > 0)) return box(B, W, a, b, d0, d1, z0, z1, rail, { back: true });
       const post = spec.railPost || rt;
       box(B, W, a, b, d0, d1, z1 - rt, z1, rail, { back: true });
@@ -1439,7 +1465,7 @@
         count.balconies++;
         continue;
       }
-      box(B, W, s0, s1, 0, proj, z, z + t, slab, { back: true });
+      inCls('slab', () => box(B, W, s0, s1, 0, proj, z, z + t, slab, { back: true }));
       // rails: front, and the two returns; a thin box each
       railing(s0, s1, proj - rt, proj, z + t, z + t + rh);
       railing(s0, s0 + rt, 0, proj - rt, z + t, z + t + rh);
@@ -1504,7 +1530,8 @@
   // is given (GrandMarc's two awnings, 3.85 and 3.60 m, which were boxes in
   // `deck` standing against the wall; Skyloft's sky-lounge soffit). `posts:
   // { pitch | at, w, tone, z0? }` stand under its outer edge from `z0` (0).
-  function canopy(B, W, spec, P) {
+  function canopy(B, W, spec, P) { return inCls('canopy', () => canopy1(B, W, spec, P)); }
+  function canopy1(B, W, spec, P) {
     const s0 = spec.s0, s1 = spec.s1 != null ? spec.s1 : spec.s0 + (spec.w || 3.0), d = spec.d || 1.0, t = spec.t != null ? spec.t : APTS.canopyT, off = spec.off || 0;
     const zTop = spec.z, z0 = zTop - t;
     if (s1 - s0 < 0.02 || d <= 0 || t <= 0) return;
@@ -1997,7 +2024,7 @@
         if (C.on === 'joints') for (let i = 0; i <= n; i++) at.push(from + i * mod);
         else for (let i = 0; i < n; i++) at.push(from + (i + 0.5) * mod);
       }
-      for (const c of at) box(B, W, c - w / 2, c + w / 2, -cd, 0, z0, z1, ctone, { top: true, bottom: true });
+      for (const c of at) inCls('column', () => box(B, W, c - w / 2, c + w / 2, -cd, 0, z0, z1, ctone, { top: true, bottom: true }));
     }
     count.insets++;
   }
@@ -2021,7 +2048,7 @@
       const d = insetOf(band);
       const Wb = d > 0 ? { at: (s, dd, z) => W.at(s, dd - d, z), T: W.T, N: W.N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n } : W;
       if (hasB) for (const bs of band.balconies) balconyStack(B, Wb, Object.assign({}, spec.balcony || {}, bs), floors, P, band.z1);
-      if (hasS) for (const sg of band.signs) sign(B, Wb, sg, P);
+      if (hasS) for (const sg of band.signs) inCls('sign', () => sign(B, Wb, sg, P));
       // a band's own fins: on the whole face at their pitch (a skin's ride on each piece with the skin)
       if (hasF) for (const fs of Array.isArray(band.fins) ? band.fins : [band.fins]) blades(B, Wb, fs, W.L, band.z0, band.z1, P, cut || null);
       if (hasC) for (const c of band.canopies) canopy(B, Wb, c, P);
@@ -2661,7 +2688,7 @@
     // js/slopes.js buildChunked): same triangles, a fraction of the peak.
     const BUD = (window.LITE_PROFILE && window.LITE_PROFILE.budget) || {};
     const chunkTris = area && APTS.areas.sliced ? Math.min(BUD.geometryChunkTris || Infinity, APTS.areas.geometryChunkTris) : BUD.geometryChunkTris;
-    const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices) : S.build();
+    const B = installGate(chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices) : S.build());
     B.filtered=[];
     B.filterPending=[];
     const built = area ? [] : (_built = []);
