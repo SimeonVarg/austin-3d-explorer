@@ -4483,7 +4483,7 @@
       const id = _pace.queue[0];
       const sig = drawSig(parseId(id).fam, _atlasP);
       let inFlight = false;
-      for (const j of _pace.inflight.values()) if (j.id === id && j.sig === sig) { inFlight = true; break; }
+      for (const j of _pace.inflight.values()) if (!j.warm && j.id === id && j.sig === sig) { inFlight = true; break; }   // a warm job only ADDS missing images: it never brings a held one up to date
       if (comboCurrent(map, id, sig) || inFlight) {
         _pace.queue.shift(); _pace.queued.delete(id);
         continue;
