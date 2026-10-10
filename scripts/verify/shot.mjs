@@ -188,6 +188,30 @@ for (const s of SHOTS) {
       { timeout: 60000, polling: 100 }).catch(() => {});
     console.log(`shadow-proxy build still running at ${s.name}: waited ${Date.now() - t0} ms`);
   }
+  // Walls are stamped in paced jobs after the camera stops (js/facades.js, `__facadePace.busy`), and the authored
+  // apartment buildings are built in chunks after load (`slopesApartments.count.done`). MapLibre's idle sees neither.
+  // A shot taken before they finish shows a building in its plain stand-in. On 2026-10-09 that put a changed
+  // patch on a building the pull request could not touch in the first run of three pull requests in a row, and
+  // each one cost a second 45 minute run. Wait until both are quiet for three reads in a row (2 minutes at most).
+  // A page without the flags passes straight through.
+  const wallsBusy = () => {
+    const P = window.__facadePace, A = window.slopesApartments && window.slopesApartments.count;
+    return { pace: !!(P && P.busy), apartments: !!(A && !A.done),
+             jobs: P ? P.done : null, apartmentMs: A ? Math.round(A.ms || 0) : null };
+  };
+  {
+    // WALL_WAIT_MS: the most to wait at one view. The first run of this wait in CI (software renderer) sat at its
+    // cap on every view, so when the cap is reached the line says WHICH of the two was still busy.
+    const cap = Number(process.env.WALL_WAIT_MS) || 60000;
+    const t0 = Date.now(); let quiet = 0, waited = false, last = null;
+    while (quiet < 3 && Date.now() - t0 < cap) {
+      last = await page.evaluate(wallsBusy);
+      if (last.pace || last.apartments) { quiet = 0; waited = true; } else quiet++;
+      await page.waitForTimeout(500);
+    }
+    if (waited) console.log(`walls still being drawn at ${s.name}: waited ${Date.now() - t0} ms` +
+      (quiet < 3 ? ` and gave up (${JSON.stringify(last)})` : ''));
+  }
   await page.evaluate(() => window.__map.triggerRepaint());
   await page.waitForTimeout(1500);
   const file = path.join(outDir, `${OUT}-${s.name}.png`);
