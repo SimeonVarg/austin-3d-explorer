@@ -53,7 +53,7 @@ ROOF_ITEMS = [   # SCAN: boxes standing on the roof (air-conditioning units, 5.8
 
 # ---- colours: photographed, overcast, then set by ratio. R: rust 128, beige 199, brick 154 in the photograph ----
 COLOURS = {
-    'rust': '#8a4a33', 'beige': '#c9bda4', 'brick': '#a89680', 'black': '#26272b', 'dkGlass': '#34312f',
+    'rust': '#8a4a33', 'beige': '#c9bda4', 'brick': '#a89680', 'black': '#26272b', 'shopDark': '#34312f',
     'signRed': '#b3202a', 'muralRed': '#9c1f27', 'white': '#f1ede6', 'yellow': '#f2c230', 'roofFlat': '#7a7b78',
     'pylonRed': '#8c0b1c',
 }
@@ -192,13 +192,13 @@ def plane_of(wall, a, b, level=True):
 
 
 def build():
-    meshes = {k: Mesh() for k in ('dkGlass', 'black', 'signRed', 'muralRed', 'white', 'yellow', 'pylonRed')}
+    meshes = {k: Mesh() for k in ('shopDark', 'black', 'signRed', 'muralRed', 'white', 'yellow', 'pylonRed')}
     # windows: a black frame and the dark glass in front of it. Each sits on the outer face of the block under it.
     for wall, a, b, kind in OPENINGS:
         z0, z1 = GLASS_Z if kind == 'win' else (0.1, 2.3)
         pl = plane_of(wall, a, b)
         meshes['black'].wall_box(wall, a - FRAME_W, b + FRAME_W, z0 - FRAME_W, z1 + FRAME_W, 0.0, FRAME_PROUD, pl)
-        meshes['dkGlass'].wall_box(wall, a, b, z0, z1, 0.0, GLASS_PROUD, pl)
+        meshes['shopDark'].wall_box(wall, a, b, z0, z1, 0.0, GLASS_PROUD, pl)
         if b - a > 1.8 and kind == 'win':       # PHOTO: the wide windows have one mullion down the middle
             m = (a + b) / 2
             meshes['black'].wall_box(wall, m - 0.03, m + 0.03, z0, z1, 0.0, GLASS_PROUD + 0.02, pl)
