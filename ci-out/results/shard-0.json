@@ -1,0 +1,25 @@
+{
+ "shard": 0,
+ "of": 8,
+ "only": false,
+ "os": "darwin",
+ "node": "v26.5.1",
+ "sha": null,
+ "planned": [
+  "live-here.mjs"
+ ],
+ "missing": [],
+ "rows": [
+  {
+   "script": "live-here.mjs",
+   "args": [],
+   "verdict": "fail",
+   "code": 1,
+   "signal": null,
+   "secs": 0.3,
+   "timeout_s": 5400,
+   "pictures": 0,
+   "tail": "node:internal/modules/package_json_reader:301\n  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);\n        ^\n\nError [ERR_MODULE_NOT_FOUND]: Cannot find package 'playwright-core' imported from /Users/simeonvarghese/Projects/flyover-fix-437/scripts/verify/live-here.mjs\n    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)\n    at packageResolve (node:internal/modules/esm/resolve:784:25)\n    at moduleResolve (node:internal/modules/esm/resolve:873:18)\n    at defaultResolve (node:internal/modules/esm/resolve:1006:11)\n    at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)\n    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)\n    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)\n    at #resolve (node:internal/modules/esm/loader:690:17)\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)\n    at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {\n  code: 'ERR_MODULE_NOT_FOUND'\n}\n\nNode.js v26.5.1\n"
+  }
+ ]
+}

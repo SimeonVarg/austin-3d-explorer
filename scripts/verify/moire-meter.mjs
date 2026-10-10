@@ -54,7 +54,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { statOver, settleWith, tableLines, verdict } from './moire-score.mjs';
+import { statOver, settleWith, tableLines, verdict, f2 } from './moire-score.mjs';
 
 // ---- everything you may want to change is in this block -------------------
 let VIEW_W = 480, VIEW_H = 300;         // CSS px (--size WxH); the SS frame is SS x this
@@ -91,6 +91,7 @@ if (!OUT && !FROM) { console.error('usage: moire-meter.mjs --out <dir> [--views 
 if (OUT) fs.mkdirSync(OUT, { recursive: true });
 { const sz = opt('--size', null); if (sz) [VIEW_W, VIEW_H] = sz.split('x').map(Number); }
 let SS = +opt('--ss', '4'), FRAMES = +opt('--frames', '8');
+if (!FROM && !(Number.isInteger(FRAMES) && FRAMES >= 2)) { console.error(`--frames ${opt('--frames', '8')}: flicker is a spread over camera steps and needs at least 2 frames (a single frame would report flicker 0 as if it were a pass)`); process.exit(2); }
 let MSAA = opt('--msaa', '0') === '1';
 let QS = (opt('--q', '') || '').split(',').map(s => s.trim()).filter(Boolean);
 const ARMS = (opt('--arms', 'main=') || 'main=').split('|').map(a => { const i = a.indexOf('='); return { name: a.slice(0, i), js: a.slice(i + 1) }; });
@@ -232,7 +233,7 @@ for (const v of list) for (const arm of ARMS) {
   fs.writeFileSync(path.join(OUT, `${tag}-mask.png`), b64('pngMask'));
   delete r.pngOne; delete r.pngTruth; delete r.pngMask;
   r.grp = v.grp; r.arm = arm.name; r.name = tag; rows.push(r);
-  console.error(`[meter] ${tag} ${((Date.now() - tv) / 1000).toFixed(0)}s mask ${(r.mask * 100).toFixed(1)}% err ${r.all.err.toFixed(2)} flick ${r.all.flick.toFixed(2)}`);
+  console.error(`[meter] ${tag} ${((Date.now() - tv) / 1000).toFixed(0)}s mask ${(r.mask * 100).toFixed(1)}% err ${f2(r.all.err)} flick ${f2(r.all.flick)}${r.all.n ? '' : '  EMPTY MASK'}`);
 }
 
 }

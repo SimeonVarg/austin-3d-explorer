@@ -30,42 +30,60 @@ export function statOver(sel, ctx) {
     const mean = fm / frames, sd = Math.sqrt(Math.max(0, fm2 / frames - mean * mean));
     sFl += sd; flick.push(sd);
   }
-  return { n, err: n ? sErr / (n * frames) : 0, p99: pctl(errAll, 0.99), band: n ? sBand / (n * frames) : 0, flick: n ? sFl / n : 0, flickP99: pctl(flick, 0.99) };
+  // No pixels: nothing was measured, which is not the same as zero error. One frame: flicker is a spread over
+  // frames, so it is not measured either. null says so; the table and the verdict refuse to treat it as a pass.
+  if (!n) return { n, err: null, p99: null, band: null, flick: null, flickP99: null };
+  const fl = frames >= 2;
+  return { n, err: sErr / (n * frames), p99: pctl(errAll, 0.99), band: sBand / (n * frames), flick: fl ? sFl / n : null, flickP99: fl ? pctl(flick, 0.99) : null };
 }
 
 // Wait until the page is quiet and the map is idle, twice. env = { quiet(), sleep(ms), now(), waitIdle(ms),
 // quietMaxMs, idleMaxMs }; waitIdle repaints and resolves true on 'idle', false on its timeout.
+// A timeout THROWS: carrying on would score a half-built city or a frame that was never drawn.
 export async function settleWith(env) {
   for (let k = 0; k < 2; k++) {
     const t = env.now();
     while (!env.quiet() && env.now() - t < env.quietMaxMs) await env.sleep(200);
-    await env.waitIdle(env.idleMaxMs);
+    if (!env.quiet()) throw new Error(`settle: the page was still busy (walls being stamped or buildings being built) after ${env.quietMaxMs / 1000} s; not scoring a half-built city`);
+    if (!(await env.waitIdle(env.idleMaxMs))) throw new Error(`settle: the map did not go idle within ${env.idleMaxMs / 1000} s; not scoring a frame that may not have been drawn`);
     await env.sleep(150);
   }
 }
 
-export const f2 = x => x.toFixed(2);
-export const atFloor = (x, fl, P) => x <= fl * P.FLOOR_SLACK + P.FLOOR_ABS;
+const num = x => typeof x === 'number' && Number.isFinite(x);
+export const f2 = x => num(x) ? x.toFixed(2) : '--';
+export const atFloor = (x, fl, P) => num(x) && num(fl) && x <= fl * P.FLOOR_SLACK + P.FLOOR_ABS;
 
-// The table, one string per line. P = { FLOOR_SLACK, FLOOR_ABS }.
+// The table, one string per line. P = { FLOOR_SLACK, FLOOR_ABS }. A view that measured nothing prints '--' and
+// 'n/a' where a pass would go, and stays out of the mean; a floor that measured nothing is 'n/a', not a pass.
 export function tableLines(rows, P) {
   const pad = (s, n) => String(s).padEnd(n), lp = (s, n) => String(s).padStart(n);
   const out = [];
   out.push(pad('view', 22) + lp('bldg%', 6) + lp('aptShare', 9) + lp('err', 7) + lp('p99', 7) + lp('band', 7) + lp('flick', 7) + lp('flkP99', 7) + ' |' + lp('aptErr', 7) + lp('mplErr', 7) + ' |' + lp('flrErr', 7) + lp('flrP99', 7) + lp('flrFlk', 7) + lp('flat%', 6) + '  at-floor(err/p99/flk)');
   for (const r of rows) {
-    const a = r.all, fl = r.floor;
-    const ok = [atFloor(a.err, fl.err, P), atFloor(a.p99, fl.p99, P), atFloor(a.flick, fl.flick, P)].map(b => b ? 'Y' : 'n').join('/');
-    out.push(pad(r.name, 22) + lp((r.mask * 100).toFixed(1), 6) + lp((r.authored / Math.max(r.mask, 1e-9) * 100).toFixed(0) + '%', 9) + lp(f2(a.err), 7) + lp(f2(a.p99), 7) + lp(f2(a.band), 7) + lp(f2(a.flick), 7) + lp(f2(a.flickP99), 7) + ' |' + lp(f2(r.apt.err), 7) + lp(f2(r.mpl.err), 7) + ' |' + lp(f2(fl.err), 7) + lp(f2(fl.p99), 7) + lp(f2(fl.flick), 7) + lp((r.flatShare * 100).toFixed(0), 6) + '  ' + ok);
+    const a = r.all, fl = r.floor, empty = !(a.n > 0);
+    const ok = empty ? 'n/a (EMPTY: no building pixels)' : [['err', 'err'], ['p99', 'p99'], ['flick', 'flick']].map(([k]) => num(a[k]) && num(fl[k]) ? (atFloor(a[k], fl[k], P) ? 'Y' : 'n') : '?').join('/');
+    out.push(pad(r.name, 22) + lp((r.mask * 100).toFixed(1), 6) + lp(empty ? '--' : (r.authored / Math.max(r.mask, 1e-9) * 100).toFixed(0) + '%', 9) + lp(f2(a.err), 7) + lp(f2(a.p99), 7) + lp(f2(a.band), 7) + lp(f2(a.flick), 7) + lp(f2(a.flickP99), 7) + ' |' + lp(f2(r.apt.err), 7) + lp(f2(r.mpl.err), 7) + ' |' + lp(f2(fl.err), 7) + lp(f2(fl.p99), 7) + lp(f2(fl.flick), 7) + lp((r.flatShare * 100).toFixed(0), 6) + '  ' + ok);
   }
   for (const name of [...new Set(rows.map(r => r.arm))]) {
-    const rs = rows.filter(r => r.arm === name);
-    const avg = k => rs.reduce((s, r) => s + r.all[k], 0) / rs.length;
-    out.push(pad('MEAN ' + name, 22) + lp('', 6) + lp('', 9) + lp(f2(avg('err')), 7) + lp(f2(avg('p99')), 7) + lp(f2(avg('band')), 7) + lp(f2(avg('flick')), 7) + lp(f2(avg('flickP99')), 7));
+    const rs = rows.filter(r => r.arm === name), used = rs.filter(r => r.all.n > 0);
+    const avg = k => { const v = used.map(r => r.all[k]).filter(num); return v.length === used.length && v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
+    out.push(pad('MEAN ' + name, 22) + lp('', 6) + lp('', 9) + lp(f2(avg('err')), 7) + lp(f2(avg('p99')), 7) + lp(f2(avg('band')), 7) + lp(f2(avg('flick')), 7) + lp(f2(avg('flickP99')), 7) + `   (${used.length} of ${rs.length} views counted)`);
   }
   return out;
 }
 
-// What makes a run untrustworthy. Returns a list of strings; empty = fine.
+// What makes a run untrustworthy. Returns a list of strings; empty = fine. The meter exits 1 on any.
+// P = { FLOOR_SLACK, FLOOR_ABS, FRAMES }.
 export function verdict(rows, P) {
-  return [];
+  const f = [];
+  if (!rows.length) f.push('no view was scored');
+  if (P && P.FRAMES != null && !(P.FRAMES >= 2)) f.push(`--frames ${P.FRAMES}: flicker needs at least 2 frames`);
+  for (const r of rows) {
+    const a = r.all;
+    if (!(a.n > 0)) { f.push(`${r.name}: no building pixels in the mask (the camera sees no building, or hiding the building layers changed nothing); its numbers are not measurements and it is left out of the mean`); continue; }
+    for (const k of ['err', 'p99', 'band']) if (!num(a[k])) f.push(`${r.name}: ${k} is not a number`);
+    if (!num(a.flick)) f.push(`${r.name}: flicker was not measured (it needs at least 2 frames)`);
+  }
+  return f;
 }
