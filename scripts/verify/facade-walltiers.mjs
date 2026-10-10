@@ -42,8 +42,9 @@ function constText(name) {
 }
 function build(on) {
   const painted = [];                 // tileData calls: [fam, idx, tier.id]
+  const released = [];                // js/image-memory.js release calls: keys
   const sandbox = {
-    window: {}, location: { search: on ? '' : '?walltiers=0' }, performance: { now: () => Date.now() },
+    window: { ImageMemory: { release: (m, key, input) => { released.push(key); return input ? 1 : 0; } } }, location: { search: on ? '' : '?walltiers=0' }, performance: { now: () => Date.now() },
     queueMicrotask: (f) => f(), console,
   };
   const ctx = vm.createContext(sandbox);
@@ -78,7 +79,7 @@ function build(on) {
     if (!images.has(k)) for (const f of handlers.styleimagemissing || []) f({ id: k });
     return images.get(k) || null;
   };
-  return { api, map, ask, images, painted, calls, handlers };
+  return { api, map, ask, images, painted, calls, handlers, released };
 }
 
 // ── ON: nothing is painted at registration, one image per request ───────
@@ -104,6 +105,7 @@ function build(on) {
   assert.equal(S.ask('tg07x') !== null, true);
   assert.equal(S.ask('zz99x'), null, 'an id that is no combo of ours is left alone (still missing, as before)');
   assert.equal(S.ask('mh03xx'), null);
+  assert.equal(S.released.length, 3, 'each lazily added image is handed to js/image-memory.js for the same release the eager ones get');
   assert.equal(S.api.WT.painted, 3);
   assert.equal(S.api.WT.paintedFar + S.api.WT.paintedNear, 3);
   assert.equal(S.api.WT.unknown, 2);

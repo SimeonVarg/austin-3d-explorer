@@ -3885,7 +3885,11 @@
     const t0 = performance.now();
     const { fam, idx } = parseId(info.id);
     try {
-      map.addImage(key, tileData(fam, idx, _atlasP, info.tier), { pixelRatio: tierPixelRatio(info.tier) });
+      const img = tileData(fam, idx, _atlasP, info.tier);
+      map.addImage(key, img, { pixelRatio: tierPixelRatio(info.tier) });
+      // js/image-memory.js drops MapLibre's second copy of the pixels for images added inside initFacades; this is
+      // not inside it, so ask for the same release.
+      if (window.ImageMemory && window.ImageMemory.release) window.ImageMemory.release(map, key, img);
       _imgSig.set(key, drawSig(fam, _atlasP));
     } catch (e) {
       WT.failed++;
