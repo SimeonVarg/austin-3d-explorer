@@ -23,6 +23,7 @@ const argv = process.argv.slice(2);
 const arg = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
 const STEPS = arg('--steps', 'load,pics,mem').split(',');
 const REPS = +arg('--reps', 5);
+const REPS4 = +arg('--reps4', 3);
 const OUT = process.env.VERIFY_OUT || '/tmp/perf-walltiers-suite';
 const URLB = process.env.VERIFY_URL || 'http://127.0.0.1:8442';
 let code = 0;
@@ -33,7 +34,10 @@ const run = (name, file, args, opts = {}) => {
 };
 
 if (STEPS.includes('load')) {
-  run('load', '../perf/load-profile.mjs', ['--url', URLB + '/', '--throttle', '1,4', '--qarms', 'walltiers=0;', '--reps', String(REPS), '--label', 'walltiers', '--out', path.join(OUT, 'load')]);
+  // 1x: REPS cold loads per arm. 4x (the page main thread slowed four times, a crude phone stand-in) takes about twice as
+  // long per load, so it gets REPS4 (default 3) to fit the runner's time box. Each arm pair alternates A B, B A, A B ...
+  run('load 1x', '../perf/load-profile.mjs', ['--url', URLB + '/', '--throttle', '1', '--qarms', 'walltiers=0;', '--reps', String(REPS), '--label', 'walltiers-1x', '--out', path.join(OUT, 'load1x')]);
+  run('load 4x', '../perf/load-profile.mjs', ['--url', URLB + '/', '--throttle', '4', '--qarms', 'walltiers=0;', '--reps', String(REPS4), '--label', 'walltiers-4x', '--out', path.join(OUT, 'load4x')]);
 }
 // pics = walls painted in paced jobs (the real page); picsnow = walls painted at once (facadepace=0&timeofdaypace=0,
 // the setting ci/pictures.mjs uses), old painting shot once only.
