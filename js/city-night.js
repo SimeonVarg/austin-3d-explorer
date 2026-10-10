@@ -82,7 +82,7 @@
     farM:1200,           // full strength from here
     hz:[2.0,6.0],        // the two slow oscillators per light, under half the 15 Hz redraw and under the ~15 Hz the dark-adapted eye follows
     colourWobble:.45,    // share of the amplitude that goes to a red/blue swing (1 = as large as brightness)
-    footprintM:[4,14],   // the shimmer fades out where one pixel covers more than this much wall (no aliasing)
+    footprintM:[8,24],   // the shimmer fades out where one pixel covers more than this much wall (no aliasing); 4 to 14 killed the far skyline at 3 km and more
     repaintHz:15,        // a parked camera is redrawn this often at night, only while shimmer is on
     idleStopS:300,       // ...and stops this long after the last touch, so a left-open tab does not cook a laptop
     cardsOnly:true,      // on by default only where graphics.js finds a graphics card (like the far pattern filter)
