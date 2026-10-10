@@ -179,6 +179,7 @@ def sign_spec(text, w, h, z0, s, tone='signWhite'):
 def main():
     d = {
         'name': "Domino's", 'id': ID,
+        'replaceFrontage': True,   # hide the generic storefront slabs and door skins (places.js, entrances.js) drawn on this building's old walls
         'sources': {
             'footprint': 'data/snapshots/2026-10-05/buildings.detailed.geojson, feature ' + ID,
             'reference': "two street photographs of the shop, taken 2026-10-03 (a wide view of the whole building from the south-west and a long-lens view of the shop front from the south-east), and the 2021 laser scan",
