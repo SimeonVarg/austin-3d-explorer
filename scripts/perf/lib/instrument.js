@@ -66,6 +66,8 @@
     try {
       if (window.__intro && window.__intro.reason) mark('introReveal');
       if (window.slopesApartments && window.slopesApartments.count.done) mark('apartmentsDone');
+      if (window.slopesApartments && window.slopesApartments.group) mark('groupLanded');
+      if (window.__intro && window.__intro.gates && window.__intro.gates['apt.firstView'] && window.__intro.gates['apt.firstView'].firstOkAt != null) mark('firstViewReady');
       if (window.slopesApartments && window.slopesApartments.readyToReveal && window.slopesApartments.readyToReveal()) mark('apartmentsReady');
       if (P.marks.introReveal && !document.getElementById('veil')) mark('veilGone');
       if (window.__loading && window.__loading.complete) mark('loaderComplete');

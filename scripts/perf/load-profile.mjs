@@ -61,6 +61,9 @@ const PROFILE = flag('--profile');
 const TRACE = flag('--trace');
 const WARM = flag('--warm');
 const QUERY = arg('--query', 'drift=0');
+// --arms 'old=drift=0&veilgate=full|new=drift=0': several URL variants of ONE build, interleaved with the throttles
+// (A/B on one checkout: every threshold in the app has a URL switch). Without it there is a single arm named ''.
+const ARMS = arg('--arms', '') ? arg('--arms', '').split('|').map(a => { const i = a.indexOf('='); return { name: a.slice(0, i), query: a.slice(i + 1) }; }) : [{ name: '', query: QUERY }];
 const SETTLE = +arg('--settle', 6000);
 const MAX = +arg('--max', 420000);
 const OUT = arg('--out', process.env.VERIFY_OUT || path.join(process.env.TMPDIR || '/tmp', 'load-profile'));
@@ -102,8 +105,8 @@ function classify(u) {
   return 'own other';
 }
 
-async function runOnce(throttle, rep, { profile, trace, warm }) {
-  const label = `t${throttle}${profile ? 'p' : ''}${trace ? 'tr' : ''}-r${rep}`;
+async function runOnce(throttle, rep, { profile, trace, warm, arm }) {
+  const label = `${arm.name ? arm.name + '-' : ''}t${throttle}${profile ? 'p' : ''}${trace ? 'tr' : ''}-r${rep}`;
   if (REQUIRE_IDLE) {
     for (let waited = 0; ; waited += 15) {
       const idle = await idleSeconds();
@@ -146,7 +149,7 @@ async function runOnce(throttle, rep, { profile, trace, warm }) {
     }
     if (profile) { await page.send('Profiler.enable'); await page.send('Profiler.setSamplingInterval', { interval: 1000 }); await page.send('Profiler.start'); }
 
-    const url = URL0 + (URL0.includes('?') ? '&' : '?') + QUERY;
+    const url = URL0 + (URL0.includes('?') ? '&' : '?') + arm.query;
     const tNav = Date.now();
     await page.send('Page.navigate', { url });
     // wait: reveal + apartments done, then SETTLE ms, or MAX
@@ -185,7 +188,7 @@ async function runOnce(throttle, rep, { profile, trace, warm }) {
       return {
         marks:P.marks, calls:P.calls, log:P.log, long:P.long, paints:P.paints, src:P.src, fetches:P.fetches.length,
         nav:{dcl:nav.domContentLoadedEventEnd, load:nav.loadEventEnd, responseEnd:nav.responseEnd},
-        intro: window.__intro?{waitedMs:window.__intro.waitedMs, reason:window.__intro.reason, missingAtLift:window.__intro.missingAtLift, gateOkAt:window.__intro.gateOkAt}:null,
+        intro: window.__intro?{waitedMs:window.__intro.waitedMs, reason:window.__intro.reason, missingAtLift:window.__intro.missingAtLift, gateOkAt:window.__intro.gateOkAt, gates:window.__intro.gates||null}:null,
         apartments: ap?{buildings:ap.buildings, blocks:ap.blocks, faces:ap.faces, cells:ap.cells, triangles:ap.triangles, ms:ap.ms, slices:ap.buildSlices, done:ap.done}:null,
         facadePace: window.__facadePace||null, loading: window.__loading?{started:window.__loading.started,complete:window.__loading.complete,n:(window.__loading.history||[]).length}:null,
         gfx, gpuRenderer: dbg?gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL):null,
@@ -211,7 +214,7 @@ async function runOnce(throttle, rep, { profile, trace, warm }) {
       }
     }
     const loadAfter = machineLoad();
-    const res = { label, rep, throttle, profile: !!profile, trace: !!trace, gl: GL, phone: PHONE, query: QUERY, settleMs: SETTLE, wallToEndMs: wallToEnd,
+    const res = { label, rep, throttle, profile: !!profile, trace: !!trace, gl: GL, phone: PHONE, query: arm.query, arm: arm.name, settleMs: SETTLE, wallToEndMs: wallToEnd,
       chrome: chrome.version.product, machine: { before: loadBefore, after: loadAfter }, ...data, cdpMetrics: metrics, heap, net, analysis, traceSummary, warm: warmRes };
     fs.writeFileSync(path.join(OUT, `${label}.json`), JSON.stringify(res, null, 1));
     return res;
@@ -273,15 +276,16 @@ const results = [];
 const plan = [];
 const nonProfile = !PROFILE && !TRACE;
 for (let r = OFFSET + 1; r <= OFFSET + REPS; r++) {
-  const order = r % 2 ? THROTTLES : [...THROTTLES].reverse();   // A B, then B A: counterbalanced
-  for (const t of order) plan.push({ t, r });
+  const groups = THROTTLES.flatMap(t => ARMS.map(arm => ({ t, arm })));
+  const order = r % 2 ? groups : [...groups].reverse();   // A B, then B A: counterbalanced
+  for (const g of order) plan.push({ t: g.t, arm: g.arm, r });
 }
 console.error(`load-profile: ${plan.length} loads, url ${URL0}, gl ${GL}${PHONE ? ', phone' : ''}${PROFILE ? ', profiled' : ''}${TRACE ? ', traced' : ''}`);
 if (FROM) { for (const f of fs.readdirSync(FROM).sort()) if (MATCH.test(f)) results.push(JSON.parse(fs.readFileSync(path.join(FROM, f), 'utf8'))); }
-for (const { t, r } of FROM ? [] : plan) {
+for (const { t, r, arm } of FROM ? [] : plan) {
   const t0 = Date.now();
   try {
-    const res = await runOnce(t, r, { profile: PROFILE, trace: TRACE, warm: WARM && t === THROTTLES[0] });
+    const res = await runOnce(t, r, { profile: PROFILE, trace: TRACE, warm: WARM && t === THROTTLES[0] && arm === ARMS[0], arm });
     results.push(res);
     const m = res.marks || {};
     console.error(`  ${res.label}: reveal ${m.introReveal ?? '-'} ms, apartmentsDone ${m.apartmentsDone ?? '-'}, firstRender ${m.mapFirstRender ?? '-'}, load avg ${res.machine.before.load1}->${res.machine.after.load1}, renderer ${res.gpuRenderer}, ${((Date.now() - t0) / 1000).toFixed(0)} s`);
@@ -289,7 +293,7 @@ for (const { t, r } of FROM ? [] : plan) {
 }
 
 // ---- report
-if (FROM) { const ts = [...new Set(results.map(r => r.throttle))].sort((a, b) => a - b); THROTTLES.length = 0; THROTTLES.push(...ts); }
+if (FROM) { const ts = [...new Set(results.map(r => r.throttle))].sort((a, b) => a - b); THROTTLES.length = 0; THROTTLES.push(...ts); const an = [...new Set(results.map(r => r.arm || ''))]; ARMS.length = 0; ARMS.push(...an.map(name => ({ name, query: '' }))); }
 const out = [];
 const fmt = n => n == null ? '-' : String(Math.round(n));
 const stat = (arr) => arr.length ? `${fmt(Math.min(...arr))} / ${fmt(med(arr))} / ${fmt(Math.max(...arr))}` : '-';
@@ -301,10 +305,13 @@ const rows = [
   ['first map render', r => r.marks.mapFirstRender],
   ['map load', r => r.marks.mapLoad],
   ['map first idle', r => r.marks.mapFirstIdle],
-  ['apartments build done (count.done)', r => r.marks.apartmentsDone],
+  ['apartments boot done (count.done; NOT the build landing)', r => r.marks.apartmentsDone],
   ['apartments ready to reveal', r => r.marks.apartmentsReady],
   ['CITY READY (intro reveal, veil lifts)', r => r.marks.introReveal],
   ['veil gone', r => r.marks.veilGone],
+  ['veil wait after authored group landed', r => r.marks.introReveal - r.marks.groupLanded],
+  ['group landed (slopesApartments.group set)', r => r.marks.groupLanded],
+  ['first view ready (our gate)', r => r.marks.firstViewReady],
   ['apartments count.ms (build wall, sliced)', r => r.apartments && r.apartments.ms],
   ['long tasks > 50 ms: total ms', r => r.long.reduce((s, x) => s + x[1], 0)],
   ['long tasks: count', r => r.long.length],
@@ -318,11 +325,21 @@ const rows = [
 out.push(`# load-profile report`);
 out.push(`url ${URL0}  gl ${GL}  ${PHONE ? 'phone 390x844 DPR3' : 'desktop 1280x800 DPR1.5'}  query ?${QUERY}  autodetect ${AUTODETECT ? 'on' : 'cancelled'}  profile ${PROFILE}  trace ${TRACE}  settle ${SETTLE} ms`);
 if (results[0]) out.push(`chrome ${results[0].chrome}  renderer ${results[0].gpuRenderer}  host cpus ${results[0].machine.before.cpus}`);
-for (const t of THROTTLES) {
-  const rs = results.filter(r => r.throttle === t);
-  out.push(`\n## CPU throttle ${t}x, ${rs.length} cold loads  (ms; min / median / max)`);
+for (const { t, arm } of THROTTLES.flatMap(t => ARMS.map(arm => ({ t, arm })))) {
+  const rs = results.filter(r => r.throttle === t && (r.arm || '') === arm.name);
+  out.push(`\n## ${arm.name ? 'arm ' + arm.name + ', ' : ''}CPU throttle ${t}x, ${rs.length} cold loads  (ms; min / median / max)`);
   out.push(`machine load average before each rep: ${rs.map(r => r.machine.before.load1).join(', ')}`);
   for (const [name, f] of rows) { const v = rs.map(r => { try { return f(r); } catch (e) { return null; } }).filter(x => x != null && isFinite(x)); out.push(`${name.padEnd(46)} ${stat(v)}   [${v.map(fmt).join(', ')}]`); }
+}
+// what the veil waited for: window.__intro.gates per load, one line per gate (last time it blocked / first time it held)
+for (const { t, arm } of THROTTLES.flatMap(t => ARMS.map(arm => ({ t, arm })))) {
+  const rs = results.filter(r => r.throttle === t && (r.arm || '') === arm.name && r.intro && r.intro.gates);
+  if (!rs.length) continue;
+  out.push(`\n## veil gates ${arm.name ? 'arm ' + arm.name + ', ' : ''}${t}x  (per load: lastBlockedAt/firstOkAt ms; reveal at ${rs.map(r => fmt(r.marks.introReveal)).join(', ')}; reason ${rs.map(r => r.intro.reason).join(', ')})`);
+  const names = [...new Set(rs.flatMap(r => Object.keys(r.intro.gates)))].sort();
+  for (const n of names) out.push(`${n.padEnd(46)} ${rs.map(r => { const g = r.intro.gates[n]; return g ? `${g.lastBlockedAt == null ? '-' : fmt(g.lastBlockedAt)}/${g.firstOkAt == null ? '-' : fmt(g.firstOkAt)}` : 'n/a'; }).join('   ')}`);
+  const srcs = ['austin-buildings', 'austin-outer', 'austin-roads', 'austin-ground', 'austin-westcampus', 'austin-entrances', 'campus-storeys'];
+  for (const n of srcs) out.push(`source first loaded: ${n.padEnd(24)} ${rs.map(r => fmt(r.src[n])).join('   ')}`);
 }
 const rs0 = results[0];
 if (rs0) {
