@@ -37,6 +37,8 @@ const PARAMS = {
     reserve: '&rustbuilder=1&rustreserve=6523203',   // the Rust builder told the vertex count (the study: 650 MiB of linear memory -> 357 MiB)
     pack: '&packverts=1',                             // the packed vertex layout (js/slopes.js PACK)
     packrust: '&rustbuilder=1&packverts=1',           // both switches (the Rust builder writes the packed layout when the Rust-packed pull request is in; else the JS one does)
+    worker: '&buildworker=1',                         // the generator + builder in a Web Worker (js/build-worker.js), the main thread replays what it registers
+    workerpack: '&buildworker=1&packverts=1',
   },
   phone: { viewport: { width: 390, height: 844 }, dpr: 3, query: '&lite=1' },   // --phone: the phone profile (js/mobile.js) on a desktop browser, as scripts/verify/mobile-memory.mjs does
   bigUploadBytes: 4 * 1048576,        // a gl.bufferData at least this big is counted as a building mesh buffer (MapLibre's tile buffers are far smaller)
@@ -120,7 +122,7 @@ async function one(mode, run) {
       const fs = dts.slice(10).sort((a, b) => a - b), frameP50 = fs[fs.length >> 1], frameP90 = fs[Math.floor(fs.length * 0.9)];
       if (window.gc) { window.gc(); window.gc(); }   // the settled heap: after a forced collection, once the build has landed
       const heapSettledMb = performance.memory ? performance.memory.usedJSHeapSize / 1048576 : 0;
-      return { wasmMb: (window.slopes.rustInfo().lastWasmBytes || 0) / 1048576, geomParts: window.__parts || null, frameP50, frameP90, heapSettledMb, longTaskMaxMs: rb.longTaskMax, longTaskTotalMs: rb.longTaskTotal, longTasks: rb.longTasks, workerState: window.__aptsBuild && window.__aptsBuild.buildWorkerState ? window.__aptsBuild.buildWorkerState() : null, gpuUploadMb: rb.uploads.reduce((a, b) => a + b, 0) / 1048576, gpuUploads: rb.uploads.length, countMs: c.ms, slices: c.buildSlices, triangles: c.triangles, builtAt: rb.builtAt, readyAt: rb.readyAt, heapPeakMb: rb.heapPeak / 1048576,
+      return { workerState: window.__aptsBuild && window.__aptsBuild.buildWorkerState ? window.__aptsBuild.buildWorkerState() : null, wasmMb: (window.slopes.rustInfo().lastWasmBytes || 0) / 1048576, geomParts: window.__parts || null, frameP50, frameP90, heapSettledMb, longTaskMaxMs: rb.longTaskMax, longTaskTotalMs: rb.longTaskTotal, longTasks: rb.longTasks, workerState: window.__aptsBuild && window.__aptsBuild.buildWorkerState ? window.__aptsBuild.buildWorkerState() : null, gpuUploadMb: rb.uploads.reduce((a, b) => a + b, 0) / 1048576, gpuUploads: rb.uploads.length, countMs: c.ms, slices: c.buildSlices, triangles: c.triangles, builtAt: rb.builtAt, readyAt: rb.readyAt, heapPeakMb: rb.heapPeak / 1048576,
         rust: window.slopes.rustInfo(), packOn: window.slopes.packOn(), geomBytesMb: bytes / 1048576, geomTris: tris, geomSha: parts.length ? await sha(new TextEncoder().encode(parts.join(''))) : null,
         gfx: window.GFX && window.GFX.preset };
     });

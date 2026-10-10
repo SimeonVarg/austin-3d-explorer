@@ -66,7 +66,7 @@ if (ci >= 0) {
   const THREE = process.env.THREE_JS;
   if (!THREE) { console.log('SKIP: set THREE_JS to three@0.159.0 build/three.min.js (https://unpkg.com/three@0.159.0/build/three.min.js); the repo does not carry it'); process.exit(0); }
   const oi = argv.indexOf('--only');
-  const env = { ...process.env, REAL_NIGHT: '1', REAL_PATTERNS: '1' };
+  const env = { ...process.env, REAL_NIGHT: '1', REAL_PATTERNS: '1', REAL_ROOFS: '1' };
   if (oi >= 0) env.ONLY = argv[oi + 1];
   const run = mode => {
     const r = spawnSync(process.execPath, ['--max-old-space-size=8192', fileURLToPath(import.meta.url), '--child', mode, ...(argv.includes('--break') ? ['--break'] : [])], { env, encoding: 'utf8', maxBuffer: 1 << 28 });
