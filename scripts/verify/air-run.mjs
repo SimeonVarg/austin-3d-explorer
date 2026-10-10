@@ -7,8 +7,9 @@
  *        lite = the integrated/phone step, full = the main page's whole city (?full=1&airbudget=0), same flight
  *   node air-run.mjs --mode stills --out DIR [--hour 0.12]
  *        four stills: start, a downtown gate, the Capitol, the finish (deterministic: the sim is stepped by hand)
- *   node air-run.mjs --mode clip  --out DIR --from 36 --secs 20 [--fps 30] [--hour 0.12]
+ *   node air-run.mjs --mode clip  --out DIR --from 36 --clipsecs 20 [--fps 30] [--hour 0.12]
  *        the clip: frame-by-frame (the sim steps 1/fps, the page waits for the map to settle, one JPEG per frame)
+ *   --gpu low   (any mode) draw on the integrated GPU, not the discrete one, to see what a lesser machine gets
  *   --mode probe: boots the page, prints console errors, the GL renderer, and one screenshot
  *
  * --mode takes a plus-separated list (probe+stills+perf): one browser, one queue slot, run in order.
@@ -17,12 +18,14 @@
  * Timing is only honest on a quiet machine; the JSON says which GPU and what else it knew.
  */
 import { chromium } from 'playwright-core';
-import { BASE, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const A = process.argv.slice(2);
 const arg = (k, d) => { const i = A.indexOf('--' + k); return i >= 0 ? A[i + 1] : d; };
+// --gpu low asks Chrome for the integrated chip (the owner's-laptop stand-in): chrome.mjs reads VERIFY_GPU when it loads
+if (arg('gpu') === 'low') process.env.VERIFY_GPU = 'low';
+const { BASE, launch } = await import('./chrome.mjs');
 const MODE = arg('mode', 'probe'), OUT = arg('out', process.env.VERIFY_OUT || path.join(process.cwd(), 'air-out'));
 const [W, H] = arg('size', '1280x720').split('x').map(Number);
 const HOUR = arg('hour', '0.12'), BUDGET = arg('budget', 'on');
@@ -78,7 +81,7 @@ async function runMode(MODE) {
     await shot('4-finish');
     fs.writeFileSync(path.join(OUT, 'timeline.json'), JSON.stringify(tl, null, 1));
   } else if (MODE === 'clip') {
-    const from = +arg('from', 36), secs = +arg('secs', 20), fps = +arg('fps', 30);
+    const from = +arg('from', 36), secs = +arg('clipsecs', 20), fps = +arg('fps', 30);
     await open(base('&auto=1&countdown=0&ghost=house&hud=' + arg('hud', '1')));
     await page.evaluate(t => window.__air.seek(t), from);
     await settle(20000);
