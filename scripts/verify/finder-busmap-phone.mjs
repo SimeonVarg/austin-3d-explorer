@@ -43,7 +43,7 @@ try {
     return { sheetTop: Math.round(sh.top), W, tags, stops };
   });
   check('both stops are on screen above the sheet', geo.stops.length >= 2 && geo.stops.every((p) => p.x >= 0 && p.x <= geo.W && p.y >= 0 && p.y <= geo.sheetTop + 4), geo);
-  check('the board and get-off tags are not hidden under the sheet', geo.tags.length >= 2 && geo.tags.every((t) => t.b <= geo.sheetTop + 4 || t.y >= 0), geo.tags);
+  check('the board and get-off tags are not hidden under the sheet', geo.tags.length >= 2 && geo.tags.every((t) => t.b <= geo.sheetTop + 4), geo.tags);   // a tag centred on a stop near the edge can still overhang the side of a phone: reported in the detail, not asserted
   await page.screenshot({ path: `${OUT}/phone-1-trip.png` });
   // open the sheet tall: the foot (and the switch) is there
   await page.click('.fd-handle'); await sleep(1200);
