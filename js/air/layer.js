@@ -31,7 +31,8 @@
       const ll = G.toLngLat(x, y), m = maplibregl.MercatorCoordinate.fromLngLat(ll, 0);
       return [(m.x - originMerc.x) / originScale, -(m.y - originMerc.y) / originScale, z];
     };
-    const mk = (geo, col, o) => { const m = new T.MeshBasicMaterial(Object.assign({ side: T.DoubleSide, transparent: !!(o && o.opacity < 1), opacity: 1, depthWrite: !(o && o.additive) }, o || {}));
+    const mk = (geo, col, o) => { o = Object.assign({}, o || {}); const add = !!o.additive; delete o.additive;
+      const m = new T.MeshBasicMaterial(Object.assign({ side: T.DoubleSide, transparent: o.opacity < 1, opacity: 1, depthWrite: !add }, o));
       m.color.setRGB(col[0], col[1], col[2]); return new T.Mesh(geo, m); };
 
     function craftGeometry() {

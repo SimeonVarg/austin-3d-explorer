@@ -10,6 +10,7 @@
  *        the clip: frame-by-frame (the sim steps 1/fps, the page waits for the map to settle, one JPEG per frame)
  *   --mode probe: boots the page, prints console errors, the GL renderer, and one screenshot
  *
+ * --mode takes a plus-separated list (probe+stills+perf): one browser, one queue slot, run in order.
  * Run it on the laptop or Colab, NOT the Mac (CLOUD-LANES.md):
  *   acer-run.sh check air-run.mjs --workcopy ~/Projects/flyover-air --gl hardware --out DIR  -- --mode stills ...
  * Timing is only honest on a quiet machine; the JSON says which GPU and what else it knew.
@@ -52,7 +53,7 @@ const settle = (ms = 6000) => page.evaluate(ms => new Promise(res => {
 const gl = () => page.evaluate(() => { const c = document.createElement('canvas'), g = c.getContext('webgl2'); const e = g && g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'unknown'; });
 const base = (more = '') => `manual=1&p=${HOUR}&airbudget=${BUDGET}&preset=balanced${EXTRA ? '&' + EXTRA : ''}${more}`;
 
-try {
+async function runMode(MODE) {
   if (MODE === 'probe') {
     await open(base('&hud=1'));
     await settle(8000);
@@ -106,6 +107,9 @@ try {
     fs.writeFileSync(path.join(OUT, `perf-${BUDGET}-${W}x${H}.json`), JSON.stringify(out, null, 1));
     console.log('RESULT ' + JSON.stringify(out));
   }
+}
+try {
+  for (const m of MODE.split('+')) { log('=== mode', m); await runMode(m.trim()); }
   fs.writeFileSync(path.join(OUT, 'console.json'), JSON.stringify({ errors, warns }, null, 1));
   log('errors', errors.length, errors.slice(0, 5)); log('warns', warns.slice(0, 5));
 } finally { await browser.__done(); }
