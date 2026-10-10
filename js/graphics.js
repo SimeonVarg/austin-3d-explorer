@@ -1411,6 +1411,10 @@
   function aeGrade(F) {
     const target = (AE.TARGET_DAY + (AE.TARGET_GOLDEN - AE.TARGET_DAY) * F.golden) * (1 - F.night)
                  + AE.TARGET_NIGHT * F.night;
+    // A frozen night (?nightfreeze / ?nightseed) meters as ever but holds the gain at 1: the gain depends on how many frames drew and when
+    // (0.9977 against 0.9967 between two loads), which moves whole surfaces by 1-2 of 255. The metering itself must keep running: a page
+    // that bloomed without it drew a different frame every redraw (frozen-redraw.mjs, 2026-10-10; see docs/night-eye-2026-10-10.md).
+    if (window.CityNight && window.CityNight.frozen) return;
     const err = Math.log(target / Math.max(0.02, aeLuma));
     const mag = Math.max(0, Math.abs(err) - AE.KNEE);        // dead zone first
     const g = Math.max(AE.MIN, Math.min(AE.MAX,
@@ -1419,9 +1423,7 @@
   }
 
   function aeMeter(F) {
-    // A frozen night (?nightfreeze / ?nightseed) holds the exposure at 1: the meter's gain depends on how many frames drew and when,
-    // so two loads settled at 0.9977 and 0.9967 (AWS L4, 2026-10-10), which moves whole surfaces by 1-2 of 255.
-    if (!(GFX.autoExposure && bloomOK && mapCanvas) || (window.CityNight && window.CityNight.frozen)) {
+    if (!(GFX.autoExposure && bloomOK && mapCanvas)) {
       if (aeGain !== 1) { aeGain = 1; aeLuma = null; aeLast = 0; applyGrade(); }
       aeOwed = []; aeGpuDrop();
       return;
