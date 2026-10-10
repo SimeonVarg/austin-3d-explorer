@@ -960,7 +960,10 @@ app's own paced work: walls are stamped in jobs after the camera stops
 (`slopesApartments.count.done`). A shot before they finish shows one building
 in its plain stand-in, in one shoot only. In CI that reads as a changed patch
 on a building the pull request cannot touch. `shot.mjs` now waits until both
-are quiet for three reads in a row. If a flag still lands on a building the
+are quiet for three reads in a row (60 s at most a view). On the CI software
+renderer the wall job never finishes at all, so the picture runs also load the
+page with `facadepace=0&timeofdaypace=0` (`LOOK.shotQuery` in `ci/pictures.mjs`):
+walls are then painted at once, and every shoot sees the same finished city. If a flag still lands on a building the
 change cannot touch, run again before merging, and look for the next thing
 `idle` cannot see.
 
