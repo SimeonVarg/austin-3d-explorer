@@ -1,7 +1,7 @@
 {
   "eps": 0.01,
   "frac": 0.3,
-  "recorded": "2026-08-24",
+  "recorded": "2026-10-10",
   "counts": {
     "art.geojson": 92,
     "arts.geojson": 0,
@@ -14,12 +14,12 @@
     "capitol_trees.geojson": 0,
     "depth.geojson": 0,
     "drag.geojson": 0,
-    "entrances.geojson": 1786,
+    "entrances.geojson": 1492,
     "ground.geojson": 1,
-    "heroes.geojson": 1,
+    "heroes.geojson": 1376,
     "landscape.geojson": 0,
     "moody.geojson": 0,
-    "outer_ring.geojson": 179,
+    "outer_ring.geojson": 2101,
     "parts.geojson": 0,
     "places.geojson": 1,
     "props.geojson": 0,
@@ -31,5 +31,10 @@
     "tower.geojson": 0,
     "trees.geojson": 99,
     "westcampus.geojson": 0
+  },
+  "notes": {
+    "heroes.geojson": "1 -> 1376, accepted 2026-10-10. The 2026-08-24 count of 1 was the NHB glassvol/body pair. Added by deliberate passes: GDC's sunshade screen (7cf7d3a, PR #283, 2026-09-22) = 560 shade-return/shade-blade + 560 shade-lattice/shade-blade, each a post whose top is flush with the top slat of the blade it stands in, same colour; GDC atrium screen/lattice/rail/post = 254 (same colour except 14 atrium-post pairs, cm-scale tops); EER west_entry_glass/atrium_roof = 1 (8396ee8, same colour). 1360 of 1376 are the same colour so a z-fight there cannot be seen. Not rendered: the 14 different-colour atrium-post pairs are the only ones worth a zfight.mjs look.",
+    "outer_ring.geojson": "179 -> 2101, accepted 2026-10-10. 710e293 (2026-09-24, 'Downtown: give every tower its own facade') took the file from 13462 to 18618 features (9149 at the 2026-08-24 baseline) by adding landmark facade parts (facade-pier, floor-band, tower-glazing, lobby-glass, diagonal-glass-fold) that finish flush at the same roofline, so their top faces coincide. 695 of the 2101 pairs are the same colour, 1406 are different colours; none was rendered. The pair rate per feature rose from 2.0% to 11.3%, so this is a new class of pair and not just more of the old one. Owner call: if the skyline roofs shimmer, the fix is in the outer-ring bake (stop the pier at floor-band top minus 0.01 m), then lower this number.",
+    "entrances.geojson": "1786 -> 1492, lowered 2026-10-10 (improved): the Gearing court and Battle east retirements (273931c, d2ab385, 8d100de) fell, consistent with those entries being retired and rebuilt as authored geometry (not traced piece by piece)."
   }
 }
