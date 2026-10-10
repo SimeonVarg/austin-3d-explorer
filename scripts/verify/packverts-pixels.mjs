@@ -66,6 +66,8 @@ if (!(await page.evaluate(() => !!(window.slopes && window.slopes.packSet)))) { 
 // "Modes" badge were still arriving: a control that moves 38% to 99% of the pixels). The packed layout only changes how the apartment meshes are drawn, so
 // every MapLibre layer except the custom three.js one (the slopes layer, which draws the apartments and every other builder mesh) is hidden: what is
 // left is the sky, the three.js meshes and the page's fixed controls, which are the same in every shot.
+// Auto brightness adapts the exposure frame by frame: on the laptop the control (off vs off again) moved every pixel of a view by up to 10/255 for that reason alone.
+await page.evaluate(() => { if (window.GFX) window.GFX.autoExposure = false; if (window.applyGraphics) window.applyGraphics(); });
 const hidden = await page.evaluate(() => { const m = window.__map; let n = 0; for (const l of m.getStyle().layers) if (l.type !== 'custom') { try { m.setLayoutProperty(l.id, 'visibility', 'none'); n++; } catch (e) {} } return n; });
 console.log(`hid ${hidden} MapLibre layers; the custom (three.js) layers stay`);
 const tris = [];
