@@ -36,6 +36,17 @@ eq(L.describe(opt([{ kind: 'walk' }, { kind: 'wait', live: false, headway: 15 },
   'Live bus data is not answering. These are timetable times.', 'feed down note');
 eq(L.describe({ options: [], reason: 'no bus is running at that time' }, 'GDC', true).lines, ['No bus is running right now (timetable).'], 'nothing running');
 eq(L.describe({ options: [], reason: 'no stop near the start' }, 'GDC', true).lines, ['No bus links this home and GDC right now.'], 'no link');
+// Walking beats the bus (js/transit-route.js returns the walk and no option): say so, with a range
+eq(L.describe({ options: [], reason: 'walking is as fast as any bus', walk: { lo: 278.571, hi: 354.545, m: 300 } }, 'GDC', true).lines,
+  ['Walking to GDC is as quick as any bus: about 5-6 min.'], 'walking is as quick');
+eq(L.describe({ options: [], reason: 'you are already there', walk: { lo: 0, hi: 0, m: 0 } }, 'GDC', true).lines,
+  ['This home and GDC are the same place.'], 'same place');
+// A timetable past its last date is never described as the timetable; a live bus still is.
+const tt = opt([{ kind: 'walk' }, { kind: 'wait', live: false, headway: 15 }, bus('20', 'A', 'B'), { kind: 'walk' }], 2110, 3140);
+eq(L.describe(tt, 'GDC', true, true).lines, ['The bus timetable on this page has run out of date, so no timetable times are shown.'], 'expired timetable');
+eq(L.describe({ options: [], reason: 'no bus is running at that time' }, 'GDC', true, true).lines, ['The bus timetable on this page has run out of date, so no timetable times are shown.'], 'expired, nothing running');
+eq(L.describe(opt([{ kind: 'walk' }, { kind: 'wait', live: true, inMin: 6, headway: 15 }, bus('20', 'A', 'B'), { kind: 'walk' }], 2280, 2400), 'GDC', true, true).lines,
+  ['Bus to GDC now: 20 from A, in 6 min (live) · 38-40 min door to door'], 'expired timetable, but a live bus is still said');
 // No sentence may promise or give a clock time.
 for (const fn of Object.values(L.LIVE.say)) {
   const s = typeof fn === 'function' ? fn(7, 'X') : fn;

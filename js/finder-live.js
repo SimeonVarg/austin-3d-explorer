@@ -36,6 +36,9 @@ export const LIVE = {
     door: (range) => range + ' door to door',
     none: (code) => 'No bus links this home and ' + code + ' right now.',
     notRunning: 'No bus is running right now (timetable).',
+    walkingWins: (code, range) => 'Walking to ' + code + ' is as quick as any bus: about ' + range + '.',
+    samePlace: (code) => 'This home and ' + code + ' are the same place.',
+    outOfDate: 'The bus timetable on this page has run out of date, so no timetable times are shown.',
     feedDown: 'Live bus data is not answering. These are timetable times.',
     loading: 'Looking for the next bus…',
   },
@@ -50,10 +53,17 @@ export function austinNow(date = new Date(), tz = LIVE.tz) {
 }
 
 /** The lines to show for one search result. Pure: no DOM, so node can check every sentence. */
-export function describe(res, code, feedOk) {
+export function describe(res, code, feedOk, expired) {
   const S = LIVE.say, o = res && res.options && res.options[0];
-  if (!o) return { lines: [res && /running/.test(res.reason || '') ? S.notRunning : S.none(code)], live: false };
-  const buses = o.legs.filter((l) => l.kind === 'bus'), wait = o.legs.find((l) => l.kind === 'wait');
+  const buses = o && o.legs.filter((l) => l.kind === 'bus'), wait = o && o.legs.find((l) => l.kind === 'wait');
+  // A timetable past its last date is not "the timetable": only a bus that came from the live feed may be described.
+  if (expired && !(o && wait.live)) return { lines: [S.outOfDate], live: false };
+  if (!o) {
+    const why = (res && res.reason) || '';
+    if (/already/.test(why)) return { lines: [S.samePlace(code)], live: false };
+    if (/walking/.test(why) && res.walk) return { lines: [S.walkingWins(code, rangeText(res.walk.lo, res.walk.hi))], live: false };
+    return { lines: [/running/.test(why) ? S.notRunning : S.none(code)], live: false };
+  }
   let s = S.to(code) + S.ride(buses[0].route, buses[0].boardName) + ', ' + (wait.live ? S.live(wait.inMin) : S.timetable(wait.headway));
   if (buses[1]) s += ' · ' + S.change(buses[1].route, buses[0].alightName);
   s += ' · ' + S.door(rangeText(o.lo, o.hi));
@@ -96,7 +106,7 @@ export function watch(box, from, to, opts) {
         when: austinNow(),
         live: (sid, rid, dir) => { const d = TL.departures(sid, LIVE.nextBuses, { route: rid, dir }).filter((x) => x.live).map((x) => x.minutes); return d.length ? d : null; },
       });
-      const out = describe(res, opts.code, st.ok);
+      const out = describe(res, opts.code, st.ok, st.timetableExpired);
       box.textContent = '';
       out.lines.forEach((t, i) => box.append(opts.el('p', i ? 'fd-live-note' : 'fd-live-line' + (out.live ? ' is-live' : ''), t)));
       box.append(opts.el('p', 'fd-live-credit', TL.credit));

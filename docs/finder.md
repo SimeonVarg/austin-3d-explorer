@@ -63,10 +63,15 @@ nothing else (no router button, sheet, `/` key, URL grammar or day view).
 codes and meeting-day counts, and its only network calls are GETs of the four
 static files it names in `FINDER.data`.
 
+The honest limit: the schedule is never sent, but when the map flies to a route, the map tiles it
+downloads show the tile host roughly where the camera looked. That tells the host which part of
+Austin was on screen, not why, and not which class or building the student chose.
+
 ## Checks (no browser)
 
     node scripts/verify/finder-core.mjs     # hand-computed scoring + real-graph cross-check
     node scripts/verify/finder-static.mjs   # schemas, sizes, network scan, switches
+    node scripts/verify/finder-egress.mjs   # the live bus line at run time: every request of 5 minutes, none carries the schedule
 
 ## What the browser pass found (2026-09-24, AMD Radeon iGPU, D3D11)
 
