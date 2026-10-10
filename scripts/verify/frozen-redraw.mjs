@@ -153,7 +153,12 @@ for (const view of VIEWS) {
   }
   if (ARMS) {
     // one part off at a time: does the picture now repeat?
-    const arm = async (name, on, off) => { if (on) await page.evaluate(on); await page.waitForTimeout(800); await redraw(page); const f = await draws(page, view, name.replace(/[^a-z0-9]+/gi, '_'), 8); const x = pairs(f.files, TUNE.tolerance); data.views[view][name] = x; console.log(`  arm [${name}]: ${x.distinct} different frames, most ${x.worst.over} px over ${TUNE.tolerance}/255`); if (off) await page.evaluate(off); };
+    const arm = async (name, on, off, argv1) => { if (on) await page.evaluate(on, argv1); await page.waitForTimeout(800); await redraw(page); const f = await draws(page, view, name.replace(/[^a-z0-9]+/gi, '_'), 8); const x = pairs(f.files, TUNE.tolerance); data.views[view][name] = x; console.log(`  arm [${name}]: ${x.distinct} different frames, most ${x.worst.over} px over ${TUNE.tolerance}/255`); if (off) await page.evaluate(off); };
+    // the four shipped graphics tiers and the two halves of what differs between them: does the picture repeat on each?
+    for (const preset of ['performance', 'balanced', 'cinematic', 'ultra']) await arm(`preset ${preset}`, name => { Object.assign(window.GFX, window.GFX_PRESETS[name]); window.applyGraphics(); }, null, preset);
+    await arm('balanced, auto-exposure off (bloom on)', () => { Object.assign(window.GFX, window.GFX_PRESETS.balanced); window.GFX.autoExposure = false; window.applyGraphics(); }, null);
+    await arm('balanced, bloom off (auto-exposure on)', () => { Object.assign(window.GFX, window.GFX_PRESETS.balanced); window.GFX.bloom = 0; window.GFX.godRays = 0; window.GFX.flare = 0; window.applyGraphics(); }, null);
+    await arm('balanced again', () => { Object.assign(window.GFX, window.GFX_PRESETS.balanced); window.applyGraphics(); }, null);
     await arm('atmosphere pass off', () => { window.SKY_GL_DEBUG.atmoGain = 0; window.__map.triggerRepaint(); }, () => { window.SKY_GL_DEBUG.atmoGain = 1; });
     await arm('cloud pass off', () => { window.SKY_GL_DEBUG.cloudGain = 0; window.__map.triggerRepaint(); }, () => { window.SKY_GL_DEBUG.cloudGain = 1; });
     await arm('sky compositor off', () => { window.SKY_COMP.on = false; window.__map.triggerRepaint(); }, () => { window.SKY_COMP.on = true; });
