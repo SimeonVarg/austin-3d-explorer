@@ -183,15 +183,24 @@ for _row in _inventory["by_point"]:
         _cfg.setdefault("height", _row["height"])
 
 
-def build_tower_identity(bake, name, height=None, fade=0, footprint=None):
+def build_tower_identity(bake, name, height=None, fade=0, footprint=None, seat=None):
     """Return the complete replacement feature list for one named tower.
 
     ``footprint`` is the already matched source footprint in bake metre space.
     It is used for the podium, preserving parcel alignment while shaft widths
     and all distinctive roof forms are explicit building-specific photo fits.
+
+    ``seat`` overrides where the shaft stands and how big its plan is
+    (``center``, ``r``, ``bearing``, ``podium``) with values measured from the
+    2021 laser scan (scripts/downtown_tower_seats.json, written by
+    scripts/fit_tower_seats.py). The photo-fit numbers above put several shafts
+    on the wrong side of their block; the form and its details are unchanged.
     """
     from downtown_facade_profiles import profile_for
     cfg = TOWER_IDENTITIES[name]
+    if seat:
+        cfg = dict(cfg)
+        cfg.update({k: seat[k] for k in ("center", "r", "bearing", "podium") if k in seat})
     detail = cfg["detail"]
     h = cfg["height"] if height is None else height
     if abs(h - cfg["height"]) > 0.8:
