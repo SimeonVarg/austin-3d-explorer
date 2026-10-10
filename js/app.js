@@ -1970,7 +1970,7 @@ window.CityLighting.install(map);
     gateHolds: 2,      // consecutive passes required before departure
     // Do not hold the veil for sources whose module DEFERS them past the opening flight (campus-storeys,
     // the entrance doors): see authoredViewReady(). false, or ?veilgate=full, waits for every source as before.
-    gateSkipDeferred: true,
+    gateSkipDeferred: false,   // OFF: measured 2026-10-10 on AWS, it does not shorten the veil (the deferred sources are not the last wait). ?veilgate=skip turns it on.
     lateClauseMs: 90000,   // after the lift, re-apply the hiding clause on every style change for this long (see reveal())
     // Hold the veil until the authored apartments have built. Measured
     // 2026-09-15: letting the flight depart while they built in the
@@ -2076,6 +2076,7 @@ window.CityLighting.install(map);
    * polls it blocked), so the next person can read what the veil waited for instead of guessing.
    */
   const VEIL_GATE_FULL = /[?&]veilgate=full(?:&|$)/.test(location.search);
+  const VEIL_GATE_SKIP = /[?&]veilgate=skip(?:&|$)/.test(location.search) && !VEIL_GATE_FULL;   // opt in: do not wait for deferred sources
   function veilNote(name, ok) {
     const d = window.__intro; if (!d) return ok;
     const g = d.gates || (d.gates = {});
@@ -2100,7 +2101,7 @@ window.CityLighting.install(map);
       const h = A.group ? A.hidden : null;
       filters = !h || h.missing.length === 0;
       rigs = !h || h.rigsMissing.length === 0;
-      if (INTRO.gateSkipDeferred && !VEIL_GATE_FULL) {
+      if ((INTRO.gateSkipDeferred || VEIL_GATE_SKIP) && !VEIL_GATE_FULL) {
         if (window.CAMPUS_STOREYS?.defer?.on) skip.add('campus-storeys');
         if (window.ENT?.defer?.on) for (const id of ['austin-entrances', 'austin-entrances-wm', 'austin-entrances-text']) skip.add(id);
       }
@@ -2182,7 +2183,7 @@ window.CityLighting.install(map);
       // cache a source can load inside that gap and show the legacy shapes for a moment (Astra's review, 2026-10-10).
       // So every style change for the next INTRO.lateClauseMs re-applies the clause the moment a planned layer is
       // missing it: applySlopesApartments is the public, idempotent call the poll itself makes.
-      if (INTRO.gateSkipDeferred && !VEIL_GATE_FULL) {
+      if ((INTRO.gateSkipDeferred || VEIL_GATE_SKIP) && !VEIL_GATE_FULL) {
         const until = performance.now() + INTRO.lateClauseMs;
         const onStyle = () => {
           if (performance.now() > until) { map.off('styledata', onStyle); return; }
