@@ -24,7 +24,7 @@
   const q = new URLSearchParams(window.location.search);
   const TUNE = {                      // CLAUDE.md rule 11: every look value is here
     maxRows: 48, maxCols: 64, maxLines: 48,
-    farWindows: [3.5, 7.0],           // a footprint spanning this many windows fades from the exact grid to the piece's mean colour
+    farWindows: [0.5, 1.2],           // a pixel footprint this many window periods wide: the exact grid fades to the piece's mean colour (2 px a window to 0.8)
     selfCheckPoints: 24, selfCheckTolerance: 0.02,   // share of sampled points that may disagree with the generator's tone function
     parallax: 1.0, aa: 1.0,
   };
@@ -340,9 +340,9 @@
               if (hasSpan && rz.x > pz0 + 1e-6) cS += ox * fIv(max(pz0, rz.x - frameH - spanH), rz.x - frameH, sz.y, fw.y);
               if (hasAcc) {
                 float sa = accSide < 0.0 ? cs.x - accGap - accW : cs.y + accGap;
-                float ca = fIv(max(0.0, sa), min(len, sa + accW), sz.x, fw.x) * fIv(max(pz0, rz.x + accDz0), min(pz1, rz.y + (hasHead ? headH : 0.0) + accDz1), sz.y, fw.y);
+                float cac = fIv(max(0.0, sa), min(len, sa + accW), sz.x, fw.x) * fIv(max(pz0, rz.x + accDz0), min(pz1, rz.y + (hasHead ? headH : 0.0) + accDz1), sz.y, fw.y);
                 int tn = accIdx < 0 ? int(t2.x + .5) : (accIdx == 0 ? int(t9.y + .5) : (accIdx == 1 ? int(t9.z + .5) : (accIdx == 2 ? int(t9.w + .5) : int(t10.x + .5))));
-                aD += FTn(tn, 0).rgb * ca; aG += FTn(tn, 1).rgb * ca; aN += FTn(tn, 2).rgb * ca; cA += ca;
+                aD += FTn(tn, 0).rgb * cac; aG += FTn(tn, 1).rgb * cac; aN += FTn(tn, 2).rgb * cac; cA += cac;
               }
               if (t7.z > 0.0 || t7.w > 0.0) {
                 float mw = t7.x; float bx = 0.0, bz = 0.0;
