@@ -1792,3 +1792,30 @@ Traps this check cost time:
 - **A per-half translation cannot measure a small rotation** (it gave 2.9 degrees for 5). Bank is found by a
   rigid-rotation search instead.
 - **This check needs a GPU.** It asks for hardware GL itself and is listed in `ci/checks.json`.
+
+## moire-meter.mjs: one number for moire, against a floor (2026-10-10)
+
+`moire.mjs` scores a frame against a 3x supersampled copy on the owner's screen and needs a person to read
+its heat maps. `moire-meter.mjs` is the short, headless one: ten fixed views (West Campus far/middle/near, the
+Drag, campus far/low/near, downtown far/near), a table, no judgement. It draws each view at 1x and again at 4x
+the pixels (`GFX.renderScale`, so the same page, atlas and camera), box-filters the 4x frame down, and reports
+the error over building pixels only (mean, 99th percentile, and a 3x3-blurred "band" part), plus flicker: the
+per-pixel spread of that error while the camera moves a third of a pixel per step, which cancels the true motion.
+Building pixels are found by hiding the building layers and keeping what changes, split into the three.js
+authored buildings and MapLibre's walls, so the table says who draws the error. The floor is the same numbers
+over building pixels whose supersampled truth is flat, i.e. what the instrument reads where there is nothing to
+alias; a view is "at the floor" at or under 1.5x that plus 0.15 levels. `--arms "a=js|b=js"` runs variants in ONE
+page load (the switches in `js/city-lighting.js` are live), so a before/after never compares two loads.
+
+```
+python3 scripts/serve.py 8472
+VERIFY_URL=http://127.0.0.1:8472 node ~/Projects/astra-pipe/tools/gpu-run.mjs --label moire -- \
+  node scripts/verify/moire-meter.mjs --out <dir> --q patfilter=1 \
+  --arms "off=const P=CityLighting.patternFilter;P.on=false|on=const P=CityLighting.patternFilter;P.on=true;P.scatter=true"
+```
+
+Traps met writing it: the far pattern filter is compiled only where the browser reports a graphics card, so
+the software harness never has it unless `?patfilter=1`; MSAA is fixed when the map is built (`--msaa 1`
+writes it into the saved settings first); a hidden-layer render only counts after `__facadePace.busy` is
+false and `slopesApartments.count.done`, or the "building" mask includes a half-built city.
+`pattern-filter-taps.mjs` is the no-browser half: the filter's tap maths on a synthetic window grid.

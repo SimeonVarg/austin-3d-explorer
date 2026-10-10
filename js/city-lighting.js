@@ -42,7 +42,10 @@
   // Screen size needs no budget: a bigger screen gives each pixel fewer texels,
   // so fewer taps per pixel for more pixels.
   const patternFilterQuery=new URLSearchParams(location.search).get('patfilter');
-  const patternFilter={nearM:150,fullM:250,maxTaps:4,maxSpacing:2,cardsOnly:true};
+  // ?patnear= / ?patfull= (metres) and ?patscatter=1 move the fade range and the tap layout for one visit.
+  const patNum=(k,d)=>{const v=new URLSearchParams(location.search).get(k);return v!==null&&v!==''&&isFinite(+v)?+v:d;};
+  const patternFilter={nearM:patNum('patnear',150),fullM:patNum('patfull',250),maxTaps:4,maxSpacing:2,cardsOnly:true,scatterFrom:8,scatterTo:12,
+    scatter:new URLSearchParams(location.search).get('patscatter')==='1'};
   patternFilter.on=patternFilterQuery==='1'||(patternFilterQuery!=='0'&&(window.LITE_PROFILE?.on
     ? !!window.LITE_PROFILE.budget?.farPatternFilter
     : (!patternFilter.cardsOnly||!!window.GFX_GPU_CARD?.())));
@@ -96,14 +99,24 @@
       float fx=length(dx*texels),fy=length(dy*texels);
       float nx=clamp(ceil(fx),1.0,u_cityPatternFilter.w),ny=clamp(ceil(fy),1.0,u_cityPatternFilter.w);
       if(nx*ny<=1.0)return point;
-      dx*=min(1.0,nx*u_cityPatternFilterB.x/max(fx,1e-4));
-      dy*=min(1.0,ny*u_cityPatternFilterB.x/max(fy,1e-4));
+      // Up to maxTaps x maxSpacing texels the taps are a regular comb whose neighbours' bilinear footprints add
+      // up to a box. Past that the comb passes some window-grid harmonics at full strength, so with
+      // ?patscatter on the taps move, continuously between scatterFrom and scatterTo texels, to a fixed
+      // low-discrepancy set spread over the whole footprint: the same tap count, and a beat that was coherent
+      // becomes fine grain. w is 0 below scatterFrom, so those pixels read exactly as before.
+      vec2 gx=dx*min(1.0,nx*u_cityPatternFilterB.x/max(fx,1e-4));
+      vec2 gy=dy*min(1.0,ny*u_cityPatternFilterB.x/max(fy,1e-4));
+      float w=u_cityPatternFilterB.y*smoothstep(${patternFilter.scatterFrom.toFixed(1)},${patternFilter.scatterTo.toFixed(1)},max(fx,fy));
       vec4 sum=vec4(0.0);
       for(int i=0;i<${patternFilter.maxTaps};i++){
         if(float(i)>=nx)break;
         for(int j=0;j<${patternFilter.maxTaps};j++){
           if(float(j)>=ny)break;
-          vec2 at=v+dx*((float(i)+.5)/nx-.5)+dy*((float(j)+.5)/ny-.5);
+          vec2 at=v+gx*((float(i)+.5)/nx-.5)+gy*((float(j)+.5)/ny-.5);
+          if(w>0.0){
+            vec2 q=fract(vec2(.5)+(float(i)*ny+float(j)+1.0)*vec2(.7548776662,.5698402910))-.5;
+            at=mix(at,v+dx*q.x+dy*q.y,w);
+          }
           sum+=textureLod(img,mix(tl,br,fract(at)),0.0);
         }
       }
@@ -886,7 +899,7 @@
       // change can lower the count, not raise it past that.
       U.u_cityPatternFilter.value.set(patternFilter.on?1:0,patternFilter.nearM,patternFilter.fullM,Math.max(1,patternFilter.maxTaps));
       U.u_cityPatternFilterB??={value:new THREE.Vector4()};
-      U.u_cityPatternFilterB.value.set(patternFilter.maxSpacing,0,0,0);
+      U.u_cityPatternFilterB.value.set(patternFilter.maxSpacing,patternFilter.scatter?1:0,0,0);
       U.u_cityNight??={value:new THREE.Vector4()};
       const night=window.CityNight,t=night?.tune;
       U.u_cityNight.value.set(t?.on?night.lamps(window.__todCurrentP??.5):0,t?.emissionGain??1,...(t?.glassThreshold??[.26,.48]));
