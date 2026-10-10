@@ -1845,6 +1845,38 @@
   }
 
   /**
+   * ── `styledata` fires for EVERY image, layer and source change, and placement is only about layer ORDER ──
+   *
+   * Measured on an NVIDIA L4 with the page main thread at 1x and slowed 4x: one `map.addImage` of an 8x8 image on a
+   * settled page cost 2.3 ms (1x) and 9.6 to 11.3 ms (4x), and 2.1 ms / 8 to 9 ms of that was THIS listener, which called
+   * `placeSkyLayer` and `placeFogLayer` for it. Both read the whole style (`map.getStyle()` serialises every layer and
+   * source) to find the layer they sit under, and then found nothing to do. A request that adds 34 wall images paid
+   * that 34 times (docs/speed-2026-10-09.md; PR #438).
+   *
+   * Everything those two functions read is: the layer order (which includes the custom layers `getStyle()` omits), whether
+   * the sky is on, and the haze mode and failure flags. So the key below is those, and the listener does nothing while
+   * the key is the one it last placed under. A real change (a layer added above the sky, one removed, the sky or haze
+   * switched) changes the key and places exactly as before.
+   */
+  function placementKey(map) {
+    let order;
+    try { order = typeof map.getLayersOrder === 'function' ? map.getLayersOrder() : (map.style && map.style._order); }
+    catch (e) { order = null; }
+    if (!Array.isArray(order)) return null;       // cannot tell: place every time, as before
+    return (skyOn() ? 1 : 0) + '|' + (HAZE.on ? 1 : 0) + HAZE.MODE + (fogFailed ? 1 : 0) + '|' + order.join(',');
+  }
+  function styleDataPlacer(map) {
+    let last = null;
+    return function onStyleData() {
+      const key = placementKey(map);
+      if (key !== null && key === last) return;   // nothing placement reads has changed
+      placeSkyLayer(map);
+      placeFogLayer(map);
+      last = placementKey(map);                   // after: placing may itself have moved or added a layer
+    };
+  }
+
+  /**
    * The DOM overlay is the fallback, not a second copy: exactly one of the two
    * paths is visible at a time, or every star is drawn twice and the one that
    * ignores depth is the one on top.
@@ -1987,7 +2019,9 @@
     // when there is one, so the two settle instead of chasing each other.
     placeSkyLayer(map);
     placeFogLayer(map);
-    map.on('styledata', () => { placeSkyLayer(map); placeFogLayer(map); });
+    // `?skyplace=every` is the old listener (place on every styledata), for the A/B in one checkout
+    map.on('styledata', /[?&]skyplace=every(?:&|$)/.test(location.search)
+      ? () => { placeSkyLayer(map); placeFogLayer(map); } : styleDataPlacer(map));
 
     const redraw = () => updateSky(map, _p);
     map.on('move', redraw);
