@@ -1,0 +1,12 @@
+{
+  "_note": "A made-up student schedule for scripts/verify/finder-egress.mjs. Every title, building code and coordinate here is a CANARY: a string that appears nowhere else in the repo, so if one shows up in a network request the check can name it.",
+  "classes": [
+    { "title": "ZZCANARY-Quantum Basket Weaving 101", "code": "ZQX", "meetings": 3 },
+    { "title": "ZZCANARY-Underwater Calculus", "code": "QQV", "meetings": 2 }
+  ],
+  "buildings": {
+    "ZQX": { "door": [30.27019, -97.73023] },
+    "QQV": { "door": [30.27481, -97.72964] }
+  },
+  "home": [30.28631, -97.74289]
+}

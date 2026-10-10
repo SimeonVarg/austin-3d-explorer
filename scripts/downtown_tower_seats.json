@@ -1,0 +1,594 @@
+{
+ "note": "Where each hand-modelled downtown tower's shaft stands, measured from the 2021 laser scan. Written by scripts/fit_tower_seats.py; read by scripts/downtown_bodies.py. `used: false` means the tower is built exactly as scripts/downtown_tower_identities.py says.",
+ "score": "viou = volume the model and the scan agree on / volume either claims, inside the tower's mapped outline, on a 2 m grid",
+ "dials": {
+  "min_gain": 0.03,
+  "wing_gain": 0.01,
+  "shaft_min_height_share": 0.5,
+  "podium_min_cover": 0.7,
+  "stray_m": 3.0,
+  "stray_max_m2": 60.0,
+  "min_shaft_area_m2": 250.0,
+  "near_m": 40.0
+ },
+ "towers": {
+  "The Independent": {
+   "outline": "w516271461",
+   "viou_as_authored": 0.751,
+   "viou_seated": 0.826,
+   "viou_seated_with_wings": 0.826,
+   "fit": "moved, own plan size",
+   "center": [
+    -97.751177,
+    30.267771
+   ],
+   "r": [
+    -21.0,
+    21.0,
+    -18.0,
+    18.0
+   ],
+   "bearing": 17.8,
+   "podium": 27.5,
+   "shaft_top_m": 196.2,
+   "shaft_area_m2": 1462,
+   "wings": false,
+   "was": {
+    "center": [
+     -97.751167,
+     30.267801
+    ],
+    "r": [
+     -21,
+     21,
+     -18,
+     18
+    ],
+    "bearing": 18.0,
+    "podium": 18
+   },
+   "moved_m": 3.5,
+   "used": true
+  },
+  "The Austonian": {
+   "outline": "w204413181",
+   "viou_as_authored": 0.495,
+   "viou_seated": 0.774,
+   "viou_seated_with_wings": 0.829,
+   "fit": "moved, own plan size",
+   "center": [
+    -97.744586,
+    30.264817
+   ],
+   "r": [
+    -16.0,
+    16.0,
+    -20.0,
+    20.0
+   ],
+   "bearing": 18.3,
+   "podium": 28.0,
+   "shaft_top_m": 138.2,
+   "shaft_area_m2": 1223,
+   "wings": true,
+   "was": {
+    "center": [
+     -97.744493,
+     30.264794
+    ],
+    "r": [
+     -20,
+     20,
+     -16,
+     16
+    ],
+    "bearing": 18.0,
+    "podium": 24
+   },
+   "moved_m": 9.3,
+   "used": true
+  },
+  "Frost Bank Tower": {
+   "outline": "w37546502",
+   "viou_as_authored": 0.508,
+   "viou_seated": 0.845,
+   "viou_seated_with_wings": 0.845,
+   "fit": "measured plan",
+   "center": [
+    -97.742796,
+    30.266377
+   ],
+   "r": [
+    -28.1,
+    28.1,
+    -24.3,
+    24.3
+   ],
+   "bearing": 17.4,
+   "podium": 31.6,
+   "shaft_top_m": 79.5,
+   "shaft_area_m2": 2731,
+   "wings": false,
+   "was": {
+    "center": [
+     -97.742699,
+     30.266409
+    ],
+    "r": [
+     -25,
+     25,
+     -22,
+     22
+    ],
+    "bearing": 18.0,
+    "podium": 8
+   },
+   "moved_m": 10.0,
+   "used": true
+  },
+  "360 Condominiums": {
+   "outline": "w328839215",
+   "viou_as_authored": 0.405,
+   "viou_seated": 0.655,
+   "viou_seated_with_wings": 0.768,
+   "fit": "moved, own plan size",
+   "center": [
+    -97.749613,
+    30.267284
+   ],
+   "r": [
+    -15.0,
+    15.0,
+    -19.0,
+    19.0
+   ],
+   "bearing": 17.5,
+   "podium": 28.3,
+   "shaft_top_m": 144.0,
+   "shaft_area_m2": 1412,
+   "wings": true,
+   "was": {
+    "center": [
+     -97.74968,
+     30.26742
+    ],
+    "r": [
+     -15,
+     15,
+     -19,
+     19
+    ],
+    "bearing": 18.0,
+    "podium": 19
+   },
+   "moved_m": 16.5,
+   "used": true
+  },
+  "Block 185": {
+   "outline": "w961789209",
+   "used": false,
+   "why": "finished after the 2021 scan"
+  },
+  "Modern Austin Residences": {
+   "outline": "w1124723253",
+   "used": false,
+   "why": "finished after the 2021 scan"
+  },
+  "Natiivo": {
+   "outline": "w971496029",
+   "viou_as_authored": 0.73,
+   "viou_seated": 0.818,
+   "viou_seated_with_wings": 0.818,
+   "fit": "measured plan",
+   "center": [
+    -97.738867,
+    30.256426
+   ],
+   "r": [
+    -18.3,
+    18.3,
+    -17.0,
+    17.0
+   ],
+   "bearing": 17.3,
+   "podium": 24.1,
+   "shaft_top_m": 99.3,
+   "shaft_area_m2": 1242,
+   "wings": false,
+   "was": {
+    "center": [
+     -97.73888,
+     30.2564
+    ],
+    "r": [
+     -15,
+     15,
+     -14,
+     14
+    ],
+    "bearing": 18.0,
+    "podium": 21
+   },
+   "moved_m": 3.2,
+   "used": true
+  },
+  "70 Rainey": {
+   "outline": "w884211637",
+   "viou_as_authored": 0.608,
+   "viou_seated": 0.848,
+   "viou_seated_with_wings": 0.848,
+   "fit": "measured plan",
+   "center": [
+    -97.739161,
+    30.258539
+   ],
+   "r": [
+    -12.5,
+    12.5,
+    -30.0,
+    30.0
+   ],
+   "bearing": 31.5,
+   "podium": 39.3,
+   "shaft_top_m": 120.3,
+   "shaft_area_m2": 1497,
+   "wings": false,
+   "was": {
+    "center": [
+     -97.739113,
+     30.258575
+    ],
+    "r": [
+     -18,
+     18,
+     -14,
+     14
+    ],
+    "bearing": 18.0,
+    "podium": 32
+   },
+   "moved_m": 6.1,
+   "used": true
+  },
+  "Northshore": {
+   "outline": "w516273083",
+   "viou_as_authored": 0.446,
+   "used": false,
+   "why": "the form cannot take the measured seat (measured plan: pieces leave the outline or the top is lost; moved, own plan size: pieces leave the outline or the top is lost)"
+  },
+  "Seaholm Residences": {
+   "outline": "w516271460",
+   "viou_as_authored": 0.454,
+   "viou_seated": 0.774,
+   "viou_seated_with_wings": 0.787,
+   "fit": "measured plan",
+   "center": [
+    -97.752064,
+    30.267239
+   ],
+   "r": [
+    -16.8,
+    16.8,
+    -31.9,
+    31.9
+   ],
+   "bearing": 21.0,
+   "podium": 27.7,
+   "shaft_top_m": 94.7,
+   "shaft_area_m2": 2144,
+   "wings": true,
+   "was": {
+    "center": [
+     -97.752087,
+     30.267219
+    ],
+    "r": [
+     -27,
+     27,
+     -12,
+     12
+    ],
+    "bearing": 18.0,
+    "podium": 19
+   },
+   "moved_m": 3.1,
+   "used": true
+  },
+  "Colorado Tower": {
+   "outline": "w231123152",
+   "viou_as_authored": 0.672,
+   "viou_seated": 0.825,
+   "viou_seated_with_wings": 0.919,
+   "fit": "moved, own plan size",
+   "center": [
+    -97.744686,
+    30.26588
+   ],
+   "r": [
+    -17.0,
+    17.0,
+    -23.0,
+    23.0
+   ],
+   "bearing": 17.6,
+   "podium": 47.7,
+   "shaft_top_m": 109.2,
+   "shaft_area_m2": 2348,
+   "wings": true,
+   "was": {
+    "center": [
+     -97.744689,
+     30.265885
+    ],
+    "r": [
+     -23,
+     23,
+     -17,
+     17
+    ],
+    "bearing": 18.0,
+    "podium": 19
+   },
+   "moved_m": 0.6,
+   "used": true
+  },
+  "One American Center": {
+   "outline": "w206163832",
+   "viou_as_authored": 0.587,
+   "viou_seated": 0.754,
+   "viou_seated_with_wings": 0.812,
+   "fit": "moved, own plan size",
+   "center": [
+    -97.743213,
+    30.268638
+   ],
+   "r": [
+    -20.0,
+    20.0,
+    -23.0,
+    23.0
+   ],
+   "bearing": 17.3,
+   "podium": 40.4,
+   "shaft_top_m": 86.5,
+   "shaft_area_m2": 2245,
+   "wings": true,
+   "was": {
+    "center": [
+     -97.743209,
+     30.2686
+    ],
+    "r": [
+     -23,
+     23,
+     -20,
+     20
+    ],
+    "bearing": 18.0,
+    "podium": 16
+   },
+   "moved_m": 4.2,
+   "used": true
+  },
+  "100 Congress": {
+   "outline": "w206165495",
+   "viou_as_authored": 0.486,
+   "viou_seated": 0.656,
+   "viou_seated_with_wings": 0.854,
+   "fit": "moved, own plan size",
+   "center": [
+    -97.74487,
+    30.264014
+   ],
+   "r": [
+    -16.0,
+    16.0,
+    -21.0,
+    21.0
+   ],
+   "bearing": 18.2,
+   "podium": 13.5,
+   "shaft_top_m": 64.2,
+   "shaft_area_m2": 2173,
+   "wings": true,
+   "was": {
+    "center": [
+     -97.744788,
+     30.264
+    ],
+    "r": [
+     -21,
+     21,
+     -16,
+     16
+    ],
+    "bearing": 18.0,
+    "podium": 12
+   },
+   "moved_m": 8.0,
+   "used": true
+  },
+  "JW Marriott": {
+   "outline": "w231123149",
+   "viou_as_authored": 0.502,
+   "viou_seated": 0.673,
+   "viou_seated_with_wings": 0.757,
+   "fit": "moved, own plan size",
+   "center": [
+    -97.742969,
+    30.264579
+   ],
+   "r": [
+    -16.0,
+    16.0,
+    -29.0,
+    29.0
+   ],
+   "bearing": 18.0,
+   "podium": 33.5,
+   "shaft_top_m": 78.2,
+   "shaft_area_m2": 2400,
+   "wings": true,
+   "was": {
+    "center": [
+     -97.742935,
+     30.26466
+    ],
+    "r": [
+     -29,
+     29,
+     -16,
+     16
+    ],
+    "bearing": 18.0,
+    "podium": 20
+   },
+   "moved_m": 9.6,
+   "used": true
+  },
+  "Fairmont Austin": {
+   "outline": "w134786106",
+   "viou_as_authored": 0.33,
+   "viou_seated": 0.831,
+   "viou_seated_with_wings": 0.91,
+   "fit": "moved, own plan size",
+   "center": [
+    -97.738125,
+    30.262331
+   ],
+   "r": [
+    -31.0,
+    31.0,
+    -16.0,
+    16.0
+   ],
+   "bearing": 16.2,
+   "podium": 39.4,
+   "shaft_top_m": 129.9,
+   "shaft_area_m2": 2432,
+   "wings": true,
+   "was": {
+    "center": [
+     -97.738204,
+     30.262108
+    ],
+    "r": [
+     -31,
+     31,
+     -16,
+     16
+    ],
+    "bearing": 18.0,
+    "podium": 23
+   },
+   "moved_m": 26.0,
+   "used": true
+  },
+  "W Austin": {
+   "outline": "w134807228",
+   "viou_as_authored": 0.78,
+   "viou_seated": 0.875,
+   "viou_seated_with_wings": 0.909,
+   "fit": "measured plan",
+   "center": [
+    -97.746973,
+    30.26589
+   ],
+   "r": [
+    -31.9,
+    31.9,
+    -14.2,
+    14.2
+   ],
+   "bearing": 17.7,
+   "podium": 18.8,
+   "shaft_top_m": 141.2,
+   "shaft_area_m2": 1816,
+   "wings": true,
+   "was": {
+    "center": [
+     -97.746994,
+     30.265926
+    ],
+    "r": [
+     -24,
+     24,
+     -15,
+     15
+    ],
+    "bearing": 18.0,
+    "podium": 23
+   },
+   "moved_m": 4.5,
+   "used": true
+  },
+  "The Republic": {
+   "outline": "w1120921408",
+   "used": false,
+   "why": "finished after the 2021 scan"
+  },
+  "415 Colorado": {
+   "outline": "w328631279",
+   "used": false,
+   "why": "finished after the 2021 scan"
+  },
+  "44 East": {
+   "outline": "w971496027",
+   "used": false,
+   "why": "finished after the 2021 scan"
+  },
+  "Paseo": {
+   "outline": "w1125246153",
+   "used": false,
+   "why": "finished after the 2021 scan"
+  },
+  "The Travis": {
+   "outline": "w1155613520",
+   "used": false,
+   "why": "finished after the 2021 scan"
+  },
+  "ATX Tower": {
+   "outline": "w55932534",
+   "used": false,
+   "why": "finished after the 2021 scan"
+  },
+  "Indeed Tower": {
+   "outline": "w957405853",
+   "viou_as_authored": 0.495,
+   "viou_seated": 0.627,
+   "viou_seated_with_wings": 0.873,
+   "fit": "moved, own plan size",
+   "center": [
+    -97.744267,
+    30.268997
+   ],
+   "r": [
+    -20.0,
+    20.0,
+    -25.0,
+    25.0
+   ],
+   "bearing": 18.3,
+   "podium": 8.2,
+   "shaft_top_m": 107.1,
+   "shaft_area_m2": 2899,
+   "wings": true,
+   "was": {
+    "center": [
+     -97.744264,
+     30.26902
+    ],
+    "r": [
+     -25,
+     25,
+     -20,
+     20
+    ],
+    "bearing": 18.0,
+    "podium": 8
+   },
+   "moved_m": 2.6,
+   "used": true
+  }
+ }
+}

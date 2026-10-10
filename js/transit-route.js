@@ -30,7 +30,14 @@
  *              (a live feed does not help here: nobody can say today when A
  *              will reach the transfer stop).
  * A route that does not run at `when` (before its first trip, after its last,
- * or a day it has no service) is left out, and counted in `skipped`.
+ * or a day it has no service) is left out, and counted in `skipped`. So is a route
+ * whose service data is malformed (an unreadable `first`, `last` or `headway`).
+ * MIDNIGHT: 00:15 on Saturday is {day: 6, minute: 15} AND {day: 5, minute: 1455}; both
+ * give the same answer. A time before a service day's first trip is also tried as the
+ * previous day's service plus 1440 minutes (and the mirror for 1440 and over).
+ * WALKING IS THE BASELINE: every result carries `walk: {lo, hi, m}`, the same walk
+ * door to door by the same model, and a bus is offered only when its midpoint beats the
+ * walk's by `ROUTE.busBeatsWalkS`. Two places closer than `ROUTE.sameSpotM` get no bus.
  *
  * WHAT IT DOES NOT KNOW, AND SAYS SO IN ITS OUTPUT: a detour, a full bus, a
  * stop closed for works, whether the walk has stairs. `runMin` comes from one
@@ -48,6 +55,9 @@ export const ROUTE = {
   minConnectS: 120,            // a transfer needs at least this long, even "timed"
   minRideStops: 1,             // do not board to ride less than this many stops
   keep: 3,                     // how many answers to return
+  busBeatsWalkS: 120,          // a bus is offered only when its midpoint is at least this much under the walk's midpoint
+  transferGainS: 120,          // a transfer answer must beat the best direct one by this much
+  sameSpotM: 10,               // two points closer than this are the same place: no bus
   mPerDegLat: 111320,
 };
 
@@ -58,35 +68,68 @@ export function metres(a, b) {
   return Math.hypot((a[0] - b[0]) * ROUTE.mPerDegLat, (a[1] - b[1]) * kx);
 }
 
-const hm = (s) => { const [h, m] = String(s).split(':').map(Number); return h * 60 + m; };
+/** "HH:MM" or "HH:MM:SS" (HH may pass 24) -> minutes. NaN for anything else: malformed data is never read as "always on". */
+const hm = (s) => {
+  const m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(String(s));
+  return m ? +m[1] * 60 + +m[2] : NaN;
+};
 
-/** The service block of a direction for this day: weekday, `sat` or `sun`. null = no service that day. */
-function serviceOf(dir, day) {
-  if (day === 6) return dir.sat || null;
-  if (day === 0) return dir.sun || null;
-  return dir.first ? { first: dir.first, last: dir.last, headway: dir.headway } : null;
+/** One service block, read once: {first, last, headway: [[minuteOfDay, minutes]]}; null when absent or malformed. */
+function readBlock(b) {
+  if (!b || !Array.isArray(b.headway) || !b.headway.length) return null;
+  const first = hm(b.first); let last = hm(b.last);
+  if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
+  if (last < first) last += 1440;
+  const hw = [];
+  for (const e of b.headway) {
+    if (!Array.isArray(e) || !Number.isFinite(+e[0]) || !(+e[1] > 0)) return null;
+    hw.push([+e[0] * 60, +e[1]]);
+  }
+  return { first, last, hw };
 }
-
-/** Minutes between buses at `minute` of the day (0..1440+; a trip after midnight is 24:xx). null = not running. */
-export function headwayAt(dir, day, minute) {
+const BLOCKS = new WeakMap();
+/** The service block of a direction for this day: weekday, `sat` or `sun`. null = no (readable) service that day. */
+function serviceOf(dir, day) {
+  let c = BLOCKS.get(dir);
+  if (!c) BLOCKS.set(dir, c = { wk: readBlock(dir.first ? { first: dir.first, last: dir.last, headway: dir.headway } : null), sat: readBlock(dir.sat), sun: readBlock(dir.sun) });
+  return day === 6 ? c.sat : day === 0 ? c.sun : c.wk;
+}
+function headwayOn(dir, day, minute) {
   const s = serviceOf(dir, day);
-  if (!s || !s.headway || !s.headway.length) return null;
-  const first = hm(s.first), last = hm(s.last) + (hm(s.last) < first ? 1440 : 0);
-  if (minute < first - 1e-9 || minute > last + 1e-9) return null;
-  let h = s.headway[0][1];
-  for (const [hour, mins] of s.headway) if (minute >= hour * 60) h = mins;
+  if (!s) return null;
+  if (minute < s.first - 1e-9 || minute > s.last + 1e-9) return null;
+  let h = s.hw[0][1];
+  for (const [from, mins] of s.hw) if (minute >= from) h = mins;
   return h;
 }
+/**
+ * Minutes between buses at `minute` of the day (0..1440+; a trip after midnight is 24:xx). null = not running.
+ * `minute` is the time at the direction's first listed stop. Outside the day's own hours it is tried as the neighbouring
+ * service day: before the first trip (or negative) as yesterday's service + 1440, and 1440 or over as tomorrow's - 1440.
+ */
+export function headwayAt(dir, day, minute) {
+  if (!dir || !Number.isFinite(minute)) return null;
+  const d = ((Math.round(day) % 7) + 7) % 7;
+  if (minute >= 0 && minute < 1440) {
+    const h = headwayOn(dir, d, minute);
+    return h !== null ? h : headwayOn(dir, (d + 6) % 7, minute + 1440);
+  }
+  if (minute < 0) return headwayOn(dir, (d + 6) % 7, minute + 1440);
+  const h = headwayOn(dir, d, minute);
+  return h !== null ? h : headwayOn(dir, (d + 1) % 7, minute - 1440);
+}
 
-/** Index the slice once: stop -> [routeDir, index] and a bucket grid for "stops near a point". Cached on it. */
+/** Index the slice once: stop -> [routeDir, index], a bucket grid for "stops near a point", transfer neighbours. Cached per slice object (a WeakMap: the slice itself is not touched). */
+const PREPARED = new WeakMap();
 export function prepare(slice) {
-  if (slice.__route) return slice.__route;
+  const cached = PREPARED.get(slice);
+  if (cached) return cached;
   const dirs = [], at = new Map(), cell = 0.004, grid = new Map();
   for (const [rid, r] of Object.entries(slice.routes || {})) {
     for (const d of r.dirs || []) {
       const k = dirs.length;
       dirs.push({ rid, short: r.short || rid, name: r.name || '', color: r.color || null, d });
-      d.stops.forEach((sid, i) => { if (!at.has(sid)) at.set(sid, []); at.get(sid).push([k, i]); });
+      (d.stops || []).forEach((sid, i) => { if (!at.has(sid)) at.set(sid, []); at.get(sid).push([k, i]); });
     }
   }
   for (const [sid, s] of Object.entries(slice.stops || {})) {
@@ -106,7 +149,17 @@ export function prepare(slice) {
     }
     return out.sort((a, b) => a[1] - b[1]);
   };
-  return (slice.__route = { dirs, at, near });
+  // The stops within a transfer walk of a stop (itself first, at 0 m), worked out once per stop.
+  const nbrCache = new Map();
+  const nbr = (sid) => {
+    const key = sid + '|' + ROUTE.transferWalkM;
+    let a = nbrCache.get(key);
+    if (!a) nbrCache.set(key, a = near([slice.stops[sid][1], slice.stops[sid][2]], ROUTE.transferWalkM));
+    return a;
+  };
+  const prepared = { dirs, at, near, nbr };
+  PREPARED.set(slice, prepared);
+  return prepared;
 }
 
 /** The part of a direction's line between two of its stops, for drawing: [[lon, lat], ...]. */
@@ -130,20 +183,63 @@ export function shapeBetween(slice, dir, i, j) {
  *             Only used for the FIRST bus of an answer.
  *   walkSec   (a, b, metresStraight) -> [lo, hi] seconds, to use the walking graph instead of the straight line.
  *   transfers 0 or 1 (default 1).
- * Returns {options: [...], skipped: n, reason} with at most ROUTE.keep options, best first. An option:
+ *   beatsWalkS how many seconds under the walk a bus's midpoint must be to be offered (default ROUTE.busBeatsWalkS).
+ * Returns {options: [...], skipped: n, reason, walk: {lo, hi, m}} with at most ROUTE.keep options, best first.
+ * `walk` is the whole trip on foot by the same walking model (seconds, straight-line metres); a bus is only in `options`
+ * when its midpoint is better than the walk's by ROUTE.busBeatsWalkS. A missing or unreadable slice gives
+ * {options: [], reason: 'no timetable'}; it never throws. An option:
  *   {lo, hi, mid (seconds), transfers, walkM, live: bool,
  *    legs: [{kind: 'walk'|'wait'|'bus', lo, hi, ...}]}
  */
 export function plan(slice, from, to, opts = {}) {
+  try {
+    return search(slice, from, to, opts || {});
+  } catch (e) {
+    return { options: [], skipped: 0, reason: 'no timetable', error: String((e && e.message) || e) };
+  }
+}
+
+const okPoint = (p) => Array.isArray(p) && p.length >= 2 && Number.isFinite(+p[0]) && Number.isFinite(+p[1]);
+
+function search(slice, from, to, opts) {
+  if (!slice || typeof slice !== 'object' || !slice.stops || !slice.routes) return { options: [], skipped: 0, reason: 'no timetable' };
+  if (!okPoint(from) || !okPoint(to)) return { options: [], skipped: 0, reason: 'no place given' };
   const P = prepare(slice), R = ROUTE;
   const when = opts.when || { day: 3, minute: 510 };
   const walk = (a, b, m) => (opts.walkSec && opts.walkSec(a, b, m)) || [m * R.detour / R.brisk, m * R.detour / R.slow];
   const pos = (sid) => [slice.stops[sid][1], slice.stops[sid][2]];
-  const board = P.near(from, R.maxWalkM), alight = new Map(P.near(to, R.maxWalkM));
-  if (!board.length || !alight.size) return { options: [], skipped: 0, reason: !board.length ? 'no stop near the start' : 'no stop near the end' };
 
-  const found = [];
-  let skipped = 0;
+  // Walking the whole way, by the same model: the baseline every bus has to beat.
+  const wm = metres(from, to), ww = walk(from, to, wm);
+  const walkAll = { lo: ww[0], hi: ww[1], m: wm };
+  if (wm < R.sameSpotM) return { options: [], skipped: 0, reason: 'you are already there', walk: walkAll };
+  const limit = (walkAll.lo + walkAll.hi) / 2 - (Number.isFinite(opts.beatsWalkS) ? opts.beatsWalkS : R.busBeatsWalkS);     // a bus must have a midpoint under this
+
+  const board = P.near(from, R.maxWalkM), alight = new Map(P.near(to, R.maxWalkM));
+  if (!board.length || !alight.size) return { options: [], skipped: 0, reason: !board.length ? 'no stop near the start' : 'no stop near the end', walk: walkAll };
+
+  // Where each direction meets the places near the end: dir index -> [[stop index, stop id], ...] in stop order.
+  const alightAt = new Map();
+  for (const [sid] of alight) for (const [k, j] of P.at.get(sid) || []) {
+    let a = alightAt.get(k); if (!a) alightAt.set(k, a = []);
+    a.push([j, sid]);
+  }
+  for (const a of alightAt.values()) a.sort((x, y) => x[0] - y[0]);
+
+  let skipped = 0, seq = 0, beaten = false;
+  const bestD = new Map(), bestX = new Map();     // chain of routes -> the best answer for it (direct, one transfer)
+  let boundD = Infinity, boundX = Infinity, bestDirectMid = Infinity;
+  const third = (m) => { const v = [...m.values()].map((e) => e.o.mid).sort((a, b) => a - b); return v.length >= R.keep ? v[R.keep - 1] : Infinity; };
+  // Offer a finished answer for a chain: it replaces the chain's best only when it is better (mid, then less walking).
+  const offer = (map, key, o) => {
+    const e = map.get(key);
+    if (e && (e.o.mid < o.mid || (e.o.mid === o.mid && e.o.walkM <= o.walkM))) return;
+    map.set(key, { o, seq: e ? e.seq : seq++ });
+    if (map === bestD) { boundD = third(bestD); bestDirectMid = Math.min(bestDirectMid, o.mid); } else boundX = third(bestX);
+  };
+  const wfMemo = new Map(), wxMemo = new Map();
+  const endWalk = (sid) => { let w = wfMemo.get(sid); if (!w) wfMemo.set(sid, w = walk(pos(sid), to, alight.get(sid))); return w; };
+  const xferWalk = (off, t, mx) => { if (t === off) return [0, 0]; const key = off + '>' + t; let w = wxMemo.get(key); if (!w) wxMemo.set(key, w = walk(pos(off), pos(t), mx)); return w; };
   const rideS = (d, i, j) => (d.runMin[j] - d.runMin[i]) * 60;
   /** The wait for the first bus: live when the feed has a bus we can still reach, else 0 .. headway. */
   const firstWait = (k, i, sid, walkTo) => {
@@ -167,35 +263,49 @@ export function plan(slice, from, to, opts = {}) {
       const A = P.dirs[k], d = A.d;
       const w = firstWait(k, i, sid, walkTo);
       if (!w) { skipped++; continue; }
+      const head0 = walkTo[0] + w.lo, head1 = walkTo[1] + w.hi;       // everything before the first bus is ridden
+      if ((head0 + head1) / 2 >= limit) { beaten = true; continue; }   // already no better than walking before it even leaves
       const base = [{ kind: 'walk', lo: walkTo[0], hi: walkTo[1], m: mTo, to: sid, toName: slice.stops[sid][0] },
                     { kind: 'wait', lo: w.lo, hi: w.hi, live: w.live, inMin: w.inMin, headway: w.headway, route: A.short, stop: sid }];
+      const busOf = (j, off, ride) => ({ kind: 'bus', lo: ride, hi: ride, route: A.short, routeId: A.rid, name: A.name, color: A.color, dir: d.dir, headsign: d.headsign,
+                       board: sid, alight: off, boardName: slice.stops[sid][0], alightName: slice.stops[off][0], stops: j - i, k, i, j });
+      const keyA = A.rid + '/' + d.dir;
       for (let j = i + R.minRideStops; j < d.stops.length; j++) {
         const off = d.stops[j], ride = rideS(d, i, j);
-        const busA = { kind: 'bus', lo: ride, hi: ride, route: A.short, routeId: A.rid, name: A.name, color: A.color, dir: d.dir, headsign: d.headsign,
-                       board: sid, alight: off, boardName: slice.stops[sid][0], alightName: slice.stops[off][0], stops: j - i, k, i, j };
-        if (alight.has(off)) {                                         // direct
-          const wf = walk(pos(off), to, alight.get(off));
-          found.push(finish([...base, busA, { kind: 'walk', lo: wf[0], hi: wf[1], m: alight.get(off), from: off, fromName: slice.stops[off][0] }], 0, w.live));
+        if ((head0 + head1) / 2 + ride >= limit) { beaten = true; break; }   // rides only get longer down the line
+        const mAl = alight.get(off);
+        if (mAl !== undefined) {                                       // direct
+          const wf = endWalk(off), lo = head0 + ride + wf[0], hi = head1 + ride + wf[1], mid = (lo + hi) / 2;
+          if (mid < limit && mid <= boundD) {
+            const o = finish([...base, busOf(j, off, ride), { kind: 'walk', lo: wf[0], hi: wf[1], m: mAl, from: off, fromName: slice.stops[off][0] }], 0, w.live);
+            offer(bestD, keyA, o);
+          } else if (mid >= limit) beaten = true;
         }
         if ((opts.transfers ?? 1) < 1) continue;
-        for (const [t, mx] of P.near(pos(off), R.transferWalkM)) {     // one transfer
-          const wx = t === off ? [0, 0] : walk(pos(off), pos(t), mx);
+        for (const [t, mx] of P.nbr(off)) {                             // one transfer
+          const wx = xferWalk(off, t, mx);
           for (const [k2, i2] of P.at.get(t)) {
+            const alts = alightAt.get(k2);
+            if (!alts) continue;                                        // this line never gets near the end
             const B = P.dirs[k2];
             if (B.rid === A.rid) continue;
             const reach = when.minute + (walkTo[1] + w.hi + ride + wx[1]) / 60;
             const h2 = headwayAt(B.d, when.day, reach - B.d.runMin[i2]);
             if (h2 === null) continue;
-            for (let j2 = i2 + R.minRideStops; j2 < B.d.stops.length; j2++) {
-              const off2 = B.d.stops[j2];
-              if (!alight.has(off2)) continue;
-              const ride2 = rideS(B.d, i2, j2), wf = walk(pos(off2), to, alight.get(off2));
-              found.push(finish([...base, busA,
+            const wait2 = Math.max(R.minConnectS, h2 * 60);
+            for (const [j2, off2] of alts) {
+              if (j2 < i2 + R.minRideStops) continue;
+              const ride2 = rideS(B.d, i2, j2), wf = endWalk(off2);
+              const lo = head0 + ride + wx[0] + R.minConnectS + ride2 + wf[0], hi = head1 + ride + wx[1] + wait2 + ride2 + wf[1], mid = (lo + hi) / 2;
+              if (mid >= limit) { beaten = true; continue; }
+              if (mid > boundX || mid > bestDirectMid - R.transferGainS) continue;     // cannot be one of the answers
+              const o = finish([...base, busOf(j, off, ride),
                 { kind: 'walk', lo: wx[0], hi: wx[1], m: mx, from: off, to: t, transfer: true, toName: slice.stops[t][0] },
-                { kind: 'wait', lo: R.minConnectS, hi: Math.max(R.minConnectS, h2 * 60), live: false, headway: h2, route: B.short, stop: t },
+                { kind: 'wait', lo: R.minConnectS, hi: wait2, live: false, headway: h2, route: B.short, stop: t },
                 { kind: 'bus', lo: ride2, hi: ride2, route: B.short, routeId: B.rid, name: B.name, color: B.color, dir: B.d.dir, headsign: B.d.headsign,
                   board: t, alight: off2, boardName: slice.stops[t][0], alightName: slice.stops[off2][0], stops: j2 - i2, k: k2, i: i2, j: j2 },
-                { kind: 'walk', lo: wf[0], hi: wf[1], m: alight.get(off2), from: off2, fromName: slice.stops[off2][0] }], 1, w.live));
+                { kind: 'walk', lo: wf[0], hi: wf[1], m: alight.get(off2), from: off2, fromName: slice.stops[off2][0] }], 1, w.live);
+              offer(bestX, keyA + '>' + B.rid + '/' + B.d.dir, o);
             }
           }
         }
@@ -203,18 +313,17 @@ export function plan(slice, from, to, opts = {}) {
     }
   }
   // Best first; one answer per chain of routes (the best board and alight stops for it), and a transfer answer only
-  // when it beats every direct one by more than its own uncertainty would explain away.
-  found.sort((a, b) => a.mid - b.mid || a.walkM - b.walkM);
-  const seen = new Set(), options = [];
-  const bestDirect = found.find((o) => o.transfers === 0);
-  for (const o of found) {
-    const key = o.legs.filter((l) => l.kind === 'bus').map((l) => l.routeId + '/' + l.dir).join('>');
-    if (seen.has(key)) continue;
-    if (o.transfers && bestDirect && o.mid > bestDirect.mid - 120) continue;
-    seen.add(key); options.push(o);
+  // when it beats the best direct one by more than its own uncertainty would explain away.
+  const all = [...bestD.values(), ...bestX.values()].sort((a, b) => a.o.mid - b.o.mid || a.o.walkM - b.o.walkM || a.seq - b.seq).map((e) => e.o);
+  const bestDirect = all.find((o) => o.transfers === 0);
+  const options = [];
+  for (const o of all) {
+    if (o.transfers && bestDirect && o.mid > bestDirect.mid - R.transferGainS) continue;
+    options.push(o);
     if (options.length >= R.keep) break;
   }
-  return { options, skipped, reason: options.length ? null : (skipped ? 'no bus is running at that time' : 'no bus links the two places') };
+  const reason = options.length ? null : beaten ? 'walking is as fast as any bus' : skipped ? 'no bus is running at that time' : 'no bus links the two places';
+  return { options, skipped, reason, walk: walkAll };
 }
 
 function finish(legs, transfers, live) {
