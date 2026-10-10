@@ -20,6 +20,14 @@
       entrance: {shaftX: 15, shaftWidth: 8, shaftDepth: 6, windowWidth: 2.2,
         front: 133.3, entryDepth: 9, plinth: 2.5, crown: 3.2,
         bridgeSetback: 1.5, bridgeBaseShare: 0.64, bridgeTopShare: 0.91, bridgeDivisions: 10, backWallDepth: 0.35}},
+    // WEST face (Bellmont Hall side). PHOTO (owner, 2026-10-09, daylight): a cream precast wall, mostly SOLID: tall
+    // piers that stand proud from the ground to the top, between them ribbed panels with a dark window band over each,
+    // dark openings at the ground, and a taller ribbed pylon at the middle. It was drawn as a tan open grid.
+    // PHOTO: the pattern and the tones. INFERRED: the bay width (the face's own bay count is kept) and the level
+    // heights, read by eye from one oblique photograph: every one is a share of the wall height here.
+    west: {pier: 1.7, pierProud: 0.95, rib: 0.95, ribWidth: 0.42, ribProud: 0.28, glassRecess: 0.45,
+      levels: [0.13, 0.50, 0.57, 0.86, 0.91],      // ground openings | ribbed panel | window band | ribbed panel | window band | top
+      pylonHalf: 9, pylonProud: 2.4, pylonRise: 4.5, wallTone: 'stone', proudTone: 'paint'},
     supportPitch: 13, supportWidth: 0.65,
     towerSegments: 32, rampTurns: 3, rampSegments: 96,
     boardSegments: 24, boardBorder: 0.65,
@@ -199,6 +207,39 @@
       }
     }
     beam(B,at(0,height),at(1,height),0.8,'stone');
+    const inside=a.map((v,i)=>v-outward[i]*5),insideB=b.map((v,i)=>v-outward[i]*5);
+    slab(B,[a,b,insideB,inside],height-0.5,height,'stone');
+  }
+  function westFacade(B,a,b,height,outward) {
+    const w=TUNE.west,len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.round(len/data.details.facadeBay));
+    const at=(t,z,o=0)=>[lerp(a[0],b[0],t)+outward[0]*o,lerp(a[1],b[1],t)+outward[1]*o,z];
+    const along=[(b[0]-a[0])/len,(b[1]-a[1])/len,0],back=along.map(v=>-v),out=outward.concat(0);
+    // a part that stands proud of the wall: its front, its two cheeks and its top
+    const proud=(u,v,z0,z1,o,key)=>{
+      quad(B,at(u,z0,o),at(v,z0,o),at(v,z1,o),at(u,z1,o),key,out);
+      quad(B,at(u,z0,0),at(u,z0,o),at(u,z1,o),at(u,z1,0),key,back);
+      quad(B,at(v,z0,o),at(v,z0,0),at(v,z1,0),at(v,z1,o),key,along);
+      quad(B,at(u,z1,0),at(u,z1,o),at(v,z1,o),at(v,z1,0),key,[0,0,1]);
+    };
+    const L=w.levels.map(k=>k*height),half=w.pier/len/2;
+    quad(B,at(0,0),at(1,0),at(1,height),at(0,height),w.wallTone,out);            // the solid wall
+    const ribs=(u,v,z0,z1)=>{const m=Math.max(1,Math.round((v-u)*len/w.rib));
+      for(let k=0;k<m;k++){const c=lerp(u,v,(k+.5)/m),h=w.ribWidth/len/2;proud(c-h,c+h,z0,z1,w.ribProud,w.proudTone);}};
+    const band=(u,v,z0,z1)=>{quad(B,at(u,z0,-w.glassRecess),at(v,z0,-w.glassRecess),at(v,z1,-w.glassRecess),at(u,z1,-w.glassRecess),'glass',out);
+      const m=Math.max(1,Math.round((v-u)*len/(w.rib*2)));for(let k=1;k<m;k++){const c=lerp(u,v,k/m);beam(B,at(c,z0,-w.glassRecess+.08),at(c,z1,-w.glassRecess+.08),0.14,w.wallTone);}};
+    const mid=0.5,ph=w.pylonHalf/len;
+    for(let i=0;i<=n;i++){const u=i/n;if(Math.abs(u-mid)<ph)continue;proud(Math.max(0,u-half),Math.min(1,u+half),0,height,w.pierProud,w.proudTone);}
+    for(let i=0;i<n;i++){
+      const u=i/n+half,v=(i+1)/n-half;if(v<=u||(u>mid-ph&&v<mid+ph))continue;
+      band(u,v,0.4,L[0]);ribs(u,v,L[0]+.5,L[1]);band(u,v,L[1],L[2]);ribs(u,v,L[2]+.4,L[3]);band(u,v,L[3],L[4]);
+    }
+    // the taller ribbed pylon at the middle
+    proud(mid-ph,mid+ph,0,height+w.pylonRise,w.pylonProud,w.wallTone);
+    const m=Math.max(1,Math.round(w.pylonHalf*2/w.rib));
+    for(let k=0;k<m;k++){const c=lerp(mid-ph,mid+ph,(k+.5)/m),h=w.ribWidth/len/2;
+      quad(B,at(c-h,L[0],w.pylonProud+w.ribProud),at(c+h,L[0],w.pylonProud+w.ribProud),at(c+h,height+w.pylonRise-.6,w.pylonProud+w.ribProud),at(c-h,L[0],w.pylonProud+w.ribProud).slice(0,2).concat(height+w.pylonRise-.6),w.proudTone,out);}
+    band(mid-ph*.55,mid+ph*.55,0.4,L[0]);
+    beam(B,at(0,height,w.pierProud),at(1,height,w.pierProud),0.9,w.proudTone);                        // coping
     const inside=a.map((v,i)=>v-outward[i]*5),insideB=b.map((v,i)=>v-outward[i]*5);
     slab(B,[a,b,insideB,inside],height-0.5,height,'stone');
   }
@@ -424,7 +465,7 @@
     }
   }
   function architecture(B,R) {
-    facade(B,[-122,-78],[-122,79],43,[-1,0]);
+    westFacade(B,[-122,-78],[-122,79],43,[-1,0]);
     facade(B,[105,70],[105,-66],29,[1,0]);
     const path=[];
     for(let i=0;i<=24;i++){
