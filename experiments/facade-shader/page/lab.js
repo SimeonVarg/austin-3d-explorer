@@ -55,8 +55,8 @@ void main() {
   gl_Position = u_matrix * vec4(position, 1.0); gl_Position.xy += u_shift * gl_Position.w;
 }`;
 const GEO_FS = `#version 300 es
-precision highp float; in vec3 v_color; uniform float u_alpha; out vec4 o;
-void main() { o = vec4(v_color, u_alpha); }`;
+precision highp float; in vec3 v_color; uniform float u_alpha; uniform float u_count; out vec4 o;
+void main() { o = u_count > 0.0 ? vec4(u_count, 0.0, 0.0, 1.0) : vec4(v_color, u_alpha); }`;
 
 const FAC_VS = `#version 300 es
 precision highp float; precision highp int;
@@ -80,6 +80,7 @@ uniform float u_reveal;      // metres the glass sits behind the wall
 uniform float u_aa;          // footprint multiplier: 1 = a pixel-wide box (taste value)
 uniform float u_parallax;    // 1 = the recess is drawn, 0 = flat glass
 uniform float u_alpha;
+uniform float u_count;       // > 0: write this value instead of a colour (overdraw counting)
 out vec4 o;
 // integral from 0 to x of a train of pulses [i*P + a, i*P + b], i in [i0, i1): closed form, no loop
 float cum(float x, float P, float a, float b, float i0, float i1) {
@@ -95,6 +96,7 @@ float cov(float x, float h, float P, float a, float b, float i0, float i1) {
   return (cum(x + h, P, a, b, i0, i1) - cum(x - h, P, a, b, i0, i1)) / (2.0 * h);
 }
 void main() {
+  if (u_count > 0.0) { o = vec4(u_count, 0.0, 0.0, 1.0); return; }
   vec3 t = vec3(-v_n.y, v_n.x, 0.0);
   vec3 v = normalize(v_wp - u_cam);
   float vn = dot(v, v_n);
@@ -217,7 +219,7 @@ function camera(v, w, h) {
 }
 
 // ------------------------------------------------------------------------------------------------ drawing
-const state = { light: meta.light.day, tones: meta.tones, aa: 1.0, parallax: 1.0, rest: true };
+const state = { light: meta.light.day, tones: meta.tones, aa: 1.0, parallax: 1.0, rest: true, count: 0 };
 const f3 = a => new Float32Array(a.map(x => x / 255));
 function setLight(L) {
   for (const prog of [progGeo, progFac]) {
@@ -237,17 +239,17 @@ function drawScene(arm, parts, cam, shiftNdc) {
   if (withFacade && arm === 'B') {
     gl.useProgram(progFac.p); gl.bindVertexArray(meshB.vao);
     gl.uniformMatrix4fv(progFac.U.u_matrix, false, cam.M); gl.uniform2f(progFac.U.u_shift, shiftNdc[0], shiftNdc[1]);
-    gl.uniform3fv(progFac.U.u_cam, cam.eye); gl.uniform1f(progFac.U.u_aa, state.aa); gl.uniform1f(progFac.U.u_parallax, state.parallax); gl.uniform1f(progFac.U.u_alpha, 1.0);
+    gl.uniform3fv(progFac.U.u_cam, cam.eye); gl.uniform1f(progFac.U.u_aa, state.aa); gl.uniform1f(progFac.U.u_parallax, state.parallax); gl.uniform1f(progFac.U.u_alpha, 1.0); gl.uniform1f(progFac.U.u_count, state.count);
     gl.drawElementsInstanced(gl.TRIANGLES, meshB.count, gl.UNSIGNED_SHORT, 0, instCount);
   }
   gl.useProgram(progGeo.p);
   gl.uniformMatrix4fv(progGeo.U.u_matrix, false, cam.M); gl.uniform2f(progGeo.U.u_shift, shiftNdc[0], shiftNdc[1]);
   if (withFacade && arm !== 'B') {
-    gl.bindVertexArray(meshA.vao); gl.uniform3fv(progGeo.U.u_centre, meshA.centre); gl.uniform1f(progGeo.U.u_scale, meshA.scale); gl.uniform1f(progGeo.U.u_alpha, 1.0);
+    gl.bindVertexArray(meshA.vao); gl.uniform3fv(progGeo.U.u_centre, meshA.centre); gl.uniform1f(progGeo.U.u_scale, meshA.scale); gl.uniform1f(progGeo.U.u_alpha, 1.0); gl.uniform1f(progGeo.U.u_count, state.count);
     gl.drawElementsInstanced(gl.TRIANGLES, meshA.count, gl.UNSIGNED_INT, 0, instCount);
   }
   if (withRest) {
-    gl.bindVertexArray(meshRest.vao); gl.uniform3fv(progGeo.U.u_centre, meshRest.centre); gl.uniform1f(progGeo.U.u_scale, meshRest.scale); gl.uniform1f(progGeo.U.u_alpha, 0.5);
+    gl.bindVertexArray(meshRest.vao); gl.uniform3fv(progGeo.U.u_centre, meshRest.centre); gl.uniform1f(progGeo.U.u_scale, meshRest.scale); gl.uniform1f(progGeo.U.u_alpha, 0.5); gl.uniform1f(progGeo.U.u_count, state.count);
     gl.drawElementsInstanced(gl.TRIANGLES, meshRest.count, gl.UNSIGNED_INT, 0, instCount);
   }
   gl.bindVertexArray(null);
@@ -383,6 +385,54 @@ async function perf({ W, H, towers, view, parts = 'facade', reps = 7, frames = 2
   return { W, H, towers, parts, coveredPct: +(100 * cov / (W * H)).toFixed(1), trianglesA: towers * meshA.count / 3 + (parts === 'all' ? towers * meshRest.count / 3 : 0), trianglesB: towers * meshB.count / 3 + (parts === 'all' ? towers * meshRest.count / 3 : 0), ...res };
 }
 
+
+// ------------------------------------------------------------------------------------------------ overdraw: how many times is a covered pixel shaded?
+// Fragments are counted with additive blending (1/255 each) in the order the geometry is submitted (depth test on, no pre-pass):
+// that is what a chip without perfect early-z sees. A depth pre-pass would make it 1.
+function overdraw(view, { W = 1440, H = 900, arms = ['A', 'B'], towers = 1 } = {}) {
+  setInstances(towers === 1 ? [0, 0, 0] : gridInstances(Math.round(Math.sqrt(towers)), 90));
+  const cam = camera(view, W, H), tg = target(W, H, false), out = { view: view.name, W, H, towers };
+  for (const arm of arms) {
+    state.count = 1 / 255;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, tg.plain.fb); gl.viewport(0, 0, W, H);
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true); gl.clearColor(0, 0, 0, 0); gl.clearDepth(1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    drawScene(arm, 'facade', cam, [0, 0]);
+    gl.disable(gl.BLEND); state.count = 0;
+    const u = read(tg); let covered = 0, frags = 0, mx = 0; for (let p = 0; p < W * H; p++) { const c = u[p * 4]; if (c > 0) { covered++; frags += c; if (c > mx) mx = c; } }
+    out[arm] = { coveredPct: +(100 * covered / (W * H)).toFixed(2), fragmentsPerCoveredPixel: covered ? +(frags / covered).toFixed(2) : 0, max: mx, fragmentsM: +(frags / 1e6).toFixed(3) };
+  }
+  setInstances([0, 0, 0]);
+  return out;
+}
+
+// ------------------------------------------------------------------------------------------------ temporal anti-aliasing, simulated on the CPU from real renders of arm A
+// Camera pans 0.3 px a frame; each frame is drawn with a Halton sub-pixel jitter; history is shifted by the pan (bilinear) and blended
+// with weight alpha. Scored like the meter: error against the 4x4 supersampled truth and flicker (std of the error), over frames after the warm-up.
+const halton = (i, b) => { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; };
+async function taa(view, { W = 640, H = 400, alpha = 0.15, frames = 20, warm = 8 } = {}) {
+  const cam = camera(view, W, H), t1 = target(W, H, false), tS = target(W * SS, H * SS, false), N = W * H;
+  const rd = (shiftPx, jit) => { frame('A', 'all', t1, cam, [2 * (shiftPx + jit[0]) / W, 2 * jit[1] / H], false); const u = read(t1), f = new Float32Array(N * 4); for (let i = 0; i < N * 4; i++) f[i] = u[i]; return f; };
+  const truthAt = c => { frame('A', 'all', tS, cam, [2 * c / W, 0], false); return boxDown(read(tS), W, H, SS); };
+  let hist = null, interior = null;
+  const acc = { T: { e: 0, n: 0, s: new Float32Array(N * 3), s2: new Float32Array(N * 3), k: 0 }, A: { e: 0, n: 0, s: new Float32Array(N * 3), s2: new Float32Array(N * 3), k: 0 } };
+  for (let i = 0; i < frames; i++) {
+    const c = i * STEP_PX, tr = truthAt(c), plain = rd(c, [0, 0]);
+    if (i === 0) { interior = new Uint8Array(N); for (let p = 0; p < N; p++) if (tr[p * 4 + 3] / 255 >= 0.999) interior[p] = 1; }
+    const cur = rd(c, [halton(i + 1, 2) - 0.5, halton(i + 1, 3) - 0.5]);
+    if (!hist) hist = cur;
+    else {
+      const fr = STEP_PX, nh = new Float32Array(N * 4);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const p = y * W + x, q = y * W + Math.max(0, x - 1); for (let ch = 0; ch < 3; ch++) { const h = (1 - fr) * hist[p * 4 + ch] + fr * hist[q * 4 + ch]; nh[p * 4 + ch] = h + alpha * (cur[p * 4 + ch] - h); } }
+      hist = nh;
+    }
+    if (i >= warm) for (const [key, img] of [['T', hist], ['A', plain]]) { const a = acc[key]; a.k++; for (let p = 0; p < N; p++) if (interior[p]) for (let ch = 0; ch < 3; ch++) { const e = img[p * 4 + ch] - tr[p * 4 + ch]; a.s[p * 3 + ch] += e; a.s2[p * 3 + ch] += e * e; a.e += Math.abs(e); a.n++; } }
+  }
+  const out = { view: view.name, alpha, frames, scoredFrames: acc.A.k };
+  for (const key of ['T', 'A']) { const a = acc[key], fl = []; for (let p = 0; p < N; p++) if (interior[p]) { let s = 0; for (let ch = 0; ch < 3; ch++) { const m = a.s[p * 3 + ch] / a.k, v = Math.max(0, a.s2[p * 3 + ch] / a.k - m * m); s += Math.sqrt(v); } fl.push(s / 3); } out[key === 'T' ? 'taa' : 'plain'] = { errMean: +(a.e / a.n).toFixed(3), flickerMean: +mean(fl).toFixed(3) }; }
+  return out;
+}
+
 // ------------------------------------------------------------------------------------------------ public surface
 export const VIEWS = [
   { name: 'street-55m',   dist: 55,   el: 4,  az: 200, tz: 28 },
@@ -406,6 +456,8 @@ window.__lab = {
     walls: meta.faces.length, windows: null,
   }),
   quality: (viewName, opts) => quality(VIEWS.find(v => v.name === viewName), opts),
+  overdraw: (viewName, o) => overdraw(Object.assign({}, VIEWS.find(v => v.name === viewName) || o.view), o),
+  taa: (viewName, o) => taa(VIEWS.find(v => v.name === viewName), o),
   perf: opts => perf({ ...opts, view: opts.view || VIEWS.find(v => v.name === (opts.viewName || 'mid-230m')) }),
   setLight: name => { state.light = meta.light[name]; setLight(state.light); },
   set: o => Object.assign(state, o),

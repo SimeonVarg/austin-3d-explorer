@@ -53,6 +53,18 @@ try {
       console.log(`${name.padEnd(12)} ${r.mPerPx} m/px, ${r.bayPx} px/bay, ${r.pixels.interiorPct}% facade px | err mean A ${a.A.err.mean} B ${a.B.err.mean} A4x ${a.A4.err.mean} | detail A ${a.A.errDetail.mean} B ${a.B.errDetail.mean} | band A ${a.A.band} B ${a.B.band} | flicker A ${a.A.flicker.mean} B ${a.B.flicker.mean} A4x ${a.A4.flicker.mean} | B vs truth(A) ${r.cross['B vs truth(A)'].mean} | ${((Date.now() - t) / 1000).toFixed(0)} s`);
     }
   }
+  if (!flag('--no-extra')) {
+    result.overdraw = {}; result.taa = {};
+    const city = { name: 'city', dist: 650, el: 30, az: 200, tz: 30 };
+    for (const [id, o] of [['1 tower, mid-230m', { n: 'mid-230m', towers: 1 }], ['1 tower, street-55m', { n: 'street-55m', towers: 1 }], ['100 towers, city view', { view: city, towers: 100 }]]) {
+      const r = await page.evaluate(([n, o]) => window.__lab.overdraw(o.view ? 'none' : n, { ...o }), [o.n, o]);
+      result.overdraw[id] = r; console.log(`overdraw ${id.padEnd(24)} covered A ${r.A.coveredPct}% B ${r.B.coveredPct}% | fragments per covered pixel A ${r.A.fragmentsPerCoveredPixel} B ${r.B.fragmentsPerCoveredPixel} (max A ${r.A.max} B ${r.B.max})`);
+    }
+    for (const n of (QUICK ? ['mid-230m'] : ['mid-230m', 'far-500m', 'vfar-1100m'])) {
+      const t = Date.now(); const r = await page.evaluate(n => window.__lab.taa(n, {}), n); result.taa[n] = r;
+      console.log(`TAA ${n.padEnd(12)} plain: err ${r.plain.errMean} flicker ${r.plain.flickerMean} | taa(alpha ${r.alpha}): err ${r.taa.errMean} flicker ${r.taa.flickerMean} | ${((Date.now() - t) / 1000).toFixed(0)} s`);
+    }
+  }
   if (!flag('--no-perf')) {
     const city = { name: 'city', dist: 650, el: 30, az: 200, tz: 30 };
     const scenes = [
