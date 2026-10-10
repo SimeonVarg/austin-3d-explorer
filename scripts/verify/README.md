@@ -663,6 +663,21 @@ star test that physically could not fail; a coplanar checker blind to 122,773
 faces). Reviving a crasher into a permanent green would be a fifth. If you fix a
 guard, watch it go red first.
 
+## The Rust mesh builder (`?rustbuilder=1`, added October 10 2026)
+
+`wasm-mesh-parity.mjs` — **Node only, no browser, runs in CI.** The shared mesh builder (`js/slopes.js` `build()`) also exists as a
+34 KB WebAssembly module (`wasm/meshkernel.wasm`, source in `experiments/rust-mesh/`) that the page loads only with `?rustbuilder=1`.
+The check holds it to the JS builder's exact bytes: the committed `.wasm` is the same bytes as `experiments/rust-mesh/dist/` and its
+recorded hash; the study's `compare.mjs` runs the Moontower fixture (equal to the real in-app build's sha256), 6,000 synthetic edge calls
+and 400 `extrude`/`polygon` shapes through the app's `build()`, a tuned JS twin, the raw Rust module and the page's own adapter
+(`js/slopes-rust.js`), all eight arrays by sha256; and the REAL `js/slopes.js` is loaded twice into the process, without the switch
+(`slopes.rustReady` is `null`, nothing is fetched) and with it (one fetch of `wasm/meshkernel.wasm`, the Rust builder, identical buffers).
+`--break` nudges one coordinate of the Rust side's input only: it must report MISMATCH and exit 1.
+
+`rust-builder-page.mjs` — **laptop only (timing).** Loads the real `index.html` in a fresh browser per run, switch off against on,
+interleaved, and prints `slopesApartments.count.ms`, the time the veil lifts, peak JS heap, peak browser RSS and (packed modes) the bytes
+uploaded to the GPU. Wrap it in `gpu-run.mjs`; quote the minimum, not the mean: other lanes share the machine.
+
 ## Things that will waste your time if you don't know them
 
 - **`_harness.html` forces `preserveDrawingBuffer: true`.** That is the only way
