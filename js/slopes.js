@@ -1012,6 +1012,8 @@ ${window.RoofTiles.apply}
     e.packOverflow = true;   // js/slopes-apartments.js lets this out of its per-building catch and rebuilds unpacked
     return e;
   }
+  // what makes two palette entries ONE tone: the text of their hex colours and surface numbers (js/slopes-rust.js uses the same key)
+  const toneKey = col => col[0] + '|' + col[1] + '|' + col[2] + (col.surface ? '|' + col.surface[0] + ',' + col.surface[1] + ',' + col.surface[2] + ',' + col.surface[3] : '');
   function vertexTables() {
     const T = {
       tones: new Float32Array(4 * 4 * 1024), nTones: 0,       // 4 RGBA texels per tone: day.rgb, golden.rgb, night.rgb, surface.xyzw
@@ -1028,7 +1030,6 @@ ${window.RoofTiles.apply}
       h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); return h ^ (h >>> 12);
     };
     const byte = h => { const f = hexToRgb01(h); return [Math.round(f[0] * 255), Math.round(f[1] * 255), Math.round(f[2] * 255)]; };
-    const toneKey = col => col[0] + '|' + col[1] + '|' + col[2] + (col.surface ? '|' + col.surface[0] + ',' + col.surface[1] + ',' + col.surface[2] + ',' + col.surface[3] : '');
     /** the tone index of a [day, golden, night] palette entry (with optional .surface); the same array object is looked up once */
     T.tone = col => {
       let id = T.toneByObject.get(col);
@@ -1318,9 +1319,9 @@ ${window.RoofTiles.apply}
   // Points are [x, y, z] in local metres. `col` is [day, golden, night] hex.
   function build(initialCapacity = 1 << 16, opts) {
     // The Rust builder, when the page asked for it (?rustbuilder=1), it has loaded, and this caller opted in.
-    // (Packed vertices are written by the JS builder below: the Rust module does not emit them yet.)
-    if (_rustBuild && opts && opts.wasm && !opts.pack) {
-      try { return _rustBuild(initialCapacity); }
+    // With opts.pack (?packverts=1) it writes the packed layout itself and fills the same tables object (js/slopes-rust.js).
+    if (_rustBuild && opts && opts.wasm) {
+      try { return _rustBuild(initialCapacity, opts); }
       catch (e) { rustFallback(e); }   // the module would not even start (out of memory, a bad instance): the JS builder, now and from here on
     }
     const T = window.THREE;
@@ -2090,6 +2091,7 @@ ${window.RoofTiles.apply}
       .then(m => m.loadRustBuilder({
         wasmUrl: RUST.wasmUrl, stageRecords: RUST.stageRecords, reserveVertices: RUST.reserveVertices,
         shapeOps, hexToRgb01, three: () => window.THREE, info: RUST_INFO,
+        toneKey, packOverflow, toneBits: PACK.toneBits,   // for packed builds (?packverts=1)
       }))
       .then(factory => { _rustBuild = factory; RUST_INFO.state = 'ready'; })
       .catch(e => { RUST_INFO.state = 'failed'; RUST_INFO.error = String(e && e.message || e); console.warn('[slopes] ?rustbuilder=1: the Rust builder did not load; building in JS —', RUST_INFO.error); });

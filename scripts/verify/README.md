@@ -698,6 +698,14 @@ unpacked and packed; every packed vertex is decoded with VERT's own arithmetic a
 surface, facet, index). `--break` corrupts one table entry and must fail. The whole 198-building catalog was checked the same way by
 `experiments/rust-mesh/profile/packed-end-to-end.mjs` (needs three.js outside the repo).
 
+`rust-packed-parity.mjs` — **Node only, runs in CI.** `?rustbuilder=1&packverts=1`: the Rust store (`lib.rs` `init_packed`, driven by
+`js/slopes-rust.js`) writes the packed layout itself. The real `js/slopes.js` runs the same calls through the JS packed store and the
+Rust packed store, each with its own tables, and demands identical `position`, `aPack` and index bytes AND identical tone table, normal
+table and tone key order (Moontower, the synthetic set, the extrude/polygon scenario, a tone/normal edge set, `buildChunked` with
+modules sharing one pair of tables, a Rust/JS/Rust chunk mix). It also holds the limits (exactly 2^14 tones and 2^17 normals build, one
+more is a `packOverflow` error that does not carry `rustBuilderError`) and decodes the Rust vertices the way VERT does against the
+unpacked build. `--break` nudges one Rust-side coordinate by 1 mm and must fail on the positions.
+
 `packverts-pixels.mjs` — the same cameras (`ci/poses.json`), switch off, on, and off again (the control), exact pixel compare;
 passes when "on" moves no more pixels than the control. `--phone` shoots the phone profile (390x844 @3x, `?lite=1`, chunked build),
 `--on "packverts=1&rustbuilder=1"` tries both switches, `--break` shoots "on" at a later hour and must fail.

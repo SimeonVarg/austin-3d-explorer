@@ -8,6 +8,14 @@ by `scripts/verify/wasm-mesh-parity.mjs`) only when the switch is on. With it of
 `scripts/verify/wasm-mesh-parity.mjs` (no browser; runs in CI; `--break` must fail) proves the page's own `build()` and the Rust
 builder make identical buffers. `scripts/verify/rust-builder-page.mjs` times the real page, switch off against on (laptop only).
 
+**Packed output (`?rustbuilder=1&packverts=1`).** `lib.rs` `init_packed` makes the module write what the JS packed store writes: the exact float32
+position and one 32-bit word per vertex, with the tone table (16 f32 a tone) and the normal table (4 f32 a normal) built inside the module
+in first-encounter order (normals by the exact f32 bits, tones by the class `js/slopes.js` `toneKey()` gives their palette entry).
+`js/slopes-rust.js` returns `position` + `aPack` as views of Wasm memory and copies the new table rows into the caller's tables object.
+`scripts/verify/rust-packed-parity.mjs` (no browser; CI; `--break` must fail) holds it bit-identical to the JS packed store.
+`profile/packed-end-to-end.mjs` runs the whole catalog through any of the four stores (JS or Rust, packed or not) and `profile/packed-bench.mjs`
+times them interleaved.
+
 What is here:
 
 | Path | What |
