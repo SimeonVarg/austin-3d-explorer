@@ -91,6 +91,17 @@ async function one(pose, arm, rep) {
     // The veil is gone: the same render scale the user gets, then the first frame.
     const A = await shot('A-first');
     const aAt = Date.now() - t0;
+    // Transient frames: a flash that is gone by the settled frame (a legacy shape drawn for a moment when a deferred
+    // layer appears) is invisible to A-versus-B. One more frame every ~1.5 s until the deferred sources have landed.
+    const mids = [];
+    const settledNow = async () => JSON.parse(await ev(`JSON.stringify((()=>{const m=window.__map;return {cs:!!(m.getSource('campus-storeys')&&m.isSourceLoaded('campus-storeys')),ent:!!(m.getSource('austin-entrances')&&m.isSourceLoaded('austin-entrances'))}})())`) || '{}');
+    for (let i = 0; i < 40 && mids.length < 24; i++) {
+      await sleep(1500);
+      mids.push(await shot('M' + String(mids.length).padStart(2, '0')));
+      const s = await settledNow();
+      if (s.cs && s.ent) break;
+      if (Date.now() - t0 > MAX) break;
+    }
     // Settle: the deferred sources landed (or 120 s), the map idle, then SETTLE more.
     for (let i = 0; i < 1200; i++) {
       const s = JSON.parse(await ev(`JSON.stringify((()=>{const m=window.__map;const ld=id=>{try{return !m.getSource(id)||m.isSourceLoaded(id)}catch(e){return true}};return {cs:!!(m.getSource('campus-storeys')&&m.isSourceLoaded('campus-storeys')),ent:!!(m.getSource('austin-entrances')&&m.isSourceLoaded('austin-entrances')),tiles:m.areTilesLoaded()}})())`) || '{}');
@@ -101,7 +112,8 @@ async function one(pose, arm, rep) {
     await sleep(SETTLE);
     const info = JSON.parse(await ev(`JSON.stringify({reason:window.__intro.reason,waited:window.__intro.waitedMs,gates:window.__intro.gates&&window.__intro.gates['apt.firstView'],c:window.__map.getCenter(),z:window.__map.getZoom(),p:window.__map.getPitch(),b:window.__map.getBearing()})`));
     const B = await shot('B-settled');
-    return { tag, pose, arm: arm.name, rep, revealedAtMs: revealedAt, firstShotAtMs: aAt, info, A, B, movedPct: moved(A, B) };
+    const midMoved = mids.map(f => moved(f, B));
+    return { tag, pose, arm: arm.name, rep, revealedAtMs: revealedAt, firstShotAtMs: aAt, info, A, B, movedPct: moved(A, B), midMoved, midMaxPct: midMoved.length ? Math.max(...midMoved) : 0 };
   } finally { await chrome.close(); }
 }
 
@@ -112,7 +124,7 @@ for (let rep = 1; rep <= REPS; rep++) {
     for (const arm of order) {
       try {
         const r = await one(pose, arm, rep); rows.push(r);
-        console.log(`${r.tag}: veil lifted at ${r.info.waited} ms into the intro gate, first shot at ${r.firstShotAtMs} ms, moved A->B ${r.movedPct}%, reason ${r.info.reason}`);
+        console.log(`${r.tag}: veil lifted at ${r.info.waited} ms into the intro gate, first shot at ${r.firstShotAtMs} ms, moved A->B ${r.movedPct}%, worst transient frame vs settled ${r.midMaxPct}% over ${r.midMoved.length} frames, reason ${r.info.reason}`);
       } catch (e) { console.log(`${pose}-${arm.name}-r${rep}: FAILED ${e.message}`); rows.push({ pose, arm: arm.name, rep, error: e.message }); }
     }
   }
@@ -131,6 +143,9 @@ for (const pose of POSES) {
   const noise = [];
   if (o.length > 1) noise.push(moved(o[0].B, o[1].B));
   if (nw.length > 1) noise.push(moved(nw[0].B, nw[1].B));
+  const midO = Math.max(...o.map(r => r.midMaxPct)), midN = Math.max(...nw.map(r => r.midMaxPct));
+  if (midN > midO + SLACK) { console.log(`${pose}: transient frames: new gate worst ${midN}% against old gate worst ${midO}%  FAIL`); fail++; }
+  else console.log(`${pose}: transient frames: new gate worst ${midN}%, old gate worst ${midO}%  ok`);
   const ok = maxN <= maxO + SLACK && maxCross <= Math.max(...noise, 0) + SLACK;
   if (!ok) fail++;
   const line = `${pose}: first-vs-settled moved% old [${o.map(r => r.movedPct)}] new [${nw.map(r => r.movedPct)}]; settled old-vs-new [${cross.map(x => +x.toFixed(4))}]; settled same-gate noise [${noise.map(x => +x.toFixed(4))}]  ${ok ? 'PASS' : 'FAIL'}`;
