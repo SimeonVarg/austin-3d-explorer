@@ -7,7 +7,8 @@
  * at most --max-px differing pixels, default 0).
  *
  *   VERIFY_URL=http://127.0.0.1:<port> node moire-off.mjs --out dir [--views a,b] [--b name=query ...] [--size WxH] [--max-px N] [--gate]
- *     --b name=query   one page B to compare with A (repeatable; default `compiled=moirefix=1`). `query` is extra URL switches
+ *     --b name=query   one page B to compare with A (repeatable; default `compiled=`). `query` is extra URL switches; `control=moirefix=0` loads
+ *                      main's program a second time: what two loads of the SAME program move on their own (the noise to read the others against)
  *     --b-js js        page state run before every picture of every B (default MoireFix.set("off"))
  * Writes <out>/off.txt, off.json and <name>.<view>.diff.png (differing pixels white, the rest black) for a view that differs.
  */
@@ -36,7 +37,7 @@ let [VW, VH] = opt('--size', '960x600').split('x').map(Number);
 const MAXPX = +opt('--max-px', '0'), GATE = argv.includes('--gate');
 const want = (opt('--views', '') || '').split(',').filter(Boolean);
 const list = want.length ? want.map(n => VIEWS.find(v => v.name === n) || (console.error('unknown view ' + n), process.exit(2))) : VIEWS;
-const B_JS = opt('--b-js', 'window.MoireFix.set("off")');
+const B_JS = opt('--b-js', 'window.MoireFix && window.MoireFix.set("off")');
 const Bs = (all('--b').length ? all('--b') : ['compiled=']).map(s => { const i = s.indexOf('='); return { name: s.slice(0, i), q: s.slice(i + 1) }; });
 const FROZEN = ['intro=0', 'drift=0', 'namelabels=0', 'facadepace=0', 'timeofdaypace=0', 'smooth=0'];
 
@@ -98,7 +99,7 @@ const A = await shoot('moirefix=0', null);
 console.error(`[off] A (moirefix=0) drawn ${T()}  ${A.info.renderer}`);
 const rows = [];
 for (const b of Bs) {
-  const B = await shoot('moirefix=1' + (b.q ? '&' + b.q : ''), B_JS);
+  const B = await shoot((b.q.includes('moirefix=') ? '' : 'moirefix=1&') + b.q, B_JS);
   console.error(`[off] B ${b.name} drawn ${T()}  fix present: ${B.info.fix}`);
   for (const v of list) {
     const a = A.shots[v.name], c = B.shots[v.name], N = a.w * a.h;
