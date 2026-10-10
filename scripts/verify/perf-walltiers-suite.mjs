@@ -4,7 +4,7 @@
  * parallel, and timing runs must not disturb each other). Not a check: no verdict, exit code is the last failure.
  * Listed under laptop_only in ci/checks.json.
  *
- *   node perf-walltiers-suite.mjs [--steps load,pics,mem[,picsnow]] [--reps N]
+ *   node perf-walltiers-suite.mjs [--steps bursts,load,mem[,pics,picsnow,counts]] [--reps N]
  *
  * Steps (each its own fresh Chrome per load; settings are in each tool's header and are printed in its output):
  *   load  scripts/perf/load-profile.mjs, throttle 1,4 crossed with {?walltiers=0, default}, --reps (default 5),
@@ -21,9 +21,10 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
 const arg = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
-const STEPS = arg('--steps', 'load,pics,mem').split(',');
+const STEPS = arg('--steps', 'bursts,load,mem').split(',');
 const REPS = +arg('--reps', 5);
 const REPS4 = +arg('--reps4', 3);
+const REPSB = +arg('--repsb', 3);
 const OUT = process.env.VERIFY_OUT || '/tmp/perf-walltiers-suite';
 const URLB = process.env.VERIFY_URL || 'http://127.0.0.1:8442';
 let code = 0;
@@ -33,6 +34,10 @@ const run = (name, file, args, opts = {}) => {
   if (r.status) { console.log(`[${name}] exit ${r.status}`); code = r.status; }
 };
 
+if (STEPS.includes('bursts')) {
+  // when does the painting hold the main thread AFTER the veil lifts: cap off (wtcap=0) against cap on, 1x and 4x
+  run('bursts', '../perf/post-reveal-bursts.mjs', ['--url', URLB + '/', '--throttle', '1,4', '--qarms', 'wtcap=0;', '--reps', String(REPSB), '--out', path.join(OUT, 'bursts')]);
+}
 if (STEPS.includes('load')) {
   // 1x: REPS cold loads per arm. 4x (the page main thread slowed four times, a crude phone stand-in) takes about twice as
   // long per load, so it gets REPS4 (default 3) to fit the runner's time box. Each arm pair alternates A B, B A, A B ...

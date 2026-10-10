@@ -4,7 +4,8 @@
 // behaves as MapLibre 5.24.0 does for the one thing this relies on: `_getImagesForIds` fires `styleimagemissing`
 // for an id it does not hold and looks the id up again straight after.
 // --break paints every tier of a combo on a request for one (the shape a "simple" version would take);
-// --break-repaint lets a repaint create the images nobody asked for; either must exit 1.
+// --break-repaint lets a repaint create the images nobody asked for; --break-cap switches the burst cap off;
+// each must exit 1.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -12,9 +13,11 @@ import vm from 'node:vm';
 let src = fs.readFileSync(new URL('../../js/facades.js', import.meta.url), 'utf8').replaceAll('\r\n', '\n');
 const BREAK = process.argv.includes('--break');
 const BREAK_REPAINT = process.argv.includes('--break-repaint');
+const BREAK_CAP = process.argv.includes('--break-cap');
 // Negative controls: break the shipped text in the one way a plausible edit would, and the checks below must fail.
 const mutate = (from, to) => { assert(src.includes(from), '--break found the text to break'); src = src.replace(from, to); };
 if (BREAK) mutate('lazyWallImage(map, e.id, info);', 'for (const tt of TIERS) lazyWallImage(map, info.id + tt.id, { id: info.id, tier: tt });');
+if (BREAK_CAP) mutate('const flat = WALLTIERS.cap && PACE.on', 'const flat = false && PACE.on');
 if (BREAK_REPAINT) mutate('if (WALLTIERS.on && !(map.hasImage && map.hasImage(key))) continue;\n      try {', 'try {');
 
 function fnText(name) {
@@ -43,9 +46,10 @@ function constText(name) {
 function build(on) {
   const painted = [];                 // tileData calls: [fam, idx, tier.id]
   const released = [];                // js/image-memory.js release calls: keys
+  const queued = [], repaints = [];   // microtasks (the end of a call stack), requestAnchorRepaint calls
   const sandbox = {
     window: { ImageMemory: { release: (m, key, input) => { released.push(key); return input ? 1 : 0; } } }, location: { search: on ? '' : '?walltiers=0' }, performance: { now: () => Date.now() },
-    queueMicrotask: (f) => f(), console,
+    queueMicrotask: (f) => queued.push(f), console,
   };
   const ctx = vm.createContext(sandbox);
   vm.runInContext([
@@ -59,13 +63,16 @@ function build(on) {
     'const ATLAS = {};',
     // WT and its burst counter exactly as written
     'const WT = {', src.slice(src.indexOf('on: WALLTIERS.on, deferred: 0'), src.indexOf('};', src.indexOf('on: WALLTIERS.on, deferred: 0')) + 2),
-    'const _burst = { ms: 0, n: 0, open: false };',
-    fnText('parseId'), fnText('wallKeyInfo'), fnText('lazyWallImage'), fnText('armWallTiers'),
+    'const _burst = { ms: 0, n: 0, open: false, start: 0, flat: 0, map: null };',
+    'const PACE = { on: true }; const palette = [{}]; const lerpHexAt = () => [10, 200, 30]; const mulOf = () => 1;',
+    'const tierRes = t => 8 / t.div; const requestAnchorRepaint = (m) => __repaints.push(m);',
+    fnText('parseId'), fnText('veilUp'), fnText('wallPlaceholder'), fnText('flushBurst'),
+    fnText('wallKeyInfo'), fnText('lazyWallImage'), fnText('armWallTiers'),
     fnText('ensureImages'), fnText('paintCombo'), fnText('comboCurrent'), fnText('presentTiers'),
     'this.api = { ensureImages, paintCombo, comboCurrent, presentTiers, WT, WALLTIERS, TIERS, wallKeyInfo, imgSig: _imgSig,',
     '  setAnchor(z) { _zAnchor = z; } };',
   ].join('\n'), ctx);
-  ctx.__painted = painted;
+  ctx.__painted = painted; ctx.__repaints = repaints;
   const api = ctx.api;
   // The fake map. `ask` is MapLibre's _getImagesForIds for one id.
   const images = new Map(), handlers = {}, calls = [];
@@ -75,11 +82,15 @@ function build(on) {
     updateImage: (k, img) => { if (!images.has(k)) throw new Error('missing'); images.get(k).v++; calls.push(['update', k]); },
     on: (ev, f) => { (handlers[ev] = handlers[ev] || []).push(f); },
   };
-  const ask = (k) => {
+  // one call of ask() is one tile request unless the caller batches them with askMany (one call stack)
+  const ask1 = (k) => {
     if (!images.has(k)) for (const f of handlers.styleimagemissing || []) f({ id: k });
     return images.get(k) || null;
   };
-  return { api, map, ask, images, painted, calls, handlers, released };
+  const ask = (k) => { const r = ask1(k); flush(); return r; };
+  const askMany = (ks) => { const r = ks.map(ask1); flush(); return r; };
+  const flush = () => { while (queued.length) queued.shift()(); };
+  return { api, map, ask, askMany, images, painted, calls, handlers, released, repaints, flush };
 }
 
 // ── ON: nothing is painted at registration, one image per request ───────
@@ -126,6 +137,30 @@ function build(on) {
   assert.equal(S.api.comboCurrent(S.map, 'mh03', 'stale|sig'), false, 'a held image at another sig is not current');
   assert.equal(JSON.stringify(S.api.presentTiers(S.map, 'tg07').map(t => t.id)), '["x"]');
   assert.equal(S.api.presentTiers(S.map, 'lo01').length, 0);
+}
+
+// ── the burst cap: after the veil, a request paints only until its budget is spent, the rest is answered flat ──
+{
+  const S = build(true);
+  S.api.WALLTIERS.syncBudgetMs = -1;           // every image after the first is over budget
+  for (const id of ['mh03', 'tg07', 'lo01']) S.api.ensureImages(S.map, id, 0.3);
+  S.askMany(['mh03x', 'tg07x', 'lo01x', 'mh03']);
+  assert.equal(S.painted.length, 1, 'only the first image of the request was drawn for real');
+  assert.equal(S.api.WT.placeholders, 3, 'the other three were answered flat');
+  assert.equal(S.images.size, 4, 'and all four exist at once: no tile ever sees a hole');
+  const flat = S.images.get('tg07x').img;
+  assert.equal(flat.width, 8 / 2, 'a flat answer has the real image size, or updateImage would refuse it');
+  assert.equal(flat.data.length, flat.width * flat.height * 4);
+  assert.equal(flat.data[0] + ',' + flat.data[1] + ',' + flat.data[2] + ',' + flat.data[3], '10,200,30,255', 'in the pattern colour, opaque');
+  assert.equal(S.api.imgSig.has('tg07x'), false, 'a flat answer has no signature, so the paced repaint paints it');
+  assert.equal(S.api.imgSig.has('mh03x'), true);
+  assert.equal(S.repaints.length, 1, 'one repaint request for the whole request, after its call stack');
+  assert.equal(JSON.stringify(S.api.WT.burstLog.map(b => [b[1], b[3]])), '[[4,3]]', 'the burst log says 4 images, 3 of them flat');
+  // the budget is a switch: ?wtcap=0 paints everything in the request
+  const T = build(true); T.api.WALLTIERS.syncBudgetMs = -1; T.api.WALLTIERS.cap = false;
+  for (const id of ['mh03', 'tg07']) T.api.ensureImages(T.map, id, 0.3);
+  T.askMany(['mh03x', 'tg07x', 'mh03']);
+  assert.equal(T.painted.length, 3); assert.equal(T.api.WT.placeholders, 0); assert.equal(T.repaints.length, 0);
 }
 
 // ── OFF (?walltiers=0): the old eager path, every tier at registration ──

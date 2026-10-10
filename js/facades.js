@@ -3847,6 +3847,17 @@
     rawCache: 6,
     // The stats object keeps this many of the slowest single paints, in ms.
     slowKeep: 5,
+    // THE BURST CAP. One tile request can name dozens of images the page has not painted yet (49 in one request at
+    // 640 ms at 1x, 2.6 s with the main thread slowed 4x). Behind the veil that is only load time; after the veil
+    // lifts it is a frozen frame. So once the veil is gone, a request paints synchronously only until it has used
+    // this many ms; every further image is answered AT ONCE with a flat wall of the pattern's own colour at the
+    // current hour, and painted for real in the paint workers (the paced repaint), which `updateImage`s it.
+    // The first image of a request is always painted, so a request never runs more than this plus one image.
+    syncBudgetMs: 16,
+    // The element whose presence means "the veil is up, nobody is looking". No element, no veil: the cap applies.
+    veilId: 'veil',
+    // `?wtcap=0` turns the cap off (every image painted in the request), for the A/B of the burst length.
+    cap: !/[?&]wtcap=0(?:&|$)/.test(location.search),
   };
   ATLAS.WALLTIERS = WALLTIERS;
   const WT = window.__facadeWallTiers = {
@@ -3854,8 +3865,10 @@
     rawHits: 0, unknown: 0, failed: 0, workerMs: 0, workerCombos: 0, slow: [],
     // Paints that happen in the same call stack are one tile's request: how long the biggest such run held the thread.
     bursts: 0, burstMsMax: 0, burstImagesMax: 0,
+    // Every request that painted or answered anything: [performance.now() at its start, images, ms, answered flat]
+    burstLog: [], placeholders: 0,
   };
-  const _burst = { ms: 0, n: 0, open: false };
+  const _burst = { ms: 0, n: 0, open: false, start: 0, flat: 0 };
   window.facadeWallTiersStats = () => ({
     ...WT, slow: WT.slow.slice(), paintMs: Math.round(WT.paintMs * 10) / 10,
     comboCount: combos.length, tierCount: TIERS.length,
@@ -3881,16 +3894,44 @@
    * MapLibre's own image request for a tile, which looks the image up again
    * straight after the event.
    */
+  function veilUp() {
+    return typeof document !== 'undefined' && !!document.getElementById(WALLTIERS.veilId);
+  }
+  /** A flat wall of the pattern's own colour at the current hour, the size of the real image. */
+  function wallPlaceholder(fam, idx, tier) {
+    const res = tierRes(tier) * mulOf(fam);
+    const bucket = palette[idx] || palette[0];
+    const c = bucket ? lerpHexAt(bucket, _atlasP) : [128, 128, 128];
+    const d = new Uint8Array(res * res * 4);
+    const r = Math.round(c[0]), g = Math.round(c[1]), b = Math.round(c[2]);
+    for (let i = 0; i < d.length; i += 4) { d[i] = r; d[i + 1] = g; d[i + 2] = b; d[i + 3] = 255; }
+    return { width: res, height: res, data: d };
+  }
+  function flushBurst() {
+    WT.bursts++;
+    if (_burst.ms > WT.burstMsMax) WT.burstMsMax = +_burst.ms.toFixed(1);
+    if (_burst.n > WT.burstImagesMax) WT.burstImagesMax = _burst.n;
+    if (WT.burstLog.length < 600) WT.burstLog.push([+_burst.start.toFixed(1), _burst.n, +_burst.ms.toFixed(1), _burst.flat]);
+    const flat = _burst.flat, map = _burst.map;
+    _burst.ms = 0; _burst.n = 0; _burst.open = false; _burst.flat = 0; _burst.map = null;
+    // The flat answers are painted for real by the paced repaint: one retarget per request, after the request's own
+    // call stack, so the tile's atlas is born after the retarget (its wrap border is rewritten too, see ATLAS_BORDER).
+    if (flat && map) requestAnchorRepaint(map);
+  }
   function lazyWallImage(map, key, info) {
     const t0 = performance.now();
+    if (!_burst.open) { _burst.open = true; _burst.start = t0; queueMicrotask(flushBurst); }
     const { fam, idx } = parseId(info.id);
+    // Cap: only after the veil has gone, only when the paced repaint can finish the job, never for the first image.
+    const flat = WALLTIERS.cap && PACE.on && _burst.n > 0 && t0 - _burst.start >= WALLTIERS.syncBudgetMs && !veilUp();
     try {
-      const img = tileData(fam, idx, _atlasP, info.tier);
+      const img = flat ? wallPlaceholder(fam, idx, info.tier) : tileData(fam, idx, _atlasP, info.tier);
       map.addImage(key, img, { pixelRatio: tierPixelRatio(info.tier) });
       // js/image-memory.js drops MapLibre's second copy of the pixels for images added inside initFacades; this is
       // not inside it, so ask for the same release.
       if (window.ImageMemory && window.ImageMemory.release) window.ImageMemory.release(map, key, img);
-      _imgSig.set(key, drawSig(fam, _atlasP));
+      // A flat answer has NO signature: the paced repaint sees it as out of date and paints the real image over it.
+      if (!flat) _imgSig.set(key, drawSig(fam, _atlasP));
     } catch (e) {
       WT.failed++;
       if (!_warnedUpdate) { _warnedUpdate = true; console.warn('[facades] wall image failed on ' + key + ': ' + e.message); }
@@ -3900,15 +3941,7 @@
     WT.painted++; if (info.tier.id) WT.paintedFar++; else WT.paintedNear++;
     WT.paintMs += ms;
     _burst.ms += ms; _burst.n++;
-    if (!_burst.open) {
-      _burst.open = true;
-      queueMicrotask(() => {
-        WT.bursts++;
-        if (_burst.ms > WT.burstMsMax) WT.burstMsMax = +_burst.ms.toFixed(1);
-        if (_burst.n > WT.burstImagesMax) WT.burstImagesMax = _burst.n;
-        _burst.ms = 0; _burst.n = 0; _burst.open = false;
-      });
-    }
+    if (flat) { _burst.flat++; _burst.map = map; WT.placeholders++; }
     if (ms > WT.paintMsMax) WT.paintMsMax = +ms.toFixed(2);
     if (WT.slow.length < WALLTIERS.slowKeep || ms > WT.slow[WT.slow.length - 1][1]) {
       WT.slow.push([key, +ms.toFixed(2)]);
