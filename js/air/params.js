@@ -102,7 +102,7 @@
 
     // ── Look ──────────────────────────────────────────────────────────
     look: {
-      gateColour: '#ffb347', gateNextColour: '#7df9ff', gateDoneColour: '#4a5568',
+      gateColour: '#ffb347', gateNextColour: '#ff4fa3', gateDoneColour: '#4a5568',
       gateMissColour: '#ff4d6d', ghostColour: '#9be564',
       nightGlow: 2.2,                        // emissive multiplier at night
       lineToNext: true,                      // a guide line from the craft to the next ring

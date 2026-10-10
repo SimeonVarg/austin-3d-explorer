@@ -64,7 +64,7 @@
       _mat = new T.Matrix4(); _loc = new T.Matrix4(); _s3 = new T.Vector3(originScale, -originScale, originScale);
       // craft + ghost
       const cg = craftGeometry();
-      craft = new T.Group(); craft.add(mk(cg, hex('#ffd36b'))); const tl = mk(new T.SphereGeometry(0.55, 6, 4), hex('#ff5a3c')); tl.position.set(0, -2.7, 0.6); craft.add(tl);
+      craft = new T.Group(); craft.add(mk(cg, hex('#ffd36b'))); const tl = mk(new T.SphereGeometry(0.3, 8, 6), hex('#ff5a3c')); tl.position.set(0, -2.7, 0.9); craft.add(tl);
       craft.scale.setScalar(1.7); scene.add(craft);
       ghost = new T.Group(); ghost.add(mk(cg, hex(LOOK.ghostColour), { opacity: 0.62 })); ghost.scale.setScalar(1.7); ghost.visible = false; scene.add(ghost);
       // guide trail: dots from the craft toward the next ring
@@ -83,7 +83,7 @@
       rings = gates.map((g, i) => {
         const group = new T.Group(), last = i === gates.length - 1;
         const tube = AIR.gates.tubeRadius * (last ? 1.4 : 1) * Math.max(1, g.r / 20);
-        const body = mk(ringGeometry(g.r, tube), hex(LOOK.gateColour)), halo = mk(ringGeometry(g.r, tube * 3.2), hex(LOOK.gateColour), { opacity: 0.16, additive: true, blending: T.AdditiveBlending });
+        const body = mk(ringGeometry(g.r, tube), hex(LOOK.gateColour)), halo = mk(ringGeometry(g.r, tube * 2.6), hex(LOOK.gateColour), { opacity: 0.20, depthWrite: false });
         group.add(body); group.add(halo);
         if (last) { const inner = mk(ringGeometry(g.r * 0.82, tube * 0.7), hex('#ffffff')); group.add(inner); }
         const p = toLocal(g.x, g.y, g.z); group.position.set(p[0], p[1], p[2]);
@@ -127,7 +127,7 @@
       rings.forEach((r, i) => {
         const st = f.states[i] || 'todo';
         let key = st === 'hit' ? 'done' : st === 'miss' ? 'miss' : i === f.next ? 'next' : (i === gates.length - 1 ? 'finish' : 'gate');
-        if (key !== r.state) { r.state = key; const c3 = col[key]; r.body.material.color.setRGB(c3[0], c3[1], c3[2]); r.halo.material.color.setRGB(c3[0], c3[1], c3[2]); r.halo.material.opacity = key === 'done' ? 0.05 : key === 'next' ? 0.30 : 0.16; }
+        if (key !== r.state) { r.state = key; const c3 = col[key]; r.body.material.color.setRGB(c3[0], c3[1], c3[2]); r.halo.material.color.setRGB(c3[0], c3[1], c3[2]); r.halo.material.opacity = key === 'done' ? 0.06 : key === 'next' ? 0.26 : 0.18; }
         const near = i === f.next, ahead = i - f.next;
         r.group.scale.setScalar(near ? pulse : 1);
         r.group.visible = !(st === 'hit' && i < f.next - 2) && ahead < 8;

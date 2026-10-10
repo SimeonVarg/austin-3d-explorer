@@ -2,6 +2,8 @@
    Palette and type follow style.css (navy and gold). Every size is a custom property so the HUD can be re-scaled in one line. */
 :root { --air-ink: #fdf3dc; --air-gold: #f5a623; --air-cyan: #7df9ff; --air-ok: #7ee787; --air-bad: #ff6b81; --air-panel: rgba(12, 14, 24, .62); --air-scale: 1; }
 body.air { background: #0b0d16; overflow: hidden; }
+/* the shared modules' own chrome: the mode launcher, the feedback button, the time slider (N does day/night here) */
+body.air #mode-launcher, body.air #fb-button, body.air #tod-panel, body.air #explore { display: none !important; }
 #air-root { position: fixed; inset: 0; z-index: 30; pointer-events: none; font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--air-ink); }
 #air-root .air-ui, #air-root button { pointer-events: auto; }
 .air-hud { position: absolute; inset: 0; transition: opacity .25s; }

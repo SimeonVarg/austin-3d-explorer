@@ -2,8 +2,9 @@
  * air-run.mjs — drives air.html in a real browser: frame-rate runs, stills and the recorded clip.
  * A TOOL, not a check (no pass/fail; it photographs and times). Listed under `tools` in ci/checks.json.
  *
- *   node air-run.mjs --mode perf  --out DIR [--budget on|lite|0] [--size 1280x720] [--secs 70]
- *        the autopilot flies in real time (rAF); frame times are taken in 10 s windows along the course; prints JSON
+ *   node air-run.mjs --mode perf  --out DIR [--variants on,lite,full] [--size 1280x720] [--secs 70]
+ *        the autopilot flies in real time (rAF); frame times in 10 s windows along the course. Variants: on = the air budget,
+ *        lite = the integrated/phone step, full = the main page's whole city (?full=1&airbudget=0), same flight
  *   node air-run.mjs --mode stills --out DIR [--hour 0.12]
  *        four stills: start, a downtown gate, the Capitol, the finish (deterministic: the sim is stepped by hand)
  *   node air-run.mjs --mode clip  --out DIR --from 36 --secs 20 [--fps 30] [--hour 0.12]
@@ -90,22 +91,27 @@ async function runMode(MODE) {
       if (k % 30 === 0) log(`frame ${k}/${frames}, ${((Date.now() - t0) / 1000).toFixed(0)} s`);
     }
   } else if (MODE === 'perf') {
-    const secs = +arg('secs', 70), win = 10;
-    await open(`p=${HOUR}&airbudget=${BUDGET}&preset=balanced&auto=1&countdown=0&ghost=house&hud=0${EXTRA ? '&' + EXTRA : ''}`);
-    await settle(30000);
-    const out = { gl: await gl(), budget: BUDGET, size: `${W}x${H}`, windows: [] };
-    await page.evaluate(() => window.__air.begin());
-    for (let w = 0; w < secs / win; w++) {
-      await page.evaluate(() => window.__air.perfStart());
-      await page.waitForTimeout(win * 1000);
-      const r = await page.evaluate(() => ({ perf: window.__air.perfStop(), t: window.__air.state() && window.__air.state().t }));
-      out.windows.push({ from: w * win, simT: +(r.t || 0).toFixed(1), ...r.perf });
-      log('window', JSON.stringify(out.windows[out.windows.length - 1]));
+    const secs = +arg('secs', 70), win = 10, variants = arg('variants', 'on').split(',');
+    const results = [];
+    for (const v of variants) {
+      const q = v === 'full' ? 'airbudget=0&full=1' : `airbudget=${v}`;
+      await open(`p=${HOUR}&${q}&preset=balanced&auto=1&countdown=0&ghost=house&hud=0${EXTRA ? '&' + EXTRA : ''}`);
+      await settle(30000);
+      const out = { variant: v, gl: await gl(), size: `${W}x${H}`, windows: [] };
+      await page.evaluate(() => window.__air.begin());
+      for (let w = 0; w < secs / win; w++) {
+        await page.evaluate(() => window.__air.perfStart());
+        await page.waitForTimeout(win * 1000);
+        const r = await page.evaluate(() => ({ perf: window.__air.perfStop(), t: window.__air.state() && window.__air.state().t }));
+        out.windows.push({ from: w * win, simT: +(r.t || 0).toFixed(1), ...r.perf });
+        log(v, 'window', JSON.stringify(out.windows[out.windows.length - 1]));
+      }
+      const fp = out.windows.filter(x => x.fpsMean); out.fpsMean = +(fp.reduce((s, x) => s + x.fpsMean, 0) / fp.length).toFixed(1); out.fpsWorstWindow = Math.min(...fp.map(x => x.fpsMean)); out.p95msWorst = Math.max(...fp.map(x => x.p95ms));
+      out.misses = await page.evaluate(() => window.__air.state().misses);
+      results.push(out);
+      fs.writeFileSync(path.join(OUT, `perf-${W}x${H}.json`), JSON.stringify(results, null, 1));
     }
-    const fp = out.windows.filter(x => x.fpsMean); out.fpsMean = +(fp.reduce((s, x) => s + x.fpsMean, 0) / fp.length).toFixed(1); out.fpsWorstWindow = Math.min(...fp.map(x => x.fpsMean)); out.p95msWorst = Math.max(...fp.map(x => x.p95ms));
-    out.misses = await page.evaluate(() => window.__air.state().misses);
-    fs.writeFileSync(path.join(OUT, `perf-${BUDGET}-${W}x${H}.json`), JSON.stringify(out, null, 1));
-    console.log('RESULT ' + JSON.stringify(out));
+    console.log('RESULT ' + JSON.stringify(results.map(r => ({ variant: r.variant, fpsMean: r.fpsMean, fpsWorstWindow: r.fpsWorstWindow, p95msWorst: r.p95msWorst, gl: r.gl }))));
   }
 }
 try {
