@@ -1,0 +1,8 @@
+# The exact toolchain the committed dist/meshkernel.wasm was built with (conda-forge, osx-64, 2026-10-09).
+#   ~/miniforge3/bin/conda env create -f environment.yml     (no sudo; lives under ~/miniforge3/envs/rustwasm)
+name: rustwasm
+channels: [conda-forge]
+dependencies:
+  - rust=1.98.1
+  - rust-std-wasm32-unknown-unknown=1.98.1
+  - binaryen=121

@@ -1,0 +1,18 @@
+[package]
+name = "meshkernel"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Prototype: the vertex/index builder behind js/slopes.js build(), in Rust for WebAssembly. Not loaded by the site."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+
+[profile.release]
+opt-level = 3        # `s` is smaller; see ../README.md for the measured trade
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

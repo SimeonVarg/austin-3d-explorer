@@ -1,0 +1,36 @@
+<!doctype html><meta charset="utf-8"><title>rust-mesh whole-build bench</title>
+<body style="font:14px monospace"><pre id="o">running…</pre>
+<script type="module">
+// The REAL apartment generator (js/slopes.js + js/slopes-apartments.js, patched in memory like profile/app-env.mjs does for Node)
+// building the real 198-building catalog INSIDE Chrome, with no map and nothing else on the page. Answers: how long is the pure
+// compute, as opposed to the 29 to 45 s the app reports as count.ms (which includes yielding to the rest of the page).
+//   ?mode=real|timed|null|wasm|wasm-exact   &reps=3
+//   timed = clock the shared builder's entry points; null = generator with a do-nothing builder;
+//   wasm / wasm-exact = the Rust builder (meshkernel.wasm) behind the REAL generator (wasm-exact: vertex count known in advance)
+import { installStubs, installLateStubs, patchSlopes, patchSlopesWasm, patchApartments, catalog, nullBuilder } from './profile/app-patch.mjs';
+const q = new URLSearchParams(location.search), mode = q.get('mode') || 'real', reps = +(q.get('reps') || 3);
+history.replaceState(null, '', location.pathname + '?slopes=0&facadefilter=0');   // the sources read location.search when they load
+const res = { mode, ua: navigator.userAgent, runs: [] };
+try {
+  const text = u => fetch(u).then(r => r.text());
+  const [three, slopes, apts] = await Promise.all([text('/three.min.js'), text('/repo/js/slopes.js'), text('/repo/js/slopes-apartments.js')]);
+  console.warn = console.log = console.info = () => {};
+  installStubs(window); (0, eval)(three);
+  let slopesSrc = patchSlopes(slopes, { timeBuilder: mode === 'timed' });
+  if (mode.startsWith('wasm')) { window.__RUST_MOD = await WebAssembly.compileStreaming(fetch('/dist/meshkernel.wasm')); window.__RUST_RESERVE = mode === 'wasm-exact' ? 6523203 : 0; slopesSrc = patchSlopesWasm(slopesSrc); }
+  (0, eval)(slopesSrc);
+  installLateStubs(window); (0, eval)(patchApartments(apts));
+  if (mode === 'null') window.slopes.build = nullBuilder(window);
+  const specs = await catalog(f => fetch('/repo/' + f).then(r => r.json()));
+  window.__BMS = 0;
+  for (let r = 0; r < reps; r++) {
+    window.__BMS = 0; const t0 = performance.now(); const g = await window.__apts.build(specs); const ms = performance.now() - t0;
+    const c = window.__apts.count; let tris = 0; g.traverse(o => { if (o.isMesh) tris += o.geometry.index.count / 3; });
+    res.runs.push({ ms, builderMs: mode === 'timed' ? window.__BMS : null, slices: c.buildSlices, triangles: tris, buildings: c.buildings, cells: c.cells });
+    g.traverse(o => o.geometry && o.geometry.dispose && o.geometry.dispose());
+    await new Promise(r => setTimeout(r, 100));
+  }
+  res.jsHeapMB = performance.memory ? performance.memory.usedJSHeapSize / 1048576 : null;
+} catch (e) { res.error = String(e && e.stack || e); }
+window.__result = res; document.getElementById('o').textContent = JSON.stringify(res, null, 1);
+</script>

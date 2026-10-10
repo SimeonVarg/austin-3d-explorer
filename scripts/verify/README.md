@@ -663,6 +663,67 @@ star test that physically could not fail; a coplanar checker blind to 122,773
 faces). Reviving a crasher into a permanent green would be a fifth. If you fix a
 guard, watch it go red first.
 
+## The Rust mesh builder (`?rustbuilder=1`, added October 10 2026)
+
+`wasm-mesh-parity.mjs` — **Node only, no browser, runs in CI.** The shared mesh builder (`js/slopes.js` `build()`) also exists as a
+34 KB WebAssembly module (`wasm/meshkernel.wasm`, source in `experiments/rust-mesh/`) that the page loads only with `?rustbuilder=1`.
+The check holds it to the JS builder's exact bytes: the committed `.wasm` is the same bytes as `experiments/rust-mesh/dist/` and its
+recorded hash; the study's `compare.mjs` runs the Moontower fixture (equal to the real in-app build's sha256), 6,000 synthetic edge calls
+and 400 `extrude`/`polygon` shapes through the app's `build()`, a tuned JS twin, the raw Rust module and the page's own adapter
+(`js/slopes-rust.js`), all eight arrays by sha256; and the REAL `js/slopes.js` is loaded twice into the process, without the switch
+(`slopes.rustReady` is `null`, nothing is fetched) and with it (one fetch of `wasm/meshkernel.wasm`, the Rust builder, identical buffers).
+A fourth block holds the FALLBACK: a Rust builder that breaks after it loaded. The real module is made to trap (a colour id far past
+its palette, so the Rust panics and `panic = "abort"` raises an `unreachable` `WebAssembly.RuntimeError`) inside the first builder only,
+under a model of the apartment generator's loop run through `slopes.withRustFallback()`. The finished build must equal the JS builder's
+to the byte, the Rust builder must be off for every later build, an instance that cannot start (`init` throws) must fall back the same
+way, and a recipe error (not a Wasm one) must skip its building and leave the Rust builder on. `js/slopes-apartments.js` itself cannot
+run here (it needs three.js), so its four lines that matter (the `withRustFallback` wrapper, the per-building `catch` that lets a
+`rustBuilderError` out, the options handed to both builders, the tally rollback) are matched in its source.
+`--break` moves one coordinate of the Rust side's input only, by 1 mm: it must report MISMATCH on the POSITIONS (not only the normals;
+a 1e-9 nudge vanishes in float32 and the old break showed only in the normals) and exit 1. If the nudge ever fails to reach the position
+array the script exits 3 with `WEAK BREAK`, so a break that cannot bite is not mistaken for a gate that works.
+
+`rust-builder-timing.mjs` — **laptop only (timing).** Loads the real `index.html` in a fresh browser per run, switch off against on,
+interleaved, and prints `slopesApartments.count.ms`, the time the veil lifts, peak JS heap, peak browser RSS and (packed modes) the bytes
+uploaded to the GPU. Wrap it in `gpu-run.mjs`; quote the minimum, not the mean: other lanes share the machine.
+
+## The packed vertex layout (`?packverts=1`, added October 10 2026)
+
+The apartment meshes carry 55.7 bytes a vertex. With `?packverts=1` (default OFF) the builder writes the exact float32 position and ONE
+32-bit word that indexes a tone table (1,266 tones) and a normal table (94,312 flat normals), both float textures the vertex shader
+reads (`PACKED_TONES` in `js/slopes.js` VERT). Nothing is quantised.
+
+`packverts-decode.mjs` — **Node only, runs in CI.** The real `js/slopes.js` builds the Moontower's recorded calls and a synthetic set
+unpacked and packed; every packed vertex is decoded with VERT's own arithmetic and compared bit for bit (position, normal, three colours,
+surface, facet, index). `--break` corrupts one table entry and must fail. The whole 198-building catalog was checked the same way by
+`experiments/rust-mesh/profile/packed-end-to-end.mjs` (needs three.js outside the repo).
+
+`rust-packed-parity.mjs` — **Node only, runs in CI.** `?rustbuilder=1&packverts=1`: the Rust store (`lib.rs` `init_packed`, driven by
+`js/slopes-rust.js`) writes the packed layout itself. The real `js/slopes.js` runs the same calls through the JS packed store and the
+Rust packed store, each with its own tables, and demands identical `position`, `aPack` and index bytes AND identical tone table, normal
+table and tone key order (Moontower, the synthetic set, the extrude/polygon scenario, a tone/normal edge set, `buildChunked` with
+modules sharing one pair of tables, a Rust/JS/Rust chunk mix). It also holds the limits (exactly 2^14 tones and 2^17 normals build, one
+more is a `packOverflow` error that does not carry `rustBuilderError`) and decodes the Rust vertices the way VERT does against the
+unpacked build. `--break` nudges one Rust-side coordinate by 1 mm and must fail on the positions.
+
+`packverts-pixels.mjs` — the same cameras (`ci/poses.json`), switch off, on, and off again (the control), exact pixel compare;
+passes when "on" moves no more pixels than the control. `--phone` shoots the phone profile (390x844 @3x, `?lite=1`, chunked build),
+`--on "packverts=1&rustbuilder=1"` tries both switches, `--break` shoots "on" at a later hour and must fail.
+
+## The phone defaults and the fallbacks (`rust-load-fallbacks.mjs`, `pack-overflow-fallback.mjs`, added October 10 2026)
+
+`js/mobile.js` `LITE.budget.rustBuilder` and `packTones` (next to `packVertices`) turn the Rust builder and the packed vertex layout ON for the phone profile and leave them OFF on a desktop;
+`?rustbuilder=0|1` and `?packverts=0|1` override either way. Where the builder is off the `.wasm` is never fetched.
+
+`rust-load-fallbacks.mjs` — Node only, no browser, runs in CI. The real `js/slopes.js` is loaded the way the page loads it and one thing is broken at a time: the defaults
+(desktop, phone, each switch both ways, the fetch count), the `.wasm` loading (404, a blocked or failing fetch, bytes that are not WebAssembly, no WebAssembly at all, an out-of-memory
+instance), each ending in the JS builder with exactly one console line and the JS builder's bytes, unpacked and packed; a host serving the `.wasm` as `text/plain` and a browser without
+`compileStreaming`, which must still load it through the non-streaming path; and the byte-rule probe (no GL, a throwing context, a program that does not link, a throwing or garbage read-back,
+a pending GL error: the spec rule; a GPU that divides, one that multiplies by 1/255, one that is neither). `--break` nudges the JS result after each fallback and must fail.
+
+`pack-overflow-fallback.mjs` — needs three.js r159 outside the repo (SKIP without it; quarantined, run by hand). A packed build whose tone table overflows (`?packtonebits=4`, a test seam) is
+rebuilt unpacked: the same triangles, position and index bytes as the plain build, one console line. `--break` removes the overflow and must fail.
+
 ## Things that will waste your time if you don't know them
 
 - **`_harness.html` forces `preserveDrawingBuffer: true`.** That is the only way
