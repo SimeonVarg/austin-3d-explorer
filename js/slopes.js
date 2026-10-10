@@ -628,6 +628,9 @@
     uniform vec3 u_shopFloor;
     uniform vec3 u_shopMerch;
     uniform vec3 u_shopLight;
+    #ifdef DBG_STAGE
+    uniform float u_dbgStage;
+    #endif
     uniform float u_p;
     uniform float u_nightWallAmbient;
     ${window.CityLighting.uniforms}
@@ -683,6 +686,11 @@ ${window.RoofTiles.apply}
       glassResponse=day.a;
       #endif
       col=cityShade(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse)*baseColor.a;
+      #ifdef DBG_STAGE
+      if (u_dbgStage > .5 && u_dbgStage < 1.5) { gl_FragColor = vec4(col, 1.0); return; }
+      if (u_dbgStage > 1.5 && u_dbgStage < 2.5) { gl_FragColor = vec4(glassResponse, glazing, shop ? 1.0 : 0.0, 1.0); return; }
+      if (u_dbgStage > 2.5 && u_dbgStage < 3.5) { vec3 nn = normalize(v_normal), vv = normalize(u_eye - v_pos); gl_FragColor = vec4(abs(dot(nn, vv)), max(dot(nn, u_sunDirection), 0.0), u_sunPresence.x, 1.0); return; }
+      #endif
       float opaqueWall=(kind<3.5||kind>6.5)?1.0:0.0;
       #ifdef FACADE_FILTER
       opaqueWall=1.0-glazing;
@@ -1971,7 +1979,7 @@ ${window.RoofTiles.apply}
       u_weatherScale:{value:new T.Vector4()},u_weatherTone:{value:new T.Vector3()},
       u_shopClosedAmbient:{value:.06},u_shopShelfTop:{value:.55},u_shopRoom:{value:new T.Vector4()},u_shopStyle:{value:new T.Vector4()},u_shopCeiling:{value:new T.Vector4()},
       u_shopWall:{value:new T.Vector3()},u_shopFloor:{value:new T.Vector3()},u_shopMerch:{value:new T.Vector3()},u_shopLight:{value:new T.Vector3()},
-      u_materialP:{value:.5},u_nightLamps:{value:-1},u_nightWallAmbient:{value:0},u_glassStrength:{value:1},u_sunlight:{value:new T.Vector4()},u_sunDirection:{value:new T.Vector3()},
+      u_materialP:{value:.5},u_dbgStage:{value:0},u_nightLamps:{value:-1},u_nightWallAmbient:{value:0},u_glassStrength:{value:1},u_sunlight:{value:new T.Vector4()},u_sunDirection:{value:new T.Vector3()},
       u_sunColour:{value:new T.Vector3()},u_shadeColour:{value:new T.Vector3()},
       u_skyZenith:{value:new T.Vector3()},u_skyHorizon:{value:new T.Vector3()},
       u_sunsetColour:{value:new T.Vector3()},u_groundColour:{value:new T.Vector3()},

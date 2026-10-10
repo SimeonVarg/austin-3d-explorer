@@ -1,0 +1,306 @@
+{
+ "totalTriangles": 3113629,
+ "pieces": 16635,
+ "results": [
+  {
+   "label": "v0 (bays/flat, even floors)",
+   "caps": [],
+   "lostGlassTriangles": 0,
+   "lostGlassBuildings": 0,
+   "lostGlassIds": [],
+   "coveredTriangles": 222290,
+   "coveredPct": 7.14,
+   "coveredPieces": 9188,
+   "windowsCovered": 12323,
+   "windowMismatchPieces": 0,
+   "pictureSamples": 998313,
+   "pictureMismatchPct": 0,
+   "picturePieces": 8844,
+   "examples": []
+  },
+  {
+   "label": "floors",
+   "caps": [
+    "floors"
+   ],
+   "lostGlassTriangles": 0,
+   "lostGlassBuildings": 0,
+   "lostGlassIds": [],
+   "coveredTriangles": 259984,
+   "coveredPct": 8.35,
+   "coveredPieces": 9231,
+   "windowsCovered": 14933,
+   "windowMismatchPieces": 0,
+   "pictureSamples": 998313,
+   "pictureMismatchPct": 0,
+   "picturePieces": 8886,
+   "examples": []
+  },
+  {
+   "label": "frame",
+   "caps": [
+    "floors",
+    "frame"
+   ],
+   "lostGlassTriangles": 0,
+   "lostGlassBuildings": 0,
+   "lostGlassIds": [],
+   "coveredTriangles": 377696,
+   "coveredPct": 12.13,
+   "coveredPieces": 9418,
+   "windowsCovered": 18583,
+   "windowMismatchPieces": 0,
+   "pictureSamples": 1017213,
+   "pictureMismatchPct": 0,
+   "picturePieces": 9073,
+   "examples": []
+  },
+  {
+   "label": "offsets",
+   "caps": [
+    "floors",
+    "frame",
+    "offsets"
+   ],
+   "lostGlassTriangles": 0,
+   "lostGlassBuildings": 0,
+   "lostGlassIds": [],
+   "coveredTriangles": 420594,
+   "coveredPct": 13.51,
+   "coveredPieces": 9555,
+   "windowsCovered": 21223,
+   "windowMismatchPieces": 0,
+   "pictureSamples": 1024863,
+   "pictureMismatchPct": 0,
+   "picturePieces": 9210,
+   "examples": []
+  },
+  {
+   "label": "head",
+   "caps": [
+    "floors",
+    "frame",
+    "offsets",
+    "head"
+   ],
+   "lostGlassTriangles": 0,
+   "lostGlassBuildings": 0,
+   "lostGlassIds": [],
+   "coveredTriangles": 420594,
+   "coveredPct": 13.51,
+   "coveredPieces": 9555,
+   "windowsCovered": 21223,
+   "windowMismatchPieces": 0,
+   "pictureSamples": 1024863,
+   "pictureMismatchPct": 0,
+   "picturePieces": 9210,
+   "examples": []
+  },
+  {
+   "label": "accent",
+   "caps": [
+    "floors",
+    "frame",
+    "offsets",
+    "head",
+    "accent"
+   ],
+   "lostGlassTriangles": 0,
+   "lostGlassBuildings": 0,
+   "lostGlassIds": [],
+   "coveredTriangles": 510018,
+   "coveredPct": 16.38,
+   "coveredPieces": 10286,
+   "windowsCovered": 23863,
+   "windowMismatchPieces": 0,
+   "pictureSamples": 1024863,
+   "pictureMismatchPct": 0,
+   "picturePieces": 9210,
+   "examples": []
+  },
+  {
+   "label": "cols",
+   "caps": [
+    "floors",
+    "frame",
+    "offsets",
+    "head",
+    "accent",
+    "cols"
+   ],
+   "lostGlassTriangles": 0,
+   "lostGlassBuildings": 0,
+   "lostGlassIds": [],
+   "coveredTriangles": 513436,
+   "coveredPct": 16.49,
+   "coveredPieces": 10305,
+   "windowsCovered": 24040,
+   "windowMismatchPieces": 0,
+   "pictureSamples": 1024863,
+   "pictureMismatchPct": 0,
+   "picturePieces": 9224,
+   "examples": []
+  },
+  {
+   "label": "mullion",
+   "caps": [
+    "floors",
+    "frame",
+    "offsets",
+    "head",
+    "accent",
+    "cols",
+    "mullion"
+   ],
+   "lostGlassTriangles": 48044,
+   "lostGlassBuildings": 4,
+   "lostGlassIds": [
+    "41627514-f0ac-4268-8e08-b123aec9cac1",
+    "5e94c2db-4245-4db3-b5c0-9ed631bcd658",
+    "90cfca73-6957-41b4-bd3a-1a3f3f91a93e",
+    "dad49016-2331-4a81-8d6d-78da02dc8092"
+   ],
+   "coveredTriangles": 1258512,
+   "coveredPct": 40.42,
+   "coveredPieces": 13788,
+   "windowsCovered": 49936,
+   "windowMismatchPieces": 0,
+   "pictureSamples": 1547781,
+   "pictureMismatchPct": 0.218,
+   "picturePieces": 12720,
+   "examples": [
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|6: picture 36/150 [{\"s\":5.71,\"z\":21.75,\"want\":\"glass\",\"got\":\"trim\"},{\"s\":1.41,\"z\":19.81,\"want\":\"glass\",\"got\":\"trim\"}]",
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|8: picture 63/150 [{\"s\":0.73,\"z\":15.48,\"want\":\"glass\",\"got\":\"trim\"},{\"s\":1.19,\"z\":20.14,\"want\":\"glass\",\"got\":\"trim\"}]",
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|10: picture 46/150 [{\"s\":1.84,\"z\":2.56,\"want\":\"glass\",\"got\":\"trim\"},{\"s\":1.75,\"z\":1.2,\"want\":\"metal\",\"got\":\"trim\"}]",
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|12: picture 53/150 [{\"s\":2.18,\"z\":2.2,\"want\":\"glass\",\"got\":\"trim\"},{\"s\":1.1,\"z\":0.62,\"want\":\"glass\",\"got\":\"trim\"}]",
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|17: picture 36/150 [{\"s\":2.16,\"z\":8.04,\"want\":\"metal\",\"got\":\"trim\"},{\"s\":2.84,\"z\":19.13,\"want\":\"glass\",\"got\":\"trim\"}]",
+    "90cfca73-6957-41b4-bd3a-1a3f3f91a93e|tower|v0: picture 48/150 [{\"s\":15.25,\"z\":55.39,\"want\":\"trim\",\"got\":\"wall\"},{\"s\":23.11,\"z\":56.97,\"want\":\"glass\",\"got\":\"trim\"}]"
+   ]
+  },
+  {
+   "label": "spandrel",
+   "caps": [
+    "floors",
+    "frame",
+    "offsets",
+    "head",
+    "accent",
+    "cols",
+    "mullion",
+    "spandrel"
+   ],
+   "lostGlassTriangles": 48044,
+   "lostGlassBuildings": 4,
+   "lostGlassIds": [
+    "41627514-f0ac-4268-8e08-b123aec9cac1",
+    "5e94c2db-4245-4db3-b5c0-9ed631bcd658",
+    "90cfca73-6957-41b4-bd3a-1a3f3f91a93e",
+    "dad49016-2331-4a81-8d6d-78da02dc8092"
+   ],
+   "coveredTriangles": 1301648,
+   "coveredPct": 41.8,
+   "coveredPieces": 14342,
+   "windowsCovered": 50804,
+   "windowMismatchPieces": 0,
+   "pictureSamples": 1558881,
+   "pictureMismatchPct": 0.217,
+   "picturePieces": 12794,
+   "examples": [
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|6: picture 36/150 [{\"s\":5.71,\"z\":21.75,\"want\":\"glass\",\"got\":\"trim\"},{\"s\":1.41,\"z\":19.81,\"want\":\"glass\",\"got\":\"trim\"}]",
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|8: picture 63/150 [{\"s\":0.73,\"z\":15.48,\"want\":\"glass\",\"got\":\"trim\"},{\"s\":1.19,\"z\":20.14,\"want\":\"glass\",\"got\":\"trim\"}]",
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|10: picture 46/150 [{\"s\":1.84,\"z\":2.56,\"want\":\"glass\",\"got\":\"trim\"},{\"s\":1.75,\"z\":1.2,\"want\":\"metal\",\"got\":\"trim\"}]",
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|12: picture 53/150 [{\"s\":2.18,\"z\":2.2,\"want\":\"glass\",\"got\":\"trim\"},{\"s\":1.1,\"z\":0.62,\"want\":\"glass\",\"got\":\"trim\"}]",
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|17: picture 36/150 [{\"s\":2.16,\"z\":8.04,\"want\":\"metal\",\"got\":\"trim\"},{\"s\":2.84,\"z\":19.13,\"want\":\"glass\",\"got\":\"trim\"}]",
+    "90cfca73-6957-41b4-bd3a-1a3f3f91a93e|tower|v0: picture 48/150 [{\"s\":15.25,\"z\":55.39,\"want\":\"trim\",\"got\":\"wall\"},{\"s\":23.11,\"z\":56.97,\"want\":\"glass\",\"got\":\"trim\"}]"
+   ]
+  },
+  {
+   "label": "checker",
+   "caps": [
+    "floors",
+    "frame",
+    "offsets",
+    "head",
+    "accent",
+    "cols",
+    "mullion",
+    "spandrel",
+    "checker"
+   ],
+   "lostGlassTriangles": 48044,
+   "lostGlassBuildings": 4,
+   "lostGlassIds": [
+    "41627514-f0ac-4268-8e08-b123aec9cac1",
+    "5e94c2db-4245-4db3-b5c0-9ed631bcd658",
+    "90cfca73-6957-41b4-bd3a-1a3f3f91a93e",
+    "dad49016-2331-4a81-8d6d-78da02dc8092"
+   ],
+   "coveredTriangles": 1314524,
+   "coveredPct": 42.22,
+   "coveredPieces": 14352,
+   "windowsCovered": 51566,
+   "windowMismatchPieces": 0,
+   "pictureSamples": 1558882,
+   "pictureMismatchPct": 0.217,
+   "picturePieces": 12804,
+   "examples": [
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|6: picture 36/150 [{\"s\":5.71,\"z\":21.75,\"want\":\"glass\",\"got\":\"trim\"},{\"s\":1.41,\"z\":19.81,\"want\":\"glass\",\"got\":\"trim\"}]",
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|8: picture 63/150 [{\"s\":0.73,\"z\":15.48,\"want\":\"glass\",\"got\":\"trim\"},{\"s\":1.19,\"z\":20.14,\"want\":\"glass\",\"got\":\"trim\"}]",
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|10: picture 46/150 [{\"s\":1.84,\"z\":2.56,\"want\":\"glass\",\"got\":\"trim\"},{\"s\":1.75,\"z\":1.2,\"want\":\"metal\",\"got\":\"trim\"}]",
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|12: picture 53/150 [{\"s\":2.18,\"z\":2.2,\"want\":\"glass\",\"got\":\"trim\"},{\"s\":1.1,\"z\":0.62,\"want\":\"glass\",\"got\":\"trim\"}]",
+    "41627514-f0ac-4268-8e08-b123aec9cac1|residence|17: picture 36/150 [{\"s\":2.16,\"z\":8.04,\"want\":\"metal\",\"got\":\"trim\"},{\"s\":2.84,\"z\":19.13,\"want\":\"glass\",\"got\":\"trim\"}]",
+    "90cfca73-6957-41b4-bd3a-1a3f3f91a93e|tower|v0: picture 48/150 [{\"s\":15.25,\"z\":55.39,\"want\":\"trim\",\"got\":\"wall\"},{\"s\":23.11,\"z\":56.97,\"want\":\"glass\",\"got\":\"trim\"}]"
+   ]
+  }
+ ],
+ "blocking": [
+  [
+   "band openings",
+   239660
+  ],
+  [
+   "kind pixel",
+   237300
+  ],
+  [
+   "kind storefront",
+   182208
+  ],
+  [
+   "window arch",
+   83372
+  ],
+  [
+   "kind mod4",
+   80040
+  ],
+  [
+   "pier",
+   77076
+  ],
+  [
+   "louvre",
+   44794
+  ],
+  [
+   "fields",
+   40848
+  ],
+  [
+   "bands",
+   24658
+  ],
+  [
+   "inset balcony",
+   6700
+  ],
+  [
+   "fins",
+   6032
+  ],
+  [
+   "windowSkip",
+   744
+  ]
+ ]
+}

@@ -1,0 +1,30 @@
+{
+ "totalTriangles": 3113629,
+ "takenTriangles": 1143534,
+ "takenPct": 36.73,
+ "pieces": 16635,
+ "taken": 13987,
+ "refused": {
+  "facade-filter building": 353,
+  "louvre": 87,
+  "kind storefront": 533,
+  "pier": 76,
+  "bands": 158,
+  "band openings": 737,
+  "kind pixel": 311,
+  "cols overlap": 8,
+  "self-check": 62,
+  "windowSkip": 3,
+  "accent tones": 17,
+  "fields": 15,
+  "cut": 56,
+  "fins": 18,
+  "arch": 135,
+  "rows overlap": 4,
+  "mullion count": 75
+ },
+ "pictureSamples": 688984,
+ "pictureMismatch": 3331,
+ "nightSamples": 74847,
+ "nightMismatch": 0
+}

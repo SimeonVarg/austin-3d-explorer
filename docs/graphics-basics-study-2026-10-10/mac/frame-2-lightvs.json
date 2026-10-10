@@ -1,0 +1,859 @@
+{
+ "when": "2026-10-10T15:09:36.082Z",
+ "host": "Simeons-MacBook-Pro.local",
+ "loadAtStart": [
+  7.82958984375,
+  11.6962890625,
+  13.9814453125
+ ],
+ "frames": 45,
+ "reps": [
+  {
+   "rep": 0,
+   "arms": {
+    "a": {
+     "query": "",
+     "views": {
+      "spawn": {
+       "n": 40,
+       "min": 84.4,
+       "p50": 110.9,
+       "p90": 132.7,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6290705,
+       "aptDrawnTriangles": 2675769,
+       "aptTotalTriangles": 3116469,
+       "load1": 24.7
+      },
+      "west-campus": {
+       "n": 40,
+       "min": 82.4,
+       "p50": 99.2,
+       "p90": 136.5,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6612583,
+       "aptDrawnTriangles": 3096428,
+       "aptTotalTriangles": 3116469,
+       "load1": 23.8
+      },
+      "high": {
+       "n": 40,
+       "min": 77.6,
+       "p50": 90,
+       "p90": 108.2,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 5954966,
+       "aptDrawnTriangles": 3116469,
+       "aptTotalTriangles": 3116469,
+       "load1": 21.6
+      }
+     },
+     "milestones": {
+      "map": 904,
+      "last": {
+       "map": true,
+       "styleLoaded": false,
+       "veil": true,
+       "reason": "ceiling",
+       "slopes": true,
+       "done": true,
+       "ready": true,
+       "n": 198,
+       "tris": 3116469,
+       "frames": 104
+      },
+      "apartmentsDone": 11119,
+      "veilGone": 44735,
+      "ready": 44735
+     },
+     "mesh": {
+      "meshes": 1,
+      "vertices": 6529189,
+      "triangles": 3116469,
+      "vertexBytes": 326459450,
+      "bytesPerVertex": 50
+     },
+     "errors": []
+    },
+    "e": {
+     "query": "lightvs=1",
+     "views": {
+      "spawn": {
+       "n": 40,
+       "min": 96.8,
+       "p50": 109,
+       "p90": 145,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6368749,
+       "aptDrawnTriangles": 2675769,
+       "aptTotalTriangles": 3116469,
+       "load1": 39.4
+      },
+      "west-campus": {
+       "n": 40,
+       "min": 81.7,
+       "p50": 93.1,
+       "p90": 106.5,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6612583,
+       "aptDrawnTriangles": 3096428,
+       "aptTotalTriangles": 3116469,
+       "load1": 39.9
+      },
+      "high": {
+       "n": 40,
+       "min": 77.7,
+       "p50": 88.7,
+       "p90": 104.7,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 5954966,
+       "aptDrawnTriangles": 3116469,
+       "aptTotalTriangles": 3116469,
+       "load1": 37.2
+      }
+     },
+     "milestones": {
+      "map": 741,
+      "last": {
+       "map": true,
+       "styleLoaded": true,
+       "veil": true,
+       "reason": "ceiling",
+       "slopes": true,
+       "done": true,
+       "ready": true,
+       "n": 198,
+       "tris": 3116469,
+       "frames": 104
+      },
+      "apartmentsDone": 22722,
+      "styleLoaded": 47881,
+      "veilGone": 47881,
+      "ready": 47881
+     },
+     "mesh": {
+      "meshes": 1,
+      "vertices": 6529189,
+      "triangles": 3116469,
+      "vertexBytes": 326459450,
+      "bytesPerVertex": 50
+     },
+     "errors": []
+    },
+    "c": {
+     "query": "packverts=1",
+     "views": {
+      "spawn": {
+       "n": 40,
+       "min": 72.2,
+       "p50": 88.6,
+       "p90": 103.4,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6290705,
+       "aptDrawnTriangles": 2675769,
+       "aptTotalTriangles": 3116469,
+       "load1": 23.9
+      },
+      "west-campus": {
+       "n": 40,
+       "min": 63,
+       "p50": 72.1,
+       "p90": 88.9,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6612583,
+       "aptDrawnTriangles": 3096428,
+       "aptTotalTriangles": 3116469,
+       "load1": 20.6
+      },
+      "high": {
+       "n": 40,
+       "min": 57.2,
+       "p50": 67.2,
+       "p90": 79.2,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 5954966,
+       "aptDrawnTriangles": 3116469,
+       "aptTotalTriangles": 3116469,
+       "load1": 19.5
+      }
+     },
+     "milestones": {
+      "map": 891,
+      "last": {
+       "map": true,
+       "styleLoaded": true,
+       "veil": false,
+       "reason": "ceiling",
+       "slopes": true,
+       "done": true,
+       "ready": true,
+       "n": 198,
+       "tris": 3116469,
+       "frames": 125
+      },
+      "apartmentsDone": 13395,
+      "styleLoaded": 39216,
+      "veilGone": 39216,
+      "ready": 39216
+     },
+     "mesh": {
+      "meshes": 1,
+      "vertices": 6529189,
+      "triangles": 3116469,
+      "vertexBytes": 104467024,
+      "bytesPerVertex": 16
+     },
+     "errors": []
+    },
+    "g": {
+     "query": "packverts=1&lightvs=1",
+     "views": {
+      "spawn": {
+       "n": 40,
+       "min": 72.1,
+       "p50": 91.2,
+       "p90": 112.4,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6290705,
+       "aptDrawnTriangles": 2675769,
+       "aptTotalTriangles": 3116469,
+       "load1": 26.3
+      },
+      "west-campus": {
+       "n": 40,
+       "min": 62.9,
+       "p50": 72,
+       "p90": 90.5,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6612583,
+       "aptDrawnTriangles": 3096428,
+       "aptTotalTriangles": 3116469,
+       "load1": 27.9
+      },
+      "high": {
+       "n": 40,
+       "min": 54,
+       "p50": 58.5,
+       "p90": 75.1,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 5954966,
+       "aptDrawnTriangles": 3116469,
+       "aptTotalTriangles": 3116469,
+       "load1": 26
+      }
+     },
+     "milestones": {
+      "map": 860,
+      "last": {
+       "map": true,
+       "styleLoaded": true,
+       "veil": false,
+       "reason": "ceiling",
+       "slopes": true,
+       "done": true,
+       "ready": true,
+       "n": 198,
+       "tris": 3116469,
+       "frames": 121
+      },
+      "apartmentsDone": 13934,
+      "styleLoaded": 42091,
+      "veilGone": 42091,
+      "ready": 42091
+     },
+     "mesh": {
+      "meshes": 1,
+      "vertices": 6529189,
+      "triangles": 3116469,
+      "vertexBytes": 104467024,
+      "bytesPerVertex": 16
+     },
+     "errors": []
+    }
+   },
+   "load": [
+    7.82958984375,
+    21.58544921875,
+    37.154296875,
+    19.455078125
+   ]
+  },
+  {
+   "rep": 1,
+   "arms": {
+    "a": {
+     "query": "",
+     "views": {
+      "spawn": {
+       "n": 40,
+       "min": 82.5,
+       "p50": 103.2,
+       "p90": 116.7,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6290705,
+       "aptDrawnTriangles": 2675769,
+       "aptTotalTriangles": 3116469,
+       "load1": 14.8
+      },
+      "west-campus": {
+       "n": 40,
+       "min": 78.3,
+       "p50": 91.8,
+       "p90": 104.5,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6612583,
+       "aptDrawnTriangles": 3096428,
+       "aptTotalTriangles": 3116469,
+       "load1": 12.8
+      },
+      "high": {
+       "n": 40,
+       "min": 72.2,
+       "p50": 82.4,
+       "p90": 99.4,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 5954966,
+       "aptDrawnTriangles": 3116469,
+       "aptTotalTriangles": 3116469,
+       "load1": 12.3
+      }
+     },
+     "milestones": {
+      "last": {
+       "map": true,
+       "styleLoaded": true,
+       "veil": false,
+       "reason": "ceiling",
+       "slopes": true,
+       "done": true,
+       "ready": true,
+       "n": 198,
+       "tris": 3116469,
+       "frames": 100
+      },
+      "map": 1163,
+      "apartmentsDone": 8988,
+      "styleLoaded": 39489,
+      "veilGone": 39489,
+      "ready": 39489
+     },
+     "mesh": {
+      "meshes": 1,
+      "vertices": 6529189,
+      "triangles": 3116469,
+      "vertexBytes": 326459450,
+      "bytesPerVertex": 50
+     },
+     "errors": []
+    },
+    "e": {
+     "query": "lightvs=1",
+     "views": {
+      "spawn": {
+       "n": 40,
+       "min": 85.1,
+       "p50": 110.4,
+       "p90": 130.5,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6290705,
+       "aptDrawnTriangles": 2675769,
+       "aptTotalTriangles": 3116469,
+       "load1": 18.1
+      },
+      "west-campus": {
+       "n": 40,
+       "min": 81.7,
+       "p50": 93.6,
+       "p90": 110,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6612583,
+       "aptDrawnTriangles": 3096428,
+       "aptTotalTriangles": 3116469,
+       "load1": 15.8
+      },
+      "high": {
+       "n": 40,
+       "min": 75.1,
+       "p50": 88.9,
+       "p90": 111.9,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 5954966,
+       "aptDrawnTriangles": 3116469,
+       "aptTotalTriangles": 3116469,
+       "load1": 15.1
+      }
+     },
+     "milestones": {
+      "map": 770,
+      "last": {
+       "map": true,
+       "styleLoaded": true,
+       "veil": false,
+       "reason": "ceiling",
+       "slopes": true,
+       "done": true,
+       "ready": true,
+       "n": 198,
+       "tris": 3116469,
+       "frames": 101
+      },
+      "apartmentsDone": 15550,
+      "styleLoaded": 39705,
+      "veilGone": 39705,
+      "ready": 39705
+     },
+     "mesh": {
+      "meshes": 1,
+      "vertices": 6529189,
+      "triangles": 3116469,
+      "vertexBytes": 326459450,
+      "bytesPerVertex": 50
+     },
+     "errors": []
+    },
+    "c": {
+     "query": "packverts=1",
+     "views": {
+      "spawn": {
+       "n": 40,
+       "min": 67.2,
+       "p50": 81.7,
+       "p90": 98.4,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6290705,
+       "aptDrawnTriangles": 2675769,
+       "aptTotalTriangles": 3116469,
+       "load1": 13.8
+      },
+      "west-campus": {
+       "n": 40,
+       "min": 66,
+       "p50": 74,
+       "p90": 88.5,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6612583,
+       "aptDrawnTriangles": 3096428,
+       "aptTotalTriangles": 3116469,
+       "load1": 12.4
+      },
+      "high": {
+       "n": 40,
+       "min": 57.8,
+       "p50": 64.9,
+       "p90": 81.5,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 5954966,
+       "aptDrawnTriangles": 3116469,
+       "aptTotalTriangles": 3116469,
+       "load1": 12.3
+      }
+     },
+     "milestones": {
+      "map": 840,
+      "last": {
+       "map": true,
+       "styleLoaded": false,
+       "veil": false,
+       "reason": "ceiling",
+       "slopes": true,
+       "done": true,
+       "ready": true,
+       "n": 198,
+       "tris": 3116469,
+       "frames": 122
+      },
+      "apartmentsDone": 15713,
+      "styleLoaded": 44171,
+      "ready": 44171,
+      "veilGone": 44828
+     },
+     "mesh": {
+      "meshes": 1,
+      "vertices": 6529189,
+      "triangles": 3116469,
+      "vertexBytes": 104467024,
+      "bytesPerVertex": 16
+     },
+     "errors": []
+    },
+    "g": {
+     "query": "packverts=1&lightvs=1",
+     "views": {
+      "spawn": {
+       "n": 40,
+       "min": 68.7,
+       "p50": 86.7,
+       "p90": 104.4,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6290705,
+       "aptDrawnTriangles": 2675769,
+       "aptTotalTriangles": 3116469,
+       "load1": 16.7
+      },
+      "west-campus": {
+       "n": 40,
+       "min": 61.8,
+       "p50": 72.1,
+       "p90": 87.2,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6612583,
+       "aptDrawnTriangles": 3096428,
+       "aptTotalTriangles": 3116469,
+       "load1": 14.8
+      },
+      "high": {
+       "n": 40,
+       "min": 53.8,
+       "p50": 59.5,
+       "p90": 75.8,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 5954966,
+       "aptDrawnTriangles": 3116469,
+       "aptTotalTriangles": 3116469,
+       "load1": 13.5
+      }
+     },
+     "milestones": {
+      "map": 883,
+      "last": {
+       "map": true,
+       "styleLoaded": false,
+       "veil": true,
+       "reason": "ceiling",
+       "slopes": true,
+       "done": true,
+       "ready": true,
+       "n": 198,
+       "tris": 3116469,
+       "frames": 120
+      },
+      "apartmentsDone": 10992,
+      "veilGone": 44417,
+      "ready": 44417
+     },
+     "mesh": {
+      "meshes": 1,
+      "vertices": 6529189,
+      "triangles": 3116469,
+      "vertexBytes": 104467024,
+      "bytesPerVertex": 16
+     },
+     "errors": []
+    }
+   },
+   "load": [
+    26.01611328125,
+    12.29638671875,
+    15.0849609375,
+    12.2763671875
+   ]
+  },
+  {
+   "rep": 2,
+   "arms": {
+    "a": {
+     "query": "",
+     "views": {
+      "spawn": {
+       "n": 40,
+       "min": 83.3,
+       "p50": 103.9,
+       "p90": 120,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6290705,
+       "aptDrawnTriangles": 2675769,
+       "aptTotalTriangles": 3116469,
+       "load1": 14
+      },
+      "west-campus": {
+       "n": 40,
+       "min": 76.1,
+       "p50": 92.9,
+       "p90": 105.7,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6612583,
+       "aptDrawnTriangles": 3096428,
+       "aptTotalTriangles": 3116469,
+       "load1": 12.7
+      },
+      "high": {
+       "n": 40,
+       "min": 72.4,
+       "p50": 82.6,
+       "p90": 97.3,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 5954966,
+       "aptDrawnTriangles": 3116469,
+       "aptTotalTriangles": 3116469,
+       "load1": 12.8
+      }
+     },
+     "milestones": {
+      "last": {
+       "map": true,
+       "styleLoaded": true,
+       "veil": false,
+       "reason": "ceiling",
+       "slopes": true,
+       "done": true,
+       "ready": true,
+       "n": 198,
+       "tris": 3116469,
+       "frames": 106
+      },
+      "map": 1417,
+      "apartmentsDone": 13630,
+      "styleLoaded": 38403,
+      "veilGone": 38403,
+      "ready": 38403
+     },
+     "mesh": {
+      "meshes": 1,
+      "vertices": 6529189,
+      "triangles": 3116469,
+      "vertexBytes": 326459450,
+      "bytesPerVertex": 50
+     },
+     "errors": []
+    },
+    "e": {
+     "query": "lightvs=1",
+     "views": {
+      "spawn": {
+       "n": 40,
+       "min": 86.2,
+       "p50": 102.2,
+       "p90": 121,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6290705,
+       "aptDrawnTriangles": 2675769,
+       "aptTotalTriangles": 3116469,
+       "load1": 13.3
+      },
+      "west-campus": {
+       "n": 40,
+       "min": 83.8,
+       "p50": 96,
+       "p90": 109.6,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6612583,
+       "aptDrawnTriangles": 3096428,
+       "aptTotalTriangles": 3116469,
+       "load1": 12.9
+      },
+      "high": {
+       "n": 40,
+       "min": 72.3,
+       "p50": 82.5,
+       "p90": 98.3,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 5954966,
+       "aptDrawnTriangles": 3116469,
+       "aptTotalTriangles": 3116469,
+       "load1": 11.6
+      }
+     },
+     "milestones": {
+      "map": 790,
+      "last": {
+       "map": true,
+       "styleLoaded": true,
+       "veil": false,
+       "reason": "ceiling",
+       "slopes": true,
+       "done": true,
+       "ready": true,
+       "n": 198,
+       "tris": 3116469,
+       "frames": 110
+      },
+      "apartmentsDone": 14979,
+      "veilGone": 38143,
+      "styleLoaded": 39756,
+      "ready": 39756
+     },
+     "mesh": {
+      "meshes": 1,
+      "vertices": 6529189,
+      "triangles": 3116469,
+      "vertexBytes": 326459450,
+      "bytesPerVertex": 50
+     },
+     "errors": []
+    },
+    "c": {
+     "query": "packverts=1",
+     "views": {
+      "spawn": {
+       "n": 40,
+       "min": 70.5,
+       "p50": 86.8,
+       "p90": 111,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6290705,
+       "aptDrawnTriangles": 2675769,
+       "aptTotalTriangles": 3116469,
+       "load1": 13.3
+      },
+      "west-campus": {
+       "n": 40,
+       "min": 67,
+       "p50": 78.4,
+       "p90": 91.5,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6612583,
+       "aptDrawnTriangles": 3096428,
+       "aptTotalTriangles": 3116469,
+       "load1": 16.1
+      },
+      "high": {
+       "n": 40,
+       "min": 58.2,
+       "p50": 65.5,
+       "p90": 81,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 5954966,
+       "aptDrawnTriangles": 3116469,
+       "aptTotalTriangles": 3116469,
+       "load1": 15.8
+      }
+     },
+     "milestones": {
+      "map": 838,
+      "last": {
+       "map": true,
+       "styleLoaded": false,
+       "veil": true,
+       "reason": "idle",
+       "slopes": true,
+       "done": true,
+       "ready": true,
+       "n": 198,
+       "tris": 3116469,
+       "frames": 133
+      },
+      "apartmentsDone": 15393,
+      "veilGone": 40556,
+      "ready": 40556
+     },
+     "mesh": {
+      "meshes": 1,
+      "vertices": 6529189,
+      "triangles": 3116469,
+      "vertexBytes": 104467024,
+      "bytesPerVertex": 16
+     },
+     "errors": []
+    },
+    "g": {
+     "query": "packverts=1&lightvs=1",
+     "views": {
+      "spawn": {
+       "n": 40,
+       "min": 70.2,
+       "p50": 87.1,
+       "p90": 109.2,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6290705,
+       "aptDrawnTriangles": 2675769,
+       "aptTotalTriangles": 3116469,
+       "load1": 19.2
+      },
+      "west-campus": {
+       "n": 40,
+       "min": 62.2,
+       "p50": 70.5,
+       "p90": 87.5,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 6612583,
+       "aptDrawnTriangles": 3096428,
+       "aptTotalTriangles": 3116469,
+       "load1": 20.7
+      },
+      "high": {
+       "n": 40,
+       "min": 57.2,
+       "p50": 66.1,
+       "p90": 79.6,
+       "threeTriangles": 0,
+       "threeDraws": 0,
+       "mapTriangles": 5954966,
+       "aptDrawnTriangles": 3116469,
+       "aptTotalTriangles": 3116469,
+       "load1": 18.6
+      }
+     },
+     "milestones": {
+      "map": 960,
+      "last": {
+       "map": true,
+       "styleLoaded": true,
+       "veil": false,
+       "reason": "ceiling",
+       "slopes": true,
+       "done": true,
+       "ready": true,
+       "n": 198,
+       "tris": 3116469,
+       "frames": 111
+      },
+      "apartmentsDone": 16737,
+      "styleLoaded": 42960,
+      "veilGone": 42960,
+      "ready": 42960
+     },
+     "mesh": {
+      "meshes": 1,
+      "vertices": 6529189,
+      "triangles": 3116469,
+      "vertexBytes": 104467024,
+      "bytesPerVertex": 16
+     },
+     "errors": []
+    }
+   },
+   "load": [
+    13.53271484375,
+    12.814453125,
+    11.55078125,
+    15.8330078125
+   ]
+  }
+ ],
+ "summary": "see stdout"
+}
