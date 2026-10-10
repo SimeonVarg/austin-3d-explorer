@@ -8,7 +8,9 @@
        This script runs before any module parses its flags: it writes the few URL flags the shared modules already honour
        (the `f` table here, mirrored in js/air/params.js AIR.budget.flags), keeping the fragment (#g=... is a ghost link) and anything the visitor set. -->
   <script>(function () {
-    var q = new URLSearchParams(location.search), f = { intro: '0', drift: '0', finder: '0', walk: '0', campuslandscape: '0', labels: '0', namelabels: '0' };
+    var q = new URLSearchParams(location.search), f = { intro: '0', drift: '0', finder: '0', walk: '0', campuslandscape: '0', labels: '0', namelabels: '0', preset: 'balanced' };
+    // a phone keeps js/mobile.js's own profile (preset: performance); an explicit preset here would override it
+    try { if (window.matchMedia('(pointer: coarse)').matches) delete f.preset; } catch (e) {}
     for (var k in f) if (!q.has(k)) q.set(k, f[k]);
     try { history.replaceState(history.state, '', location.pathname + '?' + q.toString() + location.hash); } catch (e) {}
   })();</script>
@@ -84,6 +86,10 @@
   <script src="js/slopes-stadium.js"></script>
   <script src="js/outer-homes.js"></script>
   <script src="js/outer-trees.js"></script>
+
+  <!-- ?full=1: put back everything the air budget leaves out (the main page's whole city), so the frame-rate cost of
+       each saving can be measured against the same flight. Nothing here loads without the flag. -->
+  <script>if (/[?&]full=1/.test(location.search)) document.write(['signs', 'props', 'arts', 'campus-landscape', 'places', 'entrances', 'name-labels'].map(function (n) { return '<script src="js/' + n + '.js"><\/script>'; }).join(''));</script>
 
   <!-- Air Race: the budget (stubs for the modules left out, graphics overrides), then the game. js/air/game.js defines
        the global initControls() that js/app.js calls at its 'controls' step, in place of js/controls.js. -->

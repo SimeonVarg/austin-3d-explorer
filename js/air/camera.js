@@ -50,7 +50,7 @@
       if (!s.init) { s.ex = tx; s.ey = ty; s.ez = tz; s.init = true; }
       else { const kpos = 1 - exp(-dt / k.tauPos); s.ex += (tx - s.ex) * kpos; s.ey += (ty - s.ey) * kpos; s.ez += (tz - s.ez) * kpos; }
       const ch = cos(c.pitch * RAD);
-      const lx = c.x + sin(c.yaw * RAD) * ch * k.lookAheadM, ly = c.y + cos(c.yaw * RAD) * ch * k.lookAheadM, lz = c.z + sin(c.pitch * RAD) * k.lookAheadM;
+      const lx = c.x + sin(c.yaw * RAD) * ch * k.lookAheadM, ly = c.y + cos(c.yaw * RAD) * ch * k.lookAheadM, lz = c.z + sin(c.pitch * RAD) * k.lookAheadM - k.lookDropM;
       const dx = lx - s.ex, dy = ly - s.ey, dz = lz - s.ez;
       const bearing = Math.atan2(dx, dy) / RAD, elev = Math.atan2(dz, Math.hypot(dx, dy)) / RAD;
       const fovT = k.fovBase + (k.fovMax - k.fovBase) * clamp((c.v - P.flight.vCruise) / (P.flight.vMax - P.flight.vCruise), 0, 1);

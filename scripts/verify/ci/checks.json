@@ -10,6 +10,10 @@
   "default_est_s": 180,
   "_run": "Per-script settings for scripts that DO run. args may use {out}, which becomes that script's artifact folder. est_s is the runtime measured on a GitHub runner; it only balances the shards. timeout_s is the kill ceiling.",
   "run": {
+    "air-course.mjs": { "est_s": 30 },
+    "air-flight.mjs": { "est_s": 12 },
+    "air-ghost.mjs": { "est_s": 20 },
+    "air-race.mjs": { "est_s": 5 },
     "analytics-check.mjs": {"est_s": 60},
     "apartment-area-filter.mjs": {"est_s": 10},
     "apartment-areas.mjs": {"est_s": 10},
@@ -260,6 +264,7 @@
   },
   "_tools": "Not checks: no path to a non-zero exit (they photograph or print), or they need inputs only a human supplies (two checkouts, a PNG, a plan file). Running them proves nothing.",
   "tools": {
+    "air-run.mjs": "tool, no verdict (frames, stills and the clip of the Air Race page; run by hand on the laptop or Colab, docs/air-race.md)",
     "perf-frame-profile.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): scripts/perf wrapper for the AWS GPU runner; measures frame time, no verdict",
     "perf-aws-suite.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): runs the scripts/perf tools in sequence on the AWS GPU runner, no verdict",
     "perf-load-profile.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): scripts/perf wrapper for the AWS GPU runner; measures cold-load time, no verdict",

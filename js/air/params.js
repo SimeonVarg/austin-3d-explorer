@@ -60,7 +60,8 @@
       tauYaw: 0.16,                          // s, heading lag
       tauPitch: 0.30,                        // s, pitch lag
       bankFollow: 0.40,                      // the camera rolls this share of the craft's bank
-      lookAheadM: 70,                        // m, the camera looks at a point this far ahead of the craft
+      lookAheadM: 70,                        // m, the camera looks at a point this far ahead of the craft...
+      lookDropM: 22,                         // ...and this far below it (a level craft is seen from about 14 degrees above)
       fovBase: 58, fovMax: 70,               // vertical FOV, deg, at cruise / at vMax
       pitchMin: 4, pitchMax: 86,             // MapLibre pitch limits for the chase (deg from straight down)
       maxPitchMap: 88,                       // app.js passes maxPitch 88
