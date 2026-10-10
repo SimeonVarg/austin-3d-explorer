@@ -148,7 +148,6 @@
     "walkmeter.mjs": {"est_s": 190},
     "wasm-mesh-parity.mjs": {"est_s": 20},
     "packverts-decode.mjs": {"est_s": 10},
-    "packverts-pixels.mjs": {"est_s": 1500, "timeout_s": 3600},
     "walkwidth.mjs": {"est_s": 160},
     "wallplane.mjs": {"est_s": 10},
     "westcampus-probe.mjs": {"est_s": 80},
@@ -156,6 +155,7 @@
   },
   "_quarantine": "Checks that do NOT run in CI, each with the reason. Broken on main itself, or cannot work without a GPU. Fix the check (or main), then delete its line here.",
   "quarantine": {
+    "packverts-pixels.mjs": "not a gate yet: run by hand on the laptop it moves 0 pixels in 5 of 10 views, 2 to 4 pixels by 1/255 in three day views and about 650 pixels (0.05%, at most 14/255) in two night views, against a control of 0 and 69 to 254. Find what moves at night (the byte-to-float conversion of the night colour is the suspect), then move it back to run",
     "build-worker-parity.mjs": "needs three.js r159 outside the repo (THREE_JS=...); prints SKIP without it. Run it by hand: the generator in a worker_thread builds the same bytes as on the main thread",
     "wallplane.mjs": "red on main, no browser needed (re-measured 2026-10-10): 14 doors float 0.6-6 m off the drawn wall against a ceiling of 12. The two new ones, GDC eid 165 (4.6 m) and EER eid 333 (4.9 m), were seated onto walls that 8396ee8 (2026-09-14) then moved: GDC_ATRIUM_RECESS 0.9 -> 5.0 m in bake_heroes.py, and the EER cage replaced by two glass planes. data/entrances.geojson (bake_entrances.py) was not re-seated after. A full bake_entrances.py run now stops at retire_gearing_court_entry (frozen eid 239, got 231), so the fix is a targeted re-seat of those two entrances, not a rebake. The GDC atrium line this script prints is informational (4.99 m BEHIND the brick) and is not what fails.",
     "facadegrid.mjs": "cannot score on main (exit 2): 'only 1 template grid(s) were testable. This self-check has decayed to the point of proving nothing'",
