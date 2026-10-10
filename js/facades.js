@@ -2192,6 +2192,7 @@
   // sizes, and only the prefilter differs. Drawing once and blurring three ways
   // is what keeps a three-tier atlas from costing three times the repaint.
   let _rawKey = null, _raw = null;
+  const _rawLru = new Map();   // WALL TIERS: the last few drawings, newest last
 
   /** Texels per repeat in the NEAR tier for one family. */
   function famRes(fam) { return RES * mulOf(fam); }
@@ -2204,9 +2205,21 @@
     // like it had no effect: the tile was correct and stale.
     const key = fam + '|' + bucketIdx + '|' + p + '|' + _zAnchor + '|' + (window.CityNight?.tune.windowScatter !== false);
     if (_rawKey === key) return _raw;
+    // WALL TIERS (see WALLTIERS): the two tiers of one combo are asked for by
+    // different tiles at different moments, so the one-deep cache above misses
+    // and the drawing would be made twice. A few drawings are kept instead.
+    const keep = WALLTIERS.on && WALLTIERS.rawCache > 0;
+    if (keep) {
+      const hit = _rawLru.get(key);
+      if (hit) { _rawLru.delete(key); _rawLru.set(key, hit); _rawKey = key; _raw = hit; WT.rawHits++; return hit; }
+    }
     const { d, RESF, mottle } = drawRaw(fam, bucketIdx, p);
     if (mottle) applyMottle(d, RESF, SCALE, mottle);
     _rawKey = key; _raw = d;
+    if (keep) {
+      _rawLru.set(key, d);
+      while (_rawLru.size > WALLTIERS.rawCache) _rawLru.delete(_rawLru.keys().next().value);
+    }
     return d;
   }
 
@@ -2606,6 +2619,9 @@
 
   /** Every tier's image for one combo, registered if missing. */
   function ensureImages(map, id, p) {
+    // WALL TIERS: nothing is painted here. The image is painted the first time a
+    // tile asks for it (lazyWallImage), at the hour and zoom anchor current then.
+    if (WALLTIERS.on) { WT.deferred++; return 0; }
     const { fam, idx } = parseId(id);
     let added = false;
     for (const t of TIERS) {
@@ -3634,7 +3650,7 @@
   // held in `palette` and can be re-elected under us (adoptBaked, a new
   // snapshot, registerFacadeBuckets). Anything that moves the palette or the
   // measured registry has to say so here or a stale tile survives forever.
-  window.facadeInvalidateAtlasSig = () => _imgSig.clear();
+  window.facadeInvalidateAtlasSig = () => { _imgSig.clear(); _rawLru.clear(); };
 
   // Combos OUTSIDE, tiers INSIDE, so rawTile's one-deep cache actually hits:
   // repainting three tiers costs ONE draw plus three resamples, not three draws.
@@ -3661,6 +3677,9 @@
     for (const tier of tiers) {
       const key = id + tier.id;
       if (_imgSig.get(key) === sig && map.hasImage && map.hasImage(key)) continue;
+      // WALL TIERS: an image no tile has asked for yet is not repainted into
+      // existence; it is painted when asked, at whatever hour is current then.
+      if (WALLTIERS.on && !(map.hasImage && map.hasImage(key))) continue;
       try {
         if (map.hasImage && map.hasImage(key)) map.updateImage(key, tileData(fam, idx, p, tier));
         else map.addImage(key, tileData(fam, idx, p, tier), { pixelRatio: tierPixelRatio(tier) });
@@ -3782,6 +3801,126 @@
   };
   ATLAS.PACE = PACE;
 
+  /**
+   * ══════════════════════════════════════════════════════════════════
+   *  WALL TIERS: PAINT A WALL IMAGE WHEN A TILE FIRST ASKS FOR IT
+   * ══════════════════════════════════════════════════════════════════
+   *
+   * WHAT IT COST (docs/speed-2026-10-09.md, rank 1). `initFacades` and every
+   * later registration (`registerFacadeBuckets`, `quantiseStadiumFacades`, the
+   * downtown towers) painted EVERY image of EVERY combo at boot, in this frame:
+   * the whole palette in both tiers, ~2.4 s of main thread on the loaded Mac
+   * (1.4 s on a quiet 8-core box, 5.3 s with the page main thread slowed 4x),
+   * and every time-of-day or zoom-anchor repaint then redrew the same set again
+   * in the background workers (about 22 s of worker CPU in one cold load).
+   * Most of it is never looked at: a tier is read only by tiles of its zooms
+   * (a tile at zoom z asks for the images the pattern step names at z-1, z and
+   * z+1, so the near tier is read only by tiles at z16 and above, and a
+   * downtown tower that is only ever seen from far away never needs its near
+   * image at all).
+   *
+   * WHAT THIS DOES INSTEAD, and none of it changes a pixel of any image:
+   *   - nothing is painted at registration; the combo is only recorded;
+   *   - MapLibre asks for an image by firing `styleimagemissing` from inside the
+   *     tile worker's request for its pattern images (`_getImagesForIds`, in
+   *     MapLibre 5.24.0 and before the tile gets its atlas), so the image is
+   *     painted RIGHT THEN, synchronously, with the same `tileData` the eager
+   *     path used, at the hour and zoom anchor current at that moment. The tile
+   *     therefore never sees a hole;
+   *   - the repaints (hour, zoom anchor; paced or not) touch only images that
+   *     exist, so a tier nobody asked for costs nothing, ever;
+   *   - the two tiers of one combo come from the same drawing, so the last few
+   *     drawings are kept (`rawCache`) instead of drawn twice.
+   *
+   * WHAT YOU SEE DIFFERENTLY: nothing at rest. While the page loads the images
+   * are painted as the tiles arrive instead of all at once before the first
+   * layer; later, a view that reaches a combo or tier not seen before paints it
+   * in that tile's arrival (a few ms per image) instead of finding it ready.
+   *
+   * Every threshold is here. `?walltiers=0` restores the eager path in the same
+   * checkout for an A/B; it is independent of `?facadepace=0`.
+   */
+  const WALLTIERS = {
+    on: !/[?&]walltiers=0(?:&|$)/.test(location.search),
+    // Drawings kept so the second tier of a combo does not draw it again.
+    // 6 mul-4 drawings are ~6 MB, 6 template drawings ~1.5 MB.
+    rawCache: 6,
+    // The stats object keeps this many of the slowest single paints, in ms.
+    slowKeep: 5,
+  };
+  ATLAS.WALLTIERS = WALLTIERS;
+  const WT = window.__facadeWallTiers = {
+    on: WALLTIERS.on, deferred: 0, painted: 0, paintedFar: 0, paintedNear: 0, paintMs: 0, paintMsMax: 0,
+    rawHits: 0, unknown: 0, failed: 0, workerMs: 0, workerCombos: 0, slow: [],
+  };
+  window.facadeWallTiersStats = () => ({
+    ...WT, slow: WT.slow.slice(), paintMs: Math.round(WT.paintMs * 10) / 10,
+    comboCount: combos.length, tierCount: TIERS.length,
+  });
+  /** Which combo and tier an image id names, if it names one of ours. */
+  function wallKeyInfo(key) {
+    if (typeof key !== 'string' || key.length < 3) return null;
+    // The longest suffix first, so a tier id that ends another is not mistaken for it.
+    let hit = null;
+    for (const t of TIERS) {
+      if (t.id && key.length > t.id.length && key.endsWith(t.id)) {
+        const base = key.slice(0, -t.id.length);
+        if (combos.indexOf(base) !== -1 && (!hit || t.id.length > hit.tier.id.length)) hit = { id: base, tier: t };
+      }
+    }
+    if (hit) return hit;
+    if (combos.indexOf(key) === -1) return null;
+    const near = TIERS.find(t => !t.id);
+    return near ? { id: key, tier: near } : null;
+  }
+  /**
+   * Paint one image, now. Called from `styleimagemissing`, i.e. from inside
+   * MapLibre's own image request for a tile, which looks the image up again
+   * straight after the event.
+   */
+  function lazyWallImage(map, key, info) {
+    const t0 = performance.now();
+    const { fam, idx } = parseId(info.id);
+    try {
+      map.addImage(key, tileData(fam, idx, _atlasP, info.tier), { pixelRatio: tierPixelRatio(info.tier) });
+      _imgSig.set(key, drawSig(fam, _atlasP));
+    } catch (e) {
+      WT.failed++;
+      if (!_warnedUpdate) { _warnedUpdate = true; console.warn('[facades] wall image failed on ' + key + ': ' + e.message); }
+      return;
+    }
+    const ms = performance.now() - t0;
+    WT.painted++; if (info.tier.id) WT.paintedFar++; else WT.paintedNear++;
+    WT.paintMs += ms;
+    if (ms > WT.paintMsMax) WT.paintMsMax = +ms.toFixed(2);
+    if (WT.slow.length < WALLTIERS.slowKeep || ms > WT.slow[WT.slow.length - 1][1]) {
+      WT.slow.push([key, +ms.toFixed(2)]);
+      WT.slow.sort((a, b) => b[1] - a[1]);
+      if (WT.slow.length > WALLTIERS.slowKeep) WT.slow.length = WALLTIERS.slowKeep;
+    }
+  }
+  function armWallTiers(map) {
+    if (!WALLTIERS.on || map.__facadeWallTiers) return;
+    map.__facadeWallTiers = true;
+    map.on('styleimagemissing', (e) => {
+      if (!e || map.hasImage(e.id)) return;
+      const info = wallKeyInfo(e.id);
+      if (!info) { WT.unknown++; return; }
+      lazyWallImage(map, e.id, info);
+    });
+  }
+  /** Paint every image that is missing, as the eager path did. Used by the verification entry points. */
+  function paintAllWallImages(map) {
+    if (!WALLTIERS.on) return;
+    for (const id of combos) {
+      for (const t of TIERS) {
+        const key = id + t.id;
+        if (!(map.hasImage && map.hasImage(key))) lazyWallImage(map, key, { id, tier: t });
+      }
+    }
+  }
+  window.facadePaintAllWallImages = (map) => paintAllWallImages(map);
+
   const _pace = {
     job: false, map: null, queue: [], queued: new Set(), inflight: new Map(),
     ready: [], raf: 0, timer: 0, lastMove: 0, seq: 0,
@@ -3809,9 +3948,17 @@
   function comboCurrent(map, id, sig) {
     for (const t of TIERS) {
       const key = id + t.id;
-      if (_imgSig.get(key) !== sig || !(map.hasImage && map.hasImage(key))) return false;
+      const has = !!(map.hasImage && map.hasImage(key));
+      if (!has && WALLTIERS.on) continue;      // not asked for yet: nothing to keep current
+      if (_imgSig.get(key) !== sig || !has) return false;
     }
     return true;
+  }
+
+  /** The tiers of a combo that hold an image now (all of them unless WALLTIERS is on). */
+  function presentTiers(map, id) {
+    if (!WALLTIERS.on) return TIERS;
+    return TIERS.filter(t => map.hasImage && map.hasImage(id + t.id));
   }
 
   /** Combo ids the in-view tiles' pattern atlases reference. */
@@ -3899,6 +4046,7 @@
   function facadePaintWorkerMain() {
     self.onmessage = function (e) {
       const j = e.data;
+      const w0 = typeof performance !== 'undefined' ? performance.now() : 0;
       try {
         const raw = new Uint8ClampedArray(j.raw);
         if (j.mottle) applyMottle(raw, j.RESF, j.SCALE, j.mottle);
@@ -3914,7 +4062,8 @@
           // El() of the same bytes, for the atlas patch MapLibre will do next.
           if (j.pm) pms.push(premultiplyInto(new Uint8Array(d.buffer), new Uint8Array(d.length)).buffer);
         }
-        self.postMessage({ seq: j.seq, outs: outs, pms: pms }, outs.concat(pms));
+        self.postMessage({ seq: j.seq, outs: outs, pms: pms,
+          ms: typeof performance !== 'undefined' ? performance.now() - w0 : 0 }, outs.concat(pms));
       } catch (err) {
         self.postMessage({ seq: j.seq, error: String((err && err.message) || err) });
       }
@@ -3990,6 +4139,7 @@
       paceKillPool();
       if (!_pace.queued.has(job.id)) { _pace.queue.unshift(job.id); _pace.queued.add(job.id); }
     } else {
+      WT.workerMs += msg.ms || 0; WT.workerCombos++;
       job.outs = msg.outs;
       job.pms = msg.pms || [];
       _pace.ready.push(job);
@@ -4010,7 +4160,7 @@
     const { fam, idx } = parseId(id);
     const { d, RESF, mottle } = drawRaw(fam, idx, _atlasP);
     const mul = mulOf(fam);
-    const tiers = TIERS.map(t => {
+    const tiers = presentTiers(_pace.map, id).map(t => {
       const sp = softenParams(fam, t);
       return { key: id + t.id, div: t.div, res: tierRes(t) * mul, r: sp.r, a: sp.a, pr: tierPixelRatio(t) };
     });
@@ -4039,6 +4189,7 @@
     for (let i = 0; i < job.tiers.length; i++) {
       const t = job.tiers[i], key = t.key;
       if (_imgSig.get(key) === job.sig && map.hasImage && map.hasImage(key)) continue;
+      if (WALLTIERS.on && !(map.hasImage && map.hasImage(key))) continue;
       const img = { width: t.res, height: t.res, data: new Uint8Array(job.outs[i]) };
       try {
         if (map.hasImage && map.hasImage(key)) map.updateImage(key, img);
@@ -4217,6 +4368,9 @@
       return _zAnchor;
     }
     _zPinned = true;
+    // Verification entry point: it repaints "every tier", so under WALL TIERS the
+    // images nobody has asked for yet are painted first, as the eager path had.
+    if (map) paintAllWallImages(map);
     const want = Math.max(REF_ZOOM, Math.min(ATLAS.MAX_ZOOM_ANCHOR, Math.floor(z)));
     if (want !== _zAnchor) {
       _zAnchor = want;
@@ -4243,6 +4397,9 @@
     try { window.facadeGridAudit(); } catch (e) { /* audit must never break init */ }
     _atlasP = p;
     _tierP.clear();
+    // WALL TIERS: the images are painted as tiles ask for them, so the handler
+    // has to be in place before the first layer that names a pattern.
+    armWallTiers(map);
     // ALL tiers at boot, not just the visible one: the `step` can select a tier
     // the moment the camera moves, and MapLibre paints an unregistered pattern
     // id transparent — a building-shaped hole, which is the failure mode
