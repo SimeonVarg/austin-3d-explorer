@@ -128,6 +128,21 @@ def push(mesh, q):
     mesh['triangles'].extend([[n, n + 1, n + 2], [n, n + 2, n + 3]])
 
 
+def face(mesh, q, normal):
+    """One quad, wound so that its front face looks along `normal` (counter-clockwise seen from the front, in the recipe's
+    u east, v north, z up frame). Every surface is drawn ONCE, facing the side that sees it: a second reversed copy would
+    be seen from behind (the dark-campus check counts those pixels) and would z-fight with the first."""
+    a, b, c = q[0], q[1], q[2]
+    ab = [b[i] - a[i] for i in range(3)]; ac = [c[i] - a[i] for i in range(3)]
+    nrm = [ab[1] * ac[2] - ab[2] * ac[1], ab[2] * ac[0] - ab[0] * ac[2], ab[0] * ac[1] - ab[1] * ac[0]]
+    if sum(nrm[i] * normal[i] for i in range(3)) < 0:
+        q = [q[0], q[3], q[2], q[1]]
+    push(mesh, q)
+
+
+S_, N_, E_, W_, UP, DN = (0, -1, 0), (0, 1, 0), (1, 0, 0), (-1, 0, 0), (0, 0, 1), (0, 0, -1)    # outward normals: south, north, east, west, up, down
+
+
 def box_quads(u0, u1, v0, v1, z0, z1):
     """Five outside faces of a box (not the back, which sits on the wall), as quads."""
     return {
@@ -177,28 +192,28 @@ def canopy_meshes():
     u0, u1 = CANOPY_U; v0, v1 = CANOPY_LIP_V, SOUTH_V
     k = (CANOPY_FACE_Z - CANOPY_LIP_Z) / (v1 - v0)
     zu = lambda v: CANOPY_LIP_Z + (v - v0) * k
-    def both(mesh, q):
-        push(mesh, q); push(mesh, list(reversed(q)))
     # no soffit plate: the sky shows between the fins, as in the photograph (a plate drew the whole canopy near-black from below)
-    both(dark, quad((u0, v0, zu(v0)), (u1, v0, zu(v0)), (u1, v0, zu(v0) + CANOPY_T + 0.1), (u0, v0, zu(v0) + CANOPY_T + 0.1)))   # lip fascia
-    both(dark, quad((u0, v0, zu(v0)), (u0, v1, zu(v1)), (u0, v1, zu(v1) + CANOPY_T), (u0, v0, zu(v0) + CANOPY_T)))            # west end
-    both(dark, quad((u1, v0, zu(v0)), (u1, v1, zu(v1)), (u1, v1, zu(v1) + CANOPY_T), (u1, v0, zu(v0) + CANOPY_T)))            # east end
+    face(dark, quad((u0, v0, zu(v0)), (u1, v0, zu(v0)), (u1, v0, zu(v0) + CANOPY_T + 0.1), (u0, v0, zu(v0) + CANOPY_T + 0.1)), S_)   # lip fascia
+    face(dark, quad((u0, v0, zu(v0)), (u0, v1, zu(v1)), (u0, v1, zu(v1) + CANOPY_T), (u0, v0, zu(v0) + CANOPY_T)), W_)            # west end
+    face(dark, quad((u1, v0, zu(v0)), (u1, v1, zu(v1)), (u1, v1, zu(v1) + CANOPY_T), (u1, v0, zu(v0) + CANOPY_T)), E_)            # east end
     n_fins = 0
     u = u0 + 0.1
     while u + SLAT_W <= u1 - 0.05:                                                       # fins: along v, hung just under the soffit's top skin
         zt = lambda v: zu(v) + CANOPY_T
-        both(fin, quad((u, v0, zt(v0)), (u + SLAT_W, v0, zt(v0)), (u + SLAT_W, v1, zt(v1)), (u, v1, zt(v1))))
-        both(fin, quad((u, v0, zu(v0)), (u + SLAT_W, v0, zu(v0)), (u + SLAT_W, v1, zu(v1)), (u, v1, zu(v1))))   # and the underside
+        face(fin, quad((u, v0, zt(v0)), (u + SLAT_W, v0, zt(v0)), (u + SLAT_W, v1, zt(v1)), (u, v1, zt(v1))), UP)
+        face(fin, quad((u, v0, zu(v0)), (u + SLAT_W, v0, zu(v0)), (u + SLAT_W, v1, zu(v1)), (u, v1, zu(v1))), DN)   # and the underside
         n_fins += 1; u += SLAT_PITCH
     for frac in (0.0, 1 / 3, 2 / 3, 1.0):                                                   # beams along the length, under the soffit
         v = v0 + frac * (v1 - v0) - (0.3 if frac == 1.0 else 0.0)
         for (da, db) in ((0.0, 0.3),):
-            both(dark, quad((u0, v + da, zu(v + da) - 0.4), (u1, v + da, zu(v + da) - 0.4), (u1, v + db, zu(v + db) - 0.4), (u0, v + db, zu(v + db) - 0.4)))
-            both(dark, quad((u0, v, zu(v)), (u1, v, zu(v)), (u1, v, zu(v) - 0.4), (u0, v, zu(v) - 0.4)))
+            face(dark, quad((u0, v + da, zu(v + da) - 0.4), (u1, v + da, zu(v + da) - 0.4), (u1, v + db, zu(v + db) - 0.4), (u0, v + db, zu(v + db) - 0.4)), DN)
+            face(dark, quad((u0, v, zu(v)), (u1, v, zu(v)), (u1, v, zu(v) - 0.4), (u0, v, zu(v) - 0.4)), S_)
+            face(dark, quad((u0, v + db, zu(v + db)), (u1, v + db, zu(v + db)), (u1, v + db, zu(v + db) - 0.4), (u0, v + db, zu(v + db) - 0.4)), N_)
     b = u0 + 1.0
     while b < u1 - 0.2:                                                                      # cross beams, one at every window pair
-        both(dark, quad((b, v0, zu(v0) - 0.3), (b + 0.25, v0, zu(v0) - 0.3), (b + 0.25, v1, zu(v1) - 0.3), (b, v1, zu(v1) - 0.3)))
-        both(dark, quad((b, v0, zu(v0)), (b, v1, zu(v1)), (b, v1, zu(v1) - 0.3), (b, v0, zu(v0) - 0.3)))
+        face(dark, quad((b, v0, zu(v0) - 0.3), (b + 0.25, v0, zu(v0) - 0.3), (b + 0.25, v1, zu(v1) - 0.3), (b, v1, zu(v1) - 0.3)), DN)
+        face(dark, quad((b, v0, zu(v0)), (b, v1, zu(v1)), (b, v1, zu(v1) - 0.3), (b, v0, zu(v0) - 0.3)), W_)
+        face(dark, quad((b + 0.25, v0, zu(v0)), (b + 0.25, v1, zu(v1)), (b + 0.25, v1, zu(v1) - 0.3), (b + 0.25, v0, zu(v0) - 0.3)), E_)
         b += BEAM_PITCH
     return [fin, dark], n_fins
 
@@ -336,24 +351,24 @@ def main():
                     continue
                 v0, v1 = SOUTH_V - HOOD_PROUD, SOUTH_V
                 # glass panel on the front, inside a frame of FRAME_T
-                push(hood_glass, quad((hl + FRAME_T, v0 - 0.005, za + FRAME_T), (hr - FRAME_T, v0 - 0.005, za + FRAME_T),
-                                      (hr - FRAME_T, v0 - 0.005, zb - FRAME_T), (hl + FRAME_T, v0 - 0.005, zb - FRAME_T)))
+                face(hood_glass, quad((hl + FRAME_T, v0 - 0.005, za + FRAME_T), (hr - FRAME_T, v0 - 0.005, za + FRAME_T),
+                                      (hr - FRAME_T, v0 - 0.005, zb - FRAME_T), (hl + FRAME_T, v0 - 0.005, zb - FRAME_T)), S_)
                 box = box_quads(hl, hr, v0, v1, za, zb)
-                push(hood_frame, quad(*box['top'])); push(hood_frame, quad(*box['west'])); push(hood_frame, quad(*box['east']))
+                face(hood_frame, quad(*box['top']), UP); face(hood_frame, quad(*box['west']), W_); face(hood_frame, quad(*box['east']), E_)
                 for (a, b, c_, e) in (((hl, v0, za), (hr, v0, za), (hr, v0, za + FRAME_T), (hl, v0, za + FRAME_T)),
                                       ((hl, v0, zb - FRAME_T), (hr, v0, zb - FRAME_T), (hr, v0, zb), (hl, v0, zb)),
                                       ((hl, v0, za), (hl + FRAME_T, v0, za), (hl + FRAME_T, v0, zb), (hl, v0, zb)),
                                       ((hr - FRAME_T, v0, za), (hr, v0, za), (hr, v0, zb), (hr - FRAME_T, v0, zb))):
-                    push(hood_frame, quad(a, b, c_, e))
-                push(hood_soffit, quad(*box['bottom']))
+                    face(hood_frame, quad(a, b, c_, e), S_)
+                face(hood_soffit, quad(*box['bottom']), DN)
                 # a thin dark sill under the pane
-                push(hood_frame, quad((wl, SOUTH_V - 0.08, z - SILL_T), (wr, SOUTH_V - 0.08, z - SILL_T), (wr, SOUTH_V - 0.08, z), (wl, SOUTH_V - 0.08, z)))
+                face(hood_frame, quad((wl, SOUTH_V - 0.08, z - SILL_T), (wr, SOUTH_V - 0.08, z - SILL_T), (wr, SOUTH_V - 0.08, z), (wl, SOUTH_V - 0.08, z)), S_)
                 n_hoods += 1
     d['detailMeshes'].extend([hood_glass, hood_frame, hood_soffit])
     ceil = {'id': 'hackerman-ceilings', 'tone': 'hackCeiling', 'vertices': [], 'triangles': []}    # the dark ceilings of both colonnade storeys
     for (zc, vb) in ((COLONNADE_TOP - FASCIA_H - 0.02, BACK_UPPER), (LOWER_CEIL - 0.02, BACK_LOWER)):
         for q in (quad((U_EAST_BLOCK[0], SOUTH_V + 0.05, zc), (U_EAST_BLOCK[1], SOUTH_V + 0.05, zc), (U_EAST_BLOCK[1], vb, zc), (U_EAST_BLOCK[0], vb, zc)),):
-            push(ceil, q); push(ceil, list(reversed(q)))
+            face(ceil, q, DN)
     d['detailMeshes'].append(ceil)
     n_old = drop_old_canopy_south(d)
     cm, n_slats = canopy_meshes()
