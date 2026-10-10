@@ -535,6 +535,9 @@
       if (el) el.textContent = 'Map data is unavailable. Please try again later.';
     }
 
+    // A browser with no WebGL makes MapLibre throw here. The error reaches window.onerror only as "Script error." (the
+    // library is a cross-origin script), so the loading card is told from this catch (A09).
+    try {
     map = new maplibregl.Map({
       container:'map', style:'https://tiles.openfreemap.org/styles/liberty',
       center:SPAWN.center, zoom:SPAWN.zoom, pitch:SPAWN.pitch, bearing:SPAWN.bearing,
@@ -561,6 +564,7 @@
       // (no budget) passes nothing and keeps MapLibre's viewport-sized cache.
       ...(PHONE_BUDGET && PHONE_BUDGET.tileCacheSize != null ? { maxTileCacheSize: PHONE_BUDGET.tileCacheSize } : {}),
     });
+    } catch (e) { if (window.loaderWebglFailed && /WebGL/i.test(String((e && e.message) || e))) window.loaderWebglFailed(); throw e; }
     window.__map = map;
     // MapLibre does not throw when the browser gives it no WebGL context: it fires an error nobody is listening for
     // yet and returns a map that never loads. Ask the canvas whether it holds a context (an existing one is
