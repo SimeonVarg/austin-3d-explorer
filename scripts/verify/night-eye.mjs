@@ -228,6 +228,7 @@ await stage('live', async () => {
   const L = TUNE.live;
   for (const [label, q, want] of [['shimmer on', 'twinkle=1', true], ['shimmer off', 'twinkle=0', false], ['frozen', 'nightfreeze=1&twinkle=1', false]]) {
     const page = await open(q); await settle(page, TUNE.poses[L.pose]);
+    await page.evaluate(() => window.dispatchEvent(new Event('pointermove')));   // someone is at the screen (the ticker stops after 5 idle minutes)
     const fps = await page.evaluate(sec => new Promise(r => { let n = 0; const m = window.__map; const f = () => n++; m.on('render', f); setTimeout(() => { m.off('render', f); r(n / sec); }, sec * 1000); }), L.seconds);
     data.live = data.live || {}; data.live[label] = +fps.toFixed(1);
     console.log(`live ${label.padEnd(12)} ${fps.toFixed(1)} frames a second on a parked camera`);
