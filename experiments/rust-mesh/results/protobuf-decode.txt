@@ -1,0 +1,4 @@
+vehiclepositions.pb: 372 bytes -> 4 vehicles, 0 trips; min 3.7 us per decode over 7 runs (102 MB/s)
+   scaled to the live feed (MEASURED rate, EXTRAPOLATED size): 20 KB -> 0.20 ms per poll
+tripupdates.pb: 2566 bytes -> 0 vehicles, 3 trips; min 40.6 us per decode over 7 runs (63 MB/s)
+   scaled to the live feed (MEASURED rate, EXTRAPOLATED size): 260 KB -> 4.11 ms per poll

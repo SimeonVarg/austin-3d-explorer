@@ -1,0 +1,20 @@
+{
+ "records": 8799,
+ "palette": 16,
+ "meshes": [
+  {
+   "vertices": 34994,
+   "indices": 52188,
+   "sha": {
+    "position": "fdb38e8694fb6f6bd3190db4ddc19d90840c5ab039028fdb8c8763e250216f18",
+    "normal": "4edb73d8ec2518425c4b4067deebc83289a533f0c55e2cd8243b2bfc3cc0c1e4",
+    "cDay": "e75917e797107857f44be5ac6adad4ed2f3bb7db886a60e5af612e3dccae2b08",
+    "cGold": "e4e5ba3af32241352a33fe3e51e81c4a0fb5df266040751a7d59688ea8eaddd2",
+    "cNight": "df6a1ec9beaec4f9fd3e11749e1e90c7578e716a49e410e7b9be462e879b15cd",
+    "aFacet": "034378e79d53445bdb2b477b9042bbafde8616ce5bbd0efdda08e4f44ecd8418",
+    "aSurface": "e4863e46339b0858594406c00e8886d1ee07ba7b3fe0eea1e38e6d716fa4e840",
+    "index": "d951cb775ac0f79ae07bad2a7af33c0ba5587b0022b327d5d62295d6dc54b884"
+   }
+  }
+ ]
+}
