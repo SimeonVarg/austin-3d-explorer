@@ -237,7 +237,7 @@ async function loadSlopes(search) {
   const apt = fs.readFileSync(path.join(REPO, 'js/slopes-apartments.js'), 'utf8');
   say(/S\.withRustFallback\(\s*async opts =>[\s\S]{0,400}buildOnce\(specs, area, opts\)/.test(apt), 'js/slopes-apartments.js build() runs buildOnce() inside slopes.withRustFallback()');
   say(/catch \(e\) \{[^}]{0,400}if \(e && e\.rustBuilderError\) throw e;[\s\S]{0,200}console\.error\('\[slopes-apartments\]'/.test(apt), 'its per-building catch lets a rustBuilderError out and only then logs and skips');
-  say(/S\.buildChunked\(chunkTris, !!BUD\.packVertices, rustOpts\) : S\.build\(undefined, rustOpts\)/.test(apt), 'both of its builders (plain and chunked) are made with the options the fallback passes');
+  say(/S\.buildChunked\(chunkTris, !!BUD\.packVertices, (rustOpts|buildOpts)\) : S\.build\(undefined, \1\)/.test(apt) && /buildOpts = pack \? \{ \.\.\.rustOpts, pack \} : rustOpts/.test(apt), 'both of its builders (plain and chunked) are made with the options the fallback passes');
   say(/untally\([\s\S]{0,200}area\.failed\.length = snap\.failed/.test(apt), 'a failed attempt takes back the area\'s tallies and failure list before the JS rebuild');
 }
 
