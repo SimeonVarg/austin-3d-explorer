@@ -35,6 +35,10 @@ export function rgbOf(png) {
 export function compareImages(a, b, { saveTo = null, labelA = 'app', labelB = 'prototype' } = {}) {
   if (a.width !== b.width || a.height !== b.height) throw new Error(`size mismatch ${a.width}x${a.height} vs ${b.width}x${b.height}`);
   const n = a.width * a.height, W = a.width, H = a.height;
+  // Defensive: leading rows of the APP picture with no background pixel at all are a sky, not buildings. Mask them on both sides.
+  let skyRows = 0;
+  for (let y = 0; y < H; y++) { let bgInRow = false; for (let x = 0; x < W; x += 3) { const i = y * W + x; if (Math.abs(a.rgb[i * 3] - LOOK.bg[0]) <= LOOK.bgTol && Math.abs(a.rgb[i * 3 + 1] - LOOK.bg[1]) <= LOOK.bgTol && Math.abs(a.rgb[i * 3 + 2] - LOOK.bg[2]) <= LOOK.bgTol) { bgInRow = true; break; } } if (bgInRow) break; skyRows++; }
+  if (skyRows > 0 && skyRows < H / 2) { a = { ...a, rgb: a.rgb.slice() }; b = { ...b, rgb: b.rgb.slice() }; for (let i = 0; i < skyRows * W; i++) for (let c = 0; c < 3; c++) { a.rgb[i * 3 + c] = LOOK.bg[c]; b.rgb[i * 3 + c] = LOOK.bg[c]; } } else skyRows = 0;
   const isBg = (img, i) => Math.abs(img.rgb[i * 3] - LOOK.bg[0]) <= LOOK.bgTol && Math.abs(img.rgb[i * 3 + 1] - LOOK.bg[1]) <= LOOK.bgTol && Math.abs(img.rgb[i * 3 + 2] - LOOK.bg[2]) <= LOOK.bgTol;
   let ma = 0, mb = 0, both = 0, uni = 0, over = 0, overUnion = 0, sumAbs = 0, sumAbsBoth = 0, maxd = 0, onlyA = 0, onlyB = 0;
   const luma = (img, i) => 0.2126 * img.rgb[i * 3] + 0.7152 * img.rgb[i * 3 + 1] + 0.0722 * img.rgb[i * 3 + 2];
@@ -64,7 +68,7 @@ export function compareImages(a, b, { saveTo = null, labelA = 'app', labelB = 'p
     ssimSum += ((2 * mua * mub + C1) * (2 * cov + C2)) / ((mua * mua + mub * mub + C1) * (va + vb + C2)); ssimN++;
   }
   const r = {
-    buildingPctApp: +(100 * ma / n).toFixed(3), buildingPctProto: +(100 * mb / n).toFixed(3),
+    skyRowsMasked: skyRows, buildingPctApp: +(100 * ma / n).toFixed(3), buildingPctProto: +(100 * mb / n).toFixed(3),
     showsBuildings: 100 * uni / n > LOOK.minBuildingPct,
     pctOverWholeFrame: +(100 * over / n).toFixed(4),                       // the CI definition (diluted by the empty background)
     pctOverOnBuildings: uni ? +(100 * overUnion / uni).toFixed(2) : null,  // of pixels that are a building in either picture

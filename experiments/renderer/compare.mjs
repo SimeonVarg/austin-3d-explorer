@@ -76,6 +76,8 @@ async function shootApp() {
         m.jumpTo({ center: p.center, zoom: p.zoom, pitch: p.pitch, bearing: p.bearing });
         const sl = document.getElementById('tod-slider'); if (sl) sl.value = String(p.p);
         window.applyTimeOfDay(m, p.p);
+        // the hour change re-sets MapLibre's own sky; put it back to the background colour
+        try { m.setSky({ 'sky-color': '#ff00ff', 'horizon-color': '#ff00ff', 'fog-color': '#ff00ff', 'sky-horizon-blend': 0, 'horizon-fog-blend': 0, 'fog-ground-blend': 0, 'atmosphere-blend': 0 }); } catch (e) {}
       }, { p });
       await isolate();
       await page.waitForTimeout(2500);
