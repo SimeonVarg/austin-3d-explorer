@@ -65,7 +65,9 @@ async function beforeFiles() {
 }
 
 async function shoot(side, swap) {
-  const browser = await launch(chromium);
+  // Eighteen views with their waits take longer than the launcher's default 5 minute
+  // watchdog (the first laptop run was killed one view short of the end of BEFORE).
+  const browser = await launch(chromium, { maxMs: Number(process.env.VERIFY_MAX_MS) || 1200000 });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   const errors = [];
   page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
