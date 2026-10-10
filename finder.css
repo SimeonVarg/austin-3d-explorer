@@ -147,6 +147,10 @@
 .fd-foot { padding: 10px 18px 12px; border-top: 1px solid var(--fd-edge-soft); }
 .fd-heat { display: flex; align-items: center; gap: 7px; cursor: pointer; color: var(--fd-dim); }
 .fd-heat input { accent-color: var(--fd-accent); margin: 0; }
+.fd-livebuses { display: flex; align-items: center; gap: 7px; cursor: pointer; color: var(--fd-dim); margin-top: 7px; }
+.fd-livebuses[hidden], .fd-livebuses-note[hidden] { display: none; }
+.fd-livebuses input { accent-color: var(--fd-accent); margin: 0; }
+.fd-livebuses-note { margin: 5px 0 0 22px; color: var(--fd-dimmer); font-size: 9.5px; line-height: 1.35; }
 .fd-legend { margin-top: 8px; }
 .fd-legend-title { font-size: var(--fd-small); color: var(--fd-dimmer); margin-bottom: 4px; }
 .fd-ramp { height: 8px; border-radius: 4px; }
@@ -173,6 +177,8 @@
   color: var(--fd-ink); font: 600 11px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .4); pointer-events: none; }
 .fd-dest b { color: var(--fd-accent); }
+/* a board / get-off tag under a bus stop: the dest tag, with the route's colour on its edge (set inline) */
+.fd-stoptag { border-width: 2px; font-weight: 600; }
 
 /* ── the compare tray ── */
 #fd-tray { position: fixed; z-index: var(--fd-z); left: calc(2 * var(--fd-inset) + var(--fd-w)); bottom: var(--fd-tray-bottom);

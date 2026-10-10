@@ -164,7 +164,8 @@
     bake: null, bakeP: null, idx: null, flying: new Set(),
     veh: { feed: null, fetchedAt: 0, ok: false, error: null, fails: 0, timer: 0, busy: false, list: [] },
     trp: { feed: null, fetchedAt: 0, ok: false, error: null, fails: 0, timer: 0, busy: false, byStop: new Map(), cancelled: new Map() },
-    listeners: [], map: null, mapSt: null, visFn: null
+    listeners: [], map: null, mapSt: null, visFn: null,
+    only: null, layers: null     // attach() options: draw only these routes (short names or ids) / only these layers
   };
   const now = () => (S.opts && S.opts.now ? S.opts.now() : Date.now());
   const cfg = () => Object.assign({}, P, S.opts || {});
@@ -452,12 +453,16 @@
       out.push({ type: 'Feature', properties: { route: R[rid].short, color: R[rid].color }, geometry: { type: 'LineString', coordinates: d.shape } });
     return fc(out);
   }
-  function vehiclesGeo() {
+  /* The buses as GeoJSON. `only`: undefined = whatever attach()/setRoutes() chose (default: every route), null = every
+     route, or an array of route short names / ids (the finder draws only the routes of the trip on screen). */
+  function vehiclesGeo(only) {
     const R = S.bake && S.bake.routes || {}, p = cfg();
+    const want = only === undefined ? S.only : only ? new Set(only.map(String)) : null;
     // The feed failed or is older than vehicleStaleS: those dots are where the buses WERE. 'hide' (the default) draws none;
     // 'dim' draws them faded (feature property old: true, opacity staleOpacity).
     const old = !state().ok;
-    const list = !old ? S.veh.list : p.staleVehicles === 'dim' ? S.veh.list : [];
+    let list = !old ? S.veh.list : p.staleVehicles === 'dim' ? S.veh.list : [];
+    if (want) list = list.filter(v => want.has(String(v.route)) || (R[v.route] && want.has(String(R[v.route].short))));
     return fc(list.map(v => ({ type: 'Feature', properties: { id: v.id, route: R[v.route] ? R[v.route].short : v.route || '',
       color: (R[v.route] && R[v.route].color) || p.vehicleDefaultColor, bearing: v.bearing == null ? 0 : v.bearing, old },
       geometry: { type: 'Point', coordinates: [v.lon, v.lat] } })));
@@ -472,12 +477,13 @@
   function addLayers(map) {
     const p = cfg(), b = p.beforeLayer && map.getLayer(p.beforeLayer) ? p.beforeLayer : undefined;
     const add = (l) => { if (!map.getLayer(l.id)) map.addLayer(l, b); };
-    ['stops', 'lines', 'vehicles'].forEach(k => { if (!map.getSource(id(k))) map.addSource(id(k), { type: 'geojson', data: fc([]) }); });
-    map.getSource(id('stops')).setData(stopsGeo());
-    map.getSource(id('lines')).setData(linesGeo());
-    add({ id: id('lines'), type: 'line', source: id('lines'), layout: { visibility: p.showLines ? 'visible' : 'none', 'line-cap': 'round', 'line-join': 'round' },
+    const wants = k => !S.layers || S.layers.indexOf(k) >= 0;     // attach(map, {layers: ['vehicles']}) adds only the buses
+    ['stops', 'lines', 'vehicles'].filter(wants).forEach(k => { if (!map.getSource(id(k))) map.addSource(id(k), { type: 'geojson', data: fc([]) }); });
+    if (wants('stops')) map.getSource(id('stops')).setData(stopsGeo());
+    if (wants('lines')) map.getSource(id('lines')).setData(linesGeo());
+    if (wants('lines')) add({ id: id('lines'), type: 'line', source: id('lines'), layout: { visibility: p.showLines ? 'visible' : 'none', 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': ['get', 'color'], 'line-width': p.lineWidth, 'line-opacity': p.lineOpacity } });
-    add({ id: id('stops'), type: 'circle', source: id('stops'), minzoom: p.stopMinZoom,
+    if (wants('stops')) add({ id: id('stops'), type: 'circle', source: id('stops'), minzoom: p.stopMinZoom,
       paint: { 'circle-radius': zoomStops(p.stopRadius), 'circle-color': p.stopColor, 'circle-stroke-color': p.stopStrokeColor, 'circle-stroke-width': p.stopStrokeWidth } });
     add({ id: id('vehicle-halo'), type: 'circle', source: id('vehicles'),
       paint: { 'circle-radius': zoomStops(p.vehicleRadius.map(r => [r[0], r[1] + p.vehicleHaloRadiusAdd])), 'circle-color': p.vehicleHaloColor, 'circle-opacity': oldOr(p.vehicleOpacity, p) } });
@@ -486,10 +492,14 @@
     S.mapSt = true;
     draw();
   }
-  function attach(map) {
+  /* attach(map, opts): opts.layers = ['vehicles'] draws only the buses (no stops, no lines); opts.routes = ['20', '801'] draws
+     only those routes' buses. Both default to everything. */
+  function attach(map, opts) {
     try {
       detach();
       S.map = map;
+      S.layers = opts && Array.isArray(opts.layers) ? opts.layers.slice() : null;
+      S.only = opts && Array.isArray(opts.routes) ? new Set(opts.routes.map(String)) : null;
       loadBake().then(() => {
         if (S.map !== map) return;
         if (map.isStyleLoaded && !map.isStyleLoaded()) map.once('load', () => { if (S.map === map) addLayers(map); });
@@ -497,6 +507,8 @@
       }).catch(e => { S.veh.error = 'schedule: ' + String((e && e.message) || e); });
     } catch (e) { S.veh.error = String(e && e.message || e); }
   }
+  /* Change which routes' buses are drawn without re-attaching: an array of short names / ids, or null for every route. */
+  function setRoutes(routes) { S.only = Array.isArray(routes) ? new Set(routes.map(String)) : null; draw(); }
   function detach() {
     const m = S.map; S.map = null; S.mapSt = null;
     if (!m) return;
@@ -506,6 +518,6 @@
     } catch (e) { /* map already gone */ }
   }
 
-  root.TransitLive = { start, stop, state, departures, on, attach, detach, data, config, wantTrips, decode,
+  root.TransitLive = { start, stop, state, departures, on, attach, detach, data, config, wantTrips, decode, vehiclesGeo, setRoutes,
     get credit() { return cfg().credit; }, params: P };
 })();

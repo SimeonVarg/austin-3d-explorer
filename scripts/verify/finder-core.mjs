@@ -120,6 +120,24 @@ const se = core.scoreHome([
 ok(se.legs[0].how === 'walk' && se.legs[1].how === 'bus' && se.how === 'mixed', 'either picks per building');
 near(se.lo, (10 + 15) / 2, 1e-12, 'either fast end'); near(se.hi, (14 + 25) / 2, 1e-12, 'either slow end');
 
+// A timetable bus for a walkable home (js/finder-bus.js hands the scorer legs shaped like the baked ones, plus src: 'timetable').
+// Building A (weight .5): walk 20-30 (mid 25), bus 13-22 (mid 17.5) -> the bus. Building B (.5): walk 5-7, no bus -> the walk.
+//   either: lo = .5 x 13 + .5 x 5 = 9      hi = .5 x 22 + .5 x 7 = 14.5      mixed
+//   walk:   lo = .5 x 20 + .5 x 5 = 12.5   hi = .5 x 30 + .5 x 7 = 18.5
+//   bus:    B has no bus: the home is not ranked in Bus mode (it is "a walk, not a bus ride")
+{
+  const legs = [{ code: 'A', w: 0.5, walk: { lo: 20, hi: 30 }, bus: { lo: 13, hi: 22, src: 'timetable' } },
+                { code: 'B', w: 0.5, walk: { lo: 5, hi: 7 }, bus: null }];
+  const e = core.scoreHome(legs, 'either'), w = core.scoreHome(legs, 'walk');
+  near(e.lo, 9, 1e-12, 'timetable either lo'); near(e.hi, 14.5, 1e-12, 'timetable either hi');
+  ok(e.how === 'mixed' && e.legs[0].how === 'bus' && e.legs[0].bus.src === 'timetable' && e.legs[1].how === 'walk' && e.legs[1].bus === null, 'timetable: A by bus, B on foot, and the leg remembers where its bus came from');
+  near(w.lo, 12.5, 1e-12, 'timetable walk lo'); near(w.hi, 18.5, 1e-12, 'timetable walk hi');
+  ok(core.scoreHome(legs, 'bus') === null, 'timetable: a home without a bus to every building is not ranked in Bus mode');
+  ok(core.scoreHome([{ ...legs[0] }], 'bus').how === 'bus', 'and one with a bus to every building is');
+  // a bus that is not faster is not chosen, whatever its source
+  ok(core.scoreHome([{ code: 'A', w: 1, walk: { lo: 10, hi: 12 }, bus: { lo: 9, hi: 14, src: 'timetable' } }], 'either').how === 'walk', 'a bus with the later midpoint (11.5 vs 11) does not win');
+}
+
 // Schedule -> meetings per week per building, reading nothing but code and days.
 const sched = { events: [
   { code: 'GDC', days: ['MO', 'WE', 'FR'], status: 'ok', title: 'PRIVATE TITLE', room: '2.216' },

@@ -230,6 +230,16 @@
     detourMaxM: 250,       // a place further off the line is not "on the way"
     viaCandidates: 8,      // how many we actually re-route through
     lastLegNoteM: 25,      // beyond this the pill says the last stretch is ours
+
+    // ── the bus row (2026-10-10) ────────────────────────────────────────────
+    // ONE row under a long walk when a CapMetro bus is faster: the route, the stop, a range, and "timetable" or "live" in
+    // the finder's own words (js/finder-live.js says them; docs/transit-live.md has the rules). Nothing is drawn for a short
+    // walk, or when no bus beats the walk by the margin. The route and the class schedule never leave the device: the row
+    // asks transit-route.js two points, and the only downloads are the bus files everyone gets (see finder-live.js).
+    busRowOn: q.get('busrow') !== '0',   // `?busrow=0` removes the row
+    busRowMinWalkMin: 15,  // the walk's midpoint, minutes: a shorter walk never looks for a bus
+    busRowBeatsWalkS: 300, // the bus's midpoint must be this many seconds under the walk's
+    busRowModule: './finder-live.js',    // RELATIVE TO THIS SCRIPT (see confirmModule below for why)
     doorLinkMaxM: 30,      // the bake's own door-attach limit, echoed here
 
     // ── camera ────────────────────────────────────────────────────────────
@@ -6827,6 +6837,9 @@
     pill.appendChild(liveEl); pill.appendChild(headline); pill.appendChild(strip);
     pill.appendChild(key);
     pill.appendChild(sub);
+    // THE BUS ROW's home: under the destination, above the footer row. Empty and hidden until a bus beats a long walk.
+    const busRow = h('div', null); busRow.id = 'wf-busrow'; busRow.hidden = true;
+    pill.appendChild(busRow);
     pill.appendChild(footrow); pill.appendChild(card);
 
     root.appendChild(btn); root.appendChild(sheet); root.appendChild(pill);
@@ -6834,7 +6847,7 @@
 
     el = { root, btn, sheet, list, more, egs, hint, inFrom: from.inp, inTo: to.inp,
       xFrom: from.x, xTo: to.x, swap, pill, chev, chevLab, liveEl, orig, headline, strip, key, sub,
-      verdict, acts, footrow, then2, card, close, ends, spine };
+      verdict, acts, footrow, then2, card, close, ends, spine, busRow };
     // The way out of the walk, and it is a taste value because it is one:
     // round 4's reading was that framing the route from above is not what you
     // want while standing on it, which is true right up until the only other
@@ -7204,6 +7217,37 @@
     } else {
       el.verdict.textContent = '';
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // THE BUS ROW. One line under a long walk (WAYFIND.busRow*). It is js/finder-live.js's watchRow: it searches the baked
+  // bus slice for a trip between the two DOORS of this route, says nothing at all unless a bus beats the walk by the margin,
+  // and then says what the apartment finder says: route, stop, a range, "timetable" or "live". It stops its downloads the
+  // moment the route is cleared, fails, or changes.
+  // ══════════════════════════════════════════════════════════════════════════
+  let busRowStop = null, busRowKey = null;
+  function busRowClear() {
+    busRowKey = null;
+    if (busRowStop) { busRowStop(); busRowStop = null; }
+    if (el && el.busRow) { el.busRow.textContent = ''; el.busRow.hidden = true; }
+  }
+  function busRowSync(r) {
+    if (!el || !el.busRow) return;
+    if (!WAYFIND.busRowOn || !r || !r.ok || !r.time || r.fromDoor == null || r.toDoor == null) { busRowClear(); return; }
+    const mid = (r.time.lo + r.time.hi) / 2;
+    if (!(mid >= WAYFIND.busRowMinWalkMin)) { busRowClear(); return; }
+    const a = doorLL(G, r.fromDoor), b = doorLL(G, r.toDoor);
+    const key = [a[0], a[1], b[0], b[1], r.time.lo, r.time.hi].join('|');
+    if (key === busRowKey) return;                       // the same route, redrawn: keep the row and its poll
+    busRowClear();
+    busRowKey = key;
+    const code = (r.to && (r.to.code || r.to.display)) || '';
+    import(WAYFIND.busRowModule).then((m) => {
+      if (busRowKey !== key) return;                     // another route (or none) while the module loaded
+      busRowStop = m.watchRow(el.busRow, [a[1], a[0]], [b[1], b[0]], {
+        code, el: h, walkS: [r.time.lo * 60, r.time.hi * 60], beatsWalkS: WAYFIND.busRowBeatsWalkS,
+      });
+    }).catch(() => {});
   }
 
   function renderLive() {
@@ -7937,6 +7981,7 @@
       document.body.classList.remove('wf-live');
       document.body.classList.remove('wf-near');
       el.chev.classList.add('hidden');
+      busRowClear();
       drawSpine();
       return;
     }
@@ -8019,6 +8064,7 @@
     dsp.appendChild(h('span', null, doorPhrase(G, r.toDoor)));
     el.sub.appendChild(dsp);
     litPillLine(r);                 // §6b — after dark, above the fold
+    busRowSync(r);                  // a long walk with a faster bus: one row, or nothing
 
     // ── "WILL I MAKE IT?" — the one-sided answer. Honesty doc §15. ──────────
     //
@@ -8186,6 +8232,7 @@
   }
 
   function clear() {
+    busRowClear();
     state.route = null; state.via = null; state.viaKind = null; state.expanded = false;
     prof = null; live = null;
     disarmLive();

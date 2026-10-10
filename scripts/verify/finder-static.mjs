@@ -17,7 +17,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+// VERIFY_ROOT=<dir> checks another checkout (used to show these checks fail on a deliberately broken copy).
+const ROOT = process.env.VERIFY_ROOT ? path.resolve(process.env.VERIFY_ROOT) : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const readJSON = (rel) => JSON.parse(read(rel));
 
@@ -116,8 +117,9 @@ const BANNED = [
   // finder.js loads its own arithmetic and the router's graph code when the panel first
   // loads, so a visit that never opens it fetches neither (img-import.mjs gate 1).
   // finder-live.js (2026-10-09) is the third: the live bus line, loaded when a home is first selected. Section 2b
-  // below checks that file and the two it uses.
-  ['dynamic import', /\bimport\s*\((?!\s*'\.\/(?:finder-core|walkgraph|finder-live)\.js'\s*\))/g], ['navigator', /navigator\./g], ['serviceWorker', /serviceWorker/g],
+  // below checks that file and the two it uses. finder-bus.js (2026-10-10) is the fourth: the bus in the ranking and on the
+  // map, loaded when the mode first allows a bus. Section 2c checks it.
+  ['dynamic import', /\bimport\s*\((?!\s*'\.\/(?:finder-core|walkgraph|finder-live|finder-bus)\.js'\s*\))/g], ['navigator', /navigator\./g], ['serviceWorker', /serviceWorker/g],
 ];
 for (const [name, re] of BANNED) {
   ok(count(finder, re) === 0, `js/finder.js uses ${name}`);
@@ -150,7 +152,10 @@ ok(/js\\\/wayfind\\\.js/.test(finder) && /s\.src = own;/.test(finder), 'it is th
 // anything a caller passes in.
 {
   const flive = strip(read('js/finder-live.js')), troute = strip(read('js/transit-route.js')), tlive = strip(read('js/transit-live.js'));
-  ok(count(finder, /\bimport\s*\(\s*'\.\/finder-live\.js'\s*\)/g) === 1, 'js/finder.js imports finder-live.js in exactly one place');
+  // finder.js loads finder-live.js in three places: the live line under a home, the bus in the ranking (only its loader), and the
+  // live-buses switch. Each is literal and same-origin; the checks below say what the file may do once loaded.
+  ok(count(finder, /\bimport\s*\(\s*'\.\/finder-live\.js'\s*\)/g) === 3, 'js/finder.js imports finder-live.js in exactly three places (the line, the ranking\'s loader, the live-buses switch)');
+  ok(count(finder, /\bimport\s*\(\s*'\.\/finder-bus\.js'\s*\)/g) === 2, 'js/finder.js imports finder-bus.js in exactly two places (the ranking, the live line\'s trip)');
   for (const [name, re] of BANNED) {
     if (name === 'dynamic import') { ok(count(flive, /\bimport\s*\(/g) === 0 && count(troute, /\bimport\s*\(/g) === 0, 'no dynamic import in finder-live.js or transit-route.js'); continue; }
     ok(count(flive, re) === 0, `js/finder-live.js uses ${name}`);
@@ -174,6 +179,79 @@ ok(/js\\\/wayfind\\\.js/.test(finder) && /s\.src = own;/.test(finder), 'it is th
   // departures(stopId, ...) must not start a download: the stop is the one argument that could carry a class building.
   const dep = tlive.match(/function departures\([\s\S]*?\n  \}/);
   ok(dep && !/\bfetch\s*\(|\bkick\s*\(|\bpoll\w*\s*\(|\bload\w*\s*\(|\bstart\s*\(/.test(dep[0]), 'TransitLive.departures() reads what is already downloaded and starts no request');
+}
+
+// 2c. THE PATHFINDER PASS (2026-10-10): the bus in the ranking, on the map, as live vehicles, and in the walking pathfinder.
+// Four new ways for a home, a route or a class building to be near code that could talk to the network. Each is read here.
+{
+  const fbus = strip(read('js/finder-bus.js')), flive = strip(read('js/finder-live.js')), tlive = strip(read('js/transit-live.js'));
+  const wfRaw = read('js/wayfind.js').replace(/\r\n/g, '\n');
+
+  // ── the ranking and the trip drawn on the map: arithmetic, no network at all ──
+  for (const [name, re] of BANNED) {
+    if (name === 'dynamic import') { ok(count(fbus, /\bimport\s*\(/g) === 0, 'no dynamic import in finder-bus.js'); continue; }
+    ok(count(fbus, re) === 0, `js/finder-bus.js uses ${name}`);
+  }
+  ok(count(fbus, /\bfetch\s*\(/g) === 0, 'js/finder-bus.js never fetches');
+  ok(count(fbus, /\b(window|document|localStorage|sessionStorage|indexedDB|globalThis|setTimeout|setInterval)\b/g) === 0, 'js/finder-bus.js touches no browser state and sets no timer');
+  const bimports = [...fbus.matchAll(/^\s*import\s+[^;]*?from\s+'([^']+)'/gm)].map((m) => m[1]);
+  ok(bimports.length === 1 && bimports[0] === './transit-route.js', `finder-bus.js statically imports only transit-route.js (${bimports.join(', ')})`);
+  ok(count(fbus, /\bcreateElement\b|\.appendChild\b|\.append\s*\(/g) === 0, 'js/finder-bus.js builds no DOM');
+  // The ranking is by the timetable, never live: it must not be handed a live callback.
+  ok(!/\blive\s*:/.test(fbus.slice(fbus.indexOf('export function busLeg('), fbus.indexOf('export function busLegs('))), 'busLeg() gives plan() no live callback: the ranking is the timetable');
+  // finder.js: the ranking is skipped in Walk mode and for a switched-off ranking; the East Riverside homes keep their baked table.
+  ok(/if \(!FINDER\.bus\.rank \|\| S\.busLoad \|\| S\.mode === 'walk' \|\| !S\.loaded\) return;/.test(finder), 'the bus module and slice are not loaded in Walk mode, or with ?busrank=0');
+  ok(/skip: \(hi\) => !!S\.transit\.homes\[items\[hi\]\.home\.id\],/.test(finder), 'the four East Riverside homes keep their baked bus table (the ranking skips them)');
+  ok(/if \(!S\.busData \|\| !S\.fb \|\| S\.mode === 'walk'\) return null;/.test(finder), 'no timetable bus is added to a Walk ranking');
+  ok(/bus: q\.get\('busrank'\) !== '0'|rank: q\.get\('busrank'\) !== '0'/.test(read('js/finder.js')), 'FINDER.bus.rank is on unless ?busrank=0');
+  ok(/trip: \{\s*on: q\.get\('tripmap'\) !== '0',/.test(read('js/finder.js')), 'FINDER.trip.on is on unless ?tripmap=0');
+  ok(/liveBuses: \{[^}]*available: q\.get\('livebuses'\) !== '0',\s*on: q\.get\('livebuses'\) === '1',/.test(read('js/finder.js')), 'FINDER.liveBuses is OFF by default (?livebuses=1 turns it on, ?livebuses=0 removes the switch)');
+
+  // ── the row's words: evaluated, not just read ──
+  const via = read('js/finder.js').match(/via: (\{ walk:[^\n]*\}),\n/);
+  ok(!!via, 'FINDER.copy.via is there');
+  if (via) {
+    const V = new Function('return ' + via[1])();
+    ok(V.walk('14–18') === 'walk 14–18 min' && V.bus('12–17') === 'bus about 12–17 min' && V.mixed('9–15') === 'walk + bus about 9–15 min', 'a row says "walk 14–18 min" or "bus about 12–17 min": ' + [V.walk('14–18'), V.bus('12–17'), V.mixed('9–15')].join(' | '));
+    ok(Object.values(V).every((f) => !/\d{1,2}:\d{2}|you will|guarantee|on time|live/i.test(f('1–2'))), 'a ranking row is the timetable: no clock time, no promise, never the word "live"');
+  }
+  const copyBlock = read('js/finder.js').match(/liveBusesToggle:[\s\S]*?liveBusesOn:[^\n]*\n/);
+  ok(copyBlock && !/you will|guarantee|on time/i.test(copyBlock[0]), 'the live-buses copy makes no promise');
+
+  // ── "Show live buses": one shared poll, buses only, the trip's routes only, nothing polls while it is off ──
+  ok(count(flive, /\.start\s*\(/g) === 1 && count(flive, /\bTL\.stop\s*\(/g) === 1, 'finder-live.js starts the poll in exactly one place and stops it in exactly one (acquire(), the shared count)');
+  ok(count(flive, /\.attach\s*\(/g) === 2 && count(flive, /\.attach\s*\(map, \{ layers: \['vehicles'\], routes: routes\.slice\(\) \}\)/g) === 2, 'liveBuses attaches only the vehicles layer, and only the trip\'s routes, both times');
+  ok(count(flive, /\.wantTrips\s*\(\s*true\s*\)/g) === 1, 'the 260 KB trip feed is wanted in one place only (the live line / the row), never by the buses on the map');
+  ok(/acquire\(L\.TL, false\)/.test(flive), 'the buses on the map hold the poll without the trip feed');
+  ok(/else if \(held\) \{ L\.TL\.detach\(\); held\(\); held = null; \}/.test(flive), 'an empty route list detaches the layer and lets go of the poll');
+  ok(/stop\(\) \{ stopped = true; routes = \[\]; if \(held\) \{ if \(TLref\) TLref\.detach\(\); held\(\); held = null; \} \}/.test(flive), 'stop() detaches the layer and lets go of the poll');
+  ok(/if \(v === 'pill'\) \{ S\.trip = null; stopLiveBuses\(\); \}/.test(finder), 'hiding the finder stops the live buses');
+  ok(/if \(!S\.liveOn \|\| !FINDER\.liveBuses\.available \|\| S\.view === 'pill' \|\| !S\.loaded\) \{ stopLiveBuses\(\); return; \}/.test(finder), 'with the switch off (or the finder hidden) the live buses are stopped, not paused');
+  ok(/\$\('\.fd-livebuses input'\)\.onchange = \(e\) => \{ S\.liveOn = e\.target\.checked; syncLiveBuses\(\); \};/.test(finder), 'the switch is the only thing that turns the live buses on');
+  // transit-live.js: the new calls add no address, and a route filter cannot become one
+  ok(count(tlive, /\bsetRoutes\b/g) >= 2 && !/fetch\s*\([^)]*(only|routes|S\.layers)/.test(tlive), 'TransitLive.setRoutes / attach(routes) are filters on what is drawn; no fetch is built from them');
+
+  // ── the pathfinder row (js/wayfind.js) ──
+  const a = wfRaw.indexOf('function busRowClear()'), b = wfRaw.indexOf('function renderLive()');
+  const row = strip(wfRaw.slice(a, b));
+  ok(a > 0 && b > a, 'wayfind.js has the bus row block');
+  for (const [name, re] of BANNED) {
+    if (name === 'dynamic import') continue;
+    ok(count(row, re) === 0, `the wayfind bus row block uses ${name}`);
+  }
+  ok(count(row, /\bfetch\s*\(/g) === 0, 'the wayfind bus row block never fetches');
+  ok(count(row, /\bimport\s*\(/g) === 1 && /import\(WAYFIND\.busRowModule\)/.test(row), 'it imports one module, named by WAYFIND.busRowModule');
+  ok(/busRowModule: '\.\/finder-live\.js',/.test(wfRaw), 'and that module is ./finder-live.js, relative to the script');
+  ok(count(strip(wfRaw), /\bimport\(/g) === 2, 'wayfind.js has exactly two dynamic imports: the schedule-picture reader and the bus row');
+  ok(/m\.watchRow\(el\.busRow, \[a\[1\], a\[0\]\], \[b\[1\], b\[0\]\], \{\s*code, el: h, walkS: \[r\.time\.lo \* 60, r\.time\.hi \* 60\], beatsWalkS: WAYFIND\.busRowBeatsWalkS,\s*\}\);/.test(row),
+    'the row is handed the two DOORS of this route, the walk\'s own time and the margin, and nothing else (no schedule, no class list)');
+  ok(/const a = doorLL\(G, r\.fromDoor\), b = doorLL\(G, r\.toDoor\);/.test(row), 'the two points are the route\'s own doors');
+  ok(!/\b(schedSt|schedWatch|SCHEDULE_STORE|impState|events|classes)\b/.test(row), 'the row code never touches the stored schedule');
+  ok(/if \(!WAYFIND\.busRowOn \|\| !r \|\| !r\.ok \|\| !r\.time \|\| r\.fromDoor == null \|\| r\.toDoor == null\) \{ busRowClear\(\); return; \}/.test(row), 'no route, a failed route or a switched-off row: nothing is imported or asked');
+  ok(/if \(!\(mid >= WAYFIND\.busRowMinWalkMin\)\) \{ busRowClear\(\); return; \}/.test(row), 'a walk shorter than WAYFIND.busRowMinWalkMin never looks for a bus (the module is not even imported)');
+  ok(/busRowOn: q\.get\('busrow'\) !== '0'/.test(wfRaw), 'WAYFIND.busRowOn is on unless ?busrow=0');
+  ok(count(wfRaw, /\bbusRowClear\(\);/g) >= 4 && count(wfRaw, /\bbusRowSync\(r\);/g) === 1, 'the row is cleared when the route fails, is cleared, or changes, and synced once per render');
+  ok(/function clear\(\) \{\n    busRowClear\(\);/.test(wfRaw), 'clear() (the route removed) stops the row\'s downloads first');
 }
 
 // ══════════════════════════════════════════════════════════════════════════

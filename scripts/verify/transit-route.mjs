@@ -184,6 +184,12 @@ const WED_0830 = { day: 3, minute: 510 };
   const strict = T.plan(slice(), HOME, at(1500, -150), { when: WED_0830 });
   T.ROUTE.busBeatsWalkS = was;
   ok(strict.options.length === 0 && /walking/.test(strict.reason), 'ROUTE.busBeatsWalkS = 400: a 355 s gain is not enough');
+  // the same margin per call (opts.beatsWalkS, used by the finder's ranking and the pathfinder row), without touching the global
+  ok(T.plan(slice(), HOME, at(1500, -150), { when: WED_0830, beatsWalkS: 300 }).options.length > 0, 'opts.beatsWalkS = 300: the 355 s gain is enough');
+  const per = T.plan(slice(), HOME, at(1500, -150), { when: WED_0830, beatsWalkS: 400 });
+  ok(per.options.length === 0 && /walking/.test(per.reason), 'opts.beatsWalkS = 400: the same bus is withheld, for this call only');
+  ok(T.ROUTE.busBeatsWalkS === was && T.plan(slice(), HOME, at(1500, -150), { when: WED_0830 }).options.length > 0, 'opts.beatsWalkS leaves ROUTE.busBeatsWalkS alone');
+  ok(T.plan(slice(), HOME, at(1500, -150), { when: WED_0830, beatsWalkS: 'x' }).options.length > 0, 'a junk opts.beatsWalkS falls back to the default margin');
   ok(T.plan(slice(), at(0, 5000), at(1500, -150), { when: WED_0830 }).walk.m > 5000, 'the walk is reported even when no stop is near');
 }
 

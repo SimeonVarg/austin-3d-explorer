@@ -338,6 +338,31 @@ for (const mode of ['hide', 'dim']) {
   });
 }
 
+// 5b. the buses of chosen routes only, and only the buses layer (the finder's "Show live buses")
+await ok('attach(map, {layers, routes}) draws only the buses of those routes; setRoutes() changes them; vehiclesGeo() filters', async () => {
+  const b = boot(), map = fakeMap();
+  b.T.attach(map, { layers: ['vehicles'], routes: ['10'] }); b.T.start(b.opts({})); await flush();
+  deq(Object.keys(map.layers).sort(), ['transit-live-vehicle-halo', 'transit-live-vehicles']);
+  deq(Object.keys(map.sources).sort(), ['transit-live-vehicles'], 'no stops source and no lines source');
+  const feats = () => map.sources['transit-live-vehicles'].data.features;
+  assert.equal(feats().length, 2, 'the saved feed has two buses on route 10 and none of them is dropped');
+  assert.ok(feats().every(f => f.properties.route === '10'));
+  b.T.setRoutes(['99']); assert.equal(feats().length, 0, 'a route with no bus on the road draws none');
+  b.T.setRoutes(['1', '10']); assert.equal(feats().length, 2);
+  b.T.setRoutes(null); assert.equal(feats().length, 2, 'null = every route (the fixture\'s other baked routes have no buses)');
+  assert.equal(b.T.vehiclesGeo(['10']).features.length, 2, 'vehiclesGeo(list) filters on its own');
+  assert.equal(b.T.vehiclesGeo(['20']).features.length, 0);
+  assert.equal(b.T.vehiclesGeo(null).features.length, 2);
+  assert.equal(b.T.vehiclesGeo().features.length, 2, 'vehiclesGeo() with no argument uses what attach/setRoutes chose');
+  b.T.setRoutes([]); assert.equal(feats().length, 0, 'an empty list draws no bus');
+  b.T.detach();
+  deq(Object.keys(map.layers).concat(Object.keys(map.sources)), []);
+  // the old call still draws everything
+  const all = fakeMap(); b.T.attach(all); await flush();
+  deq(Object.keys(all.layers).sort(), ['transit-live-lines', 'transit-live-stops', 'transit-live-vehicle-halo', 'transit-live-vehicles'], 'attach(map) with no options is unchanged');
+  b.T.detach(); b.T.stop();
+});
+
 // 6. scheduled(): tomorrow's first trips
 await ok('real bake: no baked trip reaches any stop before 02:00, so a look-ahead past midnight has nothing to miss; a re-bake that does is still covered', async () => {
   const d = JSON.parse(fs.readFileSync(here('../../data/transit-live.json')));
