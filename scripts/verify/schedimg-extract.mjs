@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
 
-export const PAGE_APP = 'index.html?walk=1';
+export const PAGE_APP = 'index.html?walk=1&drift=0';   // drift=0: the idle cinema moves the camera after 25 s
 export const PAGE_BLANK = 'scripts/verify/schedimg-blank.html';
 
 let started = null;
