@@ -35,6 +35,11 @@ and which wall, before anything else.
 **1b. One real length.** Ratios do not give size. Fix the scale with one
 measured length: the wall height from the laser scan, or a wall length from
 the map outline. Then every ratio becomes metres.
+Check the scale at least two more ways that do not share an error: the
+camera's eye height against the horizon line in the frame, and one standard
+part (a window pane is about 0.22 x 0.30 m; a stair riser 0.17 m; a door 2.1 to
+2.4 m). Painter Hall's first draft chained 3.5 m for the door sill out of a
+guessed bay width; three independent readings gave 1.6 m.
 Read the scan itself, not a summary of it: take the roof heights in a strip
 just inside the wall line. And do not trust a fitted camera for size. A camera
 fitted to points of the model fits the MODEL: on Welch Hall the fit was 10 px
@@ -82,6 +87,19 @@ stretch, a wider pier, a corner)?
 photograph and in the render. Light differs, so compare RATIOS between
 materials (brick against plaster), and how much the colour varies inside one
 material.
+
+**6b. A tone from a dim photograph draws dark. Never "leave it as measured".**
+A photograph taken at dusk or under cloud is dim all over, so every patch read
+from it is too dark to use as a colour in a daylight render (Painter Hall's first
+draft drew buff brick as dark grey-brown for exactly this reason). Do it in two
+steps: (1) anchor ONE material to a tone that is known to draw right in this app
+in daylight (the limestone `#efe9dc`, sampled in sun on Welch Hall); (2) set every
+other material to that anchor times the RATIO between the two measured in the
+SAME flattened photograph, so the light of the photograph cancels. Measure the
+ratio on more than one wall (Painter Hall: brick over stone .875 on the north
+front, .684 in the shaded court) and say which one you used. Then look at the
+render in daylight beside the photograph and name the colour: "buff", "grey" and
+"brown" are different bricks.
 
 **7. Openings.** Is the glass dark or bright? What shows behind an arch or a
 shop front?
@@ -161,6 +179,14 @@ made or sharpened.
   wall was checked only in a dusk render. By day its window bands were bare
   wall (the glass sat behind one wall sheet) and then sky blue (the shared
   glass tone). Check 7b.
+- 2026-10-09, found by the main lane on the first Painter Hall draft: the brick
+  was drawn dark grey-brown where the photographs show light buff, because a
+  tone from an overcast evening photograph was "left as measured"; the
+  entrance was a flat grey slab; "three brick storeys" was two. Check 6b (anchor
+  one material, ratio the rest), and the scale rule in 1b below: fix the metres
+  three independent ways (scan eave height, the camera's eye height against the
+  horizon, one standard part such as a 0.22 m pane) before trusting a number
+  chained from a guessed bay.
 - 2026-10-07. Three photographs filed under one building showed another
   building: check 0.
 - 2026-10-03. "can't see the sign cuz the tree": check 9, from the camera of
