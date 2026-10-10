@@ -2022,8 +2022,12 @@ window.CityLighting.install(map);
   // "89%" for 20+ s and the veil lifted on the 30 s ceiling. The download now
   // starts at ~2 s and the build is time-sliced so tiles load alongside it.
   function introGate(waitAuthored = true) {
-    const style = (map.getStyle && map.getStyle()) || null;
-    const have = (style && style.sources) || {};
+    // map.getSource, not map.getStyle().sources: getStyle() serialises (deep-copies) all ~260 layers and every
+    // source on each call, and this runs every INTRO.gatePollMs for the whole veil (95 ms of main thread at 1x,
+    // 370 ms at 4x in the 2026-10-09 profile). ?veilgate=full keeps the old call.
+    let have;
+    if (VEIL_GATE_FULL) { const style = (map.getStyle && map.getStyle()) || null; have = (style && style.sources) || {}; }
+    else { have = {}; for (const id of INTRO.needs) { try { if (map.getSource(id)) have[id] = true; } catch (e) {} } }
     const missing = [];
     let known = 0;
     for (const id of INTRO.needs) {
