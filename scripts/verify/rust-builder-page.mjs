@@ -47,7 +47,7 @@ const argv = process.argv.slice(2);
 const flag = k => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : null; };
 const pos = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--out');
 const RUNS = Number(pos[0] || 5);
-const MODES = (pos[1] || 'off,on').split(',');
+const MODES = (pos[1] || 'off,on').split(/[,+]/);   // + also separates (the AWS workflow splits its checks on commas)
 const OUT = flag('--out');
 const PHONE = argv.includes('--phone');
 if (PHONE) { PARAMS.viewport = PARAMS.phone.viewport; PARAMS.dpr = PARAMS.phone.dpr; }
@@ -111,8 +111,8 @@ async function one(mode, run) {
       if (group) for (const o of group.children) {
         const g = o.geometry; if (!g || !g.index || !g.attributes.position) continue;
         if (g.attributes.position.array == null) continue;   // a phone has already dropped the CPU copy after the upload (freeGeometryCpu)
-        for (const k of Object.keys(g.attributes)) { const a = g.attributes[k].array; if (a) { bytes += a.byteLength; if (!g.userData.pack) parts.push(await sha(a)); } }
-        if (!g.userData.pack) parts.push(await sha(g.index.array));
+        for (const k of Object.keys(g.attributes)) { const a = g.attributes[k].array; if (a) { bytes += a.byteLength; if (!g.userData.pack) { const h = await sha(a); parts.push(h); (window.__parts = window.__parts || {})[k] = h.slice(0, 12); } } }
+        if (!g.userData.pack) { const h = await sha(g.index.array); parts.push(h); (window.__parts = window.__parts || {}).index = h.slice(0, 12); }
         bytes += g.index.array.byteLength; tris += g.index.count / 3;
       }
       // frame time with the buildings on screen: 240 frames of a slow turn at the spawn view, p50 / p90 of the gaps (the packed shader reads two textures per
@@ -121,7 +121,7 @@ async function one(mode, run) {
       const fs = dts.slice(10).sort((a, b) => a - b), frameP50 = fs[fs.length >> 1], frameP90 = fs[Math.floor(fs.length * 0.9)];
       if (window.gc) { window.gc(); window.gc(); }   // the settled heap: after a forced collection, once the build has landed
       const heapSettledMb = performance.memory ? performance.memory.usedJSHeapSize / 1048576 : 0;
-      return { frameP50, frameP90, heapSettledMb, longTaskMaxMs: rb.longTaskMax, longTaskTotalMs: rb.longTaskTotal, longTasks: rb.longTasks, workerState: window.__aptsBuild && window.__aptsBuild.buildWorkerState ? window.__aptsBuild.buildWorkerState() : null, gpuUploadMb: rb.uploads.reduce((a, b) => a + b, 0) / 1048576, gpuUploads: rb.uploads.length, countMs: c.ms, slices: c.buildSlices, triangles: c.triangles, builtAt: rb.builtAt, readyAt: rb.readyAt, heapPeakMb: rb.heapPeak / 1048576,
+      return { geomParts: window.__parts || null, frameP50, frameP90, heapSettledMb, longTaskMaxMs: rb.longTaskMax, longTaskTotalMs: rb.longTaskTotal, longTasks: rb.longTasks, workerState: window.__aptsBuild && window.__aptsBuild.buildWorkerState ? window.__aptsBuild.buildWorkerState() : null, gpuUploadMb: rb.uploads.reduce((a, b) => a + b, 0) / 1048576, gpuUploads: rb.uploads.length, countMs: c.ms, slices: c.buildSlices, triangles: c.triangles, builtAt: rb.builtAt, readyAt: rb.readyAt, heapPeakMb: rb.heapPeak / 1048576,
         rust: window.slopes.rustInfo(), packOn: window.slopes.packOn(), geomBytesMb: bytes / 1048576, geomTris: tris, geomSha: parts.length ? await sha(new TextEncoder().encode(parts.join(''))) : null,
         gfx: window.GFX && window.GFX.preset };
     });
@@ -139,7 +139,7 @@ for (let r = 0; r < RUNS; r++) {
     try {
       const x = await one(m, r);
       results.push(x);
-      console.log(`run ${r} ${m.padEnd(7)} count.ms ${String(x.countMs).padStart(8)}  builtAt ${(x.builtAt / 1000).toFixed(1)}s  readyAt ${(x.readyAt / 1000).toFixed(1)}s  gpuUpload ${x.gpuUploadMb.toFixed(0)} MB (${x.gpuUploads} buffers)  heapPeak ${x.heapPeakMb.toFixed(0)} MB (settled ${x.heapSettledMb.toFixed(0)})  frame p50 ${x.frameP50.toFixed(1)} ms p90 ${x.frameP90.toFixed(1)}  longest task ${x.longTaskMaxMs.toFixed(0)} ms (${x.longTasks} over 50 ms)  rssPeak ${x.rssPeakMb.toFixed(0)} MB  tris ${x.triangles}  sha ${String(x.geomSha).slice(0, 10)}  rust ${x.rust.state}${x.errors.length ? '  ERRORS ' + x.errors.join(' | ') : ''}  (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+      console.log(`run ${r} ${m.padEnd(7)} count.ms ${String(x.countMs).padStart(8)}  builtAt ${(x.builtAt / 1000).toFixed(1)}s  readyAt ${(x.readyAt / 1000).toFixed(1)}s  gpuUpload ${x.gpuUploadMb.toFixed(0)} MB (${x.gpuUploads} buffers)  heapPeak ${x.heapPeakMb.toFixed(0)} MB (settled ${x.heapSettledMb.toFixed(0)})  frame p50 ${x.frameP50.toFixed(1)} ms p90 ${x.frameP90.toFixed(1)}  longest task ${x.longTaskMaxMs.toFixed(0)} ms (${x.longTasks} over 50 ms)  rssPeak ${x.rssPeakMb.toFixed(0)} MB  tris ${x.triangles}  sha ${String(x.geomSha).slice(0, 10)} ${x.geomParts ? JSON.stringify(x.geomParts) : ''}  rust ${x.rust.state}${x.errors.length ? '  ERRORS ' + x.errors.join(' | ') : ''}  (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
     } catch (e) { console.log(`run ${r} ${m}: FAILED ${e.message.split('\n')[0]}`); results.push({ mode: m, run: r, failed: e.message.split('\n')[0] }); }
   }
 }
