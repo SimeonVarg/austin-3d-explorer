@@ -39,6 +39,11 @@ if (STEPS.includes('load')) {
   run('load 1x', '../perf/load-profile.mjs', ['--url', URLB + '/', '--throttle', '1', '--qarms', 'walltiers=0;', '--reps', String(REPS), '--label', 'walltiers-1x', '--out', path.join(OUT, 'load1x')]);
   run('load 4x', '../perf/load-profile.mjs', ['--url', URLB + '/', '--throttle', '4', '--qarms', 'walltiers=0;', '--reps', String(REPS4), '--label', 'walltiers-4x', '--out', path.join(OUT, 'load4x')]);
 }
+if (STEPS.includes('counts')) {
+  // Counters only (images painted, worker busy time, images held, GL bytes): one cold load per arm. For a machine that is
+  // not quiet (a laptop someone is using): the SECONDS in this report mean nothing there, the counts do.
+  run('counts', '../perf/load-profile.mjs', ['--url', URLB + '/', '--throttle', '1', '--qarms', 'walltiers=0;', '--reps', '1', '--require-idle', '0', '--label', 'walltiers-counts', '--out', path.join(OUT, 'counts')]);
+}
 // pics = walls painted in paced jobs (the real page); picsnow = walls painted at once (facadepace=0&timeofdaypace=0,
 // the setting ci/pictures.mjs uses), old painting shot once only.
 const pictures = (mode, base, sides) => {
