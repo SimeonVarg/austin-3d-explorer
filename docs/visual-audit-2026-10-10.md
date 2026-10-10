@@ -218,3 +218,12 @@ One sheet each (picture, one line, the two options) in `docs/visual-audit-2026-1
 
 `scripts/verify/visual-audit.mjs <proof|finder|boot|chrome|walk|modes|all> --vp phone,tablet,desktop` writes `<id>-<vp>.jpg`, `metrics.json` (every visible control's size, font, radius and focus outline, text contrast, clipped text, overlaps between fixed panels) and `assertions.json`. Run on a Colab L4: `COLAB_CLI="$HOME/standup/colab-venv312/bin/colab --auth oauth2" python3 scripts/colab/run.py --ref <pushed branch> --repo <public repo url> --out DIR --check "visual-audit.mjs proof --vp desktop" ...` (up to four checks at once; one session per run, two sessions at a time). Run it on `main` plus the script and on the branch, then `pairs.py BEFORE AFTER OUT` (in `~/flyover-private/visual-audit-2026-10-10/`) makes the side-by-side pictures. `summ.py` turns `metrics.json` into a short list of small targets, small text, low contrast and overlaps.
 
+
+## 9. The first GitHub run of this pull request (2 red of 100), and what was done
+
+| red check | kind | what it said | what changed |
+|---|---|---|---|
+| `visual-audit.mjs` ("could not run", exit 2) | neither: my new tool was picked up as a check, because CI runs every top-level `scripts/verify/*.mjs` not named in `ci/checks.json` | it printed its usage line (it needs a group) | `scripts/verify/ci/checks.json`, bucket `tools`: added `visual-audit.mjs`, `va-debug-webgl.mjs` and `va-veil.mjs` with the reason. No assertion touched. |
+| `timeofday-style-recovery.mjs` (exit 1) | (a) the check asserted an interface I changed on purpose: its stub for the play button had no `setAttribute`, and B06 now sets the button's label | `TypeError: play.setAttribute is not a function` | `scripts/verify/timeofday-style-recovery.mjs`: the stub gained `title` and a `setAttribute` that records attributes, and a new assertion that while playing the button is labelled Pause (stricter, not weaker). |
+
+Everything else passed: 98 checks. The pictures job reported all ten views changed by 0.7 to 2.2 percent of pixels: that is the chrome (a hint raised 14 px and longer by "G graphics", the credits bar now 12 px on a dark ground, the settings button's new icon), by design. Before pushing I ran all 61 checks that need no browser locally (all pass) and `graphics`, `loader-check` and `schedconfirm` on Colab (pass). `finder-correctness` cannot run on the Colab machine (its Node 20 lacks `Object.groupBy`); it passed in this GitHub run.
