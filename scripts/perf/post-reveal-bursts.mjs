@@ -70,6 +70,9 @@ async function runOnce(throttle, qi, rep) {
   const page = await chrome.newPage();
   try {
     await page.send('Page.enable'); await page.send('Runtime.enable');
+    const pageErrors = [];
+    page.on('Runtime.exceptionThrown', e => { if (pageErrors.length < 8) pageErrors.push(((e.exceptionDetails && (e.exceptionDetails.exception && e.exceptionDetails.exception.description || e.exceptionDetails.text)) || '').slice(0, 300)); });
+    page.on('Runtime.consoleAPICalled', e => { if (e.type === 'error' && pageErrors.length < 8) pageErrors.push('console.error ' + (e.args || []).map(a => String(a.value || a.description || '')).join(' ').slice(0, 300)); });
     await page.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1.5, mobile: false });
     if (throttle > 1) await page.send('Emulation.setCPUThrottlingRate', { rate: throttle });
     await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__PERF_CFG=${JSON.stringify({ wrap: [], autodetect: false })};` + INSTRUMENT });
@@ -81,7 +84,7 @@ async function runOnce(throttle, qi, rep) {
       let st = null;
       try { st = JSON.parse((await page.send('Runtime.evaluate', { expression: 'JSON.stringify({m:window.__perf&&window.__perf.marks,now:performance.now()})', returnByValue: true })).result.value || 'null'); } catch (e) {}
       if (st && st.m && st.m.introReveal && st.now - st.m.introReveal >= SETTLE) break;
-      if (Date.now() - tNav > MAX) { console.error(`[${label}] hit the ceiling before ready`); break; }
+      if (Date.now() - tNav > MAX) { console.error(`[${label}] hit the ceiling before ready; last state ${JSON.stringify(st)}; page errors ${JSON.stringify(pageErrors)}`); throw new Error('no reveal'); }
     }
     const ev = async (expr) => (await page.send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true })).result.value;
     const flight = await ev(`${FLIGHT}(${JSON.stringify(POSES)}).then(r => JSON.stringify(r))`);
@@ -104,6 +107,7 @@ else {
       const t0 = Date.now();
       try {
         const res = await runOnce(a.t, a.qi, r);
+        results.push(res);
         const post = (res.wt.burstLog || []).filter(b => b[0] > res.reveal);
         console.error(`  ${res.label}: reveal ${Math.round(res.reveal)} ms, ${post.length} bursts after, longest ${Math.max(0, ...post.map(b => b[2]))} ms, ${Math.round((Date.now() - t0) / 1000)} s`);
       } catch (e) { console.error(`  t${a.t}q${a.qi}-r${r} FAILED: ${e.stack || e}`); }
