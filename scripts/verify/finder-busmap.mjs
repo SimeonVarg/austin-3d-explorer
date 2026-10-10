@@ -62,7 +62,8 @@ try {
   const feats = await page.evaluate(() => window.__map.querySourceFeatures('finder-route').map((f) => ({ k: f.properties.k, c: f.properties.c || null, r: f.properties.r || null, role: f.properties.role || null, n: f.geometry.coordinates.length })));
   note.features = feats;
   const bus = feats.filter((f) => f.k === 'bus');
-  check('the bus leg carries a route colour and runs along many points of the route\'s real line', bus.length >= 1 && bus.every((f) => /^#[0-9a-f]{6}$/i.test(f.c || '') && f.n >= 3), bus);
+  // querySourceFeatures cuts a line at tile edges, so one bus leg can arrive as several pieces: count the points of all of them
+  check('the bus leg carries a route colour and runs along many points of the route\'s real line', bus.length >= 1 && bus.every((f) => /^#[0-9a-f]{6}$/i.test(f.c || '')) && bus.reduce((n, f) => n + f.n, 0) >= 6, bus);
   const routeColours = await page.evaluate(async () => { const d = await (await fetch('data/transit-live.json')).json(); const o = {}; for (const r of Object.values(d.routes)) o[r.short] = r.color; return o; });
   check('that colour is the route\'s own colour from the baked slice', bus.every((f) => routeColours[f.r] && routeColours[f.r].toLowerCase() === f.c.toLowerCase()), bus.map((f) => [f.r, f.c, routeColours[f.r]]));
   const layers = await page.evaluate(() => ['finder-route-bus', 'finder-route-walk', 'finder-route-link', 'finder-route-stop', 'finder-route-casing'].map((id) => [id, !!window.__map.getLayer(id)]));
@@ -94,7 +95,7 @@ try {
   await sleep(25000);                                              // one or two polls
   s = await st();
   const live = await page.evaluate(() => {
-    const m = window.__map, src = m.getSource('transit-live-vehicles'), feats = src && src._data ? src._data.features : [];
+    const m = window.__map, feats = window.TransitLive ? window.TransitLive.vehiclesGeo().features : [];     // what is drawn, by the module's own filter
     return { layers: m.getStyle().layers.map((l) => l.id).filter((id) => /^transit-live/.test(id)), shown: feats.length, routes: [...new Set(feats.map((f) => f.properties.route))],
       city: window.TransitLive ? window.TransitLive.vehiclesGeo(null).features.length : null, note: document.querySelector('.fd-livebuses-note').textContent, state: window.TransitLive ? window.TransitLive.state().ok : null };
   });
@@ -124,7 +125,8 @@ try {
   const hiddenFrom = Date.now();
   await sleep(30000);
   s = await st();
-  check('hiding the finder: no trip, no live layer, no live handle', s.view === 'pill' && !s.route.bus && !s.liveBuses.active && await page.evaluate(() => !window.__map.getLayer('transit-live-vehicles') && !window.__map.getLayer('finder-route-bus') || window.__map.getSource('finder-route')._data.features.length === 0), { view: s.view, route: s.route, liveBuses: s.liveBuses });
+  const gone = await page.evaluate(() => ({ live: !window.__map.getLayer('transit-live-vehicles'), route: window.__map.querySourceFeatures('finder-route').length }));
+  check('hiding the finder: no trip, no live layer, no live handle', s.view === 'pill' && !s.liveBuses.active && gone.live && gone.route === 0, { view: s.view, route: s.route, liveBuses: s.liveBuses, gone });
   check('and no request to the bus feeds in the 30 s after', feedReqs(hiddenFrom).length === 0, feedReqs(hiddenFrom).map((r) => r.url));
   await page.evaluate(() => window.finderOpen());
   await sleep(2000);

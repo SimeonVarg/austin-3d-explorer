@@ -751,7 +751,10 @@ function boot() {
     }
     // Only where the bus is the answer: the heaviest class building this home reaches BY BUS (or, in bus mode, the
     // heaviest one). A home that walks everywhere gets no bus line.
-    const busLeg = S.mode === 'walk' ? null : (legs.find(l => l.how === 'bus') || (S.mode === 'bus' ? legs[0] : null));
+    // Searched among ALL the buildings, not just the few listed: the trip drawn on the map is the heaviest by-bus building too
+    // (finder-bus.js drawLegs), and the line under the home must be about the same trip.
+    const byWeight = r.score.legs.slice().sort((a, b) => b.w - a.w);
+    const busLeg = S.mode === 'walk' ? null : (byWeight.find(l => l.how === 'bus') || (S.mode === 'bus' ? byWeight[0] : null));
     if (S.liveStop) { S.liveStop(); S.liveStop = null; }
     if (FINDER.liveBus && busLeg) { const lv = el('div', 'fd-live'); d.append(lv); liveBus(r, busLeg, lv); }
     return d;
