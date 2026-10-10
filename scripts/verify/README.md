@@ -1805,3 +1805,26 @@ Traps this check cost time:
 - **A per-half translation cannot measure a small rotation** (it gave 2.9 degrees for 5). Bank is found by a
   rigid-rotation search instead.
 - **This check needs a GPU.** It asks for hardware GL itself and is listed in `ci/checks.json`.
+
+## What the loading veil waits for: `window.__intro.gates`, `perf-veil-ab.mjs`, `veil-first-frame.mjs` (added October 10 2026)
+
+`window.__intro.gates` is a debug field filled while the veil is up: for every question the veil gate asks (the four
+`INTRO.needs` sources, then `apt.boot`, `apt.group`, `apt.frames`, `apt.filters`, `apt.rigs`, one `apt.src.<id>` per
+source behind a layer the authored apartments hide, and `apt.firstView` for the answer) it keeps `firstOkAt` (ms
+since page start the first time it held), `lastBlockedAt` and `blockedPolls`. The question that holds the veil longest
+has the latest `lastBlockedAt`. `scripts/perf/load-profile.mjs` prints these per load (`## veil gates`) next to the time
+each source first loaded. `?veilgate=full` restores the old call (`slopesApartments.readyToReveal()`, which also waits for
+sources that their modules defer past the opening flight) so old and new run on ONE build in one interleaved set:
+`load-profile.mjs --arms 'old=drift=0&veilgate=full|new=drift=0' --throttle 1,4 --reps 5` (`perf-veil-ab.mjs` is the
+wrapper the AWS GPU runner starts, because the runner splits `--check` strings at commas).
+
+`veil-first-frame.mjs` is the proof that nothing the first view shows was left out: it photographs the page the moment
+the veil is gone and again once the deferred sources have landed and the map is settled, per gate, and counts moved
+pixels (more than 12 of 255 on a channel, the rule `ci/pictures.mjs` uses). It fails if the new gate's first frame
+moves more than the old gate's does, or if the settled city differs between the two gates by more than a gate against
+itself. Timing and pictures run one after the other; never start them in parallel.
+
+**`count.done` is not "the build landed".** The profile of 2026-10-09 read the `apartmentsDone` mark (`count.done`,
+set when `boot()` returns) as the end of the apartments build; the build starts earlier (the data and scene root are
+enough) and ends later (`count.ms` is its wall time). The mark that means the build landed is `slopesApartments.group`
+being set (`groupLanded` in load-profile).
