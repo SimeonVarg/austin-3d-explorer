@@ -21,7 +21,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { openApp, waitReady, PRIVATE } from './lib/app.mjs';
 
-const PORT = 8476;
+const PORT = 8496;
 const BIN = path.join(PRIVATE, 'apartments.bin');
 const fd = fs.openSync(BIN, 'w');
 let written = 0;

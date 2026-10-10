@@ -21,7 +21,7 @@ for (const f of [...LIBS, 'maplibre-gl.css']) {
   const b = fs.readFileSync(path.join(dir, f));
   sizes[f] = { raw: b.length, gzip9: zlib.gzipSync(b, { level: 9 }).length, brotli9: zlib.brotliCompressSync(b, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } }).length };
 }
-const server = await startStatic(8478);
+const server = await startStatic(8498);
 const browser = await launch(chromium, { gl: 'swiftshader' });
 const res = { sizes, parse: {}, heapMB: {} };
 try {
@@ -31,7 +31,7 @@ try {
       for (let i = 0; i < 9; i++) {
         const ctx = await browser.newContext(); const page = await ctx.newPage();
         const cdp = await ctx.newCDPSession(page);
-        await page.goto('http://127.0.0.1:8478/exp/proto/blank.html', { waitUntil: 'load' });
+        await page.goto('http://127.0.0.1:8498/exp/proto/blank.html', { waitUntil: 'load' });
         if (rate > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate });
         await cdp.send('Runtime.enable');
         const h0 = (await cdp.send('Runtime.getHeapUsage')).usedSize;

@@ -111,8 +111,8 @@ async function shootApp() {
 // ------------------------------------------------------------------ prototype side
 async function shootProto(frames) {
   console.log('== prototype side (' + (BREAK || 'clean') + ') ==');
-  const server = await startStatic(8478);
-  const url = `http://127.0.0.1:8478/exp/proto/${MODE === 'maplibre' ? 'maplibre' : 'standalone'}.html?data=/data/apartments.packed${BREAK ? '&break=' + BREAK : ''}`;
+  const server = await startStatic(8498);
+  const url = `http://127.0.0.1:8498/exp/proto/${MODE === 'maplibre' ? 'maplibre' : 'standalone'}.html?data=/data/apartments.packed${BREAK ? '&break=' + BREAK : ''}`;
   const t0 = Date.now();
   const { browser, page, errors } = await openApp({ url, viewport: VIEWPORT });
   const out = { views: {}, software: SOFTWARE };

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { HERE, PRIVATE } from './app.mjs';
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.bin': 'application/octet-stream', '.css': 'text/css', '.png': 'image/png' };
-export function startStatic(port = 8478) {
+export function startStatic(port = 8498) {
   const roots = { '/exp/': path.resolve(HERE, '..'), '/data/': PRIVATE, '/libs/': path.join(PRIVATE, 'libs') };
   const server = http.createServer((req, res) => {
     const url = decodeURIComponent(req.url.split('?')[0]);

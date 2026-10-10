@@ -49,14 +49,14 @@ const mul = (a, b) => { const o = new Array(16).fill(0); for (let c = 0; c < 4; 
 const matrix = mul(P, V);
 const u = { u_lightpos: [0.3, -0.5, 0.8], u_lightcolor: [1, 1, 1], u_lightintensity: 0.5, u_vertical_gradient: 1, u_opacity: 1, u_roof_shade: 1, u_materialP: 0, u_facet_on: 0, u_facet_ambient: 0.35, u_facet_lo: 0.7, u_facet_hi: 1.28, u_facet_sin: 0.6, u_facet_cos: 0.8, u_sloped_max_z: 0.99 };
 
-const server = await startStatic(8479);
+const server = await startStatic(8499);
 const browser = await launch(chromium, { gl: 'swiftshader' });
 let ok = true;
 const check = (name, cond, extra = '') => { console.log((cond ? 'PASS ' : 'FAIL ') + name + (extra ? '  ' + extra : '')); if (!cond) ok = false; };
 try {
   const page = await (await browser.newContext({ viewport: { width: 640, height: 400 } })).newPage();
   const errors = []; page.on('pageerror', e => errors.push(String(e))); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-  await page.goto('http://127.0.0.1:8479/exp/proto/standalone.html?data=/data/selftest.packed', { waitUntil: 'load' });
+  await page.goto('http://127.0.0.1:8499/exp/proto/standalone.html?data=/data/selftest.packed', { waitUntil: 'load' });
   await page.waitForFunction(() => window.__proto, null, { timeout: 15000 });
   await page.evaluate(() => window.__proto.init([640, 400]));
   const st = await page.evaluate(m => window.__proto.drawFrame(m), { matrix, u });
