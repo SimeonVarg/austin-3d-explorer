@@ -4,10 +4,10 @@ Draft pull request #465 (`mac/visual-audit`). Auditor: one Sonnet 5.5 agent, sev
 
 ## 0. In plain words
 
-* **Fixes are now seen in a browser, not just checked by syntax.** The same script ran on `main` and on this branch at phone, tablet and desktop width: 124 assertions passed and 0 failed on the branch (the failures were found and fixed along the way; two were my own regressions, see section 1). Before and after pictures sit side by side in `docs/visual-audit-2026-10-10/pairs/`.
+* **Fixes are now seen in a browser, not just checked by syntax.** The same script ran on `main` and on this branch at phone, tablet and desktop width: 128 assertions passed and 0 failed on the branch (the failures were found and fixed along the way; two were my own regressions, see section 1). Before and after pictures sit side by side in `docs/visual-audit-2026-10-10/pairs/`.
 * **What you will notice:** a branded 404 instead of the host's white page; a plain "This map needs WebGL" card instead of a bar frozen at 20 percent; the settings button is three sliders, not a second sun; a visible gold focus ring; the "Switch modes" pill no longer sits on the graphics menu, the walk sheet or the importer; on a phone the credits start folded so the Terms link is reachable, and Explore, the finder sheet and the Graphics sheet take turns instead of stacking; the compare panel no longer opens on The Standard; menus and the finder reach 44 px on touch; the finder (new on main) is a bottom sheet on a touch tablet instead of covering the joystick and running its compare tray off the screen.
 * **One of my first fixes was wrong and is reverted.** A10 (opening flight under reduced motion): the browser run showed main already shows no flight, because the map library jumps; my fix only changed which first view such a visitor sees. The judge made that your choice (sheet in `taste/`).
-* **Not seen:** a real notch (A12), iPhone Safari, the loader stage by stage on a slow network, and a few copy-only changes (section 1 lists every fix as proved or not proved).
+* **Not seen:** a real notch (A12), iPhone Safari, the `modes` group of URL switches (`?clip`, `?timelapse`, `?autopilot`, `?sliderdemo`, `?tour`, `?lite`, `?debug`, labels, presets), and a few copy-only changes (section 1 lists every fix as proved or not proved). Everything else in the route map was photographed at phone, tablet or desktop width, the walk, importer, compare, loading stages and failure screens included.
 
 ## 1. Fixes: proved and not proved
 
@@ -31,8 +31,9 @@ Draft pull request #465 (`mac/visual-audit`). Auditor: one Sonnet 5.5 agent, sev
 | A12 | Edge controls follow four safe-area variables | desktop:pass phone:pass tablet:pass | (the variables were set by hand) | PROVED that the controls follow the variables; NOT PROVED on a real notch or home bar (none here) |
 | K01 | The mode pill steps aside for the walk sheet and importer on touch | - | [walk-route-phone](docs/visual-audit-2026-10-10/pairs/walk-route-phone-before-after.jpg) [imp-file-messy-phone](docs/visual-audit-2026-10-10/pairs/imp-file-messy-phone-before-after.jpg) | PROVED by picture (phone) |
 | I01 I02 I05 I07 I08 I13 J02 (finder) | The finder pill steps aside for Explore; the finder sheet and the Graphics sheet take turns; opaque panel; 44 px; 12 px; focus returns to the pill; a touch tablet gets the sheet and the in-sheet compare table | I01: desktop:pass phone:pass tablet:pass / I02: phone:pass tablet:pass / I05: desktop:pass phone:pass tablet:pass / I07: phone:pass tablet:pass / I08: desktop:pass phone:pass tablet:pass / I13: desktop:pass phone:pass tablet:pass / J02: desktop:pass phone:pass tablet:pass | [finder-3-pill-with-explore-desktop](docs/visual-audit-2026-10-10/pairs/finder-3-pill-with-explore-desktop-before-after.jpg) [finder-17-with-explore-open-desktop](docs/visual-audit-2026-10-10/pairs/finder-17-with-explore-open-desktop-before-after.jpg) [finder-16-with-graphics-open-phone](docs/visual-audit-2026-10-10/pairs/finder-16-with-graphics-open-phone-before-after.jpg) [finder-11-compare-tray-tablet](docs/visual-audit-2026-10-10/pairs/finder-11-compare-tray-tablet-before-after.jpg) [finder-4-open-from-pill-tablet](docs/visual-audit-2026-10-10/pairs/finder-4-open-from-pill-tablet-before-after.jpg) | PROVED (the after run selects bus mode before choosing a home, so the compared lists differ in content) |
+| M01 A14 | With every data file refused the loading card says the city could not load and offers Try again; the lightweight-city notice no longer shows the URL flag | desktop:pass phone:pass / desktop:pass phone:pass (these two ran in a later run, after5) | [proof-M01-data-blocked-phone](docs/visual-audit-2026-10-10/pairs/proof-M01-data-blocked-phone-before-after.jpg) [proof-A14-litesafe-notice-phone](docs/visual-audit-2026-10-10/pairs/proof-A14-litesafe-notice-phone-before-after.jpg) | PROVED (phone and desktop; the before pictures are from the boot run) |
 | A02 | The terms page no longer lists data-prep tools | - | - | PROVED by reading the file (no DuckDB line); not photographed |
-| H01 H03 I06 I09 I10 I11 I12 K03 A14 A08 B04 B14 B19 B21 | Reduced-motion veil; focus ring on the compare toggle; the finder card font; finder safe area, pin transitions, the visible privacy line and the saved major choice; 12 px walk text; the phone notice wording; data-unavailable line; the slow-device toast; "1 crossing"; deep-link failure message; picture-read failure message | - | - | NOT PROVED: each needs a state the script does not reach (a notch, a failed load, one crossing, a bad picture) or is a pure-CSS value I did not measure. They are small and read-checked only |
+| H01 H03 I06 I09 I10 I11 I12 K03 A08 B04 B14 B19 B21 | Reduced-motion veil; focus ring on the compare toggle; the finder card font; finder safe area, pin transitions, the visible privacy line and the saved major choice; 12 px walk text; the phone notice wording; data-unavailable line; the slow-device toast; "1 crossing"; deep-link failure message; picture-read failure message | - | - | NOT PROVED: each needs a state the script does not reach (a notch, a failed load, one crossing, a bad picture) or is a pure-CSS value I did not measure. They are small and read-checked only |
 | A10 | (reverted) | desktop:pass phone:pass tablet:pass | `taste/a10-reduced-motion.jpg` | Not a fix any more; the owner’s choice |
 
 **Found by the proof run and fixed:** A09 did not fire the first two times (the library's own error reaches the page only as "Script error.", so the card is now told from a catch around the map constructor); G01 on desktop and A12 on tablet failed the first after-run (credits touching the hint; the safe-area variable missing from a mid-width rule); H05's check measured a chip that had already disappeared. Each was fixed and re-run.
@@ -65,9 +66,9 @@ Every route a visitor can reach, from `index.html`, `js/*.js`, the three stylesh
 | R16 | Keyboard focus walk (Tab order, ring) | Tab | P T D |
 | R17 | Keys: G, P (photo mode), T (tour), R, Shift+D (debug box) | keyboard | P T D |
 | R18 | Map attribution control, "Terms and credits" link | bottom-right "i" | P T D |
-| R19 | `?clip=1`, `?clip=1&drive=1`, `?timelapse=1`, `?autopilot=1`, `?sliderdemo=1`, `?tour=1` | URL (the mode dialog builds these) | P T D |
-| R20 | `?lite=1`, `?lite=0`, `?debug=1`, `?preset=` x4 | URL | P T D |
-| R21 | Labels: building names, `?labels`, `?namelabels`, `?entlabels`, `?placelabels` | URL / default | P T D |
+| R19 | `?clip=1`, `?clip=1&drive=1`, `?timelapse=1`, `?autopilot=1`, `?sliderdemo=1`, `?tour=1` | URL (the mode dialog builds these) | script ready (`visual-audit.mjs modes`); not run, see section 7 |
+| R20 | `?lite=1`, `?lite=0`, `?debug=1`, `?preset=` x4 | URL | script ready (`visual-audit.mjs modes`); not run, see section 7 |
+| R21 | Labels: building names, `?labels`, `?namelabels`, `?entlabels`, `?placelabels` | URL / default | script ready (`visual-audit.mjs modes`); not run, see section 7 |
 | R22 | Walk to class: button, sheet, typing, not-found, route card, details | `?walk=1`, key `/` | P T D |
 | R23 | Walk deep link `?walk=1&from=WEL&to=GDC` | URL | P T D |
 | R24 | "My day" panel, class check ("CHECK THIS CLASS") | after a schedule is saved | P T D |
@@ -167,21 +168,23 @@ Picture paths are under `~/flyover-private/visual-audit-2026-10-10/` (`base/` an
 | K01 | walk sheet and importer, phone | P | The navy Switch modes pill sits on top of the walk sheet and importer footers. | certain (seen) | FIX | Pill steps aside for them on touch screens. | done | colab/before2 walk-route-phone.jpg |
 | K02 | top-left cluster with ?walk=1 | P D | Three shapes in one cluster: rounded-square walk button, black rectangle Explore, round finder pill. | certain (seen) | OWNER'S TASTE | Keep distinct shapes or unify. | left | colab/before2 walk-route-phone.jpg |
 | K03 | walk sheet and importer text | P D | Walk sheet and importer text is 9 to 11.5 px. | certain | FIX | 12 px floor. | done | (metrics) |
+| M01 | R04 data failure (loader) | P | With every data file refused the loading card stays on 'Still building', frozen at 20 percent, 'some flaked', and invites 'Pick a mode'; nothing says the city will not load. | certain (seen) | FIX | Plain failure card with a Try again button. | done | colab/before3 fail-data-t60-phone.jpg |
+| M02 | R02 loader pill | P | The 'Modes (still loading)' pill stays on a phone over the map in the simplified-buildings state. | certain (seen) | LEAVE | Owner-approved copy; the pill accurately signals incomplete loading. | left | colab/before3 notice-litesafe-phone.jpg |
 
 ## 5. Summary
 
 | | count |
 |---|---|
 | Routes mapped | 36 (section 3) |
-| Findings (each with a verdict) | 76 |
-| FIX, done | 48 |
+| Findings (each with a verdict) | 78 |
+| FIX, done | 49 |
 | FIX, partly done | 2 (A12 safe-area only: the judge deferred the page-zoom change; B05 `G` in the hint, the touch reset button is the owner's taste) |
 | FIX, not done | 0 |
 | OWNER'S TASTE (nothing changed) | 12 (sheets in `docs/visual-audit-2026-10-10/taste/`) |
-| LEAVE | 14 |
+| LEAVE | 15 |
 | Helpers | 7 Haiku 5.5 (code reading only) |
-| Judge questions | 14 batches: Astra on A, B1, B2, D, F, J; the school ChatGPT member on E, G, H, I, K, L (answers in `~/flyover-mail/council/2026-10-10-va-batch-*`) |
-| Assertions on the branch | 124 pass, 0 fail (desktop, tablet, phone) |
+| Judge questions | 12 batches: Astra on A, B1, B2, D, F, J (6); the school ChatGPT member on E, G, H, I, K, L (6) (answers in `~/flyover-mail/council/2026-10-10-va-batch-*`) |
+| Assertions on the branch | 128 pass, 0 fail (desktop, tablet, phone) |
 
 ## 6. For the owner to judge (nothing was changed for these)
 
@@ -206,7 +209,7 @@ One sheet each (picture, one line, the two options) in `docs/visual-audit-2026-1
 
 * **Not seen:** a real notch or home bar (A12) and iPhone Safari page zoom; the live bus line on a day the CapMetro feed did not answer (the run keeps what it said in `finder-bus-*.json`); the failure copy in the walk and importer for a bad picture or a missing graph; the phone notice (`?lite=safe`); the data-unavailable line. Marked "NOT PROVED" in section 1.
 * **Fonts:** the Colab machine has no system UI font, so Explore, the compare card and the play glyph look wrong in those pictures (a typewriter face, a square box). Judge shapes and spacing from them, not type. The earlier laptop pictures (`base/chrome-desktop`) have the real fonts.
-* **Loading stages and failure screens:** `boot`, `modes` and `chrome --vp tablet` were queued on Colab twice; two runs were ended from outside this task and the third had not finished when I stopped. The scripts are ready (`visual-audit.mjs boot|modes|chrome`). The loading card at 390 and 1440 is in the pictures above (before, WebGL failure).
+* **Loading stages and failure screens:** `boot` (loading stages, slow network, failed data, no WebGL, context lost, the two notices) at all three widths and `chrome` at tablet width were photographed on Colab (`colab/before3`); the `modes` group (`?clip`, `?timelapse`, `?autopilot`, `?sliderdemo`, `?tour`, `?lite`, `?debug`, label routes, presets, reduced motion at every width) and the terms page and 404 at tablet width after the change were not run; the Colab client was ended twice from outside this task and the long `modes` run was dropped. The script has them (`visual-audit.mjs modes`).
 * **Helpers were wrong or half right:** one said walk-sheet result rows cannot be reached by keyboard (the arrow keys work; the clear mark and chips could not, B20); one listed live-bus screens that do not exist; the CSS helper's "pure-white panel against translucent navy" does not exist; the controls helper's claim that the intro ignores reduced motion was true of the code and false in effect (A10); another passed over G, P and T, which were broken after a button click (B01).
 * **Shared machines:** earlier in this audit I ran `pkill -f` on a shared tool and removed and recreated the AWS dispatch lock briefly; both are written up in the first pull request body. This round I cancelled only my own jobs by process id. Two of my Colab runs were ended by something else mid-run; their pictures were re-taken.
 * **Pull request:** #463 was still open, so I did not merge it; main had nothing new beyond what the branch has.
