@@ -53,7 +53,11 @@ async function shootApp() {
     const ms = await waitReady(page, t0);
     console.log('ready', JSON.stringify({ ...ms, last: undefined }));
     await page.evaluate(() => window.__glc.wrapLayer());
-    await page.addStyleTag({ content: 'html,body{background:#ff00ff!important} #map{background:#ff00ff!important} body>*:not(#map){display:none!important} .maplibregl-control-container,.maplibregl-ctrl{display:none!important}' });
+    // The page's own picture grade (exposure, contrast, filmic curve, auto brightness) is a CSS filter on the map host; the prototype has none.
+    // Neutral on both sides: the grade is a look the study does not port, and it must not be counted as a renderer difference.
+    await page.evaluate(() => { const G = window.GFX; if (G) { Object.assign(G, { autoExposure: false, exposure: 1, contrast: 1, saturation: 1, filmic: 0, vignette: 0, bloom: 0, grain: 0 }); try { window.applyGraphics(); } catch (e) {} }
+      try { window.__map.setSky({ 'sky-color': '#ff00ff', 'horizon-color': '#ff00ff', 'fog-color': '#ff00ff', 'sky-horizon-blend': 0, 'horizon-fog-blend': 0, 'fog-ground-blend': 0, 'atmosphere-blend': 0 }); } catch (e) {} });
+    await page.addStyleTag({ content: 'html,body{background:#ff00ff!important} #map{background:#ff00ff!important} body>*:not(#map){display:none!important} .maplibregl-control-container,.maplibregl-ctrl{display:none!important} html,body,#map,#map *{filter:none!important;mix-blend-mode:normal!important}' });
     const isolate = () => page.evaluate(() => {
       const m = window.__map, A = window.slopesApartments, S = window.slopes;
       let hidden = 0;
@@ -134,7 +138,7 @@ async function shootProto(frames) {
       const gl = await page.evaluate(async f => { const G = window.__glc; const a = G.snap(); await window.__proto.drawFrame(f); const b = G.snap(); const o = {}; for (const cid of Object.keys(b)) for (const ph of Object.keys(b[cid])) { const d = {}; for (const k of Object.keys(b[cid][ph])) d[k] = +(b[cid][ph][k] - ((a[cid] && a[cid][ph] && a[cid][ph][k]) || 0)).toFixed(1); if (d.total) o[cid + '/' + ph] = d; } return o; }, { matrix: f.matrix, u: f.u });
       out.views[p.name] = { stats: st, gl };
       const k = Object.keys(gl)[0];
-      console.log(`${p.name.padEnd(18)} proto draws ${gl[k] ? gl[k].draw : 0} tris ${gl[k] ? Math.round(gl[k].tris) : 0} glcalls ${gl[k] ? gl[k].total : 0} (chunks ${st.chunksDrawn}/${st.chunks}, multiDraw ${st.multiDraw})`);
+      console.log(`${p.name.padEnd(18)} proto draw calls ${st.draws} (multiDraw ${st.multiDraw}), tris ${Math.round(st.triangles)}, other GL calls ${gl[k] ? gl[k].total : 0}, buildings ${st.chunksDrawn}/${st.chunks}, cull ${st.cullMs.toFixed(2)} ms`);
     }
     out.timeline = await page.evaluate(() => window.__proto.timeline);
     // bench: 60 draws each followed by gl.finish()
