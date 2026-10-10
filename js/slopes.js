@@ -389,7 +389,7 @@
   const PACK_TONES = 2 ** PACK.toneBits, PACK_NLOW = 2 ** (15 - PACK.toneBits);
 
   // ══════════════════════════════════════════════════════════════════════
-  //  THE MOIRE FIX (?moirefix=0|1) — default ON
+  //  THE MOIRE FIX (?moirefix=0|1) — default OFF (MOIRE_DEFAULT_ON)
   //  A window grid drawn about once per pixel shimmers: each pixel takes ONE sample of wall or glass. Supersampling would average
   //  them; this does the averaging in the shader instead. js/slopes-apartments.js's cell tiler tells the builder which cells belong
   //  to one wall face (faceOpen / faceCell / faceClose below), the builder keeps that face's MEANS (opaque parts and glass apart,
@@ -404,8 +404,12 @@
   //  ?moirefix=0: no face is recorded, the define is absent, the buffers and the program are main's.
   // ══════════════════════════════════════════════════════════════════════
   const pair = (name, dflt) => { const v = (q.get(name) || '').split(',').map(Number); return v.length === 2 && v.every(Number.isFinite) && v[1] > v[0] ? v : dflt; };
+  // OFF until it has been looked at on the owner's own machines and the exact-pixel checks have been taken through it (?moirefix=1 turns it on).
+  // Measured on an NVIDIA L4 it lowers the window part of the error by 36 to 46% and of the flicker by 38 to 49% with Smooth edges off, and makes
+  // no view worse; it does not reach the flat-wall floor (the pull request that added it has the table and what is left).
+  const MOIRE_DEFAULT_ON = false;
   const MOIRE = {
-    on: switchOf('moirefix', true),
+    on: switchOf('moirefix', MOIRE_DEFAULT_ON),
     // TASTE AND TUNING. Each is one named value; the URL forms are for an A/B on a live page.
     // px: how many pixels ACROSS a wall face's feature length is (see faceClose: two window widths for a window as wide as its pier). Under px[0]
     // a cell is drawn as its row's mean, over px[1] as itself, a smooth blend between. pxV: the same UP the wall, toward the whole face's mean.
@@ -424,6 +428,28 @@
     goldSlope: 0.84,                    // d(golden)/d(day) of a wall tone (js/slopes-apartments.js ramp(): golden = day + 16% toward a warm white)
     mode: 1,                            // runtime (MoireFix.set): 0 off, 1 on, 2 flat (every cell its face's mean: the meter's floor), 3 rows (every cell its row's mean)
     FACE_TEXELS: 12, ROW_W: 2048,       // layout of the tables (float texels per face; width of the strips' textures)
+  };
+  // THE MOIRE FIX at run time (scripts/verify/moire-bar.mjs flips it inside one page): MoireFix.set('off' | 'on' | 'flat' | 'rows'), or a number.
+  // 'off' draws main's picture through the fix's own program; ?moirefix=0 is the switch that also restores main's program and buffers.
+  const MOIRE_DEFAULTS = JSON.parse(JSON.stringify(MOIRE));
+  window.MoireFix = {
+    params: MOIRE,
+    /** every live value back to what the page loaded with (a meter flips them between pictures) */
+    reset() { for (const k of ['px', 'pxV', 'edgePx']) MOIRE[k] = MOIRE_DEFAULTS[k].slice(); for (const k of ['parallax', 'edge', 'goldSlope', 'footprint', 'through']) MOIRE[k] = MOIRE_DEFAULTS[k]; },
+    set(mode) {
+      const m = typeof mode === 'number' ? mode : { off: 0, on: 1, flat: 2, rows: 3 }[mode];
+      if (!(m >= 0 && m <= 3)) throw new Error('MoireFix.set: off, on, flat or rows');
+      MOIRE.mode = m;
+      if (window.CityLighting && window.CityLighting.moire) window.CityLighting.moire.mode = m;
+      if (_map) _map.triggerRepaint();
+      return m;
+    },
+    info() {
+      let faces = 0, bytes = 0, meshes = 0;
+      if (root) root.traverse(o => { const pk = o.isMesh && o.geometry && o.geometry.userData.pack; if (pk && !pk._moireSeen) { pk._moireSeen = true; meshes++; faces += pk.nFaces - 1; bytes += pk.faceBytes ? pk.faceBytes() : 0; } });
+      if (root) root.traverse(o => { const pk = o.isMesh && o.geometry && o.geometry.userData.pack; if (pk) delete pk._moireSeen; });
+      return { on: MOIRE.on, mode: MOIRE.mode, px: MOIRE.px, pxV: MOIRE.pxV, parallax: MOIRE.parallax, faces, tableBytes: bytes, tables: meshes, walls: window.CityLighting && window.CityLighting.moire ? { ...window.CityLighting.moire } : null };
+    },
   };
   const RUST_INFO = { on: RUST.on, state: RUST.on ? 'loading' : 'off', compileMs: 0, builds: 0, error: null };
   // The Rust builder broke AFTER it loaded (a trap, an out-of-memory error, a bad instance). Stop using it for good: every
@@ -2508,28 +2534,6 @@ ${SHADE_CORE}${SHADE_DETAIL}      #ifdef MOIRE_ACTIVE
     return g;
   }
 
-  // THE MOIRE FIX at run time (scripts/verify/moire-bar.mjs flips it inside one page): MoireFix.set('off' | 'on' | 'flat' | 'rows'), or a number.
-  // 'off' draws main's picture through the fix's own program; ?moirefix=0 is the switch that also restores main's program and buffers.
-  const MOIRE_DEFAULTS = JSON.parse(JSON.stringify(MOIRE));
-  window.MoireFix = {
-    params: MOIRE,
-    /** every live value back to what the page loaded with (a meter flips them between pictures) */
-    reset() { for (const k of ['px', 'pxV', 'edgePx']) MOIRE[k] = MOIRE_DEFAULTS[k].slice(); for (const k of ['parallax', 'edge', 'goldSlope', 'footprint', 'through']) MOIRE[k] = MOIRE_DEFAULTS[k]; },
-    set(mode) {
-      const m = typeof mode === 'number' ? mode : { off: 0, on: 1, flat: 2, rows: 3 }[mode];
-      if (!(m >= 0 && m <= 3)) throw new Error('MoireFix.set: off, on, flat or rows');
-      MOIRE.mode = m;
-      if (window.CityLighting && window.CityLighting.moire) window.CityLighting.moire.mode = m;
-      if (_map) _map.triggerRepaint();
-      return m;
-    },
-    info() {
-      let faces = 0, bytes = 0, meshes = 0;
-      if (root) root.traverse(o => { const pk = o.isMesh && o.geometry && o.geometry.userData.pack; if (pk && !pk._moireSeen) { pk._moireSeen = true; meshes++; faces += pk.nFaces - 1; bytes += pk.faceBytes ? pk.faceBytes() : 0; } });
-      if (root) root.traverse(o => { const pk = o.isMesh && o.geometry && o.geometry.userData.pack; if (pk) delete pk._moireSeen; });
-      return { on: MOIRE.on, mode: MOIRE.mode, px: MOIRE.px, pxV: MOIRE.pxV, parallax: MOIRE.parallax, faces, tableBytes: bytes, tables: meshes, walls: window.CityLighting && window.CityLighting.moire ? { ...window.CityLighting.moire } : null };
-    },
-  };
   window.slopes = {
     canRestoreContext: !FREE_CPU,
     toLocal, toLngLat, project, raycast, material, facadeMaterial, colour, add, remove, detail,

@@ -30,7 +30,7 @@ if (!OUT) { console.error('usage: moire-clip.mjs --out <dir> [--views a,b] [--fr
 fs.mkdirSync(OUT, { recursive: true });
 const [W, H] = opt('--size', '960x600').split('x').map(Number);
 const FRAMES = +opt('--frames', '90'), STEP = +opt('--step', '1'), MSAA = opt('--msaa', '0') === '1';
-const QS = ['intro=0', 'drift=0', 'namelabels=0', 'facadepace=0', 'timeofdaypace=0', 'smooth=' + (MSAA ? 1 : 0)].concat((opt('--q', '') || '').split(',').filter(Boolean));
+const QS = ['intro=0', 'drift=0', 'namelabels=0', 'facadepace=0', 'timeofdaypace=0', 'moirefix=1', 'smooth=' + (MSAA ? 1 : 0)].concat((opt('--q', '') || '').split(',').filter(Boolean));
 const list = (opt('--views', 'guad-street,campus-far')).split(',').map(n => VIEWS.find(v => v.name === n)).filter(Boolean);
 
 const browser = await launch(chromium, { maxMs: +(opt('--max-min', '55')) * 60000 });

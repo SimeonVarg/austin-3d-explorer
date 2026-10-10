@@ -54,7 +54,7 @@
   // perspective shrinks it up to another 2-4x: the atlas has no mips, so the wall is point-sampled below one texel a pixel. The cure is the far
   // pattern filter that was already here (a box of taps over the pixel's own footprint), on EVERY device and from the camera outward rather
   // than only past 150 m on a graphics card. Named values: nearM / fullM are where it fades in.
-  const moire={on:new URLSearchParams(location.search).get('moirefix')!=='0'&&new URLSearchParams(location.search).get('moirewalls')!=='0',
+  const moire={on:new URLSearchParams(location.search).get('moirefix')==='1'&&new URLSearchParams(location.search).get('moirewalls')!=='0',   // off by default, with js/slopes.js MOIRE_DEFAULT_ON
     nearM:0,fullM:60,mode:1,mainOn:patternFilter.on};
   if(moire.on)patternFilter.on=true;
   patternFilter.compiled=patternFilter.on;

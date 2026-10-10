@@ -36,7 +36,7 @@ const { installStubs } = await import(pathToFileURL(path.join(RM, 'profile/app-p
 const { THREE_STUB } = await import(pathToFileURL(path.join(RM, 'js/builder-app.mjs')));
 {
   const ctx = globalThis;
-  ctx.window = ctx; ctx.self = ctx; ctx.location = { search: '?slopes=0&packverts=1', href: 'http://x/' };
+  ctx.window = ctx; ctx.self = ctx; ctx.location = { search: '?slopes=0&packverts=1&moirefix=1', href: 'http://x/' };
   ctx.document = { getElementById: () => null, hidden: false, readyState: 'complete', createElement: () => ({ getContext: () => null, style: {} }), addEventListener() {}, body: {} };
   ctx.addEventListener = () => {}; ctx.devicePixelRatio = 1; ctx.LITE_PROFILE = undefined;
   if (!ctx.navigator) Object.defineProperty(ctx, 'navigator', { value: { userAgent: 'node' }, configurable: true });
@@ -46,7 +46,7 @@ const { THREE_STUB } = await import(pathToFileURL(path.join(RM, 'js/builder-app.
 const S = globalThis.slopes, MOIRE = globalThis.MoireFix.params;
 let failed = 0;
 const say = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!ok) failed++; };
-say(MOIRE.on === true, 'the fix is on by default (?moirefix=0 turns it off)');
+say(MOIRE.on === true, 'the fix is on with ?moirefix=1');
 
 // ---- a seeded generator, and tones the way the app makes them --------------------------------------------------
 let seed = 20261010;

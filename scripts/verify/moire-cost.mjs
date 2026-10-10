@@ -28,7 +28,7 @@ const FRAMES = +opt('--frames', '60'), REPS = +opt('--reps', '5'), MSAA = opt('-
 const browser = await launch(chromium, { maxMs: 40 * 60000 });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 await page.addInitScript(cfg => { try { const K = 'austin3d.gfx.v1', cur = JSON.parse(localStorage.getItem(K) || '{}'); cur.msaa = cfg.msaa; cur.autoDetected = true; cur.autoExposure = false; localStorage.setItem(K, JSON.stringify(cur)); } catch (e) {} }, { msaa: MSAA });
-await page.goto(`${BASE}/_harness.html?intro=0&drift=0&namelabels=0&facadepace=0&timeofdaypace=0&smooth=${MSAA ? 1 : 0}`, { waitUntil: 'domcontentloaded', timeout: 180000 });
+await page.goto(`${BASE}/_harness.html?intro=0&drift=0&namelabels=0&facadepace=0&timeofdaypace=0&moirefix=1&smooth=${MSAA ? 1 : 0}`, { waitUntil: 'domcontentloaded', timeout: 180000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 420000 });
 await page.waitForFunction(() => !document.getElementById('veil'), null, { timeout: 420000, polling: 500 });   // the app is still booting when the style has loaded (see moire-bar.mjs)
 await page.waitForFunction(() => { const A = window.slopesApartments; return !A || !!(A.count.done && A.group); }, null, { timeout: 420000, polling: 500 });

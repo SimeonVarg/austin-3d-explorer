@@ -90,7 +90,7 @@ const SS = +opt('--ss', '4'), FRAMES = +opt('--frames', '6'), STEP_PX = +opt('--
 const MSAA = opt('--msaa', '0') === '1';
 const TRUTH = opt('--truth', 'jitter');   // 'jitter' (default) or 'scale' (one frame at SS x the pixels: shader fades that read the pixel size then differ from the 1x picture)
 const FRAMES_OUT = argv.includes('--frames-out'), GATE = argv.includes('--gate');
-const QS = ['intro=0', 'drift=0', 'namelabels=0', 'facadepace=0', 'timeofdaypace=0', 'smooth=' + (MSAA ? 1 : 0)]
+const QS = ['intro=0', 'drift=0', 'namelabels=0', 'facadepace=0', 'timeofdaypace=0', 'moirefix=1', 'smooth=' + (MSAA ? 1 : 0)]   // moirefix=1: the fix is compiled in, the arms flip it (a later --q moirefix=0 wins: main's own program)
   .concat((opt('--q', '') || '').split(',').map(s => s.trim()).filter(Boolean));
 // --xarm "name=js" (repeatable): one more arm, held to main's truth, whose page state is that JavaScript (for tuning a parameter inside one page load)
 for (let i = 0; i < argv.length; i++) if (argv[i] === '--xarm') { const a = argv[i + 1], k = a.indexOf('='); ARMS[a.slice(0, k)] = { js: a.slice(k + 1), truth: 'main', extra: true }; }

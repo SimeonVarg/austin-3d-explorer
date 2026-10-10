@@ -1879,8 +1879,9 @@ Traps this check cost time:
 ## The moire bar: `moire-bar.mjs`, `moire-mean.mjs`, `moire-clip.mjs`, `moire-cost.mjs` (added October 10 2026)
 
 "Moire" here is shimmer and crawling on walls: a window grid sampled about once per pixel. The fix is in `js/slopes.js`
-(the `MOIRE` block: authored buildings) and `js/city-lighting.js` (`moire`: MapLibre's pattern walls). `?moirefix=0`
-turns all of it off; `?moireedge=0` and `?moirewalls=0` turn off the window edge smoothing and the pattern-wall part alone.
+(the `MOIRE` block: authored buildings) and `js/city-lighting.js` (`moire`: MapLibre's pattern walls). It is OFF by default
+(`MOIRE_DEFAULT_ON`); `?moirefix=1` turns it on, and then `?moireedge=0` and `?moirewalls=0` turn off the window edge
+smoothing and the pattern-wall part alone. The meter and the tools load the page with `moirefix=1`.
 
 **`moire-bar.mjs` is the meter, and "zero" is stated so it can be failed.** One page load, three arms flipped inside the
 page (`window.MoireFix.set('off' | 'on' | 'flat')`): `main`, `fix`, and `flat`, THE FLOOR, where every window cell is drawn
@@ -1896,7 +1897,7 @@ VERIFY_GL=hardware VERIFY_URL=http://127.0.0.1:8099 node scripts/verify/moire-ba
 node scripts/verify/moire-mean.mjs            # no browser: the means are the true means (CI); --break must fail
 ```
 
-Four traps, each one cost a run:
+Six traps, each one cost a run or more:
 
 - **A truth drawn at 4x the pixels is not the same picture.** The roof tiles, the brick joints and every other fade that
   reads the pixel size draw MORE detail in a frame four times as large, so a meter that takes that frame as truth scores
@@ -1908,6 +1909,12 @@ Four traps, each one cost a run:
 - **Hide the labels at every view, not once.** The building generators add their name layers after the style has loaded;
   a label over a wall is "building pixels" to the mask, and whether it was there was the ONLY difference between two
   page loads (1.5% of pixels, 0.2 of a level in the score). With them hidden two loads give the same numbers.
+- **The style being loaded is not the page being ready.** A warm second load started the meter 2 s in, before the app had
+  set its own time of day: it scored a sunset city with labels as "campus by day". The meter waits for the veil to go
+  and the authored buildings to be built.
+- **A sampler with no precision is `lowp` in a vertex shader.** The face number rides in the packed normal table; on
+  ANGLE's desktop-GL backend (NVIDIA L4) it came back with about eleven bits, so every wall read a neighbour's record
+  and the first two fixes scored WORSE than main. `uniform highp sampler2D`. The pictures looked plausible throughout.
 - **An arm must set every value it depends on.** Arms run in turn at every frame; one that changes a parameter and does
   not put it back hands the next arm its state. `MoireFix.reset()` is the first thing each arm does.
 
