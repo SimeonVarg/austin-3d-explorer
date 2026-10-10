@@ -97,7 +97,7 @@ spans.forEach((ch, ci) => {
 const vBytes = totalVerts * STRIDE, iBytes = totalIdx * 4;
 const align = n => (n + 3) & ~3;
 const meta = { format: 'flyover-apartments-packed-1', stride: STRIDE, vertexCount: totalVerts, vertexBytes: vBytes, indexType: 'u32', indexCount: totalIdx, indexOffset: align(vBytes), chunkCount: nChunks,
-  tableOffset: align(vBytes) + iBytes, chunkOffset: align(vBytes) + iBytes + table.byteLength, gradScale: [(gxMax || 1) / 255, (gyMax || 1) / 255], origin: man.origin, kinds };
+  tableOffset: align(vBytes) + iBytes, chunkOffset: align(vBytes) + iBytes + table.byteLength, gradScale: [(gxMax || 1) / 255, (gyMax || 1) / 255], origin: Array.isArray(man.origin) && man.origin.length === 2 ? man.origin : [-97.7393587, 30.2860098], kinds };   // SLOPES.origin, the Tower
 const out = Buffer.alloc(meta.chunkOffset + chunks.byteLength);
 Buffer.from(vb).copy(out, 0); Buffer.from(ib.buffer).copy(out, meta.indexOffset); Buffer.from(table.buffer).copy(out, meta.tableOffset); Buffer.from(chunks.buffer).copy(out, meta.chunkOffset);
 fs.writeFileSync(path.join(PRIVATE, 'apartments.packed.json'), JSON.stringify(meta));
