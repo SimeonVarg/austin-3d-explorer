@@ -21,10 +21,11 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
 const arg = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
-const STEPS = arg('--steps', 'bursts,load,mem').split(',');
+const STEPS = arg('--steps', 'bursts,load,mem,picstrees').split(',');
 const REPS = +arg('--reps', 5);
 const REPS4 = +arg('--reps4', 3);
 const REPSB = +arg('--repsb', 3);
+const REPSM = +arg('--repsm', 3);
 // bursts step: --armsb both (default: lazy as first shipped = no cap, no warm-up, no event coalescing; then everything on), nocap (cap off only), cap (cap on only); --throttleb 1,4; --maxb ms
 const ARMSB = { both: 'wtcap=0&wtwarm=0&wtcoalesce=0;', nocap: 'wtcap=0', cap: '' }[arg('--armsb', 'both')];
 const THROTTLEB = arg('--throttleb', '1,4');
@@ -70,9 +71,17 @@ if (STEPS.includes('picsvar')) pictures('var', 'namelabels=0', [['before', '&wal
 const PICQ = arg('--picq', '').replaceAll('+', '&');   // extra query on every picture, e.g. campuslandscape=0 to take the trees out
 if (STEPS.includes('pics')) pictures('paced', 'namelabels=0' + (PICQ ? '&' + PICQ : ''), [['before', '&walltiers=0'], ['after', ''], ['again', '&walltiers=0']]);
 if (STEPS.includes('mem')) {
-  [['eager', '?drift=0&walltiers=0'], ['lazy', '?drift=0']].forEach(([name, q], i) => {
-    run('mem-' + name, 'mobile-memory.mjs', ['--arms', name + '=' + URLB, '--query', q, '--reps', '1', '--out', path.join(OUT, 'mem-' + name + '-' + i)]);
-  });
+  // phone-emulation memory, REPSM reps per arm, arms interleaved (eager, final, eager, final, ...)
+  for (let r = 0; r < REPSM; r++) {
+    [['eager', '?drift=0&walltiers=0'], ['final', '?drift=0']].forEach(([name, q]) => {
+      run('mem-' + name, 'mobile-memory.mjs', ['--arms', name + '=' + URLB, '--query', q, '--reps', '1', '--out', path.join(OUT, 'mem-' + name + '-' + r)]);
+    });
+  }
+}
+// picstrees: the paced pictures with the tree layer on and with it off, old painting twice and new once in each
+if (STEPS.includes('picstrees')) {
+  pictures('trees', 'namelabels=0', [['before', '&walltiers=0'], ['after', ''], ['again', '&walltiers=0']]);
+  pictures('notrees', 'namelabels=0&campuslandscape=0', [['before', '&walltiers=0'], ['after', ''], ['again', '&walltiers=0']]);
 }
 if (STEPS.includes('picsnow')) pictures('atonce', 'namelabels=0&facadepace=0&timeofdaypace=0', [['before', '&walltiers=0'], ['after', '']]);
 process.exit(code);
