@@ -80,8 +80,6 @@
     "image-bench.mjs": {"args": ["--selftest"], "est_s": 10},
     "image-memory-lifecycle.mjs": {"est_s": 10},
     "img-import.mjs": {"est_s": 130},
-    "finder-busmap-phone.mjs": "needs a GPU and the live bus feed: the finder's bus parts inside the bottom sheet of a touch screen (390 x 844), run by hand on a cloud lane",
-    "finder-busmap.mjs": "needs a GPU and the live bus feed: one browser look at the bus on the finder map, the ranking rows, the live-buses switch and the pathfinder row, run by hand on a cloud lane (Colab scripts/colab/run.py or acer-run.sh) with pictures to a private folder",
     "intro-interrupt.mjs": {"args": ["--out={out}"], "est_s": 1800},
     "kerbshot.mjs": {"args": ["{out}"], "est_s": 440},
     "landmark-material-contract.mjs": {"est_s": 10},
@@ -155,6 +153,8 @@
   },
   "_quarantine": "Checks that do NOT run in CI, each with the reason. Broken on main itself, or cannot work without a GPU. Fix the check (or main), then delete its line here.",
   "quarantine": {
+    "finder-busmap-phone.mjs": "needs a GPU and the live bus feed: the finder's bus parts inside the bottom sheet of a touch screen (390 x 844), run by hand on a cloud lane",
+    "finder-busmap.mjs": "needs a GPU and the live bus feed: one browser look at the bus on the finder map, the ranking rows, the live-buses switch and the pathfinder row, run by hand on a cloud lane (Colab scripts/colab/run.py or acer-run.sh) with pictures to a private folder",
     "facadegrid.mjs": "cannot score on main (exit 2): 'only 1 template grid(s) were testable. This self-check has decayed to the point of proving nothing'",
     "mobile-mergecells.mjs": "cannot run on main (exit 2): 'APARTMENTS.mergeCells is not defined in this build', the switch it compares is gone",
     "tower-check.mjs": "red on main: belfry/shaft 0.251 (want 0.49) and cap/shaft 0.160 (want 0.45), the exact numbers HANDOFF records on the laptop; at night it also misses the orange flood on some runs",
