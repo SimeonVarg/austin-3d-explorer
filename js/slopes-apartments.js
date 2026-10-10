@@ -2745,11 +2745,11 @@
   // ?buildworker=1|0: the apartment generator and the shared builder run in a Web Worker (js/build-worker.js, started by js/apartments-worker.js, which is
   // imported only when the switch is on). With it off this file requests and starts nothing new. Anything that goes wrong (no Worker, a script that will not
   // load, a throw mid-build, no answer within the timeouts) builds on this thread as without the switch, with one console line and no retry.
-  const BUILD_WORKER_DEFAULT_ON = false;            // the shipped default (decided by the measurements in the pull request)
+  const BUILD_WORKER_DEFAULT_ON = { desktop: false, phone: false };   // the shipped defaults per tier (decided by the measurements in the pull request); ?buildworker=1|0 overrides either
   const BUILD_WORKER_READY_MS = 30000;              // the worker's scripts (wall-patterns, three, slopes, night, roofs, apartments) must be loaded by then
   const BUILD_WORKER_BUILD_MS = 240000;             // and the whole build answered by then (6 s on a laptop, a minute or two on a slow phone)
   const _bwq = new URLSearchParams(location.search), _bw = _bwq.get('buildworker'), _bwt = +_bwq.get('buildworkertimeout') || 0;   // the timeout is a test seam
-  const BUILD_WORKER = { on: _bw === '1' ? true : _bw === '0' ? false : BUILD_WORKER_DEFAULT_ON, state: 'off', moduleUrl: './apartments-worker.js',
+  const BUILD_WORKER = { on: _bw === '1' ? true : _bw === '0' ? false : (window.LITE_PROFILE && window.LITE_PROFILE.on ? BUILD_WORKER_DEFAULT_ON.phone : BUILD_WORKER_DEFAULT_ON.desktop), state: 'off', moduleUrl: './apartments-worker.js',
     readyMs: _bwt || BUILD_WORKER_READY_MS, buildMs: _bwt || BUILD_WORKER_BUILD_MS };
   let _workerClient = null;
   function workerClient() {

@@ -3,9 +3,10 @@
  * console line saying why. And a tab that is hidden while the worker builds still finishes.
  *
  * build-worker-client.mjs (Node, in CI) proves every failure of the worker CLIENT is a bounded rejection. THIS proves the page's reaction to each, in the
- * real page: six loads (five of ?buildworker=1), each a different way for the worker to go wrong (a reference load with ?buildworker=0 gives the triangle count
+ * real page: seven loads (six of ?buildworker=1), each a different way for the worker to go wrong (a reference load with ?buildworker=0 gives the triangle count
  * and the number of buildings every arm must reach):
  *   ctor-throws  new Worker('build-worker.js') throws           script-404   js/build-worker.js answers 404
+ *   module-404   js/apartments-worker.js (the client module) answers 404
  *   throws       the worker throws at the start of its build       silent       the worker loads, says ready, and never answers the build
  *                                                                  (?buildworkertimeout=T so the wait is short)
  *   hidden       the tab is hidden (document.hidden true, visibilitychange) while the worker builds: it must still finish, in the worker
@@ -32,6 +33,7 @@ const ARMS = {
   // is the real-page equivalent, and build-worker-client.mjs covers `typeof Worker === 'undefined'` with no page
   'ctor-throws': { query: '&buildworker=1', init: () => { const W = window.Worker; window.Worker = new Proxy(W, { construct(t, a, nt) { if (/build-worker\.js/.test(String(a[0]))) throw new DOMException('refused by the test', 'SecurityError'); return Reflect.construct(t, a, nt); } }); }, fallback: true },
   'script-404': { query: '&buildworker=1', route: { match: /\/js\/build-worker\.js/, status: 404 }, fallback: true },
+  'module-404': { query: '&buildworker=1', route: { match: /\/js\/apartments-worker\.js/, status: 404 }, fallback: true },
   throws: { query: '&buildworker=1', route: { match: /\/js\/build-worker\.js/, edit: t => t.replace('async function run(', 'async function run(__m) { throw new Error("test: the worker fails at the start of its build"); }\nasync function __unused(') }, fallback: true },
   silent: { query: '&buildworker=1&buildworkertimeout=' + PARAMS.silentTimeoutMs, route: { match: /\/js\/build-worker\.js/, edit: t => t.replace('async function run(', 'async function run(__m) { await new Promise(() => {}); }\nasync function __unused(') }, fallback: true },
   hidden: { query: '&buildworker=1', hide: true },
