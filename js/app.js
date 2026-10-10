@@ -532,7 +532,7 @@
     if (manifest && manifest.latest) {
       activeDate = manifest.latest;
     } else {
-      if (el) el.textContent = 'No snapshot found — run the data pipeline first';
+      if (el) el.textContent = 'Map data is unavailable. Please try again later.';
     }
 
     map = new maplibregl.Map({
