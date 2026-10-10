@@ -117,6 +117,7 @@
     "outer-trees.mjs": {"est_s": 300},
     "pattern-lowpass.mjs": {"est_s": 10},
     "places-check.mjs": {"est_s": 300},
+    "places-ownfront.mjs": {"est_s": 10},
     "plazawalk.mjs": {"args": ["{out}"], "est_s": 910},
     "proxy-inside-grid.mjs": {"est_s": 10},
     "retint.mjs": {"est_s": 510},
