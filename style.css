@@ -2281,3 +2281,17 @@ body.gfx-open #mode-launcher,body.fb-open #mode-launcher{visibility:hidden}
 html.has-touch #gfx-foot button,html.has-touch #fb-send,html.has-touch #fb-copy,html.has-touch .gfx-preset,
 html.has-touch #mode-launcher,html.has-touch #fb-panel input[type=text],html.has-touch #fb-panel input[type=email]{
   min-height:var(--touch-min)}
+
+/* ── Walk sheet and importer on touch screens (H05, H06) ─────────────────────────────────────────────────────────
+   H05: the walk controls were 24 to 38 px. Rows and buttons take the 44 px floor; the small icon marks keep their
+   look and get a larger invisible hit area (--touch-pad on every side). */
+:root{--touch-pad:9px}
+html.has-touch .wf-item,html.has-touch .wf-act,html.has-touch .wf-imp-tab,html.has-touch .wf-eg,html.has-touch #wf-priv-del{
+  min-height:var(--touch-min)}
+html.has-touch .wf-x::after,html.has-touch #wf-close::after,html.has-touch #wf-swap::after,html.has-touch #wf-imp-close::after{
+  content:"";position:absolute;inset:calc(var(--touch-pad) * -1)}
+html.has-touch #wf-close,html.has-touch #wf-imp-close{position:relative}
+/* H06: the walk and importer text fields showed focus only as a border colour change. */
+.wf-row input:focus-visible,.wf-imp-in:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-ring-offset)}
+/* H01: the first-paint veil mark does not fade in when the visitor asked for reduced motion. */
+@media(prefers-reduced-motion:reduce){#veil-mark{animation:none}}
