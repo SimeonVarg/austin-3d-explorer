@@ -53,7 +53,7 @@ try {
       for (let o = 0; o < bytes; o += STEP) {
         await fetch(`http://127.0.0.1:${port}/up?off=${start + o}`, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: u8.subarray(o, Math.min(bytes, o + STEP)) });
       }
-      off += (bytes + 3) & ~3;
+      off += (bytes + 7) & ~7;
       return start;
     };
     const typeName = a => a.constructor.name;

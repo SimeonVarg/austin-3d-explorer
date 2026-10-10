@@ -29,7 +29,7 @@ const man = JSON.parse(fs.readFileSync(path.join(PRIVATE, 'apartments.json'), 'u
 const bin = fs.readFileSync(path.join(PRIVATE, 'apartments.bin'));
 const ab = bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength);
 const CTORS = { Float32Array, Uint32Array, Uint16Array, Int16Array, Uint8Array, Int8Array, Int32Array, Float64Array };
-const view = d => new CTORS[d.type](ab, d.offset, d.bytes / CTORS[d.type].BYTES_PER_ELEMENT);
+const view = d => { const C = CTORS[d.type]; return d.offset % C.BYTES_PER_ELEMENT === 0 ? new C(ab, d.offset, d.bytes / C.BYTES_PER_ELEMENT) : new C(ab.slice(d.offset, d.offset + d.bytes)); };   // a copy when the dump left it misaligned
 const half = h => { const s = (h & 0x8000) >> 15, e = (h & 0x7c00) >> 10, f = h & 0x03ff; return e === 0 ? (s ? -1 : 1) * Math.pow(2, -14) * (f / 1024) : e === 0x1f ? (f ? NaN : (s ? -Infinity : Infinity)) : (s ? -1 : 1) * Math.pow(2, e - 15) * (1 + f / 1024); };
 
 // ---- what the app holds now (CPU arrays, per attribute), from the dump ----
