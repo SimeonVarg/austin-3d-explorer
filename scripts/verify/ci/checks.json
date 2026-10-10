@@ -80,6 +80,7 @@
     "image-bench.mjs": {"args": ["--selftest"], "est_s": 10},
     "image-memory-lifecycle.mjs": {"est_s": 10},
     "img-import.mjs": {"est_s": 130},
+    "finder-busmap.mjs": "needs a GPU and the live bus feed: one browser look at the bus on the finder map, the ranking rows, the live-buses switch and the pathfinder row, run by hand on a cloud lane (Colab scripts/colab/run.py or acer-run.sh) with pictures to a private folder",
     "intro-interrupt.mjs": {"args": ["--out={out}"], "est_s": 1800},
     "kerbshot.mjs": {"args": ["{out}"], "est_s": 440},
     "landmark-material-contract.mjs": {"est_s": 10},
