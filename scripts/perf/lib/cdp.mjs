@@ -1,11 +1,12 @@
 /**
  * cdp.mjs — a small Chrome DevTools Protocol client with no dependency.
+ * Uses the global WebSocket when Node has one (22+) and lib/ws.mjs otherwise.
  *
  * WHY NOT PLAYWRIGHT. Playwright's page-scoped CDP session cannot send a command to a CHILD target
  * (a worker), so it cannot see MapLibre's worker fetches (about 19 MB of a cold load, see
  * scripts/verify/README.md) or profile the facade-paint workers. This client talks to the browser
  * endpoint over one WebSocket and routes every command by sessionId, so a page, its dedicated
- * workers and their network traffic are all visible. Needs Node 22+ (global WebSocket).
+ * workers and their network traffic are all visible. 
  *
  *   const chrome = await startChrome({ gl: 'hardware', width: 1280, height: 800 });
  *   const page = await chrome.newPage();          // { send, on, sessionId }
@@ -19,6 +20,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { MiniWebSocket } from './ws.mjs';
 
 const CANDIDATES = [
   process.env.CHROME_PATH,
@@ -94,7 +96,7 @@ export async function startChrome(opts = {}) {
     if (proc.exitCode != null) throw new Error('Chrome exited: ' + stderr.slice(-500));
   }
   if (!wsUrl) { kill(); throw new Error('Chrome did not open a debugging port: ' + stderr.slice(-500)); }
-  const ws = new WebSocket(wsUrl);
+  const ws = typeof WebSocket === 'function' ? new WebSocket(wsUrl) : new MiniWebSocket(wsUrl);
   await new Promise((res, rej) => { ws.addEventListener('open', res); ws.addEventListener('error', rej); });
   const conn = new Conn(ws);
   const version = await conn.root.send('Browser.getVersion');
