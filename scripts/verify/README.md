@@ -1805,3 +1805,25 @@ Traps this check cost time:
 - **A per-half translation cannot measure a small rotation** (it gave 2.9 degrees for 5). Bank is found by a
   rigid-rotation search instead.
 - **This check needs a GPU.** It asks for hardware GL itself and is listed in `ci/checks.json`.
+
+## The campus trees as instances: `campus-trees-instancing.mjs`, `campus-trees-pictures.mjs`, `perf-trees-ab.mjs` (added October 10 2026)
+
+`js/campus-landscape.js` draws each campus tree as six crowns and six stems. By default (`?treeinstancing=0` turns it off)
+those are instances of one unit crown and two unit stems: the instance matrix carries a part's centre and radii (or both
+ends and a radius), the vertex shader adds the crown's lobes from the crown's own seed, and the leaf colours come from a
+table of the plain path's own rounded bytes. Nothing is rounded to a "variant", so the trees are the same trees.
+
+- `campus-trees-instancing.mjs` (no browser, in CI): runs the plain builder against a recorder that mimics `slopes.build()`
+  and the instanced path through a JS transcription of the vertex shader, over the real tree data, and compares every
+  triangle (corners, normals, winding, colour bytes). It cannot see the GLSL itself; the pictures are the proof for that.
+  `--every 1` compares all 3,000 trees (minutes).
+- `campus-trees-pictures.mjs` (hardware GL, `shots`): ONE page, three passes (plain, instanced, plain again as the noise
+  floor) over the ten cameras of `ci/poses.json` plus two campus close-ups; prints moved pixels per view.
+- `perf-trees-ab.mjs` (timing, laptop only): cold loads of the two arms interleaved through `scripts/perf/load-profile.mjs`;
+  `--pictures` runs the pictures first. This is how it runs on the AWS GPU runner.
+
+Traps: the sun-shadow pass draws the scene with ONE override material (`js/slopes.js` `updateSunShadows`) that knows
+nothing about instances, so `js/campus-landscape.js` `patchDepth()` gives it instance and lobe maths the first time an
+instanced tree is drawn under it. If `js/slopes.js` changes that material's shape the trees stop casting shadows and the
+console says so once. A shared geometry across several meshes breaks `campus-everywhere-check.mjs`'s dispose count, so each
+instanced mesh owns a (small) geometry.
