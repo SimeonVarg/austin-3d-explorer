@@ -399,6 +399,8 @@ async function open(url) {
   // would read zero on the second page and prove nothing.)
   page.__requests = [];
   page.on('request', r => page.__requests.push(r.url()));
+  // this gate reads the apartments mesh's vertex colours (cDay) straight off the geometry; packed vertices (the default, js/slopes.js PACK_DEFAULT_ON) keep them in a tone table instead
+  url += (url.includes('?') ? '&' : '?') + 'packverts=0';
   await page.goto(url, { waitUntil: 'networkidle', timeout: 180000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 180000 });
   await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());

@@ -49,7 +49,8 @@
     "burdine-hall.json",
     "norman-hackerman-building.json",
     "robert-b-rowling-hall.json",
-    "jimmy-johns.json"
+    "jimmy-johns.json",
+    "raising-canes.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -102,7 +103,8 @@
     "8b767e28-0d6c-46aa-9d5e-af693151909b",
     "f8a072d5-4751-4e9b-8939-49239919913a",
     "3e41820f-7a63-49d5-950a-b1b46767617e",
-    "12a8cbfc-5d0d-4131-b055-d3c0516929d8"
+    "12a8cbfc-5d0d-4131-b055-d3c0516929d8",
+    "b32544f3-3221-480b-86bd-236b0eeb7be1"
   ],
   "replacedNames": [
     "The Standard",
@@ -153,7 +155,8 @@
     "Burdine Hall",
     "Norman Hackerman Building",
     "Robert B. Rowling Hall",
-    "Jimmy John's"
+    "Jimmy John's",
+    "Raising Cane's"
   ],
   "collections": [
     "data/campus_buildings.json",

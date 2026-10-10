@@ -1,0 +1,23 @@
+PASS: 408 blur cases byte-identical to js/pattern-lowpass.js (scalar and simd128 builds)
+approx variant vs JS over 458752 bytes: 378 differ (0.082%), 0 by more than 1 level, max difference 1
+
+tile 128x128 RGBA, radius 3, amount 1, 400 tiles per run, 9 interleaved rounds, CPU time per tile (ms): min / median / max
+  js                       0.650 / 0.782 / 0.831   1.00x of the JS (min)
+  wasm-scalar              0.713 / 0.842 / 1.015   0.91x of the JS (min)
+  wasm-simd128             0.678 / 0.868 / 0.928   0.96x of the JS (min)
+  wasm-simd128 (no copy)   0.620 / 0.710 / 0.772   1.05x of the JS (min)
+  wasm-approx f32 (no copy) 0.457 / 0.525 / 0.576   1.42x of the JS (min)
+
+tile 256x256 RGBA, radius 3, amount 1, 100 tiles per run, 9 interleaved rounds, CPU time per tile (ms): min / median / max
+  js                       2.619 / 3.128 / 3.287   1.00x of the JS (min)
+  wasm-scalar              2.824 / 3.493 / 3.719   0.93x of the JS (min)
+  wasm-simd128             2.766 / 3.441 / 3.583   0.95x of the JS (min)
+  wasm-simd128 (no copy)   2.422 / 2.993 / 3.176   1.08x of the JS (min)
+  wasm-approx f32 (no copy) 1.763 / 2.245 / 2.302   1.49x of the JS (min)
+
+tile 512x512 RGBA, radius 2, amount 0.85, 25 tiles per run, 9 interleaved rounds, CPU time per tile (ms): min / median / max
+  js                       10.735 / 13.343 / 13.853   1.00x of the JS (min)
+  wasm-scalar              11.385 / 13.675 / 14.715   0.94x of the JS (min)
+  wasm-simd128             10.681 / 13.470 / 14.101   1.01x of the JS (min)
+  wasm-simd128 (no copy)   9.625 / 12.083 / 12.580   1.12x of the JS (min)
+  wasm-approx f32 (no copy) 7.145 / 9.003 / 9.290   1.50x of the JS (min)
