@@ -19,7 +19,7 @@ try{
  page.on('pageerror',e=>errors.push(e.message));
  page.on('console',m=>{if(m.type()==='error'&&m.text().includes('[slopes-'))errors.push(m.text())});
  await page.addInitScript(()=>{const t=setInterval(()=>{if(window.cancelGraphicsAutoDetect){cancelGraphicsAutoDetect();clearInterval(t)}},50)});
- await page.goto(BASE+'/index.html?intro=0&drift=0&livehere=1',{waitUntil:'domcontentloaded',timeout:180000});
+ await page.goto(BASE+'/index.html?intro=0&drift=0&livehere=1&packverts=0',{waitUntil:'domcontentloaded',timeout:180000});
  await page.waitForFunction(()=>window.slopesApartments?.count.done&&window.slopesRoofs?.data&&window.__fly?.indexed(),null,{timeout:180000});
  await waitForBuild();
  const after=await page.evaluate(()=>structuredClone(slopesApartments.data));

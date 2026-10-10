@@ -32,7 +32,7 @@ const run = extra => {
   if (!line) { console.log('FAIL: a child produced nothing\n' + (r.stderr || '').slice(-500)); process.exit(1); }
   return JSON.parse(line.slice(2));
 };
-const plain = run(''), packed = run('&packverts=1'), over = run('&packverts=1&packtonebits=' + (argv.includes('--break') ? 14 : 4));
+const plain = run('&packverts=0'), packed = run('&packverts=1'), over = run('&packverts=1&packtonebits=' + (argv.includes('--break') ? 14 : 4));
 let bad = 0; const say = (ok, m) => { console.log((ok ? 'PASS ' : 'FAIL ') + m); if (!ok) bad++; };
 say(!plain.packed && plain.attrs.includes('normal'), 'no switch: the unpacked layout');
 say(packed.packed && packed.attrs.join() === 'position,aPack' && packed.tris === plain.tris && packed.position === plain.position, `?packverts=1: the packed layout (position + aPack), the same ${packed.tris} triangles and position bytes`);

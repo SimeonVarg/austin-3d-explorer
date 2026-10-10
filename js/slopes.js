@@ -342,10 +342,11 @@
   //  (js/slopes-apartments.js asks for it with build(undefined, { wasm: true })) writes into Wasm memory and hands
   //  the finished arrays to three.js as views of that memory. Every other generator keeps the JS builder.
   // ══════════════════════════════════════════════════════════════════════
-  // The phone profile's defaults (js/mobile.js LITE.budget.rustBuilder / packTones: ON on a phone, OFF on a desktop); the URL overrides both ways
-  // (?rustbuilder=0|1, ?packverts=0|1). `budget` is null on a desktop.
+  // The defaults of the two switches below, and the URL overrides both ways (?rustbuilder=0|1, ?packverts=0|1). `_budget` is the phone profile's budget
+  // (js/mobile.js LITE.budget; null on a desktop): only the Rust builder reads it (LITE.budget.rustBuilder, false: the switch is the only way in).
+  const PACK_DEFAULT_ON = true;   // packed vertices (?packverts=0 restores the old layout): ON for every tier, desktop included, see the PACKED VERTEX SWITCH block
   const _budget = (window.LITE_PROFILE && window.LITE_PROFILE.budget) || {};
-  const switchOf = (name, phoneDefault) => { const v = q.get(name); return v === '1' ? true : v === '0' ? false : !!phoneDefault; };
+  const switchOf = (name, dflt) => { const v = q.get(name); return v === '1' ? true : v === '0' ? false : !!dflt; };
   const RUST = {
     on: switchOf('rustbuilder', _budget.rustBuilder),
     wasmUrl: 'wasm/meshkernel.wasm',   // the committed build of experiments/rust-mesh (scripts/verify/wasm-mesh-parity.mjs holds it to the source's hash)
@@ -358,16 +359,25 @@
   let _rustBuild = null;   // set once the module is compiled; null = every builder is the JS one
 
   // ══════════════════════════════════════════════════════════════════════
-  //  THE PACKED VERTEX SWITCH (?packverts=1) — default OFF
+  //  THE PACKED VERTEX SWITCH (?packverts=0|1) — default ON (every tier)
   //  The apartment meshes carry 55.7 bytes a vertex; 26 of them are the three colour triples, the facet flag and the surface
-  //  quad, which take only 1,266 distinct values over 6.5 M vertices, and 12 more are a flat normal that takes only about
-  //  94,000. With the switch ON the builder writes, per vertex, the position (exact, float32) and ONE 32-bit word: an index
-  //  into a tone table and an index into a normal table, both held in float textures the vertex shader reads (VERT,
-  //  PACKED_TONES). Nothing is quantised: the shader gets back exactly the numbers the unpacked layout would have fed it.
-  //  scripts/verify/packverts-decode.mjs proves that on the CPU, scripts/verify/packverts-pixels.mjs on the screen.
+  //  quad, which take only 14,719 distinct values over 6.5 M vertices (with the page's real js/city-night.js), and 12 more are
+  //  a flat normal that takes 94,312. With the switch ON the builder writes, per vertex, the position (exact, float32) and ONE
+  //  32-bit word: an index into a tone table and an index into a normal table, both held in float textures the vertex shader
+  //  reads (VERT, PACKED_TONES). Nothing is quantised: the shader gets back exactly the numbers the unpacked layout would have fed it.
+  //  scripts/verify/packverts-decode.mjs proves that on the CPU (all 198 buildings, bit for bit), scripts/verify/packverts-pixels.mjs on the screen
+  //  (10 of 10 views, software rendering and an RTX 3050 Ti; the day views move 0 pixels).
+  //  WHY IT IS ON FOR EVERY TIER. Measured (the pull request that turned it on has the tables):
+  //    memory, AWS A10G desktop, min of 5:  GPU upload 367 -> 159 MB, settled JS heap 679 -> 474 MB, browser memory 4,567 -> 3,833 MB, no time or frame cost
+  //    memory, AWS L4 phone emulation (mobile-memory.mjs, whole-page memory):  peak 1,195 -> 1,026 MB, settled 806 -> 685 MB
+  //    frames, the owner's Intel Iris Plus 655 (vertex-bound: a vertex falls from 50 to 16 bytes), real page, min of 3, p50 at spawn / West Campus / high view:
+  //      101.6 / 88.2 / 80.7 ms -> 82.4 / 70.2 / 63.2 ms  (19 to 22% faster; docs/graphics-basics-study-2026-10-10/mac/frame-1.json, branch mac/graphics-basics-study)
+  //  FALLBACKS, each tested (scripts/verify/rust-load-fallbacks.mjs, pack-overflow-fallback.mjs): a GPU without WebGL2 or vertex texture units builds the old layout; a
+  //  tone or normal table that overflows rebuilds that build unpacked, with one console line; a byte-rule probe that cannot run uses the spec rule (byteFloats).
+  //  ?packverts=0 restores the old layout.
   // ══════════════════════════════════════════════════════════════════════
   const PACK = {
-    on: switchOf('packverts', _budget.packTones),
+    on: switchOf('packverts', PACK_DEFAULT_ON),
     // The word is 32 bits: toneBits of tone index, 1 facet bit, and 31 - toneBits of normal index. MEASURED on the real catalog with the real js/city-night.js
     // (which picks a lit window's tone and brightness per window): 14,719 distinct tones and 94,312 distinct normals, so 14 bits (16,384) and 17 bits (131,072) is the
     // only split that fits, with 10% and 28% to spare. (An earlier 13/18 split was sized from a build with a stand-in night module that makes 1,266 tones, and

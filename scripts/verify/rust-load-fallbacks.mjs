@@ -4,7 +4,7 @@
  * NO BROWSER, NO GPU, no three.js: Node and the repo's own files. Runs in CI. It loads the REAL js/slopes.js (and js/slopes-rust.js, wasm/meshkernel.wasm) the way the
  * page does and breaks one thing at a time.
  *
- *   A. DEFAULTS   a desktop gets neither switch; a phone (window.LITE_PROFILE.budget.packTones, js/mobile.js) gets packed vertices and NOT the Rust builder (budget.rustBuilder is false); ?rustbuilder=0|1 and ?packverts=0|1
+ *   A. DEFAULTS   packed vertices are ON for every tier (js/slopes.js PACK_DEFAULT_ON), the Rust builder OFF everywhere (js/mobile.js LITE.budget.rustBuilder is false); ?rustbuilder=0|1 and ?packverts=0|1
  *                 override either way; where the builder is off the .wasm is NEVER fetched.
  *   B. LOADING    with ?rustbuilder=1 on a phone (the switch is the only way in now), with: a 404 for the .wasm; a network error / blocked fetch; bytes that are not WebAssembly; no WebAssembly at all (an old browser);
  *                 an instance that cannot be made (an out-of-memory RangeError). Each: the page keeps going (rustReady settles, never rejects), the builder is the JS one,
@@ -49,7 +49,7 @@ async function load(search, { phone = false, net = null, canvas = null } = {}) {
   ctx.window = ctx; ctx.self = ctx; ctx.location = { search, href: 'http://x/' };
   ctx.document = { getElementById: () => null, hidden: false, readyState: 'complete', createElement: t => t === 'canvas' && canvas ? canvas() : ({ getContext: () => null, style: {} }), addEventListener() {}, body: {} };
   ctx.addEventListener = () => {}; ctx.devicePixelRatio = 1;
-  ctx.LITE_PROFILE = phone ? { on: true, budget: { rustBuilder: false, packTones: true, freeGeometryCpu: true } } : undefined;
+  ctx.LITE_PROFILE = phone ? { on: true, budget: { rustBuilder: false, freeGeometryCpu: true } } : undefined;
   if (!ctx.navigator) Object.defineProperty(ctx, 'navigator', { value: { userAgent: 'node' }, configurable: true });
   installStubs(ctx); ctx.THREE = THREE_STUB;
   ctx.fetch = async url => { calls.push(String(url)); return net ? net(String(url)) : new Response(wasmBytes, { headers: { 'content-type': 'application/wasm' } }); };
@@ -63,17 +63,19 @@ const restore = () => { globalThis.WebAssembly = RealWA; WebAssembly.Instance = 
 // ── A. DEFAULTS ───────────────────────────────────────────────────────────
 {
   const d = await load('?slopes=0');
-  say(d.slopes.rustReady === null && d.slopes.packOn() === false && d.calls.length === 0, 'desktop, no switch: the Rust builder is not loaded, packed vertices are off, nothing is fetched');
+  say(d.slopes.rustReady === null && d.slopes.rustBuilder === false && d.slopes.packOn() === true && d.calls.length === 0, 'desktop, no switch: packed vertices ON, the Rust builder OFF, NOTHING is fetched');
   const p = await load('?slopes=0', { phone: true });
-  say(p.slopes.rustReady === null && p.slopes.rustBuilder === false && p.slopes.packOn() === true && p.calls.length === 0, 'phone profile, no switch: packed vertices ON, the Rust builder OFF, and NOTHING is fetched (no .wasm, no js/slopes-rust.js)');
+  say(p.slopes.rustReady === null && p.slopes.rustBuilder === false && p.slopes.packOn() === true && p.calls.length === 0, 'phone profile, no switch: the same, packed ON, nothing fetched (no .wasm, no js/slopes-rust.js)');
+  const d0 = await load('?slopes=0&packverts=0');
+  say(d0.slopes.packOn() === false && d0.slopes.rustReady === null && d0.calls.length === 0, 'desktop + ?packverts=0: the old layout, nothing fetched (the page as it was)');
+  const p0 = await load('?slopes=0&packverts=0', { phone: true });
+  say(p0.slopes.packOn() === false && p0.calls.length === 0, 'phone + ?packverts=0: the old layout');
   const p1 = await load('?slopes=0&rustbuilder=1', { phone: true });
   say(p1.slopes.rustBuilder === true && p1.slopes.packOn() === true && p1.calls.join() === 'wasm/meshkernel.wasm', 'phone + ?rustbuilder=1: the Rust builder on too, exactly one fetch, wasm/meshkernel.wasm');
-  const q0 = await load('?slopes=0&packverts=0', { phone: true });
-  say(q0.slopes.packOn() === false && q0.slopes.rustReady === null && q0.calls.length === 0, 'phone + ?packverts=0: unpacked, still no Rust builder, nothing fetched (the page as it was)');
-  const d1 = await load('?slopes=0&rustbuilder=1&packverts=1');
-  say(d1.slopes.rustBuilder === true && d1.slopes.packOn() === true, 'desktop + ?rustbuilder=1&packverts=1: both on');
-  const p2 = await load('?slopes=0&rustbuilder=0', { phone: true });
-  say(p2.slopes.rustReady === null && p2.slopes.packOn() === true, 'phone + ?rustbuilder=0: the same as the default');
+  const d1 = await load('?slopes=0&rustbuilder=1');
+  say(d1.slopes.rustBuilder === true && d1.slopes.packOn() === true && d1.calls.join() === 'wasm/meshkernel.wasm', 'desktop + ?rustbuilder=1: the Rust builder on, exactly one fetch');
+  const r0 = await load('?slopes=0&rustbuilder=0', { phone: true });
+  say(r0.slopes.rustReady === null && r0.slopes.packOn() === true, '?rustbuilder=0: the same as the default');
 }
 
 // ── B. LOADING ────────────────────────────────────────────────────────────
