@@ -702,6 +702,22 @@ surface, facet, index). `--break` corrupts one table entry and must fail. The wh
 passes when "on" moves no more pixels than the control. `--phone` shoots the phone profile (390x844 @3x, `?lite=1`, chunked build),
 `--on "packverts=1&rustbuilder=1"` tries both switches, `--break` shoots "on" at a later hour and must fail.
 
+## The generator split and `?buildworker=1` (added October 10 2026)
+
+`js/slopes-apartments.js` `buildingOne()` used to register things on the page as it made the mesh: the night profile (`js/city-night.js`), the wall patterns
+(`js/wall-patterns.js`, which also writes each patterned material's surface row back into the palette, so the MESH depends on it) and the night fixtures.
+They go through `B.registrations` now, which can record them as plain data, so a Web Worker can run the pure half and the main thread replay the list.
+Both checks need three.js r159 outside the repo (`THREE_JS=/path/three.min.js`; they print SKIP without it, so they are quarantined and run by hand) and run
+the page's own `wall-patterns.js`, `slopes.js`, `city-night.js`, `slopes-roofs.js` and `slopes-apartments.js` over all 198 buildings (3,116,469 triangles,
+the count the real page makes):
+
+- `generator-split.mjs` — direct run against pure pass + replay on FRESH registries: meshes byte-identical, the recorded list equals the direct run's registry
+  calls in content and order, the registries (night profiles, fixtures, wall-pattern texture bytes and rows) equal. `--break` drops one entry and must fail.
+- `build-worker-parity.mjs` — a real `worker_threads` thread running the unmodified `js/build-worker.js`, then this process (empty registries) running
+  `buildOnce()` with the worker's result, exactly the page's path: meshes, tallies, per-building records, failed list, registry calls and state, cull
+  starts and every facade-filter face (its wall frame, even a derived one, rebuilt from data) equal. `--break` moves the worker's footprints and must fail.
+- `rust-builder-page.mjs` has `worker` and `workerpack` modes (and reports the longest main-thread task): the real page, off against `?buildworker=1`.
+
 ## Things that will waste your time if you don't know them
 
 - **`_harness.html` forces `preserveDrawingBuffer: true`.** That is the only way

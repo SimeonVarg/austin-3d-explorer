@@ -416,6 +416,35 @@
     return { at, T, N, L, a, b, dir, n };
   }
 
+  // The three frames derived from a wall frame. Each carries `derive` ({ kind, of, params }) so a facade-filter face whose wall is one of them can be sent
+  // to the main thread as data and rebuilt there (serializeWall / rehydrateWall); the `at` lambdas are exactly the ones that were inline.
+  function subWall(W, s0, len) {         // starting at s0, so skins see s from 0
+    return { at: (s, d, z) => W.at(s0 + s, d, z), T: W.T, N: W.N, L: len, a: W.a, b: W.b, dir: W.dir, n: W.n, derive: { kind: 'sub', of: W, s0, len } };
+  }
+  function rangeWall(W, sLo, sHi, d) {   // a band's span from sLo, d behind the plane
+    return { at: (s, dd, z) => W.at(sLo + s, dd - d, z), T: W.T, N: W.N, L: sHi - sLo, a: W.a, b: W.b, dir: W.dir, n: W.n, derive: { kind: 'range', of: W, sLo, sHi, d } };
+  }
+  function offsetWall(W, d) {            // d behind the plane
+    return { at: (s, dd, z) => W.at(s, dd - d, z), T: W.T, N: W.N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n, derive: { kind: 'offset', of: W, d } };
+  }
+  function slopedWall(F, W, inward, cosP, sinP, z0) {   // a rake block's leaning plane (rakeOf)
+    const at = (s, d, t) => F.at(W.a[0] + W.dir[0] * s + inward[0] * (cosP * t - sinP * d), W.a[1] + W.dir[1] * s + inward[1] * (cosP * t - sinP * d), z0 + sinP * t + cosP * d);
+    const o = at(0, 0, 0), pn = at(0, 1, 0), pt = at(1, 0, 0);
+    const N = [pn[0] - o[0], pn[1] - o[1], pn[2] - o[2]], T = [pt[0] - o[0], pt[1] - o[1], 0];
+    return { at, T, N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n, sloped: true, derive: { kind: 'raked', of: W, inward, cosP, sinP, z0 } };
+  }
+  function serializeWall(W) {
+    if (W.derive) { const { of, ...params } = W.derive; return { derive: params, of: serializeWall(of) }; }
+    return { a: W.a, b: W.b, outward: (W.n[0] === -W.dir[1] && W.n[1] === W.dir[0]) ? 1 : -1 };
+  }
+  function rehydrateWall(d, F) {
+    if (d.derive) {
+      const of = rehydrateWall(d.of, F), p = d.derive;
+      return p.kind === 'sub' ? subWall(of, p.s0, p.len) : p.kind === 'range' ? rangeWall(of, p.sLo, p.sHi, p.d) : p.kind === 'raked' ? slopedWall(F, of, p.inward, p.cosP, p.sinP, p.z0) : offsetWall(of, p.d);
+    }
+    return wallFrame(F, d.a, d.b, d.outward);
+  }
+
   // ── plan geometry: the straight-skeleton profile, as scripts/bake_roofs.py solves it ──
   //
   // A ring offset inward by d, vertex by vertex, is what a hip roof's eave
@@ -1871,7 +1900,7 @@
     if (len < 0.05) return;
     opts = opts || {};
     // a sub-frame starting at s0 so skins see s from 0
-    const sub = { at: (s, d, z) => W.at(s0 + s, d, z), T: W.T, N: W.N, L: len, a: W.a, b: W.b, dir: W.dir, n: W.n };
+    const sub = subWall(W, s0, len);
     // a raking plane through this wall (a rake block's flank): the half-space
     // A·u + B·v + C·z + D ≥ 0 in the building's frame, carried into the
     // piece's own (s, z) so the tiler can clip its cells to it
@@ -1968,7 +1997,7 @@
     const T = W.T, nT = [-T[0], -T[1], 0];
     // the wall, on a frame d behind the plane and starting at sLo
     if (sHi - sLo > 0.05) {
-      const subR = { at: (s, dd, z) => W.at(sLo + s, dd - d, z), T: W.T, N: W.N, L: sHi - sLo, a: W.a, b: W.b, dir: W.dir, n: W.n };
+      const subR = rangeWall(W, sLo, sHi, d);
       const ctx = { len: sHi - sLo, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
       const skin = resolveSkin(sk, ctx, P, ctx.key);
       openings(skin, band, sHi - sLo, z0, z1, spec, fl, P, (opts.sOff || 0) + sLo);
@@ -2019,7 +2048,7 @@
       if (!hasB && !hasS && !hasF && !hasC) continue;
       const floors = floorsBetween(band.floors || spec.levels.floors, band.z0, band.z1, key + ' ' + band.skin).floors;
       const d = insetOf(band);
-      const Wb = d > 0 ? { at: (s, dd, z) => W.at(s, dd - d, z), T: W.T, N: W.N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n } : W;
+      const Wb = d > 0 ? offsetWall(W, d) : W;
       if (hasB) for (const bs of band.balconies) balconyStack(B, Wb, Object.assign({}, spec.balcony || {}, bs), floors, P, band.z1);
       if (hasS) for (const sg of band.signs) sign(B, Wb, sg, P);
       // a band's own fins: on the whole face at their pitch (a skin's ride on each piece with the skin)
@@ -2080,11 +2109,7 @@
     const len = Math.hypot(run, rise), sinP = rise / len, cosP = run / len;
     // the wedge: keep where (p - foot)·inward × rise − (z − z0) × run ≥ 0
     const half = [inward[0] * rise, inward[1] * rise, -run, -(inward[0] * W.a[0] + inward[1] * W.a[1]) * rise + blk.z0 * run];
-    // the plane's own frame: s along the foot line, t up the slope, d out of the plane
-    const at = (s, d, t) => F.at(W.a[0] + W.dir[0] * s + inward[0] * (cosP * t - sinP * d), W.a[1] + W.dir[1] * s + inward[1] * (cosP * t - sinP * d), blk.z0 + sinP * t + cosP * d);
-    const o = at(0, 0, 0), pn = at(0, 1, 0), pt = at(1, 0, 0);
-    const N = [pn[0] - o[0], pn[1] - o[1], pn[2] - o[2]], T = [pt[0] - o[0], pt[1] - o[1], 0];
-    const SW = { at, T, N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n, sloped: true };
+    const SW = slopedWall(F, W, inward, cosP, sinP, blk.z0);   // the plane's own frame: s along the foot line, t up the slope, d out of the plane
     return { i, face: fk, W: SW, run, rise, len, sinP, cosP, pitch: Math.atan2(rise, run) * 180 / Math.PI, half, inward, foot: W.a, depth, z0: blk.z0 };
   }
   /** the raked face itself: its bands, in metres up the slope */
@@ -2249,6 +2274,30 @@
       else if (e.op === 'fixtures') REGISTER.fixtures(spec, specFrame(spec).F);
       else throw new Error('[slopes-apartments] unknown registration ' + e.op);
     }
+  }
+
+  /** a facade-filter face as plain data: the wall frame is a closure over the building's frame, so it is kept as the wall's two end points and side */
+  function serializeFace(f) {
+    return { building: f.building, W: serializeWall(f.W), len: f.len, z0: f.z0, z1: f.z1,
+      rects: f.rects.map(r => [r[0], r[1], r[2], r[3], { c: [r[4][0], r[4][1], r[4][2]], s: r[4].surface || null }]) };
+  }
+  /** the main-thread half of serializeFace: the face FacadeFilter.planFaces() expects, with its wall frame rebuilt from the building's own frame */
+  function rehydrateFace(d, spec) {
+    return { W: rehydrateWall(d.W, specFrame(spec).F), len: d.len, z0: d.z0, z1: d.z1,
+      rects: d.rects.map(r => { const col = [r[4].c[0], r[4].c[1], r[4].c[2]]; if (r[4].s) col.surface = r[4].s; return [r[0], r[1], r[2], r[3], col]; }) };
+  }
+  /** what the main thread builds from when a worker made the mesh (?buildworker=1): the geometries it was handed, and the triangle count */
+  function replayBuilder(W, T) {
+    let geoms = null;
+    const make = () => W.meshes.map(m => {
+      const g = new T.BufferGeometry();
+      for (const k in m.attributes) { const a = m.attributes[k]; g.setAttribute(k, new T.BufferAttribute(a.array, a.itemSize, a.normalized)); }
+      if (m.index) g.setIndex(new T.BufferAttribute(m.index, 1));
+      if (W.packObj) g.userData.pack = W.packObj;
+      g.computeBoundingSphere();
+      return g;
+    });
+    return { geometries() { const r = geoms || make(); geoms = []; return r; }, geometry() { return this.geometries()[0]; }, get triangles() { return W.triangles; } };
   }
 
   function* buildingOne(B, spec) {
@@ -2689,6 +2738,22 @@
 
   // `specs` defaults to the catalog; `area` (an APTS.areas entry) builds that
   // area's own group without resetting the core's counts, failures or list.
+  // ?buildworker=1: the apartment generator and the shared builder run in a Web Worker (js/build-worker.js, started by js/apartments-worker.js, which is
+  // imported only when the switch is on). Default OFF; with it off this file requests and starts nothing new.
+  const BUILD_WORKER = { on: new URLSearchParams(location.search).get('buildworker') === '1', state: 'off', moduleUrl: './apartments-worker.js' };
+  let _workerClient = null;
+  function workerClient() {
+    return _workerClient || (_workerClient = import(BUILD_WORKER.moduleUrl).then(m => m.startBuildWorker()));
+  }
+  async function workerBuild(list) {
+    const client = await workerClient();
+    BUILD_WORKER.state = 'building';
+    const r = await client.build(list, { facadeFilter: !!window.FacadeFilter, gfxPreset: window.GFX && window.GFX.preset, lite: window.LITE_PROFILE ? { on: window.LITE_PROFILE.on, budget: window.LITE_PROFILE.budget } : null });
+    BUILD_WORKER.state = 'done';
+    return r;
+  }
+  if (BUILD_WORKER.on) { BUILD_WORKER.state = 'starting'; workerClient().catch(e => { BUILD_WORKER.state = 'failed'; console.warn('[slopes-apartments] ?buildworker=1: no worker —', e && e.message || e); }); }
+
   async function build(specs, area, extra) {
     const S = window.slopes;
     if (!S.withRustFallback) return buildOnce(specs, area, { wasm: true, ...extra });
@@ -2711,6 +2776,12 @@
   }
 
   async function buildOnce(specs, area, rustOpts) {
+    // ?buildworker=1 (default off): the core build is made in a Web Worker (js/build-worker.js); this thread replays what building them registers.
+    // Anything that goes wrong there (no worker, a script that will not load, a thrown error) builds on this thread, as without the switch.
+    if (BUILD_WORKER.on && !area && !rustOpts.fromWorker && !rustOpts.record && !rustOpts.noworker) {
+      try { return await buildOnce(specs, area, { ...rustOpts, fromWorker: await workerBuild(specs || _data.buildings) }); }
+      catch (e) { console.warn('[slopes-apartments] ?buildworker=1: the worker build failed, building here instead —', e && e.message || e); BUILD_WORKER.state = 'failed'; }
+    }
     const T = window.THREE, S = window.slopes;
     const t0 = performance.now();
     const gen = area ? area.gen : 0;
@@ -2725,9 +2796,11 @@
     // so a page without the switch awaits nothing and builds exactly as before.
     if (rustOpts.wasm && S.rustReady) await S.rustReady;
     // ?packverts=1: one pair of tone/normal tables for every chunk of this build; null with the switch off (then nothing changes).
-    const pack = !rustOpts.nopack && S.packTables ? S.packTables() : null;
+    if (rustOpts.fromWorker && rustOpts.fromWorker.pack && !rustOpts.fromWorker.packObj) rustOpts.fromWorker.packObj = S.packAdopt(rustOpts.fromWorker.pack);   // the tables the worker filled
+    const pack = rustOpts.fromWorker ? rustOpts.fromWorker.packObj || null : !rustOpts.nopack && S.packTables ? S.packTables() : null;
     const buildOpts = pack ? { ...rustOpts, pack } : rustOpts;
-    const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices, buildOpts) : S.build(undefined, buildOpts);
+    const WK = rustOpts.fromWorker || null;   // ?buildworker=1: a worker already ran the pure half (js/build-worker.js, js/apartments-worker.js)
+    const B = WK ? replayBuilder(WK, T) : chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices, buildOpts) : S.build(undefined, buildOpts);
     B.filtered=[];
     B.filterPending=[];
     if (rustOpts.record) B.registrations = recordingRegistrations(rustOpts.record);   // a pass that writes down what it registered (the split's pure half)
@@ -2759,11 +2832,22 @@
     // APTS.cull: where each building's triangles start in the index (the
     // builder writes three indices per triangle and nothing else).
     const cull = cullAvailable(area && APTS.areas.sliced && !BUD.geometryChunkTris && !BUD.packVertices ? {} : B, T, S) ? [] : null;
-    for (const spec of specs || _data.buildings) {
+    if (WK) {
+      // THE SPLIT, main-thread half: the worker made the mesh; this thread now does what building them would have done to the page.
+      const list = specs || _data.buildings, byKey = new Map(list.map(sp => [buildingKey(sp), sp]));
+      applyRegistrations(WK.registrations, list);
+      for (const b of WK.built) built.push({ ...b, frame: specFrame(byKey.get(b.id || b.name)).F });
+      for (const id of WK.failed) { _failed.add(id); if (area) area.failed.push(id); }
+      for (const f of WK.filterFaces) B.filterPending.push(rehydrateFace(f, byKey.get(f.building)));
+      if (!area) { const keep = { buildSlices: count.buildSlices, done: count.done, ms: count.ms }; Object.assign(count, WK.count, keep); }   // the page's own flags stay the page's
+      if (cull) for (const t of WK.starts) cull.push(t * 3);
+    }
+    else for (const spec of specs || _data.buildings) {
       // An area whose build was superseded (dropped, or the core rebuilding)
       // stops here and takes back what it had counted.
       if (cancelled()) { discard(); return null; }
       if (cull) cull.push(B.triangles * 3);
+      if (rustOpts.starts) rustOpts.starts.push(B.triangles);   // the worker reports where each building's triangles start
       const pendingStart=B.filterPending.length;
       B.allowFilter=APTS.facadeFilter.on&&APTS.facadeFilter.buildings.includes(spec.name)&&!!window.FacadeFilter;
       try {
@@ -2775,6 +2859,7 @@
           r = it.next();
         }
         built.push(r.value);
+        if (rustOpts.keepFilter) for (let i = pendingStart; i < B.filterPending.length; i++) B.filterPending[i].building = buildingKey(spec);
       }
       catch (e) {
         // The Rust builder broke (stamped by js/slopes-rust.js): this is not this building's fault and every later building would
@@ -2784,12 +2869,14 @@
       await pause();
     }
     if (cancelled()) { discard(); return null; }
-    if (cull) cull.push(B.triangles * 3);   // anything after this is a range of its own
+    if (!WK && cull) cull.push(B.triangles * 3);   // anything after this is a range of its own
+    if (rustOpts.starts) rustOpts.starts.push(B.triangles);
     const C = area ? {} : count;       // an area's slice and filter tallies are its own
     C.buildSlices = slices;
     let geom, mat;
     try {
       C.filterCandidates=B.filterPending.length;
+      if (rustOpts.keepFilter) rustOpts.keepFilter.push(...B.filterPending);   // the worker hands these faces to the main thread, which rasterises them
       const plan=window.FacadeFilter?.planFaces({faces:B.filterPending,options:APTS.facadeFilter});
       C.filterResolutionLevel=plan?.resolutionLevel??0;
       C.filterPlannedBytes=plan?.bytes??0;
@@ -3722,5 +3809,5 @@
     }, 150);
   })();
   // The Web Worker seam (js/build-worker.js, scripts/verify/build-worker-page.mjs): the generator's build() and its counts, with no page.
-  window.__aptsBuild = { build, count, resetCount, applyRegistrations, recordingRegistrations, specFrame };
+  window.__aptsBuild = { buildWorkerState: () => BUILD_WORKER.state, build, count, resetCount, applyRegistrations, recordingRegistrations, specFrame, serializeFace, rehydrateFace, failed: () => [..._failed] };
 })();

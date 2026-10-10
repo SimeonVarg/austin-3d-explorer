@@ -2071,6 +2071,8 @@ ${window.RoofTiles.apply}
     // when the switch is off or this GPU cannot read float textures in the vertex shader (WebGL2 only): callers then build as before.
     // the Web Worker seam (js/build-worker.js): set the local origin the way onAdd() does, with no map
     initOrigin: () => { originMerc = maplibregl.MercatorCoordinate.fromLngLat({ lng: SLOPES.origin[0], lat: SLOPES.origin[1] }, 0); originScale = originMerc.meterInMercatorCoordinateUnits(); },
+    // ?buildworker=1 with ?packverts=1: the tables a worker filled (plain arrays) as VertexTables the main thread's material() can use
+    packAdopt: d => { const T = vertexTables(); T.tones = d.tones; T.nTones = d.nTones; T.normals = d.normals; T.nNormals = d.nNormals; T.nbits = new Uint32Array(T.normals.buffer, T.normals.byteOffset, T.normals.length); return T; },
     packTables, packOn: () => PACK.on, packInfo: () => ({ toneBits: PACK.toneBits, texWidth: PACK.texWidth }),
     // a test seam, not a feature: flip the switch at run time so ONE page can build the apartments both ways (scripts/verify/packverts-pixels.mjs
     // rebuilds with slopesApartments.rebuild() and photographs each); a visitor sets it only through ?packverts=1

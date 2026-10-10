@@ -13,7 +13,7 @@ export async function loadApp({ record = false, timeBuilder = false, nullBuilder
   if (!threeJs) throw new Error('set THREE_JS to three@0.159.0 build/three.min.js (https://unpkg.com/three@0.159.0/build/three.min.js, the same file index.html loads)');
   const ctx = globalThis, realError = console.error;
   console.warn = console.log = console.info = () => {};
-  ctx.window = ctx; ctx.self = ctx; ctx.location = { search: '?slopes=0&facadefilter=0' + (process.env.EXTRA_Q || '') + (wasm ? '&rustbuilder=1' + (process.env.RESERVE ? '&rustreserve=' + process.env.RESERVE : '') : ''), href: 'http://x/' };
+  ctx.window = ctx; ctx.self = ctx; ctx.location = { search: '?slopes=0' + (process.env.FACADE_FILTER ? '' : '&facadefilter=0') + (process.env.EXTRA_Q || '') + (wasm ? '&rustbuilder=1' + (process.env.RESERVE ? '&rustreserve=' + process.env.RESERVE : '') : ''), href: 'http://x/' };
   ctx.document = { getElementById: () => null, hidden: false, createElement: () => ({ getContext: () => null, style: {} }), addEventListener() {}, body: {} };
   ctx.addEventListener = () => {}; ctx.devicePixelRatio = 1;
   Object.defineProperty(ctx, 'navigator', { value: { userAgent: 'node' }, configurable: true });
@@ -37,6 +37,8 @@ export async function loadApp({ record = false, timeBuilder = false, nullBuilder
   // lit window's tone and brightness per window, which is what makes the real page's palette far bigger (see the packverts notes).
   if (process.env.REAL_NIGHT) { ctx.CityNight = undefined; vm.runInThisContext(fs.readFileSync(R + 'js/city-night.js', 'utf8'), { filename: 'city-night.js' }); }
   if (wasm) { await ctx.slopes.rustReady; if (!ctx.slopes.rustBuilder) throw new Error('?rustbuilder=1 did not load the Rust builder: ' + JSON.stringify(ctx.slopes.rustInfo())); }
+  // REAL_ROOFS=1: the page's js/slopes-roofs.js, whose emit() draws the pitched roofs the generator asks for (without it roofOf() warns and returns null, and the mesh has no pitched roofs)
+  if (process.env.REAL_ROOFS) vm.runInThisContext(fs.readFileSync(R + 'js/slopes-roofs.js', 'utf8'), { filename: 'slopes-roofs.js' });
   vm.runInThisContext(patchApartments(fs.readFileSync(process.env.APARTMENTS_SRC || R + 'js/slopes-apartments.js', 'utf8')), { filename: 'slopes-apartments.js' });   // APARTMENTS_SRC: another version of the file (the split's before/after check)
   if (useNull) ctx.slopes.build = nullBuilder(ctx);
   if (process.env.HINT) { const orig = ctx.slopes.build; ctx.slopes.build = () => orig(Number(process.env.HINT)); }   // the app's own `build(initialCapacity)` parameter: pass the vertex count up front (one line in the app)
