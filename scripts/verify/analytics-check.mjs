@@ -149,8 +149,11 @@ try {
   for (const f of ['index.html', '_harness.html']) {
     const s = scriptSrcs(f);
     ok(s.filter(x => x === 'js/analytics.js').length === 1, f + ': exactly one js/analytics.js include');
-    ok(s[s.length - 1] === 'js/analytics.js' && s.indexOf('js/wayfind.js') < s.indexOf('js/analytics.js'),
-      f + ': it is the LAST script, after js/wayfind.js (the guard is up before it runs)');
+    // js/wayfind-loader.js writes js/wayfind.js into the page, in this spot, when the walking feature is asked for
+    // (and not otherwise); so the guard is up before analytics.js runs exactly when the guard exists at all.
+    const wf = s.indexOf('js/wayfind-loader.js');
+    ok(s[s.length - 1] === 'js/analytics.js' && wf >= 0 && wf < s.indexOf('js/analytics.js'),
+      f + ': it is the LAST script, after js/wayfind-loader.js (which loads js/wayfind.js in place; the guard is up before it runs)');
     ok(!s.some(x => x.includes('/_vercel/') || x.includes('vercel-insights') || x.includes('va.vercel')),
       f + ': Vercel\'s script is never a <script src> here; only analytics.js injects it');
   }
