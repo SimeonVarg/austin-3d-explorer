@@ -104,7 +104,8 @@ export function watch(box, from, to, opts) {
     };
     off = TL.on(paint);
     paint();
-    function stop() { if (off) off(); off = null; TL.wantTrips(false); }
+    function stop() { if (off) off(); off = null; TL.wantTrips(false); TL.stop(); }
   });
-  return () => { stopped = true; if (off) off(); off = null; if (window.TransitLive) window.TransitLive.wantTrips(false); };
+  // Stopping the line stops the downloads too: nothing else on the page uses the bus module yet.
+  return () => { stopped = true; if (off) off(); off = null; if (window.TransitLive) { window.TransitLive.wantTrips(false); window.TransitLive.stop(); } };
 }

@@ -400,6 +400,7 @@ function boot() {
   // ══════════════════════════════════════════════════════════════════════════
   function isPhone() { return innerWidth <= FINDER.phoneMaxW; }
   function setView(v, byUser) {
+    if (v === 'pill' && S.liveStop) { S.liveStop(); S.liveStop = null; }   // a hidden finder polls nothing
     if (v === 'peek' && !isPhone()) v = 'open';
     S.view = v;
     const shown = v !== 'pill';
@@ -672,7 +673,11 @@ function boot() {
       d.append(el('p', 'fd-busline', C.busLeg(t.route, route.name, route.kind) + ' · ' +
         C.busTimes(t.bus_departs, board ? board[2] : '')));
     }
-    if (FINDER.liveBus && S.mode !== 'walk' && legs[0]) { const lv = el('div', 'fd-live'); d.append(lv); liveBus(r, legs[0], lv); }
+    // Only where the bus is the answer: the heaviest class building this home reaches BY BUS (or, in bus mode, the
+    // heaviest one). A home that walks everywhere gets no bus line.
+    const busLeg = S.mode === 'walk' ? null : (legs.find(l => l.how === 'bus') || (S.mode === 'bus' ? legs[0] : null));
+    if (S.liveStop) { S.liveStop(); S.liveStop = null; }
+    if (FINDER.liveBus && busLeg) { const lv = el('div', 'fd-live'); d.append(lv); liveBus(r, busLeg, lv); }
     return d;
   }
   // The live bus line (js/finder-live.js): from this home to the class building that weighs most, with the next
