@@ -24,7 +24,8 @@
   const q = new URLSearchParams(window.location.search);
   const TUNE = {                      // CLAUDE.md rule 11: every look value is here
     maxRows: 48, maxCols: 64, maxLines: 48,
-    farWindows: [0.5, 1.2],           // a pixel footprint this many window periods wide: the exact grid fades to the piece's mean colour (2 px a window to 0.8)
+    farWindows: [3.5, 7.0],           // a pixel footprint this many window periods wide: the exact grid fades to the piece's mean colour. NOT near one window: the closed-form integral is exact
+                                      // for a footprint of any size, so a fade there only adds error (the first in-app run used 0.5 to 1.2 and the moire meter read worse than the geometry, and the lit windows washed out)
     selfCheckPoints: 24, selfCheckTolerance: 0.02,   // share of sampled points that may disagree with the generator's tone function
     parallax: 1.0, aa: 1.0,
   };
