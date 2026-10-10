@@ -50,6 +50,7 @@ Everything else in the file is left alone (west wing, entrance, north side, tree
 Every number below is marked PHOTO (measured on an owner photograph), SCAN (the laser scan) or INFERRED.
 """
 from pathlib import Path
+import copy
 import json
 import math
 from compact_models import compact
@@ -59,7 +60,9 @@ PATH = Path(__file__).resolve().parents[1] / 'data/apartments/norman-hackerman-b
 # ---- every taste or size choice is here (metres unless stated) ----
 U_EAST_BLOCK = (45.2, 146.3)    # SCAN + old recipe: the east block runs from the entrance bay to the east end
 SOUTH_V = 3.5                   # PHOTO + street data: south face of the east block, as in the old recipe (see the header: the helper's -4.5 was a canopy edge)
-ARCADE_DEPTH = 5.5              # INFERRED: kept from the old recipe (3.5 -> 9.0); the photographs show a deep covered walk
+BACK_LOWER = 12.5               # PHOTO: the ground-floor back wall. Side camera (ceiling edge z 5.13): v 12-14; front camera: 10-12. Old recipe 9.0
+BACK_UPPER = 15.0               # PHOTO: the upper-storey back wall. Ceiling/back-wall edge at z 10.15 read in the side photo (v 14.4-14.7, a straight line) and in the front photo (15.5-16.8). Old recipe 9.0
+LOWER_CEIL = 5.13               # = P - MID_BEAM_H: the underside of the upper floor deck
 SHIFT_V = SOUTH_V - 3.5         # everything that stood on the old arcade front moves by this much (-8.0)
 P = 5.7                         # PHOTO: storey height = brick row pitch = colonnade storey. 5 storeys + a 1.2 m parapet reach the SCAN roof 29.7
 COLONNADE_TOP = 2 * P           # PHOTO: the top fascia's upper edge, where the lowest brick window row sits (11.4 m)
@@ -67,7 +70,8 @@ BODY_TOP = 29.7                 # SCAN: 28-31 m along the south strip (rising ea
 FASCIA_H = 1.25                 # PHOTO: top fascia 92 px against a 413 px storey, 1.25 m
 MID_BEAM_H = 0.57               # PHOTO: middle fascia 42 px against 413, 0.57 m
 BEAM_DEPTH = 0.8                # INFERRED: kept from the old recipe
-PIER_W, PIER_D = 1.1, 1.6       # PHOTO: front face 78 px against 413 px = 1.07 m. INFERRED: the depth
+PIER_W, PIER_D = 1.1, 1.8       # PHOTO: upper piers, front face 78 px against 413 px = 1.07 m; side photo: east face 42 and 71 px, i.e. depth 1.2 and 2.1 m (mean 1.65, taken 1.8)
+LOWER_PIER_W, LOWER_PIER_D = 1.5, 2.0   # PHOTO: ground-floor piers are broader than the upper ones, 85-145 px against 75 px in the front photograph (1.2-2.0 m); depth INFERRED, in proportion
 GRID = 3.95                     # PHOTO: upper piers 297, 290 px apart against a 566 px pair period (7.9 m / 2)
 GRID_FIRST = 60.6               # PHOTO: a pier stands 0.3 m west of the first pair of windows
 PAIR_PERIOD = 7.9               # PHOTO: window pairs 566 px apart in the near-frontal photograph, 465 px in the flat drawing of 335 px = 5.7 m
@@ -93,7 +97,7 @@ CANOPY_LIP_V = -4.5             # SCAN: first returns stop at v = -4.5 (4.5 m pa
 CANOPY_LIP_Z = 26.5             # INFERRED between PHOTO and SCAN: the side photograph's fitted camera puts the lip at z 24-26 (its far edge line, tip at u 47, v -4.5); the scan's first return there is 29.0 above LOCAL ground
 CANOPY_FACE_Z = 29.7            # SCAN: 30-31 m (top of the fins) at the face; underside level with the brick roof (BODY_TOP)
 CANOPY_T = 0.55                 # INFERRED: fin depth
-SLAT_PITCH, SLAT_W = 0.5, 0.28  # PHOTO: fins 0.5 m apart, running from the lip back to the building, a dark soffit seen between them
+SLAT_PITCH, SLAT_W = 0.5, 0.42  # PHOTO: fins 0.5 m apart, running from the lip back to the building, a dark soffit seen between them
 BEAM_PITCH = 7.9                # INFERRED: a cross beam under the canopy at every window pair
 COLOURS = {
     'stone': '#dad5c5', 'stoneLight': '#e0dccd',      # PHOTO: pier fronts #e4e0d5, fascia #e2e3e1 at dawn, 1.48 times the brick's brightness (the old pair gave 1.34)
@@ -102,6 +106,8 @@ COLOURS = {
     'hackShopPane': '#4a4a3e',      # PHOTO: the ground-floor shopfronts are dark with warm lit interiors
     'hackWindow': '#9cbccf',         # PHOTO: panes #a2c6de / #bdd3db at dawn
     'hackCanopyFin': '#c4ccd2',      # PHOTO: light grey-blue fins (#7e8690 .. #a9b4c1 under an overcast sky); drawn lighter because their undersides take no sun
+    'hackRecessWall': '#7b776b',     # PHOTO: the recess walls in shade, #6d6860 .. #8a857a (the shared stone tone drew them as bright as the piers, so the bays read flat)
+    'hackCeiling': '#6b5d46',        # PHOTO: the upper ceilings average #4c4130 lit; drawn lighter because an underside takes only sky light and came out near black at #34312d
     'hackFrame': '#5f656b',          # PHOTO: thin grey-blue metal round the hoods and under the panes
     'hackSoffit': '#2b2723',         # PHOTO: soffit under a hood #15120f..#514839
 }
@@ -220,7 +226,7 @@ def remove_old_pieces(d):
     keep = []
     for b in d['blocks']:
         i = b['id']
-        if i.startswith('arcade-pier-') or i == 'east-penthouse':
+        if i.startswith('arcade-pier-') or i in ('east-penthouse', 'arcade-upper-deck', 'east-recessed-upper-enclosure'):
             continue
         keep.append(b)
     d['blocks'] = keep
@@ -250,16 +256,18 @@ def clean_old_meshes(d):
                 else:
                     keepT.append(t)
             T = keepT
-        shift = set()
+        shift = {}
         for t in T:
             c = [sum(V[i][k] for i in t) / 3 for k in range(3)]
             if U_EAST_BLOCK[0] - 0.2 <= c[0] <= U_EAST_BLOCK[1] + 1.5 and 8.4 <= c[1] <= 9.6 and c[2] < 12.5 \
                     and m['id'] in ('authored-darkMetal', 'authored-metal'):
-                shift.update(t)                    # the recessed shopfront's mullions, on the arcade's back wall (old v 9.0)
+                dv = (BACK_LOWER if c[2] < P - 0.3 else BACK_UPPER) - 9.0
+                for i in t:                        # the recessed shopfront's mullions go with their back wall (old v 9.0): lower storey, upper storey
+                    shift[i] = dv
         if m['id'] in ('authored-orange', 'authored-sign') and V and min(v[1] for v in V) > 2.0:
-            shift = set(range(len(V)))             # seats and the building sign stand in the arcade (only while they are still on the old front)
-        for i in shift:
-            V[i][1] = round(V[i][1] + SHIFT_V, DECIMALS)
+            shift = {i: SHIFT_V for i in range(len(V))}   # seats and the building sign stand in the arcade (only while they are still on the old front)
+        for i, dv in shift.items():
+            V[i][1] = round(V[i][1] + dv, DECIMALS)
         moved += len(shift)
         # drop the vertices nobody uses any more
         used = sorted({i for t in T for i in t})
@@ -276,10 +284,11 @@ def main():
     dropped, moved = clean_old_meshes(d)
     B = {b['id']: b for b in d['blocks']}
     u0, u1 = U_EAST_BLOCK
-    back = SOUTH_V + ARCADE_DEPTH
+    back = BACK_UPPER
 
     for tone, hexv in COLOURS.items():
         d['colours'][tone] = {'hex': hexv}
+    d['skins']['hackRecess'] = {'kind': 'flat', 'field': 'hackRecessWall'}
     # the hood and pane glass keep the glass material, but less of its sky mirror: at some sun angles the full mirror
     # drew one hood (and a pane) pure white, where the photographs show an even pale blue
     d.setdefault('materials', {}).update({'hackHoodGlass': {'type': 'glass', 'strength': GLASS_STRENGTH_HOOD},
@@ -341,41 +350,67 @@ def main():
                 push(hood_frame, quad((wl, SOUTH_V - 0.08, z - SILL_T), (wr, SOUTH_V - 0.08, z - SILL_T), (wr, SOUTH_V - 0.08, z), (wl, SOUTH_V - 0.08, z)))
                 n_hoods += 1
     d['detailMeshes'].extend([hood_glass, hood_frame, hood_soffit])
+    ceil = {'id': 'hackerman-ceilings', 'tone': 'hackCeiling', 'vertices': [], 'triangles': []}    # the dark ceilings of both colonnade storeys
+    for (zc, vb) in ((COLONNADE_TOP - FASCIA_H - 0.02, BACK_UPPER), (LOWER_CEIL - 0.02, BACK_LOWER)):
+        for q in (quad((U_EAST_BLOCK[0], SOUTH_V + 0.05, zc), (U_EAST_BLOCK[1], SOUTH_V + 0.05, zc), (U_EAST_BLOCK[1], vb, zc), (U_EAST_BLOCK[0], vb, zc)),):
+            push(ceil, q); push(ceil, list(reversed(q)))
+    d['detailMeshes'].append(ceil)
     n_old = drop_old_canopy_south(d)
     cm, n_slats = canopy_meshes()
     d['detailMeshes'].extend(cm)
 
     # ---- the arcade: piers on the grid, two fascia beams, floor, the recessed wall ----
     piers = pier_centres()
+    top_z0 = round(COLONNADE_TOP - FASCIA_H, 3)
     for i, c in enumerate(piers):
-        d['blocks'].append({'id': 'arcade-pier-%02d' % i, 'plan': [round(c - PIER_W / 2, 3), round(c + PIER_W / 2, 3), SOUTH_V, round(SOUTH_V + PIER_D, 3)],
-                            'z0': 0.2, 'z1': round(COLONNADE_TOP - FASCIA_H, 3), 'bands': [{'z0': 0.2, 'z1': round(COLONNADE_TOP - FASCIA_H, 3), 'skin': 'stone'}],
-                            'roofTone': 'stone', 'cap': True})
+        for tag, w, dep, za, zb in (('lo', LOWER_PIER_W, LOWER_PIER_D, 0.2, LOWER_CEIL), ('up', PIER_W, PIER_D, P, top_z0)):
+            d['blocks'].append({'id': 'arcade-pier-%02d%s' % (i, '' if tag == 'lo' else 'u'), 'plan': [round(c - w / 2, 3), round(c + w / 2, 3), SOUTH_V, round(SOUTH_V + dep, 3)],
+                                'z0': za, 'z1': zb, 'bands': [{'z0': za, 'z1': zb, 'skin': 'stone'}], 'roofTone': 'stone', 'cap': True})
     B = {b['id']: b for b in d['blocks']}
     mid = B['arcade-intermediate-beam']
     mid['plan'] = [u0, u1, SOUTH_V, SOUTH_V + BEAM_DEPTH]
     mid['z0'], mid['z1'] = round(P - MID_BEAM_H, 3), round(P, 3)
     mid['bands'] = [{'z0': mid['z0'], 'z1': mid['z1'], 'skin': 'stoneLight'}]
     top = B['arcade-upper-entablature']
-    top['plan'] = [u0, u1, SOUTH_V, back]
+    top['plan'] = [u0, u1, SOUTH_V, BACK_UPPER]
     top['z0'], top['z1'] = round(COLONNADE_TOP - FASCIA_H, 3), COLONNADE_TOP
     top['bands'] = [{'z0': top['z0'], 'z1': top['z1'], 'skin': 'stoneLight'}]
     fl = B['east-arcade-floor']
-    fl['plan'] = [u0, u1, SOUTH_V - 0.1, back + 0.1]
+    fl['plan'] = [u0, u1, SOUTH_V - 0.1, BACK_LOWER + 0.1]
+    # the upper floor deck: its underside is the ground-floor ceiling, its top the terrace floor, all the way to the upper back wall
+    d['blocks'].append({'id': 'arcade-upper-deck', 'plan': [u0, u1, SOUTH_V, BACK_UPPER], 'z0': LOWER_CEIL, 'z1': P,
+                        'bands': [{'z0': LOWER_CEIL, 'z1': P, 'skin': 'stoneLight'}], 'roofTone': 'paving', 'cap': True})
+    # the recessed back wall stands at a different depth on each storey: two blocks, each with its own openings
     enc = B['east-recessed-ground-enclosure']
-    enc['plan'] = [u0, u1, back, enc['plan'][3]]
-    enc['z1'] = COLONNADE_TOP - FASCIA_H
-    for fk, f in enc['faces'].items():
-        if f is None:
-            continue
-        for band in f['bands']:
-            band['z1'] = round(COLONNADE_TOP - FASCIA_H, 3)
-            for o in band.get('openings', []):
-                o['glass'] = 'hackShopPane' if o['z0'] < P - 0.5 else 'hackArcadePane'
-                if o['z1'] > band['z1'] - 0.2:
-                    o['z1'] = round(band['z1'] - 0.2, 3)
-                if o['z0'] > P - 0.1 and o['z0'] < P + 0.4:
-                    o['z0'] = round(P + 0.4, 3)
+    enc_up = copy.deepcopy(enc); enc_up['id'] = 'east-recessed-upper-enclosure'
+    top_z = round(COLONNADE_TOP - FASCIA_H, 3)
+    enc['plan'] = [u0, u1, BACK_LOWER, enc['plan'][3]]
+    enc['z1'] = LOWER_CEIL
+    enc_up['plan'] = [u0, u1, BACK_UPPER, enc_up['plan'][3]]
+    enc_up['z0'], enc_up['z1'] = P, top_z
+    def retarget(block, z0, z1, upper):
+        block['bands'] = [{'z0': z0, 'z1': z1, 'skin': 'hackRecess'}]
+        block['roofTone'] = 'hackCeiling'
+        for fk, f in block['faces'].items():
+            if f is None:
+                continue
+            for band in f['bands']:
+                band['z0'], band['z1'] = z0, z1
+                band['skin'] = 'hackRecess'
+                keep = []
+                for o in band.get('openings', []):
+                    if (o['z0'] >= P - 0.3) != upper:
+                        continue
+                    o['glass'] = 'hackArcadePane' if upper else 'hackShopPane'
+                    if upper:
+                        o['z0'], o['z1'] = round(P + 0.4, 3), round(z1 - 0.2, 3)
+                    else:
+                        o['z1'] = min(o['z1'], round(z1 - 0.2, 3))
+                    keep.append(o)
+                band['openings'] = keep
+    retarget(enc, 0, LOWER_CEIL, False)
+    retarget(enc_up, P, top_z, True)
+    d['blocks'].append(enc_up)
     # the old walkway return and planter that stood in front of the old arcade now stand in front of the new one
     for bid in ('east-planted-terrace', 'east-terrace-retaining-wall'):
         b = B[bid]
