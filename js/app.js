@@ -2025,9 +2025,9 @@ window.CityLighting.install(map);
   function introGate(waitAuthored = true) {
     // map.getSource, not map.getStyle().sources: getStyle() serialises (deep-copies) all ~260 layers and every
     // source on each call, and this runs every INTRO.gatePollMs for the whole veil (95 ms of main thread at 1x,
-    // 370 ms at 4x in the 2026-10-09 profile). ?veilgate=full keeps the old call.
+    // 370 ms at 4x in the 2026-10-09 profile). ?gatepoll=style (or ?veilgate=full) keeps the old call.
     let have;
-    if (VEIL_GATE_FULL) { const style = (map.getStyle && map.getStyle()) || null; have = (style && style.sources) || {}; }
+    if (VEIL_GATE_FULL || GATE_POLL_STYLE) { const style = (map.getStyle && map.getStyle()) || null; have = (style && style.sources) || {}; }
     else { have = {}; for (const id of INTRO.needs) { try { if (map.getSource(id)) have[id] = true; } catch (e) {} } }
     const missing = [];
     let known = 0;
@@ -2076,6 +2076,7 @@ window.CityLighting.install(map);
    * polls it blocked), so the next person can read what the veil waited for instead of guessing.
    */
   const VEIL_GATE_FULL = /[?&]veilgate=full(?:&|$)/.test(location.search);
+  const GATE_POLL_STYLE = /[?&]gatepoll=style(?:&|$)/.test(location.search);   // A/B switch: poll with getStyle() as before
   const VEIL_GATE_SKIP = /[?&]veilgate=skip(?:&|$)/.test(location.search) && !VEIL_GATE_FULL;   // opt in: do not wait for deferred sources
   function veilNote(name, ok) {
     const d = window.__intro; if (!d) return ok;

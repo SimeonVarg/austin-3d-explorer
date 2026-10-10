@@ -211,6 +211,7 @@
     layer: 'roofs-pitched',      // the slab layer it stands in for
     source: 'austin-roofs',      // where app.js put the parsed roofs.geojson
     url: 'data/roofs.geojson',   // ...and the fallback if that object is not there
+    reuseSource: !/[?&]roofsreuse=0(?:&|$)/.test(location.search),   // read the rig off the source's own object (one fetch, not two)
     keep: ['gable', 'band'],     // `f` tags that stay drawn as fill-extrusion
     lod: 'mid',                  // js/lod.js tier — the one `roofs-pitched` is in
     minzoom: 14,                 // roofs-pitched's own minzoom
@@ -375,6 +376,23 @@
   let _blocks = 0;               // attached blocks drawn in the last build
 
   // ── helpers ─────────────────────────────────────────────────────────────
+  /**
+   * THE OBJECT A GEOJSON SOURCE WAS HANDED, if it was handed one. MapLibre 5.24 does not keep it where this file
+   * used to look: `source._data` is `{ geojson: <object> }` (or `{ url }`), never the object itself, so the old
+   * test `_data.rig` was ALWAYS undefined and boot() fetched data/roofs.geojson (1.8 MB) and, for the tower,
+   * data/tower.geojson a SECOND time (found in the 2026-10-09 load profile, docs/speed-2026-10-09.md section 1c;
+   * js/entrances.js and js/slopes-arches.js already document the same trap for entrances.geojson). `_options.data`
+   * is the object as handed over; `_data.geojson` and `serialize().data` are the same reference. ROOFS.reuseSource
+   * (?roofsreuse=0) restores the old always-fetch behaviour for A/B on one page load.
+   */
+  function sourceObject(src) {
+    if (!src || !ROOFS.reuseSource) return null;
+    const cands = [];
+    try { cands.push(src._options && src._options.data); } catch (e) {}
+    try { cands.push(src._data && src._data.geojson); } catch (e) {}
+    try { if (typeof src.serialize === 'function') cands.push(src.serialize().data); } catch (e) {}
+    return cands.find(d => d && typeof d === 'object') || null;
+  }
   const UP = [0, 0, 1], DOWN = [0, 0, -1];
   const P = (xy, z) => [xy[0], xy[1], z];
   const tintHex = (hex, m) => '#' + [0, 2, 4].map(i => Math.max(0, Math.min(255, Math.round(parseInt(String(hex).replace('#', '').slice(i, i + 2), 16) * m))).toString(16).padStart(2, '0')).join('');
@@ -1148,9 +1166,8 @@
     if (!map.getLayer(x.spec.layer)) return false;         // the pass that owns it has not booted (or ?tower=0)
     let gj = null;
     try {
-      const src = x.spec.source && map.getSource(x.spec.source);
-      const d = src && src._data;
-      if (d && typeof d === 'object' && d.rig) gj = d;
+      const d = sourceObject(x.spec.source && map.getSource(x.spec.source));
+      if (d && d.rig) gj = d;
     } catch (e) {}
     if (!gj) {
       try { gj = await S.fetchJSON(x.spec.url); } catch (e) { console.warn('[slopes-roofs]', x.spec.name, e.message); return true; }
@@ -1243,9 +1260,8 @@
     _map = map;
     let rig = null;
     try {
-      const src = map.getSource(ROOFS.source);
-      const d = src && src._data;
-      if (d && typeof d === 'object' && d.rig) rig = d.rig;
+      const d = sourceObject(map.getSource(ROOFS.source));
+      if (d && d.rig) rig = d.rig;
     } catch (e) {}
     if (!rig) {
       try { const gj = await S.fetchJSON(ROOFS.url); rig = gj && gj.rig; } catch (e) { console.warn('[slopes-roofs]', e.message); }
