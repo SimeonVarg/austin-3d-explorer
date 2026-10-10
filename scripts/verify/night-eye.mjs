@@ -240,9 +240,11 @@ await stage('movie', async () => {
     const pose = TUNE.poses[v];
     await settle(before, pose); await before.screenshot({ path: path.join(dir, `${v}-before.jpg`), type: 'jpeg', quality: 90 });
     await settle(after, pose); await waitStable(after);
+    console.log('  graphics state', JSON.stringify(await after.evaluate(() => { const G = window.GFX || {}; const fx = document.getElementById('fx-canvas'); return { bloom: G.bloom, godRays: G.godRays, flare: G.flare, autoExposure: G.autoExposure, renderScale: G.renderScale, fxCanvas: !!fx, fxBlank: fx && fx.dataset.blank, preserve: (() => { try { return window.__map.painter.context.gl.getContextAttributes().preserveDrawingBuffer; } catch (e) { return null; } })() }; })));
     // the glare alone: the same frozen frame with the glare lobes off and on (lossless), so the skirt can be drawn and measured
     for (const g of [0, 1]) {
-      await after.evaluate(g => { window.CityNight.eye.glare = g; window.CityNight.hold(1000); }, g);
+      // The effects canvas (bloom and the glare lobes) is redrawn when the camera or the hour moves, not on every frame: nudge the bearing by a ten-thousandth of a degree.
+      await after.evaluate(g => { window.CityNight.eye.glare = g; const m = window.__map; m.jumpTo({ bearing: m.getBearing() + (g ? 0.0001 : -0.0001) }); window.CityNight.hold(1000); }, g);
       await after.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
       for (let rep = 0; rep < 3; rep++) { await after.waitForTimeout(500); await after.evaluate(() => window.__map.triggerRepaint()); }   // the effects canvas is redrawn on a later frame, not always the first
       await after.waitForTimeout(800); await after.screenshot({ path: path.join(dir, `${v}-glare${g}.png`) });
@@ -432,7 +434,10 @@ await stage('cost', async () => {
         const m = window.__map, gl = m.painter.context.gl, px = new Uint8Array(4);
         for (let i = 0; i < 3; i++) { m.redraw(); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); }
         const t0 = performance.now();
-        for (let i = 0; i < frames; i++) { window.CityNight.hold(1000 + i * 40); m.redraw(); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); }
+        // a camera nudge per frame (a ten-thousandth of a degree) so the sky and effects pass runs each frame, as it does while the camera moves
+        const b0 = m.getBearing();
+        for (let i = 0; i < frames; i++) { window.CityNight.hold(1000 + i * 40); m.jumpTo({ bearing: b0 + (i % 2 ? 0.0001 : 0) }); m.redraw(); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); }
+        m.jumpTo({ bearing: b0 });
         return (performance.now() - t0) / frames;
       }, { v, frames: C.frames });
       (all[arm] ||= []).push(+ms.toFixed(2)); mins[arm] = Math.min(mins[arm] ?? 1e9, ms);
