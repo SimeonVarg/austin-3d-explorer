@@ -663,6 +663,21 @@ star test that physically could not fail; a coplanar checker blind to 122,773
 faces). Reviving a crasher into a permanent green would be a fifth. If you fix a
 guard, watch it go red first.
 
+## The packed vertex layout (`?packverts=1`, added October 10 2026)
+
+The apartment meshes carry 55.7 bytes a vertex. With `?packverts=1` (default OFF) the builder writes the exact float32 position and ONE
+32-bit word that indexes a tone table (1,266 tones) and a normal table (94,312 flat normals), both float textures the vertex shader
+reads (`PACKED_TONES` in `js/slopes.js` VERT). Nothing is quantised.
+
+`packverts-decode.mjs` — **Node only, runs in CI.** The real `js/slopes.js` builds the Moontower's recorded calls and a synthetic set
+unpacked and packed; every packed vertex is decoded with VERT's own arithmetic and compared bit for bit (position, normal, three colours,
+surface, facet, index). `--break` corrupts one table entry and must fail. The whole 198-building catalog was checked the same way by
+`experiments/rust-mesh/profile/packed-end-to-end.mjs` (needs three.js outside the repo).
+
+`packverts-pixels.mjs` — the same cameras (`ci/poses.json`), switch off, on, and off again (the control), exact pixel compare;
+passes when "on" moves no more pixels than the control. `--phone` shoots the phone profile (390x844 @3x, `?lite=1`, chunked build),
+`--on "packverts=1&rustbuilder=1"` tries both switches, `--break` shoots "on" at a later hour and must fail.
+
 ## Things that will waste your time if you don't know them
 
 - **`_harness.html` forces `preserveDrawingBuffer: true`.** That is the only way

@@ -147,6 +147,8 @@
     "walk.mjs": {"timeout_s": 2400, "est_s": 1010},
     "walkmeter.mjs": {"est_s": 190},
     "wasm-mesh-parity.mjs": {"est_s": 20},
+    "packverts-decode.mjs": {"est_s": 10},
+    "packverts-pixels.mjs": {"est_s": 1500, "timeout_s": 3600},
     "walkwidth.mjs": {"est_s": 160},
     "wallplane.mjs": {"est_s": 10},
     "westcampus-probe.mjs": {"est_s": 80},
