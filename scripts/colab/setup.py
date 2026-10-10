@@ -221,7 +221,7 @@ def run_check(chk, port, chrome_wrapper):
     env["VERIFY_GL"] = "hardware"          # stop chrome.mjs adding SwiftShader flags
     env["CHROME_PATH"] = chrome_wrapper    # ...and make "hardware" mean the L4
     env["VERIFY_OUT"] = outdir
-    env["VERIFY_MAX_MS"] = env.get("VERIFY_MAX_MS", "600000")
+    env["VERIFY_MAX_MS"] = env.get("VERIFY_MAX_MS", "2400000")   # was 600000: night-luma.mjs needs more than ten minutes on an L4 (killed at 600.9 s twice, 2026-10-10)
     full = "node %s %s" % (cmd, " ".join("'%s'" % a for a in args))
     t0 = time.time()
     p = subprocess.Popen(full, shell=True, cwd=os.path.join(WORK, "scripts/verify"),

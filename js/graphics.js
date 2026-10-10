@@ -1712,7 +1712,7 @@
           g.setTransform(1, 0, 0, 1, 0, 0);
           g.globalCompositeOperation = 'source-over';
           g.clearRect(0, 0, cv.width, cv.height);
-          g.filter = `blur(${lobe.blur}px)`;
+          g.filter = `blur(${lobe.blur}px) brightness(${lobe.gain || 1})`;   // the lobe is a spread-out copy of a few bright points: it needs lifting to be seen at all
           g.drawImage(bloomCv, 0, 0, cv.width, cv.height);
           g.filter = 'none';
           g.globalCompositeOperation = 'multiply';
