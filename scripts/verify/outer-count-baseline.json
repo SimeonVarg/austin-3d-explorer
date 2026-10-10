@@ -1,0 +1,36 @@
+{
+ "_what": "Outer-city buildings `main` drew in each case, before the houses layer (scripts/verify/outer-count.mjs --main URL --write-baseline). The branch must draw at least this many.",
+ "written": "2026-10-10",
+ "cases": {
+  "desktop": {
+   "total": 5977,
+   "ring": 5977,
+   "density": 1,
+   "preset": "balanced"
+  },
+  "safe-tier": {
+   "total": 2535,
+   "ring": 2535,
+   "density": 0.45,
+   "preset": "performance"
+  },
+  "slopes-off": {
+   "total": 5977,
+   "ring": 5977,
+   "density": 1,
+   "preset": "balanced"
+  },
+  "phone-tier": {
+   "total": 2535,
+   "ring": 2535,
+   "density": 0.45,
+   "preset": "performance"
+  },
+  "no-decompress": {
+   "total": 5977,
+   "ring": 5977,
+   "density": 1,
+   "preset": "balanced"
+  }
+ }
+}
