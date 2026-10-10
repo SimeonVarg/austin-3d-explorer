@@ -219,6 +219,7 @@
   "laptop_only": {
     "apts-perf.mjs": "timing",
     "arts-perf.mjs": "timing",
+    "perf-sky-listener.mjs": "timing: addImage cost with the old and new sky/fog placement listener, and the ten cameras, no verdict",
     "drag-perf.mjs": "timing",
     "facade-perf.mjs": "timing",
     "ground-perf.mjs": "timing",
