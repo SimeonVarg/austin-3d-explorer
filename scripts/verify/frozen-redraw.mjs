@@ -27,6 +27,7 @@ import path from 'node:path';
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
 const BREAK = argv.includes('--break'), EXPLAIN = argv.includes('--explain'), ARMS = argv.includes('--arms');
+const EXTRA = opt('--query', '').replace(/\+/g, '&');   // extra page switches, '+' for '&'
 const OUT = path.resolve(process.env.VERIFY_OUT || opt('--out', 'frozen-redraw-out'));
 fs.mkdirSync(OUT, { recursive: true });
 // every number a claim rests on
@@ -78,7 +79,7 @@ async function open(view) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   if (EXPLAIN) await page.addInitScript(LOGGER);
   page.on('pageerror', e => console.log('PAGEERROR', e.message.slice(0, 200)));
-  await page.goto(`${BASE}/_harness.html?intro=0&drift=0&namelabels=0&facadepace=0&timeofdaypace=0&skyfreeze=0`, { waitUntil: 'networkidle', timeout: 90000 });
+  await page.goto(`${BASE}/_harness.html?intro=0&drift=0&namelabels=0&facadepace=0&timeofdaypace=0&skyfreeze=0${EXTRA ? '&' + EXTRA : ''}`, { waitUntil: 'networkidle', timeout: 90000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 90000 });
   await page.waitForFunction(() => {
     const m = window.__map; if (!m || !m.getSource('austin-buildings')) return false;
