@@ -56,7 +56,7 @@ ROOF_ITEMS = [   # SCAN: boxes standing on the roof (air-conditioning units, 5.8
 COLOURS = {
     'rust': '#8a4a33', 'beige': '#c9bda4', 'brick': '#a89680', 'black': '#26272b', 'shopDark': '#58554f',
     'signRed': '#b3202a', 'muralRed': '#9c1f27', 'white': '#f1ede6', 'yellow': '#f2c230', 'roofFlat': '#7a7b78',
-    'pylonRed': '#8c0b1c',
+    'pylonRed': '#af0e23',
 }
 
 # ---- openings: PHOTO unless noted. z in metres above the pavement ----
@@ -74,7 +74,7 @@ BURIED_EPS = 0.005     # m: a detail face counts as inside a block only if every
 # side, v 1.3 or the west tower on the west side (outer_plane).
 OPENINGS = [
     # north end: window under its own awning left of the tower (ends 2.68 so its frame stops at the tower's side, v 2.75), two windows under the canopy (PHOTO north view)
-    ('N', 1.55, 2.68, 'win'), ('N', 3.1, 4.95, 'win'), ('N', 5.25, 7.4, 'win'), ('N', 8.0, 9.7, 'win'),
+    ('N', 1.55, 2.68, 'win'), ('N', 3.1, 4.95, 'win'), ('N', 5.25, 7.05, 'win'), ('N', 8.0, 9.7, 'win'),
     # east wall: wing windows and the door in the east tower (PHOTO east view); u 18 on is INFERRED
     # (the east view shows plain wall and a downpipe between the window at u 6.2-9 and the red panel: no window at u 9.8-10.5)
     ('E', 0.4, 2.1, 'win'), ('E', 3.55, 4.55, 'door'), ('E', 6.2, 9.0, 'win'),
@@ -133,6 +133,37 @@ class Mesh:
             nrm = (e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0])
             fwd = sum(nrm[i] * want[i] for i in range(3)) > 0
             self.t.extend([[n, n + 1, n + 2], [n, n + 2, n + 3]] if fwd else [[n, n + 2, n + 1], [n, n + 3, n + 2]])
+
+    def quad(self, pts, want):
+        n = len(self.v)
+        self.v.extend([[round(c, DECIMALS) for c in p] for p in pts])
+        e1 = [pts[1][i] - pts[0][i] for i in range(3)]
+        e2 = [pts[2][i] - pts[0][i] for i in range(3)]
+        nrm = (e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0])
+        if sum(nrm[i] * want[i] for i in range(3)) > 0:
+            self.t.extend([[n, n + 1, n + 2], [n, n + 2, n + 3]])
+        else:
+            self.t.extend([[n, n + 2, n + 1], [n, n + 3, n + 2]])
+
+    def slope(self, wall, a, b, zw, zf, out, thick, plane):
+        """A sloped slab on a wall: from height zw at the wall to zf at `out` metres from it (the standing-seam awning of the photographs)."""
+        o0 = STANDOFF
+        def P(s, d, z):
+            if wall == 'N':
+                return (plane - o0 - d, s, z)
+            if wall == 'E':
+                return (s, plane + o0 + d, z)
+            return (s, plane - o0 - d, z)
+        sgn = {'N': (-1, 0), 'E': (0, 1), 'W': (0, -1)}[wall]
+        outv = (sgn[0], sgn[1], 0)
+        up = (0, 0, 1)
+        self.quad([P(a, 0, zw), P(b, 0, zw), P(b, out, zf), P(a, out, zf)], up)
+        self.quad([P(a, 0, zw - thick), P(b, 0, zw - thick), P(b, out, zf - thick), P(a, out, zf - thick)], (0, 0, -1))
+        self.quad([P(a, out, zf - thick), P(b, out, zf - thick), P(b, out, zf), P(a, out, zf)], outv)
+        alongA = (0, -1, 0) if wall in ('N',) else (-1, 0, 0)
+        alongB = (0, 1, 0) if wall in ('N',) else (1, 0, 0)
+        self.quad([P(a, 0, zw - thick), P(a, out, zf - thick), P(a, out, zf), P(a, 0, zw)], alongA)
+        self.quad([P(b, 0, zw - thick), P(b, out, zf - thick), P(b, out, zf), P(b, 0, zw)], alongB)
 
     def wall_box(self, wall, a, b, z0, z1, off0, off1, plane):
         """A box on a wall: a..b along it, from `off0` to `off1` metres out from `plane` (the outer face of the block
@@ -211,8 +242,7 @@ def build():
         meshes['black'].wall_box(wall, a, b, CANOPY_Z - CANOPY_T, CANOPY_Z, 0.0, d, outer_plane(wall, a, b)[1])
     for wall, a, b in AWNINGS:
         pl = plane_of(wall, a, b)
-        meshes['black'].wall_box(wall, a, b, AWNING['z1'] - 0.1, AWNING['z1'], 0.0, AWNING['out'] * 0.55, pl)
-        meshes['black'].wall_box(wall, a, b, AWNING['z0'], AWNING['z0'] + 0.12, AWNING['out'] * 0.55, AWNING['out'], pl)
+        meshes['black'].slope(wall, a, b, AWNING['z1'], AWNING['z0'], AWNING['out'], 0.08, pl)   # PHOTO: a sloping standing-seam slab
     # red mural panel on the east wall, and the pylon "1"
     meshes['muralRed'].wall_box('E', MURAL['u0'], MURAL['u1'], MURAL['z0'], MURAL['z1'], 0.0, 0.05, plane_of('E', MURAL['u0'], MURAL['u1']))
     P = PYLON
