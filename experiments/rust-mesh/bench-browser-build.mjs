@@ -19,4 +19,4 @@ for (let r = 0; r < rounds; r++) for (const mode of (r % 2 ? [...modes].reverse(
 await browser.close(); server.close();
 const mins = m => { const a = rows.filter(r => r.mode === m && !r.error).flatMap(r => r.runs.map(x => x.ms)).sort((x, y) => x - y); return a.length ? { min: a[0], median: a[a.length >> 1], max: a.at(-1), n: a.length } : null; };
 const shares = rows.filter(r => r.mode === 'timed' && !r.error).flatMap(r => r.runs.map(x => x.builderMs / x.ms)).sort((a, b) => a - b);
-console.log(JSON.stringify({ host: `${os.cpus()[0].model} x${os.cpus().length}`, ua: rows[0]?.ua, rounds, modes: Object.fromEntries(modes.map(m => [m, mins(m)])), builderShareOfBuild: shares.length ? { min: shares[0], median: shares[shares.length >> 1], max: shares.at(-1) } : null, rows }, null, 1));
+console.log(JSON.stringify({ host: `${os.arch()} laptop-class CPU x${os.cpus().length} threads`, ua: rows[0]?.ua, rounds, modes: Object.fromEntries(modes.map(m => [m, mins(m)])), builderShareOfBuild: shares.length ? { min: shares[0], median: shares[shares.length >> 1], max: shares.at(-1) } : null, rows }, null, 1));

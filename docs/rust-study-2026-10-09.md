@@ -5,8 +5,8 @@ with optimism in mind"*. This is that study: the strongest version of the idea, 
 the costs written next to the gains. Plain words; every number says whether it was **MEASURED** (I ran it, here, today), **ESTIMATED**
 (arithmetic on measured numbers) or **UNMEASURED** (an assumption, said so).
 
-Machine for every MEASURED number: the Mac this lane runs on, an Intel Core i7-8569U (the same class as the owner's 2019 13-inch
-MacBook Pro), 8 threads, 16 GB, Node 26.5, Chrome 155. **The Mac was very busy the whole time** (load average 18 to 460 from other
+Machine for every MEASURED number: the Mac this lane runs on, a laptop-class Intel x86-64 CPU (the same class as the owner's laptop),
+8 threads, 16 GB, Node 26.5, Chrome 155. (The result files record "x64 laptop-class CPU", not the exact model.) **The Mac was very busy the whole time** (load average 18 to 460 from other
 lanes' browsers). So the study quotes **CPU time of the process** where it can (the Node kernel table; it barely moves with other
 people's load) and says "wall" wherever it is wall time (Chrome has no per-page CPU clock); every table says which, and wall figures are
 quoted as fastest / median / slowest because the slowest runs are other people's load. Raw files are in `experiments/rust-mesh/results/`.
@@ -19,7 +19,7 @@ quoted as fastest / median / slowest because the slowest runs are other people's
 |---|---|---|---|---|
 | 1 | **Bake the city's meshes offline, build nothing at load** (the baker is the app's own generator run in Node; no Rust needed) | the 3.1 M-triangle build (4 to 9 s of compute here, 29 to 45 s as the app reports it) becomes a **122 ms** decode (MEASURED, meshopt in Node) plus the upload | wire bytes go UP: 1.61 MB brotli of recipes becomes 2.5 to 4.0 MB of meshes (MEASURED); every graphics preset or runtime variant needs its own baked file | high that it works (the harness already runs the real generator and reproduces its buffers byte for byte) |
 | 2 | **Pack the vertex layout** (int16 positions, 2-byte normals, 1 tone id) | geometry memory 346.7 MB to about 64.5 MB (MEASURED sizes); the phone's actual failure is memory, not speed | a shader change in `js/slopes.js`; pixel parity must be proven | high on the bytes, medium on the shader work |
-| 3 | **The vertex/index builder as a Wasm module** (the prototype, built and measured) | **2.7x to 3.7x less CPU than the shipped JS builder** (872 / 635 ms against 2,357 ms, MEASURED); about 1.5x to 2x less than the best plain JS I could write. Put behind the REAL generator it **halves the whole build by the median** (Node 7.2 to 3.7 s, Chrome 8.7 to 4.2 s wall, geometry hash-identical, MEASURED) | a 34 KB `.wasm` in git, a build script, a staging adapter between generator and builder (a version of it is in `profile/app-patch.mjs`); it removes compute, not the main-thread contention that makes the owner's wait 29 s | high: it runs, it is byte-identical, and the end-to-end number is measured. The unknown is the real page (§8) |
+| 3 | **The vertex/index builder as a Wasm module** (the prototype, built and measured) | **2.7x to 3.6x less CPU than the shipped JS builder** (872 / 662 ms against 2,357 ms, MEASURED); about 1.5x to 2x less than the best plain JS I could write. Put behind the REAL generator it **halves the whole build by the median** (Node 6.8 to 3.6 s, Chrome 8.7 to 4.2 s wall, geometry hash-identical, MEASURED) | a 34 KB `.wasm` in git, a build script, a staging adapter between generator and builder (a version of it is in `profile/app-patch.mjs`); it removes compute, not the main-thread contention that makes the owner's wait 29 s | high: it runs, it is byte-identical, and the end-to-end number is measured. The unknown is the real page (§8) |
 
 **What I would not do:** rewrite the whole generator (3,400 lines of rules) in Rust first; Rust for route search, the bus protobuf or
 the Python bakes (measured below: each is milliseconds or I/O-bound); threads and the COOP/COEP headers (nothing here needs them yet).
@@ -149,10 +149,10 @@ build). The same page-free harness also runs inside headless Chrome (`bench-brow
 | Buildings / blocks / faces / cells | 198 / 1,978 / 16,654 / 644,425 | MEASURED |
 | Triangles / vertices / indices | 3,113,629 / 6,523,203 / 9,340,887 (the speed lane's page sample says 3,116,469; the gap is my stand-in night-light flags) | MEASURED |
 | Buffers the page holds and uploads | **346.7 MB**, 55.7 bytes per vertex counting the index (position 74.7, normal 74.7, three colour triples 56.0, facet 6.2, surface 99.5, index 35.6 MB) | MEASURED |
-| Compute of generator + builder, Node | 4.06 s fastest of 18 builds, 7.2 s median, 13.3 s slowest (load average 20 to 460) | MEASURED |
-| Same build inside Chrome 155, no map, nothing else on the page | 3.86 s fastest of 12 builds, 8.65 s median, 17.5 s slowest (load 48 to 159) | MEASURED |
-| The generator alone (builder replaced by do-nothing calls) | 2.0 s in Node; 1.65 s fastest, 2.4 s median in Chrome. A lower bound: it also skips the polygon triangulation inside `polygon()` | MEASURED |
-| What the app reports as `count.ms` | about 29,000 ms on the owner's 2019 MacBook Pro (the brief); 45,161 ms over 39 slices in the speed lane's one loaded-Mac sample | reported by others |
+| Compute of generator + builder, Node | 4.06 s fastest of 18 builds, 6.8 s median, 13.3 s slowest (load average 20 to 460) | MEASURED |
+| Same build inside Chrome 155, no map, nothing else on the page | 3.85 s fastest of 12 builds, 8.65 s median, 17.5 s slowest (load 48 to 159) | MEASURED |
+| The generator alone (builder replaced by do-nothing calls) | 1.65 s fastest, 2.4 s median in Chrome (a Node figure of about 2.0 s came from a run whose output was not kept; re-run `profile/node-apartments-build.mjs 3 --null-builder` to commit it). A lower bound: it also skips the polygon triangulation inside `polygon()` | MEASURED |
+| What the app reports as `count.ms` | about 29,000 ms on the owner's laptop (the brief); 45,161 ms over 39 slices in the speed lane's one loaded-Mac sample | reported by others |
 | Share of the build spent inside the shared builder (`tri`/`quad`/`triN`) | **40%** (33% to 44% over 5 runs), clocked in place | MEASURED (`results/in-situ-share-node.txt`) |
 | Same, from the speed lane's Chrome profile | mesh emission about 12 of 19.8 s of build time (inclusive times overlap, so an upper bound: up to about 60%) | speed lane, `docs/speed-2026-10-09.md` §2b (branch `mac/speed-profile`) |
 | Distinct tones the 6.5 M vertices actually use | **1,266**, against 111,828 separate colour arrays the generator creates (a new `[day, golden, night]` array per lit window cell) | MEASURED |
@@ -187,11 +187,11 @@ instead of building vertex arrays in JS; the module owns the vertex store; the f
 This is exactly what the prototype is (§5).
 
 *Optimistic best case.* The builder part of the work costs **2.7x less CPU than the shipped JS builder with no other change (872 vs
-2,357 ms, Node, MEASURED) and 3.7x less if the vertex count is known in advance (635 vs 2,357 ms, MEASURED, 3 runs)**; Chrome's
-fastest of 5 was 702 ms against 2,321 ms (3.3x, wall time on a loaded machine, MEASURED). Peak memory is lower too: 356 MB for the
+2,357 ms, Node, MEASURED) and 3.6x less if the vertex count is known in advance (662 vs 2,357 ms, MEASURED, 6 runs)**; Chrome's
+fastest of 5 was 702 ms against 2,321 ms (3.3x, wall time on a loaded machine, MEASURED). Peak memory is lower too: 355 MB for the
 Wasm heap with the count known (MEASURED) against +911 MB for the shipped JS builder's growth buffers plus the trimming copy.
-Put behind the REAL generator (§5.4) the whole build roughly **halves by the median** (Node 7.2 to 3.7 s, Chrome 8.7 to 4.2 s,
-geometry hash-identical, MEASURED), and 1.4x to 1.6x by the fastest runs. In a Worker, where the build stops competing with the main
+Put behind the REAL generator (§5.4) the whole build roughly **halves by the median** (Node 6.8 to 3.6 s, Chrome 8.7 to 4.2 s,
+geometry hash-identical, MEASURED), and 1.3x to 1.6x by the fastest runs. In a Worker, where the build stops competing with the main
 thread, the owner's wait could approach the compute time (ESTIMATE, §5.5).
 
 *Cost.* A 34 KB `.wasm` and `build.sh` in the repo; nothing in the generator has to change (the adapter used in §5.4 takes the same `[x,y,z]` arrays the generator already passes; writing numbers directly instead is a later 150 ms saving per the replay), but every consumer of `slopes.build()` (roofs, arches, heroes: not only the apartments) would get the new builder, and each has to keep its output identical, which is what the compare harness is for; `memory.grow()` detaches views, so three.js attributes cannot point into a module that will be reused (use a fresh
@@ -353,11 +353,11 @@ Each row is a fresh Node process (cold JIT, as at page load), six rounds interle
 | Tuned JS: typed array in, no per-call arrays | 2,164 / 2,194 / 2,269 | 695 | 2,484 | +919 MB |
 | Tuned JS, vertex count known up front, views not copies | 1,280 / 1,292 / 1,373 | 411 | 1,341 | +424 MB |
 | **Rust/Wasm** (includes copying the stream into Wasm memory, 95 to 130 ms) | **872 / 908 / 960** | **280** | 1,050 | +712 MB (650 MiB Wasm heap) |
-| **Rust/Wasm, vertex count known** (3 runs) | **635 to 666** | **204** | | **+356 MB** (357 MiB) |
+| **Rust/Wasm, vertex count known** (6 runs, `results/node-kernel-cpu-wasm-exact.json`, re-measured 2026-10-10 on the same Mac) | **662 / 673 / 683** | **212** | 978 | **+355 MB** (357 MiB) |
 | Just creating the JS point arrays the generator would make | 150 / 161 / 168 | | | |
 
-Reading it plainly: **Rust/Wasm is 2.7x less CPU than the shipped builder (3.7x with the count known) and 1.5x to 2x less than the
-best JS I could write.** About two thirds of the Rust saving (2,357 to 1,280 ms of the 1,485 to 1,722 ms) is also available in plain JS by passing the vertex
+Reading it plainly: **Rust/Wasm is 2.7x less CPU than the shipped builder (3.6x with the count known) and 1.5x to 2x less than the
+best JS I could write.** About two thirds of the Rust saving (2,357 to 1,280 ms of the 1,485 to 1,695 ms) is also available in plain JS by passing the vertex
 count and returning views; the rest is Rust (the cause I did not isolate; the likely ones are V8's zero-fill-and-copy growth of seven
 typed arrays and its garbage collector seeing 347 MB of them). The shipped-builder row includes the 150 ms it takes to make the point arrays from the stream (the generator makes
 them anyway, `W.at()` returns one per point); the tuned-JS and Rust rows read the numbers straight from the stream, which is what a
@@ -376,33 +376,33 @@ runs with the Wasm adapter in place of `build()`. Geometry checked identical in 
 
 | Whole build | Node wall min / median / max (CPU median) | Chrome wall min / median / max |
 |---|---|---|
-| Shipped JS builder | 4.06 / 7.18 / 13.3 s (9.2 s CPU median; 18 builds) | 3.86 / 8.65 / 17.5 s |
+| Shipped JS builder | 4.06 / 6.83 / 13.3 s (9.1 s CPU median; 18 builds) | 3.85 / 8.65 / 17.5 s |
 | Shipped JS builder, vertex count passed in (`S.build(n)`, the app's own parameter) | 5.02 / 7.23 / 13.0 s (7.6 s CPU; 9 builds) | not run |
 | Rust builder, vertex count unknown | **3.09 / 3.80 / 6.61 s** (5.3 s CPU; 9 builds) | **2.42 / 5.07 / 11.6 s** |
-| Rust builder, vertex count known | **2.74 / 3.66 / 10.2 s** (5.8 s CPU; 18 builds) | **2.62 / 4.15 / 6.09 s** |
+| Rust builder, vertex count known | **2.74 / 3.60 / 10.2 s** (5.5 s CPU; 18 builds) | **2.62 / 4.15 / 6.09 s** |
 | (for scale) generator with a builder that does nothing | 2.0 s | 1.65 s fastest, 2.4 s median |
 
 Node: 9 to 18 builds per row in fresh processes at machine load 20 to 170; Chrome: 12 builds per row, three per fresh page, load 48 to 159.
-So **swapping only the vertex/index builder cuts the whole build roughly in half by the median** (Node 7.2 to 3.7 s; Chrome 8.7 to 4.2 s with
+So **swapping only the vertex/index builder cuts the whole build roughly in half by the median** (Node 6.8 to 3.6 s; Chrome 8.7 to 4.2 s with
 the count known), more than the 40% to 50% share clocked in place would suggest. My reading (not isolated): the 347 MB of typed arrays
 also load V8's allocator and garbage collector while the generator runs, and in Wasm memory they do not. By the fastest runs the gain is
-smaller (1.4x to 1.6x), because a quiet moment hides that pressure. The in-JS one-line alternative (pass the count) saved CPU (9.2 to 7.6 s
+smaller (1.3x to 1.6x), because a quiet moment hides that pressure. The in-JS one-line alternative (pass the count) saved CPU (9.1 to 7.6 s
 median) but not wall time. (My first estimate, from the in-place clock alone, was 25% to 29%; the measurement is better than that.) Every
 Node run printed `geometry identical ... true`; the Chrome runs were checked on triangle count (3,113,629 each).
 
 ### 5.5 What it does to the owner's 29 s (EXTRAPOLATION, marked as such)
 
-- The generator and builder together are about **4 to 9 s of compute** here (Node 4.1 to 7.2 s, Chrome 3.9 to 8.7 s; fastest to
+- The generator and builder together are about **4 to 9 s of compute** here (Node 4.1 to 6.8 s, Chrome 3.9 to 8.7 s; fastest to
   median), against **29 s reported** on the owner's laptop. This Mac is the same class of machine, so the other ~20 to 25 s is waiting:
   slicing every 12 ms to let MapLibre parse tiles, the facade atlas, the sky. It also holds work my harness leaves out (the facade
   filter's texture rasterising, view-culling spheres), UNMEASURED.
-- The Rust builder removes about 3.5 to 4.5 s of compute (median) or 1.4 to 1.7 s (fastest). **Applied to a 29 s wait with nothing else
-  changed: 29 s becomes about 25 s (a saving of 1.4 to 4.5 s, roughly 5% to 15%) (ESTIMATE).**
+- The Rust builder removes about 3.2 to 4.5 s of compute (median) or 1.2 to 1.4 s (fastest). **Applied to a 29 s wait with nothing else
+  changed: 29 s becomes about 25 s (a saving of 1.2 to 4.5 s, roughly 4% to 15%) (ESTIMATE).**
 - Put the same builder in a Worker and the build stops competing with the main thread: the wait becomes roughly the compute, **about 2.5
   to 5 s plus a copy of the finished buffers out of the worker (0.3 to 0.7 s, ESTIMATE from the `wasm-copy` row), instead of 29 s
   (ESTIMATE; it assumes a second core that is idle at load, which I cannot promise on a 2-core phone)**. That is the optimistic case, and Rust is
   a small part of it: most of the win is the worker.
-- Per million triangles the builder alone now costs 204 to 280 ms of CPU (Node), against 757 ms.
+- Per million triangles the builder alone now costs 212 to 280 ms of CPU (Node), against 757 ms.
 
 ### 5.6 Sizes and start-up
 
@@ -425,7 +425,7 @@ The same eight typed arrays are uploaded either way (`gl.bufferData` takes a vie
 is what happens *before* it: the shipped builder allocates growth buffers (doubling seven arrays, copying each time) and then copies
 every array again with `.slice()` to trim it (`geometry()`), the difference between the "tuned JS" rows above; the Wasm path hands
 out views of memory it already holds. **The upload timing itself is UNMEASURED:** the shared GPU slot was held by another lane for
-the whole study (`gpu-run` status: busy, my request queued for about 35 minutes before I withdrew it), and a CPU-only headless Chrome has no WebGL. The harness
+the whole study (`gpu-run` status: busy, my request stayed queued behind it), and a CPU-only headless Chrome has no WebGL. The harness
 for it is written (`bench-browser.html?upload=1`, which times `gl.bufferData` of all eight arrays on a real WebGL2 context);
 run it when the slot is free. Two facts bound the answer: a view of Wasm memory is an ordinary `ArrayBufferView` to WebGL, and
 a view into Wasm memory is invalid after the next `memory.grow()`, so a three.js attribute that keeps pointing at it needs either a
@@ -468,7 +468,7 @@ until that is green AND the existing pixel checks (`scripts/verify/apts-shots.mj
 
 | Day | Step | What it should gain | How it is tested | Stop here if |
 |---|---|---|---|---|
-| 1 | **Wire the prototype in behind a flag** (`?rustbuilder=1`): the generator's `B.quad/tri` write into a staging buffer, the wasm module builds, `geometry()` wraps zero-copy views (or one copy). Main thread, no worker yet. Also: intern tones (112k objects to 1.3k) and stop allocating `col.slice()` per window cell. | MEASURED in the prototype: the builder part costs 2.7x to 3.7x less CPU; behind the real generator the whole build roughly halves by the median (Node 7.2 to 3.7 s, Chrome 8.7 to 4.2 s). Plus about 17% CPU from passing the count to the JS builder alone. | compare.mjs on the full stream in CI; `slopes-chunked-build.mjs`; build once in Chrome with and without the flag, min of 7, same `count.ms` reading | the end-to-end `count.ms` in Chrome does not drop by at least 15% (min of 7, interleaved): the generator, not the builder, is the cost, and Rust at this layer is not worth another day |
+| 1 | **Wire the prototype in behind a flag** (`?rustbuilder=1`): the generator's `B.quad/tri` write into a staging buffer, the wasm module builds, `geometry()` wraps zero-copy views (or one copy). Main thread, no worker yet. Also: intern tones (112k objects to 1.3k) and stop allocating `col.slice()` per window cell. | MEASURED in the prototype: the builder part costs 2.7x to 3.7x less CPU; behind the real generator the whole build roughly halves by the median (Node 6.8 to 3.6 s, Chrome 8.7 to 4.2 s). Plus about 17% CPU from passing the count to the JS builder alone. | compare.mjs on the full stream in CI; `slopes-chunked-build.mjs`; build once in Chrome with and without the flag, min of 7, same `count.ms` reading | the end-to-end `count.ms` in Chrome does not drop by at least 15% (min of 7, interleaved): the generator, not the builder, is the cost, and Rust at this layer is not worth another day |
 | 2 | **Packed vertex layout**: the builder emits int16 positions per 60k-vertex chunk, octahedral normals and a u16 tone id; `slopes.js`'s vertex shader decodes and looks the tone up in a small texture/uniform table. | geometry memory 346.7 MB to about 64.5 MB (MEASURED sizes, in the byte study). This is the PHONE fix; speed is not the point. | `apts-shots.mjs` pixel-for-pixel against main at the 3 standard poses; `mobile-memory.mjs` | any pixel differs beyond the tolerance the existing shot checks use, or the shader's per-vertex cost shows in frame time on the integrated GPU |
 | 3 | **Bake the core catalog offline, ship meshes, build nothing at load.** The baker is the Node harness that already runs the real generator (`profile/app-env.mjs`, about 6 s for the whole city); output is meshopt-coded buffers per graphics preset. The page decodes them (meshopt's Wasm decoder, 1 to 3 GB/s) and uploads. | wire bytes go UP, 1.61 MB to 2.5 to 4.0 MB brotli (MEASURED); load-time CPU for the city from 4 to 9 s of compute to about 0.1 to 0.3 s (the decode is MEASURED at 122 ms fastest in Node; the generator disappears from the page for the core catalog). | the baked buffers hash-equal the live generator's output (same compare.mjs, same stream); a CI step re-bakes and diffs | any recipe field depends on something only known at runtime (the lit-window pattern from `CityNight`, the graphics preset's detail) that cannot be a second baked variant |
 | 4 | **Move what is left of the generator into a Worker** (or keep it only for edits). It has no DOM; it needs `THREE.ShapeUtils`, `APTS` and a handful of `window.*` reads. | main-thread time for any runtime rebuild (detail change, areas) drops to a copy. Independent of Rust. | `apartment-areas.mjs`, `apartment-map-lifecycle.mjs` | the worker needs more than about 8 `window.*` reads to be supplied (then bake instead, step 3) |
@@ -518,7 +518,7 @@ codec row. Neither was added to the repository.
 Rust/Wasm study (branch `mac/rust-study`, draft PR). I ran the app's own generator and builder in Node and in a bare Chrome page,
 built a Rust/Wasm version of the shared mesh builder (`experiments/rust-mesh/`, 34 KB, no dependencies), and made three builders
 (the app's, a tuned JS twin, the Rust) produce byte-identical buffers on the whole 3.1 M-triangle catalog, then replayed the call stream
-(Rust 2.7x to 3.7x less CPU than the shipped builder) and put the Rust builder behind the real generator (whole build about halved by the
+(Rust 2.7x to 3.6x less CPU than the shipped builder) and put the Rust builder behind the real generator (whole build about halved by the
 median, geometry hash-identical). Candidates measured: baked meshes (wire bytes go up from 1.61 to 2.5 to 4.0 MB, decode 122 ms, memory
 346.7 to 64.5 MB), facade blur (Rust at parity, 0.91x to 1.12x), route search (6.2 ms), bus protobuf (0.2 to 4 ms), Python bakes (not
 timed). Findings that matter more than the language: the compute is 4 to 9 s while the app waits 29 to 45 s; 26 of 55.7 bytes per

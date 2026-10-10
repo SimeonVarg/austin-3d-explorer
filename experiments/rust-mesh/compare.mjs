@@ -64,7 +64,7 @@ const names = ['position', 'normal', 'cDay', 'cGold', 'cNight', 'aFacet', 'aSurf
 const keyOf = { position: 'position', normal: 'normal', cDay: 'cDay', cGold: 'cGold', cNight: 'cNight', aFacet: 'aFacet', aSurface: 'aSurface', index: 'index' };
 let bad = 0;
 const ref = results[Object.keys(results)[0]];
-console.log(`stream: ${records} records -> ${ref.triangles} triangles, ${ref.position.length / 3} vertices (${dir})`);
+console.log(`stream: ${records} records -> ${ref.triangles} triangles, ${ref.position.length / 3} vertices (${path.basename(dir)})`);
 for (const [label, r] of Object.entries(results)) {
   const row = names.map(n => sha(r[keyOf[n]]));
   const sameAsRef = names.map((n, i) => row[i] === sha(ref[keyOf[n]]));
