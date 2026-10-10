@@ -1832,3 +1832,11 @@ the software harness never has it unless `?patfilter=1`; MSAA is fixed when the 
 writes it into the saved settings first); a hidden-layer render only counts after `__facadePace.busy` is
 false and `slopesApartments.count.done`, or the "building" mask includes a half-built city.
 `pattern-filter-taps.mjs` is the no-browser half: the filter's tap maths on a synthetic window grid.
+
+New in the second pass (2026-10-10): `--sun p` (0 day, 0.5 sunset, 1 night), `--arms-outer` (an arm that rebuilds the
+authored buildings runs once, not once per view), arms may `await` and call `await __rebuild()`, the table prints the
+triangles the three.js layer drew, and `?smooth=` is now set from `--msaa` (the saved setting alone did NOT reach the
+context: the first table's "MSAA on" run was drawn without it; the context line at the end now prints samples).
+`APARTMENTS.hide.<class> = true` (or `?aptfeat=-window,-reveal`) then `await __rebuild()` leaves one class of authored
+detail out, to see how much of a view's error it carries. Pass `VERIFY_MAX_MS=6000000` for a long arms run: the default
+50-minute watchdog killed a 12-arm run.
