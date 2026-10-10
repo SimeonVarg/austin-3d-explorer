@@ -45,6 +45,7 @@ export const TUNE = {
   live: { seconds: 3, minFps: 8, pose: 'tower-night' },
 };
 
+const S_BAR = { farMin: 0.03, farMax: 0.10, nearMax: 0.003 };   // the bar for a merge: far 3 to 10%, near under 0.3%, in every load
 const results = []; // { name, ok, detail }
 const report = (name, ok, detail) => { results.push({ name, ok, detail }); console.log(`${ok ? ' PASS' : '*FAIL'}  ${name}${detail ? '  ' + detail : ''}`); };
 
@@ -286,15 +287,63 @@ await stage('debug', async () => {
 });
 
 // ======================================================================================================
+// 2e. FROZEN: N pairs of loads of the two night pictures with ?nightfreeze=1 and the picture-check query; what moves, and what is under it.
+//     Load 0 is compared with loads 1..N. Regions of moved pixels (over 12/255) are named from the page's own DOM.
+// ======================================================================================================
+await stage('frozen', async () => {
+  const N = Number(opt('--pairs', 5)), dir = path.join(OUT, 'frozen'); fs.mkdirSync(dir, { recursive: true });
+  const viewNames = (opt('--views', 'tower-night,spawn-night')).split(/[,&+]/), q = opt('--query', 'nightfreeze=1');
+  data.frozen = {};
+  const regionsOf = (fa, fb, tol) => {
+    const A = decodePNG(fa), B = decodePNG(fb), C = 24, gw = Math.ceil(A.width / C), gh = Math.ceil(A.height / C), cells = new Map();
+    let n = 0;
+    for (let y = 0; y < A.height; y++) for (let x = 0; x < A.width; x++) {
+      const i = (y * A.width + x) * A.bpp; if (Math.max(Math.abs(A.data[i] - B.data[i]), Math.abs(A.data[i + 1] - B.data[i + 1]), Math.abs(A.data[i + 2] - B.data[i + 2])) > tol) { n++; const k = Math.floor(y / C) * gw + Math.floor(x / C); const c = cells.get(k) || { n: 0, x0: 1e9, y0: 1e9, x1: -1, y1: -1 }; c.n++; c.x0 = Math.min(c.x0, x); c.y0 = Math.min(c.y0, y); c.x1 = Math.max(c.x1, x); c.y1 = Math.max(c.y1, y); cells.set(k, c); }
+    }
+    const seen = new Set(), out = [];
+    for (const [k] of cells) { if (seen.has(k)) continue; const st = [k], r = { n: 0, x0: 1e9, y0: 1e9, x1: -1, y1: -1 }; seen.add(k);
+      while (st.length) { const c = st.pop(), cc = cells.get(c); r.n += cc.n; r.x0 = Math.min(r.x0, cc.x0); r.y0 = Math.min(r.y0, cc.y0); r.x1 = Math.max(r.x1, cc.x1); r.y1 = Math.max(r.y1, cc.y1);
+        for (const d of [-1, 1, -gw, gw, -gw - 1, -gw + 1, gw - 1, gw + 1]) { const nb = c + d; if (cells.has(nb) && !seen.has(nb)) { seen.add(nb); st.push(nb); } } }
+      out.push(r); }
+    return { moved: n, total: A.width * A.height, regions: out.sort((a, b) => b.n - a.n) };
+  };
+  for (const v of viewNames) {
+    const files = [];
+    for (let i = 0; i <= N; i++) { const page = await open(q); await settle(page, TUNE.poses[v]); files.push(await shot(page, path.join(dir, `${v}-${i}.png`))); await page.close(); }
+    const probe = await open(q); await settle(probe, TUNE.poses[v]);
+    const rows = [];
+    for (let i = 1; i <= N; i++) {
+      const r = regionsOf(files[0], files[i], 12), any = diff(files[0], files[i], 0, i <= 2 ? path.join(dir, `${v}-moved-${i}.png`) : null);
+      const named = [];
+      for (const g of r.regions.slice(0, 6)) {
+        const cx = Math.round((g.x0 + g.x1) / 2), cy = Math.round((g.y0 + g.y1) / 2);
+        const info = await probe.evaluate(({ x, y }) => { const els = document.elementsFromPoint(x, y).slice(0, 3).map(e => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${e.className && typeof e.className === 'string' ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : ''}${(e.innerText || '').trim() ? ' "' + e.innerText.trim().slice(0, 24) + '"' : ''}`); return els.join(' < '); }, { x: cx, y: cy });
+        named.push({ px: g.n, box: [g.x0, g.y0, g.x1, g.y1], under: info });
+      }
+      rows.push({ pair: i, movedOver12: r.moved, pctOver12: +(100 * r.moved / r.total).toFixed(4), pctAny: any.pctAny, max: any.max, regions: named });
+      console.log(`frozen ${v} pair ${i}/${N}: ${r.moved} px over 12 (${(100 * r.moved / r.total).toFixed(4)}%), ${any.pctAny}% by any amount, biggest ${any.max}`);
+      for (const g of named.slice(0, 3)) console.log(`    ${g.px} px at [${g.box}] under ${g.under}`);
+    }
+    data.frozen[v] = rows; await probe.close();
+    const clean = rows.filter(r => r.movedOver12 === 0).length;
+    report(`frozen: ${v}: ${clean} of ${N} pairs of loads move 0 pixels over 12/255`, clean === N, rows.map(r => r.movedOver12).join(' '));
+  }
+});
+
+// ======================================================================================================
 // 3. SEQUENCE: eight frames, 0.25 s apart, on a frozen clock that is stepped by hand.
 // ======================================================================================================
 await stage('sequence', async () => {
-  const S = TUNE.sequence, pose = TUNE.poses[opt('--pose', S.pose)], dir = path.join(OUT, 'sequence'); fs.mkdirSync(dir, { recursive: true });
+ const LOADS = Number(opt('--loads', 1)); data.sequenceLoads = [];
+ for (let load = 0; load < LOADS; load++) {
+  const S = TUNE.sequence, pose = TUNE.poses[opt('--pose', S.pose)], dir = path.join(OUT, LOADS > 1 ? `sequence-load${load}` : 'sequence'); fs.mkdirSync(dir, { recursive: true });
+  const tag = LOADS > 1 ? `[load ${load + 1}/${LOADS}] ` : '';
   const page = await open('nightfreeze=1&twinkle=1'); await settle(page, pose);
   // The name labels and the page's buttons fade in and out on their own timing and are the same warm-white as a lit window: they are not lights.
   await page.evaluate(() => { for (const l of window.__map.getStyle().layers) if (l.type === 'symbol') window.__map.setLayoutProperty(l.id, 'visibility', 'none'); });
   await page.addStyleTag({ content: 'body > *:not(#map) { visibility: hidden !important; }' });
   data.sceneStable = await waitStable(page);
+  await page.evaluate(() => { window.CityNight.eye.log = true; });
   const eyeSet = opt('--eye', null);   // CityNight.eye overrides for an experiment, key=value joined by +, e.g. windowAmp=0.5+farM=1400
   if (eyeSet) await page.evaluate(o => Object.assign(window.CityNight.eye, o), Object.fromEntries(eyeSet.split(/[;+]/).map(kv => kv.split('=')).map(([k, v]) => [k, Number(v)])));   // --eye windowAmp=0.22+farM=1400
   data.sequenceEye = await page.evaluate(() => { const e = window.CityNight.eye; return { windowAmp: e.windowAmp, lampAmp: e.lampAmp, nearM: e.nearM, farM: e.farM, glare: e.glare }; });
@@ -319,13 +368,15 @@ await stage('sequence', async () => {
     if (stage === 'raw') { const u = await page.evaluate(() => window.__map.getCanvas().toDataURL('image/png')); fs.writeFileSync(file, Buffer.from(u.split(',')[1], 'base64')); }
     else await page.screenshot({ path: file });
   };
-  const frames = [];
+  const frames = [], pathLog = [];
   const capture = async (label, apply) => {
     await page.evaluate(apply.fn, apply.arg);
     for (let k = 0; k < S.frames; k++) {
+      await page.evaluate(() => { window.CityLighting.stats.eyeLog = {}; });
       await page.evaluate(ms => window.CityNight.hold(ms), 1000 + k * S.stepMs);
       await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
       await page.waitForTimeout(400);
+      if (label !== 'off' && label !== 'off-again') pathLog.push(await page.evaluate(() => JSON.parse(JSON.stringify(window.CityLighting.stats.eyeLog || {}))));
       for (const st of Object.keys(STAGES)) { const f = path.join(dir, `${st}-${label}-${k}.png`); await grab(st, f); frames.push([st, label, k, f]); }
     }
   };
@@ -382,7 +433,16 @@ await stage('sequence', async () => {
   report(`sequence [${first}]: far lights shimmer in the final frame`, on.far.cvMean >= S.minFarCv, `mean coefficient of variation ${on.far.cvMean} (want >= ${S.minFarCv}); ${on.far.shareVarying} of lit pixels move`);
   report(`sequence [${first}]: near lights hold still in the final frame`, on.near.cvMean == null || on.near.cvMean <= S.maxNearCv, `coefficient of variation ${on.near.cvMean} (want <= ${S.maxNearCv})`);
   report(`sequence [${first}]: far varies much more than near`, on.near.variance == null || on.far.variance / Math.max(on.near.variance, 0.01) >= S.minFarOverNear, `variance ratio ${on.near.variance == null ? 'n/a' : (on.far.variance / Math.max(on.near.variance, 0.01)).toFixed(1)} (want >= ${S.minFarOverNear})`);
+  // per layer: in how many of the frames did any draw get the uniforms with a non-zero amplitude
+  const layers = {}; for (const f of pathLog) for (const [id, L] of Object.entries(f)) { const a = layers[id] ||= { frames: 0, ampFrames: 0, draws: 0, boundDraws: 0, slot: L.slot }; a.frames++; a.draws += L.draws; a.boundDraws += L.bound; if (L.ampMax > 0 && (L.bits & 1)) a.ampFrames++; }
+  const audit = await page.evaluate(() => window.slopes && window.slopes.eyeAudit ? window.slopes.eyeAudit() : null);
+  data.sequenceLoads.push({ load: load + 1, far: on.far, near: on.near, floor: off.far, layers, audit });
+  console.log(`${tag}paths (frames with the shimmer uniforms bound and non-zero / frames the layer drew): ${Object.entries(layers).filter(([, a]) => a.slot).map(([id, a]) => `${id} ${a.ampFrames}/${a.frames}`).join(', ')}; authored meshes: ${audit ? `${audit.bound}/${audit.shader} bound` : 'n/a'}`);
+  console.log(`${tag}RESULT far cv ${on.far.cvMean} near cv ${on.near.cvMean} (far n ${on.far.n})`);
   await page.close();
+ }
+ const ok = data.sequenceLoads.filter(r => r.far.cvMean >= S_BAR.farMin && r.far.cvMean <= S_BAR.farMax && (r.near.cvMean == null || r.near.cvMean <= S_BAR.nearMax)).length;
+ report(`sequence: ${ok} of ${LOADS} loads have far shimmer in ${S_BAR.farMin * 100}% to ${S_BAR.farMax * 100}% and near under ${S_BAR.nearMax * 100}%`, ok === LOADS, data.sequenceLoads.map(r => `${(r.far.cvMean * 100).toFixed(1)}/${r.near.cvMean == null ? '-' : (r.near.cvMean * 100).toFixed(2)}`).join('  '));
 });
 
 // ======================================================================================================

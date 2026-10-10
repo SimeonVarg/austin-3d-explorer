@@ -103,6 +103,7 @@
     glareLobes:[{w:96,blur:1.0,alpha:.30,gain:10},{w:40,blur:1.0,alpha:.22,gain:14}],   // measured with night-eye.mjs --only movie: what the glare adds, docs/night-eye-2026-10-10.md
     glareTint:'#bcd0ff',
     glareNightOnly:true,
+    log:false,           // true counts, per layer, the draws that got the night-eye uniforms (CityLighting.stats.eyeLog); a test hook
     debug:false,         // true paints lit window texels by the path that draws them: green MapLibre glass, red bright non-glass, blue below the lit threshold, yellow authored buildings, cyan landmark glass
   };
   // Window palettes. Warm 2700 K homes with a few TVs; offices 4000-5000 K; shops stay on the old palette.

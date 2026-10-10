@@ -935,6 +935,13 @@
         p.tile??=new THREE.Matrix4();p.tile.fromArray(p.projection).premultiply(frame.inverse);
         gl.uniformMatrix4fv(u.u_cityTileToLocal,false,p.tile.elements);p.tileDirty=false;
       }
+      // Test hook (night-eye.mjs --only paths): which layer's draws got the night-eye uniforms this frame. Off unless CityNight.eye.log.
+      if(window.CityNight?.eye?.log){
+        const log=stats.eyeLog??={},id=painter.id||'?',L=log[id]??={draws:0,slot:!!u.u_cityEye,bound:0,ampMax:0,bits:0};
+        L.draws++;if(p.serial===serial)L.bound++;
+        const e1=frame.U.u_cityEye?.value,e2=frame.U.u_cityEye2?.value;
+        if(e1&&e2){L.ampMax=Math.max(L.ampMax,e1.y);L.bits=Math.round(e2.w);}
+      }
       const active=binding(gl.ACTIVE_TEXTURE),old=[];
       try {
         for(let i=0;i<2;i++) {

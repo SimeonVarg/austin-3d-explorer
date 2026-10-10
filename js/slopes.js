@@ -1382,6 +1382,22 @@ ${window.RoofTiles.apply}
     },
     /** js/lod.js calls this instead of setLayoutProperty for custom layers. */
     setVisible(v) { _visible = !!v; if (_map) _map.triggerRepaint(); },
+    /** Which meshes carry the night-eye shader and have its uniform holders bound to the shared ones (js/city-night.js, night-eye.mjs --only paths). */
+    eyeAudit() {
+      const out = { meshes: 0, shader: 0, bound: 0, unbound: 0, unboundNames: [] };
+      if (!root || !U) return out;
+      root.traverse(o => {
+        const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+        for (const m of ms) {
+          out.meshes++;
+          if (!m.fragmentShader || !m.fragmentShader.includes('cityEyeGain')) continue;
+          out.shader++;
+          const ok = m.uniforms && m.uniforms.u_cityEye === U.u_cityEye && m.uniforms.u_cityEye2 === U.u_cityEye2;
+          if (ok) out.bound++; else { out.unbound++; if (out.unboundNames.length < 8) out.unboundNames.push(o.name || o.type); }
+        }
+      });
+      return out;
+    },
     isVisible() { return _visible; },
     prerender(gl,args) { this.render(gl,args,true); },
     render(gl, args, prepareOnly=false) {
