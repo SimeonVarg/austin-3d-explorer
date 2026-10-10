@@ -1,0 +1,87 @@
+/**
+ * perf-walltiers-suite.mjs — the A/B for js/facades.js WALL TIERS (`?walltiers=0` is the old eager painting, the
+ * default is the new lazy painting), run ONE STEP AFTER ANOTHER on the AWS GPU runner (which starts listed checks in
+ * parallel, and timing runs must not disturb each other). Not a check: no verdict, exit code is the last failure.
+ * Listed under laptop_only in ci/checks.json.
+ *
+ *   node perf-walltiers-suite.mjs [--steps bursts,load,mem[,pics,picsnow,counts]] [--reps N]
+ *
+ * Steps (each its own fresh Chrome per load; settings are in each tool's header and are printed in its output):
+ *   load  scripts/perf/load-profile.mjs, throttle 1,4 crossed with {?walltiers=0, default}, --reps (default 5),
+ *         interleaved; reports min / median / max per arm of time to city ready, initFacades, worker busy ms, ...
+ *   mem   scripts/verify/mobile-memory.mjs (phone profile), 1 rep per arm, the two arms one after the other
+ *   pics  the ten cameras of ci/poses.json shot with the old and the new painting on the SAME server, twice for
+ *         the old one (its own noise), with walls painted in paced jobs (the real page) and again with
+ *         facadepace=0&timeofdaypace=0 (walls at once), then ci/pictures.mjs --compare on each
+ */
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const argv = process.argv.slice(2);
+const arg = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
+const STEPS = arg('--steps', 'bursts,load,mem,picstrees').split(',');
+const REPS = +arg('--reps', 5);
+const REPS4 = +arg('--reps4', 3);
+const REPSB = +arg('--repsb', 3);
+const REPSM = +arg('--repsm', 3);
+// bursts step: --armsb both (default: lazy as first shipped = no cap, no warm-up, no event coalescing; then everything on), nocap (cap off only), cap (cap on only); --throttleb 1,4; --maxb ms
+const ARMSB = { both: 'wtcap=0&wtwarm=0&wtcoalesce=0;', nocap: 'wtcap=0', cap: '' }[arg('--armsb', 'both')];
+const THROTTLEB = arg('--throttleb', '1,4');
+const MAXB = arg('--maxb', '420000');
+const OUT = arg('--out', process.env.VERIFY_OUT || '/tmp/perf-walltiers-suite');
+const URLB = process.env.VERIFY_URL || 'http://127.0.0.1:8442';
+let code = 0;
+const run = (name, file, args, opts = {}) => {
+  console.log(`\n===== ${name} =====`);
+  const r = spawnSync('node', [path.join(HERE, file), ...args], { stdio: 'inherit', env: { ...process.env, ...(opts.env || {}) }, cwd: opts.cwd || HERE });
+  if (r.status) { console.log(`[${name}] exit ${r.status}`); code = r.status; }
+};
+
+if (STEPS.includes('bursts')) {
+  // when does the painting hold the main thread AFTER the veil lifts: cap off (wtcap=0) against cap on, 1x and 4x
+  run('bursts', '../perf/post-reveal-bursts.mjs', ['--url', URLB + '/', '--throttle', THROTTLEB, '--qarms', ARMSB, '--reps', String(REPSB), '--max', MAXB, '--out', path.join(OUT, 'bursts')]);
+}
+if (STEPS.includes('load')) {
+  // 1x: REPS cold loads per arm. 4x (the page main thread slowed four times, a crude phone stand-in) takes about twice as
+  // long per load, so it gets REPS4 (default 3) to fit the runner's time box. Each arm pair alternates A B, B A, A B ...
+  run('load 1x', '../perf/load-profile.mjs', ['--url', URLB + '/', '--throttle', '1', '--qarms', 'walltiers=0;', '--reps', String(REPS), '--label', 'walltiers-1x', '--out', path.join(OUT, 'load1x')]);
+  run('load 4x', '../perf/load-profile.mjs', ['--url', URLB + '/', '--throttle', '4', '--qarms', 'walltiers=0;', '--reps', String(REPS4), '--label', 'walltiers-4x', '--out', path.join(OUT, 'load4x')]);
+}
+if (STEPS.includes('counts')) {
+  // Counters only (images painted, worker busy time, images held, GL bytes): one cold load per arm. For a machine that is
+  // not quiet (a laptop someone is using): the SECONDS in this report mean nothing there, the counts do.
+  run('counts', '../perf/load-profile.mjs', ['--url', URLB + '/', '--throttle', '1', '--qarms', 'walltiers=0;', '--reps', '1', '--require-idle', '0', '--label', 'walltiers-counts', '--out', path.join(OUT, 'counts')]);
+}
+// pics = walls painted in paced jobs (the real page); picsnow = walls painted at once (facadepace=0&timeofdaypace=0,
+// the setting ci/pictures.mjs uses), old painting shot once only.
+const pictures = (mode, base, sides) => {
+  const poses = path.join(HERE, 'ci/poses.json');
+  const dir = path.join(OUT, 'pics-' + mode);
+  for (const [side, extra] of sides) {
+    fs.mkdirSync(path.join(dir, side), { recursive: true });
+    run(`pics ${mode} ${side}`, 'shot.mjs', [side, poses], { cwd: path.join(dir, side), env: { SHOT_Q: base + extra } });
+  }
+  run(`pics ${mode} compare`, 'ci/pictures.mjs', ['--compare', '--out', dir, '--label', 'walltiers=0', ...(sides.length < 3 ? ['--no-again'] : [])]);
+};
+// picsvar: the default page against the same page with one switch off (--var wtwarm=0, `+` joins several), to find which part of
+// the change moved a pixel; the old painting is shot once and the variant once
+if (STEPS.includes('picsvar')) pictures('var', 'namelabels=0', [['before', '&walltiers=0'], ['after', '&' + arg('--var', 'wtwarm=0').replaceAll('+', '&')]]);
+const PICQ = arg('--picq', '').replaceAll('+', '&');   // extra query on every picture, e.g. campuslandscape=0 to take the trees out
+if (STEPS.includes('pics')) pictures('paced', 'namelabels=0' + (PICQ ? '&' + PICQ : ''), [['before', '&walltiers=0'], ['after', ''], ['again', '&walltiers=0']]);
+if (STEPS.includes('mem')) {
+  // phone-emulation memory, REPSM reps per arm, arms interleaved (eager, final, eager, final, ...)
+  for (let r = 0; r < REPSM; r++) {
+    [['eager', '?drift=0&walltiers=0'], ['final', '?drift=0']].forEach(([name, q]) => {
+      run('mem-' + name, 'mobile-memory.mjs', ['--arms', name + '=' + URLB, '--query', q, '--reps', '1', '--out', path.join(OUT, 'mem-' + name + '-' + r)]);
+    });
+  }
+}
+// picstrees: the paced pictures with the tree layer on and with it off, old painting twice and new once in each
+if (STEPS.includes('picstrees')) {
+  pictures('trees', 'namelabels=0', [['before', '&walltiers=0'], ['after', ''], ['again', '&walltiers=0']]);
+  pictures('notrees', 'namelabels=0&campuslandscape=0', [['before', '&walltiers=0'], ['after', ''], ['again', '&walltiers=0']]);
+}
+if (STEPS.includes('picsnow')) pictures('atonce', 'namelabels=0&facadepace=0&timeofdaypace=0', [['before', '&walltiers=0'], ['after', '']]);
+process.exit(code);
