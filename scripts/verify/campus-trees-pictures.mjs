@@ -24,6 +24,7 @@ const LOOK = {
   tolerance: 12,        // a pixel "moved" if any RGB channel moved more than this (0-255), as ci/pictures.mjs counts it
   viewport: { width: 1440, height: 900 },
   query: 'intro=0&drift=0&facadepace=0&timeofdaypace=0&namelabels=0',
+  placeTries: 4, placeTolerance: 0.5,   // placement read-back: allowed drift (about half a metre, 0.005 zoom, half a degree, half a percent of the hour) and tries
   settleMs: 3500,       // after a camera move or a rebuild, before the picture
   maxSettleMs: 60000,
   panelScale: 0.5, labelPx: 20, jpegQuality: 88,
@@ -69,14 +70,24 @@ try {
     await setState(state);
     const cost = { state };
     for (const p of poses) {
-      await page.evaluate(p => {
-        GFX.autoExposure = false;
-        // Things that move on their own (clouds, stars, god rays, lens flare) would show up as "noise" and hide what is being compared.
-        Object.assign(GFX, { clouds: 0, stars: 0, godRays: 0, flare: 0 }); window.applyGraphics();
-        __map.stop(); __map.jumpTo({ center: p.center, zoom: p.zoom, pitch: p.pitch, bearing: p.bearing, padding: 0 });
-        window.applyTimeOfDay(__map, p.p, true);
-      }, p);
-      await settle();
+      // Place the camera and the hour, settle, and READ THEM BACK: a view whose camera or hour is not where it was asked is
+      // taken again (the first AWS run caught two views of one pass at another place and hour, 25% of their pixels).
+      let placed = null;
+      for (let attempt = 0; attempt < LOOK.placeTries; attempt++) {
+        await page.evaluate(p => {
+          GFX.autoExposure = false;
+          // Things that move on their own (clouds, stars, god rays, lens flare) would show up as "noise" and hide what is being compared.
+          Object.assign(GFX, { clouds: 0, stars: 0, godRays: 0, flare: 0 }); window.applyGraphics();
+          __map.stop(); __map.jumpTo({ center: p.center, zoom: p.zoom, pitch: p.pitch, bearing: p.bearing, padding: 0 });
+          window.applyTimeOfDay(__map, p.p, true);
+        }, p);
+        await settle();
+        placed = await page.evaluate(() => ({ c: __map.getCenter().toArray(), z: __map.getZoom(), pitch: __map.getPitch(), bearing: __map.getBearing(), p: window.__todCurrentP, driving: !!(window.__fly && __fly.eye().driving) }));
+        const off = Math.max(Math.abs(placed.c[0] - p.center[0]) * 1e5, Math.abs(placed.c[1] - p.center[1]) * 1e5, Math.abs(placed.z - p.zoom) * 100, Math.abs(placed.pitch - p.pitch), Math.abs(placed.bearing - p.bearing), Math.abs((placed.p ?? p.p) - p.p) * 100);
+        if (off < LOOK.placeTolerance && !placed.driving) break;
+        console.log(`${label} ${p.name}: not where asked (off ${off.toFixed(3)}), try ${attempt + 1}`, JSON.stringify(placed));
+      }
+      (cost.placed ||= {})[p.name] = placed;
       const file = path.join(OUT, `${label}-${p.name}.png`);
       await page.screenshot({ path: file });
       await page.waitForTimeout(500);
