@@ -18,7 +18,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 // a 4x-throttled load takes longer than chrome.mjs's default 300 s watchdog
-process.env.VERIFY_MAX_MS = process.env.VERIFY_MAX_MS && +process.env.VERIFY_MAX_MS > 900000 ? process.env.VERIFY_MAX_MS : '900000';
+process.env.VERIFY_MAX_MS = process.env.VERIFY_MAX_MS && +process.env.VERIFY_MAX_MS > 3600000 ? process.env.VERIFY_MAX_MS : '3600000';
 const { chromium } = await import('playwright-core');
 const { launch } = await import('./chrome.mjs');
 
