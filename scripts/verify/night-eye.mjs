@@ -373,33 +373,27 @@ await stage('jitter', async () => {
 await stage('jitterlayers', async () => {
   const pose = TUNE.poses[opt('--pose', 'skyline')], dir = path.join(OUT, 'jitterlayers'); fs.mkdirSync(dir, { recursive: true });
   const page = await open('nighteye=0+nightfreeze=1'.replace(/\+/g, '&')); await settle(page, pose); await waitStable(page, 150000, false);
-  let shot = 0;
+  // `strong` = the most pixels, in any of 8 identical redraws, that differ from the first redraw by more than 12/255 (and `any` = by anything)
   const frames = async label => {
-    const hs = [], files = [];
+    const imgs = [];
     for (let k = 0; k < 8; k++) {
       await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
       await page.waitForTimeout(350);
-      const u = await page.evaluate(() => window.__map.getCanvas().toDataURL('image/png')); let h = 5381; for (let i = 0; i < u.length; i += 7) h = ((h << 5) + h + u.charCodeAt(i)) | 0;
-      const st = await page.evaluate(() => { const m = window.__map, c = m.getCenter(); return [m.getBearing(), m.getPitch(), m.getZoom(), c.lng, c.lat, window.CityNight.now(), window.__skyGL ? +window.__skyGL.seamAz().toFixed(6) : null, window.__todCurrentP].join(' '); });
-      if (label === 'everything on') console.log(`  frame ${k} hash ${h} camera/clock ${st}`);
-      hs.push(h); if (k < 3) { const f = path.join(dir, `${label.replace(/[^a-z0-9]+/gi, '_')}-${k}.png`); fs.writeFileSync(f, Buffer.from(u.split(',')[1], 'base64')); files.push(f); }
+      const u = await page.evaluate(() => window.__map.getCanvas().toDataURL('image/png')); const f = path.join(dir, `${label.replace(/[^a-z0-9]+/gi, '_')}-${k}.png`); fs.writeFileSync(f, Buffer.from(u.split(',')[1], 'base64')); imgs.push(f);
     }
-    const n = new Set(hs).size; console.log(`jitterlayers [${label}]: ${n} distinct redraws of 8`); return n;
+    let strong = 0, any = 0; const A = decodePNG(imgs[0]);
+    for (let k = 1; k < 8; k++) { const B = decodePNG(imgs[k]); let n = 0, m = 0; for (let i = 0; i < A.data.length; i += A.bpp) { const d = Math.max(Math.abs(A.data[i] - B.data[i]), Math.abs(A.data[i + 1] - B.data[i + 1]), Math.abs(A.data[i + 2] - B.data[i + 2])); if (d > 12) n++; if (d > 0) m++; } strong = Math.max(strong, n); any = Math.max(any, m); }
+    for (let k = 3; k < 8; k++) fs.rmSync(imgs[k], { force: true });
+    console.log(`jitterlayers [${label}]: most pixels over 12 vs the first redraw ${strong}, by any amount ${any}`); return { strong, any };
   };
   const rows = [];
-  rows.push({ what: 'everything on', distinct: await frames('everything on') });
-  const setOpacity = async (re, v) => page.evaluate(({ src, v }) => { const re = new RegExp(src), m = window.__map, was = []; for (const l of m.getStyle().layers) { const prop = { 'fill-extrusion': 'fill-extrusion-opacity', circle: 'circle-opacity', fill: 'fill-opacity', line: 'line-opacity', symbol: 'icon-opacity' }[l.type]; if (prop && re.test(l.id)) { was.push([l.id, prop, m.getPaintProperty(l.id, prop)]); m.setPaintProperty(l.id, prop, v); } } return was; }, { src: re.source, v });
-  const restore = async was => page.evaluate(w => { for (const [id, prop, old] of w) window.__map.setPaintProperty(id, prop, old === undefined ? null : old); }, was);
-  for (const [label, re] of [['outer ring layers faded', /^outer-/], ['buildings-3d faded', /^buildings-3d$/], ['lamp circles faded', /^night-streetlight/], ['all fill-extrusions faded', /.*/]]) {
-    const was = await setOpacity(re, 0); await page.waitForTimeout(800);
-    rows.push({ what: label, distinct: await frames(label), layers: was.length }); await restore(was); await page.waitForTimeout(800);
-  }
-  await page.evaluate(() => { if (window.slopes && window.slopes.setVisible) window.slopes.setVisible(false); }); await page.waitForTimeout(800);
-  rows.push({ what: 'authored buildings off', distinct: await frames('authored buildings off') }); await page.evaluate(() => { if (window.slopes && window.slopes.setVisible) window.slopes.setVisible(true); }); await page.waitForTimeout(800);
-  await page.evaluate(() => { if (window.SKY_COMP) window.SKY_COMP.on = false; window.__map.triggerRepaint(); }); await page.waitForTimeout(800);
-  rows.push({ what: 'sky compositor off', distinct: await frames('sky compositor off') }); await page.evaluate(() => { if (window.SKY_COMP) window.SKY_COMP.on = true; }); await page.waitForTimeout(500);
+  const arm = async (label, on, off) => { if (on) await page.evaluate(on); await page.waitForTimeout(700); rows.push({ what: label, ...(await frames(label)) }); if (off) await page.evaluate(off); };
+  await arm('everything on');
+  await arm('cloud panorama off (SKY_GL_DEBUG.cloudGain 0)', () => { window.SKY_GL_DEBUG.cloudGain = 0; window.__map.triggerRepaint(); }, () => { window.SKY_GL_DEBUG.cloudGain = 1; });
+  await arm('atmosphere off (atmoGain 0)', () => { window.SKY_GL_DEBUG.atmoGain = 0; window.__map.triggerRepaint(); }, () => { window.SKY_GL_DEBUG.atmoGain = 1; });
+  await arm('clouds and atmosphere off', () => { window.SKY_GL_DEBUG.cloudGain = 0; window.SKY_GL_DEBUG.atmoGain = 0; window.__map.triggerRepaint(); }, null);
+  await arm('and all fill-extrusions faded', () => { const m = window.__map; for (const l of m.getStyle().layers) if (l.type === 'fill-extrusion') m.setPaintProperty(l.id, 'fill-extrusion-opacity', 0); }, null);
   data.jitterlayers = rows;
-  console.log('jitterlayers summary:', rows.map(r => `${r.what}: ${r.distinct}`).join(' | '));
   await page.close();
 });
 
