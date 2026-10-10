@@ -259,7 +259,8 @@
    tp=tlocal;
    #endif
    tp=(instanceMatrix*vec4(tp,1.0)).xyz;
-   #endif`).replace('vec4(position,1.0)','vec4(tp,1.0)');
+   #endif
+   `).replace('vec4(position,1.0)','vec4(tp,1.0)');
   mat.userData.treeDepth=sig;mat.needsUpdate=true;
  }
  const depthHook=function(renderer,scene,camera,geometry,material){if(material&&material===scene.overrideMaterial&&material.isShaderMaterial)patchDepth(material)};
