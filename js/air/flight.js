@@ -82,7 +82,10 @@
     const stickMag = Math.abs(c.sP);
     let pitchRate = c.sP * F.pitchRate - (c.pitch / F.tauLevel) * (1 - stickMag);
     if (deficitAhead > 0) pitchRate += F.floorPitchAssist * clamp(deficitAhead / (F.clearRoof * 2.5), 0, 1);
-    c.pitch = clamp(c.pitch + pitchRate * dt, -F.pitchDown, F.pitchUp);
+    // The nose may point down only as far as the room under it allows: the permitted dive shrinks to
+    // level as the craft nears its floor, so a held dive stick cannot push through the soft spring.
+    const room = clamp((c.z - required0) / (F.clearRoof * 1.5), 0, 1);
+    c.pitch = clamp(c.pitch + pitchRate * dt, -F.pitchDown * room, F.pitchUp);
 
     // 6. speed: thrust / brake / bleed toward the target, plus exact gravity
     const target = inp.brake ? F.vBrake : inp.boost ? F.vBoost : F.vCruise;

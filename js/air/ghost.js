@@ -37,7 +37,7 @@
   }
   class Reader {
     constructor(bytes, count) { this.b = bytes; this.i = 0; this.n = count; }
-    get() { const v = (this.b[this.i >> 1] >> ((this.i & 1) ? 0 : 4)) & 15; this.i++; return v; }
+    get() { if ((this.i >> 1) >= this.b.length) throw new Error('ghost: truncated'); const v = (this.b[this.i >> 1] >> ((this.i & 1) ? 0 : 4)) & 15; this.i++; return v; }
     uvar() { let u = 0, s = 0, d; do { d = this.get(); u |= (d & 7) << s; s += 3; } while (d & 8); return u >>> 0; }
     sval() { const n = this.get(); return n < 15 ? unzig(n) : unzig(this.uvar() + 15); }
   }

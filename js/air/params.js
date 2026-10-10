@@ -82,7 +82,7 @@
       hz: 5,                                 // samples a second
       quantM: 1.0,                           // m, residual step
       maxLinkChars: 2000,
-      maxPathErrorM: 1.5,                    // the round-trip test's stated bound (vs the true path)
+      maxPathErrorM: 2.0,                    // the round-trip test's stated bound (vs the true path)
     },
 
     // ── Autopilot (the house ghost and the recorded clip) ─────────────

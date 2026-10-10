@@ -95,21 +95,31 @@
    "lat": 30.277017,
    "alt": 92,
    "r": 22,
-   "yaw": 181,
+   "yaw": 176.5,
    "kind": "ring"
   },
   {
    "id": "g8",
-   "name": "Pease",
-   "lng": -97.744492,
-   "lat": 30.27225,
-   "alt": 115,
+   "name": "Hyde Park",
+   "lng": -97.744076,
+   "lat": 30.273869,
+   "alt": 105,
    "r": 24,
-   "yaw": 171.2,
+   "yaw": 164.6,
    "kind": "ring"
   },
   {
    "id": "g9",
+   "name": "Pease",
+   "lng": -97.743035,
+   "lat": 30.270811,
+   "alt": 130,
+   "r": 24,
+   "yaw": 180.3,
+   "kind": "ring"
+  },
+  {
+   "id": "g10",
    "name": "Indeed | One American",
    "lng": -97.743656,
    "lat": 30.268992,
@@ -119,7 +129,7 @@
    "kind": "ring"
   },
   {
-   "id": "g10",
+   "id": "g11",
    "name": "415 Colorado | Frost",
    "lng": -97.743534,
    "lat": 30.26672,
@@ -129,7 +139,7 @@
    "kind": "ring"
   },
   {
-   "id": "g11",
+   "id": "g12",
    "name": "Austonian | JW Marriott",
    "lng": -97.743853,
    "lat": 30.264615,
@@ -139,7 +149,7 @@
    "kind": "ring"
   },
   {
-   "id": "g12",
+   "id": "g13",
    "name": "Cesar Chavez",
    "lng": -97.742982,
    "lat": 30.263392,
@@ -150,7 +160,7 @@
    "note": "the turnaround"
   },
   {
-   "id": "g13",
+   "id": "g14",
    "name": "Congress Ave bridge",
    "lng": -97.741629,
    "lat": 30.264067,
@@ -160,7 +170,7 @@
    "kind": "ring"
   },
   {
-   "id": "g14",
+   "id": "g15",
    "name": "Congress, south",
    "lng": -97.74142,
    "lat": 30.265595,
@@ -170,7 +180,7 @@
    "kind": "ring"
   },
   {
-   "id": "g15",
+   "id": "g16",
    "name": "Congress, mid",
    "lng": -97.741473,
    "lat": 30.269912,
@@ -180,7 +190,7 @@
    "kind": "ring"
   },
   {
-   "id": "g16",
+   "id": "g17",
    "name": "Capitol, south",
    "lng": -97.740848,
    "lat": 30.2727,
@@ -190,7 +200,7 @@
    "kind": "ring"
   },
   {
-   "id": "g17",
+   "id": "g18",
    "name": "Capitol, west",
    "lng": -97.741889,
    "lat": 30.27467,
@@ -201,7 +211,7 @@
    "note": "dome top 92 m"
   },
   {
-   "id": "g18",
+   "id": "g19",
    "name": "Capitol, north",
    "lng": -97.740338,
    "lat": 30.276117,
@@ -211,7 +221,7 @@
    "kind": "ring"
   },
   {
-   "id": "g19",
+   "id": "g20",
    "name": "Capitol, east",
    "lng": -97.737828,
    "lat": 30.276927,
@@ -221,7 +231,7 @@
    "kind": "ring"
   },
   {
-   "id": "g20",
+   "id": "g21",
    "name": "East campus",
    "lng": -97.735224,
    "lat": 30.280254,
@@ -231,7 +241,7 @@
    "kind": "ring"
   },
   {
-   "id": "g21",
+   "id": "g22",
    "name": "Finish, DKR",
    "lng": -97.732589,
    "lat": 30.283807,
