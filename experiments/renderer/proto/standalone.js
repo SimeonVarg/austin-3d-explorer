@@ -28,9 +28,9 @@ function breakFrame(f) {
 
 window.__proto = {
   timeline: T,
-  async init(size) {
+  async init(size, aa) {
     canvas.width = size[0]; canvas.height = size[1];
-    gl = canvas.getContext('webgl2', { antialias: false, depth: true, alpha: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+    gl = canvas.getContext('webgl2', { antialias: !!aa, depth: true, alpha: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
     if (!gl) throw new Error('no webgl2');
     T.contextReady = performance.now();
     packed = await loadPacked(q.get('data') || '/data/apartments.packed');

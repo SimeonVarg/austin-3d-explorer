@@ -80,7 +80,7 @@ async function shootApp() {
         const u = {};
         for (const n of names) { const v = mat.uniforms[n].value; u[n] = typeof v === 'number' ? v : (v && 'x' in v) ? ['x', 'y', 'z', 'w'].filter(c => c in v).map(c => v[c]) : (v && v.isColor) ? [v.r, v.g, v.b] : v; }
         const c = m.getCanvas();
-        return { matrix: Array.from(S.camera.projectionMatrix.elements), u, cam: { center: m.getCenter().toArray(), zoom: m.getZoom(), pitch: m.getPitch(), bearing: m.getBearing(), fov: m.getVerticalFieldOfView ? m.getVerticalFieldOfView() : null }, canvas: [c.width, c.height], css: [c.clientWidth, c.clientHeight], cull: (() => { const x = A.cull; return { drawnRanges: x.drawnRanges, ranges: x.ranges, drawnTriangles: Math.round(x.drawnTriangles), totalTriangles: Math.round(x.totalTriangles) }; })() };
+        return { matrix: Array.from(S.camera.projectionMatrix.elements), u, cam: { center: m.getCenter().toArray(), zoom: m.getZoom(), pitch: m.getPitch(), bearing: m.getBearing(), fov: m.getVerticalFieldOfView ? m.getVerticalFieldOfView() : null }, aa: !!m.painter.context.gl.getContextAttributes().antialias, canvas: [c.width, c.height], css: [c.clientWidth, c.clientHeight], cull: (() => { const x = A.cull; return { drawnRanges: x.drawnRanges, ranges: x.ranges, drawnTriangles: Math.round(x.drawnTriangles), totalTriangles: Math.round(x.totalTriangles) }; })() };
       }, UNIFORMS);
       // GL calls for one steady frame of the isolated scene
       cap.gl = await page.evaluate(async () => {
@@ -119,7 +119,7 @@ async function shootProto(frames) {
   try {
     await page.waitForFunction(() => window.__proto, null, { timeout: 60000 });
     const first = frames.views[POSES[0].name];
-    const timeline = MODE === 'maplibre' ? await page.evaluate(([size, cam, fov]) => window.__proto.init(size, cam, fov), [first.canvas, first.cam, first.cam.fov]) : await page.evaluate(size => window.__proto.init(size), first.canvas);
+    const timeline = MODE === 'maplibre' ? await page.evaluate(([size, cam, fov, aa]) => window.__proto.init(size, cam, fov, aa), [first.canvas, first.cam, first.cam.fov, first.aa]) : await page.evaluate(([size, aa]) => window.__proto.init(size, aa), [first.canvas, first.aa]);
     out.initWallMs = Date.now() - t0;
     out.info = await page.evaluate(() => window.__proto.info);
     for (const p of POSES) {

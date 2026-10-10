@@ -11,10 +11,10 @@ const T = { scriptStart: performance.now() };
 let map = null, uniforms = null, layer = null;
 window.__proto = {
   timeline: T,
-  async init(size, cam, fov) {
+  async init(size, cam, fov, aa) {
     const packed = await loadPacked(q.get('data') || '/data/apartments.packed');
     T.fetched = performance.now();
-    map = new maplibregl.Map({ container: 'map', interactive: false, fadeDuration: 0, maxPitch: 85, attributionControl: false, canvasContextAttributes: { antialias: false, preserveDrawingBuffer: true },
+    map = new maplibregl.Map({ container: 'map', interactive: false, fadeDuration: 0, maxPitch: 85, attributionControl: false, canvasContextAttributes: { antialias: !!aa, preserveDrawingBuffer: true },
       style: { version: 8, sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#ff00ff' } }] },
       center: cam.center, zoom: cam.zoom, pitch: cam.pitch, bearing: cam.bearing });
     if (fov && map.setVerticalFieldOfView) map.setVerticalFieldOfView(fov);
