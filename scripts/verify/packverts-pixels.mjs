@@ -21,6 +21,7 @@ import fs from 'node:fs'; import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decodePNG } from './lib/png.mjs';
 import { BASE } from './chrome.mjs';
+import { slowMachineEnv } from './ci/plan.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PARAMS = {
@@ -46,7 +47,7 @@ function shoot(side, query, posesFile) {
     const t0 = Date.now();
     const child = spawn(process.execPath, [path.join(HERE, 'shot.mjs'), side, posesFile], {
       cwd, stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, VERIFY_URL: BASE, VERIFY_MAX_MS: String(PARAMS.maxMs), SHOT_Q: q, ...(PHONE ? { SHOT_VP: PARAMS.phone.vp } : {}) },
+      env: { ...process.env, ...slowMachineEnv(), VERIFY_URL: BASE, VERIFY_MAX_MS: String(PARAMS.maxMs), SHOT_Q: q, ...(PHONE ? { SHOT_VP: PARAMS.phone.vp } : {}) },
     });
     let log = ''; child.stdout.on('data', d => log += d); child.stderr.on('data', d => log += d);
     child.on('close', code => { fs.writeFileSync(path.join(OUT, side + '.log'), log); console.log(`shot ${side} (${q}): exit ${code}, ${Math.round((Date.now() - t0) / 1000)} s`); resolve(code); });
