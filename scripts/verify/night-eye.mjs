@@ -380,6 +380,8 @@ await stage('jitterlayers', async () => {
       await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
       await page.waitForTimeout(350);
       const u = await page.evaluate(() => window.__map.getCanvas().toDataURL('image/png')); let h = 5381; for (let i = 0; i < u.length; i += 7) h = ((h << 5) + h + u.charCodeAt(i)) | 0;
+      const st = await page.evaluate(() => { const m = window.__map, c = m.getCenter(); return [m.getBearing(), m.getPitch(), m.getZoom(), c.lng, c.lat, window.CityNight.now(), window.__skyGL ? +window.__skyGL.seamAz().toFixed(6) : null, window.__todCurrentP].join(' '); });
+      if (label === 'everything on') console.log(`  frame ${k} hash ${h} camera/clock ${st}`);
       hs.push(h); if (k < 3) { const f = path.join(dir, `${label.replace(/[^a-z0-9]+/gi, '_')}-${k}.png`); fs.writeFileSync(f, Buffer.from(u.split(',')[1], 'base64')); files.push(f); }
     }
     const n = new Set(hs).size; console.log(`jitterlayers [${label}]: ${n} distinct redraws of 8`); return n;
@@ -392,8 +394,8 @@ await stage('jitterlayers', async () => {
     const was = await setOpacity(re, 0); await page.waitForTimeout(800);
     rows.push({ what: label, distinct: await frames(label), layers: was.length }); await restore(was); await page.waitForTimeout(800);
   }
-  await page.evaluate(() => window.slopes && window.slopes.setVisible(false)); await page.waitForTimeout(800);
-  rows.push({ what: 'authored buildings off', distinct: await frames('authored buildings off') }); await page.evaluate(() => window.slopes && window.slopes.setVisible(true)); await page.waitForTimeout(800);
+  await page.evaluate(() => { if (window.slopes && window.slopes.setVisible) window.slopes.setVisible(false); }); await page.waitForTimeout(800);
+  rows.push({ what: 'authored buildings off', distinct: await frames('authored buildings off') }); await page.evaluate(() => { if (window.slopes && window.slopes.setVisible) window.slopes.setVisible(true); }); await page.waitForTimeout(800);
   await page.evaluate(() => { if (window.SKY_COMP) window.SKY_COMP.on = false; window.__map.triggerRepaint(); }); await page.waitForTimeout(800);
   rows.push({ what: 'sky compositor off', distinct: await frames('sky compositor off') }); await page.evaluate(() => { if (window.SKY_COMP) window.SKY_COMP.on = true; }); await page.waitForTimeout(500);
   data.jitterlayers = rows;
