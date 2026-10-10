@@ -220,6 +220,7 @@
     "apts-perf.mjs": "timing",
     "perf-frame-profile.mjs": "timing: scripts/perf wrapper for the AWS GPU runner; measures frame time, no verdict",
     "perf-aws-suite.mjs": "timing: runs the scripts/perf tools in sequence on the AWS GPU runner, no verdict",
+    "perf-swap-strip.mjs": "timing/pictures: frames of a newly reached area being answered flat then painted for real, no verdict",
     "perf-walltiers-suite.mjs": "timing: the wall-tiers A/B (?walltiers=0 against the default) on the AWS GPU runner, in sequence, no verdict",
     "perf-load-profile.mjs": "timing: scripts/perf wrapper for the AWS GPU runner; measures cold-load time, no verdict",
     "arts-perf.mjs": "timing",
