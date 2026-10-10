@@ -240,6 +240,20 @@
       v_fUV = uv; v_fPiece = fPiece; v_fTan = fTan;
       #endif
   `;
+  // after WallPatterns.glsl (which declares u_materialP, u_lightpos, u_lightcolor, u_lightintensity, u_opacity) and before main()
+  const FRAG_FUNCS = `
+    #ifdef FACET_WALL
+    // the app's per-vertex lighting for one colour, here per pixel and per tone
+    vec3 fLit(vec3 c, vec3 nrm) {
+      float cv = dot(c, vec3(.2126, .7152, .0722));
+      vec3 col = c + vec3(.03);
+      float directional = clamp(dot(normalize(nrm), u_lightpos), 0.0, 1.0);
+      directional = mix(1.0 - u_lightintensity, max(1.0 - cv + u_lightintensity, 1.0), directional);
+      return clamp(col * directional * u_lightcolor, mix(vec3(0.0), vec3(0.3), vec3(1.0) - u_lightcolor), vec3(1.0));
+    }
+    vec3 fMixP(vec3 d, vec3 g, vec3 n) { return u_materialP <= .5 ? mix(d, g, u_materialP * 2.0) : mix(g, n, (u_materialP - .5) * 2.0); }
+    #endif
+  `;
   const FRAG_DECL = `
     #ifdef FACET_WALL
     varying vec2 v_fUV;
@@ -250,11 +264,6 @@
     uniform highp sampler2D u_ft;
     uniform float u_fAA;
     uniform float u_fParallax;
-    uniform float u_materialP;
-    uniform vec3 u_lightpos;
-    uniform vec3 u_lightcolor;
-    uniform float u_lightintensity;
-    uniform float u_opacity;
     vec4 FD(int i){ return texelFetch(u_fd, ivec2(i & 2047, i >> 11), 0); }
     vec4 FTn(int tone, int k){ int i = tone * 4 + k; return texelFetch(u_ft, ivec2(i & 2047, i >> 11), 0); }
     float fCum(float x, float P, float a, float b, float i0, float i1) {
@@ -269,15 +278,6 @@
       return (fCum(x + h, P, a, b, 0.0, i1) - fCum(x - h, P, a, b, 0.0, i1)) / (2.0 * h);
     }
     float fIv(float lo, float hi, float x, float h) { h = max(h, 1e-4); return clamp((min(hi, x + h) - max(lo, x - h)) / (2.0 * h), 0.0, 1.0); }
-    // the app's per-vertex lighting for one colour, here per pixel and per tone
-    vec3 fLit(vec3 c, vec3 nrm) {
-      float cv = dot(c, vec3(.2126, .7152, .0722));
-      vec3 col = c + vec3(.03);
-      float directional = clamp(dot(normalize(nrm), u_lightpos), 0.0, 1.0);
-      directional = mix(1.0 - u_lightintensity, max(1.0 - cv + u_lightintensity, 1.0), directional);
-      return clamp(col * directional * u_lightcolor, mix(vec3(0.0), vec3(0.3), vec3(1.0) - u_lightcolor), vec3(1.0));
-    }
-    vec3 fMixP(vec3 d, vec3 g, vec3 n) { return u_materialP <= .5 ? mix(d, g, u_materialP * 2.0) : mix(g, n, (u_materialP - .5) * 2.0); }
     #endif
   `;
   // the block spliced in after `vec3 albedo=v_albedo, night=v_night;`: it sets baseColor, albedo, night and surface
@@ -383,7 +383,9 @@
     const a3 = 'varying vec4 v_color;';
     if (!vert.includes(a1) || !frag.includes(a2) || !frag.includes(a3)) throw new Error('[facet] js/slopes.js shader text moved: cannot splice');
     const vs = VERT_DECL + vert.replace(a1, a1 + VERT_SET);
-    const fs = frag.replace(a3, FRAG_DECL + a3).replace(a2, a2 + FRAG_APPLY);
+    const a4 = 'void main() {';
+    if (!frag.includes(a4)) throw new Error('[facet] js/slopes.js shader text moved: no main()');
+    const fs = frag.replace(a3, FRAG_DECL + a3).replace(a4, FRAG_FUNCS + a4).replace(a2, a2 + FRAG_APPLY);
     return { vs, fs };
   }
 

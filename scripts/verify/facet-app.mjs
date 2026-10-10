@@ -35,6 +35,7 @@ for (const f of FLAGS) {
   console.log(`\n=== facadeshader=${f}`);
   const { browser, page, errors, t0 } = await openApp({ url: `${BASE}/_harness.html?intro=0&drift=0&${QUERY}&facadeshader=${f}`, viewport: { width: 1440, height: 900 } });
   const info = { errors: [] };
+  const fullErrors = []; page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') fullErrors.push(m.type() + ': ' + m.text().slice(0, 6000)); });
   try {
     const ms = await waitReady(page, t0, { timeoutMs: 30 * 60 * 1000 });
     info.readyMs = ms.apartmentsDone ?? ms.last;
@@ -48,7 +49,7 @@ for (const f of FLAGS) {
         glLive: G ? JSON.parse(JSON.stringify(G.live)) : null, meshes: (() => { const o = []; window.slopesApartments.group && window.slopesApartments.group.traverse(m => { if (m.isMesh) o.push({ name: m.name, tris: m.geometry.index ? m.geometry.index.count / 3 : 0, bytes: Object.values(m.geometry.attributes).reduce((s, a) => s + a.array.byteLength, 0) + (m.geometry.index ? m.geometry.index.array.byteLength : 0) }); }); return o; })() };
     });
     console.log(JSON.stringify(info.page));
-    if (flag('--smoke')) { info.errors = errors.slice(0, 20); result.flags[f] = info; await browser.__done(); continue; }
+    if (flag('--smoke')) { info.errors = fullErrors.slice(0, 20); result.flags[f] = info; await browser.__done(); continue; }
     for (const view of VIEWS) for (const [hn, p] of Object.entries(HOURS)) {
       const cam = CAMERAS[view];
       await page.evaluate(async ([cam, p]) => {
@@ -67,7 +68,7 @@ for (const f of FLAGS) {
     }
     info.after = await page.evaluate(() => { const G = window.__glc, A = window.slopesApartments; return { glLive: G ? JSON.parse(JSON.stringify(G.live)) : null, programs: G ? G.sets.programs.size : null, triangles: A.count.triangles }; });
     console.log('after the shots: ' + JSON.stringify(info.after));
-    info.errors = errors.slice(0, 20);
+    info.errors = fullErrors.slice(0, 30);
   } catch (e) { info.fatal = String(e); console.log('FAILED', e); }
   result.flags[f] = info; await browser.__done();
 }
@@ -85,5 +86,5 @@ for (const [name, pair] of Object.entries(shots)) {
 }
 fs.writeFileSync(path.join(OUT, 'result.json'), JSON.stringify(result, null, 1));
 const bad = Object.values(result.flags).some(x => x.fatal);
-console.log('errors flag1:', JSON.stringify((result.flags[1] || {}).errors || []).slice(0, 1500));
+console.log('errors flag1 (' + (((result.flags[1] || {}).errors || []).length) + '):\n' + ((result.flags[1] || {}).errors || []).map(e => e.slice(0, 3000)).join('\n---\n'));
 process.exit(bad ? 1 : 0);
