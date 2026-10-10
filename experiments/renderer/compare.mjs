@@ -58,7 +58,7 @@ async function shootApp() {
     await page.evaluate(() => { if (window.SKY_COMP) window.SKY_COMP.on = false;   // js/sky.js: the live switch for the GL sky
       const G = window.GFX; if (G) { Object.assign(G, { autoExposure: false, exposure: 1, contrast: 1, saturation: 1, filmic: 0, vignette: 0, bloom: 0, grain: 0 }); try { window.applyGraphics(); } catch (e) {} }
       try { window.__map.setSky({ 'sky-color': '#ff00ff', 'horizon-color': '#ff00ff', 'fog-color': '#ff00ff', 'sky-horizon-blend': 0, 'horizon-fog-blend': 0, 'fog-ground-blend': 0, 'atmosphere-blend': 0 }); } catch (e) {} });
-    await page.addStyleTag({ content: 'html,body{background:#ff00ff!important} #map{background:#ff00ff!important} body>*:not(#map){display:none!important} .maplibregl-control-container,.maplibregl-ctrl{display:none!important} html,body,#map,#map *{filter:none!important;mix-blend-mode:normal!important}' });
+    await page.addStyleTag({ content: 'html,body{background:#ff00ff!important} #map{background:#ff00ff!important} body>*:not(#map){display:none!important} .maplibregl-control-container,.maplibregl-ctrl{display:none!important} html,body,#map,#map *{filter:none!important;mix-blend-mode:normal!important} #sky,#sky-glow,#sky-canvas,[id^="sky"],[class*="sky"]{display:none!important}' });
     const isolate = () => page.evaluate(() => {
       const m = window.__map, A = window.slopesApartments, S = window.slopes;
       let hidden = 0;
