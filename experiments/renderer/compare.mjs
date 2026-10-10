@@ -19,13 +19,26 @@
  *     silhouette overlap (IoU), mean colour difference, and SSIM on 8x8 luma blocks.
  *   - --break <mode> deliberately breaks the prototype (light = sun on the wrong side, quant =
  *     coarser positions, facet = one shading feature silently dropped) to show the numbers move.
+ *
+ * IT CAN FAIL. The verdict (lib/verdict.mjs) compares every non-night view with NAMED limits and the process exits 1 if any view is over
+ * them, if any view shows no buildings (it used to be dropped from the summary in silence), or if a picture is missing. Limits are
+ * calibrated to the Mac iGPU; for another runner re-set them from an app-against-app run there:
+ *     --max-over 1.0  --min-ssim 0.985  --min-iou 0.998  --max-mean-abs 1.0  --exempt '-night$'
+ * A --break run is EXPECTED to exit 1 (that is the proof the gate bites); selftest-compare.mjs holds the verdict to that with no browser.
+ *
+ * THE APP PICTURES ARE KEYED. They live in compare-app-<key>/, where the key is the app's git commit, a hash of any uncommitted change
+ * to js/, css, index.html, style.css and data/, the page flags, the viewport, software or hardware GL and the camera list. --phase
+ * proto or compare with no app pictures for the CURRENT key stops with an error instead of scoring against a stale app side; the
+ * page being shot must serve this checkout (the script compares js/slopes.js byte for byte with what VERIFY_URL serves).
  * Software GL is used unless VERIFY_GL=hardware. Pixels are valid on software; any ms is marked.
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { openApp, waitReady, poses as loadPoses, PRIVATE, BASE } from './lib/app.mjs';
+import { openApp, waitReady, poses as loadPoses, PRIVATE, BASE, REPO } from './lib/app.mjs';
 import { startStatic } from './lib/static.mjs';
 import { decodePNG, rgbOf, compareImages, sideBySide } from './lib/images.mjs';
+import { appKey } from './lib/appkey.mjs';
+import { LIMITS as DEFAULT_LIMITS, EXEMPT_VIEWS, verdict } from './lib/verdict.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
@@ -40,14 +53,29 @@ const POSES = WANT ? ALL.filter(p => WANT.split(',').includes(p.name)) : ALL;
 const SOFTWARE = (process.env.VERIFY_GL || 'swiftshader') !== 'hardware';
 const VIEWPORT = { width: 1440, height: 900 };            // the size ci/pictures.mjs shoots at
 const DIR = path.join(PRIVATE, 'compare-' + TAG);
-const APPDIR = path.join(PRIVATE, 'compare-app');          // the app side is shot once and reused by every proto run
-fs.mkdirSync(DIR, { recursive: true }); fs.mkdirSync(APPDIR, { recursive: true });
-const UNIFORMS = ['u_lightpos', 'u_lightcolor', 'u_lightintensity', 'u_vertical_gradient', 'u_opacity', 'u_roof_shade', 'u_materialP', 'u_facet_on', 'u_facet_ambient', 'u_facet_lo', 'u_facet_hi', 'u_facet_sin', 'u_facet_cos', 'u_sloped_max_z'];
 const APP_QUERY = 'sunlight=0&surfaces=0&facadefilter=0&campuslandscape=0';
+// the limits: named, overridable on the command line (see lib/verdict.mjs for what each is and the value it was calibrated to)
+const num = (k, d) => { const v = opt(k, null); if (v === null) return d; const n = Number(v); if (!Number.isFinite(n)) throw new Error(`${k} needs a number, got "${v}"`); return n; };
+const LIMITS = { maxPctOverOnBuildings: num('--max-over', DEFAULT_LIMITS.maxPctOverOnBuildings), minSsim: num('--min-ssim', DEFAULT_LIMITS.minSsim), minSilhouetteIoU: num('--min-iou', DEFAULT_LIMITS.minSilhouetteIoU), maxMeanAbsDiff: num('--max-mean-abs', DEFAULT_LIMITS.maxMeanAbsDiff), minBuildingPct: num('--min-building-pct', DEFAULT_LIMITS.minBuildingPct) };
+const EXEMPT = opt('--exempt', null) !== null ? (opt('--exempt', '') ? new RegExp(opt('--exempt', '')) : null) : EXEMPT_VIEWS;
+// The app side is shot once and reused by every prototype run, but ONLY for the app it was shot from (lib/appkey.mjs: the commit, any
+// uncommitted change to what the page serves, the flags, the viewport, the GL kind and the cameras). It used to be keyed by pose name alone,
+// so --phase proto after a code change scored the prototype against a stale picture and could not know.
+const APP = appKey({ repo: REPO, query: APP_QUERY, viewport: VIEWPORT, software: SOFTWARE, poses: ALL });
+const APPDIR = path.join(PRIVATE, 'compare-app-' + APP.key);
+const FRAMES = path.join(APPDIR, 'frames.json');
+fs.mkdirSync(DIR, { recursive: true });
+const UNIFORMS = ['u_lightpos', 'u_lightcolor', 'u_lightintensity', 'u_vertical_gradient', 'u_opacity', 'u_roof_shade', 'u_materialP', 'u_facet_on', 'u_facet_ambient', 'u_facet_lo', 'u_facet_hi', 'u_facet_sin', 'u_facet_cos', 'u_sloped_max_z'];
 
 // ------------------------------------------------------------------ app side
 async function shootApp() {
-  console.log('== app side ==');
+  console.log('== app side == (key ' + APP.key + ', commit ' + APP.commit.slice(0, 10) + (APP.dirty ? ' + uncommitted changes' : '') + ')');
+  fs.mkdirSync(APPDIR, { recursive: true });
+  // the page at VERIFY_URL must be THIS checkout, or the key above names an app that was not the one shot
+  for (const f of ['js/slopes.js', 'js/slopes-apartments.js']) {
+    const served = Buffer.from(await (await fetch(BASE + '/' + f)).arrayBuffer()), mine = fs.readFileSync(path.join(REPO, f));
+    if (!served.equals(mine)) throw new Error(`${BASE}/${f} is not the file in this checkout (${served.length} bytes served, ${mine.length} here): the server at VERIFY_URL is serving another checkout, so the app pictures would be keyed to a commit they were not shot from`);
+  }
   const { browser, page, errors, t0 } = await openApp({ query: APP_QUERY, viewport: VIEWPORT });
   const frames = { query: APP_QUERY, viewport: VIEWPORT, software: SOFTWARE, views: {} };
   try {
@@ -113,7 +141,7 @@ async function shootApp() {
       return { frames: N, wallMsPerFrame: +((performance.now() - t) / N).toFixed(2), threeJsMsPerFrame: +(G.threeMs / N).toFixed(2) };
     });
     frames.errors = errors.slice(0, 8);
-    fs.writeFileSync(path.join(PRIVATE, 'frames.json'), JSON.stringify(frames));
+    frames.appKey = APP; fs.writeFileSync(FRAMES, JSON.stringify(frames));
     console.log('bench (app)', JSON.stringify(frames.bench), SOFTWARE ? 'SOFTWARE: not valid for timing' : '');
   } finally { await browser.__done(); }
   return frames;
@@ -126,7 +154,7 @@ async function shootProto(frames) {
   const url = `http://127.0.0.1:8498/exp/proto/${MODE === 'maplibre' ? 'maplibre' : 'standalone'}.html?data=/data/apartments.packed${BREAK ? '&break=' + BREAK : ''}${FORMAT ? '&format=' + FORMAT : ''}`;
   const t0 = Date.now();
   const { browser, page, errors } = await openApp({ url, viewport: VIEWPORT });
-  const out = { views: {}, software: SOFTWARE };
+  const out = { views: {}, software: SOFTWARE, appKey: APP };   // the prototype pictures are stamped with the app they were drawn from (the camera and light numbers came from it)
   try {
     await page.waitForFunction(() => window.__proto, null, { timeout: 60000 });
     const first = frames.views[POSES[0].name];
@@ -165,6 +193,9 @@ async function shootProto(frames) {
 // ------------------------------------------------------------------ the numbers
 function score(frames) {
   const rows = [];
+  const runFile = path.join(DIR, 'proto-run.json');
+  const run = fs.existsSync(runFile) ? JSON.parse(fs.readFileSync(runFile, 'utf8')) : null;
+  if (!run || !run.appKey || run.appKey.key !== APP.key) throw new Error(`the prototype pictures in ${DIR} were not drawn from the current app (their key: ${run && run.appKey ? run.appKey.key : 'none'}, the app now: ${APP.key}). Re-run the prototype phase (--phase proto) for this tag.`);
   for (const p of POSES) {
     const a = path.join(APPDIR, `app-${p.name}.png`), b = path.join(DIR, `proto-${p.name}.png`);
     if (!fs.existsSync(a) || !fs.existsSync(b)) { rows.push({ name: p.name, error: 'missing picture' }); continue; }
@@ -174,17 +205,30 @@ function score(frames) {
     sideBySide(A, B, diffPath, path.join(DIR, `side-${p.name}.png`));
     rows.push({ name: p.name, ...r });
   }
-  const shows = rows.filter(r => r.showsBuildings);
+  const shows = rows.filter(r => r.showsBuildings && !(EXEMPT && EXEMPT.test(r.name)));
   console.log(`\nview               shows  bldg%   over%(bldg)  over%(frame)  IoU     meanAbs  SSIM`);
-  for (const r of rows) console.log(`${r.name.padEnd(18)} ${r.error ? r.error : `${r.showsBuildings ? 'yes  ' : 'no   '} ${String(r.buildingPctApp).padStart(6)}  ${String(r.pctOverOnBuildings).padStart(10)}  ${String(r.pctOverWholeFrame).padStart(11)}  ${String(r.silhouetteIoU).padStart(6)}  ${String(r.meanAbsDiffOnBuildings).padStart(7)}  ${r.ssim}`}`);
+  for (const r of rows) console.log(`${r.name.padEnd(18)} ${r.error ? r.error : `${r.showsBuildings ? 'yes  ' : 'NO   '} ${String(r.buildingPctApp).padStart(6)}  ${String(r.pctOverOnBuildings).padStart(10)}  ${String(r.pctOverWholeFrame).padStart(11)}  ${String(r.silhouetteIoU).padStart(6)}  ${String(r.meanAbsDiffOnBuildings).padStart(7)}  ${r.ssim}`}`);
   const mean = k => shows.length ? +(shows.reduce((s, r) => s + r[k], 0) / shows.length).toFixed(4) : null;
-  const summary = { views: rows.length, viewsWithBuildings: shows.length, meanPctOverOnBuildings: mean('pctOverOnBuildings'), meanSilhouetteIoU: mean('silhouetteIoU'), meanSSIM: mean('ssim'), meanAbsDiff: mean('meanAbsDiffOnBuildings') };
-  console.log('\nsummary', JSON.stringify(summary));
-  fs.writeFileSync(path.join(DIR, 'result.json'), JSON.stringify({ tag: TAG, break: BREAK || null, software: SOFTWARE, tolerance: 12, summary, rows }, null, 1));
-  return { summary, rows };
+  const summary = { views: rows.length, viewsChecked: shows.length, meanPctOverOnBuildings: mean('pctOverOnBuildings'), meanSilhouetteIoU: mean('silhouetteIoU'), meanSSIM: mean('ssim'), meanAbsDiff: mean('meanAbsDiffOnBuildings') };
+  console.log('\nsummary (views the verdict checks; night views exempt)', JSON.stringify(summary));
+  const v = verdict(rows, LIMITS, EXEMPT);
+  console.log('limits', JSON.stringify(LIMITS), 'exempt', EXEMPT ? String(EXEMPT) : 'none');
+  console.log(v.ok ? `VERDICT: PASS (${v.checked.length} views checked, ${v.exempt.length} exempt)` : `VERDICT: FAIL\n  ` + v.failures.join('\n  '));
+  fs.writeFileSync(path.join(DIR, 'result.json'), JSON.stringify({ tag: TAG, break: BREAK || null, software: SOFTWARE, tolerance: 12, appKey: APP, limits: LIMITS, verdict: v, summary, rows }, null, 1));
+  return { summary, rows, verdict: v };
 }
 
-let frames = null;
+const loadFrames = () => {
+  if (!fs.existsSync(FRAMES)) throw new Error(`no app pictures for the CURRENT app (key ${APP.key}: commit ${APP.commit.slice(0, 10)}${APP.dirty ? ' + uncommitted changes' : ''}, these flags, this viewport, these cameras) in ${APPDIR}. Run this script with --phase app first (or without --phase); it will not score against pictures of another app.`);
+  const f = JSON.parse(fs.readFileSync(FRAMES, 'utf8'));
+  if (!f.appKey || f.appKey.key !== APP.key) throw new Error(`the app pictures in ${APPDIR} were shot for key ${f.appKey && f.appKey.key}, not ${APP.key}`);
+  return f;
+};
+let frames = null, result = null;
 if (PHASE === 'all' || PHASE === 'app') frames = await shootApp();
-if (PHASE === 'all' || PHASE === 'proto') { frames = frames || JSON.parse(fs.readFileSync(path.join(PRIVATE, 'frames.json'), 'utf8')); await shootProto(frames); }
-if (PHASE === 'all' || PHASE === 'compare' || PHASE === 'proto') { frames = frames || JSON.parse(fs.readFileSync(path.join(PRIVATE, 'frames.json'), 'utf8')); score(frames); }
+if (PHASE === 'all' || PHASE === 'proto') { frames = frames || loadFrames(); await shootProto(frames); }
+if (PHASE === 'all' || PHASE === 'compare' || PHASE === 'proto') { frames = frames || loadFrames(); result = score(frames); }
+if (result && !result.verdict.ok) {
+  console.log(BREAK ? `(--break ${BREAK}: exit 1 is the expected result, the gate bit)` : 'the prototype does not match the app within the limits');
+  process.exit(1);
+}

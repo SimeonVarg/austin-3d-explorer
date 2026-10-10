@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import zlib from 'node:zlib';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
-import { VERIFY } from './app.mjs';
+import { fileURLToPath } from 'node:url';
+
+// not imported from app.mjs: that file loads playwright at the top, and the pure image maths (and its self-test) must run with nothing installed
+const VERIFY = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scripts/verify');
 
 const { decodePNG } = await import(pathToFileURL(path.join(VERIFY, 'lib/png.mjs')).href);
 export { decodePNG };
