@@ -3,7 +3,7 @@
  *
  * NO BROWSER, NO GPU, no three.js: Node and the repo's own js/slopes.js. A few seconds. Runs in CI.
  *
- * The fix (js/slopes.js MOIRE) draws a window too small for a pixel as the MEAN of its row and of its face. A wrong mean is worse than
+ * The fix (js/moire.js) draws a window too small for a pixel as the MEAN of its row and of its face. A wrong mean is worse than
  * none: every far wall would shift in brightness against the same wall up close. Three things are held here, on synthetic wall faces
  * (punched windows, ribbon windows, framed windows, a coloured-panel wall, lit and unlit panes, a mullion laid over a pane):
  *
@@ -41,12 +41,13 @@ const { THREE_STUB } = await import(pathToFileURL(path.join(RM, 'js/builder-app.
   ctx.addEventListener = () => {}; ctx.devicePixelRatio = 1; ctx.LITE_PROFILE = undefined;
   if (!ctx.navigator) Object.defineProperty(ctx, 'navigator', { value: { userAgent: 'node' }, configurable: true });
   installStubs(ctx); ctx.THREE = THREE_STUB;
-  vm.runInThisContext(fs.readFileSync(path.join(REPO, 'js/slopes.js'), 'utf8'), { filename: path.join(REPO, 'js/slopes.js') });
+  // js/moire.js first: js/slopes.js reads window.MoireFix when it loads (in the page, js/city-lighting.js loads it between the two)
+  for (const f of ['moire.js', 'slopes.js']) vm.runInThisContext(fs.readFileSync(path.join(REPO, 'js', f), 'utf8'), { filename: path.join(REPO, 'js', f) });
 }
 const S = globalThis.slopes, MOIRE = globalThis.MoireFix.params;
 let failed = 0;
 const say = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!ok) failed++; };
-say(MOIRE.on === true, 'the fix is on with ?moirefix=1');
+say(typeof globalThis.MoireFix.tables === 'function' && !!MOIRE.px, 'js/moire.js loaded and hooked into js/slopes.js');
 
 // ---- a seeded generator, and tones the way the app makes them --------------------------------------------------
 let seed = 20261010;

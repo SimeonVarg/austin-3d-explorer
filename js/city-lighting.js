@@ -49,16 +49,13 @@
   // Compiled in only where it is on at load. Elsewhere the pattern shader is
   // MapLibre's own, exactly as before, so the integrated chip pays nothing,
   // not even the registers. A live `on` switch works only where it compiled.
-  // THE MOIRE FIX on MapLibre's pattern walls (the other half is js/slopes.js MOIRE; ?moirefix=0 turns both off and this file is then as it was).
-  // A pattern repeat is about 32 CSS px on screen and holds eight storeys, so a window is one to four pixels everywhere, and inside one zoom band
-  // perspective shrinks it up to another 2-4x: the atlas has no mips, so the wall is point-sampled below one texel a pixel. The cure is the far
-  // pattern filter that was already here (a box of taps over the pixel's own footprint), on EVERY device and from the camera outward rather
-  // than only past 150 m on a graphics card. Named values: nearM / fullM are where it fades in.
+  // THE MOIRE FIX (docs/moire-fix.md): this file holds its MapLibre-wall half and loads js/moire.js (the authored-building half) only where it is on.
   const dbg=new URLSearchParams(location.search).get('moiredbg')||'';   // TEMPORARY (experiment toggles)
-  const moire={on:new URLSearchParams(location.search).get('moirefix')==='1'&&new URLSearchParams(location.search).get('moirewalls')!=='0',   // off by default, with js/slopes.js MOIRE_DEFAULT_ON
-    nearM:0,fullM:60,mode:1,mainOn:patternFilter.on};
+  const query=new URLSearchParams(location.search), canLoad=typeof document!=='undefined'&&document.readyState==='loading'&&!!document.currentScript;
+  const MOIRE_DEFAULT_ON=false, moireSwitch=query.get('moirefix');
+  const moire={on:canLoad&&(moireSwitch==='1'||(moireSwitch!=='0'&&MOIRE_DEFAULT_ON)),walls:query.get('moirewalls')!=='0',nearM:0,fullM:60,mode:1,mainOn:patternFilter.on};
   moire.split=moire.on&&!dbg.includes('nosplit');
-  if(moire.on&&!dbg.includes('nopf'))patternFilter.on=true;
+  if(moire.on&&moire.walls&&!dbg.includes('nopf'))patternFilter.on=true;
   patternFilter.compiled=patternFilter.on;
   // Diffuse sky fill, in linear light. Upward-facing surfaces see more sky.
   // Shared by both building renderers; zeroes reproduce the previous balance.
@@ -909,9 +906,9 @@
       U.u_cityPatternFilter??={value:new THREE.Vector4()};
       // The shader's loops were sized from maxTaps when it compiled; a live
       // change can lower the count, not raise it past that.
-      // moire.mode (MoireFix.set): 0 = main's own setting, 1 = the fix, 2 = flat walls
-      const fix=moire.on&&moire.mode>=1;
-      U.u_cityPatternFilter.value.set(moire.on&&moire.mode===2?2:fix?1:((moire.on?moire.mainOn:patternFilter.on)?1:0),
+      // the fix's walls (MoireFix.set): mode 0 = main's own setting, 1 = the fix, 2 = flat walls
+      const mw=moire.on&&moire.walls?moire.mode:0,fix=mw>=1;
+      U.u_cityPatternFilter.value.set(mw===2?2:fix?1:((moire.on&&moire.walls?moire.mainOn:patternFilter.on)?1:0),
         fix?moire.nearM:patternFilter.nearM,fix?moire.fullM:patternFilter.fullM,Math.max(1,patternFilter.maxTaps));
       U.u_cityPatternFilterB??={value:new THREE.Vector4()};
       U.u_cityPatternFilterB.value.set(patternFilter.maxSpacing,0,0,0);
@@ -934,4 +931,5 @@
       frame={U,inverse,textures:textures||[fallbackShadow,fallbackShadow]};serial++;
     }
   };
+  if(moire.on)document.write('<script src="'+document.currentScript.src.replace('city-lighting.js','moire.js')+'"><\/script>');
 })();
