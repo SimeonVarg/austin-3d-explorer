@@ -766,8 +766,11 @@
     console.log('[outer-homes]', count.houses, 'buildings,', count.rects, 'rectangles;', count.mode === 'boxes' ? count.flatBoxes + ' drawn as plain boxes (no 3D layer)' : count.chunks + ' chunks, ' + count.ms + ' ms');
     return true;
   }
+  // Never gives up: the ring lost its house-sized boxes to this layer, so a
+  // page that is four minutes late must still get them. After four minutes it
+  // asks every 2 s instead of every 0.2 s.
   (function wait(tries) {
-    boot().then(ok => { if (!ok && tries < 1200) setTimeout(() => wait(tries + 1), 200); })
+    boot().then(ok => { if (!ok) setTimeout(() => wait(tries + 1), tries < 1200 ? 200 : 2000); })
       .catch(e => { count.error = String(e && e.message || e); count.done = true; console.warn('[outer-homes]', e); });
   })(0);
 })();
