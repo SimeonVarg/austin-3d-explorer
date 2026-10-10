@@ -1915,7 +1915,7 @@
       usePreset('performance', true);
       GFX.autoDownAt = Date.now();   // expires: see AUTO_DOWNGRADE_TTL_MS
       save();
-      toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`,
+      toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Open Graphics settings (top right) to change.`,
         TOAST_PROBE_MS);
     } else {
       // Changed nothing -> say nothing. The old confirmation toast sat over the
@@ -1991,9 +1991,10 @@
     btn.title = 'Graphics settings (G)';
     btn.setAttribute('aria-label', 'Graphics settings');
     btn.innerHTML =
+      // Three sliders, because that is what the menu is. It used to be a sun, which is also the mark at the top of the
+      // time-of-day slider (F02).
       '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">' +
-      '<circle cx="12" cy="12" r="3.1"/><path d="M12 2.6v3M12 18.4v3M2.6 12h3M18.4 12h3' +
-      'M5.4 5.4l2.1 2.1M16.5 16.5l2.1 2.1M18.6 5.4l-2.1 2.1M7.5 16.5l-2.1 2.1"/></svg>';
+      '<path d="M4 4v6M4 14v6M12 4v2M12 10v10M20 4v10M20 18v2"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="20" cy="16" r="2"/></svg>';
     document.body.appendChild(btn);
 
     panel = el('gfx-panel');
@@ -2061,11 +2062,24 @@
     btn.addEventListener('click', () => toggle(panel.classList.contains('hidden')));
 
     // `G` is a settings key, not a movement key, so it does not collide with
-    // WASD/QE. Ignore it while a control has focus or the slider would eat it.
+    // WASD/QE. It is ignored only where the visitor is typing (a text field, a
+    // select): a focused button or slider does not eat a letter, so G, P and T
+    // keep working after the visitor clicks one of them (B01). It also leaves
+    // Ctrl/Cmd/Alt+G to the browser ("find next") (B03). `window.isTypingTarget`
+    // is shared with the P and T keys in js/app.js.
+    window.isTypingTarget = function (t) {
+      if (!t) return false;
+      if (t.isContentEditable || /^(SELECT|TEXTAREA)$/.test(t.tagName)) return true;
+      return t.tagName === 'INPUT' && !/^(range|checkbox|radio|button|submit|reset|file|color|image)$/i.test(t.type || 'text');
+    };
+    // Escape closes the menu, as it already closes the recommendations box beside it (B02).
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !panel.classList.contains('hidden')) toggle(false);
+    });
     window.addEventListener('keydown', e => {
       if (e.key !== 'g' && e.key !== 'G') return;
-      const t = e.target;
-      if (t && /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (window.isTypingTarget(e.target)) return;
       toggle(panel.classList.contains('hidden'));
     });
 
@@ -2175,6 +2189,7 @@
     if (btn) btn.classList.toggle('active', on);
     // Same corner, so they take turns (see fbToggle for the other half).
     if (on && fbPanel && !fbPanel.classList.contains('hidden')) fbToggle(false);
+    if (on) window.dispatchEvent(new CustomEvent('panel:opened', { detail: 'gfx' }));   // the finder sheet steps aside (I02)
     if (on) { syncMenu(); startFps(); } else stopFps();
   }
 
@@ -2255,7 +2270,7 @@
     NAME_PH: 'Your name (optional)',
     EMAIL_PH: 'Your email (optional, only if you want a reply)',
     VIEW_LABEL: 'Include where I\'m looking',
-    SEND: 'Send',
+    SEND: 'Open email',
     SENDING: 'Sending…',
     SENT: 'Sent — thank you. That goes straight to Simeon.',
     OFF: 'Sending is not switched on yet.',
@@ -2354,8 +2369,12 @@
     if (b) b.classList.toggle('active', on);
     // The two panels occupy the same corner, so they take turns.
     if (on && panel && !panel.classList.contains('hidden')) toggle(false);
+    if (on) window.dispatchEvent(new CustomEvent('panel:opened', { detail: 'fb' }));
     if (on && fbText) fbText.focus();
   }
+
+  // Explore (js/explore.js) asks the two corner panels to step aside on a phone (G02).
+  window.addEventListener('menus:close-panels', () => { toggle(false); fbToggle(false); });
 
   async function fbSubmit() {
     if (fbBusy || !fbOn() || !fbText) return;
