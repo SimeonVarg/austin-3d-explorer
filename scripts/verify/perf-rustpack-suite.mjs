@@ -6,7 +6,7 @@
  *   node perf-rustpack-suite.mjs [--steps desktop,phone,mem] [--reps N] [--arms off,default,on,pack,packrust]   (off+on+pack ... also works: the AWS workflow splits its checks on commas)
  *
  * Steps (each is its own fresh Chrome per load; every setting is printed by the tool it calls):
- *   desktop  rust-builder-page.mjs at 1440x900, the arms interleaved rep by rep (A B C D, B C D A, ...), --reps (default 5): min / median / max of
+ *   desktop  rust-builder-timing.mjs at 1440x900, the arms interleaved rep by rep (A B C D, B C D A, ...), --reps (default 5): min / median / max of
  *            slopesApartments.count.ms, the time the veil lifts, peak and settled JS heap, GPU buffer bytes, peak browser memory, the longest main-thread task
  *   phone    the same with --phone (390x844 @3x, the phone profile: chunked build, CPU copies freed after upload)
  *   mem      mobile-memory.mjs (the phone profile as scripts/verify/mobile-memory.mjs measures it: JS heap + backing store + every GL texture, buffer and
@@ -33,7 +33,7 @@ const run = (name, file, args, env = {}) => {
   if (r.status) { console.log(`[${name}] exit ${r.status}`); code = r.status; }
 };
 console.log(`perf-rustpack-suite: ${new Date().toISOString()}  url ${URLB}  arms ${ARMS}  reps ${REPS}`);
-if (STEPS.includes('desktop')) run('desktop', 'rust-builder-page.mjs', [String(REPS), ARMS, '--out', path.join(OUT, 'desktop.json')]);
-if (STEPS.includes('phone')) run('phone', 'rust-builder-page.mjs', [String(REPS), ARMS.split(',').join(','), '--phone', '--out', path.join(OUT, 'phone.json')]);
+if (STEPS.includes('desktop')) run('desktop', 'rust-builder-timing.mjs', [String(REPS), ARMS, '--out', path.join(OUT, 'desktop.json')]);
+if (STEPS.includes('phone')) run('phone', 'rust-builder-timing.mjs', [String(REPS), ARMS.split(',').join(','), '--phone', '--out', path.join(OUT, 'phone.json')]);
 if (STEPS.includes('mem')) for (const arm of ARMS.split(',')) run('mem-' + arm, 'mobile-memory.mjs', ['--arms', arm + '=' + URLB, '--query', '?drift=0' + (QUERY[arm] ? '&' + QUERY[arm] : ''), '--reps', String(MEMREPS), '--out', path.join(OUT, 'mem-' + arm)]);
 process.exit(code);

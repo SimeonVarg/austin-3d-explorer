@@ -1,12 +1,12 @@
 /**
- * rust-builder-page.mjs — the REAL page, the JS vertex store against the Rust one (?rustbuilder=1), interleaved.
+ * rust-builder-timing.mjs — the REAL page, the JS vertex store against the Rust one (?rustbuilder=1), interleaved.
  *
  * LAPTOP ONLY (timing; listed under laptop_only in ci/checks.json). The byte-for-byte proof that the two builders make the
  * same buffers is wasm-mesh-parity.mjs, which needs no browser; THIS script is about speed, so it loads index.html (not the
  * harness page) in a fresh headless Chrome per run, on the real GPU, and reads what the app itself reports.
  *
  *   node ~/Projects/astra-pipe/tools/gpu-run.mjs --label rustwire -- \
- *     env VERIFY_URL=http://127.0.0.1:8478 node scripts/verify/rust-builder-page.mjs [runs=5] [modes=off,on] [--out file.json]
+ *     env VERIFY_URL=http://127.0.0.1:8478 node scripts/verify/rust-builder-timing.mjs [runs=5] [modes=off,on] [--out file.json]
  *
  * PER RUN (one fresh browser each, so a warm JIT or cache never carries over; modes alternate off,on / on,off / ...):
  *   count.ms       slopesApartments.count.ms: what the app itself calls the authored-building build, including the time it

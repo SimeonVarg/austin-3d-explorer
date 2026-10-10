@@ -45,7 +45,10 @@ const cut = (from, to) => {
   assert.ok(a >= 0 && b > a, 'source markers moved: ' + from);
   return source.slice(a, b);
 };
-vm.runInContext(cut('  function build(', '\n  /**\n   * A wall frame'), context);
+// build() calls shapeOps() (defined just above it) and reads `_rustBuild`, the loaded Rust builder (a `let` near the top of the IIFE, null until js/slopes-rust.js has
+// compiled the module). Lift both from the source as they are: with the switch off `_rustBuild` stays null and build() is the JS vertex store this check is about.
+vm.runInContext(cut('  let _rustBuild = null;', '\n'), context);
+vm.runInContext(cut('  function shapeOps(', '\n  /**\n   * A wall frame'), context);
 vm.runInContext(cut('  function buildChunked(', '\n  window.slopes = {'), context);
 
 // A deterministic stream of every primitive the bulk generators use, with the

@@ -6,7 +6,7 @@ It backs `docs/rust-study-2026-10-09.md` (read that first; it has the numbers, t
 `js/slopes.js` imports `js/slopes-rust.js` and fetches `wasm/meshkernel.wasm` (a copy of `dist/meshkernel.wasm`, byte for byte, held
 by `scripts/verify/wasm-mesh-parity.mjs`) only when the switch is on. With it off nothing new is requested. The check
 `scripts/verify/wasm-mesh-parity.mjs` (no browser; runs in CI; `--break` must fail) proves the page's own `build()` and the Rust
-builder make identical buffers. `scripts/verify/rust-builder-page.mjs` times the real page, switch off against on (laptop only).
+builder make identical buffers. `scripts/verify/rust-builder-timing.mjs` times the real page, switch off against on (laptop only).
 
 **Packed output (`?rustbuilder=1&packverts=1`).** `lib.rs` `init_packed` makes the module write what the JS packed store writes: the exact float32
 position and one 32-bit word per vertex, with the tone table (16 f32 a tone) and the normal table (4 f32 a normal) built inside the module

@@ -683,7 +683,7 @@ run here (it needs three.js), so its four lines that matter (the `withRustFallba
 a 1e-9 nudge vanishes in float32 and the old break showed only in the normals) and exit 1. If the nudge ever fails to reach the position
 array the script exits 3 with `WEAK BREAK`, so a break that cannot bite is not mistaken for a gate that works.
 
-`rust-builder-page.mjs` — **laptop only (timing).** Loads the real `index.html` in a fresh browser per run, switch off against on,
+`rust-builder-timing.mjs` — **laptop only (timing).** Loads the real `index.html` in a fresh browser per run, switch off against on,
 interleaved, and prints `slopesApartments.count.ms`, the time the veil lifts, peak JS heap, peak browser RSS and (packed modes) the bytes
 uploaded to the GPU. Wrap it in `gpu-run.mjs`; quote the minimum, not the mean: other lanes share the machine.
 
