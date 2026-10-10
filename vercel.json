@@ -2,11 +2,29 @@
   "github": {
     "silent": true
   },
+  "git": {
+    "deploymentEnabled": {
+      "acer/**": false,
+      "mac/**": false,
+      "cloud/**": false,
+      "claude/**": false,
+      "codex/**": false,
+      "astra/**": false,
+      "contest/**": false,
+      "fix/**": false,
+      "data/**": false,
+      "worktree-*": false,
+      "dependabot/**": false
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Referrer-Policy", "value": "origin" }
+        {
+          "key": "Referrer-Policy",
+          "value": "origin"
+        }
       ]
     }
   ]

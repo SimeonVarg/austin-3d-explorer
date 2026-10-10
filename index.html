@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <script>/* ?clip=1 = cinematic capture: scene only, no chrome (style.css .clip rules).
        ?clip=1&drive=1 additionally keeps the joystick and BOOST, because a
        phone has no WASD and ?clip=1 alone gives it a frame it cannot walk in
@@ -66,6 +66,7 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="explore.css" />
   <link rel="stylesheet" href="live-here.css" />
+  <link rel="stylesheet" href="finder.css" />
 </head>
 <body>
   <div id="veil" aria-hidden="true">
@@ -82,7 +83,7 @@
     <div id="hud-snapshot"></div>
   </div>
   <div id="controls-hint">
-    <span class="desktop-hint">WASD move &nbsp;|&nbsp; drag to look &nbsp;|&nbsp; Q/E or wheel for altitude &nbsp;|&nbsp; Shift boost &nbsp;|&nbsp; R reset &nbsp;|&nbsp; P photo &nbsp;|&nbsp; T tour</span>
+    <span class="desktop-hint">WASD move &nbsp;|&nbsp; drag to look &nbsp;|&nbsp; Q/E or wheel for altitude &nbsp;|&nbsp; Shift boost &nbsp;|&nbsp; R reset &nbsp;|&nbsp; P photo &nbsp;|&nbsp; T tour &nbsp;|&nbsp; G graphics</span>
     <span class="mobile-hint">Joystick to move &nbsp;|&nbsp; BOOST to sprint &nbsp;|&nbsp; swipe to look &nbsp;|&nbsp; two fingers for altitude</span>
   </div>
 
@@ -208,6 +209,15 @@
   <script src="js/slopes-art.js"></script>
   <script src="js/slopes-stadium.js"></script>
   <script src="js/campus-landscape.js"></script>
+  <!-- The houses of the outer city, with their roofs: every building the ring's
+       area cull left out, drawn as instanced rectangles inside the slopes scene
+       from data/outer_homes.bin (docs/outer-homes.md). After slopes.js, which it
+       draws through. KEEP IN SYNC between index.html and _harness.html. -->
+  <script src="js/outer-homes.js"></script>
+  <!-- The outer city's tree cover: one tree per 10 m cell the 2021 laser scan
+       found under canopy, from data/outer_trees.bin, instanced like the houses
+       (docs/outer-homes.md). KEEP IN SYNC between index.html and _harness.html. -->
+  <script src="js/outer-trees.js"></script>
   <!-- ────────────────────────────────────────────────────────────────────────
        WHAT WE TELL A STUDENT ABOUT THEIR OWN SCHEDULE, AND WHERE TO EDIT IT.
 
@@ -227,10 +237,10 @@
        NOT a <script src>, so harness-drift.mjs is unaffected.
        ──────────────────────────────────────────────────────────────────────── -->
   <template id="wf-privacy-copy">
-    <span data-k="line">Your schedule stays on this device — saved in this browser only, never uploaded anywhere, and Delete wipes it for good.</span>
+    <span data-k="line">Your schedule stays in this browser and is never uploaded. Importing a calendar link contacts its provider. Delete wipes it for good.</span>
     <span data-k="deleteBtn">Delete my schedule</span>
     <span data-k="deleted">Deleted. Nothing of it is left in this browser.</span>
-    <span data-k="empty">No schedule saved on this device yet.</span>
+    <span data-k="empty">No schedule saved in this browser yet.</span>
     <span data-k="confirm">Delete it? This cannot be undone.</span>
   </template>
   <!-- Walk to class (docs/walk/*.md). Self-booting off window.__map like
@@ -243,6 +253,13 @@
   <script src="js/wayfind.js"></script>
   <script src="js/live-here-core.js"></script>
   <script src="js/live-here.js"></script>
+  <!-- The apartment finder (js/finder.js header): "Where should I live?".
+       Self-booting off window.__map; an ES module, so it runs after the
+       page parses. Its arithmetic and the router's graph code load only when
+       the panel first fetches its data. A pill during the
+       intro, the panel when the flight lands; ?finder=0 turns it off. It
+       fetches nothing until the panel opens. KEEP IN SYNC WITH _harness.html. -->
+  <script src="js/finder.js" type="module"></script>
   <script src="js/controls.js"></script>
   <script src="js/name-labels.js"></script>
   <script src="js/app.js"></script>
