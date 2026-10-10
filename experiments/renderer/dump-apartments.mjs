@@ -10,7 +10,7 @@
  *   apartments.json  the manifest: per mesh, per attribute { offset, bytes, type, itemSize, count, normalized }
  *
  * Flags used on the page, so the dump is the geometry and nothing else:
- *   aptcull=0        every building's triangles are in the index (no culling groups)
+ *   (culling stays ON: the per-building ranges and bounding spheres it builds are exactly what the dump needs)
  *   facadefilter=0   no textured facade meshes (those use a second material the prototype does not draw)
  *   campuslandscape=0 / slopes extras stay on; only the apartments group is read.
  * Bytes leave the page by POST to a small node server started here (a 500 MB array through the
@@ -36,7 +36,7 @@ const server = http.createServer((req, res) => {
 });
 await new Promise(r => server.listen(PORT, '127.0.0.1', r));
 
-const { browser, page, errors, t0 } = await openApp({ query: 'aptcull=0&facadefilter=0' });
+const { browser, page, errors, t0 } = await openApp({ query: 'facadefilter=0' });
 try {
   const ms = await waitReady(page, t0);
   console.log('ready', JSON.stringify(ms));
@@ -76,8 +76,9 @@ try {
       if (c) {
         rec.cull = { n: c.n, total: c.total };
         rec.cull.sph = { offset: await post(c.sph), bytes: c.sph.byteLength, type: typeName(c.sph) };
-        rec.cull.start = { offset: await post(c.start), bytes: c.start.byteLength, type: typeName(c.start) };
-        rec.cull.count = { offset: await post(c.count), bytes: c.count.byteLength, type: typeName(c.count) };
+        const st = Uint32Array.from(c.start), ct = Uint32Array.from(c.count);   // plain arrays in the app
+        rec.cull.start = { offset: await post(st), bytes: st.byteLength, type: 'Uint32Array' };
+        rec.cull.count = { offset: await post(ct), bytes: ct.byteLength, type: 'Uint32Array' };
       }
       if (first) {
         first = false;
