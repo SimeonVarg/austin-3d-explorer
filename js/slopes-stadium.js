@@ -42,6 +42,45 @@
       glassTone: 'black'},                         // the photographs show dark navy window bands; the shared 'glass' tone mirrors the sky and drew them pale blue
     supportPitch: 13, supportWidth: 0.65,
     towerSegments: 32, rampTurns: 3, rampSegments: 96,
+    // The four round brick stair towers on the north corners. Replaces the old
+    // octagonal "office" towers; data.towers entries of kind 'office' and
+    // data.officeTower are no longer read. Every number says where it comes from:
+    //   PHOTO    = measured on the owner's daylight photographs (counts, proportions)
+    //   SCAN     = read from the 2021 laser scan (top-down heights, outline fit)
+    //   INFERRED = no photograph shows it; a plain, labelled guess
+    roundTowers: {
+      // Stadium frame (x east, y north, metres). SCAN: circle fit to the scan outline,
+      // height = median first-return top of the cap box above the ground.
+      sites: [
+        {id: 'nw',  x: -103.5, y: 110.6, top: 40.4},   // SCAN; PHOTO: right tower in the owner's west-northwest view
+        {id: 'nnw', x: -74.65, y: 138.75, top: 35.8},  // SCAN; PHOTO: left tower in the same view
+        {id: 'nne', x: 77.9,  y: 137.8,  top: 29.8},   // SCAN; design INFERRED from the two photographed towers
+        {id: 'ne',  x: 107.5, y: 110.0,  top: 28.5},   // SCAN; design INFERRED
+      ],
+      // Heights, top down, in metres. PHOTO: read off two photographs, scaled so that the
+      // pale rim is the scan's 7.1 m radius; the stack adds up to 15.5 m.
+      capBox: 2.7, rim: 1.0, lantern: 1.9, ledge: 0.45, lintel: 1.3, glass: 7.8, band: 0.8,
+      // Radii, metres. SCAN for the rim; the rest PHOTO (ratios to the rim in the photographs).
+      rimRadius: 7.1, rimInner: 6.5, capBoxRadius: 5.9, lanternRadius: 6.1, ledgeRadius: 6.85,
+      drumRadius: 6.5, lintelProud: 0.12, glassRecess: 0.35, bandRadius: 6.95,
+      lowerRadius: 6.6,        // INFERRED: the lower body is not seen whole
+      // Counts. PHOTO: 4 glass strips across the visible half = 8 around; 16 lantern panes and
+      // 16 cap-box faces by the same count; strip centres sit at 18 deg + 45 deg x k (both towers).
+      strips: 8, stripShare: 0.62, stripColumns: 2, stripRows: 12,
+      lanternPanes: 16, capFaces: 16, lowerFaces: 8, phaseDeg: 18,
+      pierSegments: 2, mullion: 0.07,
+      glassTone: 'black',      // PHOTO: dark navy glass. The shared 'glass' tone mirrors the sky and drew it pale blue (docs/photo-audit.md, check 7b)
+      // Small square windows in the lower body (PHOTO: one row of four on one face, 0.6 m, 1.2 m apart,
+      // about 1 m under the pale band; every other face INFERRED the same).
+      windowSize: 0.6, windowPitch: 1.25, windowDrop: 1.0, windowProud: 0.03,
+      // Day colour, then dusk, then night, same order as data.palette. PHOTO: sunlit brick #d3aa84 to
+      // #dfb083, pale stone #f3efe4, dark glass #182231 to #30405c; albedo set a little under the sunlit read.
+      colours: {
+        towerBrick: ['#c99f6e', '#cf9d68', '#302d2c'],
+        towerStone: ['#e8dfc9', '#e8d1a4', '#464747'],
+        towerFrame: ['#8c9aa0', '#8e9a98', '#2e3438'],
+      },
+    },
     boardSegments: 24, boardBorder: 0.65,
     trussBase: 58.4, trussTop: 66, trussX: -117.5,
     surfaceOffset: 0.035, farStripeEvery: 3,
@@ -337,61 +376,81 @@
     for(const x of [-half,half])quad(B,[x,front,z0],[x,back,z0],[x,back,z1],[x,front,z1],'glass');
   }
 
-  function officeTower(B,t) {
-    const s=data.officeTower, h=t.height;
-    const ring=(radius,n=s.facets)=>Array.from({length:n},(_,i)=>
-      [t.x+radius*Math.cos(i*2*Math.PI/n),t.y+radius*Math.sin(i*2*Math.PI/n)]);
-    const q=ring(t.radius), lower=h*s.lowerTopShare, lantern=h*s.lanternBaseShare;
-    slab(B,q,0,s.plinth,'stone');
-    // Each opening is a real hole in the masonry plane, with recessed glazing
-    // and four reveal faces. There is no coincident glass behind solid walls.
-    for(let i=0;i<q.length;i++){
-      const a=q[i],b=q[(i+1)%q.length],length=Math.hypot(b[0]-a[0],b[1]-a[1]);
-      const normal=[(b[1]-a[1])/length,(a[0]-b[0])/length,0];
-      const p=(u,z,depth=0)=>[lerp(a[0],b[0],u)-normal[0]*depth,lerp(a[1],b[1],u)-normal[1]*depth,z];
-      const panel=(u0,u1,z0,z1,key,depth=0)=>{
-        if(z1<=z0)return;
-        quad(B,p(u0,z0,depth),p(u1,z0,depth),p(u1,z1,depth),p(u0,z1,depth),key,normal);
-      };
-      const opening=(u0,u1,z0,z1,share,heightShare,divisions)=>{
-        const edge=(u1-u0)*(1-share)/2,lo=u0+edge,hi=u1-edge;
-        const bottom=z0+(z1-z0)*(1-heightShare)/2,top=z1-(z1-z0)*(1-heightShare)/2;
-        panel(u0,lo,z0,z1,'brick');panel(hi,u1,z0,z1,'brick');
-        panel(lo,hi,z0,bottom,'brick');panel(lo,hi,top,z1,'brick');
-        panel(lo,hi,bottom,top,'glass',s.recess);
-        const corners=[[lo,bottom],[hi,bottom],[hi,top],[lo,top]];
-        for(let j=0;j<4;j++){
-          const c=corners[j],d=corners[(j+1)%4];
-          quad(B,p(...c),p(...d),p(...d,s.recess),p(...c,s.recess),'stone');
-          beam(B,p(...c,s.recess),p(...d,s.recess),s.mullion,'stone');
-        }
-        beam(B,p((lo+hi)/2,bottom,s.recess),p((lo+hi)/2,top,s.recess),s.mullion,'stone');
-        for(let j=1;j<divisions;j++){
-          const z=lerp(bottom,top,j/divisions);
-          beam(B,p(lo,z,s.recess),p(hi,z,s.recess),s.mullion,'stone');
-        }
-        // Projecting sill gives the punched lower windows a readable shadow.
-        if(heightShare<1)beam(B,p(lo,bottom,-s.sill/2),p(hi,bottom,-s.sill/2),s.sill,'stone');
-      };
-      for(let floor=0;floor<s.lowerFloors;floor++){
-        const z0=lerp(s.plinth,lower,floor/s.lowerFloors),z1=lerp(s.plinth,lower,(floor+1)/s.lowerFloors);
-        for(let bay=0;bay<s.windowsPerFace;bay++)opening(bay/s.windowsPerFace,(bay+1)/s.windowsPerFace,z0,z1,s.windowShare,s.windowHeightShares[floor],2);
+  // Round brick tower: stacked from the cap down (see TUNE.roundTowers for sources).
+  function roundTower(B,t) {
+    const s=TUNE.roundTowers, top=t.top, rad=Math.PI/180, phase=s.phaseDeg*rad;
+    const ring=(r,n,ph=phase)=>Array.from({length:n},(_,i)=>[t.x+r*Math.cos(ph+i*2*Math.PI/n),t.y+r*Math.sin(ph+i*2*Math.PI/n)]);
+    const at=(r,a,z)=>[t.x+r*Math.cos(a),t.y+r*Math.sin(a),z];
+    const out=a=>[Math.cos(a),Math.sin(a),0];
+    // Heights, top down.
+    const zBox=top-s.capBox, zRim=zBox-s.rim, zLant=zRim-s.lantern, zLedge=zLant-s.ledge;
+    const zGlassTop=zLedge-s.lintel, zGlassBot=zGlassTop-s.glass, zBand=zGlassBot-s.band;
+    // Cap: faceted pale box on a thick pale rim (the rim steps in under itself).
+    slab(B,ring(s.capBoxRadius,s.capFaces,phase+Math.PI/s.capFaces),zBox,top,'towerStone');
+    slab(B,ring(s.rimRadius,TUNE.towerSegments),zRim+s.rim*0.45,zBox,'towerStone');
+    slab(B,ring(s.rimInner,TUNE.towerSegments),zRim,zRim+s.rim*0.45,'towerStone');
+    // Lantern: continuous dark glass, one pane between each pair of thin mullions.
+    const lan=ring(s.lanternRadius,s.lanternPanes);
+    for(let i=0;i<lan.length;i++){
+      const a=lan[i],b=lan[(i+1)%lan.length];
+      quad(B,[...a,zLant],[...b,zLant],[...b,zRim],[...a,zRim],TUNE.roundTowers.glassTone);
+      beam(B,[...a,zLant],[...a,zRim],s.mullion,'towerFrame');
+    }
+    slab(B,ring(s.ledgeRadius,TUNE.towerSegments),zLedge,zLant,'towerStone');
+    // Drum: brick piers and recessed glass strips under pale lintels.
+    const bay=2*Math.PI/s.strips, half=bay*s.stripShare/2;
+    for(let k=0;k<s.strips;k++){
+      const c=phase+k*bay, g0=c-half, g1=c+half;
+      // Piers: from this strip's edge to the next strip's edge, in short chords.
+      const n0=g1, n1=c+bay-half;
+      for(let j=0;j<s.pierSegments;j++){
+        const u=lerp(n0,n1,j/s.pierSegments), v=lerp(n0,n1,(j+1)/s.pierSegments), m=(u+v)/2;
+        quad(B,at(s.drumRadius,u,zGlassBot),at(s.drumRadius,v,zGlassBot),at(s.drumRadius,v,zLedge),at(s.drumRadius,u,zLedge),'towerBrick',out(m));
       }
-      opening(0,1,lower,lantern,s.upperWindowShare,1,s.upperDivisions);
+      // Brick over the lintel is the pale lintel itself; the brick stops at its underside.
+      for(let j=0;j<s.stripColumns;j++){
+        const u=lerp(g0,g1,j/s.stripColumns), v=lerp(g0,g1,(j+1)/s.stripColumns), m=(u+v)/2;
+        const rr=s.drumRadius-s.glassRecess;
+        quad(B,at(rr,u,zGlassBot),at(rr,v,zGlassBot),at(rr,v,zGlassTop),at(rr,u,zGlassTop),TUNE.roundTowers.glassTone,out(m));
+        // Pale lintel, a little proud of the brick.
+        const lr=s.drumRadius+s.lintelProud;
+        quad(B,at(lr,u,zGlassTop),at(lr,v,zGlassTop),at(lr,v,zLedge),at(lr,u,zLedge),'towerStone',out(m));
+        // Horizontal glazing bars.
+        for(let r=1;r<s.stripRows;r++){
+          const z=lerp(zGlassBot,zGlassTop,r/s.stripRows);
+          beam(B,at(rr+0.02,u,z),at(rr+0.02,v,z),s.mullion,'towerFrame');
+        }
+      }
+      // Jamb returns close the recess on both sides, vertical bars at the edges and the middle.
+      for(const e of [g0,g1]){
+        quad(B,at(s.drumRadius,e,zGlassBot),at(s.drumRadius-s.glassRecess,e,zGlassBot),at(s.drumRadius-s.glassRecess,e,zGlassTop),at(s.drumRadius,e,zGlassTop),'towerBrick');
+      }
+      for(let j=0;j<=s.stripColumns;j++){
+        const a=lerp(g0,g1,j/s.stripColumns);
+        beam(B,at(s.drumRadius-s.glassRecess+0.02,a,zGlassBot),at(s.drumRadius-s.glassRecess+0.02,a,zGlassTop),s.mullion,'towerFrame');
+      }
+      // Brick above the glass behind the lintel and a closing soffit are not needed: the lintel reaches the ledge.
     }
-    slab(B,ring(t.radius+s.ledgeProjection),lower-s.ledge,lower,'stone');
-    slab(B,ring(t.radius+s.ledgeProjection),lantern-s.ledge,lantern,'stone');
-    const glassRing=ring(t.radius*s.lanternRadiusShare,TUNE.towerSegments);
-    for(let i=0;i<glassRing.length;i++){
-      const a=glassRing[i],b=glassRing[(i+1)%glassRing.length];
-      quad(B,[...a,lantern],[...b,lantern],[...b,h],[...a,h],'glass');
-      beam(B,[...a,lantern],[...a,h],s.mullion,'stone');
-      beam(B,[...a,(lantern+h)/2],[...b,(lantern+h)/2],s.mullion,'stone');
+    // Drum closing disc is hidden inside the lantern; the ledge ring sits on the brick drum.
+    // Pale band under the drum, then the lower body: a faceted brick shaft down to the ground.
+    slab(B,ring(s.bandRadius,TUNE.towerSegments),zBand,zGlassBot,'towerStone');
+    const low=ring(s.lowerRadius,s.lowerFaces,phase+Math.PI/s.lowerFaces);
+    slab(B,low,0,zBand,'towerBrick');
+    // Small square windows: one row under the band, every face.
+    for(let i=0;i<low.length;i++){
+      const a=low[i],b=low[(i+1)%low.length],len=Math.hypot(b[0]-a[0],b[1]-a[1]);
+      const nrm=[(b[1]-a[1])/len,(a[0]-b[0])/len,0];
+      const count=Math.max(1,Math.floor((len-s.windowSize)/s.windowPitch)+1);
+      const z1=zBand-s.windowDrop, z0=z1-s.windowSize;
+      for(let j=0;j<count;j++){
+        const mid=0.5+(j-(count-1)/2)*s.windowPitch/len, w=s.windowSize/len/2;
+        const P=(u,z)=>[lerp(a[0],b[0],u)+nrm[0]*s.windowProud,lerp(a[1],b[1],u)+nrm[1]*s.windowProud,z];
+        quad(B,P(mid-w,z0),P(mid+w,z0),P(mid+w,z1),P(mid-w,z1),TUNE.roundTowers.glassTone,nrm);
+      }
     }
-    slab(B,ring(t.radius+s.capProjection,TUNE.towerSegments),h,h+s.capThickness,'stone');
   }
   function tower(B,R,t) {
-    if(t.kind==='office'){officeTower(B,t);return;}
+    if(t.kind==='office')return;   // replaced by TUNE.roundTowers
     const n=TUNE.towerSegments,ring=r=>Array.from({length:n},(_,i)=>[t.x+r*Math.cos(i*2*Math.PI/n),t.y+r*Math.sin(i*2*Math.PI/n)]);
     if(t.kind==='ramp'){
       // Open helical walkway and guard, not stacked filled discs.
@@ -515,6 +574,7 @@
     }
     northEntrance(B,R,31);
     for(const t of data.towers)tower(B,R,t);
+    for(const t of TUNE.roundTowers.sites)roundTower(B,t);
     // West press/suite strip and its open light gantry.
     box(B,-120,0,5,152,43,55,'stone');
     for(let y=-72;y<75;y+=6)box(B,-116.9,y,0.25,5,46,50,'glass');
@@ -656,6 +716,8 @@
     try{
       data=await window.slopes.fetchJSON(TUNE.url);
       if(!data?.sections?.length)throw new Error('Missing stadium sections');
+      // Tower colours live in TUNE, not in the baked palette.
+      Object.assign(data.palette,TUNE.roundTowers.colours);
       window.slopes.onSwitch(apply);
       // Run after other generators have registered their filters.
       apply();map.on('move',updateLOD);
