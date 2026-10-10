@@ -180,6 +180,34 @@ function build(on) {
   assert.equal(U.painted.length, 1);
 }
 
+// ── WARM: the rule, and the flight it is a rule for ─────────────────────
+{
+  const sandbox = { window: {}, location: { search: '' }, performance: { now: () => 0 } };
+  const ctx = vm.createContext(sandbox);
+  vm.runInContext([
+    constText('TIERS'), constText('WALLTIERS'),
+    'const _warm = { plan: new Map() };',
+    fnText('warmMetres'), fnText('warmAdd'), fnText('warmFromFeatures'),
+    'this.api = { warmFromFeatures, plan: () => _warm.plan, W: WALLTIERS.warm };',
+  ].join('\n'), ctx);
+  const A = ctx.api, end = A.W.points[2];
+  const at = (dxM, dyM) => [end[0] + dxM / (111320 * Math.cos(end[1] * Math.PI / 180)), end[1] + dyM / 110540];
+  const feat = (wp, xy) => ({ properties: { wp }, geometry: { type: 'Polygon', coordinates: [[xy, xy, xy]] } });
+  A.warmFromFeatures([feat('mh01', at(300, 0)), feat('mr02', at(0, 1500)), feat('lo03', at(0, 9000)), { properties: {}, geometry: null }]);
+  const got = Object.fromEntries([...A.plan()].map(([k, v]) => [k, [...v].sort().join('+')]));
+  assert.equal(JSON.stringify(got), JSON.stringify({ mh01: '+x', mr02: 'x' }), 'a building near a waypoint warms both tiers, one farther only the far tier, a distant one nothing');
+  // the waypoints must be the flight's own: js/app.js INTRO.start / crest / end
+  const app = fs.readFileSync(new URL('../../js/app.js', import.meta.url), 'utf8');
+  const intro = app.slice(app.indexOf('const INTRO = {'), app.indexOf('leg1Ms'));
+  const centres = ['start', 'crest', 'end'].map(k => {
+    const m = intro.match(new RegExp(k + ':\\s*\\{\\s*center:\\s*\\[\\s*(-?[\\d.]+)\\s*,\\s*(-?[\\d.]+)\\s*\\]'));
+    assert(m, 'INTRO.' + k + ' found in js/app.js');
+    return [+m[1], +m[2]];
+  });
+  assert.equal(JSON.stringify(A.W.points), JSON.stringify(centres),
+    'WALLTIERS.warm.points are INTRO.start / crest / end of js/app.js: the flight moved, so the warm-up must move with it');
+}
+
 // ── OFF (?walltiers=0): the old eager path, every tier at registration ──
 {
   const S = build(false);
