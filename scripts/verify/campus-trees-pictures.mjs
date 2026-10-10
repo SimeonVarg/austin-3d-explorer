@@ -71,6 +71,8 @@ try {
     for (const p of poses) {
       await page.evaluate(p => {
         GFX.autoExposure = false;
+        // Things that move on their own (clouds, stars, god rays, lens flare) would show up as "noise" and hide what is being compared.
+        Object.assign(GFX, { clouds: 0, stars: 0, godRays: 0, flare: 0 }); window.applyGraphics();
         __map.stop(); __map.jumpTo({ center: p.center, zoom: p.zoom, pitch: p.pitch, bearing: p.bearing, padding: 0 });
         window.applyTimeOfDay(__map, p.p, true);
       }, p);
@@ -97,21 +99,27 @@ try {
   report.errors = errors;
 
   // ---- compare ----
-  const diff = (fa, fb) => {
-    const A = decodePNG(fa), B = decodePNG(fb), n = A.width * A.height;
-    let moved = 0, any = 0, max = 0, sumsq = 0;
+  // `beyond noise`: pixels that moved between plain and instanced AND did not move between the two plain passes.
+  const diff = (fa, fb, fc) => {
+    const A = decodePNG(fa), B = decodePNG(fb), C = fc ? decodePNG(fc) : null, n = A.width * A.height;
+    let moved = 0, any = 0, max = 0, sumsq = 0, beyond = 0;
     for (let i = 0; i < n; i++) {
-      let d = 0;
-      for (let c = 0; c < 3; c++) d = Math.max(d, Math.abs(A.data[i * A.bpp + c] - B.data[i * B.bpp + c]));
-      if (d > max) max = d; if (d > LOOK.tolerance) moved++; if (d > 0) any++; sumsq += d * d;
+      let d = 0, dn = 0;
+      for (let c = 0; c < 3; c++) {
+        d = Math.max(d, Math.abs(A.data[i * A.bpp + c] - B.data[i * B.bpp + c]));
+        if (C) dn = Math.max(dn, Math.abs(A.data[i * A.bpp + c] - C.data[i * C.bpp + c]));
+      }
+      if (d > max) max = d; if (d > LOOK.tolerance) { moved++; if (C && dn <= LOOK.tolerance) beyond++; } if (d > 0) any++; sumsq += d * d;
     }
-    return { movedPct: +(100 * moved / n).toFixed(4), anyDiffPct: +(100 * any / n).toFixed(4), maxChannelDiff: max, rms: +Math.sqrt(sumsq / n).toFixed(4) };
+    const r = { movedPct: +(100 * moved / n).toFixed(4), anyDiffPct: +(100 * any / n).toFixed(4), maxChannelDiff: max, rms: +Math.sqrt(sumsq / n).toFixed(4) };
+    if (C) r.movedBeyondNoisePct = +(100 * beyond / n).toFixed(4);
+    return r;
   };
   for (const p of poses) {
     const f = s => path.join(OUT, `${s}-${p.name}.png`);
-    const row = { view: p.name, vsInstanced: diff(f('plain1'), f('instanced')), noise: diff(f('plain1'), f('plain2')) };
+    const row = { view: p.name, vsInstanced: diff(f('plain1'), f('instanced'), f('plain2')), noise: diff(f('plain1'), f('plain2')) };
     report.views.push(row);
-    console.log(p.name.padEnd(18), 'plain vs instanced moved', String(row.vsInstanced.movedPct).padStart(8) + '%', ' any', String(row.vsInstanced.anyDiffPct).padStart(8) + '%', ' max', String(row.vsInstanced.maxChannelDiff).padStart(3),
+    console.log(p.name.padEnd(18), 'plain vs instanced moved', String(row.vsInstanced.movedPct).padStart(8) + '%', ' beyond noise', String(row.vsInstanced.movedBeyondNoisePct).padStart(8) + '%', ' any', String(row.vsInstanced.anyDiffPct).padStart(8) + '%', ' max', String(row.vsInstanced.maxChannelDiff).padStart(3),
       '| noise (plain vs plain) moved', row.noise.movedPct + '%', 'any', row.noise.anyDiffPct + '%', 'max', row.noise.maxChannelDiff);
   }
   fs.writeFileSync(path.join(OUT, 'campus-trees-pictures.json'), JSON.stringify(report, null, 1));

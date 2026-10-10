@@ -3,6 +3,7 @@
  *
  * Not a check: it has no verdict (listed under laptop_only in ci/checks.json). It runs on the AWS GPU runner
  * (scripts/aws-gpu) or on the laptop, one arm after the other, never in parallel:
+ *   --frames        also frame time while flying, per arm (scripts/perf/frame-profile.mjs; --frame-reps N, default 2)
  *   --pictures      first run scripts/verify/campus-trees-pictures.mjs (the ten cameras + two close-ups, plain vs instanced)
  *   --reps N        cold loads per arm (default 5); arms alternate  A B  B A  A B ...
  *   --throttle R    Chrome CPU throttle on the page main thread (1 = none, 4 = a phone-class stand-in; workers not slowed)
@@ -39,6 +40,16 @@ for (let rep = 0; rep < REPS; rep++) {
     const r = spawnSync('node', [path.join(HERE, '../perf/load-profile.mjs'), '--url', URLB + '/', '--throttle', String(THROTTLE), '--reps', '1', '--rep-offset', String(rep),
       '--query', query, '--settle', SETTLE, '--label', name, '--out', dir], { stdio: 'inherit', env: process.env, cwd: HERE });
     if (r.status) console.log(`[${name} rep ${rep}] exit ${r.status}`);
+  }
+}
+
+if (argv.includes('--frames')) {
+  // Frame time while flying (scripts/perf/frame-profile.mjs, its own settings in its header), arms interleaved, one rep each time.
+  const FR = +arg('--frame-reps', 2);
+  console.log(`\n===== frame time: ${FR} reps per arm, routes west and campus, 10 s per pass =====`);
+  for (let rep = 0; rep < FR; rep++) for (const [name, query] of (rep % 2 ? [...ARMS].reverse() : ARMS)) {
+    console.log(`--- frame arm ${name} rep ${rep} ---`);
+    spawnSync('node', [path.join(HERE, '../perf/frame-profile.mjs'), '--url', URLB + '/?' + query, '--reps', '1', '--seconds', '10', '--label', 'frame-' + name + '-' + rep, '--out', path.join(OUT, 'frame-' + name + '-' + rep)], { stdio: 'inherit', env: process.env, cwd: HERE });
   }
 }
 
