@@ -52,6 +52,12 @@ try {
   await page.goto(`${BASE}/index.html?${LOOK.query}`, { waitUntil: 'domcontentloaded', timeout: 180000 });
   await page.waitForFunction(() => window.slopesApartments?.count.done && window.campusLandscape?.count.done && window.__fly?.indexed(), null, { timeout: 600000 });
   await waitForApartmentBuild(page);
+  // Once, before any picture: things that move on their own (clouds, stars, god rays, lens flare) would show up as "noise" and hide what is
+  // being compared. NOT per view: applyGraphics re-applies the render distance and the building tiers, and the pictures of the first
+  // AWS runs caught the city half-rebuilt in some views of some passes.
+  await page.evaluate(() => { GFX.autoExposure = false; Object.assign(GFX, { clouds: 0, stars: 0, godRays: 0, flare: 0 }); window.applyGraphics(); });
+  await page.waitForTimeout(8000);
+  await waitForApartmentBuild(page);
   report.instrument.renderer = await page.evaluate(() => { const gl = document.createElement('canvas').getContext('webgl2'); const e = gl.getExtension('WEBGL_debug_renderer_info'); return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'unknown'; });
   console.log('renderer:', report.instrument.renderer);
 
@@ -65,7 +71,7 @@ try {
   const setState = async state => {
     await page.evaluate(on => { CAMPUS_LANDSCAPE.instancing.on = on; campusLandscape.rebuild(); }, state !== 'plain');
     await page.waitForFunction(() => campusLandscape.group && campusLandscape.count.trees > 0, null, { timeout: 120000 });
-    // (The apartments are not rebuilt by a planting rebuild, so there is nothing more to wait for here; the first load waited for them.)
+    await waitForApartmentBuild(page);
   };
   const pass = async (state, label) => {
     await setState(state);
@@ -76,9 +82,6 @@ try {
       let placed = null;
       for (let attempt = 0; attempt < LOOK.placeTries; attempt++) {
         await page.evaluate(p => {
-          GFX.autoExposure = false;
-          // Things that move on their own (clouds, stars, god rays, lens flare) would show up as "noise" and hide what is being compared.
-          Object.assign(GFX, { clouds: 0, stars: 0, godRays: 0, flare: 0 }); window.applyGraphics();
           __map.stop(); __map.jumpTo({ center: p.center, zoom: p.zoom, pitch: p.pitch, bearing: p.bearing, padding: 0 });
           window.applyTimeOfDay(__map, p.p, true);
         }, p);
