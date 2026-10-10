@@ -95,7 +95,7 @@ const t1 = T['onepx-2.6M (about 0.5 px each, whole screen)'], tf = T['fill trivi
 out.appWorkloadEstimate = {
   basis: 'vertex/triangle bound time = 3.1M triangles / measured triangle rate (1 px triangles, app vertex shader, 24 B); pixel bound time = covered pixels x overdraw 3 / measured trivial fill rate',
   triangleBoundMs: +(3.1e6 / (T['onepx-2.6M, app vertex shader, 24 B vertex'].triangles / T['onepx-2.6M, app vertex shader, 24 B vertex'].ms)).toFixed(2),
-  pixelBoundMs: +(0.36 * W * H * 3 / (tf.GpixPerS * 1e6) * 1e3).toFixed(2),
+  pixelBoundMs: +(0.36 * W * H * 3 / (tf.GpixPerS * 1e9) * 1e3).toFixed(3),
 };
 window.__probe = out; window.__probeReady = true;
 </script>

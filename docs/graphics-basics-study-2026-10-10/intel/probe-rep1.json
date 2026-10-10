@@ -1,0 +1,92 @@
+{
+ "renderer": "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Iris(TM) Plus Graphics 655, Unspecified Version)",
+ "W": 1440,
+ "H": 900,
+ "tests": {
+  "tiny-1M (0.02 px each)": {
+   "ms": 1.52,
+   "triangles": 1000000,
+   "vertices": 501501,
+   "MtriPerS": 657.9,
+   "MvertPerS": 329.9,
+   "bytes": 16012008
+  },
+  "tiny-2M (0.01 px each)": {
+   "ms": 2.48,
+   "triangles": 1999396,
+   "vertices": 1001820,
+   "MtriPerS": 806.2,
+   "MvertPerS": 404,
+   "bytes": 32007312
+  },
+  "tiny-4M (0.005 px each)": {
+   "ms": 4.9,
+   "triangles": 4000000,
+   "vertices": 2003001,
+   "MtriPerS": 816.3,
+   "MvertPerS": 408.8,
+   "bytes": 64024008
+  },
+  "onepx-2.6M (about 0.5 px each, whole screen)": {
+   "ms": 6.78,
+   "triangles": 2592000,
+   "vertices": 1298341,
+   "MtriPerS": 382.3,
+   "MvertPerS": 191.5,
+   "bytes": 41490728
+  },
+  "onepx-2.6M, app vertex shader, 24 B vertex": {
+   "ms": 15.3,
+   "triangles": 2592000,
+   "vertices": 1298341,
+   "MtriPerS": 169.4,
+   "MvertPerS": 84.9,
+   "bytes": 62264184
+  },
+  "onepx-2.6M, app vertex shader, 56 B vertex": {
+   "ms": 37.74,
+   "triangles": 2592000,
+   "vertices": 1298341,
+   "MtriPerS": 68.7,
+   "MvertPerS": 34.4,
+   "bytes": 103811096
+  },
+  "big-2.6M? (8 px each, 160k tris over the screen)": {
+   "ms": 0.56,
+   "triangles": 40320,
+   "vertices": 20453,
+   "MtriPerS": 72,
+   "MvertPerS": 36.5,
+   "bytes": 647464
+  },
+  "fill trivial x8": {
+   "ms": 1.36,
+   "layers": 8,
+   "GpixPerS": 7.62,
+   "nsPerPixelLayer": 0.131
+  },
+  "fill trivial x32": {
+   "ms": 3.46,
+   "layers": 32,
+   "GpixPerS": 11.99,
+   "nsPerPixelLayer": 0.083
+  },
+  "fill facade-like shader x4": {
+   "ms": 1.84,
+   "layers": 4,
+   "GpixPerS": 2.82,
+   "nsPerPixelLayer": 0.355
+  },
+  "fill facade-like shader x16": {
+   "ms": 6.6,
+   "layers": 16,
+   "GpixPerS": 3.14,
+   "nsPerPixelLayer": 0.318
+  }
+ },
+ "appWorkloadEstimate": {
+  "basis": "vertex/triangle bound time = 3.1M triangles / measured triangle rate (1 px triangles, app vertex shader, 24 B); pixel bound time = covered pixels x overdraw 3 / measured trivial fill rate",
+  "triangleBoundMs": 18.3,
+  "pixelBoundMs": 116.74
+ }
+}
