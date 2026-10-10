@@ -229,6 +229,10 @@
       }
       return gain*tint;
     }
+    vec3 cityEyeGainLight(vec3 pos,vec3 albedo){
+      if(dot(albedo,vec3(.2126,.7152,.0722))<u_cityNight.z)return vec3(1.0);
+      return cityEyeGain(pos,vec3(-1.0));
+    }
     vec3 reflectedSky(vec3 r) {
       float height=smoothstep(0.0,u_reflectionSky.x,max(r.z,0.0));
       vec3 sky=mix(u_skyHorizon,u_skyZenith,height);
@@ -802,7 +806,12 @@
               vec3 shaded=cityShade(original,albedo,v_cityPos,v_cityNormal,glass*(1.0-grid.a)*${landmarkMaterials.reflection.toFixed(3)});
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
               if(glass>.5){vec3 lit=cityEmission(shaded,v_cityAlbedo.rgb,1.0-grid.a);vec3 eg=cityEyeGain(v_cityPos,vec3(-1.0));shaded=mix(shaded*.1,lit,min(eg,vec3(1.0)))*max(eg,vec3(1.0));if(int(u_cityEye2.w+.5)>=4)shaded=vec3(0.,1.,1.);}
-              else shaded=mix(shaded,max(shaded,albedo*u_cityNight.y),u_cityNight.x);
+              else {
+                // Lit-window parts of the landmark towers (outer-landmark-light): each part is one window, lit by its own albedo. Named by place.
+                vec3 lit=mix(shaded,max(shaded,albedo*u_cityNight.y),u_cityNight.x);
+                vec3 eg=cityEyeGainLight(v_cityPos,albedo);
+                shaded=mix(shaded*.1,lit,min(eg,vec3(1.0)))*max(eg,vec3(1.0));
+              }
               fragColor=vec4(shaded*v_color.a,v_color.a);
               }`;
             source=replace(source,pattern?'fragColor=mixedColor*v_lighting;':'fragColor=v_color;',output);
