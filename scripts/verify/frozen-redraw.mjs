@@ -120,12 +120,13 @@ const counted = (fa, fb, tol) => {
   return { over: n, any, max };
 };
 /** Draw `count` times, keep each canvas; return the files and (with --explain) each redraw's uniform/draw log. */
-async function draws(page, view, label, count) {
+async function draws(page, view, label, count, how = {}) {
   const files = [], logs = [];
   for (let k = 0; k < count; k++) {
     if (EXPLAIN) await page.evaluate(() => window.__ul.snap());
     if (BREAK && k === Math.floor(count / 2)) await page.evaluate(() => { const m = window.__map; m.jumpTo({ bearing: m.getBearing() + 0.01 }); });
-    await redraw(page); await page.waitForTimeout(250);
+    await redraw(page); await page.waitForTimeout(how.wait || 250);
+    if (how.finish) await page.evaluate(() => { const gl = window.__map.painter.context.gl, px = new Uint8Array(4); gl.finish(); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); });
     if (EXPLAIN) logs.push(await page.evaluate(() => window.__ul.snap()));
     const u = await page.evaluate(() => window.__map.getCanvas().toDataURL('image/png'));
     const f = path.join(OUT, `${view}-${label}-${k}.png`); fs.writeFileSync(f, Buffer.from(u.split(',')[1], 'base64')); files.push(f);
@@ -153,12 +154,17 @@ for (const view of VIEWS) {
   }
   if (ARMS) {
     // one part off at a time: does the picture now repeat?
-    const arm = async (name, on, off, argv1) => { if (on) await page.evaluate(on, argv1); await page.waitForTimeout(800); await redraw(page); const f = await draws(page, view, name.replace(/[^a-z0-9]+/gi, '_'), 8); const x = pairs(f.files, TUNE.tolerance); data.views[view][name] = x; console.log(`  arm [${name}]: ${x.distinct} different frames, most ${x.worst.over} px over ${TUNE.tolerance}/255`); if (off) await page.evaluate(off); };
+    const arm = async (name, on, off, argv1, how) => { if (on) await page.evaluate(on, argv1); await page.waitForTimeout(800); await redraw(page); const f = await draws(page, view, name.replace(/[^a-z0-9]+/gi, '_'), 8, how); const x = pairs(f.files, TUNE.tolerance); data.views[view][name] = x; console.log(`  arm [${name}]: ${x.distinct} different frames, most ${x.worst.over} px over ${TUNE.tolerance}/255`); if (off) await page.evaluate(off); };
     // the four shipped graphics tiers and the two halves of what differs between them: does the picture repeat on each?
+    if (argv.includes('--suspect')) { const aeOff = () => { Object.assign(window.GFX, window.GFX_PRESETS.balanced); window.GFX.autoExposure = false; window.applyGraphics(); }; await arm('balanced, auto-exposure off', aeOff, null); await arm('balanced, auto-exposure off, read after gl.finish + readPixels', aeOff, null, undefined, { finish: true }); await arm('balanced, auto-exposure off, read 2 s after the redraw', aeOff, null, undefined, { wait: 2000 }); await arm('balanced, auto-exposure off, bloom off too', () => { window.GFX.bloom = 0; window.GFX.godRays = 0; window.GFX.flare = 0; window.applyGraphics(); }, null); await page.close(); continue; }
     for (const preset of ['performance', 'balanced', 'cinematic', 'ultra']) await arm(`preset ${preset}`, name => { Object.assign(window.GFX, window.GFX_PRESETS[name]); window.applyGraphics(); }, null, preset);
     await arm('balanced, auto-exposure off (bloom on)', () => { Object.assign(window.GFX, window.GFX_PRESETS.balanced); window.GFX.autoExposure = false; window.applyGraphics(); }, null);
     await arm('balanced, bloom off (auto-exposure on)', () => { Object.assign(window.GFX, window.GFX_PRESETS.balanced); window.GFX.bloom = 0; window.GFX.godRays = 0; window.GFX.flare = 0; window.applyGraphics(); }, null);
     await arm('balanced again', () => { Object.assign(window.GFX, window.GFX_PRESETS.balanced); window.applyGraphics(); }, null);
+    // the suspect (auto-exposure off, bloom on) read three ways: as before, after a gl.finish and a one-pixel read, and after waiting 2 s
+    const aeOff = () => { Object.assign(window.GFX, window.GFX_PRESETS.balanced); window.GFX.autoExposure = false; window.applyGraphics(); };
+    await arm('balanced, auto-exposure off, read after gl.finish + readPixels', aeOff, null, undefined, { finish: true });
+    await arm('balanced, auto-exposure off, read 2 s after the redraw', aeOff, null, undefined, { wait: 2000 });
     await arm('atmosphere pass off', () => { window.SKY_GL_DEBUG.atmoGain = 0; window.__map.triggerRepaint(); }, () => { window.SKY_GL_DEBUG.atmoGain = 1; });
     await arm('cloud pass off', () => { window.SKY_GL_DEBUG.cloudGain = 0; window.__map.triggerRepaint(); }, () => { window.SKY_GL_DEBUG.cloudGain = 1; });
     await arm('sky compositor off', () => { window.SKY_COMP.on = false; window.__map.triggerRepaint(); }, () => { window.SKY_COMP.on = true; });
