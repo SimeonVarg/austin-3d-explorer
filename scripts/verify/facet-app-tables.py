@@ -1,3 +1,6 @@
+"""facet-app-tables.py - turn a facet-app-bench result folder (app/result.json, meter0.json, meter1.json) into the markdown tables of docs/graphics-basics-study-2026-10-10.md
+section 8.5 and copy the artifacts into docs/.../facet-app-<label>/. Run from the repo root; needs facet-meter-cross.py beside it.
+  python3 scripts/verify/facet-app-tables.py <results dir> <label>"""
 import json,sys,os,re,subprocess,shutil
 res=sys.argv[1]; label=sys.argv[2]; docdir='docs/graphics-basics-study-2026-10-10'
 app=json.load(open(res+'/app/result.json')); f0=app['flags']['0']; f1=app['flags']['1']
