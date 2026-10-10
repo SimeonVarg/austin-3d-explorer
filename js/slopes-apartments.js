@@ -2651,6 +2651,25 @@
   // `specs` defaults to the catalog; `area` (an APTS.areas entry) builds that
   // area's own group without resetting the core's counts, failures or list.
   async function build(specs, area) {
+    const S = window.slopes;
+    if (!S.withRustFallback) return buildOnce(specs, area, { wasm: true });
+    // ?rustbuilder=1: if the Rust builder breaks anywhere in this build, the half-made result is taken back (the tallies and an
+    // area's failure list, which buildOnce has already added to) and the whole build runs again on the JS builder.
+    // With the switch off the Rust builder never exists, nothing can carry the stamp, and this is one plain call.
+    const snap = area ? { tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k]])), names: count.names.length, failed: area.failed.length } : null;
+    return S.withRustFallback(async opts => {
+      try { return await buildOnce(specs, area, opts); }
+      catch (e) {
+        if (e && e.rustBuilderError && snap) {
+          untally({ tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k] - snap.tally[k]])), names: count.names.slice(snap.names) });
+          area.failed.length = snap.failed;
+        }
+        throw e;
+      }
+    });
+  }
+
+  async function buildOnce(specs, area, rustOpts) {
     const T = window.THREE, S = window.slopes;
     const t0 = performance.now();
     const gen = area ? area.gen : 0;
@@ -2663,9 +2682,8 @@
     const chunkTris = area && APTS.areas.sliced ? Math.min(BUD.geometryChunkTris || Infinity, APTS.areas.geometryChunkTris) : BUD.geometryChunkTris;
     // ?rustbuilder=1: the Rust vertex store (js/slopes-rust.js) if it has loaded; `S.rustReady` is null with the switch off,
     // so a page without the switch awaits nothing and builds exactly as before.
-    if (S.rustReady) await S.rustReady;
-    const wasm = { wasm: true };
-    const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices, wasm) : S.build(undefined, wasm);
+    if (rustOpts.wasm && S.rustReady) await S.rustReady;
+    const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices, rustOpts) : S.build(undefined, rustOpts);
     B.filtered=[];
     B.filterPending=[];
     const built = area ? [] : (_built = []);
@@ -2713,7 +2731,11 @@
         }
         built.push(r.value);
       }
-      catch (e) { B.filterPending.length=pendingStart; console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); if (area) area.failed.push(spec.id || spec.name); }
+      catch (e) {
+        // The Rust builder broke (stamped by js/slopes-rust.js): this is not this building's fault and every later building would
+        // run on the same broken instance. Leave the loop; build() above takes the build back and runs it again on the JS builder.
+        if (e && e.rustBuilderError) throw e;
+        B.filterPending.length=pendingStart; console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); if (area) area.failed.push(spec.id || spec.name); }
       await pause();
     }
     if (cancelled()) { discard(); return null; }

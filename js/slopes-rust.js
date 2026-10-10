@@ -22,6 +22,25 @@
  * No DOM, no window: it runs in Node for the parity check.
  */
 
+/**
+ * Every call into the module (and every view of its memory) goes through `wasm()`, which stamps any error it throws with
+ * `rustBuilderError = true` before rethrowing it. A trap ("unreachable", out of bounds), an out-of-memory RangeError or a
+ * throwing import all arrive here as ordinary exceptions. The stamp is how js/slopes.js `withRustFallback()` and the
+ * apartment builder tell "the Rust builder broke" (rebuild everything in JS, and stop using the module) from "this
+ * building's recipe has a bug" (skip that building, as before). It is set only around calls into the module, never
+ * around the generator's own code, so a recipe error can never be mistaken for a Wasm one.
+ */
+function wasm(fn) {
+  try { return fn(); }
+  catch (e) {
+    let err = e;
+    if (err === null || (typeof err !== 'object' && typeof err !== 'function')) { err = new Error('Rust builder: ' + String(e)); err.cause = e; }
+    try { err.rustBuilderError = true; } catch (_) { /* a frozen error object */ }
+    if (err.rustBuilderError !== true) { const w = new Error('Rust builder: ' + String(err && err.message || err)); w.cause = err; w.rustBuilderError = true; err = w; }
+    throw err;
+  }
+}
+
 const REC = 28;   // f64 per staged record: [op, tone, hasWant, want xyz, a xyz, b xyz, c xyz, d xyz, na xyz, nb xyz, nc xyz, facet]
 
 async function compile(wasmUrl) {
@@ -45,15 +64,18 @@ export async function loadRustBuilder({ wasmUrl, module, stageRecords = 8192, re
 
   return function buildRust(/* initialCapacity: unused, the module grows by itself; reserveVertices is the hint */) {
     const T = three();
-    const X = new WebAssembly.Instance(mod, {}).exports;
-    X.init(reserveVertices);
-    if (info) info.builds++;
-    const mem = X.memory;
+    let X, mem, stagePtr, S, n = 0;
     const CAP = stageRecords;
-    const stagePtr = X.stage(CAP);
-    let S = new Float64Array(mem.buffer, stagePtr, CAP * REC), n = 0;
+    wasm(() => {
+      X = new WebAssembly.Instance(mod, {}).exports;
+      X.init(reserveVertices);
+      mem = X.memory;
+      stagePtr = X.stage(CAP);
+      S = new Float64Array(mem.buffer, stagePtr, CAP * REC);
+    });
+    if (info) info.builds++;
     const retake = () => { if (S.buffer !== mem.buffer) S = new Float64Array(mem.buffer, stagePtr, CAP * REC); };
-    const flush = () => { if (!n) return; X.process(n); n = 0; retake(); };
+    const flush = () => { if (!n) return; wasm(() => { X.process(n); n = 0; retake(); }); };
 
     // A tone is the same [day, golden, night] array object for every vertex it colours, so its three hex lookups and
     // the palette entry are made once per object (the JS builder's colCache, with the same lifetime).
@@ -63,9 +85,9 @@ export async function loadRustBuilder({ wasmUrl, module, stageRecords = 8192, re
       let i = ids.get(col);
       if (i === undefined) {
         const d = bytes(col[0]), g = bytes(col[1]), k = bytes(col[2]), s = col.surface || [0, 0, 0, 0];
-        i = X.palette_add(d[0], d[1], d[2], g[0], g[1], g[2], k[0], k[1], k[2], s[0], s[1], s[2], s[3]);
+        i = wasm(() => X.palette_add(d[0], d[1], d[2], g[0], g[1], g[2], k[0], k[1], k[2], s[0], s[1], s[2], s[3]));
         ids.set(col, i);
-        retake();                 // palette_add can grow memory
+        wasm(retake);             // palette_add can grow memory
       }
       return i;
     };
@@ -97,21 +119,23 @@ export async function loadRustBuilder({ wasmUrl, module, stageRecords = 8192, re
 
     function geometry() {
       flush();
-      X.release_stage();
-      const g = new T.BufferGeometry(), v = X.vertex_count(), m = mem.buffer;
-      // Views of the module's memory, not copies: see the header. Nothing may grow this memory from here on.
-      g.setAttribute('position', new T.BufferAttribute(new Float32Array(m, X.position_ptr(), v * 3), 3));
-      g.setAttribute('normal', new T.BufferAttribute(new Float32Array(m, X.normal_ptr(), v * 3), 3));
-      g.setAttribute('cDay', new T.BufferAttribute(new Uint8Array(m, X.day_ptr(), v * 3), 3, true));
-      g.setAttribute('cGold', new T.BufferAttribute(new Uint8Array(m, X.golden_ptr(), v * 3), 3, true));
-      g.setAttribute('cNight', new T.BufferAttribute(new Uint8Array(m, X.night_ptr(), v * 3), 3, true));
-      g.setAttribute('aFacet', new T.BufferAttribute(new Uint8Array(m, X.facet_ptr(), v), 1, false));
-      g.setAttribute('aSurface', new T.BufferAttribute(new Float32Array(m, X.surface_ptr(), v * 4), 4));
-      g.setIndex(new T.BufferAttribute(new Uint32Array(m, X.index_ptr(), X.index_count()), 1));
-      if (info) info.lastWasmBytes = m.byteLength;
-      g.computeBoundingSphere();
-      return g;
+      return wasm(() => {
+        X.release_stage();
+        const g = new T.BufferGeometry(), v = X.vertex_count(), m = mem.buffer;
+        // Views of the module's memory, not copies: see the header. Nothing may grow this memory from here on.
+        g.setAttribute('position', new T.BufferAttribute(new Float32Array(m, X.position_ptr(), v * 3), 3));
+        g.setAttribute('normal', new T.BufferAttribute(new Float32Array(m, X.normal_ptr(), v * 3), 3));
+        g.setAttribute('cDay', new T.BufferAttribute(new Uint8Array(m, X.day_ptr(), v * 3), 3, true));
+        g.setAttribute('cGold', new T.BufferAttribute(new Uint8Array(m, X.golden_ptr(), v * 3), 3, true));
+        g.setAttribute('cNight', new T.BufferAttribute(new Uint8Array(m, X.night_ptr(), v * 3), 3, true));
+        g.setAttribute('aFacet', new T.BufferAttribute(new Uint8Array(m, X.facet_ptr(), v), 1, false));
+        g.setAttribute('aSurface', new T.BufferAttribute(new Float32Array(m, X.surface_ptr(), v * 4), 4));
+        g.setIndex(new T.BufferAttribute(new Uint32Array(m, X.index_ptr(), X.index_count()), 1));
+        if (info) info.lastWasmBytes = m.byteLength;
+        g.computeBoundingSphere();
+        return g;
+      });
     }
-    return { tri, triN, quad, polygon, extrude, geometry, facet, get triangles() { flush(); return X.triangle_count(); } };
+    return { tri, triN, quad, polygon, extrude, geometry, facet, get triangles() { flush(); return wasm(() => X.triangle_count()); } };
   };
 }
