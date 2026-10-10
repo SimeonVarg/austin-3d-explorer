@@ -79,7 +79,7 @@
     lampAmp:.30,         // the same for a lamp head (as a change of its radius, so about 2x in light)
     nearM:300,           // no shimmer inside this distance
     farM:2600,           // full strength from here
-    hz:[2.2,6.8],        // the two slow oscillators per light. Below the ~15 Hz the dark-adapted eye follows
+    hz:[2.0,6.0],        // the two slow oscillators per light, under half the 15 Hz redraw and under the ~15 Hz the dark-adapted eye follows
     colourWobble:.45,    // share of the amplitude that goes to a red/blue swing (1 = as large as brightness)
     footprintM:[3,12],   // the shimmer fades out where one pixel covers more than this much wall (no aliasing)
     repaintHz:15,        // a parked camera is redrawn this often at night, only while shimmer is on

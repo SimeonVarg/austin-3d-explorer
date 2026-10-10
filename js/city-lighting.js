@@ -110,7 +110,7 @@
       }
       return mix(point,sum/(nx*ny),fade);
     }`;
-  const E=window.CityNight?.eye||{footprintM:[3,12],hz:[2.2,6.8],colourWobble:.45,switchS:[150,900],offBase:.045,lateDropout:.18,officeExtra:1.3,nearM:300,farM:2600};
+  const E=window.CityNight?.eye||{footprintM:[3,12],hz:[2.0,6.0],colourWobble:.45,switchS:[150,900],offBase:.045,lateDropout:.18,officeExtra:1.3,nearM:300,farM:2600};
   const glsl = `
     vec3 linearColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(2.2)); }
     vec3 displayColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(1.0/2.2)); }
@@ -193,10 +193,15 @@
       int bits=int(u_cityEye2.w+.5);
       if(bits==0||u_cityNight.x<=0.0)return vec3(1.0);
       if(dot(src,vec3(.2126,.7152,.0722))<u_cityNight.z)return vec3(1.0);
-      highp uvec3 q=uvec3(clamp(floor(src*255.0+.5),0.0,255.0));
-      highp uvec3 h=cityPcg(uvec3(q.r|(q.g<<8u)|(q.b<<16u),9157u,23501u));
+      // The name drops the low 3 bits of each channel: a filtered edge pixel (a window blended with its wall) then keeps
+      // its neighbour's name more often, so a camera move does not re-roll a window's bedtime. A name still cannot tell
+      // two windows of one colour apart; the 37 m cell and the position phase do that.
+      highp uvec3 q=uvec3(clamp(floor(src*255.0+.5),0.0,255.0))>>3u;
+      highp uvec3 h=cityPcg(uvec3(q.r|(q.g<<5u)|(q.b<<10u),9157u,23501u));
       highp uvec3 h2=cityPcg(h^uvec3(1752346532u));
       vec3 f=vec3(h>>8u)/16777216.0,g=vec3(h2>>8u)/16777216.0;
+      highp uvec3 hc=cityPcg(uvec3(ivec3(floor(pos/vec3(37.0,37.0,11.0)))+ivec3(4096)));
+      float cell=float(hc.x>>8u)/16777216.0;
       float t=u_cityEye.x,gain=1.0;vec3 tint=vec3(1.0);
       if((bits&1)!=0) {
         float d=distance(u_eye,pos);
@@ -211,15 +216,13 @@
         }
       }
       if((bits&2)!=0) {
+        // Slow change. Window name and 37 m cell only (no position gradient: a transition must not sweep across one window).
         float period=mix(${E.switchS[0].toFixed(1)},${E.switchS[1].toFixed(1)},f.y);
-        float ph2=dot(pos,vec3(.093,.071,.137));
-        float k=fract(t/period+g.z+f.x*7.0+ph2*.17);
-        float rest=smoothstep(${(1-E.offBase-.03).toFixed(3)},${(1-E.offBase).toFixed(3)},k)*(1.0-smoothstep(.985,1.0,k));
+        float k=fract(t/period+g.z+f.x*7.0+cell*3.0);
+        float rest=smoothstep(${(1-E.offBase-.01).toFixed(3)},${(1-E.offBase).toFixed(3)},k)*(1.0-smoothstep(.99,1.0,k));
         float office=smoothstep(-.02,.06,src.b-src.r);
         float dark=u_cityEye.w*${E.lateDropout.toFixed(3)}*(1.0+${E.officeExtra.toFixed(3)}*office);
-        // The bedtime mixes the window's colour name with a 37 m x 11 m cell, so the same colour does not go dark everywhere at once.
-        highp uvec3 hc=cityPcg(uvec3(ivec3(floor(pos/vec3(37.0,37.0,11.0)))+ivec3(4096)));
-        float bed=fract(f.x+float(hc.x>>8u)/16777216.0);
+        float bed=fract(f.x+cell);
         gain*=(1.0-rest)*(1.0-smoothstep(bed,bed+.05,dark));
       }
       return gain*tint;
