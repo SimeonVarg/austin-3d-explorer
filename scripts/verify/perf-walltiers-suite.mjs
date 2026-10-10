@@ -67,7 +67,8 @@ const pictures = (mode, base, sides) => {
 // picsvar: the default page against the same page with one switch off (--var wtwarm=0, `+` joins several), to find which part of
 // the change moved a pixel; the old painting is shot once and the variant once
 if (STEPS.includes('picsvar')) pictures('var', 'namelabels=0', [['before', '&walltiers=0'], ['after', '&' + arg('--var', 'wtwarm=0').replaceAll('+', '&')]]);
-if (STEPS.includes('pics')) pictures('paced', 'namelabels=0', [['before', '&walltiers=0'], ['after', ''], ['again', '&walltiers=0']]);
+const PICQ = arg('--picq', '').replaceAll('+', '&');   // extra query on every picture, e.g. campuslandscape=0 to take the trees out
+if (STEPS.includes('pics')) pictures('paced', 'namelabels=0' + (PICQ ? '&' + PICQ : ''), [['before', '&walltiers=0'], ['after', ''], ['again', '&walltiers=0']]);
 if (STEPS.includes('mem')) {
   [['eager', '?drift=0&walltiers=0'], ['lazy', '?drift=0']].forEach(([name, q], i) => {
     run('mem-' + name, 'mobile-memory.mjs', ['--arms', name + '=' + URLB, '--query', q, '--reps', '1', '--out', path.join(OUT, 'mem-' + name + '-' + i)]);
