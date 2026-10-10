@@ -13,6 +13,7 @@
  *   node outer-homes.mjs                       assertions only
  *   node outer-homes.mjs --out DIR             + labelled before/after frames
  *   node outer-homes.mjs --out DIR --poses F   your own cameras
+ *   node outer-homes.mjs --query a=1&b=2       extra page flags
  *   node outer-homes.mjs --perf                frame time, houses off and on, six interleaved
  *                                              reps at four cameras (hardware GL, quiet machine)
  *
@@ -56,7 +57,7 @@ await page.addInitScript(() => {
   const t = setInterval(() => { if (window.cancelGraphicsAutoDetect) { window.cancelGraphicsAutoDetect(); clearInterval(t); } }, 20);
   setTimeout(() => clearInterval(t), 30000);
 });
-await page.goto(BASE + '/?intro=0&drift=0&namelabels=0&facadepace=0&timeofdaypace=0', { waitUntil: 'domcontentloaded', timeout: 180000 });
+await page.goto(BASE + '/?intro=0&drift=0&namelabels=0&facadepace=0&timeofdaypace=0' + (arg('--query') ? '&' + arg('--query') : ''), { waitUntil: 'domcontentloaded', timeout: 180000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 300000 });
 await page.waitForFunction(() => window.outerHomes && window.outerHomes.stats().done, null, { timeout: 600000, polling: 500 });
 await page.waitForFunction(() => !document.getElementById('veil'), null, { timeout: 600000, polling: 500 }).catch(() => log('WARN: veil still up'));

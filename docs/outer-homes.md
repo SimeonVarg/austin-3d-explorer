@@ -25,6 +25,13 @@ with GPU instancing inside the existing 3D scene (`js/outer-homes.js`).
 
 ![Campus looking north, before and after](shots/outer-homes/campus-to-north.jpg)
 
+![Tarrytown from the air, before and after](shots/outer-homes/tarrytown-air.jpg)
+
+![East Austin from the air, before and after](shots/outer-homes/east-austin-air.jpg)
+
+Every "before" is the `main` branch from the same made-up camera; none of the
+cameras is a photograph's.
+
 ## Accuracy, before and after
 
 `python scripts/measure_outer.py` writes this table to
