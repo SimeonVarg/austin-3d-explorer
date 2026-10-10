@@ -3,7 +3,7 @@
  * ANOTHER on the AWS GPU runner (aws-gpu.yml starts listed checks in parallel; timing runs must not disturb each other). Not a check: no verdict.
  * Listed under laptop_only in ci/checks.json. Modelled on perf-walltiers-suite.mjs.
  *
- *   node perf-rustpack-suite.mjs [--steps desktop,phone,mem] [--reps N] [--arms off,on,pack,packrust,worker]
+ *   node perf-rustpack-suite.mjs [--steps desktop,phone,mem] [--reps N] [--arms off,on,pack,packrust,worker]   (off+on+pack ... also works: the AWS workflow splits its checks on commas)
  *
  * Steps (each is its own fresh Chrome per load; every setting is printed by the tool it calls):
  *   desktop  rust-builder-page.mjs at 1440x900, the arms interleaved rep by rep (A B C D, B C D A, ...), --reps (default 5): min / median / max of
@@ -22,7 +22,7 @@ const argv = process.argv.slice(2);
 const arg = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
 const STEPS = arg('--steps', 'desktop,phone,mem').split(',');
 const REPS = +arg('--reps', 5), MEMREPS = +arg('--memreps', 3);
-const ARMS = arg('--arms', 'off,on,pack,packrust,worker');
+const ARMS = arg('--arms', 'off,on,pack,packrust,worker').replace(/\+/g, ',');   // aws-gpu.yml splits its `checks` input on commas, so arms may be given as off+on+pack
 const OUT = process.env.VERIFY_OUT || '/tmp/perf-rustpack-suite';
 const URLB = process.env.VERIFY_URL || 'http://127.0.0.1:8442';
 const QUERY = { off: '', on: 'rustbuilder=1', pack: 'packverts=1', packrust: 'rustbuilder=1&packverts=1', packmerge: 'packverts=1&packmerge=1', worker: 'buildworker=1', workerpack: 'buildworker=1&packverts=1' };
