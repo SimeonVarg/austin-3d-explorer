@@ -1915,7 +1915,7 @@
       usePreset('performance', true);
       GFX.autoDownAt = Date.now();   // expires: see AUTO_DOWNGRADE_TTL_MS
       save();
-      toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`,
+      toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Open Graphics settings (top right) to change.`,
         TOAST_PROBE_MS);
     } else {
       // Changed nothing -> say nothing. The old confirmation toast sat over the
