@@ -27,7 +27,8 @@
     // heights, read by eye from one oblique photograph: every one is a share of the wall height here.
     west: {pier: 1.7, pierProud: 0.95, rib: 0.95, ribWidth: 0.42, ribProud: 0.28, glassRecess: 0.45,
       levels: [0.13, 0.50, 0.57, 0.86, 0.91],      // ground openings | ribbed panel | window band | ribbed panel | window band | top
-      pylonHalf: 9, pylonProud: 2.4, pylonRise: 4.5, wallTone: 'stone', proudTone: 'paint'},
+      pylonHalf: 9, pylonProud: 2.4, pylonRise: 4.5, wallTone: 'stone', proudTone: 'paint', panelTone: 'concrete',
+      glassTone: 'black'},                         // the photographs show dark navy window bands; the shared 'glass' tone mirrors the sky and drew them pale blue
     supportPitch: 13, supportWidth: 0.65,
     towerSegments: 32, rampTurns: 3, rampSegments: 96,
     boardSegments: 24, boardBorder: 0.65,
@@ -222,15 +223,22 @@
       quad(B,at(u,z1,0),at(u,z1,o),at(v,z1,o),at(v,z1,0),key,[0,0,1]);
     };
     const L=w.levels.map(k=>k*height),half=w.pier/len/2;
-    quad(B,at(0,0),at(1,0),at(1,height),at(0,height),w.wallTone,out);            // the solid wall
+    // The wall is drawn in pieces AROUND the window bands. (It was one sheet over the whole face, and the glass,
+    // set back behind it, was hidden: by day the "windows" were bare wall.)
+    const wall=(u,v,z0,z1,key=w.wallTone)=>{if(v>u&&z1>z0)quad(B,at(u,z0),at(v,z0),at(v,z1),at(u,z1),key,out);};
     const ribs=(u,v,z0,z1)=>{const m=Math.max(1,Math.round((v-u)*len/w.rib));
       for(let k=0;k<m;k++){const c=lerp(u,v,(k+.5)/m),h=w.ribWidth/len/2;proud(c-h,c+h,z0,z1,w.ribProud,w.proudTone);}};
-    const band=(u,v,z0,z1)=>{quad(B,at(u,z0,-w.glassRecess),at(v,z0,-w.glassRecess),at(v,z1,-w.glassRecess),at(u,z1,-w.glassRecess),'glass',out);
-      const m=Math.max(1,Math.round((v-u)*len/(w.rib*2)));for(let k=1;k<m;k++){const c=lerp(u,v,k/m);beam(B,at(c,z0,-w.glassRecess+.08),at(c,z1,-w.glassRecess+.08),0.14,w.wallTone);}};
+    const band=(u,v,z0,z1,o=0)=>{const r=o-w.glassRecess;quad(B,at(u,z0,r),at(v,z0,r),at(v,z1,r),at(u,z1,r),w.glassTone,out);
+      // the four faces of the opening, from the wall plane back to the glass
+      quad(B,at(u,z0,o),at(v,z0,o),at(v,z0,r),at(u,z0,r),w.wallTone,[0,0,1]);quad(B,at(u,z1,r),at(v,z1,r),at(v,z1,o),at(u,z1,o),w.wallTone,[0,0,-1]);
+      quad(B,at(u,z0,r),at(u,z0,o),at(u,z1,o),at(u,z1,r),w.wallTone,along);quad(B,at(v,z0,o),at(v,z0,r),at(v,z1,r),at(v,z1,o),w.wallTone,back);
+      const m=Math.max(1,Math.round((v-u)*len/(w.rib*2)));for(let k=1;k<m;k++){const c=lerp(u,v,k/m);beam(B,at(c,z0,r+.08),at(c,z1,r+.08),0.14,w.wallTone);}};
     const mid=0.5,ph=w.pylonHalf/len;
     for(let i=0;i<=n;i++){const u=i/n;if(Math.abs(u-mid)<ph)continue;proud(Math.max(0,u-half),Math.min(1,u+half),0,height,w.pierProud,w.proudTone);}
     for(let i=0;i<n;i++){
-      const u=i/n+half,v=(i+1)/n-half;if(v<=u||(u>mid-ph&&v<mid+ph))continue;
+      const u=i/n+half,v=(i+1)/n-half;if(v<=u||(u>mid-ph&&v<mid+ph)){wall(i/n,(i+1)/n,0,height);continue;}
+      wall(i/n,u,0,height);wall(v,(i+1)/n,0,height);                                             // behind the piers
+      wall(u,v,0,0.4);wall(u,v,L[0],L[1],w.panelTone);wall(u,v,L[2],L[3],w.panelTone);wall(u,v,L[4],height);
       band(u,v,0.4,L[0]);ribs(u,v,L[0]+.5,L[1]);band(u,v,L[1],L[2]);ribs(u,v,L[2]+.4,L[3]);band(u,v,L[3],L[4]);
     }
     // the taller ribbed pylon at the middle
@@ -238,7 +246,7 @@
     const m=Math.max(1,Math.round(w.pylonHalf*2/w.rib));
     for(let k=0;k<m;k++){const c=lerp(mid-ph,mid+ph,(k+.5)/m),h=w.ribWidth/len/2;
       quad(B,at(c-h,L[0],w.pylonProud+w.ribProud),at(c+h,L[0],w.pylonProud+w.ribProud),at(c+h,height+w.pylonRise-.6,w.pylonProud+w.ribProud),at(c-h,L[0],w.pylonProud+w.ribProud).slice(0,2).concat(height+w.pylonRise-.6),w.proudTone,out);}
-    band(mid-ph*.55,mid+ph*.55,0.4,L[0]);
+    band(mid-ph*.55,mid+ph*.55,0.4,L[0],w.pylonProud+.02);                                          // the door opening, in the pylon's own front
     beam(B,at(0,height,w.pierProud),at(1,height,w.pierProud),0.9,w.proudTone);                        // coping
     const inside=a.map((v,i)=>v-outward[i]*5),insideB=b.map((v,i)=>v-outward[i]*5);
     slab(B,[a,b,insideB,inside],height-0.5,height,'stone');
