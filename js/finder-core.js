@@ -126,20 +126,16 @@ function edgeSeconds(G, e) {
 // ══════════════════════════════════════════════════════════════════════════
 
 /**
- * The shortest-path tree from a building's doors. Memoised per code on the
- * graph. Returns null when the code has no door in this graph.
+ * The shortest-path tree from a set of seeds (Dijkstra over the main component).
+ *   seeds  [{n, c, lo, hi, door}]: a node, its starting cost, the walking seconds already spent to reach it, and the
+ *          [lon, lat] of the door it links to (or null).
  *   cost[n]  equivalent flat metres (what the search minimises)
  *   lo[n], hi[n]  walking seconds along the tree path
- *   prev[n]  the next node TOWARD the building (-1 at a seed)
+ *   prev[n]  the next node TOWARD the seed (-1 at a seed)
  *   door[n]  for a seed node: the [lon, lat] of the door it links to
  */
-export function buildingTree(G, code) {
-  const P = prepareGraph(G);
-  code = String(code || '').toUpperCase();
-  if (P.trees.has(code)) return P.trees.get(code);
-  const ds = G.code && G.code[code];
-  if (!ds || !ds.length) { P.trees.set(code, null); return null; }
-  const N = G.N, mult = WALKG.linkCostMult;
+function treeFrom(G, P, seeds, code) {
+  const N = G.N;
   const cost = new Float64Array(N).fill(INF);
   const lo = new Float32Array(N), hi = new Float32Array(N);
   const prev = new Int32Array(N).fill(-1);
@@ -172,16 +168,11 @@ export function buildingTree(G, code) {
     }
     return [n, d];
   };
-  for (const di of ds) {
-    const d = G.doors[di];
-    if (!d) continue;
-    for (let k = 0; k < d[2].length; k++) {
-      const n = d[2][k], c = (d[3][k] / 100) * mult;
-      if (!P.main[n]) continue;
-      if (c < cost[n]) { cost[n] = c; door.set(n, [d[0] * 1e-6, d[1] * 1e-6]); push(n, c); }
-    }
+  for (const sd of seeds) {
+    if (!P.main[sd.n]) continue;
+    if (sd.c < cost[sd.n]) { cost[sd.n] = sd.c; lo[sd.n] = sd.lo; hi[sd.n] = sd.hi; if (sd.door) door.set(sd.n, sd.door); push(sd.n, sd.c); }
   }
-  if (!hn.length) { P.trees.set(code, null); return null; }
+  if (!hn.length) return null;
   while (hn.length) {
     const [u, du] = pop();
     if (du > cost[u]) continue;
@@ -197,9 +188,53 @@ export function buildingTree(G, code) {
       }
     }
   }
-  const tree = { code, cost, lo, hi, prev, door };
+  return { code, cost, lo, hi, prev, door };
+}
+
+/**
+ * The shortest-path tree from a building's doors. Memoised per code on the
+ * graph. Returns null when the code has no door in this graph.
+ */
+export function buildingTree(G, code) {
+  const P = prepareGraph(G);
+  code = String(code || '').toUpperCase();
+  if (P.trees.has(code)) return P.trees.get(code);
+  const ds = G.code && G.code[code];
+  if (!ds || !ds.length) { P.trees.set(code, null); return null; }
+  const mult = WALKG.linkCostMult, seeds = [];
+  for (const di of ds) {
+    const d = G.doors[di];
+    if (!d) continue;
+    for (let k = 0; k < d[2].length; k++) seeds.push({ n: d[2][k], c: (d[3][k] / 100) * mult, lo: 0, hi: 0, door: [d[0] * 1e-6, d[1] * 1e-6] });
+  }
+  const tree = treeFrom(G, P, seeds, code);
   P.trees.set(code, tree);
   return tree;
+}
+
+/**
+ * The tree from a HOME's anchors (homeAnchors()), so the walk from the home to any stop is a lookup. Not memoised: a tree is
+ * a few hundred KB, and the ranking needs one home's at a time. The walking seconds already spent reaching an anchor
+ * (its snap link, `m`) start the clock, as walkFrom() counts them. Null when no anchor is on the main component.
+ */
+export function homeTree(G, anchors) {
+  const P = prepareGraph(G), T = G.tune;
+  const seeds = (anchors || []).map((a) => ({ n: a.node, c: a.c, lo: a.m / T.WALK_SPEED_HIGH_MS, hi: a.m / T.WALK_SPEED_LOW_MS, door: a.from || null }));
+  return treeFrom(G, P, seeds, 'home');
+}
+
+/** Walking seconds [lo, hi] along a tree to a point [lon, lat] (a bus stop): the nearest path node within snapMaxM, its snap link
+ *  counted as walking. null when the point is off the paths or unreachable. */
+export function walkToPoint(G, tree, p, maxM = CORE.snapMaxM) {
+  if (!tree) return null;
+  // The same stops are asked about for every home: remember where each snaps (per graph, per reach).
+  const P = prepareGraph(G), key = p[0] + ',' + p[1] + '@' + maxM;
+  if (!P.snaps) P.snaps = new Map();
+  let s = P.snaps.get(key);
+  if (s === undefined) { s = nearestNode(G, p, maxM); P.snaps.set(key, s); }
+  if (!s || tree.cost[s.node] === INF) return null;
+  const T = G.tune;
+  return [tree.lo[s.node] + s.m / T.WALK_SPEED_HIGH_MS, tree.hi[s.node] + s.m / T.WALK_SPEED_LOW_MS];
 }
 
 /** Where a home joins the graph: its mapped doors when the router knows it

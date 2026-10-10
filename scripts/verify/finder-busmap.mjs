@@ -45,7 +45,8 @@ try {
   note.rankingMsInBrowser = s.bus.stats && s.bus.stats.ms;
   const subs = await page.$$eval('.fd-item', (lis) => lis.map((li) => ({ id: li.dataset.id, name: li.querySelector('.fd-name').textContent, sub: li.querySelector('.fd-sub').textContent, min: li.querySelector('.fd-min').textContent })));
   note.rows = subs;
-  check('rows say walk or bus, as a range', subs.every((r) => /· (walk|bus about|walk \+ bus about) \d+–\d+ min$/.test(r.sub)), subs.filter((r) => !/· (walk|bus about|walk \+ bus about) \d+–\d+ min$/.test(r.sub)).slice(0, 3));
+  const rowOk = (r) => /· (walk \d+–\d+ min|(walk \+ )?bus about \d+–\d+ min on class days)$/.test(r.sub);
+  check('rows say walk, or bus about a range ON CLASS DAYS', subs.every(rowOk), subs.filter((r) => !rowOk(r)).slice(0, 3));
   const busRows = subs.filter((r) => /bus about/.test(r.sub));
   check('some rows go by bus and most are still walks', busRows.length >= 4 && subs.filter((r) => /· walk \d/.test(r.sub)).length >= 10, { bus: busRows.length, walk: subs.filter((r) => /· walk \d/.test(r.sub)).length });
   await shot('01-ranking');
@@ -70,23 +71,53 @@ try {
   const layers = await page.evaluate(() => ['finder-route-bus', 'finder-route-walk', 'finder-route-link', 'finder-route-stop', 'finder-route-casing'].map((id) => [id, !!window.__map.getLayer(id)]));
   check('the route layers exist (bus, walk, link, stop, casing)', layers.every((l) => l[1]), layers);
   await shot('02-trip-selected');
-  // frame the whole trip: the pictures the owner wants
-  const framed = await page.evaluate(() => {
-    const m = window.__map, fs = m.querySourceFeatures('finder-route'); if (!fs.length) return null;
-    let w = 180, e = -180, s = 90, n = -90;
-    for (const f of fs) { const flat = f.geometry.coordinates.flat(Infinity); for (let i = 0; i + 1 < flat.length; i += 2) { w = Math.min(w, flat[i]); e = Math.max(e, flat[i]); s = Math.min(s, flat[i + 1]); n = Math.max(n, flat[i + 1]); } }
-    try {
-      m.stop(); const cam = m.cameraForBounds([[w, s], [e, n]], { padding: { top: 90, bottom: 90, left: 440, right: 90 } });
-      if (cam) m.jumpTo({ center: cam.center, zoom: Math.min(cam.zoom, 15.8), pitch: 35, bearing: 0 });
-    } catch (err) { return { error: String(err) }; }
-    return { bounds: [w, s, e, n], zoom: m.getZoom() };
-  }).catch((err) => ({ error: String(err) }));
-  note.framed = framed;
+  // ── the whole trip in view (FINDER.fly.tripFit) ──
+  const homesDoc = await page.evaluate(async () => (await fetch('data/finder/homes.json')).json());
+  const home = homesDoc.homes.find((x) => x.id === pick.id);
+  const view = () => page.evaluate((hp) => {
+    const m = window.__map, W = innerWidth, H = innerHeight, pt = (c) => { const q = m.project(c); return { x: Math.round(q.x), y: Math.round(q.y) }; };
+    const stops = m.querySourceFeatures('finder-route').filter((f) => f.properties.k === 'stop').map((f) => pt(f.geometry.coordinates));
+    const tags = [...document.querySelectorAll('.fd-dest')].map((n) => { const r = n.getBoundingClientRect(); return { t: n.textContent.slice(0, 24), x: Math.round(r.left), y: Math.round(r.top), r: Math.round(r.right), b: Math.round(r.bottom) }; });
+    const panel = document.getElementById('finder').getBoundingClientRect();
+    return { W, H, panelRight: Math.round(panel.right), home: pt(hp), stops, tags, zoom: +m.getZoom().toFixed(2), pitch: Math.round(m.getPitch()), center: [m.getCenter().lng, m.getCenter().lat] };
+  }, home.p);
+  let v = await view();
+  const inside = (p) => p.x >= v.panelRight - 4 && p.x <= v.W && p.y >= 0 && p.y <= v.H;
+  note.view = v;
+  check('the whole trip is in view: the home and both stops are on screen, right of the panel', inside(v.home) && v.stops.length >= 2 && v.stops.every(inside), { home: v.home, stops: v.stops, panelRight: v.panelRight });
+  const doorTag = v.tags.find((t) => !/^(Board|Get off)/.test(t.t));
+  check('and so is the class building\'s door tag', !!doorTag && doorTag.x >= v.panelRight - 4 && doorTag.r <= v.W && doorTag.y >= 0 && doorTag.b <= v.H, doorTag);
+  check('the view is wider than the old bus view (zoom under 16) and lifts the old ceiling', v.zoom < 16 && v.zoom >= 12.5, { zoom: v.zoom, pitch: v.pitch });
   await sleep(6000);
+  const v2 = await view();
+  check('the camera stays where the glide put it (the controller does not pull it back)', Math.abs(v2.zoom - v.zoom) < 0.05 && Math.abs(v2.center[0] - v.center[0]) < 1e-4 && Math.abs(v2.center[1] - v.center[1]) < 1e-4, { before: v.zoom, after: v2.zoom });
   await shot('03-trip-framed');
+  // a visitor who moves the camera keeps it: pan away, wait through two live polls, nothing pulls it back
+  const panned = await page.evaluate(() => { const m = window.__map, c = m.getCenter(); m.jumpTo({ center: [c.lng + 0.004, c.lat - 0.003] }); const n = m.getCenter(); return [n.lng, n.lat]; });
+  await sleep(45000);
+  const v3 = await view();
+  check('after the visitor pans, two live polls do not move the camera back', Math.abs(v3.center[0] - panned[0]) < 1e-4 && Math.abs(v3.center[1] - panned[1]) < 1e-4 && Math.abs(v3.zoom - v2.zoom) < 0.05, { panned, after: v3.center });
+  // ...and a visitor who moves it DURING the glide keeps it too
+  const other = busRows.find((x) => x.id !== pick.id);
+  await page.evaluate((id) => window.finderSelect(id), other.id);
+  await sleep(500);
+  const mid = await page.evaluate(() => { const m = window.__map, c = m.getCenter(); m.jumpTo({ center: [c.lng - 0.01, c.lat + 0.01] }); const n = m.getCenter(); return [n.lng, n.lat]; });
+  await sleep(3500);
+  const v4 = await view();
+  check('a camera moved in the middle of the glide is left alone', Math.abs(v4.center[0] - mid[0]) < 2e-4 && Math.abs(v4.center[1] - mid[1]) < 2e-4, { mid, after: v4.center });
+  await page.evaluate((id) => window.finderSelect(id), pick.id);          // back to the first home for the rest
+  await page.waitForFunction(() => window.finderState().route.bus >= 1, null, { timeout: 20000 }).catch(() => {});
+  await sleep(3000);
   const line = await page.$eval('.fd-live', (n) => n.textContent).catch(() => null);
   note.liveLine = line;
   check('the live line under the home still reads', line && /Bus to|Walking to|No bus|Looking/.test(line), line);
+  const austin = await page.evaluate(() => { const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()); const g = (t) => p.find((x) => x.type === t).value; return { day: g('weekday'), minute: +g('hour') * 60 + +g('minute') }; });
+  const offToday = ['Sat', 'Sun'].includes(austin.day) || austin.minute < 360 || austin.minute >= 1320;
+  note.austinNow = austin;
+  const lineText = (line || '').replace(/Bus data:.*$/s, '');
+  if (/Walking to|No bus is running/.test(lineText) && offToday) check('today is not a class day or hour: the line says why it differs from the list', /^(Today is (Saturday|Sunday): fewer buses\.|It is late: fewer buses\.) /.test(lineText), lineText);
+  else if (!offToday && /Walking to|No bus is running/.test(lineText)) check('on a class day the line gives no off-day reason', !/fewer buses/.test(lineText), lineText);
+  else note.offDayLine = 'not exercised: the line is a bus line (' + lineText.slice(0, 60) + ')';
 
   // ── 3. "Show live buses" ─────────────────────────────────────────────────────
   check('the switch exists and is OFF by default', await page.$eval('.fd-livebuses input', (i) => i.checked === false), s.liveBuses);
@@ -152,7 +183,7 @@ try {
   await page.click('.fd-mode[data-mode=either]'); await sleep(1000);
 
   // ── 5. the privacy rule, on the wire ─────────────────────────────────────────
-  const home = await page.evaluate(() => window.finderState().selected);
+  const homeId = await page.evaluate(() => window.finderState().selected);
   const homes = await (await fetch(BASE + '/data/finder/homes.json')).json();
   const h = homes.homes.find((x) => x.id === pick.id);
   const needles = [h.id, h.name, h.name.toLowerCase().replace(/ /g, '-'), h.p[0].toFixed(4), h.p[1].toFixed(4), 'CS', 'GDC'].filter((x) => x && x.length > 4);

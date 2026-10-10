@@ -16,7 +16,8 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+// VERIFY_ROOT=<dir> checks another checkout (used to show the checks fail on a deliberately broken copy).
+const ROOT = process.env.VERIFY_ROOT ? path.resolve(process.env.VERIFY_ROOT) : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const core = await import(pathToFileURL(path.join(ROOT, 'js', 'finder-core.js')).href);
 const wg = await import(pathToFileURL(path.join(ROOT, 'js', 'walkgraph.js')).href);
 const readJSON = (rel) => JSON.parse(fs.readFileSync(path.join(ROOT, rel), 'utf8'));
@@ -119,6 +120,26 @@ const se = core.scoreHome([
 ], 'either');
 ok(se.legs[0].how === 'walk' && se.legs[1].how === 'bus' && se.how === 'mixed', 'either picks per building');
 near(se.lo, (10 + 15) / 2, 1e-12, 'either fast end'); near(se.hi, (14 + 25) / 2, 1e-12, 'either slow end');
+
+// The tree from a HOME (js/finder-core.js homeTree): the walk from the home to any point is a lookup. Home's door links to n0.
+//   n1 is 100 m of flat path from n0: lo 100 / 1.4-ish (bbbLo), hi bbbHi. n2 is 200 m with one signal.
+{
+  const an = core.homeAnchors(G, { wc: 'Home' }), tree = core.homeTree(G, an);
+  ok(tree && an.length === 1, 'a home tree from the Home door');
+  const at1 = [xs[1] * 1e-6, 30.285], at2 = [xs[2] * 1e-6, 30.285];
+  const w1 = core.walkToPoint(G, tree, at1);
+  near(w1[0], bbbLo, 1e-3, 'home -> n1, brisk'); near(w1[1], bbbHi, 1e-3, 'home -> n1, slow');
+  const w2 = core.walkToPoint(G, tree, at2);
+  near(w2[0], 200 / T.WALK_SPEED_HIGH_MS + T.SIGNAL_WAIT_LOW_S, 1e-3, 'home -> n2, brisk, one light'); near(w2[1], 200 / T.WALK_SPEED_LOW_MS + T.SIGNAL_WAIT_HIGH_S, 1e-3, 'home -> n2, slow, red light');
+  // a point 10 m east of n1 is snapped to n1 and the 10 m link is walking time: 10 / 1.4 s on the brisk side, 10 / 1.1 on the slow
+  const off = [xs[1] * 1e-6 + 10 / (111320 * Math.cos(30.285 * Math.PI / 180)), 30.285], w1b = core.walkToPoint(G, tree, off);
+  near(w1b[0] - w1[0], 10 / T.WALK_SPEED_HIGH_MS, 0.05, 'a point 10 m off the path: +10 m at the brisk speed'); near(w1b[1] - w1[1], 10 / T.WALK_SPEED_LOW_MS, 0.05, '... and at the slow speed');
+  ok(core.walkToPoint(G, tree, [-97.70, 30.40]) === null, 'a point far from any path: no walk');
+  ok(core.walkToPoint(G, tree, [xs[4] * 1e-6, 30.285]) === null, 'the off-main island is unreachable');
+  ok(core.walkToPoint(G, null, at1) === null && core.homeTree(G, []) === null, 'no tree, no anchors: null');
+  // the building tree is unchanged by the refactor: Home -> AAA is still the hand-computed number
+  near(core.walkFrom(G, core.buildingTree(G, 'AAA'), an).lo, aaaLo, 1e-3, 'building tree still gives Home -> AAA');
+}
 
 // A timetable bus for a walkable home (js/finder-bus.js hands the scorer legs shaped like the baked ones, plus src: 'timetable').
 // Building A (weight .5): walk 20-30 (mid 25), bus 13-22 (mid 17.5) -> the bus. Building B (.5): walk 5-7, no bus -> the walk.

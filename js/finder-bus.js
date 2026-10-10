@@ -47,6 +47,7 @@ const same = (a, b) => a === b || (a && b && a[0] === b[0] && a[1] === b[1]);
  * The timetable trip for one home and one door, or null. `from`, `to`: [lat, lon]. ctx:
  *   walkAll  [lo, hi] seconds, the whole way on foot by the walking graph, or null (then the straight-line model is used)
  *   endWalk  (stopLatLon) -> [lo, hi] seconds, the walking graph from a stop to the door, or null for the straight-line model
+ *   startWalk (stopLatLon) -> [lo, hi] seconds, the walking graph from the home to a stop, or null for the straight-line model
  *   when     {day, minute}; default BUS.when
  * Returns {src: 'timetable', lo, hi, mid (minutes), option} or null. `option` is transit-route.js's own answer, legs and all.
  */
@@ -55,7 +56,7 @@ export function busLeg(slice, from, to, ctx = {}) {
   if (walkAll && (walkAll[0] + walkAll[1]) / 120 < BUS.skipWalkMin) return null;
   const res = plan(slice, from, to, {
     when: ctx.when || BUS.when, transfers: BUS.transfers, beatsWalkS: BUS.beatsWalkS,
-    walkSec: (a, b) => same(a, from) && same(b, to) ? walkAll : same(b, to) && ctx.endWalk ? ctx.endWalk(a) : null,
+    walkSec: (a, b) => same(a, from) && same(b, to) ? walkAll : same(b, to) && ctx.endWalk ? ctx.endWalk(a) : same(a, from) && ctx.startWalk ? ctx.startWalk(b) : null,
   });
   const o = res.options && res.options[0];
   if (!o) return null;
@@ -64,7 +65,8 @@ export function busLeg(slice, from, to, ctx = {}) {
 
 /**
  * Every home x every building. `homes`: [{id, from: [lat, lon]}]; `targets`: [{code, to: [lat, lon]}];
- * `walkAll(homeIndex, targetIndex)` and `endWalk(targetIndex, stopLatLon)` are the finder's walking-graph answers.
+ * `walkAll(homeIndex, targetIndex)`, `endWalk(targetIndex, stopLatLon)` and `startWalk(homeIndex, stopLatLon)` (optional) are the
+ * finder's walking-graph answers; homes are asked one after the other, so a caller can keep just one home's tree.
  * `skip(homeIndex)` = true leaves a home alone (the four East Riverside homes keep their baked bus table).
  * `cache`: a Map kept by the caller; an answer is reused for the same home, door and baked slice.
  * Returns {legs: [homeIndex][targetIndex] -> busLeg | null, searches, cached, ms}.
@@ -80,7 +82,7 @@ export function busLegs(slice, homes, targets, cb, cache, now = () => Date.now()
       const key = h.id + '>' + t.code + '@' + t.to[0] + ',' + t.to[1];
       if (cache && cache.has(key)) { cached++; row.push(cache.get(key)); return; }
       searches++;
-      const leg = busLeg(slice, h.from, t.to, { walkAll: cb.walkAll(hi, ti), endWalk: (p) => cb.endWalk(ti, p) });
+      const leg = busLeg(slice, h.from, t.to, { walkAll: cb.walkAll(hi, ti), endWalk: (p) => cb.endWalk(ti, p), startWalk: cb.startWalk ? (p) => cb.startWalk(hi, p) : null });
       if (cache) cache.set(key, leg);
       row.push(leg);
     });
@@ -101,6 +103,7 @@ export function busLegs(slice, homes, targets, cb, cache, now = () => Date.now()
  *   'stop' a board / change / alight stop, `role` = 'board' | 'change' | 'alight', `c` = the route's colour
  * Coordinates are [lon, lat]. Returns {feats, stops, pts}: `stops` carry the words, `pts` every coordinate (to fit a camera).
  * opts.endPath([lon, lat] of the last stop) -> [[lon, lat], ...] from that stop to the door (core.treePath), or null.
+ * opts.startPath([lon, lat] of the first stop) -> [[lon, lat], ...] from the home to that stop, or null (a straight link).
  */
 export function tripFeatures(slice, option, from, to, opts = {}) {
   const feats = [], stops = [], pts = [];
@@ -117,7 +120,10 @@ export function tripFeatures(slice, option, from, to, opts = {}) {
   buses.forEach((leg, n) => {
     const board = at(leg.board), alight = at(leg.alight), dir = P.dirs[leg.k] && P.dirs[leg.k].d;
     if (!board || !alight || !dir) return;
-    push({ k: 'link' }, [here, board]);                             // the walk (or the change) to this stop
+    const sp = n === 0 && opts.startPath ? opts.startPath(board) : null;
+    if (sp && sp.length >= 3) {                                     // the mapped path from the home to the first stop
+      push({ k: 'link' }, sp.slice(0, 2)); push({ k: 'walk' }, sp.slice(1, -1)); push({ k: 'link' }, sp.slice(-2));
+    } else push({ k: 'link' }, [here, board]);                      // the walk (or the change) to this stop
     push({ k: 'bus', c: leg.color || null, r: leg.route }, shapeBetween(slice, dir, leg.i, leg.j));
     const first = n === 0;
     stops.push({ role: first ? 'board' : 'change', p: board, route: leg.route, name: leg.boardName, c: leg.color || null });

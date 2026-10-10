@@ -212,11 +212,20 @@ ok(/js\\\/wayfind\\\.js/.test(finder) && /s\.src = own;/.test(finder), 'it is th
   ok(!!via, 'FINDER.copy.via is there');
   if (via) {
     const V = new Function('return ' + via[1])();
-    ok(V.walk('14–18') === 'walk 14–18 min' && V.bus('12–17') === 'bus about 12–17 min' && V.mixed('9–15') === 'walk + bus about 9–15 min', 'a row says "walk 14–18 min" or "bus about 12–17 min": ' + [V.walk('14–18'), V.bus('12–17'), V.mixed('9–15')].join(' | '));
+    ok(V.walk('14–18') === 'walk 14–18 min' && V.bus('12–17') === 'bus about 12–17 min on class days' && V.mixed('9–15') === 'walk + bus about 9–15 min on class days',
+      'a row says "walk 14–18 min" or "bus about 12–17 min on class days": ' + [V.walk('14–18'), V.bus('12–17'), V.mixed('9–15')].join(' | '));
+    ok(!/class days|bus/.test(V.walk('1–2')) && /on class days$/.test(V.bus('1–2')) && /on class days$/.test(V.mixed('1–2')), 'every row that uses a bus says which days it means; a walk does not need to');
     ok(Object.values(V).every((f) => !/\d{1,2}:\d{2}|you will|guarantee|on time|live/i.test(f('1–2'))), 'a ranking row is the timetable: no clock time, no promise, never the word "live"');
   }
   const copyBlock = read('js/finder.js').match(/liveBusesToggle:[\s\S]*?liveBusesOn:[^\n]*\n/);
   ok(copyBlock && !/you will|guarantee|on time/i.test(copyBlock[0]), 'the live-buses copy makes no promise');
+
+  // ── the whole trip in view: once per selection, never on a live poll, stopped by the visitor's own move ──
+  ok(/tripFit: \{ on: true, pitch: 40, maxZoom: 16\.2, minZoom: 12\.5, ms: 1400 \},/.test(read('js/finder.js')), 'the trip view is a named parameter block (FINDER.fly.tripFit)');
+  ok(count(finder, /\bflyToHome\(/g) === 2, 'flyToHome is defined once and called once (from select): never from a live poll');
+  ok(/function onTrip\([\s\S]*?\n  \}/.test(finder) && !/flyToHome|glide\(/.test(finder.match(/function onTrip\([\s\S]*?\n  \}/)[0]), 'onTrip (every live poll) never moves the camera');
+  ok(/if \(Math\.abs\(c\.lng - last\.lng\) > 1e-5 \|\| Math\.abs\(c\.lat - last\.lat\) > 1e-5 \|\| Math\.abs\(m\.getZoom\(\) - last\.zoom\) > 0\.01\) return;/.test(finder), 'the glide stops when anything else has moved the camera');
+  ok(/if \(id !== S\.glideId \|\| S\.view === 'pill'\) return;/.test(finder) && /S\.selected = id; S\.glideId\+\+;/.test(finder), 'a new selection or a hidden finder ends a glide in progress');
 
   // ── "Show live buses": one shared poll, buses only, the trip's routes only, nothing polls while it is off ──
   ok(count(flive, /\.start\s*\(/g) === 1 && count(flive, /\bTL\.stop\s*\(/g) === 1, 'finder-live.js starts the poll in exactly one place and stops it in exactly one (acquire(), the shared count)');
@@ -226,7 +235,7 @@ ok(/js\\\/wayfind\\\.js/.test(finder) && /s\.src = own;/.test(finder), 'it is th
   ok(/else if \(held\) \{ L\.TL\.detach\(\); held\(\); held = null; \}/.test(flive), 'an empty route list detaches the layer and lets go of the poll');
   ok(/stop\(\) \{ stopped = true; routes = \[\]; if \(held\) \{ if \(TLref\) TLref\.detach\(\); held\(\); held = null; \} \}/.test(flive), 'stop() detaches the layer and lets go of the poll');
   ok(/function renderList\(\) \{\s*const R = S\.result, list = \$\('\.fd-list'\);\s*list\.replaceChildren\(\);\s*if \(S\.liveStop\) \{ S\.liveStop\(\); S\.liveStop = null; \}/.test(finder), 'rebuilding the list stops the live line at once (a deselected home leaves nothing polling)');
-  ok(/if \(v === 'pill'\) \{ S\.trip = null; stopLiveBuses\(\); \}/.test(finder), 'hiding the finder stops the live buses');
+  ok(/if \(v === 'pill'\) \{ S\.trip = null; S\.glideId\+\+; stopLiveBuses\(\); \}/.test(finder), 'hiding the finder stops the live buses');
   ok(/if \(!S\.liveOn \|\| !FINDER\.liveBuses\.available \|\| S\.view === 'pill' \|\| !S\.loaded\) \{ stopLiveBuses\(\); return; \}/.test(finder), 'with the switch off (or the finder hidden) the live buses are stopped, not paused');
   ok(/\$\('\.fd-livebuses input'\)\.onchange = \(e\) => \{ S\.liveOn = e\.target\.checked; syncLiveBuses\(\); \};/.test(finder), 'the switch is the only thing that turns the live buses on');
   // transit-live.js: the new calls add no address, and a route filter cannot become one

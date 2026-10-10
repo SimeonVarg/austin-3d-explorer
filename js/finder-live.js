@@ -34,6 +34,8 @@ export const LIVE = {
   script: 'js/transit-live.js',   // the page's own copy; injected once
   tz: 'America/Chicago',          // the buses run on Austin time, wherever the visitor's clock is
   nextBuses: 4,                   // how many coming buses to hand the search for a stop
+  // The hours the list means (class days: weekdays, between these minutes after midnight). Outside them the line says why it may differ.
+  classHours: [6 * 60, 22 * 60],
   quietRecheckMs: 300000,         // a quiet row (the pathfinder's) with no bus to show looks at the timetable again this often; it downloads nothing meanwhile
   say: {
     to: (code) => 'Bus to ' + code + ' now: ',
@@ -45,6 +47,10 @@ export const LIVE = {
     none: (code) => 'No bus links this home and ' + code + ' right now.',
     notRunning: 'No bus is running right now (timetable).',
     walkingWins: (code, range) => 'Walking to ' + code + ' is as quick as any bus: about ' + range + '.',
+    // WHY the live line can disagree with the list. The list is the weekday class-time timetable (BUS.when in finder-bus.js);
+    // when the moment is not such a day or hour, the line says so first, in plain words. A reason, never a promise.
+    offDay: (day) => 'Today is ' + (['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day] || 'a weekend day') + ': fewer buses. ',
+    offHour: 'It is late: fewer buses. ',
     samePlace: (code) => 'This home and ' + code + ' are the same place.',
     outOfDate: 'The bus timetable on this page has run out of date, so no timetable times are shown.',
     feedDown: 'Live bus data is not answering. These are timetable times.',
@@ -60,17 +66,25 @@ export function austinNow(date = new Date(), tz = LIVE.tz) {
   return { day, minute: Number(get('hour')) % 24 * 60 + Number(get('minute')) };
 }
 
-/** The lines to show for one search result. Pure: no DOM, so node can check every sentence. */
-export function describe(res, code, feedOk, expired) {
+/** Why the line may differ from the list, or '': a weekend, or a weekday outside LIVE.classHours. `when` = {day, minute} in Austin. */
+export function offReason(when) {
+  if (!when || !Number.isFinite(when.day) || !Number.isFinite(when.minute)) return '';
+  if (when.day === 0 || when.day === 6) return LIVE.say.offDay(when.day);
+  if (when.minute < LIVE.classHours[0] || when.minute >= LIVE.classHours[1]) return LIVE.say.offHour;
+  return '';
+}
+
+/** The lines to show for one search result. Pure: no DOM, so node can check every sentence. `when` (optional) = {day, minute}. */
+export function describe(res, code, feedOk, expired, when) {
   const S = LIVE.say, o = res && res.options && res.options[0];
   const buses = o && o.legs.filter((l) => l.kind === 'bus'), wait = o && o.legs.find((l) => l.kind === 'wait');
   // A timetable past its last date is not "the timetable": only a bus that came from the live feed may be described.
   if (expired && !(o && wait.live)) return { lines: [S.outOfDate], live: false };
   if (!o) {
-    const why = (res && res.reason) || '';
+    const why = (res && res.reason) || '', off = offReason(when);
     if (/already/.test(why)) return { lines: [S.samePlace(code)], live: false };
-    if (/walking/.test(why) && res.walk) return { lines: [S.walkingWins(code, rangeText(res.walk.lo, res.walk.hi))], live: false };
-    return { lines: [/running/.test(why) ? S.notRunning : S.none(code)], live: false };
+    if (/walking/.test(why) && res.walk) return { lines: [off + S.walkingWins(code, rangeText(res.walk.lo, res.walk.hi))], live: false };
+    return { lines: [/running/.test(why) ? off + S.notRunning : S.none(code)], live: false };
   }
   let s = S.to(code) + S.ride(buses[0].route, buses[0].boardName) + ', ' + (wait.live ? S.live(wait.inMin) : S.timetable(wait.headway));
   if (buses[1]) s += ' · ' + S.change(buses[1].route, buses[0].alightName);
@@ -134,12 +148,13 @@ export function watch(box, from, to, opts) {
     const paint = () => {
       if (stopped || !box.isConnected) { stop(); return; }
       const st = TL.state();
+      const now = austinNow();
       const res = plan(slice, from, to, {
-        when: austinNow(), beatsWalkS: opts.beatsWalkS, walkSec,
+        when: now, beatsWalkS: opts.beatsWalkS, walkSec,
         live: (sid, rid, dir) => { const d = TL.departures(sid, LIVE.nextBuses, { route: rid, dir }).filter((x) => x.live).map((x) => x.minutes); return d.length ? d : null; },
       });
       // Before the first answer from the feed there is no error to report: "not answering" would be a claim we cannot back yet.
-      const out = describe(res, opts.code, st.ok || (!st.fetchedAt && !st.error), st.timetableExpired);
+      const out = describe(res, opts.code, st.ok || (!st.fetchedAt && !st.error), st.timetableExpired, now);
       box.textContent = '';
       if (opts.quiet && !out.option) { box.hidden = true; if (opts.onPlan) opts.onPlan(null, slice); return; }
       box.hidden = false;

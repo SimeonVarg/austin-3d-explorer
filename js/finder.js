@@ -171,6 +171,10 @@ const FINDER = {
     busZoom: 16.0,
     busPitch: 58,
     busFaceCampus: [-97.7394, 30.2861], // bus homes look toward the UT Tower
+    // A home whose trip is by bus is framed on the WHOLE trip (the home, both stops, the door). That needs the eye above the
+    // controller's 900 m ceiling (see maxAltM), and an ease is stopped up there, so this view is reached by the finder's own
+    // glide (a jump a frame at a time), which stops the moment the visitor moves the camera. `on: false` keeps the old view.
+    tripFit: { on: true, pitch: 40, maxZoom: 16.2, minZoom: 12.5, ms: 1400 },
   },
 
   copy: {
@@ -210,7 +214,7 @@ const FINDER = {
     how: { walk: 'walk', bus: 'bus', mixed: 'walk + bus' },
     dorm: 'UT residence hall',
     // One row: how the average trip to the classes is made, said as a range. A bus is "about": the timetable's range.
-    via: { walk: (r) => 'walk ' + r + ' min', bus: (r) => 'bus about ' + r + ' min', mixed: (r) => 'walk + bus about ' + r + ' min' },
+    via: { walk: (r) => 'walk ' + r + ' min', bus: (r) => 'bus about ' + r + ' min on class days', mixed: (r) => 'walk + bus about ' + r + ' min on class days' },
     tripBoard: (route, name) => 'Board ' + route + ' · ' + name.replace(/^\d+-/, ''),
     tripChange: (route, name) => 'Change to ' + route + ' · ' + name.replace(/^\d+-/, ''),
     tripAlight: (name) => 'Get off · ' + name.replace(/^\d+-/, ''),
@@ -235,7 +239,7 @@ const FINDER = {
     loadFail: 'The finder could not load its data. Reload to try again.',
     sourcesTitle: 'Where these numbers come from',
     sources: (asOf) => 'Walking: OpenStreetMap paths (walking graph ' + (asOf || 'snapshot') +
-      '), brisk to slow pace, lights and stairs included. Buses: CapMetro timetable. The list counts a bus only where it beats walking by 3 minutes, on a weekday morning; live times appear under a home you select. ' +
+      '), brisk to slow pace, lights and stairs included. Buses: CapMetro timetable. Buses in the list are the weekday-morning timetable (class days), counted only where a bus beats walking by 3 minutes; live times appear under a home you select, and the walk to the stop follows the walking paths. ' +
       'Majors: the 2026–27 catalog’s first three years, with the rooms those courses used in Fall 2026. ' +
       'Riverside has no 3D buildings yet; its pins and colours are still exact.',
     pinLabel: (n, name, t) => '#' + n + ' ' + name + ', ' + t + ' minutes',
@@ -267,7 +271,7 @@ function boot() {
     importReady: false, importLoading: null,
     // the bus (js/finder-bus.js): the baked slice + a cache of timetable trips, the module, the trip on screen, the live buses
     slice: null, busData: null, busLoad: null, fb: null, busStats: null, trip: null,
-    liveOn: FINDER.liveBuses.on && FINDER.liveBuses.available, liveH: null,
+    liveOn: FINDER.liveBuses.on && FINDER.liveBuses.available, liveH: null, glideId: 0,
   };
   const prefs = loadPrefs();
   if (prefs.mode && FINDER.copy.modes[prefs.mode]) S.mode = prefs.mode;
@@ -437,7 +441,7 @@ function boot() {
   function isPhone() { return innerWidth <= FINDER.phoneMaxW; }
   function setView(v, byUser) {
     if (v === 'pill' && S.liveStop) { S.liveStop(); S.liveStop = null; }   // a hidden finder polls nothing
-    if (v === 'pill') { S.trip = null; stopLiveBuses(); }
+    if (v === 'pill') { S.trip = null; S.glideId++; stopLiveBuses(); }
     if (v === 'peek' && !isPhone()) v = 'open';
     S.view = v;
     const shown = v !== 'pill';
@@ -619,8 +623,16 @@ function boot() {
         const w = n && core.walkFrom(S.G, trees[ti], [{ node: n.node, c: n.m, m: n.m }]);
         return w ? [w.lo, w.hi] : null;
       },
+      // The walk from the home to a stop is a lookup in that home's own tree; homes are asked one after another, so only one
+      // tree is alive at a time.
+      startWalk: (hi, p) => {
+        if (held.hi !== hi) held = { hi, tree: core.homeTree(S.G, anchorsOf(items[hi].home)) };
+        return core.walkToPoint(S.G, held.tree, [p[1], p[0]]);
+      },
     };
+    let held = { hi: -1, tree: null };
     const r = S.fb.busLegs(S.busData.slice, homes, targets, cb, S.busData.cache, () => performance.now());
+    held = null;
     S.busStats = { searches: r.searches, cached: r.cached, ms: Math.round(r.ms), homes: homes.length, targets: targets.length };
     return r.legs;
   }
@@ -985,7 +997,7 @@ function boot() {
 
   // ── selection: routes, labels, camera ──
   function routeOf(r) {
-    const feats = [], ends = [], pts = [], stops = [];
+    const feats = [], ends = [], pts = [], stops = [], tripPts = [];
     const push = (k, coords) => { if (coords.length > 1) { feats.push({ type: 'Feature', properties: { k }, geometry: { type: 'LineString', coordinates: coords } }); pts.push(...coords); } };
     // treePath: [where we started (a door or the snapped centre), graph
     // nodes..., the class building's door]. The two ends are our own straight
@@ -1013,11 +1025,11 @@ function boot() {
         // stop, the bus along the route's real line, the walk from the stop to the door, and the stops.
         if (FINDER.trip.on && S.slice) {
           const live = S.trip && S.trip.homeId === r.home.id && S.trip.code === l.code ? S.trip.option : null;
-          end = tripPart(r, l, live || l.bus.option, tree, feats, pts, stops);
+          end = tripPart(r, l, live || l.bus.option, tree, feats, pts, stops, tripPts);
           if (end) ends.push({ code: l.code, p: end, t: fmtRange(l.lo, l.hi) + ' ' + C.minUnit, how: l.how });
         }
       } else if (l.bus && S.trip && S.trip.homeId === r.home.id && S.trip.code === l.code && FINDER.trip.on && S.slice) {
-        end = tripPart(r, l, S.trip.option, tree, feats, pts, stops);       // a baked home, drawn from the live search instead
+        end = tripPart(r, l, S.trip.option, tree, feats, pts, stops, tripPts);       // a baked home, drawn from the live search instead
       } else if (l.bus) {
         const t = l.bus.t, st = S.transit.stops;
         const board = st[t.board], alight = st[t.alight];
@@ -1033,10 +1045,10 @@ function boot() {
       // title bar; their minutes are in the list, so no label there.
       if (end && l.how === 'walk') ends.push({ code: l.code, p: end, t: fmtRange(l.lo, l.hi) + ' ' + C.minUnit, how: l.how });
     }
-    return { feats, ends, pts, stops };
+    return { feats, ends, pts, stops, tripPts };
   }
   // One bus trip as map features (finder-bus.js tripFeatures). The last walk follows the walking graph's own path.
-  function tripPart(r, l, option, tree, feats, pts, stops) {
+  function tripPart(r, l, option, tree, feats, pts, stops, tripPts) {
     const to = doorPoint(l.code);
     if (!to || !S.fb) return null;
     const endPath = (stop) => {
@@ -1044,8 +1056,17 @@ function boot() {
       const w = n && core.walkFrom(S.G, tree, [{ node: n.node, c: n.m, m: n.m, from: stop }]);
       return w ? core.treePath(S.G, tree, w.anchor) : null;
     };
-    const tf = S.fb.tripFeatures(S.slice, option, [r.home.p[1], r.home.p[0]], to, { endPath });
+    // The first walk follows the walking graph too: the home's own tree, walked from the stop back to the home's door.
+    let ht;
+    const startPath = (stop) => {
+      if (ht === undefined) ht = core.homeTree(S.G, anchorsOf(r.home));
+      const n = ht && core.nearestNode(S.G, stop);
+      if (!n || ht.cost[n.node] === Infinity) return null;
+      return core.treePath(S.G, ht, { node: n.node, c: n.m, m: n.m, from: stop }).reverse();
+    };
+    const tf = S.fb.tripFeatures(S.slice, option, [r.home.p[1], r.home.p[0]], to, { endPath, startPath });
     feats.push(...tf.feats); pts.push(...tf.pts); stops.push(...tf.stops);
+    if (!tripPts.length) tripPts.push(...tf.pts);                 // the camera frames the first trip drawn (the heaviest by bus)
     return tf.feats.length ? [to[1], to[0]] : null;
   }
   function drawRoute() {
@@ -1091,8 +1112,11 @@ function boot() {
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const fa = freeArea();
     const walk = r.score.how === 'walk';
+    // A trip by bus is framed whole (F.tripFit); a walking home keeps its own framing.
+    const tf = F.tripFit, tripPts = !walk && tf.on && FINDER.trip.on ? routeOf(r).tripPts : [];
+    const trip = tripPts.length > 1;
     let bearing = m.getBearing();
-    const pitch = walk ? F.walkPitch : F.busPitch;
+    const pitch = walk ? F.walkPitch : trip ? tf.pitch : F.busPitch;
     if (!walk && F.busFaceCampus) {
       const [lon, lat] = r.home.p, [tl, tt] = F.busFaceCampus;
       bearing = Math.atan2((tl - lon) * Math.cos(lat * Math.PI / 180), tt - lat) * 180 / Math.PI;
@@ -1107,17 +1131,17 @@ function boot() {
     const zAlt = Math.log2(m.transform.cameraToCenterDistance * 40075016.686 * Math.cos(r.home.p[1] * Math.PI / 180) *
       Math.cos(pitch * Math.PI / 180) / (512 * F.maxAltM));
     let mid = home, zoom = F.busZoom;
-    if (walk) {
-      // Fit the home and the routes to its top buildings into the free area...
-      const { pts } = routeOf(r);
+    if (walk || trip) {
+      // Fit the home and the routes to its top buildings (or the whole bus trip) into the free area...
+      const pts = walk ? routeOf(r).pts : tripPts;
       const pr = pts.map(p => rot(maplibregl.MercatorCoordinate.fromLngLat(p))).concat([home]);
       const xs = pr.map(p => p[0]), ys = pr.map(p => p[1]);
       const w = Math.max(1e-9, Math.max(...xs) - Math.min(...xs)), h = Math.max(1e-9, Math.max(...ys) - Math.min(...ys));
       zoom = Math.min(Math.log2((fa.w - 2 * F.marginPx) / (512 * w)), Math.log2((fa.h - 2 * F.marginPx) / (512 * h)));
-      zoom = Math.min(F.maxZoom, zoom - F.pitchZoomLoss);
+      zoom = Math.min(trip ? tf.maxZoom : F.maxZoom, zoom - F.pitchZoomLoss);
       mid = [(Math.max(...xs) + Math.min(...xs)) / 2, (Math.max(...ys) + Math.min(...ys)) / 2];
     }
-    zoom = Math.max(zoom, zAlt);
+    zoom = trip ? Math.max(zoom, tf.minZoom) : Math.max(zoom, zAlt);       // the trip view lifts the ceiling (F.tripFit)
     const scale = 512 * Math.pow(2, zoom);
     // ...and when the ceiling makes that impossible (a phone is narrow), the
     // HOME stays in frame and the routes run off toward campus. Measured: the
@@ -1132,11 +1156,35 @@ function boot() {
     const target = { center: new maplibregl.MercatorCoordinate(c[0], c[1]).toLngLat(), zoom, pitch, bearing,
       padding: { left: 0, right: 0, top: 0, bottom: 0 } };
     m.stop();
-    if (reduce) m.jumpTo(target);
+    if (trip) glide(m, target, reduce ? 0 : tf.ms);
+    else if (reduce) m.jumpTo(target);
     else m.easeTo({ ...target, duration: F.durationMs, essential: true });
   }
+  // The camera to a pose, a frame at a time (an ease would be stopped above the controller's ceiling). It happens ONCE per
+  // selection and stops the moment anything else moves the camera: a visitor who has already panned is never pulled back, and
+  // a live poll never calls it.
+  function glide(m, target, ms) {
+    const id = ++S.glideId;
+    if (!ms) { m.jumpTo(target); return; }
+    const c0 = m.getCenter(), z0 = m.getZoom(), p0 = m.getPitch(), b0 = m.getBearing();
+    const db = ((target.bearing - b0 + 540) % 360) - 180, t0 = performance.now();
+    let last = null;
+    const step = (now) => {
+      if (id !== S.glideId || S.view === 'pill') return;
+      if (last) {
+        const c = m.getCenter();
+        if (Math.abs(c.lng - last.lng) > 1e-5 || Math.abs(c.lat - last.lat) > 1e-5 || Math.abs(m.getZoom() - last.zoom) > 0.01) return;
+      }
+      const k = Math.min(1, (now - t0) / ms), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      m.jumpTo({ center: [c0.lng + (target.center.lng - c0.lng) * e, c0.lat + (target.center.lat - c0.lat) * e],
+        zoom: z0 + (target.zoom - z0) * e, pitch: p0 + (target.pitch - p0) * e, bearing: b0 + db * e, padding: target.padding });
+      const c = m.getCenter(); last = { lng: c.lng, lat: c.lat, zoom: m.getZoom() };
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
   function select(id, opt = {}) {
-    S.selected = id;
+    S.selected = id; S.glideId++;
     if (id && isPhone() && S.view === 'open') setView('peek');
     renderList(); renderPins(); drawRoute(); syncLiveBuses();
     const r = id && S.result && S.result.ranked.find(x => x.home.id === id);
