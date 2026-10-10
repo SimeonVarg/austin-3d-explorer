@@ -78,7 +78,7 @@
     twinkle:master?num('twinkle',1):0,
     windowAmp:.28,       // RMS fraction of a lit window's brightness, at farM (measured: 3.5 to 7% mean in the final far frame, docs/night-eye-2026-10-10.md)
     lampAmp:.45,         // the same for a lamp head (as a change of its radius, so about 2x in light): compact sources twinkle more than windows
-    nearM:200,           // no shimmer inside this distance
+    nearM:250,           // no shimmer inside this distance
     farM:1200,           // full strength from here
     hz:[2.0,6.0],        // the two slow oscillators per light, under half the 15 Hz redraw and under the ~15 Hz the dark-adapted eye follows
     colourWobble:.45,    // share of the amplitude that goes to a red/blue swing (1 = as large as brightness)

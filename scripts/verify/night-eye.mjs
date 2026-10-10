@@ -123,8 +123,9 @@ async function settle(page, pose) {
 }
 /** Wait until the picture itself has stopped changing: with the clock held and the shimmer off, two screenshots 2 s apart must be the same bytes.
  *  A scene still streaming in (far tiles, outer buildings) makes every "variance over time" number a lie, and on a slower machine it is. */
-async function waitStable(page, maxMs = 150000) {
-  await page.evaluate(() => { window.CityNight.eye.twinkle = 0; window.CityNight.eye.drift = false; window.CityNight.hold(1000); });
+async function waitStable(page, maxMs = 150000, restore = false) {
+  const saved = await page.evaluate(() => { const e = window.CityNight.eye, o = { twinkle: e.twinkle, drift: e.drift }; e.twinkle = 0; e.drift = false; window.CityNight.hold(1000); return o; });
+  const done = async ok => { if (restore) await page.evaluate(o => { Object.assign(window.CityNight.eye, o); window.CityNight.hold(null); window.__map.triggerRepaint(); }, saved); return ok; };
   const t0 = Date.now(); let tries = 0; const stableSigs = [];
   for (;;) {
     await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
@@ -132,8 +133,8 @@ async function waitStable(page, maxMs = 150000) {
     const s0 = await sig(); const a = await page.screenshot(); await page.waitForTimeout(3000); const b = await page.screenshot(); const s1 = await sig(); tries++;
     // the picture must stop changing AND the number of buildings the map draws must stop changing: a far tile arriving late changes the second and not the first for seconds
     const same = Buffer.compare(a, b) === 0 && s0 === s1; if (same) stableSigs.push(s1); else stableSigs.length = 0;
-    if (same && stableSigs.length >= 3 && new Set(stableSigs.slice(-3)).size === 1) { console.log(`  scene stable after ${tries} tries, ${Math.round((Date.now() - t0) / 1000)} s`); return true; }
-    if (Date.now() - t0 > maxMs) { console.log(`  WARN: scene still changing after ${Math.round(maxMs / 1000)} s`); return false; }
+    if (same && stableSigs.length >= 3 && new Set(stableSigs.slice(-3)).size === 1) { console.log(`  scene stable after ${tries} tries, ${Math.round((Date.now() - t0) / 1000)} s`); return done(true); }
+    if (Date.now() - t0 > maxMs) { console.log(`  WARN: scene still changing after ${Math.round(maxMs / 1000)} s`); return done(false); }
   }
 }
 async function shot(page, file) { await page.screenshot({ path: file }); await page.waitForTimeout(500); await page.screenshot({ path: file }); return file; }
@@ -315,7 +316,7 @@ await stage('frozen', async () => {
     const doms = [];
     // A fresh browser for every load, as in CI (each side of the pictures is its own browser): a load that is second in a browser has a warm cache and is not that.
     for (let i = 0; i <= N; i++) {
-      const br = await launch(chromium, { maxMs: 600000 }); const page = await open(q, br); await settle(page, TUNE.poses[v]);
+      const br = await launch(chromium, { maxMs: 3000000 }); const page = await open(q, br); await settle(page, TUNE.poses[v]); await waitStable(page, 150000, true); await page.waitForTimeout(1500);
       files.push(await shot(page, path.join(dir, `${v}-${i}.png`)));
       doms.push(await page.evaluate(() => [...document.querySelectorAll('body *')].map(e => { const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return { r: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)], d: `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${typeof e.className === 'string' && e.className.trim() ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : ''}${(e.innerText || '').trim() ? ' "' + e.innerText.trim().slice(0, 24) + '"' : ''}`, vis: cs.visibility === 'visible' && cs.display !== 'none' && +cs.opacity > 0.02, tag: e.tagName }; }).filter(o => o.vis && o.tag !== 'CANVAS' && o.r[2] > o.r[0] && o.r[3] > o.r[1] && o.r[2] > 0 && o.r[0] < 1440 && o.r[3] > 0 && o.r[1] < 900 && (o.r[2] - o.r[0]) * (o.r[3] - o.r[1]) < 600000)));
       await page.close(); await br.close();
@@ -340,6 +341,27 @@ await stage('frozen', async () => {
     const clean = rows.filter(r => r.movedOver12 === 0).length;
     report(`frozen: ${v}: ${clean} of ${N} pairs of loads move 0 pixels over 12/255`, clean === N, rows.map(r => r.movedOver12).join(' '));
   }
+});
+
+// ======================================================================================================
+// 2f. JITTER: the same frozen night drawn again and again with nothing changed: does the map canvas repeat itself?
+// ======================================================================================================
+await stage('jitter', async () => {
+  const q = opt('--query', 'nightfreeze=1'), pose = TUNE.poses[opt('--pose', 'skyline')], dir = path.join(OUT, 'jitter'); fs.mkdirSync(dir, { recursive: true });
+  const page = await open(q); await settle(page, pose); await waitStable(page, 150000, false);
+  const series = [], hashes = [];
+  for (let k = 0; k < 16; k++) {
+    await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
+    await page.waitForTimeout(500);
+    const u = await page.evaluate(() => window.__map.getCanvas().toDataURL('image/png')); const f = path.join(dir, `raw-${k}.png`); fs.writeFileSync(f, Buffer.from(u.split(',')[1], 'base64'));
+    const im = decodePNG(f); let n = 0, sum = 0; for (let y = 250; y < 520; y++) for (let x = 0; x < im.width; x++) { const i = (y * im.width + x) * im.bpp; const l = 0.2126 * im.data[i] + 0.7152 * im.data[i + 1] + 0.0722 * im.data[i + 2]; if (l >= 70 && im.data[i] >= im.data[i + 2] + 8) { n++; sum += l; } }
+    series.push(`${(sum / n).toFixed(2)}/${n}`); hashes.push(Buffer.from(u).length);
+  }
+  console.log(`jitter [${q}] ${series.join('  ')}`);
+  console.log(`  distinct states: ${new Set(series).size} of ${series.length}`);
+  data.jitter = { query: q, series };
+  report(`jitter [${q}]: the map canvas repeats itself 16 times`, new Set(series).size === 1, `${new Set(series).size} distinct`);
+  await page.close();
 });
 
 // ======================================================================================================

@@ -110,7 +110,7 @@
       }
       return mix(point,sum/(nx*ny),fade);
     }`;
-  const E=window.CityNight?.eye||{footprintM:[8,24],hz:[2.0,6.0],colourWobble:.45,switchS:[150,900],offBase:.045,lateDropout:.18,officeExtra:1.3,nearM:200,farM:1200};
+  const E=window.CityNight?.eye||{footprintM:[8,24],hz:[2.0,6.0],colourWobble:.45,switchS:[150,900],offBase:.045,lateDropout:.18,officeExtra:1.3,nearM:250,farM:1200};
   const glsl = `
     vec3 linearColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(2.2)); }
     vec3 displayColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(1.0/2.2)); }
