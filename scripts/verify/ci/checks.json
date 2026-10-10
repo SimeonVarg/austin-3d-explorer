@@ -137,7 +137,7 @@
     "stadium-tiles-style-recovery.mjs": {"est_s": 10},
     "stadium-tower-geometry.mjs": {"est_s": 10},
     "suite-lint.mjs": {"est_s": 10},
-    "transit-route.mjs": {"est_s": 10}, "tile-heal-source.mjs": {"est_s": 10},
+    "finder-live.mjs": {"est_s": 10}, "finder-egress.mjs": {"est_s": 10}, "transit-route.mjs": {"est_s": 10}, "tile-heal-source.mjs": {"est_s": 10},
     "tile-heal.mjs": {"est_s": 300},
     "tile-lod-cache.mjs": {"est_s": 10},
     "timeofday-style-recovery.mjs": {"est_s": 10},
@@ -153,7 +153,6 @@
   },
   "_quarantine": "Checks that do NOT run in CI, each with the reason. Broken on main itself, or cannot work without a GPU. Fix the check (or main), then delete its line here.",
   "quarantine": {
-    "wallplane.mjs": "red on main, no browser needed (re-measured 2026-10-10): 14 doors float 0.6-6 m off the drawn wall against a ceiling of 12. The two new ones, GDC eid 165 (4.6 m) and EER eid 333 (4.9 m), were seated onto walls that 8396ee8 (2026-09-14) then moved: GDC_ATRIUM_RECESS 0.9 -> 5.0 m in bake_heroes.py, and the EER cage replaced by two glass planes. data/entrances.geojson (bake_entrances.py) was not re-seated after. A full bake_entrances.py run now stops at retire_gearing_court_entry (frozen eid 239, got 231), so the fix is a targeted re-seat of those two entrances, not a rebake. The GDC atrium line this script prints is informational (4.99 m BEHIND the brick) and is not what fails.",
     "facadegrid.mjs": "cannot score on main (exit 2): 'only 1 template grid(s) were testable. This self-check has decayed to the point of proving nothing'",
     "mobile-mergecells.mjs": "cannot run on main (exit 2): 'APARTMENTS.mergeCells is not defined in this build', the switch it compares is gone",
     "tower-check.mjs": "red on main: belfry/shaft 0.251 (want 0.49) and cap/shaft 0.160 (want 0.45), the exact numbers HANDOFF records on the laptop; at night it also misses the orange flood on some runs",

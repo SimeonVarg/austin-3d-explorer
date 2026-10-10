@@ -10,6 +10,7 @@
  *
  * Usage: node scripts/verify/transit-route.mjs [--break]     (--break sets the detour factor to 1: it must fail)
  */
+import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -102,9 +103,9 @@ const WED_0830 = { day: 3, minute: 510 };
   ok(late.options.length === 0 && late.skipped > 0 && /not? .*running|no bus is running/.test(late.reason), 'after the last bus: nothing, and it says why');
   const sun = T.plan(slice(), HOME, at(1500, -150), { when: { day: 0, minute: 510 } });
   ok(sun.options.length === 0 && sun.skipped > 0, 'Sunday, no service block: nothing');
-  const s = slice(); s.routes.R1.dirs[0].sun = { first: '08:00', last: '20:00', headway: [[8, 30]] };
+  const s = slice(); s.routes.R1.dirs[0].sun = { first: '08:00', last: '20:00', headway: [[8, 12]] };
   const sun2 = T.plan(s, HOME, at(1500, -150), { when: { day: 0, minute: 510 } });
-  near(sun2.options[0].hi - sun2.options[0].lo, (236.364 - 185.714) + 1800 + (177.273 - 139.286), 0.01, 'Sunday block: the wait is 0 .. 30 min');
+  near(sun2.options[0].hi - sun2.options[0].lo, (236.364 - 185.714) + 720 + (177.273 - 139.286), 0.01, 'Sunday block: the wait is 0 .. 12 min');
   // B sees the 06:00 bus at 06:04. At 06:01 a walker 10 m from B cannot have a bus at A's 06:00 headway window yet... but
   // the window at B opens at 06:04 - walk. Leaving at 05:50 from next to B: reach B about 05:50, before 06:04: no bus.
   const early = T.plan(slice(), at(700, 10), at(1500, -150), { when: { day: 3, minute: 5 * 60 + 50 } });
@@ -128,6 +129,104 @@ const WED_0830 = { day: 3, minute: 510 };
   near(T.metres([line[0][1], line[0][0]], [s.stops.B[1], s.stops.B[2]]), 0, 0.01, 'shape starts at B');
   near(T.metres([line.at(-1)[1], line.at(-1)[0]], [s.stops.C[1], s.stops.C[2]]), 0, 0.01, 'shape ends at C');
   near(T.metres(at(0, 0), at(300, 400)), 500, 0.05, 'metres: a 3-4-5 triangle');
+}
+
+// ── 7. midnight: 00:15 on Saturday is {day: 6, minute: 15} and {day: 5, minute: 1455}; both must agree ────────
+// R1 runs to 24:30 (00:30 the next morning) on weekdays, Saturday's own service starts at 06:00. At 00:15 Saturday the only
+// bus is Friday's late one. A reaches it at 1455 + 3.94 = 1458.9 min, inside 06:00..24:30 (1470).
+{
+  const night = () => { const s = slice(); const d = s.routes.R1.dirs[0]; d.last = '24:30'; d.sat = { first: '06:00', last: '24:30', headway: [[6, 10]] }; return s; };
+  const dir = night().routes.R1.dirs[0];
+  ok(T.headwayAt(dir, 6, 15) === 10 && T.headwayAt(dir, 5, 1455) === 10, 'headwayAt: 00:15 Saturday written both ways is 10');
+  ok(T.headwayAt(dir, 6, -5) === 10, 'headwayAt: minute -5 is 23:55 the day before');
+  ok(T.headwayAt(dir, 5, 1500) === null && T.headwayAt(dir, 6, 40) === null, 'headwayAt: 00:40 Saturday, past the last late bus: none');
+  ok(T.headwayAt(dir, 3, 359) === null, 'headwayAt: before the first bus on a weekday with nothing the night before: none');
+  const a = T.plan(night(), HOME, at(1500, -150), { when: { day: 6, minute: 15 } });
+  const b = T.plan(night(), HOME, at(1500, -150), { when: { day: 5, minute: 1455 } });
+  ok(a.options.length > 0, '00:15 Saturday: a bus is running');
+  ok(JSON.stringify(a) === JSON.stringify(b), '00:15 Saturday has the same answer written as Friday 24:15');
+  const c = T.plan(night(), HOME, at(1500, -150), { when: { day: 6, minute: 30 } });
+  const d = T.plan(night(), HOME, at(1500, -150), { when: { day: 5, minute: 1470 } });
+  ok(c.options.length === 0 && JSON.stringify(c) === JSON.stringify(d), '00:30 Saturday: too late for the last bus (A is reached at 1473.9 > 1470), both ways');
+}
+{
+  // the real bake: a route that runs past 24:40 on weekdays, a trip along it
+  const bake = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'transit-live.json'), 'utf8'));
+  let found = null;
+  for (const r of Object.values(bake.routes)) for (const d of r.dirs) {
+    if (!found && d.last > '24:45' && d.stops.length > 8) found = d;
+  }
+  ok(found, 'the real bake has a weekday direction running past 24:45');
+  const p = (sid) => [bake.stops[found.stops[sid]][1], bake.stops[found.stops[sid]][2]];
+  const A = T.plan(bake, p(1), p(found.stops.length - 2), { when: { day: 6, minute: 15 } });
+  const B = T.plan(bake, p(1), p(found.stops.length - 2), { when: { day: 5, minute: 1455 } });
+  ok(A.options.length > 0, 'real bake: 00:15 Saturday finds a bus');
+  ok(JSON.stringify(A) === JSON.stringify(B), 'real bake: 00:15 Saturday and Friday 24:15 give the same answer');
+}
+
+// ── 8. walking is the baseline ───────────────────────────────────────────────
+// 300 m apart, 10 m north of the line: walk 300 x 1.3 = 390 m, brisk 278.571 s, slow 354.545 s, mid 316.5. The only bus
+// (A to B, up to 10 min wait and 4 min ride) has a midpoint over 500 s: walking wins, so no bus is offered.
+{
+  const r = T.plan(slice(), at(0, 10), at(300, 10), { when: WED_0830 });
+  ok(r.options.length === 0 && /walking/.test(r.reason), 'close by: no bus, and the reason says walking is as fast');
+  near(r.walk.lo, 278.571, 0.01, 'walk baseline lo'); near(r.walk.hi, 354.545, 0.01, 'walk baseline hi'); near(r.walk.m, 300, 0.01, 'walk baseline metres');
+  const same = T.plan(slice(), HOME, HOME, { when: WED_0830 });
+  ok(same.options.length === 0 && /already/.test(same.reason) && same.walk.lo === 0 && same.walk.hi === 0 && same.walk.m === 0, 'same place: no bus, a zero walk');
+  const nearby = T.plan(slice(), at(0, 10), at(0, 14), { when: WED_0830 });
+  ok(nearby.options.length === 0 && nearby.walk.m < T.ROUTE.sameSpotM, '4 m apart is the same place too');
+  // the direct case of section 1 still has a bus: its midpoint 1269.3 beats the walk (1540 m: 1430 s .. 1820 s, mid 1625) by 355 s
+  const far = T.plan(slice(), HOME, at(1500, -150), { when: WED_0830 });
+  ok(far.options.length > 0, 'a real trip keeps its bus'); near(far.walk.lo, 1430.0, 1, 'walk baseline of the long trip, lo');
+  ok(far.options.every((o) => o.mid < (far.walk.lo + far.walk.hi) / 2 - T.ROUTE.busBeatsWalkS), 'every bus offered beats the walk by the margin');
+  // the margin is a named value: raised above the 355 s gain, the same bus is no longer offered
+  const was = T.ROUTE.busBeatsWalkS; T.ROUTE.busBeatsWalkS = 400;
+  const strict = T.plan(slice(), HOME, at(1500, -150), { when: WED_0830 });
+  T.ROUTE.busBeatsWalkS = was;
+  ok(strict.options.length === 0 && /walking/.test(strict.reason), 'ROUTE.busBeatsWalkS = 400: a 355 s gain is not enough');
+  ok(T.plan(slice(), at(0, 5000), at(1500, -150), { when: WED_0830 }).walk.m > 5000, 'the walk is reported even when no stop is near');
+}
+
+// ── 9. malformed service data and missing slices never throw, and never mean "always running" ──────────────────
+{
+  const bad = (edit) => { const s = slice(); edit(s.routes.R1.dirs[0]); return T.plan(s, HOME, at(1500, -150), { when: WED_0830 }); };
+  for (const [name, edit] of [['first is junk', (d) => { d.first = 'soon'; }], ['last is missing', (d) => { delete d.last; }],
+    ['headway is junk', (d) => { d.headway = [[6, 'x']]; }], ['first is empty', (d) => { d.first = ''; }]]) {
+    const r = bad(edit);
+    ok(r.options.length === 0 && r.skipped > 0 && /running/.test(r.reason), `malformed service (${name}): not running, counted in skipped`);
+  }
+  for (const [name, sl] of [['null', null], ['undefined', undefined], ['empty object', {}], ['no routes', { stops: {} }]]) {
+    const r = T.plan(sl, HOME, at(1500, -150), { when: WED_0830 });
+    ok(r && Array.isArray(r.options) && r.options.length === 0 && r.reason === 'no timetable', `plan(${name}): no timetable, no throw`);
+  }
+  ok(T.plan(slice(), null, at(1, 1), {}).options.length === 0, 'a missing point does not throw');
+  ok(T.plan(Object.freeze(slice()), HOME, at(1500, -150), { when: WED_0830 }).options.length > 0, 'a frozen slice works (nothing is written onto the slice)');
+}
+
+// ── 10. speed on the real bake ───────────────────────────────────────────────
+// The old search took 0.6 to 1.7 s for one plan (it looked up the transfer neighbours of every stop again for every
+// candidate). Targets: about 50 ms direct only, about 150 ms with one transfer. The ceilings here are 5x that so a slow
+// machine does not fail it, and the measured times are printed. The deterministic guard is the count of walking-model calls:
+// a caller that passes the walking graph pays for every one of them.
+{
+  const bake = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'transit-live.json'), 'utf8'));
+  const stops = Object.values(bake.stops);
+  let seed = 7; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+  const pick = () => { const s = stops[Math.floor(rnd() * stops.length)]; return [s[1] + (rnd() - 0.5) * 0.003, s[2] + (rnd() - 0.5) * 0.003]; };
+  const pairs = []; for (let i = 0; i < 30; i++) pairs.push([pick(), pick()]);
+  let t0 = performance.now(); T.plan(bake, pairs[0][0], pairs[0][1], { when: WED_0830 }); const first = performance.now() - t0;
+  const worst = (transfers) => Math.max(...pairs.map(([a, b]) => Math.min(...[0, 1, 2].map(() => { const t = performance.now(); T.plan(bake, a, b, { when: WED_0830, transfers }); return performance.now() - t; }))));
+  const d0 = worst(0), d1 = worst(1);
+  let calls = 0, withBus = 0;
+  for (const [a, b] of pairs) {
+    let n = 0; const r = T.plan(bake, a, b, { when: WED_0830, walkSec: (x, y, m) => { n++; return [m * 1.3 / 1.4, m * 1.3 / 1.1]; } });
+    calls = Math.max(calls, n); if (r.options.length) withBus++;
+  }
+  console.log(`  plan() on the real bake, 30 trips, best of 3: direct only worst ${d0.toFixed(1)} ms, one transfer worst ${d1.toFixed(1)} ms, first call incl. indexing ${first.toFixed(1)} ms; walking-model calls, worst trip: ${calls}`);
+  ok(withBus >= 10, 'the real bake gives a bus for many of the 30 trips (' + withBus + ')');
+  ok(d0 <= 250, `direct-only search under 250 ms (5 x 50): ${d0.toFixed(1)}`);
+  ok(d1 <= 750 && first <= 750, `one-transfer search under 750 ms (5 x 150): ${d1.toFixed(1)}, first call ${first.toFixed(1)}`);
+  ok(calls <= 1500, `walking-model calls per plan stay under 1500 (was up to 5995): ${calls}`);
 }
 
 console.log(`PASS  transit-route: walk + bus + walk, direct, live, one transfer, service hours (${pass} checks)`);
