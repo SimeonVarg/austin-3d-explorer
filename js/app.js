@@ -558,7 +558,7 @@
       // preserveDrawingBuffer is what lets the bloom pass read the rendered frame
       // back out (graphics.js). It is not free, so it is only requested when the
       // saved settings actually want bloom.
-      canvasContextAttributes: { antialias: !!window.GFX_MSAA, preserveDrawingBuffer: !!window.GFX_PDB },
+      canvasContextAttributes: { antialias: !!window.GFX_MSAA_ATTR, preserveDrawingBuffer: !!window.GFX_PDB },
       // A phone keeps fewer tiles after they leave the screen (js/mobile.js
       // LITE.budget.tileCacheSize): each holds a facade atlas texture. Desktop
       // (no budget) passes nothing and keeps MapLibre's viewport-sized cache.
@@ -566,6 +566,8 @@
     });
     } catch (e) { if (window.loaderWebglFailed && /WebGL/i.test(String((e && e.message) || e))) window.loaderWebglFailed(); throw e; }
     window.__map = map;
+    // The frame's own target: Smooth edges as a live switch, and the still-camera accumulation (js/frame-target.js).
+    if (window.FrameTarget) window.FrameTarget.attach(map);
     // MapLibre does not throw when the browser gives it no WebGL context: it fires an error nobody is listening for
     // yet and returns a map that never loads. Ask the canvas whether it holds a context (an existing one is
     // returned, so this never creates a second) and, if not, tell the loading card to say so (A09).

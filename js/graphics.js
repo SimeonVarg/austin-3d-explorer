@@ -162,8 +162,11 @@
   const SCHEMA = [
     { key: 'renderScale', label: 'Resolution', min: 0.5, max: 2, step: 0.05, group: 'speed',
       fmt: v => v.toFixed(2) + '×', hint: 'Biggest speed win.' },
-    { key: 'msaa', label: 'Smooth edges', type: 'bool', group: 'speed', reload: true,
-      hint: 'Needs a reload.' },
+    // Live since js/frame-target.js draws the frame into its own multisampled
+    // buffer. With ?smoothfb=0 (or no WebGL2) it is the context's antialias
+    // again and needs the reload.
+    { key: 'msaa', label: 'Smooth edges', type: 'bool', group: 'speed',
+      ...(window.FrameTarget && window.FrameTarget.own() ? {} : { reload: true, hint: 'Needs a reload.' }) },
     { key: 'renderDistance', label: 'Detail distance', min: 150, max: 1500, step: 25, group: 'speed',
       fmt: v => v >= 1500 ? 'unlimited' : v.toFixed(0) + ' m',
       hint: 'Clutter only — buildings stay.' },
@@ -670,6 +673,14 @@
   // preset stops paying for it on the next load.
   const SMOOTH_URL = Q.get('smooth') === '1' ? true : Q.get('smooth') === '0' ? false : null;
   window.GFX_MSAA = SMOOTH_URL == null ? !!GFX.msaa : SMOOTH_URL;   // the flag is not written to GFX: nothing is saved
+  // The context's own antialias, only where js/frame-target.js cannot draw
+  // into its own multisampled buffer (no WebGL2, or ?smoothfb=0).
+  const SMOOTH_OWN = !!(window.FrameTarget && window.FrameTarget.own());
+  window.GFX_MSAA_ATTR = window.GFX_MSAA && !SMOOTH_OWN;
+  // Is the frame multisampled right now? (The setting can be on and the buffer refused.)
+  const smoothLive = gl => SMOOTH_OWN && window.FrameTarget.attached ? window.FrameTarget.smooth
+    : !!(gl && gl.getContextAttributes && (gl.getContextAttributes() || {}).antialias);
+  const smoothWanted = () => SMOOTH_URL == null ? !!GFX.msaa : SMOOTH_URL;
   window.GFX_PDB = GFX.bloom > 0.01 || !!GFX.autoExposure;  // auto-exposure meters the same buffer
   // Does this browser draw with a graphics card? The same test as the Smooth
   // edges default (EDGE_SMOOTHING.fullDefaultGpu). js/city-lighting.js keeps
@@ -738,24 +749,34 @@
 
   // EDGE_SMOOTHING.fillOutlinesWithMSAA, applied: every fill layer, the
   // basemap's and every one added later (ground, shadows, a re-added layer),
-  // loses its outline pass once, if and only if this context has MSAA.
-  function dropFillOutlinesUnderMSAA(map) {
+  // loses its outline pass while the frame is multisampled, and gets it back
+  // when Smooth edges is switched off (it is a live switch now).
+  let syncFillOutlines = () => {};
+  function fillOutlinesFollowMSAA(map) {
     if (EDGE_SMOOTHING.fillOutlinesWithMSAA) return;
     let gl = null;
     try { gl = map.painter && map.painter.context && map.painter.context.gl; } catch (e) {}
-    if (!gl || !gl.getContextAttributes || !gl.getContextAttributes().antialias) return;
-    const seen = new WeakSet();
+    if (!gl) return;
+    const off = new Set();                       // the layers this turned off
+    let was = null;
     const sweep = () => {
+      const on = smoothLive(gl);
+      if (!on && !off.size) { was = on; return; }
       const ids = typeof map.getLayersOrder === 'function' ? map.getLayersOrder() : ((map.style && map.style._order) || []);
       for (const id of ids) {
         const l = map.getLayer(id);
-        if (!l || seen.has(l)) continue;
-        seen.add(l);
-        if (l.type !== 'fill') continue;
-        try { if (map.getPaintProperty(id, 'fill-antialias') !== false) map.setPaintProperty(id, 'fill-antialias', false); } catch (e) {}
+        if (!l || l.type !== 'fill') continue;
+        try {
+          if (on) { if (!off.has(id) && map.getPaintProperty(id, 'fill-antialias') !== false) { map.setPaintProperty(id, 'fill-antialias', false); off.add(id); } }
+          else if (off.has(id)) map.setPaintProperty(id, 'fill-antialias', true);
+        } catch (e) {}
       }
+      if (!on) off.clear();
+      was = on;
     };
+    // a layer added later is new to `off`; a sweep that changes nothing writes nothing (setPaintProperty fires styledata)
     map.on('styledata', sweep);
+    syncFillOutlines = sweep;
     sweep();
   }
 
@@ -766,19 +787,22 @@
     try { gl = map.painter && map.painter.context && map.painter.context.gl; } catch (e) {}
     if (!gl || !gl.getContextAttributes) return;
     const R = EDGE_SMOOTHING.urlReadout, lite = window.LITE_PROFILE || {};
-    const on = !!(gl.getContextAttributes() || {}).antialias;
-    let samples = null;
-    try { if (!gl.getParameter(gl.FRAMEBUFFER_BINDING)) samples = gl.getParameter(gl.SAMPLES); } catch (e) {}
-    const info = window.__smoothReadout = { asked: SMOOTH_URL, on, samples, width: 0, height: 0,
+    const own = SMOOTH_OWN && window.FrameTarget.attached;
+    const info = window.__smoothReadout = { asked: SMOOTH_URL, on: false, samples: null, width: 0, height: 0,
                                             tier: lite.on ? (lite.tierName || 'phone') : null };
     const el = document.createElement('div');
     el.id = 'smooth-readout';
     el.style.cssText = 'position:fixed;top:' + R.top + ';left:50%;transform:translateX(-50%);z-index:' + R.z +
       ';background:' + R.bg + ';color:' + R.ink + ';font-size:' + R.size + ';line-height:1.2;padding:' + R.pad +
       ';border-radius:' + R.radius + ';white-space:nowrap;pointer-events:none';
-    // The buffer is resized after this runs (the render scale, a rotation), so
-    // the size is read again every time the map says it changed.
+    // The buffer is resized after this runs (the render scale, a rotation) and
+    // the switch is live, so both are read again every time the map says so.
     const update = () => {
+      const on = info.on = own ? window.FrameTarget.smoothOn() || (window.FrameTarget.smooth && !window.FrameTarget.stats.frames) : smoothLive(gl);
+      let samples = null;
+      try { samples = own ? (on ? Math.min(window.FrameTarget.SMOOTH.samples, gl.getParameter(gl.MAX_SAMPLES)) : 0)
+        : !gl.getParameter(gl.FRAMEBUFFER_BINDING) ? gl.getParameter(gl.SAMPLES) : null; } catch (e) {}
+      info.samples = samples;
       info.width = gl.drawingBufferWidth; info.height = gl.drawingBufferHeight;
       el.textContent = 'Smooth edges ' + (on ? 'ON' + (samples ? ' (' + samples + ' samples)' : '') : 'OFF') +
         ' · ' + info.width + ' x ' + info.height + (info.tier ? ' · ' + info.tier + ' tier' : '');
@@ -817,7 +841,8 @@
       bloomOK = !!(gl && gl.getContextAttributes().preserveDrawingBuffer);
     } catch (e) { bloomOK = false; }
     if (!bloomOK) console.log('[graphics] bloom unavailable: this context has no preserveDrawingBuffer (reload with bloom > 0)');
-    dropFillOutlinesUnderMSAA(map);
+    if (SMOOTH_OWN && window.FrameTarget.attached) window.FrameTarget.setSmooth(smoothWanted());
+    fillOutlinesFollowMSAA(map);
     rememberGpuRenderer(map);
     smoothReadout(map);
 
@@ -936,6 +961,11 @@
 
     applyGrade();
     applyGrain();
+    // Smooth edges is a live switch where the frame has its own target.
+    if (SMOOTH_OWN && window.FrameTarget.attached && window.FrameTarget.smooth !== smoothWanted()) {
+      window.FrameTarget.setSmooth(smoothWanted());
+      syncFillOutlines();
+    }
 
     // An element with no work to do is display:none, not opacity:0 — a
     // zero-opacity full-screen blend layer is still a full-screen blend layer to
@@ -1977,7 +2007,7 @@
     if (!keepAuto) { GFX.autoDetected = true; GFX.autoDownAt = 0; }
     applyGraphics();
     syncMenu();
-    if (GFX.msaa !== msaaWas) markReload();
+    if (GFX.msaa !== msaaWas && !SMOOTH_OWN) markReload();
   }
 
   function markReload() {
