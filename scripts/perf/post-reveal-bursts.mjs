@@ -168,6 +168,7 @@ for (const k of keys) {
   rs.forEach((r, i) => {
     if (r.addProbe) out.push(`  [r${i + 1}] one map.addImage of an 8x8 image on the settled page: ${fmt(r.addProbe.ms / r.addProbe.n)} ms (${r.addProbe.n} in a row); listeners it woke, ms per call: ` +
       Object.entries(r.listeners || {}).filter(([, v]) => v.n).sort((a, b) => b[1].ms - a[1].ms).slice(0, 6).map(([k, v]) => `${fmt(v.ms / Math.max(1, v.n))} ms x${v.n} ${k}`).join(' || '));
+    if (r.wt.warm) out.push(`  [r${i + 1}] warm-up behind the veil: planned ${r.wt.warm.planned} images, added ${r.wt.warm.committed}, already there ${r.wt.warm.skipped}, dropped stale ${r.wt.warm.stale}; started ${fmt(r.wt.warm.startedAt)} ms, done ${fmt(r.wt.warm.doneAt)} ms (reveal ${fmt(r.reveal)}); main thread ${fmt(r.wt.warm.mainMs)} ms, workers ${fmt(r.wt.warm.workerMs)} ms; images asked AFTER the reveal anyway (misses of the warm-up): ${(r.wt.askLog || []).filter(a => a[0] > r.reveal).length}`);
     out.push(`  [r${i + 1}] wall images: real paints ${r.wt.syncPainted} (${fmt(r.wt.syncMs)} ms), flat answers ${r.wt.placeholders} (${fmt(r.wt.flatMs)} ms), map.addImage inside them ${fmt(r.wt.addMs)} ms`);
     out.push(`  [r${i + 1}] images asked after the reveal (s after reveal, flat flag): ` + (r.wt.askLog || []).filter(a => a[0] > r.reveal).map(a => `${((a[0] - r.reveal) / 1000).toFixed(1)}:${a[1]}${a[2] ? '*' : ''}`).join(' '));
     const big = r.wt.burstLog.filter(b => b[0] > r.reveal && b[2] >= 20).map(b => `+${Math.round(b[0] - r.reveal)}ms ${b[1]}img ${b[2]}ms ${b[3]}flat`);
