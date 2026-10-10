@@ -48,7 +48,8 @@
     "the-otis-hotel.json",
     "burdine-hall.json",
     "norman-hackerman-building.json",
-    "robert-b-rowling-hall.json"
+    "robert-b-rowling-hall.json",
+    "dominos.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
