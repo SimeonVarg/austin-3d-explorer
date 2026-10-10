@@ -1482,10 +1482,12 @@ precision highp float; uniform highp sampler2D uT; uniform float uK; out vec4 o;
   }
   // MapLibre throws when it cannot create a WebGL context, and that used to leave this card on its last reading
   // ("Map: surveying the site") for ever, with the clock running. Name the problem and what to try instead (A09).
+  let webglPending = false;
   function webglFailed() {
     if (webglDead) return;
+    const card = root && root.querySelector('.load-card');
+    if (!card) { webglPending = true; return; }   // the card is not built yet: build() calls this again
     webglDead = true; clearInterval(timer);
-    const card = root && root.querySelector('.load-card'); if (!card) return;
     card.querySelector('.load-heading h2').textContent = t('fail.webgl.title');
     for (const sel of ['#load-percent', '.load-rail', '#load-stages', '.load-choice']) { const e = card.querySelector(sel); if (e) e.style.display = 'none'; }
     const est = card.querySelector('#load-estimate'); est.className = 'load-fail'; est.style.display = 'block'; est.textContent = t('fail.webgl.body');
@@ -1524,6 +1526,7 @@ precision highp float; uniform highp sampler2D uT; uniform float uK; out vec4 o;
     dialog.addEventListener('close',()=>{const target=opener?.isConnected?opener:button;if(!target.hidden)target.focus();});
     document.body.append(dialog);root.querySelector('#load-modes').addEventListener('click',openModes);
     startClock();update();timer=setInterval(update,TUNE.pollMs);
+    if(webglPending)webglFailed();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
 })();
