@@ -57,7 +57,9 @@ for (const f of files) {
   // `await b.__done()` and an earlier version of this rule reported it as a
   // leak. A lint that cries wolf gets muted, which is the failure this file
   // exists to prevent.
-  if (/await launch\(chromium/.test(src) && !/\.__done\s*\(|\.close\s*\(/.test(src)) {
+  // `browser.__done?.()` closes it just as `browser.__done()` does (loader-check.mjs
+  // writes the optional call), so the pattern allows the `?.` form.
+  if (/await launch\(chromium/.test(src) && !/\.__done\s*(?:\?\.)?\(|\.close\s*\(/.test(src)) {
     findings.push({ f, n: 0, rule: 'no-close', msg: 'launches a browser but never calls browser.__done()' });
   }
 
@@ -167,8 +169,21 @@ for (const f of files) {
   // az 118.8 then 120.88, `__todCurrentP` left at 0.11 for a p of 0.1.
   //
   // `drift-check.mjs` is the guard ON the idle cinema and is exempt by name.
+  //
+  // Two kinds of script are not what this rule is about, and each is named with
+  // the reason it was checked by reading the script (2026-10-09):
+  //   - a script that loads a page WITHOUT js/app.js has no idle cinema to
+  //     switch off. BARE_PAGE lists them; adding a name needs that reason.
+  //   - a script that spells the drift parameter out as an expression
+  //     (`?drift=${spec.drift ? 1 : 0}`, intro-interrupt.mjs) has chosen it per
+  //     case, which is what the rule asks for; only the literal `drift=0` was
+  //     recognised before, so it read as a script that had not thought of it.
+  const BARE_PAGE = {
+    'analytics-check.mjs': 'serves its own bare page (the real wayfind.js then analytics.js, no app.js)',
+    'guard-map-traffic.mjs': 'loads scripts/verify/schedimg-blank.html, a page without the app',
+  };
   const loadsPage = /(?:index|_harness)\.html|page\.goto\(BASE/.test(src) && /page\.goto\s*\(/.test(src);
-  if (loadsPage && !/drift=0/.test(src) && f !== 'drift-check.mjs') {
+  if (loadsPage && !/drift=(?:0|\$\{)/.test(src) && f !== 'drift-check.mjs' && !BARE_PAGE[f]) {
     findings.push({ f, n: 0, rule: 'no-drift-off',
       msg: 'loads the page without ?drift=0 — after 25 s idle the app moves the camera and the hour under it' });
   }
