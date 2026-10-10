@@ -65,6 +65,12 @@
   'use strict';
 
   const q = new URLSearchParams(window.location.search);
+  // ?facadeshader=1 (default off): window walls the shader can draw are one quad each (js/facet-walls.js, loaded only with the flag)
+  const FACET_LOAD = q.get('facadeshader') === '1' && !(window.LITE_PROFILE && window.LITE_PROFILE.on) ? new Promise(done => {
+    const cs = document.currentScript, el = document.createElement('script');
+    el.src = cs && cs.src ? cs.src.replace(/slopes-apartments\.js/, 'facet-walls.js') : 'js/facet-walls.js';
+    el.onload = el.onerror = () => done(); document.head.appendChild(el);
+  }) : null;
 
   // ══════════════════════════════════════════════════════════════════════
   //  TASTE BLOCK — CLAUDE.md rule 11. Every value here is a choice, not a
@@ -737,6 +743,15 @@
     if (!skip.bottom) B.quad(P(s0, d0, z0), P(s0, d1, z0), P(s1, d1, z0), P(s1, d0, z0), col, [0, 0, -1]);
     if (!skip.s0) B.quad(P(s0, d0, z0), P(s0, d1, z0), P(s0, d1, z1), P(s0, d0, z1), col, nT);
     if (!skip.s1) B.quad(P(s1, d0, z0), P(s1, d0, z1), P(s1, d1, z1), P(s1, d1, z0), col, T);
+  }
+
+  /** what js/facet-walls.js is offered for a wall piece: the generator's own resolved skin, and the two rules the cells take from the file's settings */
+  function facetPiece(W, len, z0, z1, ctx, skin, sk, band, P, cut, spec) {
+    return { W, len, z0, z1, ctx, skin, sk, band, P, cut, tris: 0,
+      skinReveal: wantReveals() ? (skin.reveal != null ? skin.reveal : APTS.reveal) : 0,
+      // the night colour tileFace gives a window's glass cell
+      windowNight: (w, glass) => w.lit ? (w.nightTone || APTS.nightLitTone)
+        : ((window.CityNight?.tune.on && w.lit === false && (glass.surface?.[0] === 4 || glass.surface?.[0] === 6)) ? window.CityNight.tune.unlitGlass : glass[2]) };
   }
 
   /**
@@ -1895,7 +1910,7 @@
       const ctx = { len, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
       const skin = resolveSkin(sk, ctx, P, ctx.key);
       openings(skin, band, len, z0, z1, spec, fl, P, sOff);
-      tileFace(B, { W: sub, len, z0, z1, cut: cutAt ? cutAt(0) : null }, skin, P);
+      if (!(B.facet && B.facet.take(facetPiece(sub, len, z0, z1, ctx, skin, sk, band, P, cutAt ? cutAt(0) : null, spec)))) tileFace(B, { W: sub, len, z0, z1, cut: cutAt ? cutAt(0) : null }, skin, P);
     }
     // the fixtures — balconies and signs — positioned by `s` along THIS
     // piece: an override region's own. A face's default bands' fixtures are
@@ -1972,7 +1987,7 @@
       const ctx = { len: sHi - sLo, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
       const skin = resolveSkin(sk, ctx, P, ctx.key);
       openings(skin, band, sHi - sLo, z0, z1, spec, fl, P, (opts.sOff || 0) + sLo);
-      tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);
+      if (!(B.facet && B.facet.take(facetPiece(subR, sHi - sLo, z0, z1, ctx, skin, sk, band, P, opts.cutAt ? opts.cutAt(sLo) : null, spec)))) tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);
     }
     // the returns: a wall across the recess at either end, where nothing recessed meets it
     const R = IS.returns, endwise = R != null && typeof R === 'object';
@@ -2664,6 +2679,7 @@
     const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices) : S.build();
     B.filtered=[];
     B.filterPending=[];
+    if (FACET_LOAD) { await FACET_LOAD; if (window.FACET) B.facet = window.FACET.collector(); }
     const built = area ? [] : (_built = []);
     const cancelled = () => area && area.gen !== gen;
     const discard = () => {
@@ -2769,6 +2785,7 @@
         g.add(mesh);
       });
       for(const m of B.filtered)g.add(m);
+      if (B.facet) { const fm = B.facet.finish(S); if (fm) { g.add(fm); C.facetQuads = B.facet.stats.quads; C.facetWindows = B.facet.stats.windows; if (window.slopesApartments) window.slopesApartments.facetStats = B.facet.stats; } }
       if (area) {
         g.userData.area = Object.assign(tallySince(), { name: area.name, built, triangles: B.triangles, material: mat, ms: +(performance.now() - t0).toFixed(1) });
         return g;
