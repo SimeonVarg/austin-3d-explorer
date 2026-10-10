@@ -29,7 +29,7 @@ const REPSB = +arg('--repsb', 3);
 const ARMSB = { both: 'wtcap=0&wtwarm=0&wtcoalesce=0;', nocap: 'wtcap=0', cap: '' }[arg('--armsb', 'both')];
 const THROTTLEB = arg('--throttleb', '1,4');
 const MAXB = arg('--maxb', '420000');
-const OUT = process.env.VERIFY_OUT || '/tmp/perf-walltiers-suite';
+const OUT = arg('--out', process.env.VERIFY_OUT || '/tmp/perf-walltiers-suite');
 const URLB = process.env.VERIFY_URL || 'http://127.0.0.1:8442';
 let code = 0;
 const run = (name, file, args, opts = {}) => {
@@ -64,6 +64,9 @@ const pictures = (mode, base, sides) => {
   }
   run(`pics ${mode} compare`, 'ci/pictures.mjs', ['--compare', '--out', dir, '--label', 'walltiers=0', ...(sides.length < 3 ? ['--no-again'] : [])]);
 };
+// picsvar: the default page against the same page with one switch off (--var wtwarm=0, `+` joins several), to find which part of
+// the change moved a pixel; the old painting is shot once and the variant once
+if (STEPS.includes('picsvar')) pictures('var', 'namelabels=0', [['before', '&walltiers=0'], ['after', '&' + arg('--var', 'wtwarm=0').replaceAll('+', '&')]]);
 if (STEPS.includes('pics')) pictures('paced', 'namelabels=0', [['before', '&walltiers=0'], ['after', ''], ['again', '&walltiers=0']]);
 if (STEPS.includes('mem')) {
   [['eager', '?drift=0&walltiers=0'], ['lazy', '?drift=0']].forEach(([name, q], i) => {
