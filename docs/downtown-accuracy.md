@@ -195,10 +195,39 @@ extract on this machine). Running `--downtown-only` twice gives the same file
 - The 6 "extra" bodies and 31 old bodies with no outline under them were left
   as they were.
 
+## The shape, seen from above
+
+![The 2021 laser scan beside what the app drew before and draws now, with the error of each](shots/downtown/massing-core.jpg)
+
+One kilometre of the core, north up, drawn straight from the data (no browser):
+the scan, the app before, the app after, and under each the error against the
+scan. Before, every tower is a centred shaft inside a rim of podium, and red and
+blue (too high, too low) are everywhere. After, what is left is: the towers
+finished since the flight (solid red: Sixth and Guadalupe, Block 185, The
+Republic and others are RIGHT to be taller than a 2021 scan), the Convention
+Center (blue, lower right: pulled down in 2025 and rightly not drawn), and thin
+lines along walls where a 2 m cell straddles an edge.
+
 ## Pictures
 
-Made-up cameras only (`scripts/verify/shots-downtown.json`, and a set of
-eye-level cameras on Congress Avenue, 6th Street, 2nd Street, West 6th and
-Rainey Street). `scripts/verify/downtown-shots.mjs` shoots before and after in
-one browser by answering the two outer-ring requests from `main`'s copies. The
-pictures are in the pull request.
+Made-up cameras only, none fitted to a photograph: eye-level cameras in the
+middle of the street and cameras 110 to 200 m up, drawn on a rented GPU (the
+app at `main` on the left, at this branch on the right, the same camera).
+
+| | |
+|---|---|
+| ![Skyline from the south](shots/downtown/skyline-from-south.jpg) from 200 m up, south of the lake | ![Skyline from the east](shots/downtown/skyline-from-east.jpg) from 200 m up, east of I-35 |
+| ![Over Congress Avenue](shots/downtown/over-congress.jpg) 120 m over Congress Avenue, looking north | ![Congress Avenue, looking north](shots/downtown/congress-north.jpg) Congress Avenue at street level, looking north to the Capitol |
+| ![Congress Avenue, looking south](shots/downtown/congress-south.jpg) Congress Avenue at street level, looking south | ![6th Street, looking east](shots/downtown/sixth-east.jpg) East 6th Street at street level, looking east |
+| ![6th Street, looking west](shots/downtown/sixth-west.jpg) East 6th Street, looking west | ![Rainey Street](shots/downtown/rainey-north.jpg) Rainey Street, looking north |
+
+What to look for: podiums and steps where there was one shaft; the towers on
+Congress standing on the right part of their blocks; lower, truer roof lines on
+6th Street. What has NOT changed and still looks generic: every wall's window
+pattern and colour, and the flat band at street level.
+
+A check script for more views, including a straight-down plan and three roofs
+turned 0.3 degrees to show any flicker, is `scripts/verify/downtown-shots.mjs`
+(`shots-downtown.json`). It was queued on the laptop lane and had not run when
+this was written, so the flush-top fix is proven by the coplanar count, not yet
+by a moving picture.
