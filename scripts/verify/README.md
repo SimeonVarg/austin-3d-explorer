@@ -1818,4 +1818,17 @@ Traps met writing it: the far pattern filter is compiled only where the browser 
 the software harness never has it unless `?patfilter=1`; MSAA is fixed when the map is built (`--msaa 1`
 writes it into the saved settings first); a hidden-layer render only counts after `__facadePace.busy` is
 false and `slopesApartments.count.done`, or the "building" mask includes a half-built city.
-`pattern-filter-taps.mjs` is the no-browser half: the filter's tap maths on a synthetic window grid.
+The meter refuses to print a result it has not earned (exit 1, or 2 for a bad flag): a view whose building mask is
+empty is `--` and `n/a` in the table, out of the mean, and a failure (it used to print `0.00` and `Y/Y/Y`); `--frames`
+under 2 is refused (flicker is a spread over frames, one frame gave 0); and a `settle()` that times out throws
+instead of scoring a half-built city. `--from <json>` re-scores a saved `--json` run with no browser. The scoring
+lives in `moire-score.mjs` (a library, also injected into the page) and `moire-score-check.mjs` runs those refusals
+on synthetic inputs in CI.
+
+`pattern-filter-taps.mjs` is the no-browser half: the filter's tap maths on three synthetic walls (two window grids,
+brick), with every constant (tap caps, spacing, the scattered set, the dither hash, the morph band) READ from
+`js/city-lighting.js`, so it notices drift and refuses to run on a shader shape it does not emulate. It samples every
+half texel from 8 to 13 as well as 1.5 to 40. Trap it caught: the first `?patscatter=1` layout slid every tap from the
+comb to the scattered set between 8 and 12 texels and was worse than BOTH layouts at 9 to 11 texels (comb 14.0, scatter
+10.6, slid 22.0 at 10 x 10) while the test, which only sampled 8 and 12, printed PASS. Any slid blend is worse than the
+comb somewhere, so the switch now picks the layout per pixel (a screen-space dither from 10.5 to 12.5 texels).
