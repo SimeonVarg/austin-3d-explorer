@@ -42,10 +42,9 @@
   // Screen size needs no budget: a bigger screen gives each pixel fewer texels,
   // so fewer taps per pixel for more pixels.
   const patternFilterQuery=new URLSearchParams(location.search).get('patfilter');
-  // ?patnear= / ?patfull= (metres) and ?patscatter=1 move the fade range and the tap layout for one visit.
-  const patNum=(k,d)=>{const v=new URLSearchParams(location.search).get(k);return v!==null&&v!==''&&isFinite(+v)?+v:d;};
+  const patNum=(k,d)=>{const v=new URLSearchParams(location.search).get(k);return v>''&&isFinite(v)?+v:d;};
   const patternFilter={nearM:patNum('patnear',150),fullM:patNum('patfull',250),maxTaps:4,maxSpacing:2,cardsOnly:true,scatterFrom:8,scatterTo:12,
-    scatter:new URLSearchParams(location.search).get('patscatter')==='1'};
+    scatter:/[?&]patscatter=1/.test(location.search)};
   patternFilter.on=patternFilterQuery==='1'||(patternFilterQuery!=='0'&&(window.LITE_PROFILE?.on
     ? !!window.LITE_PROFILE.budget?.farPatternFilter
     : (!patternFilter.cardsOnly||!!window.GFX_GPU_CARD?.())));
@@ -99,11 +98,7 @@
       float fx=length(dx*texels),fy=length(dy*texels);
       float nx=clamp(ceil(fx),1.0,u_cityPatternFilter.w),ny=clamp(ceil(fy),1.0,u_cityPatternFilter.w);
       if(nx*ny<=1.0)return point;
-      // Up to maxTaps x maxSpacing texels the taps are a regular comb whose neighbours' bilinear footprints add
-      // up to a box. Past that the comb passes some window-grid harmonics at full strength, so with
-      // ?patscatter on the taps move, continuously between scatterFrom and scatterTo texels, to a fixed
-      // low-discrepancy set spread over the whole footprint: the same tap count, and a beat that was coherent
-      // becomes fine grain. w is 0 below scatterFrom, so those pixels read exactly as before.
+      // Past maxTaps x maxSpacing texels the comb beats; ?patscatter moves the taps to a scattered set (w).
       vec2 gx=dx*min(1.0,nx*u_cityPatternFilterB.x/max(fx,1e-4));
       vec2 gy=dy*min(1.0,ny*u_cityPatternFilterB.x/max(fy,1e-4));
       float w=u_cityPatternFilterB.y*smoothstep(${patternFilter.scatterFrom.toFixed(1)},${patternFilter.scatterTo.toFixed(1)},max(fx,fy));
