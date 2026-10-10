@@ -3681,4 +3681,6 @@
       if (done || ++n > 900) clearInterval(t);
     }, 150);
   })();
+  // The Web Worker seam (js/build-worker.js, scripts/verify/build-worker-page.mjs): the generator's build() and its counts, with no page.
+  window.__aptsBuild = { build, count, resetCount };
 })();
