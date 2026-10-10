@@ -75,13 +75,13 @@
     //    boil and retinal noise near threshold, so the window figure is small on purpose and the lamp figure
     //    larger. Both are fade-in with distance: nothing twinkles near the camera.
     twinkle:master?num('twinkle',1):0,
-    windowAmp:.11,       // RMS fraction of brightness, at farM
+    windowAmp:.14,       // RMS fraction of brightness, at farM
     lampAmp:.30,         // the same for a lamp head (as a change of its radius, so about 2x in light)
-    nearM:300,           // no shimmer inside this distance
-    farM:2600,           // full strength from here
+    nearM:250,           // no shimmer inside this distance
+    farM:2000,           // full strength from here
     hz:[2.0,6.0],        // the two slow oscillators per light, under half the 15 Hz redraw and under the ~15 Hz the dark-adapted eye follows
     colourWobble:.45,    // share of the amplitude that goes to a red/blue swing (1 = as large as brightness)
-    footprintM:[3,12],   // the shimmer fades out where one pixel covers more than this much wall (no aliasing)
+    footprintM:[4,14],   // the shimmer fades out where one pixel covers more than this much wall (no aliasing)
     repaintHz:15,        // a parked camera is redrawn this often at night, only while shimmer is on
     idleStopS:300,       // ...and stops this long after the last touch, so a left-open tab does not cook a laptop
     cardsOnly:true,      // on by default only where graphics.js finds a graphics card (like the far pattern filter)
@@ -119,13 +119,13 @@
   const now=()=>held!==null?held:frozen?seed*1000*37.7:performance.now();
   const hold=ms=>{held=ms==null?null:+ms;try{window.__map?.triggerRepaint();}catch(e){}};
   // The two uniforms every window shader reads (see city-lighting.js, cityEyeGain).
-  // u_cityEye = (seconds, window amp, 1/pixel footprint rad, late), u_cityEye2 = (lamp amp, nearM, farM, enabled)
+  // u_cityEye = (seconds, window amp, 1/pixel footprint rad, late), u_cityEye2 = (lamp amp, nearM, farM, bits)
   function uniforms(U,p,map){
     const night=tune.on?lamps(p):0,on=eye.on&&night>0&&eye.twinkle>0;
     let px=.0013;try{const t=map?.transform;if(t)px=2*Math.tan(t.fov*Math.PI/360)/Math.max(1,t.height);}catch(e){}
     const late=eye.drift?smooth(eye.lateStart,1,p):0;
     U.u_cityEye.value.set(now()/1000,on?eye.windowAmp*eye.twinkle:0,px,late);
-    U.u_cityEye2.value.set(on?eye.lampAmp*eye.twinkle:0,eye.nearM,eye.farM,(on||(eye.drift&&night>0))?1:0);
+    U.u_cityEye2.value.set(on?eye.lampAmp*eye.twinkle:0,eye.nearM,eye.farM,(on?1:0)+(eye.drift&&night>0?2:0));   // bit 0 shimmer, bit 1 slow change
   }
   // The shimmer needs frames: this app draws only when something changes. A parked night camera is redrawn at
   // eye.repaintHz while shimmer is on, the tab is visible, the camera is still and someone touched it lately.

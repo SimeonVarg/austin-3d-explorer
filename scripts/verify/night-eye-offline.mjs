@@ -26,12 +26,12 @@ f0.hold(2500); ok('hold() steps the clock by hand', f0.now() === 2500); f0.hold(
 // 2. the uniforms each switch writes
 const u = (search, p) => { const c = load(search), x = U(); c.uniforms(x, p, null); return { a: x.u_cityEye.value.a, b: x.u_cityEye2.value.a, c }; };
 let r = u('', 1);
-ok('night, defaults: shimmer amplitude on, lamp amplitude on, both parts enabled (bits 3)', r.a[1] > 0 && r.b[0] > 0 && r.b[3] === 1);
+ok('night, defaults: shimmer amplitude on, lamp amplitude on, both parts enabled (bits 3)', r.a[1] > 0 && r.b[0] > 0 && r.b[3] === 3);
 ok('late in the night the late-night dropout is full', r.a[3] === 1 && u('', .5).a[3] === 0);
 ok('by day nothing is enabled', u('', .2).b[3] === 0 && u('', .2).a[1] === 0);
-ok('?twinkle=0 zeroes the shimmer but not the slow change', u('?twinkle=0', 1).a[1] === 0 && u('?twinkle=0', 1).b[0] === 0);
+ok('?twinkle=0 zeroes the shimmer but not the slow change (bits 2)', u('?twinkle=0', 1).a[1] === 0 && u('?twinkle=0', 1).b[0] === 0 && u('?twinkle=0', 1).b[3] === 2);
 ok('?twinkle=2 doubles it', Math.abs(u('?twinkle=2', 1).a[1] - 2 * u('', 1).a[1]) < 1e-9);
-ok('?nightdrift=0 removes the late-night dropout', u('?nightdrift=0', 1).a[3] === 0);
+ok('?nightdrift=0 removes the late-night dropout and the slow change (bits 1)', u('?nightdrift=0', 1).a[3] === 0 && u('?nightdrift=0', 1).b[3] === 1);
 ok('?nighteye=0 turns every part off', (r = u('?nighteye=0', 1), r.a[1] === 0 && r.b[3] === 0 && r.c.eye.glare === 0 && !r.c.eye.colour));
 
 // 3. palettes by building type

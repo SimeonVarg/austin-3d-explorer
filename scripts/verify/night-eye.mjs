@@ -180,7 +180,7 @@ await stage('sequence', async () => {
   });
   const frames = [];
   for (const mode of ['on', 'off']) {
-    await page.evaluate(m => { window.CityNight.eye.twinkle = m === 'on' ? 1 : 0; }, mode);
+    await page.evaluate(m => { window.CityNight.eye.twinkle = m === 'on' ? 1 : 0; window.CityNight.eye.drift = false; }, mode);   // shimmer alone: the slow change is measured by its own claim
     for (let k = 0; k < S.frames; k++) {
       await page.evaluate(ms => window.CityNight.hold(ms), 1000 + k * S.stepMs);
       await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
