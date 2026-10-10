@@ -218,6 +218,11 @@
   "_laptop_only": "Timing. Frame times on a shared cloud CPU with a software rasteriser measure the runner, not the code (README: 'right for pixel assertions and useless for timing'). These stay on a quiet laptop.",
   "laptop_only": {
     "apts-perf.mjs": "timing",
+    "perf-frame-profile.mjs": "timing: scripts/perf wrapper for the AWS GPU runner; measures frame time, no verdict",
+    "perf-aws-suite.mjs": "timing: runs the scripts/perf tools in sequence on the AWS GPU runner, no verdict",
+    "perf-load-profile.mjs": "timing: scripts/perf wrapper for the AWS GPU runner; measures cold-load time, no verdict",
+    "perf-veil-ab.mjs": "timing: the veil gate A/B (old gate against new, 1x and 4x CPU) then veil-first-frame.mjs, run in sequence on the AWS GPU runner",
+    "veil-first-frame.mjs": "needs a GPU and a quiet machine: loads the real city 8 times and waits for the deferred sources; run by perf-veil-ab.mjs on the AWS GPU runner",
     "arts-perf.mjs": "timing",
     "drag-perf.mjs": "timing",
     "facade-perf.mjs": "timing",

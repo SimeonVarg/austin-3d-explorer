@@ -1968,6 +1968,10 @@ window.CityLighting.install(map);
     authoredCeilingMs: 90000, // release the veil; allow the authored build to land afterward
     gatePollMs: 200,   // how often the gate is re-asked
     gateHolds: 2,      // consecutive passes required before departure
+    // Do not hold the veil for sources whose module DEFERS them past the opening flight (campus-storeys,
+    // the entrance doors): see authoredViewReady(). false, or ?veilgate=full, waits for every source as before.
+    gateSkipDeferred: false,   // OFF: measured 2026-10-10 on AWS, it does not shorten the veil (the deferred sources are not the last wait). ?veilgate=skip turns it on.
+    lateClauseMs: 90000,   // after the lift, re-apply the hiding clause on every style change for this long (see reveal())
     // Hold the veil until the authored apartments have built. Measured
     // 2026-09-15: letting the flight depart while they built in the
     // background (time-sliced) dropped the intro to 11-14 fps with 0.5 s
@@ -2019,8 +2023,12 @@ window.CityLighting.install(map);
   // "89%" for 20+ s and the veil lifted on the 30 s ceiling. The download now
   // starts at ~2 s and the build is time-sliced so tiles load alongside it.
   function introGate(waitAuthored = true) {
-    const style = (map.getStyle && map.getStyle()) || null;
-    const have = (style && style.sources) || {};
+    // map.getSource, not map.getStyle().sources: getStyle() serialises (deep-copies) all ~260 layers and every
+    // source on each call, and this runs every INTRO.gatePollMs for the whole veil (95 ms of main thread at 1x,
+    // 370 ms at 4x in the 2026-10-09 profile). ?veilgate=full keeps the old call.
+    let have;
+    if (VEIL_GATE_FULL) { const style = (map.getStyle && map.getStyle()) || null; have = (style && style.sources) || {}; }
+    else { have = {}; for (const id of INTRO.needs) { try { if (map.getSource(id)) have[id] = true; } catch (e) {} } }
     const missing = [];
     let known = 0;
     for (const id of INTRO.needs) {
@@ -2034,11 +2042,88 @@ window.CityLighting.install(map);
     }
     if (waitAuthored && window.SLOPES?.on && window.APARTMENTS?.on) {
       known++;
-      if (!window.slopesApartments?.readyToReveal()) missing.push('authored-buildings');
+      if (!authoredViewReady()) missing.push('authored-buildings');
     }
     let all = false;
     try { all = !!map.areTilesLoaded(); } catch (e) {}
+    veilNote('src.tilesAll', all);
+    for (const id of INTRO.needs) if (have[id]) veilNote('src.' + id, !missing.includes(id));
     return { known: known, missing: missing, all: all };
+  }
+
+  /**
+   * WHAT THE VEIL WAITS FOR, PART 2: ARE THE AUTHORED BUILDINGS READY FOR THE FIRST VIEW?
+   *
+   * `slopesApartments.readyToReveal()` (js/slopes-apartments.js) answers "is everything the swap touches
+   * settled": the build has landed, two frames have drawn with it, every legacy layer it hides carries its
+   * hiding clause, and every SOURCE behind those layers has finished loading. That last clause is the one
+   * that held the veil in the 2026-10-09 profile (docs/speed-2026-10-09.md): the layers it counts include
+   * `campus-storeys` (js/facades.js CS.defer) and `entrances-*` (js/entrances.js ENT.defer), which their
+   * modules DEFER on purpose, to idle + 2 s / altitude < 60 m, because neither can be seen from the
+   * opening flight (a storey band is a 0.24 m course, a door is below eye level). The veil therefore waited
+   * for sources that exist only because a timer that starts at the first idle has fired, and the wait was
+   * the length of their parse (a 6.5 MB door file on the main thread) and not anything on screen.
+   *
+   * This asks the same questions from the public API (`count`, `group`, `hidden`), EXCEPT that a source
+   * whose module defers it (INTRO.gateSkipDeferred, read live from that module's own `defer.on`) is not waited
+   * for. Everything the first view draws is still waited for: the build landed, two frames drawn, every
+   * layer's clause in place, the roofs rig lifted, and every other source behind a hidden layer loaded.
+   * A deferred layer that appears after the lift gets its clause from the 500 ms `late()` poll in
+   * slopes-apartments.js, exactly as it already does for any page that starts low.
+   *
+   * ?veilgate=full restores the old call (readyToReveal) for A/B on one page load.
+   * Each question is recorded in window.__intro.gates (first time it held, last time it did not, how many
+   * polls it blocked), so the next person can read what the veil waited for instead of guessing.
+   */
+  const VEIL_GATE_FULL = /[?&]veilgate=full(?:&|$)/.test(location.search);
+  const VEIL_GATE_SKIP = /[?&]veilgate=skip(?:&|$)/.test(location.search) && !VEIL_GATE_FULL;   // opt in: do not wait for deferred sources
+  function veilNote(name, ok) {
+    const d = window.__intro; if (!d) return ok;
+    const g = d.gates || (d.gates = {});
+    const e = g[name] || (g[name] = { firstOkAt: null, lastBlockedAt: null, blockedPolls: 0 });
+    const t = Math.round(performance.now());
+    if (ok) { if (e.firstOkAt == null) e.firstOkAt = t; }
+    else { e.lastBlockedAt = t; e.blockedPolls++; }
+    return ok;
+  }
+  let _veilFrame0 = null;
+  function authoredViewReady() {
+    const A = window.slopesApartments;
+    if (!A) return false;
+    // The questions, all answered every time (not first-failure) so each gets its own time.
+    let boot = false, group = false, frames = false, filters = false, rigs = false, srcs = true;
+    const skip = new Set();
+    try {
+      boot = !!A.count.done;
+      group = !!A.group || (boot && A.readyToReveal());   // no group: only a failed fetch may pass
+      if (A.group && _veilFrame0 == null) _veilFrame0 = window.slopes ? window.slopes.frames : 0;
+      frames = !A.group ? group : (window.slopes ? window.slopes.frames : 0) > _veilFrame0 + 1;
+      const h = A.group ? A.hidden : null;
+      filters = !h || h.missing.length === 0;
+      rigs = !h || h.rigsMissing.length === 0;
+      if ((INTRO.gateSkipDeferred || VEIL_GATE_SKIP) && !VEIL_GATE_FULL) {
+        if (window.CAMPUS_STOREYS?.defer?.on) skip.add('campus-storeys');
+        if (window.ENT?.defer?.on) for (const id of ['austin-entrances', 'austin-entrances-wm', 'austin-entrances-text']) skip.add(id);
+      }
+      if (h) {
+        const seen = new Set();
+        for (const lid of h.plan) {
+          const sid = map.getLayer(lid)?.source;
+          if (!sid || seen.has(sid)) continue;
+          seen.add(sid);
+          const loaded = !map.getSource(sid) || map.isSourceLoaded(sid);
+          const deferred = skip.has(sid);
+          veilNote('apt.src.' + sid + (deferred ? '(deferred)' : ''), loaded);
+          if (!loaded && !deferred) srcs = false;
+        }
+      }
+    } catch (e) { return !!A.readyToReveal(); }
+    veilNote('apt.boot', boot); veilNote('apt.group', group); veilNote('apt.frames', frames);
+    veilNote('apt.filters', filters); veilNote('apt.rigs', rigs);
+    const mine = boot && group && frames && filters && rigs && srcs;
+    veilNote('apt.firstView', mine);
+    if (VEIL_GATE_FULL) { const full = !!A.readyToReveal(); veilNote('apt.readyToReveal', full); return full; }
+    return mine;
   }
 
   // The veil (see index.html/#veil) holds an authored dark frame over the
@@ -2093,6 +2178,22 @@ window.CityLighting.install(map);
       if (revealed) return;
       revealed = true;
       if (poll) clearInterval(poll);
+      // A source the gate no longer waits for (authoredViewReady) can add its layer after this point. Its hiding
+      // clause normally arrives from slopes-apartments.js's 500 ms poll before any geometry exists, but on a warm
+      // cache a source can load inside that gap and show the legacy shapes for a moment (Astra's review, 2026-10-10).
+      // So every style change for the next INTRO.lateClauseMs re-applies the clause the moment a planned layer is
+      // missing it: applySlopesApartments is the public, idempotent call the poll itself makes.
+      if ((INTRO.gateSkipDeferred || VEIL_GATE_SKIP) && !VEIL_GATE_FULL) {
+        const until = performance.now() + INTRO.lateClauseMs;
+        const onStyle = () => {
+          if (performance.now() > until) { map.off('styledata', onStyle); return; }
+          try {
+            const A = window.slopesApartments;
+            if (A && A.group && A.hidden.missing.length) window.applySlopesApartments(map);
+          } catch (e) {}
+        };
+        map.on('styledata', onStyle);
+      }
       const g = gate();
       dbg.waitedMs = Math.round(performance.now() - t0);
       dbg.reason = reason;
