@@ -97,7 +97,7 @@ and the two new `.bin` files as each host compresses them (see below).
 
 | File | `main` | joined, GitHub Pages | joined, Vercel |
 |---|---:|---:|---:|
-| `data/tiles/outer.pmtiles` | 2,392,254 | 1,469,103 | 1,469,103 |
+| `data/tiles/outer.pmtiles` | 2,392,254 | 1,469,057 | 1,469,057 |
 | `data/outer_homes.bin` (new; 645,424 on disk) | 0 | 424,689 | 414,554 |
 | `data/outer_trees.bin` (new; 369,866 on disk) | 0 | 142,269 | 137,827 |
 | `js/outer-homes.js` (new) | 0 | 14,339 | 14,339 |
@@ -105,7 +105,7 @@ and the two new `.bin` files as each host compresses them (see below).
 | `js/mobile.js` | 13,335 | 13,747 | 13,747 |
 | `index.html` | 5,984 | 6,181 | 6,181 |
 | `data/outer_tower_palette.json` | 1,151 | 1,151 | 1,151 |
-| **Total** | **2,412,724** | **2,081,923** | **2,067,346** |
+| **Total** | **2,412,724** | **2,081,877** | **2,067,300** |
 
 **331 KB smaller than `main` on GitHub Pages, 345 KB on Vercel.** On their own
 branches the archive was 2,367,623 bytes (downtown) and 1,492,898 (outer). The
