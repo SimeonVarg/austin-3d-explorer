@@ -246,8 +246,8 @@ await stage('movie', async () => {
 await stage('sequence', async () => {
   const S = TUNE.sequence, pose = TUNE.poses[opt('--pose', S.pose)], dir = path.join(OUT, 'sequence'); fs.mkdirSync(dir, { recursive: true });
   const page = await open('nightfreeze=1&twinkle=1'); await settle(page, pose); data.sceneStable = await waitStable(page);
-  const eyeSet = opt('--eye', null);   // JSON of CityNight.eye overrides for an experiment, e.g. '{"windowAmp":0.5}'
-  if (eyeSet) await page.evaluate(o => Object.assign(window.CityNight.eye, o), JSON.parse(eyeSet));
+  const eyeSet = opt('--eye', null);   // CityNight.eye overrides for an experiment, key=value joined by +, e.g. windowAmp=0.5+farM=1400
+  if (eyeSet) await page.evaluate(o => Object.assign(window.CityNight.eye, o), Object.fromEntries(eyeSet.split(/[;+]/).map(kv => kv.split('=')).map(([k, v]) => [k, Number(v)])));   // --eye windowAmp=0.22+farM=1400
   data.sequenceEye = await page.evaluate(() => { const e = window.CityNight.eye; return { windowAmp: e.windowAmp, lampAmp: e.lampAmp, nearM: e.nearM, farM: e.farM, glare: e.glare }; });
   // Distance of each screen row to the camera, along the ground (an upper bound for a wall on that row).
   const rowDist = await page.evaluate(() => {
@@ -286,6 +286,9 @@ await stage('sequence', async () => {
   // per pixel: lit in the reference (twinkle off, frame 0) -> temporal mean and std of luma over the frames
   const stats = (st, mode, mapFile) => {
     const imgs = frames.filter(f => f[0] === st && f[1] === mode).map(f => decodePNG(f[3])), ref = decodePNG(frames.find(f => f[0] === st && f[1] === 'off' && f[2] === 0)[3]);
+    const offs = frames.filter(f => f[0] === st && f[1] === 'off').map(f => decodePNG(f[3]));   // pixels that move with the shimmer OFF (labels fading, sky, a bloom update) are not the shimmer: they are left out
+    const lumaSd = (set, i) => { const ls = set.map(im => 0.2126 * im.data[i] + 0.7152 * im.data[i + 1] + 0.0722 * im.data[i + 2]); const mu = ls.reduce((a, c) => a + c, 0) / ls.length; return Math.sqrt(ls.reduce((a, c) => a + (c - mu) * (c - mu), 0) / ls.length); };
+    let excluded = 0;
     const W = ref.width, H = ref.height, hCss = rowDist.length, band = { near: { n: 0, s: 0, cv: 0, c2: 0, vary: 0 }, far: { n: 0, s: 0, cv: 0, c2: 0, vary: 0 } };
     const vis = mapFile ? Buffer.alloc(W * H * 3) : null;
     for (let y = 0; y < H; y++) {
@@ -296,13 +299,15 @@ await stage('sequence', async () => {
         const l0 = 0.2126 * ref.data[i] + 0.7152 * ref.data[i + 1] + 0.0722 * ref.data[i + 2];
         const lit = l0 >= STAGES[st] && ref.data[i] >= ref.data[i + 2] + S.warmMargin;   // warm: a window or a lamp, not a white star or a pale wall
         let mu = 0, ss = 0, sd = 0;
+        if (lit && (b || vis) && lumaSd(offs, i) > 0.5) { excluded++; if (vis) { const o = (y * W + x) * 3; vis[o] = 255; vis[o + 1] = 200; } continue; }
         if (lit && (b || vis)) { const ls = imgs.map(im => 0.2126 * im.data[i] + 0.7152 * im.data[i + 1] + 0.0722 * im.data[i + 2]); mu = ls.reduce((a, c) => a + c, 0) / ls.length; ls.forEach(v => ss += (v - mu) * (v - mu)); sd = Math.sqrt(ss / ls.length); }
         if (lit && b) { const B = band[b]; B.n++; B.s += sd * sd; const cv = sd / Math.max(1, mu); B.cv += cv; B.c2 += cv * cv; if (cv > 0.01) B.vary++; }
         if (vis) { const o = (y * W + x) * 3; if (!lit) { vis[o] = ref.data[i] >> 2; vis[o + 1] = ref.data[i + 1] >> 2; vis[o + 2] = ref.data[i + 2] >> 2; } else if (sd / Math.max(1, mu) > 0.01) { vis[o + 1] = 255; } else { vis[o] = 255; vis[o + 2] = 255; } }
       }
     }
     if (vis) fs.writeFileSync(mapFile, encodePNG(W, H, vis));
-    for (const B of Object.values(band)) { B.variance = B.n ? +(B.s / B.n).toFixed(3) : null; B.cvMean = B.n ? +(B.cv / B.n).toFixed(4) : null; B.cvRms = B.n ? +Math.sqrt(B.c2 / B.n).toFixed(4) : null; B.shareVarying = B.n ? +(B.vary / B.n).toFixed(3) : null; delete B.s; delete B.cv; delete B.c2; delete B.vary; }
+    band.excludedMoveWithShimmerOff = excluded;
+    for (const B of [band.near, band.far]) { B.variance = B.n ? +(B.s / B.n).toFixed(3) : null; B.cvMean = B.n ? +(B.cv / B.n).toFixed(4) : null; B.cvRms = B.n ? +Math.sqrt(B.c2 / B.n).toFixed(4) : null; B.shareVarying = B.n ? +(B.vary / B.n).toFixed(3) : null; delete B.s; delete B.cv; delete B.c2; delete B.vary; }
     return band;
   };
   data.sequence = { frames: S.frames, stepMs: S.stepMs, nearM: S.nearM, farM: S.farM, stages: {} };
