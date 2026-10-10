@@ -1,28 +1,51 @@
 """Author the south wall of the Norman Hackerman Building's east block (and its top), from the owner's photographs
 and the 2021 laser scan.
 
-What the old recipe had wrong, found 2026-10-09 by drawing it from the photographs' cameras and reading the scan
-cell by cell (the frame is the recipe's own: u east along the long side, v north, z up, metres):
+THE OPEN QUESTION, decided 2026-10-09: where is the brick south face of the east block? (frame = the recipe's own:
+u east along the long side, v north, z up, metres; checked against a render, NOT assumed: u runs east, the arcade is
+on the low-v side.)  Three candidates:  A  v = -4.5 (a first draft of this script),  B  v = -0.5 (the map outline's
+south edge is v = 0),  C  v = 3.5 (the old recipe).  ANSWER: C, v = 3.5.  The scan's 29 m strip at v -4.5 .. -1 is
+the louvred sunshade, which stands out 8 m past the brick, not a roof terrace.  Evidence, none of it from the map:
 
-  * The south face of the east block stands at v = -4.5 (SCAN: from u = 46 eastward the roof, 28-31 m, starts at
-    v = -4.5 and nothing is higher than 1 m at v = -5). The recipe put the arcade front at v = 3.5, eight metres
-    inside, because the map outline (v = 0 is its south edge) leaves out the colonnade.
+  1. SIDE PHOTO, the lead's own test.  The camera was fitted (solvePnP, 24 mm lens) on 32 window corners of the south
+     wall, taken off a flattened drawing of that wall; it lands 19.4 m from the wall, 1.7 m up.  The canopy's
+     lowest corner (its south-west tip) is photographed 189 px to the LEFT of the glass tower's west edge.  Projecting
+     the scan's tip (u 46, v -4.5, z 29) from that camera gives, for each candidate face: A  40 px to the RIGHT of
+     the tower edge,  B  72 px left,  C  198 px left.  Only C matches.  (The canopy stands out 8.0 m past the face =
+     about one window pair period, 7.9 m.)
+  2. FRONT PHOTO, ground check.  Fitted on 28 window corners; with the face as a free unknown and the red curb
+     (a ground line, 6.5 m in front of the camera by its pixel rows) added, the fit needs a camera 6.1 m high if the
+     face is at A, 4.1 m at B, and 1.5 - 2.1 m (a hand-held phone) only at C.  The street data (curb at v = -9.2)
+     puts the face at v = 3.6 by the same measure.
+  3. SIDE PHOTO, the west wing.  The wing's brick face runs on to the tower with no return wall; A would need a
+     7.6 m step there.
+  4. The scan outside the face: first returns at v 2.5 jump from 30 m to 34 m (the glass top storey rises at the
+     face), and nothing but a shelf 29-31 m high stands south of it.
+  The first draft's own camera (face at A) was fitted to its own model and so proved nothing about v; its 8 m shift
+  also dragged the planter and the street wall with it.
+
+What the old recipe had wrong (found by drawing it from the photographs' cameras and reading the scan cell by cell):
+
   * The colonnade is two storeys of EQUAL height, and the three brick storeys above it have the same pitch
     (PHOTO: a flat drawing of the wall gives 341 px for the upper colonnade storey and 335 px for the brick row
     pitch; the near-frontal photograph gives 420 and 407 px). The recipe had a low first storey (4.65 m) and a
-    brick pitch of 5.05 m.
+    brick pitch of 5.05 m.  Five floors of 5.7 m make the scan's 29 m roof, and both photographs' cameras land 19-20 m
+    from the wall with this size (the north side shows the same five floors).
   * The windows come in PAIRS. Each window is a clear pane under a wider pale-blue hood box (a glazed
     clerestory light with a projecting soffit); pairs repeat every 7.9 m, and a pair is 2.6 m between its panes.
     The recipe had a grid of single windows at an even pitch and no hoods.
+  * The sunshade stood out 3.7 m at 32 m; the scan and the side photograph give 8 m, with its lip level with the
+    glass tower's top and the fins tilted up toward the building (29 m at the lip, 30-31 m at the face).
   * The roof of the east block between u = 45 and 127 stands 5 m higher than the recipe's 30.75 m at its north
-    part (SCAN: 34-37 m for v >= 3.5), which is the louvred top storey seen in the photographs.
+    part (SCAN: 34-37 m for v >= 3.5), which is the glass top storey seen in the photographs.
 
 What this script does (run it once on the file from main; it removes its own pieces first, so it can be run again):
-  1. moves the arcade (piers, fascia beams, floor, recessed wall) and the brick wall above it to the scan's south
-     face, with equal storeys and the measured pair rhythm of windows and hoods;
-  2. raises the east block's north part to the louvred top storey;
-  3. sets the pale stone and the window and hood glass from the photographs.
-Everything else in the file is left alone (west wing, entrance, north side, roof louvres, trees and walks).
+  1. rebuilds the arcade (piers, fascia beams, floor) and the brick wall above it with equal storeys and the measured
+     pair rhythm of windows and hoods, on the old face;
+  2. raises the east block's north part to the glass top storey;
+  3. sets the pale stone and the window, hood and (dark) arcade glass from the photographs;
+  4. builds the louvred sunshade 8 m out, and leaves the glass tower and its mullions as they were.
+Everything else in the file is left alone (west wing, entrance, north side, trees and walks).
 
 Every number below is marked PHOTO (measured on an owner photograph), SCAN (the laser scan) or INFERRED.
 """
@@ -35,7 +58,7 @@ PATH = Path(__file__).resolve().parents[1] / 'data/apartments/norman-hackerman-b
 
 # ---- every taste or size choice is here (metres unless stated) ----
 U_EAST_BLOCK = (45.2, 146.3)    # SCAN + old recipe: the east block runs from the entrance bay to the east end
-SOUTH_V = -4.5                  # SCAN: south face of the east block (first return jumps from 0-1 m to 28 m between v=-5 and -4)
+SOUTH_V = 3.5                   # PHOTO + street data: south face of the east block, as in the old recipe (see the header: the helper's -4.5 was a canopy edge)
 ARCADE_DEPTH = 5.5              # INFERRED: kept from the old recipe (3.5 -> 9.0); the photographs show a deep covered walk
 SHIFT_V = SOUTH_V - 3.5         # everything that stood on the old arcade front moves by this much (-8.0)
 P = 5.7                         # PHOTO: storey height = brick row pitch = colonnade storey. 5 storeys + a 1.2 m parapet reach the SCAN roof 29.7
@@ -65,14 +88,25 @@ PENTHOUSE_TOP = 34.8            # SCAN: median of the first return over that are
 GLASS_BAY = (45.2, 50.6)        # old recipe (not changed in u); it now stands in front of the brick, as in the photographs
 GLASS_BAY_DEPTH = 1.0           # PHOTO: projects about 1 m
 GLASS_BAY_BOTTOM = COLONNADE_TOP + 0.4   # PHOTO: the tower starts just above the top fascia
+CANOPY_U = (46.0, 146.3)        # SCAN: the 29 m shelf starts at u = 46-48 (the glass tower's west edge is 45.2) and runs to the east end
+CANOPY_LIP_V = -4.5             # SCAN: first returns stop at v = -4.5 (4.5 m past the map outline, 8 m past the brick face)
+CANOPY_LIP_Z = 26.5             # INFERRED between PHOTO and SCAN: the side photograph's fitted camera puts the lip at z 24-26 (its far edge line, tip at u 47, v -4.5); the scan's first return there is 29.0 above LOCAL ground
+CANOPY_FACE_Z = 29.7            # SCAN: 30-31 m (top of the fins) at the face; underside level with the brick roof (BODY_TOP)
+CANOPY_T = 0.55                 # INFERRED: fin depth
+SLAT_PITCH, SLAT_W = 0.5, 0.28  # PHOTO: fins 0.5 m apart, running from the lip back to the building, a dark soffit seen between them
+BEAM_PITCH = 7.9                # INFERRED: a cross beam under the canopy at every window pair
 COLOURS = {
     'stone': '#dad5c5', 'stoneLight': '#e0dccd',      # PHOTO: pier fronts #e4e0d5, fascia #e2e3e1 at dawn, 1.48 times the brick's brightness (the old pair gave 1.34)
     'hackHoodGlass': '#9dbddb',      # PHOTO: hood panels #a6c8e6 / #94b7d4 (they reflect the overcast sky)
+    'hackArcadePane': '#3a444b',    # PHOTO: the upper colonnade openings show dark glass (#1f2325..#3a4145). Named WITHOUT 'glass', 'glaz' or 'window': the app gives any such tone its sky-mirroring glass material (js/slopes-apartments.js palette())
+    'hackShopPane': '#4a4a3e',      # PHOTO: the ground-floor shopfronts are dark with warm lit interiors
     'hackWindow': '#9cbccf',         # PHOTO: panes #a2c6de / #bdd3db at dawn
+    'hackCanopyFin': '#c4ccd2',      # PHOTO: light grey-blue fins (#7e8690 .. #a9b4c1 under an overcast sky); drawn lighter because their undersides take no sun
     'hackFrame': '#5f656b',          # PHOTO: thin grey-blue metal round the hoods and under the panes
     'hackSoffit': '#2b2723',         # PHOTO: soffit under a hood #15120f..#514839
 }
 DECIMALS = 3
+GLASS_STRENGTH_HOOD, GLASS_STRENGTH_PANE = 0.35, 0.25  # taste: how much sky the hood and pane glass mirror (the app's own glass is 1.0)
 OPEN_D = 0.38                   # old recipe: how far a window pane sits behind the brick face
 
 HOOD_TOPS = lambda z_sill: (z_sill + WIN_H + HOOD_GAP, z_sill + WIN_H + HOOD_GAP + HOOD_H)
@@ -128,12 +162,65 @@ def window_rects(pc):
     return out
 
 
+def canopy_meshes():
+    """The louvred sunshade that stands out 8 m past the brick face over the whole east block, tilted up toward the building.
+    PHOTO (side photograph): fins run from the lip back to the building, 0.5 m apart, light against a dark soffit, with
+    two dark beams along the length and cross beams; the fitted camera puts the lip at v -4.5, u 47, z 24-26."""
+    fin = {'id': 'hackerman-canopy-fins', 'tone': 'hackCanopyFin', 'vertices': [], 'triangles': []}
+    dark = {'id': 'hackerman-canopy-dark', 'tone': 'darkMetal', 'vertices': [], 'triangles': []}
+    u0, u1 = CANOPY_U; v0, v1 = CANOPY_LIP_V, SOUTH_V
+    k = (CANOPY_FACE_Z - CANOPY_LIP_Z) / (v1 - v0)
+    zu = lambda v: CANOPY_LIP_Z + (v - v0) * k
+    def both(mesh, q):
+        push(mesh, q); push(mesh, list(reversed(q)))
+    # no soffit plate: the sky shows between the fins, as in the photograph (a plate drew the whole canopy near-black from below)
+    both(dark, quad((u0, v0, zu(v0)), (u1, v0, zu(v0)), (u1, v0, zu(v0) + CANOPY_T + 0.1), (u0, v0, zu(v0) + CANOPY_T + 0.1)))   # lip fascia
+    both(dark, quad((u0, v0, zu(v0)), (u0, v1, zu(v1)), (u0, v1, zu(v1) + CANOPY_T), (u0, v0, zu(v0) + CANOPY_T)))            # west end
+    both(dark, quad((u1, v0, zu(v0)), (u1, v1, zu(v1)), (u1, v1, zu(v1) + CANOPY_T), (u1, v0, zu(v0) + CANOPY_T)))            # east end
+    n_fins = 0
+    u = u0 + 0.1
+    while u + SLAT_W <= u1 - 0.05:                                                       # fins: along v, hung just under the soffit's top skin
+        zt = lambda v: zu(v) + CANOPY_T
+        both(fin, quad((u, v0, zt(v0)), (u + SLAT_W, v0, zt(v0)), (u + SLAT_W, v1, zt(v1)), (u, v1, zt(v1))))
+        both(fin, quad((u, v0, zu(v0)), (u + SLAT_W, v0, zu(v0)), (u + SLAT_W, v1, zu(v1)), (u, v1, zu(v1))))   # and the underside
+        n_fins += 1; u += SLAT_PITCH
+    for frac in (0.0, 1 / 3, 2 / 3, 1.0):                                                   # beams along the length, under the soffit
+        v = v0 + frac * (v1 - v0) - (0.3 if frac == 1.0 else 0.0)
+        for (da, db) in ((0.0, 0.3),):
+            both(dark, quad((u0, v + da, zu(v + da) - 0.4), (u1, v + da, zu(v + da) - 0.4), (u1, v + db, zu(v + db) - 0.4), (u0, v + db, zu(v + db) - 0.4)))
+            both(dark, quad((u0, v, zu(v)), (u1, v, zu(v)), (u1, v, zu(v) - 0.4), (u0, v, zu(v) - 0.4)))
+    b = u0 + 1.0
+    while b < u1 - 0.2:                                                                      # cross beams, one at every window pair
+        both(dark, quad((b, v0, zu(v0) - 0.3), (b + 0.25, v0, zu(v0) - 0.3), (b + 0.25, v1, zu(v1) - 0.3), (b, v1, zu(v1) - 0.3)))
+        both(dark, quad((b, v0, zu(v0)), (b, v1, zu(v1)), (b, v1, zu(v1) - 0.3), (b, v0, zu(v0) - 0.3)))
+        b += BEAM_PITCH
+    return [fin, dark], n_fins
+
+
+def drop_old_canopy_south(d):
+    """The old recipe's flat grille at z = 32 over the first 3.5 m of the east block is replaced by the real canopy."""
+    n = 0
+    for m in d['detailMeshes']:
+        if m['id'] not in ('authored-metal', 'authored-darkMetal'):
+            continue
+        V, T = m['vertices'], m['triangles']
+        keep = []
+        for t in T:
+            c = [sum(V[i][k] for i in t) / 3 for k in range(3)]
+            if CANOPY_U[0] - 1.5 <= c[0] <= CANOPY_U[1] + 1.6 and c[1] < SOUTH_V - 0.1 and c[2] > 31.0:
+                n += 1
+            else:
+                keep.append(t)
+        used = sorted({i for t in keep for i in t}); remap = {o: k for k, o in enumerate(used)}
+        m['vertices'] = [V[i] for i in used]; m['triangles'] = [[remap[i] for i in t] for t in keep]
+    return n
+
+
 def remove_old_pieces(d):
     keep = []
     for b in d['blocks']:
         i = b['id']
-        if i.startswith('arcade-pier-') or i in ('brick-plinth-below-projecting-glass', 'brick-head-above-projecting-glass',
-                                                 'east-penthouse'):
+        if i.startswith('arcade-pier-') or i == 'east-penthouse':
             continue
         keep.append(b)
     d['blocks'] = keep
@@ -142,6 +229,8 @@ def remove_old_pieces(d):
 
 def in_old_south_zone(c):
     """The old arcade and wall details: they stood at v 2.5-5.6, on the old front, and are rebuilt below."""
+    if GLASS_BAY[0] - 0.3 <= c[0] <= GLASS_BAY[1] + 0.3 and c[2] >= 13.5:
+        return False                                  # the glass tower's own mullions and transoms stay with the tower
     return U_EAST_BLOCK[0] - 0.2 <= c[0] <= U_EAST_BLOCK[1] + 1.5 and 2.0 <= c[1] <= 5.6 and c[2] < 28.0
 
 
@@ -191,6 +280,10 @@ def main():
 
     for tone, hexv in COLOURS.items():
         d['colours'][tone] = {'hex': hexv}
+    # the hood and pane glass keep the glass material, but less of its sky mirror: at some sun angles the full mirror
+    # drew one hood (and a pane) pure white, where the photographs show an even pale blue
+    d.setdefault('materials', {}).update({'hackHoodGlass': {'type': 'glass', 'strength': GLASS_STRENGTH_HOOD},
+                                          'hackWindow': {'type': 'glass', 'strength': GLASS_STRENGTH_PANE}})
     d['levels']['floors'] = [0, P, 2 * P, 3 * P, 4 * P, 5 * P, 32]           # equal storeys (PHOTO); the last is the old screen top
     d['parameters'].update({'arcade_front': SOUTH_V, 'arcade_back': back, 'base_top': COLONNADE_TOP, 'crossbeam': round(P - MID_BEAM_H, 3),
                             'body_top': BODY_TOP, 'arcade_pitch': GRID, 'pier': PIER_W})
@@ -248,6 +341,9 @@ def main():
                 push(hood_frame, quad((wl, SOUTH_V - 0.08, z - SILL_T), (wr, SOUTH_V - 0.08, z - SILL_T), (wr, SOUTH_V - 0.08, z), (wl, SOUTH_V - 0.08, z)))
                 n_hoods += 1
     d['detailMeshes'].extend([hood_glass, hood_frame, hood_soffit])
+    n_old = drop_old_canopy_south(d)
+    cm, n_slats = canopy_meshes()
+    d['detailMeshes'].extend(cm)
 
     # ---- the arcade: piers on the grid, two fascia beams, floor, the recessed wall ----
     piers = pier_centres()
@@ -275,6 +371,7 @@ def main():
         for band in f['bands']:
             band['z1'] = round(COLONNADE_TOP - FASCIA_H, 3)
             for o in band.get('openings', []):
+                o['glass'] = 'hackShopPane' if o['z0'] < P - 0.5 else 'hackArcadePane'
                 if o['z1'] > band['z1'] - 0.2:
                     o['z1'] = round(band['z1'] - 0.2, 3)
                 if o['z0'] > P - 0.1 and o['z0'] < P + 0.4:
@@ -287,20 +384,13 @@ def main():
     ret = B['upper-walk-east-return']
     ret['plan'] = [ret['plan'][0], ret['plan'][1], ret['plan'][2], min(ret['plan'][3], SOUTH_V - 0.1)]
 
-    # ---- the glass tower: in front of the brick, as photographed ----
-    g0, g1 = GLASS_BAY
-    rear = B['east-rear-of-glazed-corner']
-    rear['plan'] = [g0, g1, SOUTH_V, rear['plan'][3]]
-    rear['z0'] = COLONNADE_TOP
-    rear['bands'] = [{'z0': COLONNADE_TOP, 'z1': BODY_TOP, 'skin': 'brick'}]
-    bay = B['projected-glass-bay']
-    bay['plan'] = [g0, g1, SOUTH_V - GLASS_BAY_DEPTH, SOUTH_V]
-    bay['z0'], bay['z1'] = round(GLASS_BAY_BOTTOM, 3), 28.45
-    bay['bands'] = [{'z0': bay['z0'], 'z1': bay['z1'], 'skin': 'glass'}]
-    if 'faces' in bay:
-        for fk, f in bay['faces'].items():
-            if f and f.get('bands'):
-                f['bands'][0]['z0'] = bay['z0']; f['bands'][0]['z1'] = bay['z1']
+    # ---- the glass tower: its block, glass and mullions stay as in the old recipe (it already stands 1 m proud of the brick);
+    # only the brick plinth under it follows the new colonnade height ----
+    plinth = B['brick-plinth-below-projecting-glass']
+    plinth['z0'] = COLONNADE_TOP
+    plinth['bands'] = [{'z0': COLONNADE_TOP, 'z1': plinth['z1'], 'skin': 'brick'}]
+    B['east-rear-of-glazed-corner']['z0'] = COLONNADE_TOP
+    B['east-rear-of-glazed-corner']['bands'] = [{'z0': COLONNADE_TOP, 'z1': BODY_TOP, 'skin': 'brick'}]
 
     # ---- the top: roof edge and clerestory only where the old top storey is not; the louvred top storey over u 45-127 ----
     pu0, pu1, pv0, pv1 = PENTHOUSE
@@ -318,6 +408,7 @@ def main():
     d['sources']['dimensions'] = ('South face, storeys, window pairs, hoods and top of the east block: owner photographs (PHOTO), the 2021 laser scan '
                                   '(SCAN) and, where neither shows, plain inference (INFERRED). See scripts/author_hackerman.py for each number.')
     PATH.write_text(compact(json.dumps(d, indent=2)), encoding='utf-8')
+    print('canopy: %d fins, %d old grille triangles dropped' % (n_slats, n_old))
     print('Hackerman: %d piers, %d pairs per row, %d openings, %d hoods; old mesh triangles dropped %d, vertices moved %d'
           % (len(piers), len(pcs), len(openings), n_hoods, dropped, moved))
 
