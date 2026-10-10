@@ -318,7 +318,9 @@ await stage('frozen', async () => {
     const doms = [];
     // A fresh browser for every load, as in CI (each side of the pictures is its own browser): a load that is second in a browser has a warm cache and is not that.
     for (let i = 0; i <= N; i++) {
-      const br = await launch(chromium, { maxMs: 3000000 }); const page = await open(q, br); await settle(page, TUNE.poses[v]); await waitStable(page, 150000, true); await page.waitForTimeout(1500);
+      const br = await launch(chromium, { maxMs: 3000000 }); const page = await open(q, br); await settle(page, TUNE.poses[v]);
+      if (argv.includes('--hide')) { await page.evaluate(() => { for (const l of window.__map.getStyle().layers) if (l.type === 'symbol') window.__map.setLayoutProperty(l.id, 'visibility', 'none'); }); await page.addStyleTag({ content: '*,*::before,*::after{transition:none!important;animation:none!important}' }); }   // for a page that is not frozen by the app: hide the labels here
+      await waitStable(page, 150000, true); await page.waitForTimeout(1500);
       files.push(await shot(page, path.join(dir, `${v}-${i}.png`)));
       doms.push(await page.evaluate(() => [...document.querySelectorAll('body *')].map(e => { const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return { r: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)], d: `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${typeof e.className === 'string' && e.className.trim() ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : ''}${(e.innerText || '').trim() ? ' "' + e.innerText.trim().slice(0, 24) + '"' : ''}`, vis: cs.visibility === 'visible' && cs.display !== 'none' && +cs.opacity > 0.02, tag: e.tagName }; }).filter(o => o.vis && o.tag !== 'CANVAS' && o.r[2] > o.r[0] && o.r[3] > o.r[1] && o.r[2] > 0 && o.r[0] < 1440 && o.r[3] > 0 && o.r[1] < 900 && (o.r[2] - o.r[0]) * (o.r[3] - o.r[1]) < 600000)));
       await page.close(); await br.close();
