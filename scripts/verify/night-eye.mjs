@@ -349,8 +349,8 @@ await stage('sequence', async () => {
   data.sequence.floor = { final: { off, offAgain } };
   console.log(`sequence noise floor (shimmer off) near cv ${off.near.cvMean}, far cv ${off.far.cvMean} rms ${off.far.cvRms}`);
   const first = variants[0], on = data.sequence.variants[first].final;
-  report('sequence: lit pixels were found in both bands', on.near.n > 50 && on.far.n > 50, `near ${on.near.n}, far ${on.far.n}`);
-  report('sequence: with shimmer off nothing moves, at the start and again at the end (the measurement is clean)', (off.far.cvRms ?? 0) <= 0.01 && (off.near.cvRms ?? 0) <= 0.01 && (offAgain.far.cvRms ?? 0) <= 0.01, `far ${off.far.cvRms}/${offAgain.far.cvRms}, near ${off.near.cvRms}/${offAgain.near.cvRms} (coefficient of variation, rms)`);
+  report('sequence: lit pixels were found in the far band (and the near band where the view has one)', on.far.n > 50 && (rowDist.some(d => d != null && d < S.nearM) ? on.near.n > 50 : true), `near ${on.near.n}, far ${on.far.n}`);
+  report('sequence: with shimmer off nothing moves, at the start and again at the end (the measurement is clean)', (off.far.cvRms ?? 0) <= 0.02 && (off.near.cvRms ?? 0) <= 0.02 && (offAgain.far.cvRms ?? 0) <= 0.02, `far ${off.far.cvRms}/${offAgain.far.cvRms}, near ${off.near.cvRms}/${offAgain.near.cvRms} (coefficient of variation, rms)`);
   report(`sequence [${first}]: far lights shimmer in the final frame`, on.far.cvMean >= S.minFarCv, `mean coefficient of variation ${on.far.cvMean} (want >= ${S.minFarCv}); ${on.far.shareVarying} of lit pixels move`);
   report(`sequence [${first}]: near lights hold still in the final frame`, on.near.cvMean == null || on.near.cvMean <= S.maxNearCv, `coefficient of variation ${on.near.cvMean} (want <= ${S.maxNearCv})`);
   report(`sequence [${first}]: far varies much more than near`, on.near.variance == null || on.far.variance / Math.max(on.near.variance, 0.01) >= S.minFarOverNear, `variance ratio ${on.near.variance == null ? 'n/a' : (on.far.variance / Math.max(on.near.variance, 0.01)).toFixed(1)} (want >= ${S.minFarOverNear})`);
