@@ -19,7 +19,7 @@ Branch `mac/custom-renderer-study`. Code and commands: `experiments/renderer/` (
 **What the study found that changes the question.**
 1. Most of what the frameworks cost is not the frameworks' code. It is how this app uses them: 82 fill-extrusion layers (a draw pass each, 790 to 1,400 draw calls and 8,600 to 15,000 GL calls a frame, measured), per-tile pattern atlases for windows (607 of 690 MB of textures at city ready in the speed study), and a 7 to 47 second JavaScript geometry build. Baking and a window shader would remove those with or without replacing MapLibre.
 2. **The bake is worth doing first and is independent of the renderer decision.** Roadmap steps 1 to 3 (five days) do not need a new renderer at all.
-3. On weak graphics hardware the frame is limited by triangles, not by draw calls: on the Mac iGPU the isolated authored scene took 51 to 102 ms a frame with three.js and 76 to 99 ms with the prototype, the same within the noise of a shared machine (measured). A new API does not cut that; level of detail and culling baked into the file do. The renderer matters most for load, memory and moire, and least for frame time.
+3. **How much frame time a new renderer buys depends on the card.** On the L4 the isolated authored scene (3.1 million triangles) takes 3.81 ms in three.js and 1.01 ms in the prototype, 3.8 times faster, about a quarter of a 9 to 11.5 ms frame (measured). On the Mac's Intel iGPU it takes 51 to 102 ms with three.js and 76 to 99 ms with the prototype: no difference within the noise of a shared machine (measured). A weak card is limited by the triangles and pixels, not by the API; level of detail and culling baked into the file are what cut that. The renderer matters most for load, memory and moire, and for frame time on strong and middle cards.
 4. WebGPU cannot be added to a MapLibre page: MapLibre has no WebGPU path, so path C implies path B.
 
 **Recommendation.** Do roadmap steps 1 to 3 now. They pay for themselves, they build the safety net the owner asked for, and they produce the baked file every later path needs. Decide on step 4 (the raw layer) with the numbers from step 3 in hand. Do not start path B or C yet; section 6 says why and what would change that.
@@ -49,15 +49,15 @@ Measured on the AWS L4 (hardware GL, `full` arm, the GL-call counters on, one st
 - **82 of the page's 224 style layers are fill-extrusion** (76 are lines, 33 symbols, 23 fills, 7 circles; 34 sources: 27 GeoJSON, 6 vector, 1 raster; measured from `map.getStyle()`, and 81 fill-extrusion layers are visible at the campus view). Every visible layer is a pass whether or not anything in it is big enough to see. `js/lod.js` records the experiment that found this: dropping two passes was worth +6 fps and beat a 0.75 render scale, and it records that per-feature distance culling "is not expressible in this stack" (MapLibre 5.24 accepts `within` on a fill-extrusion layer and then draws nothing).
 - The fill-extrusion window patterns are anchored to the tile, not the world, so a grid cross-fades between zoom levels while the camera moves; `js/app.js` (lines 693 to 723) caps every patterned source at zoom 16 as the workaround for a defect the owner reported as "most of the vision is a blur between the states". A shader-drawn window pattern is anchored to the wall by construction.
 
-**Frame time.** One steady frame, the whole page, 1280x800, vsync off, the frame ended by reading one pixel back so the card has really finished (40 frames, the first 5 dropped). Minimum / median in ms, shown as `full` against `noslopes`, and `noslopes` is not the same scene (see the note under 2.3):
+**Frame time.** One steady frame, the whole page, 1280x800, vsync off, the frame ended by reading one pixel back so the card has really finished (40 frames, the first 5 dropped, the GL-call counters muted). Minimum / median in ms, `full` (as shipped) against `noslopes` (`?slopes=0`, a different scene: see the note under 2.3):
 
-| view | Mac iGPU `full` | Mac iGPU `noslopes` | L4 `full` (counters on, `gl.finish`) | L4 `noslopes` |
+| view | Mac iGPU `full` | Mac iGPU `noslopes` | L4 `full` | L4 `noslopes` |
 |---|---|---|---|---|
-| spawn-day | 93.3 / 121.6 | 53.9 / 80.7 | 9.8 / 10.1 | 7.0 / 7.9 |
-| west-campus-day | 92.1 / 124.3 | 52.6 / 78.6 | 8.2 / 9.5 | 6.3 / 7.3 |
-| downtown-day | 87.7 / 114.3 | 44.1 / 75.4 | 7.9 / 8.1 | 5.0 / 5.3 |
+| spawn-day | 93.3 / 121.6 | 53.9 / 80.7 | 11.2 / 11.5 | 7.0 / 7.2 |
+| west-campus-day | 92.1 / 124.3 | 52.6 / 78.6 | 10.1 / 10.5 | 6.6 / 7.0 |
+| downtown-day | 87.7 / 114.3 | 44.1 / 75.4 | 8.8 / 9.3 | 5.9 / 6.3 |
 
-On the Mac iGPU the authored layer and what it displaces is about 40 to 46 ms of 114 to 124 (35%); on the L4 about 2 to 3 ms of 8 to 10 (25 to 30%). The L4 columns were taken with the call counters on and `gl.finish` (which does not wait on every driver), so they are a little high and a little low respectively; the final AWS run repeats them muted with the readback. The Mac figures are from a machine shared with other helpers: the p90 is 140 to 164 ms. Both machines are far from the owner's Safari figure of 195 ms at a 3840x2040 canvas (`docs/perf/safari-frame-floor.md`), which is a larger canvas and a browser that does not overlap script with the card.
+On the Mac iGPU the authored layer and what it displaces is about 40 to 46 ms of 114 to 124 (35%); on the L4 about 3 to 4 ms of 9 to 11.5 (30 to 37%). The Mac figures are from a machine shared with other helpers: the p90 is 140 to 164 ms. Both machines are far from the owner's Safari figure of 195 ms at a 3840x2040 canvas (`docs/perf/safari-frame-floor.md`), which is a larger canvas and a browser that does not overlap script with the card.
 
 ### 2.2 What MapLibre does every frame that this app does not need
 
@@ -227,7 +227,7 @@ What it is: the prototype in this PR (`proto/renderer.js`, `makeMapLibreLayer`),
 
 | | today | path A, expected |
 |---|---|---|
-| Frame time, strong GPU (L4) | measured 8 to 10 ms (counters on; section 2.1) of which the authored layer about 2 to 3 ms | saves 1 to 2 ms of CPU and the shadow pass reads a seventh of the bytes; no more than about 2 to 3 ms of the 8 to 10 |
+| Frame time, strong GPU (L4) | measured 9 to 11.5 ms (section 2.1) of which the authored layer and what it displaces about 3 to 4 ms | the isolated authored scene measured 3.81 ms (three.js) against 1.01 ms (prototype): **about 2.8 ms saved of 9 to 11.5**, plus 1 ms of CPU; the shadow pass would read a seventh of the bytes (estimated) |
 | Frame time, weak GPU (Mac iGPU) | measured 114 to 124 ms, of which the authored layer and what it displaces about 40 to 46 ms | **unchanged by the renderer** (measured: app 67 to 102 ms, prototype 76 to 82 ms for the same triangles, section 7). Gains only from fewer triangles: baked LOD and cell culling, estimated 30 to 50% fewer at the far poses |
 | Load (authored buildings ready) | measured 7 to 9 s (AWS server CPU) and 20 to 47 s (shared Mac) of JavaScript build, under the loading veil | **measured 3.9 s** navigation to first frame on the Mac plus the download (1 to 2.6 s at 50 to 20 Mbit/s); decode 1.1 s and upload 1.3 s of it, both of which a faster machine shortens (on a phone, decode about 4x: estimated 4 to 5 s) |
 | Memory, authored geometry | 347 MB arrays + the same on the card for the apartments; 484 MB for all groups | 185 MB on the card (measured, 24-byte vertex), CPU copy dropped after upload, compressed copy 6 MB kept for recovery; about 60 MB with a quad format (estimated, section 5.5) |
@@ -243,7 +243,7 @@ What it is: one WebGL2 renderer owns the canvas. Camera: the app already has its
 | | today | path B, expected |
 |---|---|---|
 | Draw calls | 900 to 1,500 a frame | estimated 100 to 250: ground and roads as a few baked meshes, trees instanced, buildings in the baked buffer |
-| Frame time | L4 8 to 10 ms; Mac iGPU 114 to 124 ms | L4 estimated 3 to 5 ms; iGPU unchanged where triangle-bound, estimated 30 to 50% lower from the 90% of draw calls and state changes that disappear (the Safari record: apartment mesh 22 to 35 ms and the building layers about 25 ms of a 195 ms frame) |
+| Frame time | L4 9 to 11.5 ms; Mac iGPU 114 to 124 ms | L4 estimated 3 to 5 ms; iGPU unchanged where triangle-bound, estimated 30 to 50% lower from the 90% of draw calls and state changes that disappear (the Safari record: apartment mesh 22 to 35 ms and the building layers about 25 ms of a 195 ms frame) |
 | Bytes | frameworks 441 KB gzip, 33% of JS | MapLibre gone: 275 KB gzip, 56 ms parse (about 190 ms at 4x); our renderer +40 to 60 KB gzip (estimated) |
 | Memory | | pattern atlases gone, tile caches gone, geometry as path A: the biggest single memory win; estimated 50 to 60% less than today on desktop, the phone peak from about 1 GB to estimated 300 to 400 MB |
 | Moire | | whole frame under our control: temporal anti-aliasing (jitter plus history) is possible; the one fix path A cannot reach |
@@ -290,10 +290,10 @@ All measured, Mac iGPU (Intel Iris Plus 655) unless marked; the app side is the 
 | All GL calls, one frame | 106 to 127 | **31** besides the draw |
 | JavaScript per frame (CPU submit) | 0.2 to 1.4 ms (the layer's `render()`) | **0.08 to 0.14 ms**, culling included (198 spheres, 0.0 to 0.5 ms) |
 | Frame time, all 198 buildings, 3.1 M triangles, readback-synchronised, Mac iGPU | 51 to 102 ms across four runs | 76 to 99 ms across eight runs of the same code (clean and broken). **No gain, and not distinguishable from noise: this GPU is limited by the triangles, not by the API** |
-| Frame time on the L4 | not measured (AWS run did not return in time) | not measured (AWS run did not return in time) |
+| Frame time on the L4 | **3.81 ms** a frame (all 198 buildings, 3.1 M triangles, 1440x900, readback-synchronised) | **1.01 ms** a frame: **3.8 times faster for the same triangles** |
 | Bytes on the card (authored geometry) | 347 MB of arrays, the same on the card | **194 MB** (157 vertices + 37 indices) |
 | Bytes on the wire | the recipes: 3.5 MB gzip, then a 7 to 47 s JavaScript build | 6.2 MB (meshopt + brotli, estimated from the measured encode), decode 0.4 s on one thread |
-| Navigation to first frame of the buildings | 7 to 9 s (AWS server CPU) and 20 to 47 s (shared Mac) until the build is done | **3.9 s** measured on the Mac with the real wire form (6.5 MB brotli over loopback: fetch and inflate 0.77 s, meshopt decode in the page 1.10 s, upload of 194 MB 1.29 s, first draw 10 ms later; the same pictures bit for bit as the raw file). Add the download: 6.5 MB is 1.0 s at 50 Mbit/s, 2.6 s at 20 Mbit/s. The raw 194 MB file from loopback took 2.3 to 7.5 s |
+| Navigation to first frame of the buildings (L4: 1.4 s with the raw 194 MB file from loopback) | 7 to 9 s (AWS server CPU) and 20 to 47 s (shared Mac) until the build is done | **3.9 s** measured on the Mac with the real wire form (6.5 MB brotli over loopback: fetch and inflate 0.77 s, meshopt decode in the page 1.10 s, upload of 194 MB 1.29 s, first draw 10 ms later; the same pictures bit for bit as the raw file). Add the download: 6.5 MB is 1.0 s at 50 Mbit/s, 2.6 s at 20 Mbit/s. The raw 194 MB file from loopback took 2.3 to 7.5 s |
 | Renderer in the MapLibre layer | | pictures identical to the standalone page (below): the matrix composition is right |
 
 ### 7.3 The automated test: `compare.mjs`
@@ -304,7 +304,7 @@ How it makes the comparison fair: the app side is the real page with every other
 
 Metrics per view: percent of pixels over tolerance 12/255 whole-frame (how `ci/pictures.mjs` counts; diluted by the empty background) and **of the building pixels** (the honest one); silhouette overlap (IoU); mean absolute colour difference (0 to 255); SSIM on 8x8 luma blocks.
 
-**Result on the clean prototype** (Mac iGPU, hardware GL; the same on the standalone page and inside MapLibre):
+**Result on the clean prototype** (Mac iGPU, hardware GL; the same on the standalone page and inside MapLibre; this table is the Mac, the L4 follows):
 
 | view | building pixels, % of frame | over tolerance, % of building pixels | silhouette IoU | mean colour diff (of 255) | SSIM |
 |---|---:|---:|---:|---:|---:|
@@ -320,6 +320,8 @@ Metrics per view: percent of pixels over tolerance 12/255 whole-frame (how `ci/p
 | **tower-night** | 39.6 | **39.5** | 0.9999 | 8.91 | 0.8577 |
 
 **Eight daylight views: 0.15% of building pixels over tolerance on average (worst 0.28%), silhouettes identical, SSIM 0.997.** The prototype reproduces the app's base look to within rounding on every daylight camera. **The two night views are 40 to 46% over: expected and correct**, because the night lamps, window emission and `u_nightWallAmbient` in the fragment shader are not ported. The harness found that on its own; it is the first line of the porting list in step 4 of the roadmap. A pixel diff of the whole frame with the sky in it (the CI definition) would have read 12 to 30% on these views for the same reason the first versions of this harness did: the sky was in the app's picture and not in the prototype's. That was found and fixed during the build by looking at the picture, which is what the harness is for.
+
+**The same harness on a different GPU and driver** (the AWS L4, Linux OpenGL ES through ANGLE; one run, the standalone page): the day views read **4 to 14% of building pixels over tolerance** (mean 0.7 to 4.5 of 255; silhouette IoU 0.997 to 0.999; SSIM 0.89 to 0.98), the night views 39 to 46% as on the Mac. So the picture the same code makes changes by a few percent of pixels between a Metal driver and an NVIDIA one (rasterisation and precision, not a logic difference: the shapes are the same to the pixel). **The tolerance has to be calibrated per runner**, which is why roadmap step 1 measures the app against itself on the runner first and why the CI pictures check uses a noise floor. The app-against-itself floor on the L4 was not measured here.
 
 **What it catches: three deliberate breaks of the prototype**, same ten cameras, day views averaged (clean for comparison: 0.15% over, SSIM 0.997):
 
@@ -366,7 +368,8 @@ If every step lands, the total is about 19 working days of one person, of which 
 
 - **No phone.** Phone memory and phone frame time are from the repo's own records (`js/mobile.js`, `docs/mobile-device-check.md`), not measured here. Desktop Chrome at 390x844 is not WebKit (the repo says so in `scripts/verify/README.md`). Every phone gain in this document is estimated.
 - **Frame time on the Mac iGPU is from a machine shared with other lanes** (a load average of 10 to 30 at times) and the p90 is much worse than the median. Minimums and medians are quoted; the L4 numbers are cleaner. Safari, the owner's actual browser, was not driven.
-- **The AWS frame times for the app were taken with the GL-call counters on** in the first run (they cost CPU time of their own: the profile shows them at about 12% of main-thread time); the final run mutes them and reads back one pixel after each frame to force the card to finish. The table in section 2.1 is counters-on, so its call counts are exact and its milliseconds are slightly high.
+- **The call counts in section 2.1 (AWS, first run) were taken with the GL-call counters on**, which cost CPU time of their own (the profile shows the pass-through wrapper at about 4 to 7% of main-thread time even when muted); the frame times in section 2.1 and the prototype comparison are from the final run with the counters muted and one pixel read back after every frame. The call counts are exact; no frame time comes from a counted run.
+- **One L4 run only.** Frame times and the cross-GPU picture comparison on the L4 are one run each (the AWS runner's quota allows few); the Mac figures are minima and medians over 40 frames and several runs, on a shared machine. The app-against-itself noise floor on the L4 was not measured, and the MapLibre-layer comparison did not run there (the page needs the MapLibre files, which the runner did not have); it ran on the Mac.
 - **No full-look parity.** The comparison is the BASE look (MapLibre's lighting formula). Sun shadows, glass reflection, night windows, the procedural brick/tile/shop surface detail, the compact wall patterns and the textured facade meshes are not ported. How much of the picture they are, the harness can measure once they are ported; the prototype does not claim it.
 - **Not measured: MapLibre's per-frame JavaScript by function.** The production bundle is minified; a finer split needs a source-mapped MapLibre build. The share by file is measured.
 - **Not measured: the cost of a lost-context recovery from a compressed buffer**, only its parts (decode 0.4 s on one node thread, upload 0.5 to 0.9 s).
