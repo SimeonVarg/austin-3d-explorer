@@ -168,4 +168,4 @@ console.log(shas.size === 1 ? 'every run built the identical geometry (sha256 of
 }
 // the exit code: every arm except `off` (the plain layout) builds the packed layout now (the shipped default), so they must all hold the same bytes; `off` differs by design
 // (packverts-pixels.mjs and packverts-decode.mjs are the plain-against-packed proof)
-{ const packedShas = new Set(results.filter(x => !x.failed && x.mode !== 'off').map(x => x.geomSha)); process.exit(packedShas.size <= 1 ? 0 : 1); }
+{ const packedShas = new Set(results.filter(x => !x.failed && x.mode !== 'off').map(x => x.geomSha)); process.exit(PHONE || packedShas.size <= 1 ? 0 : 1); }   // --phone: the CPU copies are freed after upload (js/slopes.js FREE_CPU), so there is nothing to hash and the sha only reflects which small mesh had not uploaded yet

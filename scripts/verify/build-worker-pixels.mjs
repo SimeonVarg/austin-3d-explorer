@@ -10,6 +10,7 @@
  *
  *   VERIFY_URL=http://127.0.0.1:PORT node scripts/verify/build-worker-pixels.mjs [--out DIR] [--poses file.json] [--phone] [--query "..."] [--break]
  *   --phone  390x844 @3x with ?lite=1 (the phone profile: the build is chunked, three.js frees the CPU copies after upload)
+ *   --seq main,worker,main  the three builds in order (reference, under test, control); --seq main,main,main measures the page's own noise
  *   --break  the "worker" build is photographed at a different hour: must report moved pixels and exit 1
  * Software rendering (the default here) is what CI uses; VERIFY_GL=hardware measures the GPU you have.
  */
@@ -111,9 +112,10 @@ const diff = (a, b) => {
 };
 
 process.on('uncaughtException', e => { console.log('FAIL: ' + e.message + (errors.length ? '\npage errors: ' + errors.slice(0, 3).join(' | ') : '')); process.exit(1); });
-const infoOff = await rebuild(false); await shootAll('off');
-const infoOn = await rebuild(true); await shootAll('on', BREAK ? PARAMS.breakShiftP : 0);
-await rebuild(false); await shootAll('again');
+const SEQ = opt('--seq', 'main,worker,main').split(',');   // which build is the first (reference), the second (the one under test) and the third (the control); --seq main,main,main measures the page's own noise
+const infoOff = await rebuild(SEQ[0] === 'worker'); await shootAll('off');
+const infoOn = await rebuild(SEQ[1] === 'worker'); await shootAll('on', BREAK ? PARAMS.breakShiftP : 0);
+await rebuild(SEQ[2] === 'worker'); await shootAll('again');
 await browser.__done();
 
 let bad = 0;

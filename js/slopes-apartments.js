@@ -2295,6 +2295,10 @@
       if (m.index) g.setIndex(new T.BufferAttribute(m.index, 1));
       if (W.packObj) g.userData.pack = W.packObj;
       g.computeBoundingSphere();
+      // the geometry owns the arrays now. A phone drops them after upload (js/slopes.js freeOnUpload); the worker's result would otherwise keep every one
+      // of them alive for as long as anything holds it (the pack tables are kept: the material reads them)
+      for (const k in m.attributes) m.attributes[k].array = null;
+      m.index = null;
       return g;
     });
     return { geometries() { const r = geoms || make(); geoms = []; return r; }, geometry() { return this.geometries()[0]; }, get triangles() { return W.triangles; } };
