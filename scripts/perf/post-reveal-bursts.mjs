@@ -143,6 +143,10 @@ for (const k of keys) {
   out.push(`\n## CPU throttle ${t}x, arm q${qi} "${rs[0]?.query || ''}", ${rs.length} reps (min / median / max)`);
   for (const [name, f] of rows) { const v = rs.map(r => { try { return f(r); } catch (e) { return null; } }).filter(x => x != null && isFinite(x)); out.push(`${name.padEnd(58)} ${stat(v)}   [${v.map(fmt).join(', ')}]`); }
   const worst = rs.map(r => r.wt.burstLog.filter(b => b[0] > r.reveal).sort((a, b) => b[2] - a[2]).slice(0, 3).map(b => `+${Math.round(b[0] - r.reveal)}ms: ${b[1]} img ${b[2]} ms (${b[3]} flat)`).join('; '));
+  rs.forEach((r, i) => {
+    const big = r.wt.burstLog.filter(b => b[0] > r.reveal && b[2] >= 20).map(b => `+${Math.round(b[0] - r.reveal)}ms ${b[1]}img ${b[2]}ms ${b[3]}flat`);
+    out.push(`  [r${i + 1}] post-reveal bursts >= 20 ms (${big.length}): ${big.join(' | ')}; slowest single images ${JSON.stringify(r.wt.slow)}; frame gaps >100 ms: ${JSON.stringify(r.gaps.filter(g => g[1] > 100 && g[0] >= r.flight.startedAt).map(g => [Math.round(g[0] - r.reveal), g[1]]))}`);
+  });
   out.push('three longest post-reveal bursts per rep: ' + worst.map((w, i) => `[r${i + 1}] ${w}`).join(' | '));
 }
 const text = out.join('\n');
