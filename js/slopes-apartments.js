@@ -2212,16 +2212,55 @@
     }
   }
 
+  // ── THE SPLIT: what a building's generation REMEMBERS, apart from the mesh it makes ─────────────────────────────────────────
+  // buildingOne() is not only geometry. As it starts it asks the page to remember three things about the building: its night
+  // profile (js/city-night.js), its wall patterns (js/wall-patterns.js: this one also writes each material's surface row back into the
+  // palette, which the mesh then carries, so the geometry depends on it) and its night fixtures. They go through `B.registrations`
+  // (REGISTER, below, when the builder has none) so that a pass can RECORD them as plain data, `{ op, key }`, in order, and so that
+  // js/build-worker.js can run the pure part in a Web Worker and the main thread replay them with applyRegistrations().
+  // Moved by this split: the three calls (and the frame lookup) that used to sit inline at the top of buildingOne(). Nothing else.
+  const buildingKey = spec => spec.id || spec.name;
+  const REGISTER = {
+    nightProfile(spec) { window.CityNight?.register(spec); },
+    wallPatterns(P, spec, F) { window.WallPatterns.register(P, spec, F); },
+    fixtures(spec, F) { window.CityNight?.registerFixtures(spec, F); },
+  };
+  /** the same three calls, each also written into `rec` as { op, key }: the plain-data list of what this pass asked the page to remember */
+  function recordingRegistrations(rec) {
+    return {
+      nightProfile(spec) { rec.push({ op: 'nightProfile', key: buildingKey(spec) }); REGISTER.nightProfile(spec); },
+      wallPatterns(P, spec, F) { rec.push({ op: 'wallPatterns', key: buildingKey(spec) }); REGISTER.wallPatterns(P, spec, F); },
+      fixtures(spec, F) { rec.push({ op: 'fixtures', key: buildingKey(spec) }); REGISTER.fixtures(spec, F); },
+    };
+  }
+  /** a building's own frame, from its spec alone (the lookup buildingOne() makes, so a replay builds the very frame the generator built) */
+  function specFrame(spec) {
+    const obb = spec.frame && spec.frame.obb ? spec.frame.obb : obbOf(spec.footprint.ring);
+    return { obb, F: frameFor(obb) };
+  }
+  /** the main-thread half: do what a recorded pass asked for, in its order, on the page's own registries (idempotent: the registries are keyed) */
+  function applyRegistrations(rec, specs) {
+    const byKey = new Map(); for (const sp of specs) byKey.set(buildingKey(sp), sp);
+    for (const e of rec) {
+      const spec = byKey.get(e.key);
+      if (!spec) throw new Error('[slopes-apartments] a recorded registration names a building that is not in the catalog: ' + e.key);
+      if (e.op === 'nightProfile') REGISTER.nightProfile(spec);
+      else if (e.op === 'wallPatterns') REGISTER.wallPatterns(palette(spec), spec, specFrame(spec).F);
+      else if (e.op === 'fixtures') REGISTER.fixtures(spec, specFrame(spec).F);
+      else throw new Error('[slopes-apartments] unknown registration ' + e.op);
+    }
+  }
+
   function* buildingOne(B, spec) {
     const S = window.slopes;
-    window.CityNight?.register(spec);
+    const reg = B.registrations || REGISTER;
+    reg.nightProfile(spec);
     const P = palette(spec);
     validateDetailMeshes(spec, P); // fail before emitting any part of this model
     const ring = spec.footprint.ring;
-    const obb = spec.frame && spec.frame.obb ? spec.frame.obb : obbOf(ring);
-    const F = frameFor(obb);
-    window.WallPatterns.register(P,spec,F);
-    window.CityNight?.registerFixtures(spec,F);
+    const { obb, F } = specFrame(spec);
+    reg.wallPatterns(P, spec, F);
+    reg.fixtures(spec, F);
     const ringUV = ring.slice(0, ring.length - 1).map(F.toUV);
     console.log('[slopes-apartments] ' + spec.name + ': obb L=' + F.L.toFixed(1) + ' W=' + F.W.toFixed(1) + ', +u at bearing ' + F.bearing.toFixed(1) + '°');
     const key = spec.id || spec.name;
@@ -2650,22 +2689,22 @@
 
   // `specs` defaults to the catalog; `area` (an APTS.areas entry) builds that
   // area's own group without resetting the core's counts, failures or list.
-  async function build(specs, area) {
+  async function build(specs, area, extra) {
     const S = window.slopes;
-    if (!S.withRustFallback) return buildOnce(specs, area, { wasm: true });
+    if (!S.withRustFallback) return buildOnce(specs, area, { wasm: true, ...extra });
     // ?rustbuilder=1: if the Rust builder breaks anywhere in this build, the half-made result is taken back (the tallies and an
     // area's failure list, which buildOnce has already added to) and the whole build runs again on the JS builder.
     // With the switch off the Rust builder never exists, nothing can carry the stamp, and this is one plain call.
     const snap = area ? { tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k]])), names: count.names.length, failed: area.failed.length } : null;
     return S.withRustFallback(async opts => {
-      try { return await buildOnce(specs, area, opts); }
+      try { return await buildOnce(specs, area, extra ? { ...opts, ...extra } : opts); }
       catch (e) {
         if (e && (e.rustBuilderError || e.packOverflow) && snap) {
           untally({ tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k] - snap.tally[k]])), names: count.names.slice(snap.names) });
           area.failed.length = snap.failed;
         }
         // ?packverts=1 ran out of tone or normal indices (js/slopes.js PACK): the whole build again with the unpacked layout
-        if (e && e.packOverflow && !opts.nopack) { console.warn('[slopes-apartments]', e.message, '— building this one unpacked'); return buildOnce(specs, area, { ...opts, nopack: true }); }
+        if (e && e.packOverflow && !opts.nopack) { console.warn('[slopes-apartments]', e.message, '— building this one unpacked'); return buildOnce(specs, area, { ...opts, ...extra, nopack: true }); }
         throw e;
       }
     });
@@ -2691,6 +2730,7 @@
     const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices, buildOpts) : S.build(undefined, buildOpts);
     B.filtered=[];
     B.filterPending=[];
+    if (rustOpts.record) B.registrations = recordingRegistrations(rustOpts.record);   // a pass that writes down what it registered (the split's pure half)
     const built = area ? [] : (_built = []);
     const cancelled = () => area && area.gen !== gen;
     const discard = () => {
@@ -3682,5 +3722,5 @@
     }, 150);
   })();
   // The Web Worker seam (js/build-worker.js, scripts/verify/build-worker-page.mjs): the generator's build() and its counts, with no page.
-  window.__aptsBuild = { build, count, resetCount };
+  window.__aptsBuild = { build, count, resetCount, applyRegistrations, recordingRegistrations, specFrame };
 })();

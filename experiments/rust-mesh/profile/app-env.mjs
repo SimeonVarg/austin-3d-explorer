@@ -19,6 +19,11 @@ export async function loadApp({ record = false, timeBuilder = false, nullBuilder
   Object.defineProperty(ctx, 'navigator', { value: { userAgent: 'node' }, configurable: true });
   installStubs(ctx);
   vm.runInThisContext(fs.readFileSync(threeJs, 'utf8'));
+  // REAL_PATTERNS=1: the page's own js/wall-patterns.js (it loads BEFORE js/slopes.js there). register() writes each patterned material's surface row back
+  // into the palette, so the mesh depends on it; the stand-in is a no-op and makes a different mesh.
+  const realWallPatterns = !!process.env.REAL_PATTERNS;
+  if (realWallPatterns) { ctx.WallPatterns = undefined; vm.runInThisContext(fs.readFileSync(R + 'js/wall-patterns.js', 'utf8'), { filename: 'wall-patterns.js' }); }
+  const wpKeep = ctx.WallPatterns;
   let slopesSrc = patchSlopes(fs.readFileSync(R + 'js/slopes.js', 'utf8'), { record, timeBuilder });
   if (wasm) {   // END-TO-END: the REAL ?rustbuilder=1 path of js/slopes.js (its loader block, js/slopes-rust.js, the committed .wasm), behind the real generator
     ctx.fetch = async url => new Response(fs.readFileSync(wasm), { headers: { 'content-type': 'application/wasm' } });
@@ -27,11 +32,12 @@ export async function loadApp({ record = false, timeBuilder = false, nullBuilder
     vm.runInThisContext(slopesSrc, { filename: 'file://' + file, importModuleDynamically: vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER });
   } else vm.runInThisContext(slopesSrc, { filename: 'slopes.js' });
   installLateStubs(ctx);
+  if (realWallPatterns) ctx.WallPatterns = wpKeep;
   // REAL_NIGHT=1: the page's own js/city-night.js instead of the stand-in. The stand-in lights every window the same warm tone; the real one picks a
   // lit window's tone and brightness per window, which is what makes the real page's palette far bigger (see the packverts notes).
   if (process.env.REAL_NIGHT) { ctx.CityNight = undefined; vm.runInThisContext(fs.readFileSync(R + 'js/city-night.js', 'utf8'), { filename: 'city-night.js' }); }
   if (wasm) { await ctx.slopes.rustReady; if (!ctx.slopes.rustBuilder) throw new Error('?rustbuilder=1 did not load the Rust builder: ' + JSON.stringify(ctx.slopes.rustInfo())); }
-  vm.runInThisContext(patchApartments(fs.readFileSync(R + 'js/slopes-apartments.js', 'utf8')), { filename: 'slopes-apartments.js' });
+  vm.runInThisContext(patchApartments(fs.readFileSync(process.env.APARTMENTS_SRC || R + 'js/slopes-apartments.js', 'utf8')), { filename: 'slopes-apartments.js' });   // APARTMENTS_SRC: another version of the file (the split's before/after check)
   if (useNull) ctx.slopes.build = nullBuilder(ctx);
   if (process.env.HINT) { const orig = ctx.slopes.build; ctx.slopes.build = () => orig(Number(process.env.HINT)); }   // the app's own `build(initialCapacity)` parameter: pass the vertex count up front (one line in the app)
   let specs = await catalog(async f => JSON.parse(fs.readFileSync(R + f, 'utf8')));
