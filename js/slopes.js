@@ -387,6 +387,44 @@
     normalHash0: 1 << 14, // the normal interner's first hash-table size (it doubles at half full)
   };
   const PACK_TONES = 2 ** PACK.toneBits, PACK_NLOW = 2 ** (15 - PACK.toneBits);
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  THE MOIRE FIX (?moirefix=0|1) — default ON
+  //  A window grid drawn about once per pixel shimmers: each pixel takes ONE sample of wall or glass. Supersampling would average
+  //  them; this does the averaging in the shader instead. js/slopes-apartments.js's cell tiler tells the builder which cells belong
+  //  to one wall face (faceOpen / faceCell / faceClose below), the builder keeps that face's MEANS (opaque parts and glass apart,
+  //  lit glass apart again, per 0.25 m of wall height and for the whole face), and FRAG blends a cell toward its row's mean as the
+  //  window shrinks under MOIRE.px pixels across, and toward the whole face's mean as it shrinks under MOIRE.pxV pixels up the wall.
+  //  The means are shaded per CLASS (opaque, unlit glass, lit glass) with the cell shader itself, so glass keeps its sky reflection
+  //  and lit windows their glow: the far wall has the brightness of the near wall (scripts/verify/moire-mean.mjs holds the maths,
+  //  scripts/verify/moire-bar.mjs measures it on the real page: the `bias` column).
+  //  COST. Download: this code. Vertices: none, and no bytes per vertex: a face's number rides in the unused fourth float of the
+  //  packed normal table (so the fix needs ?packverts=1, the default). GPU memory: the face table and the row strips (packInfo()).
+  //  Vertex shader: one varying. Pixel shader: nothing where windows are larger than MOIRE.px[1] pixels; up to three class shades beyond.
+  //  ?moirefix=0: no face is recorded, the define is absent, the buffers and the program are main's.
+  // ══════════════════════════════════════════════════════════════════════
+  const pair = (name, dflt) => { const v = (q.get(name) || '').split(',').map(Number); return v.length === 2 && v.every(Number.isFinite) && v[1] > v[0] ? v : dflt; };
+  const MOIRE = {
+    on: switchOf('moirefix', true),
+    // TASTE AND TUNING. Each is one named value; the URL forms are for an A/B on a live page.
+    // px: how many pixels ACROSS a wall face's feature length is (see faceClose: two window widths for a window as wide as its pier). Under px[0]
+    // a cell is drawn as its row's mean, over px[1] as itself, a smooth blend between. pxV: the same UP the wall, toward the whole face's mean.
+    px: pair('moirepx', [1.0, 2.5]),
+    pxV: pair('moirepxv', [1.0, 2.5]),
+    rowRes: 0.25,                       // metres of wall height per texel of a face's row strip
+    // EDGE SMOOTHING OF THE WINDOWS (?moireedge=0|1). The panes of a face stand in rows and columns, so "is there glass here" is the product of two
+    // strips, one up the wall and one along it; the builder keeps their running sums, and FRAG reads from them how much of a pixel's footprint is
+    // glass. A pixel on a window's edge is then the right mix of wall and glass, with no extra sample (what Smooth edges does with four samples, for windows).
+    edge: q.get('moireedge') !== '0',
+    edgeRes: 0.1,                       // metres per texel of those two strips (the finest edge they can place; under edgePx texels to a pixel the cell draws itself)
+    edgePx: [1.0, 2.0],                 // pixel size in strip texels: no smoothing under [0], full over [1]
+    through: 1,                         // 1 = a recessed pane's edge is looked up where the pixel's ray crosses the wall plane (0 = where the pane itself is)
+    footprint: Number(q.get('moirefoot')) > 0 ? Number(q.get('moirefoot')) : 1,   // the pixel's size on the wall as a multiple of the measured one (1 = a box of the pixel's own spread)
+    parallax: q.get('moireparallax') === '0' ? 0 : 1,   // 1 = a far mean leaves out the glass that the window reveals hide at this view angle
+    goldSlope: 0.84,                    // d(golden)/d(day) of a wall tone (js/slopes-apartments.js ramp(): golden = day + 16% toward a warm white)
+    mode: 1,                            // runtime (MoireFix.set): 0 off, 1 on, 2 flat (every cell its face's mean: the meter's floor), 3 rows (every cell its row's mean)
+    FACE_TEXELS: 12, ROW_W: 2048,       // layout of the tables (float texels per face; width of the strips' textures)
+  };
   const RUST_INFO = { on: RUST.on, state: RUST.on ? 'loading' : 'off', compileMs: 0, builds: 0, error: null };
   // The Rust builder broke AFTER it loaded (a trap, an out-of-memory error, a bad instance). Stop using it for good: every
   // build() from here on is the JS builder, whatever the caller asked for. Safe to call twice.
@@ -491,9 +529,19 @@
     // held in float textures. The same cDay / cGold / cNight / aFacet / aSurface / normal values the attributes would have held.
     attribute vec2 aPack;
     uniform sampler2D u_packTones;
+    #ifdef MOIRE_FACES
+    // highp, and it matters: a sampler without a precision is LOWP in a vertex shader, and on ANGLE's desktop-GL backend (an NVIDIA L4) the
+    // fetched value then came back with about eleven bits. A unit normal survives that; a wall face's NUMBER (thousands) lost its low two bits,
+    // so every face read a neighbour's record.
+    uniform highp sampler2D u_packNormals;
+    #else
     uniform sampler2D u_packNormals;
+    #endif
     vec3 cDay; vec3 cGold; vec3 cNight; float aFacet; vec4 aSurface; vec3 packedNormal;
     #define normal packedNormal
+    #ifdef MOIRE_FACES
+    varying float v_faceRaw;   // THE MOIRE FIX: the wall face this cell belongs to (0 = none); the normal table's fourth float
+    #endif
     #else
     attribute vec3 cDay;
     attribute vec3 cGold;
@@ -522,7 +570,11 @@
         cGold = texelFetch(u_packTones, t0 + ivec2(1, 0), 0).rgb;
         cNight = texelFetch(u_packTones, t0 + ivec2(2, 0), 0).rgb;
         aSurface = texelFetch(u_packTones, t0 + ivec2(3, 0), 0);
-        packedNormal = texelFetch(u_packNormals, ivec2(int(mod(nid, PACK_TEXW)), int(floor(nid / PACK_TEXW))), 0).xyz;
+        vec4 packedN = texelFetch(u_packNormals, ivec2(int(mod(nid, PACK_TEXW)), int(floor(nid / PACK_TEXW))), 0);
+        packedNormal = packedN.xyz;
+        #ifdef MOIRE_FACES
+        v_faceRaw = packedN.w;
+        #endif
       }
       #endif
       vec3 color = (u_materialP <= 0.5) ? mix(cDay, cGold, u_materialP * 2.0)
@@ -580,100 +632,144 @@
       v_albedo = cDay; v_night = cNight;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`;
-  const FRAG = `
-    #ifdef FACADE_FILTER
-    varying vec2 v_faceUV;
-    #ifdef FACADE_FILTER_ARRAY
-    varying float v_faceLayer;
-    varying vec2 v_faceSize;
-    uniform highp sampler2DArray u_faceDay;
-    uniform highp sampler2DArray u_faceGold;
-    uniform highp sampler2DArray u_faceNight;
-    #else
-    uniform sampler2D u_faceDay;
-    uniform sampler2D u_faceGold;
-    uniform sampler2D u_faceNight;
-    #endif
-    uniform vec2 u_faceSize;
-    uniform vec2 u_faceFade;
-    uniform vec2 u_faceNightFade;
-    uniform float u_faceEnabled;
-    uniform float u_materialP;
-    uniform vec3 u_lightpos;
-    uniform vec3 u_lightcolor;
-    uniform float u_lightintensity;
-    uniform float u_opacity;
-    #endif
-    varying vec4 v_color;
-    varying vec3 v_pos;
-    varying vec3 v_normal;
-    varying vec4 v_surface;
-    varying vec3 v_albedo;
-    varying vec3 v_night;
-    uniform vec4 u_surfaceStyle;
-    uniform vec3 u_surfaceRange;
-    uniform vec3 u_surfaceSky;
-    uniform vec3 u_surfaceNoise;
-    uniform vec3 u_brickPatch;
-    uniform vec4 u_brickMottle;
-    uniform vec4 u_surfaceHorizon;
-    uniform vec4 u_weatherScale;
-    uniform vec3 u_weatherTone;
-    uniform vec4 u_shopRoom;
-    uniform vec4 u_shopStyle;
-    uniform vec4 u_shopCeiling;
-    uniform float u_shopShelfTop;
-    uniform float u_shopClosedAmbient;
-    uniform vec3 u_shopWall;
-    uniform vec3 u_shopFloor;
-    uniform vec3 u_shopMerch;
-    uniform vec3 u_shopLight;
-    uniform float u_p;
-    uniform float u_nightWallAmbient;
-    ${window.CityLighting.uniforms}
-    #include <packing>
-    ${window.CityLighting.glsl}
-${window.WallPatterns.glsl}
-${window.RoofTiles.glsl}
-    float hashCell(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
-    float surfaceNoise(vec2 p) {
-      vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
-      return mix(mix(hashCell(i),hashCell(i+vec2(1,0)),f.x),
-        mix(hashCell(i+vec2(0,1)),hashCell(i+vec2(1,1)),f.x),f.y);
+  /**
+   * THE MOIRE FIX in the fragment shader (see MOIRE). Compiled only into a packed material that carries wall faces (MOIRE_FACES),
+   * never into the facade-sheet material. `core` and `reflect` are FRAG's own shading text.
+   * No screen derivative and no filtered texture read sits inside a branch here (the footprint is measured first, the strips are read
+   * with an explicit level, the shadow comes from the cell's own shading), so a compiler may skip the class shades where W is 0.
+   */
+  function moireGlsl(core, reflect) {
+    if (!MOIRE.on) return '';
+    const call = 'cityShade(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse)';
+    if (!core.includes(call)) { console.warn('[slopes] the moire fix cannot find FRAG\'s cityShade call; it is off'); MOIRE.on = false; return ''; }
+    // a class shade reuses the visibility the cell's own shading has just measured (js/city-lighting.js cityVisibility): no second shadow read
+    const far = core.replace(call, 'cityShadeLit(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse,cityVisibility)');
+    return `
+    #if defined(MOIRE_FACES) && !defined(FACADE_FILTER)
+    #define MOIRE_ACTIVE 1
+    // The three corners of a triangle carry the same number, so plain interpolation returns it (rounded: it can come back as 99.9999).
+    varying float v_faceRaw;
+    #define v_face floor(v_faceRaw+0.5)
+    uniform highp sampler2D u_moireFaces;
+    uniform sampler2D u_moireRowA;
+    uniform sampler2D u_moireRowB;
+    uniform vec4 u_moire;    // mode (0 off, 1 on, 2 flat, 3 rows) | window pixels across: all mean under .y, itself over .z | reveal parallax
+    uniform vec4 u_moireB;   // window pixels up the wall: face mean under .x, rows over .y | golden slope | unused
+    uniform vec4 u_moireC;   // edge smoothing on | pixel size in strip texels: none under .y, full over .z | footprint scale
+    uniform vec4 u_moireD;   // 1 = look at a recessed pane through its opening | unused
+    uniform highp sampler2D u_moireFine;
+    // one class of a wall face's mean, shaded as FRAG shades a cell of that tone (no surface detail: it has faded long before a window is this small)
+    vec3 moireFar(vec4 baseColor,vec3 albedo,vec3 night,vec4 surface) {
+${far}      if(kind>.5&&u_surfaceRange.x>.5&&glazing>.5&&u_sunlight.x<.5) {
+        vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);
+        float strength=surface.w;
+${reflect}      }
+      return col;
     }
-    void main() {
-      vec4 baseColor=v_color, surface=v_surface;
-      vec3 albedo=v_albedo, night=v_night;
-${window.WallPatterns.apply}
-${window.RoofTiles.apply}
-      float faceMix=1.0;
-      #ifdef FACADE_FILTER
-      #ifdef FACADE_FILTER_ARRAY
-      vec2 footprint=fwidth(v_faceUV*v_faceSize);
-      #else
-      vec2 footprint=fwidth(v_faceUV*u_faceSize);
-      #endif
-      faceMix=u_faceEnabled*smoothstep(u_faceFade.x,u_faceFade.y,max(footprint.x,footprint.y));
-      faceMix*=1.0-smoothstep(u_faceNightFade.x,u_faceNightFade.y,u_p);
-      if(faceMix<=0.0)discard;
-      #ifdef FACADE_FILTER_ARRAY
-      vec3 faceCoord=vec3(v_faceUV,v_faceLayer);
-      vec4 day=texture(u_faceDay,faceCoord);
-      vec4 gold=texture(u_faceGold,faceCoord);
-      vec4 dark=texture(u_faceNight,faceCoord);
-      #else
-      vec4 day=texture2D(u_faceDay,v_faceUV);
-      vec4 gold=texture2D(u_faceGold,v_faceUV);
-      vec4 dark=texture2D(u_faceNight,v_faceUV);
-      #endif
-      albedo=day.rgb; night=dark.rgb;
-      vec3 color=u_materialP<=.5?mix(day.rgb,gold.rgb,u_materialP*2.0):mix(gold.rgb,dark.rgb,(u_materialP-.5)*2.0);
-      float value=dot(color,vec3(.2126,.7152,.0722));
-      float directional=mix(1.0-u_lightintensity,max(1.0-value+u_lightintensity,1.0),clamp(dot(normalize(v_normal),u_lightpos),0.0,1.0));
-      baseColor=vec4(clamp((color+vec3(.03))*directional*u_lightcolor,mix(vec3(0),vec3(.3),vec3(1)-u_lightcolor),vec3(1)),1)*u_opacity;
-      surface=vec4(0);
-      #endif
-      vec3 col=baseColor.rgb;
+    vec4 moireFace(float k) { float i=v_face*float(MOIRE_FACE_TEXELS)+k,y=floor(i/float(MOIRE_TEXW)); return texelFetch(u_moireFaces,ivec2(int(i-y*float(MOIRE_TEXW)),int(y)),0); }
+    // VERT's lighting of a wall vertex (no facet, no vertical gradient: the cell tiler's quads carry neither), for a tone that is a mean
+    vec4 moireLit(vec3 day,vec3 gold,vec3 dark,vec3 n) {
+      vec3 color=(u_materialP<=0.5)?mix(day,gold,u_materialP*2.0):mix(gold,dark,(u_materialP-0.5)*2.0);
+      float colorvalue=color.r*0.2126+color.g*0.7152+color.b*0.0722;
+      color+=vec3(0.03);
+      float directional=clamp(dot(n,u_lightpos),0.0,1.0);
+      directional=mix(1.0-u_lightintensity,max(1.0-colorvalue+u_lightintensity,1.0),directional);
+      vec3 lit=clamp(color*directional*u_lightcolor,mix(vec3(0.0),vec3(0.3),vec3(1.0)-u_lightcolor),vec3(1.0));
+      return vec4(lit,1.0)*u_opacity;
+    }
+    float moireFine(float i) { float y=floor(i/float(MOIRE_TEXW)); return texelFetch(u_moireFine,ivec2(int(i-y*float(MOIRE_TEXW)),int(y)),0).r; }
+    float moireSum(float base,float u) { float k=floor(u),a=moireFine(base+k); return a+(moireFine(base+k+1.0)-a)*(u-k); }
+    // the mean of a strip over [c - span, c + span] texels, from its running sums (what lies off the face counts as wall)
+    float moireShare(float base,float n,float c,float span) {
+      float u0=clamp(c-span,0.0,n-0.0001),u1=clamp(c+span,0.0,n-0.0001);
+      return (moireSum(base,u1)-moireSum(base,u0))/(2.0*span);
+    }
+    vec3 moireBlend(vec3 own,float ownGlass) {
+      // the pixel's footprint on the wall, in metres: across (along the wall) and up. Measured before any branch.
+      vec3 n=normalize(v_normal);
+      vec2 along=normalize(vec2(-n.y,n.x)+vec2(1e-9,0.0));
+      float axis=dot(v_pos.xy,along);
+      // A square pixel's weight along one wall axis is a trapezoid (two boxes convolved); the box of the same spread is as wide as the
+      // gradient is long. (fwidth, |d/dx| + |d/dy|, is the trapezoid's whole base: up to 1.4x too wide, and it blurs.) u_moireC.w scales it.
+      float fh=length(vec2(dFdx(axis),dFdy(axis)))*u_moireC.w,fv=length(vec2(dFdx(v_pos.z),dFdy(v_pos.z)))*u_moireC.w;
+      if(u_moire.x<0.5||v_face<0.5)return own;
+      vec4 r2=moireFace(2.0),r3=moireFace(3.0);
+      if(r2.a<=0.0)return own;
+      float wh=1.0-smoothstep(u_moire.y,u_moire.z,r2.a/max(fh,1e-6));
+      float wv=1.0-smoothstep(u_moireB.x,u_moireB.y,r3.a/max(fv,1e-6));
+      if(u_moire.x>2.5){wh=1.0;wv=0.0;}
+      else if(u_moire.x>1.5){wh=1.0;wv=1.0;}
+      float W=1.0-(1.0-wh)*(1.0-wv);
+      // EDGES: how much of this pixel is glass, from the face's two strips (an aligned window grid is their product)
+      float cover=ownGlass,edge=0.0;
+      vec4 r9=moireFace(9.0);
+      if(u_moireC.x>0.5&&W<1.0&&r9.z>0.5) {
+        vec4 r10=moireFace(10.0);
+        float pz=fv*r10.x,ps=fh*abs(r10.y);                         // the pixel in strip texels, up and along
+        edge=smoothstep(u_moireC.y,u_moireC.z,max(pz,ps));
+        if(edge>0.0) {
+          // a pane stands behind the wall plane: where this pixel's ray crosses the PLANE is where the opening's edge is
+          vec3 toEye=normalize(u_eye-v_pos);
+          vec2 through=u_moireD.x*ownGlass*moireFace(11.0).y*vec2(dot(toEye.xy,along),toEye.z)/max(abs(dot(toEye,n)),0.05);
+          float uz=(v_pos.z+through.y-moireFace(8.0).z)*r10.x,us=(axis+through.x-r10.z)*r10.y;
+          cover=clamp(moireShare(r9.y,r9.z,uz,max(0.5*pz,0.5))*moireShare(r9.y+r9.z+1.0,r9.w,us,max(0.5*ps,0.5)),0.0,1.0);
+          if(ownGlass<0.5&&cover>0.0) {
+            // a wall cell standing where a pane row meets a pane column (above a shorter window): the product claims it, the cell knows better
+            float claimed=moireShare(r9.y,r9.z,uz,1.5)*moireShare(r9.y+r9.z+1.0,r9.w,us,1.5);
+            cover*=(1.0-smoothstep(0.7,0.95,claimed))*moireFace(11.0).x;
+          }
+        }
+      }
+      // which class shades this pixel needs: the wall's for a pane's edge, the glass's for a wall cell's edge, all of them for a far mean
+      float needO=(W>0.0||(edge>0.0&&ownGlass>0.5&&cover<1.0))?1.0:0.0;
+      float needG=(W>0.0||(edge>0.0&&ownGlass<0.5&&cover>0.0))?1.0:0.0;
+      if(needO+needG<=0.0)return own;
+      vec4 r0=moireFace(0.0),r1=moireFace(1.0),r4=moireFace(4.0),r5=moireFace(5.0),r6=moireFace(6.0);
+      float g=r0.a,L=r1.a;
+      vec3 oDay=r0.rgb,oNight=r2.rgb;
+      if(W>0.0&&wv<1.0) {
+        // THE ROW: what a horizontal line across the face averages to here, over the pixel's own height (four taps of the strip)
+        vec4 r8=moireFace(8.0);
+        float u=(v_pos.z-r8.z)*r8.w,reach=fv*r8.w;
+        float rows=float(textureSize(u_moireRowA,0).y);
+        vec4 a=vec4(0.0),b=vec4(0.0);
+        for(int i=0;i<4;i++) {
+          float x=clamp(u+reach*(float(i)-1.5)*0.25,0.5,r9.x-0.5);
+          vec2 at=vec2((r8.x+x)/MOIRE_ROW_W,(r8.y+0.5)/rows);
+          a+=textureLod(u_moireRowA,at,0.0);b+=textureLod(u_moireRowB,at,0.0);
+        }
+        a*=0.25;b*=0.25;
+        // rows and face meet in premultiplied form (colour x opaque share), so the blend is the mean of what is there
+        vec3 pd=mix(a.rgb,oDay*(1.0-g),wv),pn=mix(b.rgb,oNight*(1.0-g),wv);
+        L=mix(b.a,L,wv);g=mix(a.a,g,wv);
+        if(g<0.999){oDay=pd/(1.0-g);oNight=pn/(1.0-g);}
+      }
+      vec3 oGold=clamp(r1.rgb+(oDay-r0.rgb)*u_moireB.z,0.0,1.0);
+      float lit=(u_cityNight.x<=0.0&&u_materialP<=0.5)?0.0:clamp(L/max(g,1e-4),0.0,1.0);   // the lit share of the glass; by day a lit pane is a pane
+      vec4 glass=vec4(4.0,0.0,0.0,r6.a);
+      vec3 O=vec3(0.0),G=vec3(0.0);
+      if(needO>0.5)O=moireFar(moireLit(oDay,oGold,oNight,n),oDay,oNight,moireFace(7.0));
+      if(needG>0.5) {
+        if(lit<1.0)G+=(1.0-lit)*moireFar(moireLit(r3.rgb,r4.rgb,r5.rgb,n),r3.rgb,r5.rgb,glass);
+        if(lit>0.0)G+=lit*moireFar(moireLit(r3.rgb,r4.rgb,r6.rgb,n),r3.rgb,r6.rgb,glass);
+      }
+      vec3 col=own;
+      if(edge>0.0)col=mix(own,ownGlass>0.5?mix(O,own,cover):mix(own,G,cover),edge);
+      if(W>0.0) {
+        // a recessed pane is partly hidden by its own reveal at this angle; the reveal draws itself, so the mean is of what is left
+        vec3 view=normalize(u_eye-v_pos);
+        float hide=clamp(u_moire.w*(abs(dot(view.xy,along))*r4.a+abs(view.z)*r5.a)/max(abs(dot(view,n)),0.05),0.0,0.9);
+        float gs=g*(1.0-hide);
+        col=mix(col,mix(O,G,gs/max(1.0-g*hide,1e-4)),W);
+      }
+      return col;
+    }
+    #endif
+  `;
+  }
+  // FRAG's shading of a lit tone, in the three pieces THE MOIRE FIX reuses: main() below is these, in this order, exactly as it always was;
+  // the fix shades a wall face's mean tones with SHADE_CORE and SHADE_REFLECT again (one text, so the two cannot drift apart).
+  const SHADE_CORE = `      vec3 col=baseColor.rgb;
       float kind=surface.x;
       bool shop=kind>5.5&&kind<6.5;
       float glazing=((kind>3.5&&kind<4.5)||shop)?1.0:0.0;
@@ -695,17 +791,19 @@ ${window.RoofTiles.apply}
       #else
       col=cityEmission(col,night,((kind>3.5&&kind<5.5)||shop)?1.0:0.0);
       #endif
-      if(kind>.5 && u_surfaceRange.x>.5) {
+`;
+  const SHADE_REFLECT = `          float fresnel=pow(1.0-abs(dot(n,view)),3.0);
+          float daylight=1.0-smoothstep(.5,.95,u_p);
+          vec3 reflection=u_surfaceSky*mix(u_surfaceHorizon.x,u_surfaceHorizon.y,smoothstep(u_surfaceHorizon.z,u_surfaceHorizon.w,reflect(-view,n).z));
+          col=mix(col,reflection,u_surfaceStyle.w*mix(u_surfaceNoise.z,1.0,fresnel)*strength*daylight);
+`;
+  const SHADE_DETAIL = `      if(kind>.5 && u_surfaceRange.x>.5) {
         vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);
         float strength=surface.w;
         float nearDetail=1.0-smoothstep(u_surfaceRange.y,u_surfaceRange.z,distance(u_eye,v_pos));
         if(glazing>.5) {
           if(u_sunlight.x<.5) {
-          float fresnel=pow(1.0-abs(dot(n,view)),3.0);
-          float daylight=1.0-smoothstep(.5,.95,u_p);
-          vec3 reflection=u_surfaceSky*mix(u_surfaceHorizon.x,u_surfaceHorizon.y,smoothstep(u_surfaceHorizon.z,u_surfaceHorizon.w,reflect(-view,n).z));
-          col=mix(col,reflection,u_surfaceStyle.w*mix(u_surfaceNoise.z,1.0,fresnel)*strength*daylight);
-          }
+${SHADE_REFLECT}          }
           if(shop&&u_shopRoom.y>0.0) {
             // Ray/box intersection exposes side walls and ceiling as the eye
             // moves past. Glass stays opaque in the shared depth buffer.
@@ -785,6 +883,105 @@ ${window.RoofTiles.apply}
           }
         }
       }
+`;
+  const MOIRE_GLSL = moireGlsl(SHADE_CORE, SHADE_REFLECT);
+  const FRAG = `
+    #ifdef FACADE_FILTER
+    varying vec2 v_faceUV;
+    #ifdef FACADE_FILTER_ARRAY
+    varying float v_faceLayer;
+    varying vec2 v_faceSize;
+    uniform highp sampler2DArray u_faceDay;
+    uniform highp sampler2DArray u_faceGold;
+    uniform highp sampler2DArray u_faceNight;
+    #else
+    uniform sampler2D u_faceDay;
+    uniform sampler2D u_faceGold;
+    uniform sampler2D u_faceNight;
+    #endif
+    uniform vec2 u_faceSize;
+    uniform vec2 u_faceFade;
+    uniform vec2 u_faceNightFade;
+    uniform float u_faceEnabled;
+    uniform float u_materialP;
+    uniform vec3 u_lightpos;
+    uniform vec3 u_lightcolor;
+    uniform float u_lightintensity;
+    uniform float u_opacity;
+    #endif
+    varying vec4 v_color;
+    varying vec3 v_pos;
+    varying vec3 v_normal;
+    varying vec4 v_surface;
+    varying vec3 v_albedo;
+    varying vec3 v_night;
+    uniform vec4 u_surfaceStyle;
+    uniform vec3 u_surfaceRange;
+    uniform vec3 u_surfaceSky;
+    uniform vec3 u_surfaceNoise;
+    uniform vec3 u_brickPatch;
+    uniform vec4 u_brickMottle;
+    uniform vec4 u_surfaceHorizon;
+    uniform vec4 u_weatherScale;
+    uniform vec3 u_weatherTone;
+    uniform vec4 u_shopRoom;
+    uniform vec4 u_shopStyle;
+    uniform vec4 u_shopCeiling;
+    uniform float u_shopShelfTop;
+    uniform float u_shopClosedAmbient;
+    uniform vec3 u_shopWall;
+    uniform vec3 u_shopFloor;
+    uniform vec3 u_shopMerch;
+    uniform vec3 u_shopLight;
+    uniform float u_p;
+    uniform float u_nightWallAmbient;
+    ${window.CityLighting.uniforms}
+    #include <packing>
+    ${window.CityLighting.glsl}
+${window.WallPatterns.glsl}
+${window.RoofTiles.glsl}
+    float hashCell(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+    float surfaceNoise(vec2 p) {
+      vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+      return mix(mix(hashCell(i),hashCell(i+vec2(1,0)),f.x),
+        mix(hashCell(i+vec2(0,1)),hashCell(i+vec2(1,1)),f.x),f.y);
+    }
+${MOIRE_GLSL}
+    void main() {
+      vec4 baseColor=v_color, surface=v_surface;
+      vec3 albedo=v_albedo, night=v_night;
+${window.WallPatterns.apply}
+${window.RoofTiles.apply}
+      float faceMix=1.0;
+      #ifdef FACADE_FILTER
+      #ifdef FACADE_FILTER_ARRAY
+      vec2 footprint=fwidth(v_faceUV*v_faceSize);
+      #else
+      vec2 footprint=fwidth(v_faceUV*u_faceSize);
+      #endif
+      faceMix=u_faceEnabled*smoothstep(u_faceFade.x,u_faceFade.y,max(footprint.x,footprint.y));
+      faceMix*=1.0-smoothstep(u_faceNightFade.x,u_faceNightFade.y,u_p);
+      if(faceMix<=0.0)discard;
+      #ifdef FACADE_FILTER_ARRAY
+      vec3 faceCoord=vec3(v_faceUV,v_faceLayer);
+      vec4 day=texture(u_faceDay,faceCoord);
+      vec4 gold=texture(u_faceGold,faceCoord);
+      vec4 dark=texture(u_faceNight,faceCoord);
+      #else
+      vec4 day=texture2D(u_faceDay,v_faceUV);
+      vec4 gold=texture2D(u_faceGold,v_faceUV);
+      vec4 dark=texture2D(u_faceNight,v_faceUV);
+      #endif
+      albedo=day.rgb; night=dark.rgb;
+      vec3 color=u_materialP<=.5?mix(day.rgb,gold.rgb,u_materialP*2.0):mix(gold.rgb,dark.rgb,(u_materialP-.5)*2.0);
+      float value=dot(color,vec3(.2126,.7152,.0722));
+      float directional=mix(1.0-u_lightintensity,max(1.0-value+u_lightintensity,1.0),clamp(dot(normalize(v_normal),u_lightpos),0.0,1.0));
+      baseColor=vec4(clamp((color+vec3(.03))*directional*u_lightcolor,mix(vec3(0),vec3(.3),vec3(1)-u_lightcolor),vec3(1)),1)*u_opacity;
+      surface=vec4(0);
+      #endif
+${SHADE_CORE}${SHADE_DETAIL}      #ifdef MOIRE_ACTIVE
+      col=moireBlend(col,glazing);
+      #endif
       gl_FragColor=vec4(col,baseColor.a*faceMix);
     }`;
 
@@ -1065,9 +1262,10 @@ ${window.RoofTiles.apply}
     _byteFloats = f; _byteFloats.how = how;
     return f;
   }
-  function packOverflow(what, limit) {
+  function packOverflow(what, limit, faces) {
     const e = new Error('[slopes] ?packverts=1: more than ' + limit + ' distinct ' + what + ' (PACK.toneBits)');
     e.packOverflow = true;   // js/slopes-apartments.js lets this out of its per-building catch and rebuilds unpacked
+    e.moireFaces = !!faces;  // ...or, when it was a wall face's normal that did not fit, packed again without the moire fix's faces
     return e;
   }
   // what makes two palette entries ONE tone: the text of their hex colours and surface numbers (js/slopes-rust.js uses the same key)
@@ -1083,8 +1281,9 @@ ${window.RoofTiles.apply}
     };
     T.nbits = new Uint32Array(T.normals.buffer);
     const f32 = new Float32Array(3), u32 = new Uint32Array(f32.buffer);
-    const hashOf = (a, b, c) => {
-      let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35) ^ Math.imul(c ^ 0x165667b1, 0x27d4eb2f);
+    // `d` is the face number a wall cell's normal carries (THE MOIRE FIX; 0 = none, and then this is the hash it always was)
+    const hashOf = (a, b, c, d) => {
+      let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35) ^ Math.imul(c ^ 0x165667b1, 0x27d4eb2f) ^ Math.imul(d, 0x2545f491);
       h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); return h ^ (h >>> 12);
     };
     const byte = h => { const f = hexToRgb01(h); return [Math.round(f[0] * 255), Math.round(f[1] * 255), Math.round(f[2] * 255)]; };
@@ -1109,38 +1308,198 @@ ${window.RoofTiles.apply}
       return id;
     };
     /** the normal index of (x, y, z), by the exact float32 bits (so -0 and +0 stay distinct and nothing is merged that was not equal) */
-    T.normal = (x, y, z) => {
+    T.normal = (x, y, z, face) => {
       f32[0] = x; f32[1] = y; f32[2] = z;
-      const a = u32[0], b = u32[1], c = u32[2];
-      const mask = T.hash.length - 1, nb = T.nbits;
-      let i = hashOf(a, b, c) & mask;
+      const a = u32[0], b = u32[1], c = u32[2], d = face | 0;
+      const mask = T.hash.length - 1, nb = T.nbits, nf = T.normals;
+      let i = hashOf(a, b, c, d) & mask;
       for (;;) {
         const id = T.hash[i];
         if (id < 0) break;
         const o = id * 4;
-        if (nb[o] === a && nb[o + 1] === b && nb[o + 2] === c) return id;
+        if (nb[o] === a && nb[o + 1] === b && nb[o + 2] === c && nf[o + 3] === d) return id;
         i = (i + 1) & mask;
       }
-      if (T.nNormals >= 2 ** (31 - PACK.toneBits)) throw packOverflow('normals', 2 ** (31 - PACK.toneBits));
+      if (T.nNormals >= 2 ** (31 - PACK.toneBits)) throw packOverflow(d ? 'normals (with the moire fix\'s wall faces)' : 'normals', 2 ** (31 - PACK.toneBits), !!d);
       const id = T.nNormals++;
       if (id * 4 + 4 > T.normals.length) { const g = new Float32Array(T.normals.length * 2); g.set(T.normals); T.normals = g; T.nbits = new Uint32Array(g.buffer); }
-      T.normals[id * 4] = x; T.normals[id * 4 + 1] = y; T.normals[id * 4 + 2] = z;
+      T.normals[id * 4] = x; T.normals[id * 4 + 1] = y; T.normals[id * 4 + 2] = z; T.normals[id * 4 + 3] = d;
       T.hash[i] = id;
       if (T.nNormals * 2 > T.hash.length) {            // keep the table at most half full
-        const nh = new Int32Array(T.hash.length * 2).fill(-1), m2 = nh.length - 1, nb2 = T.nbits;
+        const nh = new Int32Array(T.hash.length * 2).fill(-1), m2 = nh.length - 1, nb2 = T.nbits, nf2 = T.normals;
         for (let id2 = 0; id2 < T.nNormals; id2++) {
           const o = id2 * 4;
-          let j = hashOf(nb2[o], nb2[o + 1], nb2[o + 2]) & m2; while (nh[j] >= 0) j = (j + 1) & m2; nh[j] = id2;
+          let j = hashOf(nb2[o], nb2[o + 1], nb2[o + 2], nf2[o + 3]) & m2; while (nh[j] >= 0) j = (j + 1) & m2; nh[j] = id2;
         }
         T.hash = nh;
       }
       return id;
     };
+    moireFaces(T);
     /** [lo, hi] of the 32-bit word for a vertex: tone id, facet flag (0/1) and normal id */
     T.wordLo = (tone, facet, nid) => (tone | (facet << PACK.toneBits) | ((nid % PACK_NLOW) << (PACK.toneBits + 1))) >>> 0;
     T.wordHi = nid => Math.floor(nid / PACK_NLOW);
     T.bytes = () => T.nTones * 64 + T.nNormals * 16;
     return T;
+  }
+  /**
+   * THE MOIRE FIX's two tables on a VertexTables: one record per wall face (T.faces, MOIRE.FACE_TEXELS float texels each) and
+   * that face's ROW STRIP (T.rowA / T.rowB, one texel per MOIRE.rowRes of wall height: what a horizontal line across the face
+   * averages to). A caller opens a face, reports every cell it draws on it, and closes it:
+   *   id = T.faceOpen(z0, z1)                         0 when the fix is off: then nothing is recorded and no vertex carries a face
+   *   T.faceCell(za, zb, width, tone, glass, lit, fw, fh, reveal)   one rectangle of the face, `width` metres along the wall; `glass` = it is a
+   *                                                   window pane (shaded as glass), `lit` = a lit one at night; fw x fh = the size of the
+   *                                                   feature it belongs to (a window's own width and height); a NEGATIVE width takes area
+   *                                                   back (a mullion laid over a pane reports itself, and the pane it covers with -width)
+   *   T.faceClose()                                   works the means out and writes them
+   * Record, texel by texel (rgb, a):  0 opaque day, glass share g | 1 opaque golden, lit-glass share L | 2 opaque night, feature width |
+   *   3 glass day, feature height | 4 glass golden, reveal hide factor across | 5 unlit glass night, reveal hide factor up |
+   *   6 lit glass night (mean), glass reflection response | 7 the main opaque tone's surface (4 floats) | 8 strip x, strip y, z0, texels per metre | 9 strip length
+   * Strip texel:  A = opaque day colour x (1 - g_row), g_row ;  B = opaque night colour x (1 - g_row), lit-glass share of the row.
+   * Colours are the tones' own 8-bit values / 255 (the space the frame buffer and a supersampled picture average in: FRAG's shading is
+   * linear in a tone within a class, see scripts/verify/moire-mean.mjs).
+   */
+  function moireFaces(T) {
+    const FT = MOIRE.FACE_TEXELS * 4, RW = MOIRE.ROW_W;
+    T.nFaces = 1; T.faces = null; T.rowA = null; T.rowB = null; T.rowX = 0; T.rowY = 0;   // face 0 = "no face"; arrays made on the first face
+    T.fine = null; T.nFine = 0;                                                            // the edge strips' running sums, one float each
+    const bytes = new Map();
+    const b3 = hex => { let c = bytes.get(hex); if (!c) { const f = hexToRgb01(hex); c = [Math.round(f[0] * 255), Math.round(f[1] * 255), Math.round(f[2] * 255)]; bytes.set(hex, c); } return c; };
+    let F = null;
+    T.faceOpen = (z0, z1, len, origin, along, outward) => {
+      if (!MOIRE.on || T.facesOff || !(z1 > z0)) return 0;
+      const n = Math.max(1, Math.ceil((z1 - z0) / MOIRE.rowRes - 1e-6));
+      if (n > RW || T.nFaces >= 65535) return 0;
+      if (T.rowX + n > RW) { T.rowX = 0; T.rowY++; }
+      // the edge strips: nz texels up the wall, ns along it. `origin` is the wall point at s = 0, `along` and `outward` the frame's two vectors.
+      let E = null;
+      if (MOIRE.edge && len > 0 && origin && along && outward) {
+        // FRAG's `along` is the cell's own normal turned a quarter, and that normal is exactly square to the wall. So the axis here is the wall's
+        // own direction (never `outward` turned: a frame's two vectors are a hundredth of a degree off square, and at 700 m from the origin that
+        // is most of a metre of s), signed the way FRAG's comes out.
+        const tl = Math.hypot(along[0], along[1]) || 1, sg = (along[0] * -outward[1] + along[1] * outward[0]) < 0 ? -1 : 1, ax = sg * along[0] / tl, ay = sg * along[1] / tl;
+        const dot = sg * tl;                                                                               // metres of FRAG's axis per unit of s (signed)
+        const nz = Math.max(1, Math.ceil((z1 - z0) / MOIRE.edgeRes - 1e-6)), ns = Math.max(1, Math.ceil(len * Math.abs(dot) / MOIRE.edgeRes - 1e-6));
+        if (nz + ns < 60000) E = { nz, ns, len, s0: origin[0] * ax + origin[1] * ay, dot, rz: new Uint8Array(nz * 8), cs: new Uint8Array(ns * 8), area: 0 };   // eight marks a texel
+      }
+      F = { id: T.nFaces++, z0, z1, zw: origin && Number.isFinite(origin[2]) ? origin[2] : z0, n, inv: n / (z1 - z0), x: T.rowX, y: T.rowY, E,
+        o: new Float64Array(10), g: new Float64Array(16), tones: [], fa: 0, sw: 0, sh: 0, rvv: 0, rvd: 0,   // sums, see faceCell
+        rO: new Float64Array(n * 3), rN: new Float64Array(n * 3), rG: new Float64Array(n), rL: new Float64Array(n), rW: new Float64Array(n) };
+      T.rowX += n;
+      return F.id;
+    };
+    T.faceCell = (sa, sb, za, zb, col, glass, lit, fw, fh, rv, takeBack) => {
+      if (!F || !(zb > za) || !(sb > sa)) return;
+      const w = takeBack ? sa - sb : sb - sa;
+      const area = w * (zb - za), d = b3(col[0]), gd = b3(col[1]), nt = b3(col[2]), o = F.o, g = F.g;
+      // the edge strips: glass height per column and glass width per row, spread over the texels the pane covers
+      const E = F.E;
+      if (E && glass && !takeBack) {                   // (a bar laid over a pane is drawn by its own cell; the strips keep the pane whole)
+        const z0u = Math.round((za - F.z0) / (F.z1 - F.z0) * E.nz * 8), z1u = Math.round((zb - F.z0) / (F.z1 - F.z0) * E.nz * 8), s0u = Math.round(sa / E.len * E.ns * 8), s1u = Math.round(sb / E.len * E.ns * 8);
+        if (z1u > z0u && s1u > s0u) { E.rz.fill(1, Math.max(0, z0u), Math.min(E.nz * 8, z1u)); E.cs.fill(1, Math.max(0, s0u), Math.min(E.ns * 8, s1u)); E.area += (z1u - z0u) * (s1u - s0u); }
+      }
+      if (glass) {
+        g[0] += area; g[1] += area * d[0]; g[2] += area * d[1]; g[3] += area * d[2]; g[4] += area * gd[0]; g[5] += area * gd[1]; g[6] += area * gd[2];
+        const k = lit ? 10 : 7; g[k] += area * nt[0]; g[k + 1] += area * nt[1]; g[k + 2] += area * nt[2];
+        if (lit) g[13] += area;
+        const sf = col.surface;
+        g[14] += area * (sf ? (sf[0] === 6 ? 1 : Math.min(1, Math.max(0, sf[3]))) : 0);
+        if (w > 0 && fw > 0 && fh > 0) { F.fa += area; F.sw += area * fw; F.sh += area * fh; if (rv > 0) { g[15] += area * rv / fw; F.rvv += area * rv / fh; F.rvd += area * rv; } }
+      } else {
+        o[0] += area; o[1] += area * d[0]; o[2] += area * d[1]; o[3] += area * d[2]; o[4] += area * gd[0]; o[5] += area * gd[1]; o[6] += area * gd[2];
+        o[7] += area * nt[0]; o[8] += area * nt[1]; o[9] += area * nt[2];
+        if (col.surface && col.surface[0] >= 100) F.pattern = true;   // a wall-pattern material (js/wall-patterns.js) takes its colours from the pattern table, not from this tone
+        if (w > 0) {                                   // which opaque tone is the wall (the largest), and how big the others' cells are
+          let t = null; const ts = F.tones;
+          for (let i = 0; i < ts.length; i++) if (ts[i].col === col) { t = ts[i]; break; }
+          if (!t) { if (ts.length < 12) ts.push(t = { col, area: 0, sw: 0, sh: 0 }); else t = ts[11]; }
+          t.area += area; t.sw += area * (fw || w); t.sh += area * (fh || (zb - za));
+        }
+      }
+      // the row strip: this rectangle's width, spread over the texels its height covers
+      const u0 = (za - F.z0) * F.inv, u1 = (zb - F.z0) * F.inv;
+      for (let k = Math.max(0, Math.floor(u0)), ke = Math.min(F.n, Math.ceil(u1)); k < ke; k++) {
+        const ov = (Math.min(u1, k + 1) - Math.max(u0, k)) * w;
+        if (ov === 0) continue;
+        F.rW[k] += ov;
+        if (glass) { F.rG[k] += ov; if (lit) F.rL[k] += ov; }
+        else { F.rO[k * 3] += ov * d[0]; F.rO[k * 3 + 1] += ov * d[1]; F.rO[k * 3 + 2] += ov * d[2]; F.rN[k * 3] += ov * nt[0]; F.rN[k * 3 + 1] += ov * nt[1]; F.rN[k * 3 + 2] += ov * nt[2]; }
+      }
+    };
+    T.faceClose = () => {
+      const f = F; F = null;
+      if (!f) return;
+      const o = f.o, g = f.g, oA = o[0], gA = g[0], tot = oA + gA, R = f.id * FT;
+      if (!T.faces || R + FT > T.faces.length) { const a = new Float32Array(Math.max(FT * 256, (T.faces ? T.faces.length : 0) * 2, R + FT)); if (T.faces) a.set(T.faces); T.faces = a; }
+      const need = (f.y + 1) * RW * 4;
+      if (!T.rowA || need > T.rowA.length) { const len = Math.max(RW * 4 * 8, (T.rowA ? T.rowA.length : 0) * 2, need); const a = new Uint8Array(len), b = new Uint8Array(len); if (T.rowA) { a.set(T.rowA); b.set(T.rowB); } T.rowA = a; T.rowB = b; }
+      const W = T.faces;
+      if (!(tot > 1e-9) || f.pattern) return;           // nothing was drawn on it, or its wall is a pattern material (which filters itself): the record stays zero and FRAG leaves the face alone
+      const lA = g[13], uA = gA - lA, i255 = 1 / 255;
+      const mean = (sum, k, area) => area > 1e-9 ? sum[k] / area * i255 : 0;
+      // opaque means (day, golden, night), glass means (day, golden; night apart for unlit and lit panes)
+      const oD = [mean(o, 1, oA), mean(o, 2, oA), mean(o, 3, oA)], oG = [mean(o, 4, oA), mean(o, 5, oA), mean(o, 6, oA)];
+      const oN = [mean(o, 7, oA), mean(o, 8, oA), mean(o, 9, oA)];
+      // FEATURE SIZE: the windows when the face has any, else the cells of every opaque tone but the largest (a panel pattern)
+      let fwH = 0, fwV = 0;
+      let wall = null; for (const t of f.tones) if (!wall || t.area > wall.area) wall = t;
+      if (gA > 1e-9 && f.fa > 1e-9) {
+        const ww = f.sw / f.fa, wh = f.sh / f.fa;
+        let rows = 0, share = 0; for (let k = 0; k < f.n; k++) if (f.rG[k] > 1e-9 && f.rW[k] > 1e-9) { rows++; share += f.rG[k] / f.rW[k]; }
+        const fH = rows ? share / rows : 1, fV = rows / f.n;
+        // window a, pier b, period a + b. One sample per pixel is off by about f / (2 (a + b)) of the contrast (f = the pixel on the wall), the flat
+        // mean by 2ab / (a + b)^2: the mean is the better picture once f passes 4ab / (a + b). That length is the "feature" FRAG compares the pixel with
+        // (two window widths when window and pier are equal; four pier widths when the piers are thin).
+        const gapH = fH < 0.999 ? ww * (1 - fH) / Math.max(fH, 1e-3) : ww, gapV = fV < 0.999 ? wh * (1 - fV) / Math.max(fV, 1e-3) : wh;
+        fwH = 4 * ww * gapH / (ww + gapH); fwV = 4 * wh * gapV / (wh + gapV);
+      } else if (f.tones.length > 1) {
+        let a = 0, sw = 0, sh = 0; for (const t of f.tones) if (t !== wall) { a += t.area; sw += t.sw; sh += t.sh; }
+        if (a > 1e-9) { fwH = 2 * sw / a; fwV = 2 * sh / a; }
+      }
+      if (!(fwH > 0) || !(fwV > 0)) return;             // one tone: nothing to average
+      const sf = (wall && wall.col.surface) || [0, 0, 0, 0];
+      const put = (t, r, gch, b, a) => { const i = R + t * 4; W[i] = r; W[i + 1] = gch; W[i + 2] = b; W[i + 3] = a; };
+      put(0, oD[0], oD[1], oD[2], gA / tot);
+      put(1, oG[0], oG[1], oG[2], lA / tot);
+      put(2, oN[0], oN[1], oN[2], Math.max(0.05, fwH));
+      put(3, mean(g, 1, gA), mean(g, 2, gA), mean(g, 3, gA), Math.max(0.05, fwV));
+      put(4, mean(g, 4, gA), mean(g, 5, gA), mean(g, 6, gA), gA > 1e-9 ? g[15] / gA : 0);
+      put(5, mean(g, 7, uA), mean(g, 8, uA), mean(g, 9, uA), gA > 1e-9 ? f.rvv / gA : 0);
+      put(6, mean(g, 10, lA), mean(g, 11, lA), mean(g, 12, lA), gA > 1e-9 ? g[14] / gA : 0);
+      put(7, sf[0], sf[1], sf[2], sf[3]);
+      put(8, f.x, f.y, f.zw, f.inv);                    // the strip's place, the height the face's foot is DRAWN at, texels per metre
+      put(9, f.n, 0, 0, 0);
+      // THE EDGE STRIPS. R(z) = 1 where some pane stands at that height, C(s) = 1 where some pane stands at that place along the wall (the share of
+      // each texel that is so). For windows in an aligned grid the glass is exactly R(z) C(s); where windows of two sizes share a face the product
+      // also claims the wall above the shorter one, which FRAG knows is wall (its own cell says so) and leaves alone. Stored as RUNNING SUMS, so
+      // FRAG gets the mean over any pixel footprint from two reads. `claimed` = real pane area / the product's area (1 for a true grid).
+      const E = f.E;
+      if (E && gA > 1e-9 && E.area > 0) {
+        const H = f.z1 - f.z0, base = T.nFine, need = base + E.nz + E.ns + 2;
+        if (!T.fine || need > T.fine.length) { const a = new Float32Array(Math.max(1 << 16, (T.fine ? T.fine.length : 0) * 2, need)); if (T.fine) a.set(T.fine); T.fine = a; }
+        const run = (marks, n, at) => { let acc = 0; T.fine[at] = 0; for (let k = 0, m = 0; k < n; k++) { let c = 0; for (let j = 0; j < 8; j++) c += marks[m++]; acc += c / 8; T.fine[at + k + 1] = acc; } return acc; };
+        const sz = run(E.rz, E.nz, base), ss = run(E.cs, E.ns, base + E.nz + 1);
+        T.nFine = need;
+        put(9, f.n, base, E.nz, E.ns);
+        put(10, E.nz / H, E.ns / (E.len * E.dot), E.s0, 0);   // texels per metre up; texels per metre of FRAG's axis (signed); the axis value at s = 0
+        put(11, Math.min(1, E.area / 64 / Math.max(1e-9, sz * ss)), f.rvd / gA, 0, 0);   // claimed (see above); the panes' mean recess in metres (FRAG looks at a pane THROUGH its opening)
+        T.nAligned = (T.nAligned || 0) + 1;
+      }
+      // the strip. A texel no cell reached (a face under a raking cut) takes the face's own means.
+      const A = T.rowA, B = T.rowB, base = (f.y * RW + f.x) * 4, by = v => Math.max(0, Math.min(255, Math.round(v)));
+      for (let k = 0; k < f.n; k++) {
+        const w = f.rW[k], i = base + k * 4;
+        if (w > 1e-9) {
+          A[i] = by(f.rO[k * 3] / w); A[i + 1] = by(f.rO[k * 3 + 1] / w); A[i + 2] = by(f.rO[k * 3 + 2] / w); A[i + 3] = by(255 * f.rG[k] / w);
+          B[i] = by(f.rN[k * 3] / w); B[i + 1] = by(f.rN[k * 3 + 1] / w); B[i + 2] = by(f.rN[k * 3 + 2] / w); B[i + 3] = by(255 * f.rL[k] / w);
+        } else {
+          const q = oA / tot * 255;
+          A[i] = by(oD[0] * q); A[i + 1] = by(oD[1] * q); A[i + 2] = by(oD[2] * q); A[i + 3] = by(255 * gA / tot);
+          B[i] = by(oN[0] * q); B[i + 1] = by(oN[1] * q); B[i + 2] = by(oN[2] * q); B[i + 3] = by(255 * lA / tot);
+        }
+      }
+    };
+    T.faceBytes = () => (T.faces ? T.nFaces * FT * 4 : 0) + (T.rowA ? (T.rowY + 1) * RW * 8 : 0) + T.nFine * 4;
   }
   /** a new VertexTables if ?packverts=1 is on and the renderer can run the packed program, else null */
   function packTables() {
@@ -1161,11 +1520,29 @@ ${window.RoofTiles.apply}
         return t;
       };
       tables.tex = { tones: tex(tables.tones, tables.nTones * 4, W), normals: tex(tables.normals, tables.nNormals, W) };
+      // THE MOIRE FIX: the face records (float texels, fetched by number) and the two row strips (bytes, filtered along the strip)
+      if (tables.nFaces > 1 && tables.faces && tables.rowA) {
+        const rows = tables.rowY + 1, RW = MOIRE.ROW_W;
+        const strip = data => { const t = new T.DataTexture(data.subarray(0, rows * RW * 4), RW, rows, T.RGBAFormat, T.UnsignedByteType);
+          t.minFilter = t.magFilter = T.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true; return t; };
+        tables.tex.faces = tex(tables.faces, tables.nFaces * MOIRE.FACE_TEXELS, W);
+        tables.tex.rowA = strip(tables.rowA); tables.tex.rowB = strip(tables.rowB);
+        // the edge strips' running sums: one float a texel, read by index (never filtered)
+        const fr = Math.max(1, Math.ceil(Math.max(1, tables.nFine) / W)), fd = new Float32Array(fr * W);
+        if (tables.fine) fd.set(tables.fine.subarray(0, tables.nFine));
+        tables.tex.fine = new T.DataTexture(fd, W, fr, T.RedFormat, T.FloatType);
+        tables.tex.fine.minFilter = tables.tex.fine.magFilter = T.NearestFilter; tables.tex.fine.generateMipmaps = false; tables.tex.fine.needsUpdate = true;
+      }
     }
-    return {
+    const parts = {
       uniforms: { u_packTones: { value: tables.tex.tones }, u_packNormals: { value: tables.tex.normals } },
       defines: { PACKED_TONES: 1, PACK_TONES: PACK_TONES.toFixed(1), PACK_NLOW: PACK_NLOW.toFixed(1), PACK_TEXW: W.toFixed(1) },
     };
+    if (tables.tex.faces) {
+      Object.assign(parts.uniforms, { u_moireFaces: { value: tables.tex.faces }, u_moireRowA: { value: tables.tex.rowA }, u_moireRowB: { value: tables.tex.rowB }, u_moireFine: { value: tables.tex.fine } });
+      Object.assign(parts.defines, { MOIRE_FACES: 1, MOIRE_TEXW: W, MOIRE_FACE_TEXELS: MOIRE.FACE_TEXELS, MOIRE_ROW_W: MOIRE.ROW_W.toFixed(1) });
+    }
+    return parts;
   }
 
   // ── Materials and geometry helpers ──────────────────────────────────────
@@ -1185,7 +1562,7 @@ ${window.RoofTiles.apply}
     });
     window.WallPatterns.attach(mat);
     window.RoofTiles?.sync(mat.uniforms);
-    if (packed) mat.addEventListener('dispose', () => { const t = o.pack.tex; o.pack.tex = null; if (t) { t.tones.dispose(); t.normals.dispose(); } });
+    if (packed) mat.addEventListener('dispose', () => { const t = o.pack.tex; o.pack.tex = null; if (t) { for (const k in t) t[k].dispose(); } });
     // Builder meshes have no wall gradient. A constant vertex attribute is
     // exactly the old all-zero buffer, without eight CPU/GPU bytes per vertex.
     // colour() still supplies an attribute for meshes that need a gradient.
@@ -1473,12 +1850,14 @@ ${window.RoofTiles.apply}
     // ?packverts=1: position and ONE word per vertex. The four corners of a quad share a normal, a tone and a facet flag, so the word is
     // worked out once per primitive (compared by value, not identity: a caller may reuse an array).
     let _ln0 = NaN, _ln1 = 0, _ln2 = 0, _lcol = null, _lfac = -1, _llo = 0, _lhi = 0;
+    // THE MOIRE FIX: `face(id)` gives every vertex pushed after it that wall face's number (it rides with the normal); `face(0)` ends the run.
+    let _face = 0, _lface = 0;
     const pushPacked = (p, n, col) => {
       // Object.is, not ===: -0 and +0 are different float32 bits and a normal must come back exactly as the unpacked layout holds it
-      if (!Object.is(n[0], _ln0) || !Object.is(n[1], _ln1) || !Object.is(n[2], _ln2) || col !== _lcol || _facet !== _lfac) {
-        const nid = PK.normal(n[0], n[1], n[2]);          // tone and normal resolved before any buffer is touched, as in push()
+      if (!Object.is(n[0], _ln0) || !Object.is(n[1], _ln1) || !Object.is(n[2], _ln2) || col !== _lcol || _facet !== _lfac || _face !== _lface) {
+        const nid = PK.normal(n[0], n[1], n[2], _face);   // tone and normal resolved before any buffer is touched, as in push()
         _llo = PK.wordLo(PK.tone(col), _facet, nid); _lhi = PK.wordHi(nid);
-        _ln0 = n[0]; _ln1 = n[1]; _ln2 = n[2]; _lcol = col; _lfac = _facet;
+        _ln0 = n[0]; _ln1 = n[1]; _ln2 = n[2]; _lcol = col; _lfac = _facet; _lface = _face;
       }
       if (nV >= cap) grow();
       const i3 = nV * 3, i2 = nV * 2;
@@ -1581,7 +1960,8 @@ ${window.RoofTiles.apply}
       return g;
     }
     function facet(v) { _facet = v ? 1 : 0; }
-    return { tri, triN, quad, polygon, extrude, geometry, facet, get triangles() { return tris; } };
+    function face(id) { _face = PK ? id | 0 : 0; }
+    return { tri, triN, quad, polygon, extrude, geometry, facet, face, moire: PK && PK.faceOpen ? PK : null, get triangles() { return tris; } };
   }
 
   /**
@@ -1756,6 +2136,10 @@ ${window.RoofTiles.apply}
       U.u_shopCeiling.value.set(shop.sideShade,shop.ceilingShade,shop.lightWidth,shop.lightLength);
       for(const key of ['Wall','Floor','Merch','Light'])U['u_shop'+key].value.set(...hexToRgb01(shop[key.toLowerCase()]));
       U.u_materialP.value=window.CityNight?.materialP(U.u_p.value)??U.u_p.value;
+      U.u_moire.value.set(MOIRE.on?MOIRE.mode:0,MOIRE.px[0],MOIRE.px[1],MOIRE.parallax);
+      U.u_moireB.value.set(MOIRE.pxV[0],MOIRE.pxV[1],MOIRE.goldSlope,0);
+      U.u_moireD.value.set(MOIRE.through,0,0,0);
+      U.u_moireC.value.set(MOIRE.edge&&MOIRE.mode===1?1:0,MOIRE.edgePx[0],MOIRE.edgePx[1],MOIRE.footprint);
       U.u_nightLamps.value=window.CityNight?.tune.on?window.CityNight.lamps(U.u_p.value):-1;
       U.u_nightWallAmbient.value=window.CityNight?.tune.wallAmbient??0;
       const hour=U.u_p.value,sa=hexToRgb01(surf.sky[hour<=.5?0:1]),sb=hexToRgb01(surf.sky[hour<=.5?1:2]),st=hour<=.5?hour*2:(hour-.5)*2;
@@ -1971,6 +2355,7 @@ ${window.RoofTiles.apply}
       u_weatherScale:{value:new T.Vector4()},u_weatherTone:{value:new T.Vector3()},
       u_shopClosedAmbient:{value:.06},u_shopShelfTop:{value:.55},u_shopRoom:{value:new T.Vector4()},u_shopStyle:{value:new T.Vector4()},u_shopCeiling:{value:new T.Vector4()},
       u_shopWall:{value:new T.Vector3()},u_shopFloor:{value:new T.Vector3()},u_shopMerch:{value:new T.Vector3()},u_shopLight:{value:new T.Vector3()},
+      u_moire:{value:new T.Vector4()},u_moireB:{value:new T.Vector4()},u_moireC:{value:new T.Vector4()},u_moireD:{value:new T.Vector4()},
       u_materialP:{value:.5},u_nightLamps:{value:-1},u_nightWallAmbient:{value:0},u_glassStrength:{value:1},u_sunlight:{value:new T.Vector4()},u_sunDirection:{value:new T.Vector3()},
       u_sunColour:{value:new T.Vector3()},u_shadeColour:{value:new T.Vector3()},
       u_skyZenith:{value:new T.Vector3()},u_skyHorizon:{value:new T.Vector3()},
@@ -2061,7 +2446,7 @@ ${window.RoofTiles.apply}
    */
   function buildChunked(maxTris, pack, opts) {
     const done = [];
-    let cur = build(undefined, opts), facetOn = false, before = 0;
+    let cur = build(undefined, opts), facetOn = false, faceOn = 0, before = 0;
     const finish = () => (pack ? packGeometry(cur.geometry()) : cur.geometry());
     const roll = () => {
       if (cur.triangles < maxTris) return;
@@ -2069,9 +2454,12 @@ ${window.RoofTiles.apply}
       done.push(finish());
       cur = build(undefined, opts);
       cur.facet(facetOn);
+      if (cur.face) cur.face(faceOn);
     };
     const api = {
       facet(v) { facetOn = !!v; return cur.facet(v); },
+      face(id) { faceOn = id | 0; if (cur.face) cur.face(faceOn); },
+      get moire() { return cur.moire || null; },
       geometries() {
         const out = done.splice(0);
         if (cur.triangles > 0 || !out.length) out.push(finish());
@@ -2120,6 +2508,28 @@ ${window.RoofTiles.apply}
     return g;
   }
 
+  // THE MOIRE FIX at run time (scripts/verify/moire-bar.mjs flips it inside one page): MoireFix.set('off' | 'on' | 'flat' | 'rows'), or a number.
+  // 'off' draws main's picture through the fix's own program; ?moirefix=0 is the switch that also restores main's program and buffers.
+  const MOIRE_DEFAULTS = JSON.parse(JSON.stringify(MOIRE));
+  window.MoireFix = {
+    params: MOIRE,
+    /** every live value back to what the page loaded with (a meter flips them between pictures) */
+    reset() { for (const k of ['px', 'pxV', 'edgePx']) MOIRE[k] = MOIRE_DEFAULTS[k].slice(); for (const k of ['parallax', 'edge', 'goldSlope', 'footprint', 'through']) MOIRE[k] = MOIRE_DEFAULTS[k]; },
+    set(mode) {
+      const m = typeof mode === 'number' ? mode : { off: 0, on: 1, flat: 2, rows: 3 }[mode];
+      if (!(m >= 0 && m <= 3)) throw new Error('MoireFix.set: off, on, flat or rows');
+      MOIRE.mode = m;
+      if (window.CityLighting && window.CityLighting.moire) window.CityLighting.moire.mode = m;
+      if (_map) _map.triggerRepaint();
+      return m;
+    },
+    info() {
+      let faces = 0, bytes = 0, meshes = 0;
+      if (root) root.traverse(o => { const pk = o.isMesh && o.geometry && o.geometry.userData.pack; if (pk && !pk._moireSeen) { pk._moireSeen = true; meshes++; faces += pk.nFaces - 1; bytes += pk.faceBytes ? pk.faceBytes() : 0; } });
+      if (root) root.traverse(o => { const pk = o.isMesh && o.geometry && o.geometry.userData.pack; if (pk) delete pk._moireSeen; });
+      return { on: MOIRE.on, mode: MOIRE.mode, px: MOIRE.px, pxV: MOIRE.pxV, parallax: MOIRE.parallax, faces, tableBytes: bytes, tables: meshes, walls: window.CityLighting && window.CityLighting.moire ? { ...window.CityLighting.moire } : null };
+    },
+  };
   window.slopes = {
     canRestoreContext: !FREE_CPU,
     toLocal, toLngLat, project, raycast, material, facadeMaterial, colour, add, remove, detail,

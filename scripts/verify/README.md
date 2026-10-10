@@ -1875,3 +1875,45 @@ Traps this check cost time:
 - **A per-half translation cannot measure a small rotation** (it gave 2.9 degrees for 5). Bank is found by a
   rigid-rotation search instead.
 - **This check needs a GPU.** It asks for hardware GL itself and is listed in `ci/checks.json`.
+
+## The moire bar: `moire-bar.mjs`, `moire-mean.mjs`, `moire-clip.mjs`, `moire-cost.mjs` (added October 10 2026)
+
+"Moire" here is shimmer and crawling on walls: a window grid sampled about once per pixel. The fix is in `js/slopes.js`
+(the `MOIRE` block: authored buildings) and `js/city-lighting.js` (`moire`: MapLibre's pattern walls). `?moirefix=0`
+turns all of it off; `?moireedge=0` and `?moirewalls=0` turn off the window edge smoothing and the pattern-wall part alone.
+
+**`moire-bar.mjs` is the meter, and "zero" is stated so it can be failed.** One page load, three arms flipped inside the
+page (`window.MoireFix.set('off' | 'on' | 'flat')`): `main`, `fix`, and `flat`, THE FLOOR, where every window cell is drawn
+in its wall's mean colour, so nothing periodic is left and what the meter still reads is silhouette and thin-part aliasing.
+Per view the camera makes six steps of one pixel. Two numbers per arm, in levels of 255, over building pixels:
+`err` = mean |1x - truth| and `flicker` = mean |e(f+1) - e(f)| with e = 1x - truth. A view is AT THE FLOOR when
+`fix <= flat + noise + 0.05` for both.
+
+```
+python3 scripts/serve.py 8099 &
+VERIFY_GL=hardware VERIFY_URL=http://127.0.0.1:8099 node scripts/verify/moire-bar.mjs --out <dir>             # the six views, Smooth edges off
+VERIFY_GL=hardware VERIFY_URL=http://127.0.0.1:8099 node scripts/verify/moire-bar.mjs --out <dir> --msaa 1    # the same with Smooth edges (real MSAA)
+node scripts/verify/moire-mean.mjs            # no browser: the means are the true means (CI); --break must fail
+```
+
+Four traps, each one cost a run:
+
+- **A truth drawn at 4x the pixels is not the same picture.** The roof tiles, the brick joints and every other fade that
+  reads the pixel size draw MORE detail in a frame four times as large, so a meter that takes that frame as truth scores
+  the 1x picture's deliberate smoothness as error: on the campus view about a third of the "error" was tiled roofs that
+  do not shimmer at all. The truth here is 16 pictures at the SAME resolution, the lens shifted a fraction of a pixel
+  each time (`map.setPadding`: an exact sub-pixel translation at every depth), averaged. `--truth scale` is the old way.
+- **`main` and `fix` are held to the truth of MAIN.** A fix judged against its own supersample could blur the city to
+  grey and score perfectly.
+- **Hide the labels at every view, not once.** The building generators add their name layers after the style has loaded;
+  a label over a wall is "building pixels" to the mask, and whether it was there was the ONLY difference between two
+  page loads (1.5% of pixels, 0.2 of a level in the score). With them hidden two loads give the same numbers.
+- **An arm must set every value it depends on.** Arms run in turn at every frame; one that changes a parameter and does
+  not put it back hands the next arm its state. `MoireFix.reset()` is the first thing each arm does.
+
+`--xarm "name=<js>"` adds an arm for tuning a parameter inside one page load (held to main's truth), e.g.
+`--xarm "wide=window.MoireFix.reset();window.MoireFix.params.footprint=1.4;window.MoireFix.set(1)"`.
+
+`moire-clip.mjs` writes the frames of a before | after moving picture (camera travel, fix off and on, one page load).
+`moire-cost.mjs` times a forced redraw with the fix off and on, interleaved, and prints the fix's table sizes; timing, so
+quote the machine. Both are tools.
