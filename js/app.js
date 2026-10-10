@@ -599,6 +599,14 @@ window.CityLighting.install(map);
       buildScene();
     });
 
+    // On a phone the credits start open as two lines and sit under the controls hint, so the "Terms and credits"
+    // link could not be tapped until the first touch. Start them folded into the "i" button there (G01);
+    // PHONE_CREDITS_MAX_PX is the widest screen that does so.
+    const PHONE_CREDITS_MAX_PX = 640;
+    map.once('load', () => {
+      const credits = document.querySelector('.maplibregl-ctrl-attrib');
+      if (credits && window.innerWidth <= PHONE_CREDITS_MAX_PX) { credits.removeAttribute('open'); credits.classList.remove('maplibregl-compact-show'); }
+    });
     map.on('styledata', () => {
       // Strip the basemap's own buildings/POIs as soon as the style parses —
       // earlier than the 'load' event — so they never flash on screen. The
