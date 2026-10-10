@@ -25,6 +25,10 @@ const STEPS = arg('--steps', 'bursts,load,mem').split(',');
 const REPS = +arg('--reps', 5);
 const REPS4 = +arg('--reps4', 3);
 const REPSB = +arg('--repsb', 3);
+// bursts step: --armsb both (default: cap off, cap on), nocap (cap off only), cap (cap on only); --throttleb 1,4; --maxb ms
+const ARMSB = { both: 'wtcap=0;', nocap: 'wtcap=0', cap: '' }[arg('--armsb', 'both')];
+const THROTTLEB = arg('--throttleb', '1,4');
+const MAXB = arg('--maxb', '420000');
 const OUT = process.env.VERIFY_OUT || '/tmp/perf-walltiers-suite';
 const URLB = process.env.VERIFY_URL || 'http://127.0.0.1:8442';
 let code = 0;
@@ -36,7 +40,7 @@ const run = (name, file, args, opts = {}) => {
 
 if (STEPS.includes('bursts')) {
   // when does the painting hold the main thread AFTER the veil lifts: cap off (wtcap=0) against cap on, 1x and 4x
-  run('bursts', '../perf/post-reveal-bursts.mjs', ['--url', URLB + '/', '--throttle', '1,4', '--qarms', 'wtcap=0;', '--reps', String(REPSB), '--out', path.join(OUT, 'bursts')]);
+  run('bursts', '../perf/post-reveal-bursts.mjs', ['--url', URLB + '/', '--throttle', THROTTLEB, '--qarms', ARMSB, '--reps', String(REPSB), '--max', MAXB, '--out', path.join(OUT, 'bursts')]);
 }
 if (STEPS.includes('load')) {
   // 1x: REPS cold loads per arm. 4x (the page main thread slowed four times, a crude phone stand-in) takes about twice as
