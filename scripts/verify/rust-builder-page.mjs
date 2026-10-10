@@ -115,8 +115,8 @@ async function one(mode, run) {
       if (group) for (const o of group.children) {
         const g = o.geometry; if (!g || !g.index || !g.attributes.position) continue;
         if (g.attributes.position.array == null) continue;   // a phone has already dropped the CPU copy after the upload (freeGeometryCpu)
-        for (const k of Object.keys(g.attributes)) { const a = g.attributes[k].array; if (a) { bytes += a.byteLength; if (!g.userData.pack) { const h = await sha(a); parts.push(h); (window.__parts = window.__parts || {})[k] = h.slice(0, 12); } } }
-        if (!g.userData.pack) { const h = await sha(g.index.array); parts.push(h); (window.__parts = window.__parts || {}).index = h.slice(0, 12); }
+        for (const k of Object.keys(g.attributes)) { const a = g.attributes[k].array; if (a) { bytes += a.byteLength; if (!g.userData.pack) { const h = await sha(a); parts.push(h); (window.__parts = window.__parts || {})[o.name + '.' + k] = h.slice(0, 12); } } }
+        if (!g.userData.pack) { const h = await sha(g.index.array); parts.push(h); (window.__parts = window.__parts || {})[o.name + '.index'] = h.slice(0, 12); }
         bytes += g.index.array.byteLength; tris += g.index.count / 3;
       }
       // frame time with the buildings on screen: 240 frames of a slow turn at the spawn view, p50 / p90 of the gaps (the packed shader reads two textures per
@@ -156,4 +156,18 @@ for (const m of MODES) {
 }
 const shas = new Set(results.filter(x => !x.failed).map(x => x.geomSha));
 console.log(shas.size === 1 ? 'every run built the identical geometry (sha256 of all eight arrays)' : `GEOMETRY DIFFERS between runs: ${[...shas].join(' ')}`);
+{
+  const byMode = {};
+  for (const m of MODES) { const r = results.find(x => x.mode === m && x.geomParts); if (r) byMode[m] = r.geomParts; }
+  const ks = Object.keys(byMode);
+  if (ks.length > 1 && !MODES.some(m => m.includes('pack'))) {
+    const A = byMode[ks[0]];
+    for (const m of ks.slice(1)) {
+      const B = byMode[m], all = new Set([...Object.keys(A), ...Object.keys(B)]), diff = [...all].filter(k => A[k] !== B[k]);
+      console.log(`per-mesh arrays, ${ks[0]} against ${m}: ${Object.keys(A).length} vs ${Object.keys(B).length} hashed; ${diff.length} differ${diff.length ? ': ' + diff.slice(0, 12).map(k => k + ' ' + (A[k] || 'missing') + ' vs ' + (B[k] || 'missing')).join('; ') : ''}`);
+      const meshesA = new Set(Object.keys(A).map(k => k.split('.')[0])), meshesB = new Set(Object.keys(B).map(k => k.split('.')[0]));
+      console.log(`  meshes in ${ks[0]}: ${meshesA.size} [${[...meshesA].slice(0, 8)}...]; in ${m}: ${meshesB.size}`);
+    }
+  }
+}
 process.exit(shas.size === 1 || MODES.some(m => m.includes('pack')) ? 0 : 1);   // a packed run holds different arrays by design: packverts-pixels.mjs and packverts-decode.mjs are its proof
