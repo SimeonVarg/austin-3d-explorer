@@ -2189,6 +2189,7 @@
     if (btn) btn.classList.toggle('active', on);
     // Same corner, so they take turns (see fbToggle for the other half).
     if (on && fbPanel && !fbPanel.classList.contains('hidden')) fbToggle(false);
+    if (on) window.dispatchEvent(new CustomEvent('panel:opened', { detail: 'gfx' }));   // the finder sheet steps aside (I02)
     if (on) { syncMenu(); startFps(); } else stopFps();
   }
 
@@ -2368,6 +2369,7 @@
     if (b) b.classList.toggle('active', on);
     // The two panels occupy the same corner, so they take turns.
     if (on && panel && !panel.classList.contains('hidden')) toggle(false);
+    if (on) window.dispatchEvent(new CustomEvent('panel:opened', { detail: 'fb' }));
     if (on && fbText) fbText.focus();
   }
 

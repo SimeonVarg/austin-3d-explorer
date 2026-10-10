@@ -28,6 +28,7 @@
     const open = panel.hidden;
     panel.hidden = !open; toggle.setAttribute('aria-expanded', String(open));
     if (open) {
+      window.dispatchEvent(new CustomEvent('explore:opened'));   // the finder steps back to its pill (I01)
       // On a phone the Graphics and Recommendations sheets cover the same screen; they take turns with Explore (G02).
       if (matchMedia('(max-width: 640px)').matches) window.dispatchEvent(new CustomEvent('menus:close-panels'));
       panel.querySelector('button').focus();
