@@ -2034,6 +2034,9 @@ ${window.RoofTiles.apply}
     // ?packverts=1: a fresh set of tone/normal tables for one build (pass it as build(cap, { pack }) and material({ pack })), or null
     // when the switch is off or this GPU cannot read float textures in the vertex shader (WebGL2 only): callers then build as before.
     packTables, packOn: () => PACK.on,
+    // a test seam, not a feature: flip the switch at run time so ONE page can build the apartments both ways (scripts/verify/packverts-pixels.mjs
+    // rebuilds with slopesApartments.rebuild() and photographs each); a visitor sets it only through ?packverts=1
+    packSet: on => { PACK.on = !!on; },
     light: () => ({ enu: _light.enu.slice(), colour: _light.colour.slice(), intensity: _light.intensity }),
     get scene() { return scene; }, get root() { return root; }, get camera() { return camera; },
     get renderer() { return renderer; }, get layer() { return layer; },
