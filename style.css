@@ -1108,7 +1108,7 @@ html.has-touch #joystick-zone{display:block}
 #wf-strip.hidden,#wf-egs.hidden,#wf-chev.hidden{display:none}
 #wf-head{display:flex;align-items:center;justify-content:space-between;
   padding:10px 10px 8px 14px;border-bottom:1px solid var(--wf-edge-soft)}
-#wf-head .wf-h{font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;
+#wf-head .wf-h{font-size:var(--wf-small-min);font-weight:700;letter-spacing:.17em;text-transform:uppercase;
   color:var(--wf-dim)}
 #wf-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;
   width:30px;height:30px;display:grid;place-items:center;padding:0;border-radius:8px}
@@ -1120,7 +1120,7 @@ html.has-touch #joystick-zone{display:block}
    menu item; the field column stops short of it rather than running under it. */
 #wf-ends{position:relative;padding:6px 40px 6px 0}
 .wf-row{position:relative;display:flex;align-items:center;gap:7px;padding:4px 0 4px 12px;flex:none}
-.wf-lab{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+.wf-lab{font-size:var(--wf-small-min);font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--wf-dimmer);width:28px;flex:none}
 .wf-row input{flex:1;min-width:0;background:rgba(255,255,255,.055);
   border:1px solid var(--wf-edge-soft);
@@ -1174,15 +1174,15 @@ html.has-touch #joystick-zone{display:block}
    can tap: it answers "what does this field want" with an example rather than a
    sentence, and it is gone the moment a character is typed. */
 #wf-egs{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:6px 14px 2px;flex:none}
-.wf-eg-lab{font-size:9.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+.wf-eg-lab{font-size:var(--wf-small-min);font-weight:700;letter-spacing:.15em;text-transform:uppercase;
   color:var(--wf-dimmer);margin-right:1px}
 .wf-eg{background:rgba(255,255,255,.06);border:1px solid var(--wf-edge-soft);
-  border-radius:8px;color:#ffcf7a;font:inherit;font-size:11.5px;font-weight:700;
+  border-radius:8px;color:#ffcf7a;font:inherit;font-size:var(--wf-small-min);font-weight:700;
   letter-spacing:.05em;padding:5px 10px;cursor:pointer}
 .wf-eg:hover{background:var(--wf-hot);color:#fff3d4}
 .wf-hint{padding:7px 14px;font-size:var(--wf-small);color:var(--wf-dimmer);line-height:1.45;flex:none}
 .wf-foot{padding:8px 14px 10px;border-top:1px solid rgba(255,190,90,.11);
-  font-size:9.5px;color:var(--wf-dimmer);line-height:1.55;flex:none}
+  font-size:var(--wf-small-min);color:var(--wf-dimmer);line-height:1.55;flex:none}
 
 /* ══ THE ANSWER ═════════════════════════════════════════════════════════════
    One bar. It takes the row below the top buttons — `body.wf-routed` hides
@@ -1532,7 +1532,7 @@ body.wf-live:not(.wf-near) #wf-sub .wf-mk-b{opacity:.55}
    back at 227 px. `and then right` is a nicety; `Tight for a 15-minute passing
    period` is the reason a student opened this at all. */
 #wf-verdict:not(:empty)+#wf-then2{display:none}
-#wf-verdict{font-size:11.5px;font-weight:700;letter-spacing:.01em;
+#wf-verdict{font-size:var(--wf-small-min);font-weight:700;letter-spacing:.01em;
   padding:4px 8px;border-radius:7px;display:inline-block;
   --wf-over:#ffb4a2;      /* both ends of the range over the period */
   --wf-tight:#ffd79a}     /* the range crosses it */
@@ -1727,7 +1727,7 @@ body.wf-live #wf-footrow{margin-top:6px}
 body.wf-live #wf-headline{display:none}
 
 #wf-card{margin-top:10px;padding-top:10px;border-top:1px solid var(--wf-edge-soft);
-  text-align:left;font-size:11.5px;line-height:1.5;
+  text-align:left;font-size:var(--wf-small-min);line-height:1.5;
   /* the card must never run off the bottom of a phone: it gives up height and
      scrolls inside itself rather than pushing the bar's own actions off screen */
   max-height:calc(100vh - var(--wf-card-clear,220px));overflow-y:auto}
@@ -1761,7 +1761,7 @@ body.wf-live #wf-headline{display:none}
    is one continuous walk however tall a row grows when its text wraps. The two
    ends stop the thread at their own mark rather than running past it. */
 #wf-steps{margin:1px 0 9px}
-.wf-steps-h{font-size:9.5px;font-weight:700;letter-spacing:.15em;
+.wf-steps-h{font-size:var(--wf-small-min);font-weight:700;letter-spacing:.15em;
   text-transform:uppercase;color:var(--wf-dimmer);margin-bottom:6px}
 .wf-step{display:flex;align-items:center;gap:9px;min-height:var(--wf-step-h)}
 .wf-si{flex:none;width:var(--wf-mk-w);align-self:stretch;position:relative;
@@ -1800,7 +1800,7 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 .wf-toggle input{accent-color:#f5a623;cursor:pointer;width:17px;height:17px}
 .wf-chips{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0 4px}
 .wf-chip{background:rgba(255,255,255,.06);border:1px solid var(--wf-edge);
-  border-radius:999px;color:inherit;font:inherit;font-size:11.5px;padding:6px 13px;cursor:pointer}
+  border-radius:999px;color:inherit;font:inherit;font-size:var(--wf-small-min);padding:6px 13px;cursor:pointer}
 .wf-chip:hover{background:rgba(245,166,35,.24)}
 .wf-chip.on{background:rgba(245,166,35,.38);color:#fff;border-color:rgba(245,166,35,.6)}
 .wf-chip-x{display:grid;place-items:center;width:30px;height:30px;padding:0;border-radius:50%}
@@ -1848,7 +1848,7 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 #wf-imp.hidden,#wf-imp-tabs.hidden{display:none}
 #wf-imp-head{display:flex;align-items:center;justify-content:space-between;
   padding:10px 10px 8px 14px;border-bottom:1px solid var(--wf-edge-soft);flex:none}
-#wf-imp-title{font-size:11px;font-weight:700;letter-spacing:.17em;
+#wf-imp-title{font-size:var(--wf-small-min);font-weight:700;letter-spacing:.17em;
   text-transform:uppercase;color:var(--wf-dim)}
 #wf-imp-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;
   width:30px;height:30px;display:grid;place-items:center;padding:0;border-radius:8px}
@@ -1864,7 +1864,7 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
   border-bottom:1px solid var(--wf-edge-soft)}
 .wf-imp-tab{flex:1;min-width:0;background:rgba(255,255,255,.05);
   border:1px solid var(--wf-edge-soft);border-radius:9px;color:var(--wf-dim);
-  font:inherit;font-size:11.5px;font-weight:700;letter-spacing:.04em;
+  font:inherit;font-size:var(--wf-small-min);font-weight:700;letter-spacing:.04em;
   padding:0 6px;height:32px;cursor:pointer;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wf-imp-tab:hover{background:var(--wf-hot);color:#fff3d4}
@@ -1927,16 +1927,16 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
   border:1px solid var(--wf-edge-soft);border-radius:10px;color:#fff6e2;
   font:inherit;font-size:14px;padding:0 11px;height:40px;outline:none;
   transition:border-color .12s,background .12s}
-.wf-imp-in::placeholder{color:rgba(248,234,208,.30);font-size:11px;letter-spacing:0}
+.wf-imp-in::placeholder{color:rgba(248,234,208,.30);font-size:var(--wf-small-min);letter-spacing:0}
 .wf-imp-in:focus{border-color:rgba(245,166,35,.55);background:rgba(255,255,255,.09)}
 .wf-imp-ta{height:auto;min-height:82px;padding:9px 11px;line-height:1.5;
   resize:vertical;font-size:12.5px}
-.wf-imp-ta::placeholder{font-size:11px;line-height:1.5}
-.wf-imp-hint{font-size:10px;color:var(--wf-dimmer);line-height:1.45;margin-top:5px}
+.wf-imp-ta::placeholder{font-size:var(--wf-small-min);line-height:1.5}
+.wf-imp-hint{font-size:var(--wf-small-min);color:var(--wf-dimmer);line-height:1.45;margin-top:5px}
 /* THE SEPARATOR BETWEEN TWO WAYS OF DOING THE SAME THING. A word on a rule,
    because two controls stacked with nothing between them read as two steps. */
 .wf-imp-or{display:flex;align-items:center;gap:8px;margin:11px 0;
-  font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--wf-dimmer)}
+  font-size:var(--wf-small-min);letter-spacing:.16em;text-transform:uppercase;color:var(--wf-dimmer)}
 .wf-imp-or::before,.wf-imp-or::after{content:"";flex:1;height:1px;
   background:var(--wf-edge-soft)}
 .wf-imp-file-btn{display:flex;align-items:center;justify-content:center;gap:8px;
@@ -1956,7 +1956,7 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 .wf-imp-err{display:flex;align-items:flex-start;gap:8px;
   padding:9px 10px;border-radius:10px;background:var(--wf-imp-bad-bg);
   border:1px solid var(--wf-imp-bad-edge);color:var(--wf-imp-bad);
-  font-size:11px;line-height:1.5}
+  font-size:var(--wf-small-min);line-height:1.5}
 .wf-imp-err-ic{width:15px;height:15px;flex:none;margin-top:1px}
 
 /* ══ WHAT HAPPENED ═════════════════════════════════════════════════════════ */
@@ -2025,9 +2025,9 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
   border:1px solid var(--wf-edge);border-radius:10px;color:var(--wf-dim);
   font:inherit;font-size:12px;font-weight:700;padding:10px 14px;cursor:pointer}
 .wf-imp-back:hover{background:rgba(255,255,255,.07);color:var(--wf-ink)}
-.wf-imp-none{flex:1;font-size:11px;color:var(--wf-dimmer);line-height:1.45}
+.wf-imp-none{flex:1;font-size:var(--wf-small-min);color:var(--wf-dimmer);line-height:1.45}
 .wf-imp-note{padding:8px 14px 10px;border-top:1px solid rgba(255,190,90,.11);
-  font-size:9.5px;color:var(--wf-dimmer);line-height:1.55;flex:none}
+  font-size:var(--wf-small-min);color:var(--wf-dimmer);line-height:1.55;flex:none}
 
 /* THE DOOR IN, in the search panel. A ROW and not a chip: the four chips above
    it fill a field, this one changes screens, and mixing the two in one strip
@@ -2042,7 +2042,7 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 .wf-imp-entry-ic{width:17px;height:17px;flex:none;color:var(--wf-accent)}
 .wf-imp-entry-t{flex:1;min-width:0}
 .wf-imp-entry-lab{display:block;font-size:12.5px;font-weight:700}
-.wf-imp-entry-sub{display:block;font-size:9.5px;color:var(--wf-dimmer);
+.wf-imp-entry-sub{display:block;font-size:var(--wf-small-min);color:var(--wf-dimmer);
   margin-top:1px;line-height:1.4}
 .wf-imp-entry-go{width:14px;height:14px;flex:none;color:var(--wf-dimmer)}
 
@@ -2295,3 +2295,8 @@ html.has-touch #wf-close,html.has-touch #wf-imp-close{position:relative}
 .wf-row input:focus-visible,.wf-imp-in:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-ring-offset)}
 /* H01: the first-paint veil mark does not fade in when the visitor asked for reduced motion. */
 @media(prefers-reduced-motion:reduce){#veil-mark{animation:none}}
+
+/* K03: the walk sheet and importer text floor, and K01: the mode pill steps aside for them on touch screens. */
+:root{--wf-small-min:12px}
+html.has-touch body:has(#wf-sheet:not(.hidden)) #mode-launcher,
+html.has-touch body:has(#wf-imp:not(.hidden)) #mode-launcher{visibility:hidden}
