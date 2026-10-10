@@ -2664,7 +2664,9 @@
     // ?rustbuilder=1: the Rust vertex store (js/slopes-rust.js) if it has loaded; `S.rustReady` is null with the switch off,
     // so a page without the switch awaits nothing and builds exactly as before.
     if (S.rustReady) await S.rustReady;
-    const wasm = { wasm: true };
+    // ?packverts=1: one pair of tone/normal tables for every chunk of this build; null with the switch off (then nothing changes).
+    const pack = S.packTables ? S.packTables() : null;
+    const wasm = { wasm: true, pack };
     const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices, wasm) : S.build(undefined, wasm);
     B.filtered=[];
     B.filterPending=[];
@@ -2759,7 +2761,7 @@
         indexOffset += geometry.index ? geometry.index.count : 0;
         await pause();
       }
-      mat = S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide});
+      mat = S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide, pack});
       const g = new T.Group();
       g.userData.lod = APTS.lod;
       g.userData.minzoom = APTS.minzoom;

@@ -13,7 +13,7 @@ export async function loadApp({ record = false, timeBuilder = false, nullBuilder
   if (!threeJs) throw new Error('set THREE_JS to three@0.159.0 build/three.min.js (https://unpkg.com/three@0.159.0/build/three.min.js, the same file index.html loads)');
   const ctx = globalThis, realError = console.error;
   console.warn = console.log = console.info = () => {};
-  ctx.window = ctx; ctx.self = ctx; ctx.location = { search: '?slopes=0&facadefilter=0' + (wasm ? '&rustbuilder=1' + (process.env.RESERVE ? '&rustreserve=' + process.env.RESERVE : '') : ''), href: 'http://x/' };
+  ctx.window = ctx; ctx.self = ctx; ctx.location = { search: '?slopes=0&facadefilter=0' + (process.env.EXTRA_Q || '') + (wasm ? '&rustbuilder=1' + (process.env.RESERVE ? '&rustreserve=' + process.env.RESERVE : '') : ''), href: 'http://x/' };
   ctx.document = { getElementById: () => null, hidden: false, createElement: () => ({ getContext: () => null, style: {} }), addEventListener() {}, body: {} };
   ctx.addEventListener = () => {}; ctx.devicePixelRatio = 1;
   Object.defineProperty(ctx, 'navigator', { value: { userAgent: 'node' }, configurable: true });

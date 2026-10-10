@@ -6,7 +6,7 @@ const assert = { ok(c, m) { if (!c) throw new Error(m); } };   // no node:assert
 
 class BufferAttribute { constructor(array, itemSize, normalized = false) { Object.assign(this, { array, itemSize, normalized, count: array.length / itemSize }); } }
 class BufferGeometry {
-  attributes = {};
+  attributes = {}; userData = {};
   setAttribute(n, a) { this.attributes[n] = a; return this; }
   setIndex(i) { this.index = i; return this; }
   computeBoundingSphere() {}   // three's Box3 loop: not part of the builder, left out of every variant
