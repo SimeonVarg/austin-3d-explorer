@@ -82,8 +82,8 @@ const diff = (fa, fb, tol, outFile) => {
 const browser = await launch(chromium, { maxMs: Number(process.env.VERIFY_MAX_MS) || 40 * 60 * 1000 });
 const errors = [];
 
-async function open(query) {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+async function open(query, br = browser) {
+  const page = await br.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 300)); });
   page.on('pageerror', e => errors.push('PAGEERROR ' + e.message.slice(0, 300)));
   await page.goto(`${BASE}/_harness.html?${TUNE.common}${query ? '&' + query : ''}`, { waitUntil: 'networkidle', timeout: 90000 });
@@ -125,11 +125,14 @@ async function settle(page, pose) {
  *  A scene still streaming in (far tiles, outer buildings) makes every "variance over time" number a lie, and on a slower machine it is. */
 async function waitStable(page, maxMs = 150000) {
   await page.evaluate(() => { window.CityNight.eye.twinkle = 0; window.CityNight.eye.drift = false; window.CityNight.hold(1000); });
-  const t0 = Date.now(); let tries = 0;
+  const t0 = Date.now(); let tries = 0; const stableSigs = [];
   for (;;) {
     await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
-    const a = await page.screenshot(); await page.waitForTimeout(2000); const b = await page.screenshot(); tries++;
-    if (Buffer.compare(a, b) === 0) { console.log(`  scene stable after ${tries} tries, ${Math.round((Date.now() - t0) / 1000)} s`); return true; }
+    const sig = () => page.evaluate(() => { const m = window.__map, out = []; for (const l of m.getStyle().layers) if (/^(outer|buildings-3d|parts-3d)/.test(l.id)) { try { out.push(l.id + ':' + m.queryRenderedFeatures({ layers: [l.id] }).length); } catch (e) {} } return out.join(',') + '|' + (m.areTilesLoaded ? m.areTilesLoaded() : ''); });
+    const s0 = await sig(); const a = await page.screenshot(); await page.waitForTimeout(3000); const b = await page.screenshot(); const s1 = await sig(); tries++;
+    // the picture must stop changing AND the number of buildings the map draws must stop changing: a far tile arriving late changes the second and not the first for seconds
+    const same = Buffer.compare(a, b) === 0 && s0 === s1; if (same) stableSigs.push(s1); else stableSigs.length = 0;
+    if (same && stableSigs.length >= 3 && new Set(stableSigs.slice(-3)).size === 1) { console.log(`  scene stable after ${tries} tries, ${Math.round((Date.now() - t0) / 1000)} s`); return true; }
     if (Date.now() - t0 > maxMs) { console.log(`  WARN: scene still changing after ${Math.round(maxMs / 1000)} s`); return false; }
   }
 }
@@ -309,22 +312,31 @@ await stage('frozen', async () => {
   };
   for (const v of viewNames) {
     const files = [];
-    for (let i = 0; i <= N; i++) { const page = await open(q); await settle(page, TUNE.poses[v]); files.push(await shot(page, path.join(dir, `${v}-${i}.png`))); await page.close(); }
-    const probe = await open(q); await settle(probe, TUNE.poses[v]);
+    const doms = [];
+    // A fresh browser for every load, as in CI (each side of the pictures is its own browser): a load that is second in a browser has a warm cache and is not that.
+    for (let i = 0; i <= N; i++) {
+      const br = await launch(chromium, { maxMs: 600000 }); const page = await open(q, br); await settle(page, TUNE.poses[v]);
+      files.push(await shot(page, path.join(dir, `${v}-${i}.png`)));
+      doms.push(await page.evaluate(() => [...document.querySelectorAll('body *')].map(e => { const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return { r: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)], d: `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${typeof e.className === 'string' && e.className.trim() ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : ''}${(e.innerText || '').trim() ? ' "' + e.innerText.trim().slice(0, 24) + '"' : ''}`, vis: cs.visibility === 'visible' && cs.display !== 'none' && +cs.opacity > 0.02, tag: e.tagName }; }).filter(o => o.vis && o.tag !== 'CANVAS' && o.r[2] > o.r[0] && o.r[3] > o.r[1] && o.r[2] > 0 && o.r[0] < 1440 && o.r[3] > 0 && o.r[1] < 900 && (o.r[2] - o.r[0]) * (o.r[3] - o.r[1]) < 600000)));
+      await page.close(); await br.close();
+    }
+    const probe = null;
     const rows = [];
     for (let i = 1; i <= N; i++) {
       const r = regionsOf(files[0], files[i], 12), any = diff(files[0], files[i], 0, i <= 2 ? path.join(dir, `${v}-moved-${i}.png`) : null);
       const named = [];
       for (const g of r.regions.slice(0, 6)) {
         const cx = Math.round((g.x0 + g.x1) / 2), cy = Math.round((g.y0 + g.y1) / 2);
-        const info = await probe.evaluate(({ x, y }) => { const els = document.elementsFromPoint(x, y).slice(0, 3).map(e => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${e.className && typeof e.className === 'string' ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : ''}${(e.innerText || '').trim() ? ' "' + e.innerText.trim().slice(0, 24) + '"' : ''}`); return els.join(' < '); }, { x: cx, y: cy });
+        // the smallest page element, in either of the two loads, whose box holds the middle of the region; none = the map canvas itself
+        const hits = [...doms[0], ...doms[i]].filter(o => cx >= o.r[0] && cx <= o.r[2] && cy >= o.r[1] && cy <= o.r[3]).sort((a, b) => (a.r[2] - a.r[0]) * (a.r[3] - a.r[1]) - (b.r[2] - b.r[0]) * (b.r[3] - b.r[1]));
+        const info = hits.length ? hits[0].d : 'the map canvas (no page element here)';
         named.push({ px: g.n, box: [g.x0, g.y0, g.x1, g.y1], under: info });
       }
       rows.push({ pair: i, movedOver12: r.moved, pctOver12: +(100 * r.moved / r.total).toFixed(4), pctAny: any.pctAny, max: any.max, regions: named });
       console.log(`frozen ${v} pair ${i}/${N}: ${r.moved} px over 12 (${(100 * r.moved / r.total).toFixed(4)}%), ${any.pctAny}% by any amount, biggest ${any.max}`);
       for (const g of named.slice(0, 3)) console.log(`    ${g.px} px at [${g.box}] under ${g.under}`);
     }
-    data.frozen[v] = rows; await probe.close();
+    data.frozen[v] = rows;
     const clean = rows.filter(r => r.movedOver12 === 0).length;
     report(`frozen: ${v}: ${clean} of ${N} pairs of loads move 0 pixels over 12/255`, clean === N, rows.map(r => r.movedOver12).join(' '));
   }
@@ -436,12 +448,12 @@ await stage('sequence', async () => {
   // per layer: in how many of the frames did any draw get the uniforms with a non-zero amplitude
   const layers = {}; for (const f of pathLog) for (const [id, L] of Object.entries(f)) { const a = layers[id] ||= { frames: 0, ampFrames: 0, draws: 0, boundDraws: 0, slot: L.slot }; a.frames++; a.draws += L.draws; a.boundDraws += L.bound; if (L.ampMax > 0 && (L.bits & 1)) a.ampFrames++; }
   const audit = await page.evaluate(() => window.slopes && window.slopes.eyeAudit ? window.slopes.eyeAudit() : null);
-  data.sequenceLoads.push({ load: load + 1, far: on.far, near: on.near, floor: off.far, layers, audit });
+  data.sequenceLoads.push({ load: load + 1, far: on.far, near: on.near, floorFar: off.far.cvMean, floorNear: off.near.cvMean, nearNet: on.near.cvMean == null ? null : Math.max(0, on.near.cvMean - (off.near.cvMean || 0)), layers, audit });
   console.log(`${tag}paths (frames with the shimmer uniforms bound and non-zero / frames the layer drew): ${Object.entries(layers).filter(([, a]) => a.slot).map(([id, a]) => `${id} ${a.ampFrames}/${a.frames}`).join(', ')}; authored meshes: ${audit ? `${audit.bound}/${audit.shader} bound` : 'n/a'}`);
-  console.log(`${tag}RESULT far cv ${on.far.cvMean} near cv ${on.near.cvMean} (far n ${on.far.n})`);
+  console.log(`${tag}RESULT far cv ${on.far.cvMean} near cv ${on.near.cvMean} (near net of the shimmer-off floor ${data.sequenceLoads.at(-1).nearNet}) (far n ${on.far.n})`);
   await page.close();
  }
- const ok = data.sequenceLoads.filter(r => r.far.cvMean >= S_BAR.farMin && r.far.cvMean <= S_BAR.farMax && (r.near.cvMean == null || r.near.cvMean <= S_BAR.nearMax)).length;
+ const ok = data.sequenceLoads.filter(r => r.far.cvMean >= S_BAR.farMin && r.far.cvMean <= S_BAR.farMax && (r.nearNet == null || r.nearNet <= S_BAR.nearMax)).length;   // near is judged net of the shimmer-off floor: the floor is the effects layer's own flicker, not a light
  report(`sequence: ${ok} of ${LOADS} loads have far shimmer in ${S_BAR.farMin * 100}% to ${S_BAR.farMax * 100}% and near under ${S_BAR.nearMax * 100}%`, ok === LOADS, data.sequenceLoads.map(r => `${(r.far.cvMean * 100).toFixed(1)}/${r.near.cvMean == null ? '-' : (r.near.cvMean * 100).toFixed(2)}`).join('  '));
 });
 

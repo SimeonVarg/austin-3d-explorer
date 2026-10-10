@@ -156,11 +156,18 @@
   // A frozen night is also a still page. Two things moved between two loads of the same night view (night-eye.mjs --only frozen, 5 pairs):
   // (1) the page's buttons, which fade in with a CSS transition that the first load of a browser had not finished (the 'Switch modes' button);
   // (2) the name labels, whose collision placement depends on the order the map tiles arrived in, so a different set of names showed each load.
-  // Both are frozen here: transitions and animations off, and the label layers hidden as they are added. Sign labels stay (they are lit signs).
+  // Both are frozen here: transitions and animations off, and, at night, the label layers hidden as they are added. Every symbol layer goes, sign text included: its collision placement has the same problem.
   if(frozen&&typeof document!=='undefined'){
     const st=document.createElement('style');st.textContent='*,*::before,*::after{transition:none!important;animation:none!important}';
     (document.head||document.documentElement).appendChild(st);
-    const hideLabels=()=>{const m=window.__map;if(!m||!m.getStyle)return;try{for(const l of m.getStyle().layers)if(l.type==='symbol'&&!/^signs-/.test(l.id)&&(l.layout?.visibility)!=='none')m.setLayoutProperty(l.id,'visibility','none');}catch(e){}};
+    // Only at night (a frozen night is what it freezes): by day the labels show as they always did, so a day picture shot with the switch on is the
+    // same picture as one without it. Layers hidden here are shown again when the hour goes back to day.
+    const hid=new Set();
+    const hideLabels=()=>{const m=window.__map;if(!m||!m.getStyle)return;try{
+      const night=lamps(window.__todCurrentP??.5)>.05;
+      if(night){for(const l of m.getStyle().layers)if(l.type==='symbol'&&(l.layout?.visibility)!=='none'){m.setLayoutProperty(l.id,'visibility','none');hid.add(l.id);}}
+      else if(hid.size){for(const id of hid)if(m.getLayer(id))m.setLayoutProperty(id,'visibility','visible');hid.clear();}
+    }catch(e){}};
     const wait=setInterval(()=>{const m=window.__map;if(!m||!m.on)return;clearInterval(wait);m.on('styledata',hideLabels);m.on('idle',hideLabels);hideLabels();},200);
   }
   // The ticker starts after the first lamps-on frame; harmless before the map exists.
