@@ -5,7 +5,7 @@
  *   __proto.drawFrame(f)     draw one frame { matrix: [16], u: {...uniforms}, size: [w, h] }
  * Query: ?data=<url prefix of the packed pair>  &break=light|quant|facet  &multidraw=0
  */
-import { loadPacked, createRenderer } from './renderer.js';
+import { loadPacked, loadPackedMeshopt, createRenderer } from './renderer.js';
 
 const q = new URLSearchParams(location.search);
 const T = { scriptStart: performance.now() };
@@ -33,7 +33,8 @@ window.__proto = {
     gl = canvas.getContext('webgl2', { antialias: !!aa, depth: true, alpha: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
     if (!gl) throw new Error('no webgl2');
     T.contextReady = performance.now();
-    packed = await loadPacked(q.get('data') || '/data/apartments.packed');
+    const base = q.get('data') || '/data/apartments.packed';
+    packed = q.get('format') === 'meshopt' ? await loadPackedMeshopt(base, '/exp/node_modules/meshoptimizer/meshopt_decoder.module.js') : await loadPacked(base);
     T.fetched = performance.now(); T.fetch = packed.timings;
     breakData(packed);
     renderer = createRenderer(gl, packed, { multiDraw: q.get('multidraw') !== '0' });

@@ -116,6 +116,10 @@ try {
   const ev = MeshoptEncoder.encodeVertexBuffer(vtx, totalVerts, STRIDE);
   const ei = MeshoptEncoder.encodeIndexBuffer(new Uint8Array(idx32.buffer), totalIdx, 4);
   const meshoptBin = Buffer.concat([ev, ei]); fs.writeFileSync(path.join(PRIVATE, 'apartments.packed.meshopt.bin'), meshoptBin);
+  // the wire form the browser test loads: meshopt streams + brotli (the static server sends it with Content-Encoding: br), and the two small tables
+  fs.writeFileSync(path.join(PRIVATE, 'apartments.packed.meshopt.bin.br'), zlib.brotliCompressSync(meshoptBin, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } }));
+  fs.writeFileSync(path.join(PRIVATE, 'apartments.packed.tables.bin'), Buffer.concat([Buffer.from(table.buffer), Buffer.from(chunks.buffer)]));
+  fs.writeFileSync(path.join(PRIVATE, 'apartments.packed.meshopt.json'), JSON.stringify({ ...meta, vertexEncodedBytes: ev.length, indexEncodedBytes: ei.length }));
   const gz = b => zlib.gzipSync(b, { level: 6 }).length, br = b => zlib.brotliCompressSync(b, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } }).length;
   // decode time: min of 5
   let best = Infinity, bestV = Infinity, bestI = Infinity;

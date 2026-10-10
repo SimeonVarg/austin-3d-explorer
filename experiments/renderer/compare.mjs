@@ -31,8 +31,9 @@ const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
 const PHASE = opt('--phase', 'all');
 const BREAK = opt('--break', '');
+const FORMAT = opt('--format', '');                  // meshopt: load the wire form (brotli + meshopt) instead of the raw packed file
 const MODE = opt('--mode', 'standalone');            // standalone: no MapLibre on the page | maplibre: path A, the layer inside a real MapLibre map
-const TAG = opt('--tag', (MODE === 'maplibre' ? 'maplibre' : 'standalone') + (BREAK ? '-break-' + BREAK : ''));
+const TAG = opt('--tag', (MODE === 'maplibre' ? 'maplibre' : 'standalone') + (BREAK ? '-break-' + BREAK : '') + (FORMAT ? '-' + FORMAT : ''));
 const ALL = loadPoses();
 const WANT = opt('--poses', null);
 const POSES = WANT ? ALL.filter(p => WANT.split(',').includes(p.name)) : ALL;
@@ -122,7 +123,7 @@ async function shootApp() {
 async function shootProto(frames) {
   console.log('== prototype side (' + (BREAK || 'clean') + ') ==');
   const server = await startStatic(8498);
-  const url = `http://127.0.0.1:8498/exp/proto/${MODE === 'maplibre' ? 'maplibre' : 'standalone'}.html?data=/data/apartments.packed${BREAK ? '&break=' + BREAK : ''}`;
+  const url = `http://127.0.0.1:8498/exp/proto/${MODE === 'maplibre' ? 'maplibre' : 'standalone'}.html?data=/data/apartments.packed${BREAK ? '&break=' + BREAK : ''}${FORMAT ? '&format=' + FORMAT : ''}`;
   const t0 = Date.now();
   const { browser, page, errors } = await openApp({ url, viewport: VIEWPORT });
   const out = { views: {}, software: SOFTWARE };

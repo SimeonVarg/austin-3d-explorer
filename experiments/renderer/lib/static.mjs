@@ -13,8 +13,11 @@ export function startStatic(port = 8498) {
       if (!url.startsWith(pre)) continue;
       const f = path.resolve(root, url.slice(pre.length));
       if (!f.startsWith(root) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) break;
-      res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream', 'Cache-Control': 'no-store', 'Content-Length': fs.statSync(f).size });
-      fs.createReadStream(f).pipe(res); return;
+      // a precompressed sibling (file.br) is sent as Content-Encoding: br, as a real host would send it
+      const br = fs.existsSync(f + '.br') && /\bbr\b/.test(req.headers['accept-encoding'] || '');
+      const send = br ? f + '.br' : f;
+      res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream', 'Cache-Control': 'no-store', 'Content-Length': fs.statSync(send).size, ...(br ? { 'Content-Encoding': 'br' } : {}) });
+      fs.createReadStream(send).pipe(res); return;
     }
     res.writeHead(404); res.end('not found');
   });

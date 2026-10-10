@@ -129,6 +129,28 @@ export async function loadPacked(base) {
   return { meta, vertices, indices, chunks, tab, timings: { metaMs: t1 - t0, binMs: t2 - t1, bytes: buf.byteLength } };
 }
 
+/**
+ * The wire form: meshopt-encoded vertex and index streams (brotli on the wire, undone by the browser), plus the two small tables.
+ * Needs meshoptimizer's decoder module (6 KB of WebAssembly); `decoderUrl` is where the page serves it from.
+ */
+export async function loadPackedMeshopt(base, decoderUrl) {
+  const t0 = performance.now();
+  const { MeshoptDecoder } = await import(decoderUrl);
+  await MeshoptDecoder.ready;
+  const t1 = performance.now();
+  const meta = await (await fetch(base + '.meshopt.json')).json();
+  const [bin, tables] = await Promise.all([fetch(base + '.meshopt.bin').then(r => r.arrayBuffer()), fetch(base + '.tables.bin').then(r => r.arrayBuffer())]);
+  const t2 = performance.now();
+  const vertices = new Uint8Array(meta.vertexBytes);
+  MeshoptDecoder.decodeVertexBuffer(vertices, meta.vertexCount, meta.stride, new Uint8Array(bin, 0, meta.vertexEncodedBytes));
+  const idx = new Uint8Array(meta.indexCount * 4);
+  MeshoptDecoder.decodeIndexBuffer(idx, meta.indexCount, 4, new Uint8Array(bin, meta.vertexEncodedBytes, meta.indexEncodedBytes));
+  const t3 = performance.now();
+  const tab = new Float32Array(tables, 0, meta.chunkCount * 4), chunks = new Float32Array(tables, meta.chunkCount * 16, meta.chunkCount * 8);
+  const wire = (performance.getEntriesByType('resource').find(e => e.name.includes('.meshopt.bin')) || {}).encodedBodySize;
+  return { meta, vertices, indices: new Uint32Array(idx.buffer), chunks, tab, timings: { wasmMs: t1 - t0, fetchMs: t2 - t1, decodeMs: t3 - t2, decodedBytes: bin.byteLength, wireBytes: wire } };
+}
+
 export function createRenderer(gl, packed, opts = {}) {
   const t0 = performance.now();
   const { meta } = packed;
