@@ -3,7 +3,8 @@
 // also the sha256 of what the real build produced inside the app, recorded in expected.json).
 //
 //   node compare.mjs [streamDir]            default: ./fixtures/moontower  (committed, 2 MB: the Moontower alone)
-//   node compare.mjs <dir> --break          flips one bit in one input coordinate: must report MISMATCH and exit 1
+//   node compare.mjs <dir> --break          moves one input coordinate of a mid-stream triangle/quad by BREAK_NUDGE_M (1 mm, large enough
+//                                           to change a float32 POSITION, not only a normal): must report MISMATCH and exit 1
 //   WASM=path/to/other.wasm node compare.mjs ...
 import crypto from 'node:crypto'; import path from 'node:path'; import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -24,11 +25,16 @@ const slopesSource = fs.readFileSync(path.join(here, '../../js/slopes.js'), 'utf
 const pageBuild = await loadRustBuilder({ module: wasmModule, stageRecords: Number(process.env.STAGE_RECORDS) || 8192, shapeOps: makeShapeOps(slopesSource), hexToRgb01, three: () => THREE_STUB });
 const sha = a => crypto.createHash('sha256').update(Buffer.from(a.buffer, a.byteOffset, a.byteLength)).digest('hex');
 const { stream, records, palette, expected } = loadStream(dir);
-if (process.argv.includes('--break')) { const k = Math.floor(records / 2) * 28 + 6; stream[k] = stream[k] + 1e-9 * Math.max(1, Math.abs(stream[k])); console.log('(--break) nudged one coordinate of record', Math.floor(records / 2)); }
+// The planted break. 1 mm, not one part in 1e9: a 1e-9 nudge vanishes when positions are rounded to float32, so the old break only ever
+// showed in the normals and the gate looked stronger than it was. Taken from the first triangle/quad at or after the middle (a facet
+// marker has no coordinates to move).
+const BREAK_NUDGE_M = 1e-3;
+const breakRecord = () => { let r = Math.floor(records / 2); while (r < records - 1 && stream[r * 28] === 3) r++; return r; };
+if (process.argv.includes('--break')) { const r = breakRecord(), k = r * 28 + 6; stream[k] = stream[k] + BREAK_NUDGE_M; console.log('(--break) moved one coordinate of record', r, 'by', BREAK_NUDGE_M, 'm'); }
 
 // --break-rust: nudge one coordinate for the Rust paths ONLY, so the JS builder and the Rust builder get slightly different input.
 // This is the gate failing the way a real regression would (the two builders disagree), not just the in-app sha going stale.
-const streamRust = process.argv.includes('--break-rust') ? (() => { const c = stream.slice(); const k = Math.floor(records / 2) * 28 + 6; c[k] += 1e-9 * Math.max(1, Math.abs(c[k])); console.log('(--break-rust) nudged one coordinate of record', Math.floor(records / 2), 'for the Rust builders only'); return c; })() : stream;
+const streamRust = process.argv.includes('--break-rust') ? (() => { const c = stream.slice(); const r = breakRecord(), k = r * 28 + 6; c[k] += BREAK_NUDGE_M; console.log('(--break-rust) moved one coordinate of record', r, 'by', BREAK_NUDGE_M, 'm for the Rust builders only'); return c; })() : stream;
 const tonesBytes = { bytes: new Uint8Array(palette.length * 9), surf: new Float32Array(palette.length * 4) };
 palette.forEach((p, i) => { tonesBytes.bytes.set([...hexBytes(p.hex[0]), ...hexBytes(p.hex[1]), ...hexBytes(p.hex[2])], i * 9); if (p.surface) tonesBytes.surf.set(p.surface, i * 4); });
 

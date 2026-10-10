@@ -370,6 +370,30 @@
   };
   const PACK_TONES = 2 ** PACK.toneBits, PACK_NLOW = 2 ** (15 - PACK.toneBits);
   const RUST_INFO = { on: RUST.on, state: RUST.on ? 'loading' : 'off', compileMs: 0, builds: 0, error: null };
+  // The Rust builder broke AFTER it loaded (a trap, an out-of-memory error, a bad instance). Stop using it for good: every
+  // build() from here on is the JS builder, whatever the caller asked for. Safe to call twice.
+  function rustFallback(e) {
+    if (_rustBuild === null && RUST_INFO.state === 'failed') return;
+    _rustBuild = null;
+    RUST_INFO.state = 'failed'; RUST_INFO.error = String(e && e.message || e); RUST_INFO.fellBack = (RUST_INFO.fellBack || 0) + 1;
+    console.warn('[slopes] the Rust builder failed mid-build; building in JS from here on —', RUST_INFO.error);
+  }
+  /**
+   * Run a whole build with the Rust builder, and if (and only if) the Rust builder breaks, throw the half-built result away,
+   * switch to the JS builder for good and run the whole build again with it. `run(opts)` must make its builders with
+   * `slopes.build(undefined, opts)` (or buildChunked(..., opts)) and must let an error with `rustBuilderError` set (js/slopes-rust.js
+   * stamps it, only around calls into the module) out; any other error is the recipe's own and is rethrown untouched.
+   * Everything made so far is rebuilt, not patched: the failed instance's memory is not trusted for even the buildings that came
+   * before the trap, and the result is then exactly what the JS builder makes (scripts/verify/wasm-mesh-parity.mjs holds that).
+   */
+  async function withRustFallback(run) {
+    try { return await run({ wasm: true }); }
+    catch (e) {
+      if (!(e && e.rustBuilderError)) throw e;
+      rustFallback(e);
+      return run({ wasm: false });
+    }
+  }
 
   // `SLOPES.on` is an ACCESSOR, so `window.SLOPES.on = false` from the console
   // is still the whole switch — and the generators, which hide fill-extrusion
@@ -1286,7 +1310,10 @@ ${window.RoofTiles.apply}
   function build(initialCapacity = 1 << 16, opts) {
     // The Rust builder, when the page asked for it (?rustbuilder=1), it has loaded, and this caller opted in.
     // (Packed vertices are written by the JS builder below: the Rust module does not emit them yet.)
-    if (_rustBuild && opts && opts.wasm && !opts.pack) return _rustBuild(initialCapacity);
+    if (_rustBuild && opts && opts.wasm && !opts.pack) {
+      try { return _rustBuild(initialCapacity); }
+      catch (e) { rustFallback(e); }   // the module would not even start (out of memory, a bad instance): the JS builder, now and from here on
+    }
     const T = window.THREE;
     const PK = (opts && opts.pack) || null;   // ?packverts=1: the VertexTables this build (and the chunks around it) share
     // Vertex store: growable Float32Arrays written in place. This used to be
@@ -2030,7 +2057,7 @@ ${window.RoofTiles.apply}
     onSwitch, build, buildChunked, packGeometry, frame, stats, fetchJSON,
     // null with the switch off; with it on, a promise that settles when the Rust builder is ready (or has failed and
     // every builder stays the JS one). Callers that want the Rust builder await it before their first build().
-    rustReady: null, get rustBuilder() { return !!_rustBuild; }, rustInfo: () => RUST_INFO,
+    rustReady: null, get rustBuilder() { return !!_rustBuild; }, rustInfo: () => RUST_INFO, withRustFallback,
     // ?packverts=1: a fresh set of tone/normal tables for one build (pass it as build(cap, { pack }) and material({ pack })), or null
     // when the switch is off or this GPU cannot read float textures in the vertex shader (WebGL2 only): callers then build as before.
     packTables, packOn: () => PACK.on,

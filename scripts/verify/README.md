@@ -663,6 +663,30 @@ star test that physically could not fail; a coplanar checker blind to 122,773
 faces). Reviving a crasher into a permanent green would be a fifth. If you fix a
 guard, watch it go red first.
 
+## The Rust mesh builder (`?rustbuilder=1`, added October 10 2026)
+
+`wasm-mesh-parity.mjs` — **Node only, no browser, runs in CI.** The shared mesh builder (`js/slopes.js` `build()`) also exists as a
+34 KB WebAssembly module (`wasm/meshkernel.wasm`, source in `experiments/rust-mesh/`) that the page loads only with `?rustbuilder=1`.
+The check holds it to the JS builder's exact bytes: the committed `.wasm` is the same bytes as `experiments/rust-mesh/dist/` and its
+recorded hash; the study's `compare.mjs` runs the Moontower fixture (equal to the real in-app build's sha256), 6,000 synthetic edge calls
+and 400 `extrude`/`polygon` shapes through the app's `build()`, a tuned JS twin, the raw Rust module and the page's own adapter
+(`js/slopes-rust.js`), all eight arrays by sha256; and the REAL `js/slopes.js` is loaded twice into the process, without the switch
+(`slopes.rustReady` is `null`, nothing is fetched) and with it (one fetch of `wasm/meshkernel.wasm`, the Rust builder, identical buffers).
+A fourth block holds the FALLBACK: a Rust builder that breaks after it loaded. The real module is made to trap (a colour id far past
+its palette, so the Rust panics and `panic = "abort"` raises an `unreachable` `WebAssembly.RuntimeError`) inside the first builder only,
+under a model of the apartment generator's loop run through `slopes.withRustFallback()`. The finished build must equal the JS builder's
+to the byte, the Rust builder must be off for every later build, an instance that cannot start (`init` throws) must fall back the same
+way, and a recipe error (not a Wasm one) must skip its building and leave the Rust builder on. `js/slopes-apartments.js` itself cannot
+run here (it needs three.js), so its four lines that matter (the `withRustFallback` wrapper, the per-building `catch` that lets a
+`rustBuilderError` out, the options handed to both builders, the tally rollback) are matched in its source.
+`--break` moves one coordinate of the Rust side's input only, by 1 mm: it must report MISMATCH on the POSITIONS (not only the normals;
+a 1e-9 nudge vanishes in float32 and the old break showed only in the normals) and exit 1. If the nudge ever fails to reach the position
+array the script exits 3 with `WEAK BREAK`, so a break that cannot bite is not mistaken for a gate that works.
+
+`rust-builder-page.mjs` — **laptop only (timing).** Loads the real `index.html` in a fresh browser per run, switch off against on,
+interleaved, and prints `slopesApartments.count.ms`, the time the veil lifts, peak JS heap, peak browser RSS and (packed modes) the bytes
+uploaded to the GPU. Wrap it in `gpu-run.mjs`; quote the minimum, not the mean: other lanes share the machine.
+
 ## The packed vertex layout (`?packverts=1`, added October 10 2026)
 
 The apartment meshes carry 55.7 bytes a vertex. With `?packverts=1` (default OFF) the builder writes the exact float32 position and ONE
