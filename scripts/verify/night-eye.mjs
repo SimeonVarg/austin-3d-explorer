@@ -112,6 +112,9 @@ async function settle(page, pose) {
     const b = await page.evaluate(() => { const P = window.__facadePace, A = window.slopesApartments && window.slopesApartments.count; return !!((P && P.busy) || (A && !A.done)); });
     quiet = b ? 0 : quiet + 1; await page.waitForTimeout(500);
   }
+  // The lamp set follows the road tiles that are loaded; wait until its count has stopped changing (3 equal reads, 1.5 s apart).
+  { let last = -1, same = 0; const t1 = Date.now();
+    while (same < 3 && Date.now() - t1 < 90000) { const c = await page.evaluate(() => window.__nightLights && window.__nightLights.count); same = c === last ? same + 1 : 0; last = c; await page.waitForTimeout(1500); } }
   await page.evaluate(() => window.__map.triggerRepaint());
   await page.waitForTimeout(1500);
 }
