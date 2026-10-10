@@ -25,9 +25,20 @@
     // dark openings at the ground, and a taller ribbed pylon at the middle. It was drawn as a tan open grid.
     // PHOTO: the pattern and the tones. INFERRED: the bay width (the face's own bay count is kept) and the level
     // heights, read by eye from one oblique photograph: every one is a share of the wall height here.
-    west: {pier: 1.7, pierProud: 0.95, rib: 0.95, ribWidth: 0.42, ribProud: 0.28, glassRecess: 0.45,
-      levels: [0.13, 0.50, 0.57, 0.86, 0.91],      // ground openings | ribbed panel | window band | ribbed panel | window band | top
-      pylonHalf: 9, pylonProud: 2.4, pylonRise: 4.5, wallTone: 'stone', proudTone: 'paint', panelTone: 'concrete',
+    west: {
+      // SECOND READING, from the owner's near-frontal photograph of this wall (2026-10-09). Scale: the wall is 43 m
+      // (scan), which makes that photograph 24 px per metre. Shares below are of the wall height, from the ground.
+      bay: 12.6,                  // PHOTO: pier to pier 305 px. (It was the generic 6.2 m bay: twice too many bays.)
+      pier: 2.0, pierProud: 0.95, // PHOTO: pier front about 50 px. INFERRED: how far it stands out
+      door: [0.01, 0.15],         // INFERRED: dark ground openings (the pergola hides them)
+      lowBand: [0.18, 0.215], highBand: [0.68, 0.72],   // PHOTO: a low band of four dark panes under each panel and one over it
+      bandPanes: 4, frame: 0.6, hood: 0.022, hoodProud: 0.6,   // PHOTO: a pale hood stands out over each band
+      panel: [0.30, 0.63],        // PHOTO: ONE tall ribbed panel to a bay (it was two short ones)
+      rib: 1.45, ribWidth: 0.55, ribProud: 0.45,        // PHOTO: seven fins across a 10 m panel
+      slitRows: [[0.48, 0.53], [0.585, 0.63]], slitWidth: 0.4,   // PHOTO: two rows of dark slit windows between the fins
+      frieze: [0.835, 0.95], notches: 3, notchWidth: 1.0, notchPitch: 1.9,   // PHOTO: three short sunk flutes over each bay
+      pylonHalf: 1.9, pylonProud: 1.6, pylonRise: 4.5, pylonRib: 0.75,       // PHOTO: a NARROW ribbed strip (3.8 m) in one plain bay; it rises above the wall
+      glassRecess: 0.45, wallTone: 'stone', proudTone: 'paint', panelTone: 'concrete', notchTone: 'concrete',
       glassTone: 'black'},                         // the photographs show dark navy window bands; the shared 'glass' tone mirrors the sky and drew them pale blue
     supportPitch: 13, supportWidth: 0.65,
     towerSegments: 32, rampTurns: 3, rampSegments: 96,
@@ -212,7 +223,7 @@
     slab(B,[a,b,insideB,inside],height-0.5,height,'stone');
   }
   function westFacade(B,a,b,height,outward) {
-    const w=TUNE.west,len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.round(len/data.details.facadeBay));
+    const w=TUNE.west,len=Math.hypot(b[0]-a[0],b[1]-a[1]),n0=Math.max(1,Math.round(len/w.bay)),n=n0%2?n0:n0+1;   // odd: the middle bay holds the pylon
     const at=(t,z,o=0)=>[lerp(a[0],b[0],t)+outward[0]*o,lerp(a[1],b[1],t)+outward[1]*o,z];
     const along=[(b[0]-a[0])/len,(b[1]-a[1])/len,0],back=along.map(v=>-v),out=outward.concat(0);
     // a part that stands proud of the wall: its front, its two cheeks and its top
@@ -222,31 +233,39 @@
       quad(B,at(v,z0,o),at(v,z0,0),at(v,z1,0),at(v,z1,o),key,along);
       quad(B,at(u,z1,0),at(u,z1,o),at(v,z1,o),at(v,z1,0),key,[0,0,1]);
     };
-    const L=w.levels.map(k=>k*height),half=w.pier/len/2;
+    const Z=k=>k*height,half=w.pier/len/2,ins=w.frame/len;
     // The wall is drawn in pieces AROUND the window bands. (It was one sheet over the whole face, and the glass,
     // set back behind it, was hidden: by day the "windows" were bare wall.)
     const wall=(u,v,z0,z1,key=w.wallTone)=>{if(v>u&&z1>z0)quad(B,at(u,z0),at(v,z0),at(v,z1),at(u,z1),key,out);};
-    const ribs=(u,v,z0,z1)=>{const m=Math.max(1,Math.round((v-u)*len/w.rib));
-      for(let k=0;k<m;k++){const c=lerp(u,v,(k+.5)/m),h=w.ribWidth/len/2;proud(c-h,c+h,z0,z1,w.ribProud,w.proudTone);}};
-    const band=(u,v,z0,z1,o=0)=>{const r=o-w.glassRecess;quad(B,at(u,z0,r),at(v,z0,r),at(v,z1,r),at(u,z1,r),w.glassTone,out);
-      // the four faces of the opening, from the wall plane back to the glass
-      quad(B,at(u,z0,o),at(v,z0,o),at(v,z0,r),at(u,z0,r),w.wallTone,[0,0,1]);quad(B,at(u,z1,r),at(v,z1,r),at(v,z1,o),at(u,z1,o),w.wallTone,[0,0,-1]);
-      quad(B,at(u,z0,r),at(u,z0,o),at(u,z1,o),at(u,z1,r),w.wallTone,along);quad(B,at(v,z0,o),at(v,z0,r),at(v,z1,r),at(v,z1,o),w.wallTone,back);
-      const m=Math.max(1,Math.round((v-u)*len/(w.rib*2)));for(let k=1;k<m;k++){const c=lerp(u,v,k/m);beam(B,at(c,z0,r+.08),at(c,z1,r+.08),0.14,w.wallTone);}};
-    const mid=0.5,ph=w.pylonHalf/len;
-    for(let i=0;i<=n;i++){const u=i/n;if(Math.abs(u-mid)<ph)continue;proud(Math.max(0,u-half),Math.min(1,u+half),0,height,w.pierProud,w.proudTone);}
+    const flat=(u,v,z0,z1,key)=>quad(B,at(u,z0,.03),at(v,z0,.03),at(v,z1,.03),at(u,z1,.03),key,out);   // a mark on the wall face
+    // the ribbed panel: fins, and dark slit windows in the gaps between them
+    const ribs=(u,v,z0,z1)=>{const m=Math.max(2,Math.round((v-u)*len/w.rib)),h=w.ribWidth/len/2,hs=w.slitWidth/len/2;
+      for(let k=0;k<m;k++){const c=lerp(u,v,(k+.5)/m);proud(c-h,c+h,z0,z1,w.ribProud,w.proudTone);}
+      for(let k=1;k<m;k++){const c=lerp(u,v,k/m);for(const [r0,r1] of w.slitRows)flat(c-hs,c+hs,Z(r0),Z(r1),w.glassTone);}};
+    // a window band: glass set back, the four faces of its opening, its mullions, the wall beside it, and a hood over it
+    const band=(u,v,z0,z1,o=0,hood=true)=>{const r=o-w.glassRecess,p=u+ins,q=v-ins;
+      if(!o){wall(u,p,z0,z1);wall(q,v,z0,z1);}
+      quad(B,at(p,z0,r),at(q,z0,r),at(q,z1,r),at(p,z1,r),w.glassTone,out);
+      quad(B,at(p,z0,o),at(q,z0,o),at(q,z0,r),at(p,z0,r),w.wallTone,[0,0,1]);quad(B,at(p,z1,r),at(q,z1,r),at(q,z1,o),at(p,z1,o),w.wallTone,[0,0,-1]);
+      quad(B,at(p,z0,r),at(p,z0,o),at(p,z1,o),at(p,z1,r),w.wallTone,along);quad(B,at(q,z0,o),at(q,z0,r),at(q,z1,r),at(q,z1,o),w.wallTone,back);
+      for(let k=1;k<w.bandPanes;k++){const c=lerp(p,q,k/w.bandPanes);beam(B,at(c,z0,r+.08),at(c,z1,r+.08),0.14,w.wallTone);}
+      if(hood)proud(u+ins/2,v-ins/2,z1,z1+Z(w.hood),w.hoodProud,w.proudTone);};
+    const mid=0.5,pb=(n-1)/2,ph=w.pylonHalf/len;
+    for(let i=0;i<=n;i++){const u=i/n;proud(Math.max(0,u-half),Math.min(1,u+half),0,height,w.pierProud,w.proudTone);}
     for(let i=0;i<n;i++){
-      const u=i/n+half,v=(i+1)/n-half;if(v<=u||(u>mid-ph&&v<mid+ph)){wall(i/n,(i+1)/n,0,height);continue;}
-      wall(i/n,u,0,height);wall(v,(i+1)/n,0,height);                                             // behind the piers
-      wall(u,v,0,0.4);wall(u,v,L[0],L[1],w.panelTone);wall(u,v,L[2],L[3],w.panelTone);wall(u,v,L[4],height);
-      band(u,v,0.4,L[0]);ribs(u,v,L[0]+.5,L[1]);band(u,v,L[1],L[2]);ribs(u,v,L[2]+.4,L[3]);band(u,v,L[3],L[4]);
+      const u=i/n+half,v=(i+1)/n-half;wall(i/n,u,0,height);wall(v,(i+1)/n,0,height);          // behind the piers
+      if(i===pb||v<=u){wall(u,v,0,height);continue;}                                               // the pylon's bay is plain wall
+      const [d0,d1]=w.door.map(Z),[l0,l1]=w.lowBand.map(Z),[p0,p1]=w.panel.map(Z),[h0,h1]=w.highBand.map(Z),[f0,f1]=w.frieze.map(Z);
+      wall(u,v,0,d0);wall(u,v,d1,l0);wall(u,v,l1,p0);wall(u,v,p0,p1,w.panelTone);wall(u,v,p1,h0);wall(u,v,h1,height);
+      band(u,v,d0,d1,0,false);band(u,v,l0,l1);band(u,v,h0,h1);ribs(u,v,p0,p1);
+      for(let k=0;k<w.notches;k++){const c=(u+v)/2+(k-(w.notches-1)/2)*w.notchPitch/len,hn=w.notchWidth/len/2;flat(c-hn,c+hn,f0,f1,w.notchTone);}
     }
-    // the taller ribbed pylon at the middle
-    proud(mid-ph,mid+ph,0,height+w.pylonRise,w.pylonProud,w.wallTone);
-    const m=Math.max(1,Math.round(w.pylonHalf*2/w.rib));
-    for(let k=0;k<m;k++){const c=lerp(mid-ph,mid+ph,(k+.5)/m),h=w.ribWidth/len/2;
-      quad(B,at(c-h,L[0],w.pylonProud+w.ribProud),at(c+h,L[0],w.pylonProud+w.ribProud),at(c+h,height+w.pylonRise-.6,w.pylonProud+w.ribProud),at(c-h,L[0],w.pylonProud+w.ribProud).slice(0,2).concat(height+w.pylonRise-.6),w.proudTone,out);}
-    band(mid-ph*.55,mid+ph*.55,0.4,L[0],w.pylonProud+.02);                                          // the door opening, in the pylon's own front
+    // the narrow ribbed pylon at the middle; it rises above the wall
+    const top=height+w.pylonRise,m=Math.max(2,Math.round(w.pylonHalf*2/w.pylonRib)),hr=w.pylonRib/len/4;
+    proud(mid-ph,mid+ph,0,top,w.pylonProud,w.wallTone);
+    for(let k=0;k<m;k++){const c=lerp(mid-ph,mid+ph,(k+.5)/m),o=w.pylonProud+w.ribProud*.6;
+      quad(B,at(c-hr,Z(w.door[1])+1,o),at(c+hr,Z(w.door[1])+1,o),at(c+hr,top-.6,o),at(c-hr,top-.6,o),w.proudTone,out);}
+    band(mid-ph,mid+ph,Z(w.door[0]),Z(w.door[1]),w.pylonProud+.02,false);                          // the door opening, in the pylon's own front
     beam(B,at(0,height,w.pierProud),at(1,height,w.pierProud),0.9,w.proudTone);                        // coping
     const inside=a.map((v,i)=>v-outward[i]*5),insideB=b.map((v,i)=>v-outward[i]*5);
     slab(B,[a,b,insideB,inside],height-0.5,height,'stone');
