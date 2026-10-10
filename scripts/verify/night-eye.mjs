@@ -129,12 +129,20 @@ const gpu = async page => page.evaluate(() => { const c = document.createElement
 // ======================================================================================================
 await stage('determinism', async () => {
   const D = TUNE.determinism, pose = TUNE.poses[D.pose], dir = path.join(OUT, 'determinism'); fs.mkdirSync(dir, { recursive: true });
-  const arms = { before: 'nighteye=0', after_unfrozen: '', after_frozen: 'nightfreeze=1', after_frozen_seed7: 'nightseed=7' };
+  const ALL = { before: 'nighteye=0', after_unfrozen: '', after_frozen: 'nightfreeze=1', after_frozen_seed7: 'nightseed=7',
+    // diagnosis arms: switch one part off at a time to find what still moves in a frozen night
+    frozen_eye0: 'nightfreeze=1&nighteye=0', frozen_glare0: 'nightfreeze=1&glare=0', frozen_tw0: 'nightfreeze=1&twinkle=0',
+    frozen_drift0: 'nightfreeze=1&nightdrift=0', frozen_colour0: 'nightfreeze=1&nightcolour=0', frozen_ae0: 'nightfreeze=1|ae0' };
+  const want = (opt('--arms', 'before,after_unfrozen,after_frozen,after_frozen_seed7')).split(',');
+  const arms = Object.fromEntries(want.map(k => [k, ALL[k]]));
   data.determinism = {};
   for (const [arm, q] of Object.entries(arms)) {
     const files = [];
     for (let i = 0; i < D.loads; i++) {
-      const page = await open(q); await settle(page, pose);
+      const [qq, flag] = String(q).split('|');
+      const page = await open(qq); if (flag === 'ae0') await page.evaluate(() => { window.GFX.autoExposure = false; window.applyGraphics(); });
+      await settle(page, pose);
+      console.log(`  ${arm}-${i} exposure ${JSON.stringify(await page.evaluate(() => window.__ae && window.__ae()))} lamps ${await page.evaluate(() => window.__nightLights && window.__nightLights.count)}`);
       files.push(await shot(page, path.join(dir, `${arm}-${i}.png`)));
       if (i === 0 && arm === 'before') data.renderer = await gpu(page);
       await page.close();
@@ -143,8 +151,8 @@ await stage('determinism', async () => {
     data.determinism[arm] = d;
     console.log(`determinism ${arm.padEnd(18)} moved ${d.pctOver}% of pixels by more than ${D.tolerance}; ${d.pctAny}% by any amount; biggest change ${d.max}/255; share moved per cell (8x5) ${JSON.stringify(d.gridPctOver)}`);
   }
-  report('determinism: the frozen night moves 0% between two loads', data.determinism.after_frozen.pctAny === 0, `${data.determinism.after_frozen.pctAny}% any, ${data.determinism.after_frozen.pctOver}% over ${D.tolerance}`);
-  report('determinism: a different seed is a different night (the switch does something)', diff(path.join(dir, 'after_frozen-0.png'), path.join(dir, 'after_frozen_seed7-0.png'), 0).pctAny > 0);
+  if (data.determinism.after_frozen) report('determinism: the frozen night moves 0% between two loads', data.determinism.after_frozen.pctAny === 0, `${data.determinism.after_frozen.pctAny}% any, ${data.determinism.after_frozen.pctOver}% over ${D.tolerance}`);
+  if (data.determinism.after_frozen_seed7) report('determinism: a different seed is a different night (the switch does something)', diff(path.join(dir, 'after_frozen-0.png'), path.join(dir, 'after_frozen_seed7-0.png'), 0).pctAny > 0);
 });
 
 // ======================================================================================================
@@ -176,12 +184,17 @@ await stage('sequence', async () => {
   const page = await open('nightfreeze=1'); await settle(page, pose);
   // Distance of each screen row to the camera, along the ground (an upper bound for a wall on that row).
   const rowDist = await page.evaluate(() => {
-    const m = window.__map, cam = m.getFreeCameraOptions().position, ll = cam.toLngLat(), alt = cam.toAltitude();
+    // Camera = the map centre pulled back along the view by cameraToCenterDistance, at the pitch (this MapLibre has no getFreeCameraOptions here).
+    const m = window.__map, tr = m.transform, c = m.getCenter(), dc = tr.cameraToCenterDistance / tr.pixelsPerMeter;
+    const pitch = m.getPitch() * Math.PI / 180, brg = m.getBearing() * Math.PI / 180, back = dc * Math.sin(pitch), alt = dc * Math.cos(pitch);
+    const cam = {};
+    cam.lng = c.lng - (Math.sin(brg) * back) / (111320 * Math.cos(c.lat * Math.PI / 180)); cam.lat = c.lat - (Math.cos(brg) * back) / 110540;
     const H = m.getCanvas().clientHeight, W = m.getCanvas().clientWidth, out = [];
-    const toM = (a, b) => { const dx = (a.lng - b.lng) * 111320 * Math.cos(b.lat * Math.PI / 180), dy = (a.lat - b.lat) * 110540; return Math.hypot(dx, dy); };
-    for (let y = 0; y < H; y++) { let d = null; try { const g = m.unproject([W / 2, y]); if (g && isFinite(g.lng)) d = Math.hypot(toM(g, ll), alt); } catch (e) {} out.push(d); }
+    const toM = (a, b) => Math.hypot((a.lng - b.lng) * 111320 * Math.cos(b.lat * Math.PI / 180), (a.lat - b.lat) * 110540);
+    for (let y = 0; y < H; y++) { let d = null; try { const g = m.unproject([W / 2, y]); if (g && isFinite(g.lng)) d = Math.hypot(toM(g, cam), alt); } catch (e) {} out.push(d); }
     return out;
   });
+  console.log('row distances (m) at rows 450 / 600 / 800 / 899:', [450, 600, 800, 899].map(y => rowDist[y] && Math.round(rowDist[y])));
   const frames = [];
   for (const mode of ['on', 'off']) {
     await page.evaluate(m => { window.CityNight.eye.twinkle = m === 'on' ? 1 : 0; window.CityNight.eye.drift = false; }, mode);   // shimmer alone: the slow change is measured by its own claim
