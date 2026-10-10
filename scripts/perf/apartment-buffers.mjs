@@ -14,6 +14,9 @@
  * buildings is also compressed with Node's brotli (quality 9) to give a brotli/gzip ratio. Finally it prints
  * the size of the JSON specs the build starts from (data/apartments), raw and gzipped, for comparison.
  *
+ * EXIT CODE: 1 if the page read failed or found no meshes (it used to be written into the report with exit 0). TARGET: only this machine
+ * unless --allow-live. The spec sizes at the end are read from THIS CHECKOUT's data/apartments, not from --url; the report says so.
+ *
  * Settings: desktop 1280x800 DPR1.5 balanced preset, hardware GL (the geometry does not depend on the GPU),
  * ?intro=0&drift=0. Run with --phone for the phone profile (its detail table is lighter; on a phone the CPU
  * copies are released after upload so only the GL-side bytes can be counted there: reported separately).
@@ -26,6 +29,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { startChrome } from './lib/cdp.mjs';
+import { refuseLive, buffersExitCode } from './lib/outcome.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '../..');
@@ -36,6 +40,7 @@ const GL = arg('--gl', 'hardware');
 const PHONE = argv.includes('--phone');
 const OUT = arg('--out', process.env.VERIFY_OUT || '/tmp/apartment-buffers');
 const MAX = +arg('--max', 420000);
+const TARGET = refuseLive(URL0);   // exit 2 unless the target is this machine or --allow-live was given
 fs.mkdirSync(OUT, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
@@ -99,6 +104,7 @@ const PAGE_SAMPLE = `(async (cfg) => {
 })`;
 
 const W = PHONE ? 390 : 1280, H = PHONE ? 844 : 800, DPR = PHONE ? 3 : 1.5;
+let pageResult = null;   // what the page read gave back (or {error}); decides the exit code
 const chrome = await startChrome({ gl: GL, width: W, height: H, vsync: 'off', maxMs: 1500000 });
 try {
   const page = await chrome.newPage();
@@ -128,6 +134,8 @@ try {
   const specDir = path.join(REPO, 'data/apartments'); const spec = { files: 0, raw: 0, gz: 0, br: 0 };
   const walk = d => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, f.name); if (f.isDirectory()) walk(p); else if (/\.json$/.test(f.name)) { const b = fs.readFileSync(p); spec.files++; spec.raw += b.length; spec.gz += zlib.gzipSync(b).length; spec.br += zlib.brotliCompressSync(b).length; } } };
   try { walk(specDir); } catch (e) {}
+  spec.source = 'this checkout\'s data/apartments on disk, NOT the files served at --url' + (TARGET.local ? '' : ' (and --url is not this machine, so these sizes may not be what that site serves)');
+  pageResult = res;
   const out = { phone: PHONE, specs: spec, glBytesByOwner: gl, page: res };
   fs.writeFileSync(path.join(OUT, `apartment-buffers${PHONE ? '-phone' : ''}.json`), JSON.stringify(out, null, 1));
   const MB = n => (n / 2 ** 20).toFixed(1);
@@ -146,8 +154,11 @@ try {
     lines.push(`sum of per-building raw ${MB(b.reduce((s, x) => s + x.raw, 0))} MB, gz ${MB(b.reduce((s, x) => s + x.gz, 0))} MB`);
     if (res.sampleCompare) lines.push(`sample building (median-size) gzip-9 ${(res.sampleCompare.gz9 / 1024).toFixed(0)} KB vs brotli-9 ${(res.sampleCompare.br9 / 1024).toFixed(0)} KB of raw ${(res.sampleCompare.raw / 1024).toFixed(0)} KB; per attribute: ` + Object.entries(res.sampleCompare.per).map(([k, v]) => `${k} ${(v.raw / 1024).toFixed(0)}K->${(v.br9 / 1024).toFixed(0)}K`).join(', '));
   } else lines.push('page read failed: ' + JSON.stringify(res));
-  lines.push(`specs the build starts from: data/apartments ${spec.files} json files, raw ${MB(spec.raw)} MB, gzip ${MB(spec.gz)} MB, brotli ${MB(spec.br)} MB`);
+  lines.push(`specs the build starts from (${spec.source}): data/apartments ${spec.files} json files, raw ${MB(spec.raw)} MB, gzip ${MB(spec.gz)} MB, brotli ${MB(spec.br)} MB`);
   lines.push('GL bytes requested by owner (MB): ' + Object.entries(gl.own).map(([k, v]) => [k, (v.tex + v.buf) / 2 ** 20]).filter(x => x[1] > 5).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(', '));
   const text = lines.join('\n'); fs.writeFileSync(path.join(OUT, `report-apartment-buffers${PHONE ? '-phone' : ''}.txt`), text); console.log(text);
 } finally { await chrome.close(); }
-process.exit(0);
+// 0 only if the page read produced meshes; an {error} used to be written into the report and exit 0 (see lib/outcome.mjs)
+const outcome = buffersExitCode(pageResult);
+for (const p of outcome.problems) console.error('apartment-buffers: ' + p);
+process.exit(outcome.code);

@@ -152,6 +152,7 @@
   },
   "_quarantine": "Checks that do NOT run in CI, each with the reason. Broken on main itself, or cannot work without a GPU. Fix the check (or main), then delete its line here.",
   "quarantine": {
+    "perf-exit-500.mjs": "needs Chrome and has never been run: written 2026-10-10 on a Mac that could not start a browser. Run it once (node scripts/verify/perf-exit-500.mjs), fix it if needed, then delete this line. The no-browser half is perf-outcome.mjs, which does run.",
     "campus-court-detail.mjs": "red on main, no browser needed, same on the laptop: js/campus-landscape.js no longer has the ' function detailMesh(B,f){' block the test cuts out (assert at line 8)",
     "facade-filter.mjs": "red on main, no browser needed, same on the laptop: applySlopesApartments no longer starts the build the test stubs (builderStarts 0, want 1, line 326)",
     "wallplane.mjs": "red on main, no browser needed, same on the laptop: 'WALLPLANE 1 FAILED', the GDC atrium's outer face is 5.23 m proud of the brick body",

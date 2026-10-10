@@ -29,6 +29,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startChrome, machineLoad, idleSeconds } from './lib/cdp.mjs';
+import { refuseLive, repsExitCode } from './lib/outcome.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -150,10 +151,12 @@ async function oneRep(rep) {
   } finally { await chrome.close(); }
 }
 
+refuseLive(URL0);   // exit 2 unless the target is this machine or --allow-live was given
 const results = [];
+let failures = 0;
 for (let r = 1; r <= REPS; r++) {
   try { const res = await oneRep(r); results.push(res); fs.writeFileSync(path.join(OUT, `${LABEL}-r${r}.json`), JSON.stringify(res, null, 1)); console.error(`rep ${r} done`); }
-  catch (e) { console.error(`rep ${r} FAILED: ${e.stack || e}`); }
+  catch (e) { failures++; console.error(`rep ${r} FAILED: ${e.stack || e}`); }
 }
 const out = [];
 if (results[0]) {
@@ -178,4 +181,6 @@ if (results[0]) {
 const text = out.join('\n');
 fs.writeFileSync(path.join(OUT, `report-${LABEL}.txt`), text);
 console.log(text);
-process.exit(0);
+const outcome = repsExitCode({ planned: REPS, results, failures });   // a rep that threw (including 'city not ready') is a failure
+for (const p of outcome.problems) console.error('frame-profile: ' + p);
+process.exit(outcome.code);
