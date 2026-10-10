@@ -65,6 +65,8 @@ for (const f of FLAGS) {
       await page.screenshot({ path: file, clip: { x: 0, y: 0, width: 1440, height: 900 } });
       (shots[`${view}-${hn}`] ||= {})[f] = file; console.log('shot', path.basename(file));
     }
+    info.after = await page.evaluate(() => { const G = window.__glc, A = window.slopesApartments; return { glLive: G ? JSON.parse(JSON.stringify(G.live)) : null, programs: G ? G.sets.programs.size : null, triangles: A.count.triangles }; });
+    console.log('after the shots: ' + JSON.stringify(info.after));
     info.errors = errors.slice(0, 20);
   } catch (e) { info.fatal = String(e); console.log('FAILED', e); }
   result.flags[f] = info; await browser.__done();
