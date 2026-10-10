@@ -266,7 +266,7 @@
       titles: { ctx: 'Reload to continue exploring', lighter: 'Lighter city', lighterCtx: 'Lighter city' },
       why: {
         crashes: 'The full city stopped loading on this device twice, so this visit shows plain blocks instead of the detailed buildings.',
-        url: 'This link asks for the lightweight city (lite=safe), so the buildings are plain blocks.',
+        url: 'This link asks for the lightweight city, so the buildings are plain blocks.',
         slow: 'The detailed buildings took too long to load this time, so plain blocks are shown instead.',
         ctx: 'The graphics were reset. Exploring is paused until the city reloads.',
         lighter: 'The full city ran out of memory on this device, so this visit uses lighter buildings (no balconies) and skips the opening flight.',
