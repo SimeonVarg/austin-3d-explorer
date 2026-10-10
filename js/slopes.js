@@ -1007,6 +1007,50 @@ ${window.RoofTiles.apply}
    * low 16 bits = tone index (toneBits) | facet bit | low bits of the normal index; high 16 bits = the rest of the normal index.
    * The tables are plain typed arrays until material() turns them into two float textures.
    */
+  /**
+   * What THIS GPU turns a normalised UNSIGNED_BYTE attribute into, for every byte 0..255. The unpacked layout hands the shader its colours as such
+   * attributes, so the GPU does the byte-to-float conversion; the packed layout reads them from a float table and must hold the very numbers the GPU
+   * would have produced. The GL spec says c / 255, but an implementation may compute c * (1 / 255) instead, and the two differ by one float32 ulp for 126
+   * of the 256 bytes. That is invisible until a shader compares the colour with a threshold (the night windows do), when one pixel in a thousand flips: the
+   * 0.05% of two night views that the first pixel check found. So the table is built from a measurement: an offscreen WebGL2 context, a transform-feedback
+   * draw of the 256 bytes as normalised attributes, read back. Without WebGL (Node) it is c / 255 in float32, the spec.
+   */
+  let _byteFloats = null;
+  function byteFloats() {
+    if (_byteFloats) return _byteFloats;
+    const f = new Float32Array(256); for (let c = 0; c < 256; c++) f[c] = c / 255;
+    let how = 'untested';
+    try {
+      const gl = document.createElement('canvas').getContext('webgl2');
+      if (gl) {
+        const sh = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
+        const pr = gl.createProgram();
+        gl.attachShader(pr, sh(gl.VERTEX_SHADER, '#version 300 es\nin vec4 a; out vec4 o; void main() { o = a; gl_Position = vec4(0.0, 0.0, 0.0, 1.0); }'));
+        gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, '#version 300 es\nprecision mediump float; out vec4 c; void main() { c = vec4(0.0); }'));
+        gl.transformFeedbackVaryings(pr, ['o'], gl.INTERLEAVED_ATTRIBS); gl.linkProgram(pr);
+        if (gl.getProgramParameter(pr, gl.LINK_STATUS)) {
+          const bytes = new Uint8Array(256 * 4); for (let c = 0; c < 256; c++) bytes[c * 4] = c;
+          const vb = gl.createBuffer(), tb = gl.createBuffer(), tf = gl.createTransformFeedback();
+          gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, bytes, gl.STATIC_DRAW);
+          gl.useProgram(pr); const loc = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 4, gl.UNSIGNED_BYTE, true, 4, 0);
+          gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tb); gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 256 * 16, gl.STATIC_READ);
+          gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf); gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tb);
+          gl.enable(gl.RASTERIZER_DISCARD); gl.beginTransformFeedback(gl.POINTS); gl.drawArrays(gl.POINTS, 0, 256); gl.endTransformFeedback(); gl.disable(gl.RASTERIZER_DISCARD);
+          const out = new Float32Array(256 * 4); gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, 0, out);
+          const m = new Float32Array(256); for (let c = 0; c < 256; c++) m[c] = out[c * 4];
+          if (!gl.getError() && m[0] === 0 && m[255] === 1) {   // a sane read-back; anything else keeps the spec values
+            let div = 0, rec = 0; const inv = Math.fround(1 / 255);
+            for (let c = 0; c < 256; c++) { if (m[c] === Math.fround(c / 255)) div++; if (m[c] === Math.fround(c * inv)) rec++; }
+            how = div === 256 ? 'divide' : rec === 256 ? 'reciprocal' : 'other';
+            f.set(m);
+          }
+        }
+        const lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext();
+      }
+    } catch (e) { how = 'untested'; }
+    _byteFloats = f; _byteFloats.how = how;
+    return f;
+  }
   function packOverflow(what, limit) {
     const e = new Error('[slopes] ?packverts=1: more than ' + limit + ' distinct ' + what + ' (PACK.toneBits)');
     e.packOverflow = true;   // js/slopes-apartments.js lets this out of its per-building catch and rebuilds unpacked
@@ -1040,8 +1084,9 @@ ${window.RoofTiles.apply}
         id = T.nTones++;
         if (id * 16 + 16 > T.tones.length) { const g = new Float32Array(T.tones.length * 2); g.set(T.tones); T.tones = g; }
         const d = byte(col[0]), g = byte(col[1]), n = byte(col[2]), s = col.surface, o = id * 16;
-        // byte / 255 in float32: what normalised UNSIGNED_BYTE attributes hand the shader
-        for (let k = 0; k < 3; k++) { T.tones[o + k] = d[k] / 255; T.tones[o + 4 + k] = g[k] / 255; T.tones[o + 8 + k] = n[k] / 255; }
+        // what this GPU makes of a normalised UNSIGNED_BYTE attribute (byteFloats above), so the shader gets the very numbers the unpacked layout gives it
+        const bf = byteFloats();
+        for (let k = 0; k < 3; k++) { T.tones[o + k] = bf[d[k]]; T.tones[o + 4 + k] = bf[g[k]]; T.tones[o + 8 + k] = bf[n[k]]; }
         if (s) { T.tones[o + 12] = s[0]; T.tones[o + 13] = s[1]; T.tones[o + 14] = s[2]; T.tones[o + 15] = s[3]; }
         T.toneOf.set(key, id);
       }
@@ -2073,7 +2118,7 @@ ${window.RoofTiles.apply}
     initOrigin: () => { originMerc = maplibregl.MercatorCoordinate.fromLngLat({ lng: SLOPES.origin[0], lat: SLOPES.origin[1] }, 0); originScale = originMerc.meterInMercatorCoordinateUnits(); },
     // ?buildworker=1 with ?packverts=1: the tables a worker filled (plain arrays) as VertexTables the main thread's material() can use
     packAdopt: d => { const T = vertexTables(); T.tones = d.tones; T.nTones = d.nTones; T.normals = d.normals; T.nNormals = d.nNormals; T.nbits = new Uint32Array(T.normals.buffer, T.normals.byteOffset, T.normals.length); return T; },
-    packTables, packOn: () => PACK.on, packInfo: () => ({ toneBits: PACK.toneBits, texWidth: PACK.texWidth }),
+    packTables, packOn: () => PACK.on, packInfo: () => ({ toneBits: PACK.toneBits, texWidth: PACK.texWidth, byteConversion: _byteFloats ? _byteFloats.how : 'not yet measured' }),
     // a test seam, not a feature: flip the switch at run time so ONE page can build the apartments both ways (scripts/verify/packverts-pixels.mjs
     // rebuilds with slopesApartments.rebuild() and photographs each); a visitor sets it only through ?packverts=1
     packSet: on => { PACK.on = !!on; },
