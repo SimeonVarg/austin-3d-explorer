@@ -57,6 +57,9 @@
     stats.pieces++;
     const { W, len, z0, z1, ctx, skin, sk, band, P, cut } = rec;
     if (cut) return REFUSE('cut');
+    // the five buildings js/facade-filter.js already filters (Union on 24th, 21 Rio, The Standard, Villas on Rio, Yugo Waterloo) keep that filter: it is a
+    // texture low-pass fitted to them, and replacing it with this module was measured WORSE in the moire meter's west views (run 3, section 8.5)
+    if (rec.filtered) return REFUSE('facade-filter building');
     if (!sk || (sk.kind !== 'bays' && sk.kind !== 'flat')) return REFUSE('kind ' + (sk && sk.kind));
     for (const k of ['louvre', 'pier', 'fields', 'bands', 'windowSkip', 'facets', 'fins']) if (sk[k]) return REFUSE(k);
     if (skin.piers || skin.fins || skin.facets) return REFUSE('blades');

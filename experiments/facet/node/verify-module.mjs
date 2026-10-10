@@ -23,7 +23,7 @@ const res = await tapCatalog(rec => {
   const pane = P => P[rec.sk.glass || 'glass'] || P.glass;
   const skinReveal = rec.skin.reveal != null ? rec.skin.reveal : APTS.reveal;
   const ok = C.take({ W: rec.W, len: rec.len, z0: rec.z0, z1: rec.z1, ctx: rec.ctx, skin: rec.skin, sk: rec.sk, band: rec.band, P: rec.P, cut: rec.cut, skinReveal, tris: rec.tris,
-    windowNight: (w, glass) => w.lit ? (w.nightTone || APTS.nightLitTone) : glass[2] });
+    windowNight: (w, glass) => w.lit ? (w.nightTone || APTS.nightLitTone) : glass[2], filtered: process.argv.includes('--keep-filtered') && ['Union on 24th', '21 Rio', 'The Standard', 'Villas on Rio', 'Yugo Austin Waterloo'].includes(rec.spec.name) });
   if (ok) { takenTris += rec.tris; taken.push({ rec, pk: C.debug.at(-1).pk }); }
 }, { quads: true, setup: async ({ A }) => {
   APTS = A.APTS; globalThis.window = globalThis;

@@ -746,8 +746,8 @@
   }
 
   /** what js/facet-walls.js is offered for a wall piece: the generator's own resolved skin, and the two rules the cells take from the file's settings */
-  function facetPiece(W, len, z0, z1, ctx, skin, sk, band, P, cut, spec) {
-    return { W, len, z0, z1, ctx, skin, sk, band, P, cut, tris: 0,
+  function facetPiece(W, len, z0, z1, ctx, skin, sk, band, P, cut, spec, B) {
+    return { W, len, z0, z1, ctx, skin, sk, band, P, cut, tris: 0, filtered: !!(B && B.allowFilter),
       skinReveal: wantReveals() ? (skin.reveal != null ? skin.reveal : APTS.reveal) : 0,
       // the night colour tileFace gives a window's glass cell
       windowNight: (w, glass) => w.lit ? (w.nightTone || APTS.nightLitTone)
@@ -1910,7 +1910,7 @@
       const ctx = { len, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
       const skin = resolveSkin(sk, ctx, P, ctx.key);
       openings(skin, band, len, z0, z1, spec, fl, P, sOff);
-      if (!(B.facetWalls && B.facetWalls.take(facetPiece(sub, len, z0, z1, ctx, skin, sk, band, P, cutAt ? cutAt(0) : null, spec)))) tileFace(B, { W: sub, len, z0, z1, cut: cutAt ? cutAt(0) : null }, skin, P);
+      if (!(B.facetWalls && B.facetWalls.take(facetPiece(sub, len, z0, z1, ctx, skin, sk, band, P, cutAt ? cutAt(0) : null, spec, B)))) tileFace(B, { W: sub, len, z0, z1, cut: cutAt ? cutAt(0) : null }, skin, P);
     }
     // the fixtures — balconies and signs — positioned by `s` along THIS
     // piece: an override region's own. A face's default bands' fixtures are
@@ -1987,7 +1987,7 @@
       const ctx = { len: sHi - sLo, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
       const skin = resolveSkin(sk, ctx, P, ctx.key);
       openings(skin, band, sHi - sLo, z0, z1, spec, fl, P, (opts.sOff || 0) + sLo);
-      if (!(B.facetWalls && B.facetWalls.take(facetPiece(subR, sHi - sLo, z0, z1, ctx, skin, sk, band, P, opts.cutAt ? opts.cutAt(sLo) : null, spec)))) tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);
+      if (!(B.facetWalls && B.facetWalls.take(facetPiece(subR, sHi - sLo, z0, z1, ctx, skin, sk, band, P, opts.cutAt ? opts.cutAt(sLo) : null, spec, B)))) tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);
     }
     // the returns: a wall across the recess at either end, where nothing recessed meets it
     const R = IS.returns, endwise = R != null && typeof R === 'object';
