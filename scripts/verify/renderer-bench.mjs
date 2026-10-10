@@ -34,12 +34,22 @@ const step = (name, cmd, args, opts = {}) => {
 };
 console.log('renderer-bench: VERIFY_URL', process.env.VERIFY_URL, 'scratch', SCRATCH, 'out', OUT, 'GL', env.VERIFY_GL);
 step('npm install (meshoptimizer, for the wire-size step)', 'npm', ['install', '--no-audit', '--no-fund']);
+// the MapLibre variant of the prototype page loads the same library files the app does; fetch them once into scratch/libs
+try {
+  fs.mkdirSync(path.join(SCRATCH, 'libs'), { recursive: true });
+  for (const [f, u] of [['maplibre-gl.js', 'maplibre-gl@5.24.0/dist/maplibre-gl.js'], ['maplibre-gl.css', 'maplibre-gl@5.24.0/dist/maplibre-gl.css'], ['three.min.js', 'three@0.159.0/build/three.min.js'], ['pmtiles.js', 'pmtiles@3.0.6/dist/pmtiles.js']]) {
+    const r = await fetch('https://unpkg.com/' + u); if (r.ok) fs.writeFileSync(path.join(SCRATCH, 'libs', f), Buffer.from(await r.arrayBuffer()));
+  }
+} catch (e) { console.log('could not fetch the libraries (the MapLibre variant will not run):', String(e).slice(0, 120)); }
 if (step('dump', process.execPath, ['dump-apartments.mjs'])) {
   step('pack', process.execPath, ['pack.mjs']);
   step('measure-app', process.execPath, ['measure-app.mjs', '--out', path.join(SCRATCH, 'measure-app.json')]);
   step('compare (app + standalone prototype)', process.execPath, ['compare.mjs']);
   step('compare (prototype inside MapLibre)', process.execPath, ['compare.mjs', '--mode', 'maplibre', '--phase', 'proto']);
+  step('compare (prototype, wire form: meshopt + brotli)', process.execPath, ['compare.mjs', '--phase', 'proto', '--format', 'meshopt']);
   step('compare (prototype broken on purpose: light)', process.execPath, ['compare.mjs', '--break', 'light', '--phase', 'proto']);
+  step('compare (prototype broken on purpose: quant)', process.execPath, ['compare.mjs', '--break', 'quant', '--phase', 'proto']);
+  step('compare (prototype broken on purpose: facet)', process.execPath, ['compare.mjs', '--break', 'facet', '--phase', 'proto']);
 }
 // copy the small results out
 const keep = f => /\.(json|png|log)$/.test(f) && !/apartments\.(packed\.)?json$/.test(f);
