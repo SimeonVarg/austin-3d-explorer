@@ -1,0 +1,327 @@
+{
+ "host": "Intel(R) Core(TM) i7-8569U CPU @ 2.80GHz x8",
+ "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+ "rounds": 3,
+ "real": {
+  "min": 6216.899999976158,
+  "median": 12113.5,
+  "max": 17510,
+  "n": 9
+ },
+ "timed": {
+  "min": 5483.199999988079,
+  "median": 7440.299999952316,
+  "max": 17730.700000047684,
+  "n": 9
+ },
+ "null": {
+  "min": 1653.699999988079,
+  "median": 2392.5,
+  "max": 5192.800000011921,
+  "n": 9
+ },
+ "builderShareOfBuild": {
+  "min": 0.4095706987376017,
+  "median": 0.44414875737652765,
+  "max": 0.5172826098042638
+ },
+ "rows": [
+  {
+   "mode": "real",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "runs": [
+    {
+     "ms": 10621,
+     "builderMs": null,
+     "slices": 199,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 13029.899999976158,
+     "builderMs": null,
+     "slices": 185,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 12113.5,
+     "builderMs": null,
+     "slices": 188,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    }
+   ],
+   "jsHeapMB": 1202.5265312194824,
+   "round": 0,
+   "load1": 55.9
+  },
+  {
+   "mode": "timed",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "runs": [
+    {
+     "ms": 17730.700000047684,
+     "builderMs": 8720.30000025034,
+     "slices": 235,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 10177.100000023842,
+     "builderMs": 4353.9000017642975,
+     "slices": 196,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 7135.199999988079,
+     "builderMs": 3073.2000012993813,
+     "slices": 173,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    }
+   ],
+   "jsHeapMB": 1206.895474433899,
+   "round": 0,
+   "load1": 116.1
+  },
+  {
+   "mode": "null",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "runs": [
+    {
+     "ms": 3078.199999988079,
+     "builderMs": null,
+     "slices": 125,
+     "triangles": 1,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 2365.699999988079,
+     "builderMs": null,
+     "slices": 107,
+     "triangles": 1,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 1986.5,
+     "builderMs": null,
+     "slices": 91,
+     "triangles": 1,
+     "buildings": 198,
+     "cells": 644425
+    }
+   ],
+   "jsHeapMB": 44.507896423339844,
+   "round": 0,
+   "load1": 91.1
+  },
+  {
+   "mode": "null",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "runs": [
+    {
+     "ms": 3057.600000023842,
+     "builderMs": null,
+     "slices": 122,
+     "triangles": 1,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 2392.5,
+     "builderMs": null,
+     "slices": 103,
+     "triangles": 1,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 1653.699999988079,
+     "builderMs": null,
+     "slices": 88,
+     "triangles": 1,
+     "buildings": 198,
+     "cells": 644425
+    }
+   ],
+   "jsHeapMB": 53.19965744018555,
+   "round": 1,
+   "load1": 86.1
+  },
+  {
+   "mode": "timed",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "runs": [
+    {
+     "ms": 7440.299999952316,
+     "builderMs": 3304.5999994874,
+     "slices": 188,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 9116.100000023842,
+     "builderMs": 4715.5999992489815,
+     "slices": 192,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 7369.399999976158,
+     "builderMs": 3169.199999630451,
+     "slices": 177,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    }
+   ],
+   "jsHeapMB": 1208.0482416152954,
+   "round": 1,
+   "load1": 75.3
+  },
+  {
+   "mode": "real",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "runs": [
+    {
+     "ms": 13062.199999988079,
+     "builderMs": null,
+     "slices": 193,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 11340.399999976158,
+     "builderMs": null,
+     "slices": 182,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 11785.400000035763,
+     "builderMs": null,
+     "slices": 180,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    }
+   ],
+   "jsHeapMB": 1202.5118103027344,
+   "round": 1,
+   "load1": 61.8
+  },
+  {
+   "mode": "real",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "runs": [
+    {
+     "ms": 17510,
+     "builderMs": null,
+     "slices": 197,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 14531.399999976158,
+     "builderMs": null,
+     "slices": 200,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 6216.899999976158,
+     "builderMs": null,
+     "slices": 150,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    }
+   ],
+   "jsHeapMB": 1202.1967391967773,
+   "round": 2,
+   "load1": 101.5
+  },
+  {
+   "mode": "timed",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "runs": [
+    {
+     "ms": 8185.399999976158,
+     "builderMs": 3352.4999974370003,
+     "slices": 196,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 6717.099999964237,
+     "builderMs": 3197.399998128414,
+     "slices": 179,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 5483.199999988079,
+     "builderMs": 2479.0000007748604,
+     "slices": 170,
+     "triangles": 3113629,
+     "buildings": 198,
+     "cells": 644425
+    }
+   ],
+   "jsHeapMB": 1203.2004098892212,
+   "round": 2,
+   "load1": 178.1
+  },
+  {
+   "mode": "null",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "runs": [
+    {
+     "ms": 4827.599999964237,
+     "builderMs": null,
+     "slices": 133,
+     "triangles": 1,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 5192.800000011921,
+     "builderMs": null,
+     "slices": 119,
+     "triangles": 1,
+     "buildings": 198,
+     "cells": 644425
+    },
+    {
+     "ms": 2192.800000011921,
+     "builderMs": null,
+     "slices": 101,
+     "triangles": 1,
+     "buildings": 198,
+     "cells": 644425
+    }
+   ],
+   "jsHeapMB": 45.24159240722656,
+   "round": 2,
+   "load1": 130.5
+  }
+ ]
+}
