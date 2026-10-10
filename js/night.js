@@ -638,7 +638,15 @@
     const headEdge = cooler(LIGHTS.HEAD_COLOR_CORE, LIGHTS.EDGE_DESAT);
     const center=map.getCenter();
     const nearby=(lng,lat)=>Math.hypot((lng-center.lng)*mLon(center.lat),(lat-center.lat)*M_LAT)<LIGHTS.VIEW_RADIUS_M;
-    const features = _points ? _points.features.filter(f=>nearby(...f.geometry.coordinates)) : [];
+    // ?nightfreeze / ?nightseed (js/city-night.js): the lamp set must be a function of the tiles loaded NOW, not of the order the
+    // tiles arrived in or the camera positions the page passed through. Start from nothing and walk the roads in a canonical order.
+    const frozenNight = !!(window.CityNight && window.CityNight.frozen);
+    if (frozenNight) feats = feats.slice().sort((a, b) => {
+      const ka = (a.properties && a.properties.class || '') + '|' + JSON.stringify(a.geometry && a.geometry.coordinates && (a.geometry.coordinates[0].length ? a.geometry.coordinates[0] : a.geometry.coordinates));
+      const kb = (b.properties && b.properties.class || '') + '|' + JSON.stringify(b.geometry && b.geometry.coordinates && (b.geometry.coordinates[0].length ? b.geometry.coordinates[0] : b.geometry.coordinates));
+      return ka < kb ? -1 : ka > kb ? 1 : 0;
+    });
+    const features = (_points && !frozenNight) ? _points.features.filter(f=>nearby(...f.geometry.coordinates)) : [];
     const previousTotal=_points?.features.length??0;
     const priorCount=features.length;
     const gridKey=(lng,lat)=>Math.round(lng*mLon(lat)/LIGHTS.DEDUPE_GRID_M)+':'+Math.round(lat*M_LAT/LIGHTS.DEDUPE_GRID_M);
@@ -697,7 +705,14 @@
     }
 
     if(_points&&features.length===priorCount&&features.length===previousTotal)return;
+    if (frozenNight) {   // unchanged set: do not re-send the whole lamp source (every lamp tile would reload)
+      let sig = features.length;
+      for (const f of features) sig = (Math.imul(sig, 31) + Math.round(f.geometry.coordinates[0] * 1e6) + Math.round(f.geometry.coordinates[1] * 1e6)) | 0;
+      if (_points && _points.__sig === sig) return;
+      var frozenSig = sig;
+    }
     _points = { type: 'FeatureCollection', features };
+    if (frozenNight) _points.__sig = frozenSig;
     const srcObj = map.getSource(SRC);
     if (srcObj) srcObj.setData(_points);
     const count = t => features.reduce((n, f) => n + (f.properties.tier === t ? 1 : 0), 0);

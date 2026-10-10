@@ -62,13 +62,17 @@ function sideBySide(files, outFile) {
   imgs.forEach((im, k) => { const rgb = rgbOf(im); for (let y = 0; y < h; y++) rgb.copy(out, (y * w * imgs.length + k * w) * 3, y * w * 3, (y + 1) * w * 3); });
   fs.writeFileSync(outFile, encodePNG(w * imgs.length, h, out));
 }
-const diff = (fa, fb, tol) => {
+const diff = (fa, fb, tol, outFile) => {
   const A = decodePNG(fa), B = decodePNG(fb); let n = 0, any = 0, max = 0;
-  for (let i = 0; i < A.data.length; i += A.bpp) {
+  const vis = outFile ? Buffer.alloc(A.width * A.height * 3) : null, grid = new Array(8 * 5).fill(0);
+  for (let i = 0, px = 0; i < A.data.length; i += A.bpp, px++) {
     const d = Math.max(Math.abs(A.data[i] - B.data[i]), Math.abs(A.data[i + 1] - B.data[i + 1]), Math.abs(A.data[i + 2] - B.data[i + 2]));
-    if (d > tol) n++; if (d > 0) any++; if (d > max) max = d;
+    if (d > tol) { n++; const x = px % A.width, y = (px / A.width) | 0; grid[Math.floor(y * 5 / A.height) * 8 + Math.floor(x * 8 / A.width)]++; }
+    if (d > 0) any++; if (d > max) max = d;
+    if (vis) { if (d > 0) { vis[px * 3] = 255; vis[px * 3 + 1] = 0; vis[px * 3 + 2] = 255; } else { vis[px * 3] = A.data[i] >> 2; vis[px * 3 + 1] = A.data[i + 1] >> 2; vis[px * 3 + 2] = A.data[i + 2] >> 2; } }
   }
-  const total = A.width * A.height; return { pctOver: +(100 * n / total).toFixed(4), pctAny: +(100 * any / total).toFixed(4), max };
+  if (vis) fs.writeFileSync(outFile, encodePNG(A.width, A.height, vis));
+  const total = A.width * A.height; return { pctOver: +(100 * n / total).toFixed(4), pctAny: +(100 * any / total).toFixed(4), max, gridPctOver: grid.map(c => +(100 * c / (total / 40)).toFixed(1)) };
 };
 
 // ---- the browser side of things ---------------------------------------------------------------------
@@ -135,9 +139,9 @@ await stage('determinism', async () => {
       if (i === 0 && arm === 'before') data.renderer = await gpu(page);
       await page.close();
     }
-    const d = diff(files[0], files[1], D.tolerance);
+    const d = diff(files[0], files[1], D.tolerance, path.join(dir, `moved-${arm}.png`));
     data.determinism[arm] = d;
-    console.log(`determinism ${arm.padEnd(18)} moved ${d.pctOver}% of pixels by more than ${D.tolerance}; ${d.pctAny}% by any amount; biggest change ${d.max}/255`);
+    console.log(`determinism ${arm.padEnd(18)} moved ${d.pctOver}% of pixels by more than ${D.tolerance}; ${d.pctAny}% by any amount; biggest change ${d.max}/255; share moved per cell (8x5) ${JSON.stringify(d.gridPctOver)}`);
   }
   report('determinism: the frozen night moves 0% between two loads', data.determinism.after_frozen.pctAny === 0, `${data.determinism.after_frozen.pctAny}% any, ${data.determinism.after_frozen.pctOver}% over ${D.tolerance}`);
   report('determinism: a different seed is a different night (the switch does something)', diff(path.join(dir, 'after_frozen-0.png'), path.join(dir, 'after_frozen_seed7-0.png'), 0).pctAny > 0);
