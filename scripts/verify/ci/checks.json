@@ -225,6 +225,7 @@
   "laptop_only": {
     "apts-perf.mjs": "timing",
     "perf-frame-profile.mjs": "timing: scripts/perf wrapper for the AWS GPU runner; measures frame time, no verdict",
+    "perf-aws-suite.mjs": "timing: runs the scripts/perf tools in sequence on the AWS GPU runner, no verdict",
     "perf-load-profile.mjs": "timing: scripts/perf wrapper for the AWS GPU runner; measures cold-load time, no verdict",
     "arts-perf.mjs": "timing",
     "drag-perf.mjs": "timing",
