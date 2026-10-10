@@ -45,7 +45,7 @@ const log = (...a) => { const s = a.join(' '); logLines.push(s); console.log(s);
 const metrics = [];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-const browser = await launch(chromium, { gl: 'hardware', maxMs: 3300000 });
+const browser = await launch(chromium, { gl: process.env.VA_GL || 'hardware', maxMs: 3300000 });
 
 // ── helpers ───────────────────────────────────────────────────────────────────────────────────────────────
 async function newPage(vp, opts = {}) {
