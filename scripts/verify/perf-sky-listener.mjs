@@ -17,8 +17,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
-import { launch } from './chrome.mjs';
+// a 4x-throttled load takes longer than chrome.mjs's default 300 s watchdog
+process.env.VERIFY_MAX_MS = process.env.VERIFY_MAX_MS && +process.env.VERIFY_MAX_MS > 900000 ? process.env.VERIFY_MAX_MS : '900000';
+const { chromium } = await import('playwright-core');
+const { launch } = await import('./chrome.mjs');
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
