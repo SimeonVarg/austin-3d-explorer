@@ -494,11 +494,9 @@
     // held in float textures. The same cDay / cGold / cNight / aFacet / aSurface / normal values the attributes would have held.
     attribute vec2 aPack;
     uniform sampler2D u_packTones;
-    #if defined(MOIRE_FACES) && !defined(MOIRE_LOWP)
-    // highp: a lowp fetch loses a face number's low bits (docs/moire-fix.md)
-    uniform highp sampler2D u_packNormals;
-    #else
     uniform sampler2D u_packNormals;
+    #ifdef MOIRE_FACES
+    uniform highp sampler2D u_packFaces;   // the normal table again, at full precision: a lowp fetch loses a face number's low bits (docs/moire-fix.md)
     #endif
     vec3 cDay; vec3 cGold; vec3 cNight; float aFacet; vec4 aSurface; vec3 packedNormal;
     #define normal packedNormal
@@ -533,10 +531,10 @@
         cGold = texelFetch(u_packTones, t0 + ivec2(1, 0), 0).rgb;
         cNight = texelFetch(u_packTones, t0 + ivec2(2, 0), 0).rgb;
         aSurface = texelFetch(u_packTones, t0 + ivec2(3, 0), 0);
-        vec4 packedN = texelFetch(u_packNormals, ivec2(int(mod(nid, PACK_TEXW)), int(floor(nid / PACK_TEXW))), 0);
-        packedNormal = packedN.xyz;
+        ivec2 nAt = ivec2(int(mod(nid, PACK_TEXW)), int(floor(nid / PACK_TEXW)));
+        packedNormal = texelFetch(u_packNormals, nAt, 0).xyz;
         #ifdef MOIRE_FACES
-        v_faceRaw = packedN.w;
+        v_faceRaw = texelFetch(u_packFaces, nAt, 0).w;
         #endif
       }
       #endif
@@ -1081,10 +1079,9 @@ ${window.RoofTiles.apply}
     _byteFloats = f; _byteFloats.how = how;
     return f;
   }
-  function packOverflow(what, limit, faces) {
+  function packOverflow(what, limit) {
     const e = new Error('[slopes] ?packverts=1: more than ' + limit + ' distinct ' + what + ' (PACK.toneBits)');
     e.packOverflow = true;   // js/slopes-apartments.js lets this out of its per-building catch and rebuilds unpacked
-    e.moireFaces = !!faces;  // ...and when it was the moire fix's wall faces, packed again without them first
     return e;
   }
   // what makes two palette entries ONE tone: the text of their hex colours and surface numbers (js/slopes-rust.js uses the same key)
@@ -1139,7 +1136,7 @@ ${window.RoofTiles.apply}
         if (nb[o] === a && nb[o + 1] === b && nb[o + 2] === c && nf[o + 3] === d) return id;
         i = (i + 1) & mask;
       }
-      if (T.nNormals >= 2 ** (31 - PACK.toneBits)) throw packOverflow(d ? 'normals (with the moire fix\'s wall faces)' : 'normals', 2 ** (31 - PACK.toneBits), !!d);
+      if (T.nNormals >= 2 ** (31 - PACK.toneBits)) throw packOverflow('normals', 2 ** (31 - PACK.toneBits));
       const id = T.nNormals++;
       if (id * 4 + 4 > T.normals.length) { const g = new Float32Array(T.normals.length * 2); g.set(T.normals); T.normals = g; T.nbits = new Uint32Array(g.buffer); }
       T.normals[id * 4] = x; T.normals[id * 4 + 1] = y; T.normals[id * 4 + 2] = z; T.normals[id * 4 + 3] = d;
@@ -1154,7 +1151,7 @@ ${window.RoofTiles.apply}
       }
       return id;
     };
-    if (MF) MF.tables(T, hexToRgb01);
+    if (MF && !(renderer && renderer.capabilities.maxVertexTextures < 3)) MF.tables(T, hexToRgb01, 2 ** (31 - PACK.toneBits));   // the fix reads the normal table a second time
     /** [lo, hi] of the 32-bit word for a vertex: tone id, facet flag (0/1) and normal id */
     T.wordLo = (tone, facet, nid) => (tone | (facet << PACK.toneBits) | ((nid % PACK_NLOW) << (PACK.toneBits + 1))) >>> 0;
     T.wordHi = nid => Math.floor(nid / PACK_NLOW);

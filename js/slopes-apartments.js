@@ -2689,7 +2689,7 @@
     // area's failure list, which buildOnce has already added to) and the whole build runs again on the JS builder.
     // With the switch off the Rust builder never exists, nothing can carry the stamp, and this is one plain call.
     const snap = area ? { tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k]])), names: count.names.length, failed: area.failed.length } : null;
-    return S.withRustFallback(async function run(opts) {
+    return S.withRustFallback(async opts => {
       try { return await buildOnce(specs, area, opts); }
       catch (e) {
         if (e && (e.rustBuilderError || e.packOverflow) && snap) {
@@ -2697,8 +2697,7 @@
           area.failed.length = snap.failed;
         }
         // ?packverts=1 ran out of tone or normal indices (js/slopes.js PACK): the whole build again with the unpacked layout
-        // (when it was the moire fix's wall faces that did not fit, first once more packed without them)
-        if (e && e.packOverflow && !opts.nopack) { console.warn('[slopes-apartments]', e.message); return run(e.moireFaces && !opts.nofaces ? { ...opts, nofaces: true } : { ...opts, nopack: true }); }
+        if (e && e.packOverflow && !opts.nopack) { console.warn('[slopes-apartments]', e.message, '— building this one unpacked'); return buildOnce(specs, area, { ...opts, nopack: true }); }
         throw e;
       }
     });
@@ -2720,7 +2719,6 @@
     if (rustOpts.wasm && S.rustReady) await S.rustReady;
     // ?packverts=1: one pair of tone/normal tables for every chunk of this build; null with the switch off (then nothing changes).
     const pack = !rustOpts.nopack && S.packTables ? S.packTables() : null;
-    if (pack && rustOpts.nofaces) pack.facesOff = true;   // the moire fix's faces overflowed the normal table in a first try: this build carries none
     const buildOpts = pack ? { ...rustOpts, pack } : rustOpts;
     const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices, buildOpts) : S.build(undefined, buildOpts);
     B.filtered=[];

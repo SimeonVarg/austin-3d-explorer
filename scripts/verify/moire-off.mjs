@@ -4,7 +4,7 @@
  * Page A loads with `?moirefix=0` (no face recorded, no shader define: main's own program). Each page B (--b name=query) loads with the fix compiled
  * in (`moirefix=1`) and then set off inside the page (MoireFix.set('off')). The same six cameras are drawn in each (the moire bar's views) and
  * the canvases compared pixel for pixel. A picture tool, not a verdict: it prints the table and exits 0 (--gate: exit 1 unless every view has
- * at most --max-px differing pixels, default 0).
+ * at most --max-px differing pixels, default 0, outside what the control moved when there is a control).
  *
  *   VERIFY_URL=http://127.0.0.1:<port> node moire-off.mjs --out dir [--views a,b] [--b name=query ...] [--size WxH] [--max-px N] [--gate]
  *     --b name=query   one page B to compare with A (repeatable; default `compiled=`). `query` is extra URL switches; `control=moirefix=0` loads
@@ -99,7 +99,7 @@ function png(w, h, gray) {   // 8-bit grey PNG
 const t0 = Date.now(), T = () => ((Date.now() - t0) / 1000).toFixed(0) + 's';
 const A = await shoot('moirefix=0', null);
 console.error(`[off] A (moirefix=0) drawn ${T()}  ${A.info.renderer}`);
-const rows = [];
+const rows = [], masks = {};
 for (const b of Bs) {
   const B = await shoot((b.q.includes('moirefix=') ? '' : 'moirefix=1&') + b.q, B_JS);
   console.error(`[off] B ${b.name} drawn ${T()}  fix present: ${B.info.fix}`);
@@ -111,15 +111,25 @@ for (const b of Bs) {
       const d = Math.max(Math.abs(a.d[i] - c.d[i]), Math.abs(a.d[i + 1] - c.d[i + 1]), Math.abs(a.d[i + 2] - c.d[i + 2]));
       if (d) { n++; sum += d; if (d > max) max = d; if (d > 1) n2++; if (d > 8) n8++; g[p] = 255; }
     }
+    masks[b.name + '/' + v.name] = { g, w: a.w, h: a.h };
     rows.push({ b: b.name, view: v.name, differ: n, pct: 100 * n / N, over1: n2, over8: n8, pct8: 100 * n8 / N, mean: n ? sum / n : 0, max, total: N });
     if (n) fs.writeFileSync(path.join(OUT, `${b.name}.${v.name}.diff.png`), png(a.w, a.h, g));
   }
 }
+// pixels that differ outside what the control moved (the sky's stars and moon move between page loads: the control shows it), a pixel's neighbours included
+for (const r of rows) {
+  const m = masks[r.b + '/' + r.view], c = masks['control/' + r.view];
+  if (!m || !c || r.b === 'control') continue;
+  let k = 0; for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) { const p = y * m.w + x; if (!m.g[p]) continue; let near = false;
+    for (let dy = -2; dy <= 2 && !near; dy++) for (let dx = -2; dx <= 2; dx++) { const yy = y + dy, xx = x + dx; if (yy >= 0 && yy < m.h && xx >= 0 && xx < m.w && c.g[yy * m.w + xx]) { near = true; break; } }
+    if (!near) k++; }
+  r.outside = k;
+}
 const lines = [`moire-off  ${VW}x${VH}  renderer=${A.info.renderer}  samples A ${A.info.samples}`, 'A = ?moirefix=0; B = ?moirefix=1 + MoireFix.set("off") (+ the variant\'s switches). differing pixel = any channel differs.',
-  'variant'.padEnd(22) + 'view'.padEnd(20) + 'differ'.padStart(9) + '%'.padStart(8) + '>1 level'.padStart(10) + '%>8'.padStart(8) + 'mean|d|'.padStart(9) + 'max'.padStart(5)];
-for (const r of rows) lines.push(r.failed ? `${r.b.padEnd(22)}${r.view.padEnd(20)} FAILED ${r.failed}` : r.b.padEnd(22) + r.view.padEnd(20) + String(r.differ).padStart(9) + r.pct.toFixed(3).padStart(8) + String(r.over1).padStart(10) + r.pct8.toFixed(3).padStart(8) + r.mean.toFixed(2).padStart(9) + String(r.max).padStart(5));
+  'variant'.padEnd(22) + 'view'.padEnd(20) + 'differ'.padStart(9) + '%'.padStart(8) + '>1 level'.padStart(10) + '%>8'.padStart(8) + 'mean|d|'.padStart(9) + 'max'.padStart(5) + 'outside control'.padStart(17)];
+for (const r of rows) lines.push(r.failed ? `${r.b.padEnd(22)}${r.view.padEnd(20)} FAILED ${r.failed}` : r.b.padEnd(22) + r.view.padEnd(20) + String(r.differ).padStart(9) + r.pct.toFixed(3).padStart(8) + String(r.over1).padStart(10) + r.pct8.toFixed(3).padStart(8) + r.mean.toFixed(2).padStart(9) + String(r.max).padStart(5) + (r.outside == null ? '-' : String(r.outside)).padStart(17));
 if (errs.length) lines.push('PAGE ERRORS: ' + [...new Set(errs)].slice(0, 6).join(' | '));
 const text = lines.join('\n'); console.log(text);
 fs.writeFileSync(path.join(OUT, 'off.txt'), text + '\n'); fs.writeFileSync(path.join(OUT, 'off.json'), JSON.stringify(rows, null, 1));
 await browser.__done();
-process.exit(GATE && rows.some(r => r.failed || r.differ > MAXPX) ? 1 : 0);
+process.exit(GATE && rows.some(r => r.failed || (r.outside ?? r.differ) > MAXPX) ? 1 : 0);

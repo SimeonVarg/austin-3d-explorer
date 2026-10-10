@@ -7,8 +7,8 @@
   const q = new URLSearchParams(location.search), CityLighting = window.CityLighting;
   // Every threshold is a field here (MoireFix.params, live). Units are in docs/moire-fix.md.
   const P = {
-    dbg: q.get('moiredbg') || '',   // TEMPORARY (experiment switches)
     px: [1.0, 2.5], pxV: [1.0, 2.5],   // pixels across / up a wall face's feature: the cell is its row's (face's) mean under [0], itself over [1]
+    normalShare: 0.9,                  // no new wall face once this share of the normal table is used
     rowRes: 0.25,                      // metres of wall height per texel of a face's row strip
     edge: q.get('moireedge') !== '0',  // window-edge smoothing from the two pane strips
     edgeRes: 0.1, edgePx: [1.0, 2.0],  // metres per strip texel; pixel size in strip texels: none under [0], full over [1]
@@ -23,7 +23,7 @@
 
   function glsl(core, reflect) {
     const call = 'cityShade(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse)';
-    const far = CityLighting.moire.split ? core.replace(call, 'cityShadeLit(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse,cityVisibility)') : core;
+    const far = core.replace(call, 'cityShadeLit(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse,cityVisibility)');
     return `
     #if defined(MOIRE_FACES) && !defined(FACADE_FILTER)
     #define MOIRE_ACTIVE 1
@@ -134,15 +134,16 @@ ${reflect}      }
   }
   /** js/slopes.js's fragment shader with this chunk added before main() and one call before gl_FragColor; the class shades reuse FRAG's own text */
   function patch(frag) {
-    const a = frag.indexOf('vec3 col=baseColor.rgb;'), b = frag.indexOf('if(kind>.5 && u_surfaceRange.x>.5) {'), r = frag.indexOf('float fresnel=pow('),
-      e = frag.indexOf('*daylight);', r) + 11, m = frag.indexOf('void main() {'), g = frag.indexOf('gl_FragColor=');
+    // the anchors are searched from main() down: the city-lighting text spliced in above it has similar lines of its own
+    const m = frag.lastIndexOf('void main() {'), a = frag.indexOf('vec3 col=baseColor.rgb;', m), b = frag.indexOf('if(kind>.5 && u_surfaceRange.x>.5) {', a),
+      r = frag.indexOf('float fresnel=pow(1.0-abs(dot(n,view)),3.0);', b), e = frag.indexOf('*daylight);', r) + 11, g = frag.indexOf('gl_FragColor=', e);
     const core = '      ' + frag.slice(a, b).trimEnd() + '\n';
-    if (a < 0 || b < a || r < b || e < r || m < 0 || g < m || !core.includes('cityShade(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse)')) {
+    if (m < 0 || a < m || b < a || r < b || e < r || g < e || !core.includes('cityShade(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse)')) {
       console.warn('[moire] cannot find the cell shader\'s text in js/slopes.js; the fix is off'); CityLighting.moire.on = false; return frag;
     }
     return frag.slice(0, m) + glsl(core, '          ' + frag.slice(r, e) + '\n') + frag.slice(m, g) + '#ifdef MOIRE_ACTIVE\n      col=moireBlend(col,glazing);\n      #endif\n      ' + frag.slice(g);
   }
-  function tables(T, hexToRgb01) {
+  function tables(T, hexToRgb01, maxNormals) {
     const FT = P.FACE_TEXELS * 4, RW = P.ROW_W;
     T.nFaces = 1; T.faces = null; T.rowA = null; T.rowB = null; T.rowX = 0; T.rowY = 0;   // face 0 = "no face"; arrays made on the first face
     T.fine = null; T.nFine = 0;                                                            // the edge strips' running sums, one float each
@@ -150,7 +151,7 @@ ${reflect}      }
     const b3 = hex => { let c = bytes.get(hex); if (!c) { const f = hexToRgb01(hex); c = [Math.round(f[0] * 255), Math.round(f[1] * 255), Math.round(f[2] * 255)]; bytes.set(hex, c); } return c; };
     let F = null;
     T.faceOpen = (z0, z1, len, origin, along, outward) => {
-      if (T.facesOff || P.dbg.includes('nofaces') || !(z1 > z0)) return 0;
+      if (T.nNormals > P.normalShare * maxNormals || !(z1 > z0)) return 0;   // the normal table is nearly full: no more faces, rather than an overflow
       const n = Math.max(1, Math.ceil((z1 - z0) / P.rowRes - 1e-6));
       if (n > RW || T.nFaces >= 65535) return 0;
       if (T.rowX + n > RW) { T.rowX = 0; T.rowY++; }
@@ -279,9 +280,8 @@ ${reflect}      }
       const fine = new T.DataTexture(fd, W, fr, T.RedFormat, T.FloatType); fine.minFilter = fine.magFilter = T.NearestFilter; fine.generateMipmaps = false; fine.needsUpdate = true;
       Object.assign(tx, { faces: tex(tables.faces, tables.nFaces * P.FACE_TEXELS, W), rowA: strip(tables.rowA), rowB: strip(tables.rowB), fine });
     }
-    Object.assign(out.uniforms, { u_moireFaces: { value: tx.faces }, u_moireRowA: { value: tx.rowA }, u_moireRowB: { value: tx.rowB }, u_moireFine: { value: tx.fine } });
+    Object.assign(out.uniforms, { u_packFaces: { value: tables.tex.normals }, u_moireFaces: { value: tx.faces }, u_moireRowA: { value: tx.rowA }, u_moireRowB: { value: tx.rowB }, u_moireFine: { value: tx.fine } });
     Object.assign(out.defines, { MOIRE_FACES: 1, MOIRE_TEXW: W, MOIRE_FACE_TEXELS: P.FACE_TEXELS, MOIRE_ROW_W: P.ROW_W.toFixed(1) });
-    if (P.dbg.includes('lowp')) out.defines.MOIRE_LOWP = 1;
   }
   const uniforms = T => ({ u_moire: { value: new T.Vector4() }, u_moireB: { value: new T.Vector4() }, u_moireC: { value: new T.Vector4() }, u_moireD: { value: new T.Vector4() } });
   /** each frame: mode 0 on a multisampled context (four real samples place a window's edge better than the strips do) unless moiresmooth=1 */

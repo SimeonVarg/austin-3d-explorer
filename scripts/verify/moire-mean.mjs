@@ -151,7 +151,7 @@ function lighting() {
 }
 
 // ---- run ---------------------------------------------------------------------------------------------------------
-const T = S.packTables();
+const T = S.packTables(); const MAXN = 2 ** (31 - 14);
 say(!!(T && T.faceOpen), 'the packed tables carry the face recorder');
 const recs = FACES.map(F => record(T, F));
 const FT = MOIRE.FACE_TEXELS * 4, RW = MOIRE.ROW_W;
@@ -235,14 +235,15 @@ say(worstPic <= 8.0, `3b. dusk and night: worst channel difference ${worstPic.to
 // a face of one tone takes no record; the fix off takes no face at all
 { const T2 = S.packTables(); const id = T2.faceOpen(0, 10); T2.faceCell(0, 5, 0, 10, tone([100, 100, 100]), false, false, 0, 0, 0); T2.faceClose();
   say(id === 1 && T2.faces[id * FT + 11] === 0, 'a face of one tone stays inactive (feature size 0: FRAG leaves it alone)');
-  T2.facesOff = true; say(T2.faceOpen(0, 10) === 0, 'with the faces switched off no face number is handed out'); }
+  T2.nNormals = MAXN; say(T2.faceOpen(0, 10) === 0, 'with the normal table nearly full no face number is handed out (no overflow)'); }
 // the normal table: a face number separates two entries of one direction, and no face is the entry it always was
 { const T3 = S.packTables(); const a = T3.normal(1, 0, 0), b = T3.normal(1, 0, 0, 7), c = T3.normal(1, 0, 0, 7), d = T3.normal(1, 0, 0);
   say(a === 0 && b === 1 && c === 1 && d === 0 && T3.normals[3] === 0 && T3.normals[7] === 7, 'a wall face rides in the normal table\'s fourth float; a normal without one keeps its entry'); }
 // the shader patch finds its anchors in js/slopes.js's fragment shader text (a rewrite of that shader that moves them turns the fix off in the page)
 { const src = fs.readFileSync(path.join(REPO, 'js/slopes.js'), 'utf8'), a = src.indexOf('const FRAG0 = `') + 'const FRAG0 = `'.length, b = src.indexOf('`;', a);
-  const frag = new Function('window', 'return `' + src.slice(a, b) + '`')(globalThis);
+  const decoy = 'vec3 col=baseColor.rgb; float fresnel=pow(1.0-clamp(x,0.0,1.0),5.0); void main() {} if(kind>.5 && u_surfaceRange.x>.5) {}\n';   // the city-lighting text above main() has lines like these
+  const frag = decoy + new Function('window', 'return `' + src.slice(a, b) + '`')(globalThis);
   const out = globalThis.MoireFix.patch(frag), open = (out.match(/{/g) || []).length, close = (out.match(/}/g) || []).length;
-  say(out !== frag && out.includes('col=moireBlend(col,glazing);') && out.includes('vec3 moireFar(') && out.indexOf('vec3 moireFar(') < out.indexOf('void main() {') && open === close, `the shader patch finds its anchors in FRAG (${frag.length} -> ${out.length} characters, braces ${open}/${close})`); }
+  say(out !== frag && out.includes('col=moireBlend(col,glazing);') && out.includes('vec3 moireFar(') && out.indexOf('vec3 moireFar(') < out.lastIndexOf('void main() {') && open === close, `the shader patch finds its anchors in FRAG (${frag.length} -> ${out.length} characters, braces ${open}/${close})`); }
 console.log(failed ? `\nFAIL: ${failed} check(s)` : '\nPASS: the means are the true means, and the far wall is as bright as the near wall');
 process.exit(failed ? 1 : 0);
