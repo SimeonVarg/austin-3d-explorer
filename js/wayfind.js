@@ -1155,6 +1155,7 @@
     doorNone: "We don't have door locations for this building — the route ends at the building",
     noRoute: 'No walking route found',
     notFound: (s) => 'We couldn’t find “' + s + '”.',
+    graphFailed: 'Walking routes couldn’t load. Reload the page to try again.',
     notRoutable: 'We have no door or path for this building.',
     avoidStairs: 'Avoid stairs',
     // 5b — was "every staircase OpenStreetMap has mapped on campus", which is
@@ -8208,7 +8209,8 @@
       return;
     }
     buildUI();
-    try { await loadGraph(); } catch (e) { return; }
+    // If the walking-path data does not load, the sheet opens and says so, instead of staying blank (B19).
+    try { await loadGraph(); } catch (e) { failText(SAY.graphFailed); return; }
     const f = urlFrom ? resolve(urlFrom) : null;
     const t = urlTo ? resolve(urlTo) : null;
     if (urlFrom && !f) { el.inFrom.value = urlFrom; failText(SAY.notFound(urlFrom)); return; }
@@ -12721,7 +12723,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     errNotImage: "That file isn't a picture. Choose a photo or a screenshot.",
     errImgBig: (mb) => 'That picture is ' + mb + ' MB. Take a screenshot instead, ' +
       'or choose a smaller one.',
-    errImgRead: 'That picture could not be read on this device.',
+    errImgRead: 'We couldn’t read that picture. Try again, or take a screenshot of your schedule instead.',
     // THE ONE FAILURE THAT IS NOT ABOUT THE PICTURE AT ALL. It names the
     // format, says whose fault it is, and gives the way round it — and the way
     // round it is one gesture the student already knows, on the device they are
