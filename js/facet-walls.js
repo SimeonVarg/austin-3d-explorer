@@ -24,6 +24,8 @@
   const q = new URLSearchParams(window.location.search);
   const TUNE = {                      // CLAUDE.md rule 11: every look value is here
     maxRows: 48, maxCols: 64, maxLines: 48,
+    revealShade: 1.0,                 // the brightness of the part of a window opening that is reveal (the recess wall seen past the glass), against the wall. 1 = lit like the wall; the geometry's reveals are side faces, mostly turned from the sun and shadowed by the recess
+    shadeMode: 0,                     // 0 the app's cityShade on the pixel's mean albedo; 1 wall and glass shaded apart, the two framebuffer colours averaged (fShade); 2 the per-vertex light split the same way; 3 both. scripts/verify/facet-bias.mjs measures each against the geometry
     farWindows: [3.5, 7.0],           // a pixel footprint this many window periods wide: the exact grid fades to the piece's mean colour. NOT near one window: the closed-form integral is exact
                                       // for a footprint of any size, so a fade there only adds error (the first in-app run used 0.5 to 1.2 and the moire meter read worse than the geometry, and the lit windows washed out)
     selfCheckPoints: 24, selfCheckTolerance: 0.02,   // share of sampled points that may disagree with the generator's tone function
@@ -52,6 +54,22 @@
   const rgb8 = h => { const c = hex(h); return [Math.round(c[0] * 255), Math.round(c[1] * 255), Math.round(c[2] * 255)]; };
   const ZR = 1e-4;
 
+  // the generator's own rounding defect (issue #474): it cuts every wall piece at +z.toFixed(4), then asks "does this window / frame ring / spandrel / head / accent span this band"
+  // with the UNROUNDED edge and a 1e-6 slack, so a region whose edge moves by more than 1e-6 under that rounding (down at its bottom, up at its top) loses its cell in the geometry
+  // (a window shows the frame colour where the glass should be). The recipe says glass; the shader would draw it and the picture would differ from the geometry's for a reason
+  // that is not the shader's. Such pieces stay geometry until the generator is fixed. The regions are the ones the generator builds in tileFace, with its own formulas.
+  function roundingDefect(wins, z0, z1) {
+    const bad = (lo, hi) => (lo > z0 && lo < z1 && lo > +lo.toFixed(4) + 1e-6) || (hi > z0 && hi < z1 && hi < +hi.toFixed(4) - 1e-6);
+    for (const w of wins) {
+      const zt = w.zTop != null ? w.zTop : w.z1, fh = w.frame && w.frame.w > 0 ? (w.frame.h != null ? w.frame.h : w.frame.w) : 0;
+      if (bad(w.z0, w.z1)) return true;
+      if (fh > 0 && bad(Math.max(z0, w.z0 - fh), Math.min(z1, w.z1 + fh))) return true;
+      if (w.spandrel && w.spandrel.h > 0 && w.z0 > z0 + 1e-6 && bad(Math.max(z0, w.z0 - fh - w.spandrel.h), w.z0 - fh)) return true;
+      if (w.head && w.head.h > 0 && zt < z1 - 1e-6 && bad(zt + fh, Math.min(z1, zt + fh + w.head.h))) return true;
+      if (w.accent && w.accent.w > 0 && bad(Math.max(z0, w.z0 + (w.accent.dz0 || 0)), Math.min(z1, zt + (w.head && w.head.h > 0 ? w.head.h : 0) + (w.accent.dz1 || 0)))) return true;
+    }
+    return false;
+  }
   // ── the piece: from the generator's resolved skin to a record ────────────
   function take(rec) {
     stats.pieces++;
@@ -65,6 +83,7 @@
     if (skin.piers || skin.fins || skin.facets) return REFUSE('blades');
     if (band && band.openings && band.openings.length) return REFUSE('band openings');
     const wins = skin.windows || [];
+    if (roundingDefect(wins, z0, z1)) return REFUSE('generator rounding defect (#474)');
     for (const w of wins) {
       if (w.arch) return REFUSE('arch');
       if (w.opening) return REFUSE('opening');
@@ -258,6 +277,29 @@
       return clamp(col * directional * u_lightcolor, mix(vec3(0.0), vec3(0.3), vec3(1.0) - u_lightcolor), vec3(1.0));
     }
     vec3 fMixP(vec3 d, vec3 g, vec3 n) { return u_materialP <= .5 ? mix(d, g, u_materialP * 2.0) : mix(g, n, (u_materialP - .5) * 2.0); }
+    // the app's cityShade (js/city-lighting.js) for a pixel that is part wall and part glass. cityShade lights ONE albedo and mixes in the sky mirror from that
+    // colour; a pixel that is 40% window must instead be a wall pixel and a glass pixel, each shaded as its own surface, and the two FRAMEBUFFER colours averaged,
+    // which is what the geometry's own pixel is once its edges are anti-aliased. Same sun, same shadow lookup (once), same sky, same highlight.
+    vec3 fShade(vec3 original, vec3 albedoW, vec3 albedoG, vec3 pos, vec3 normal, float cgl, float gw) {
+      if (u_sunlight.x < .5 || u_sunPresence.x <= 0.0) return original;
+      vec3 n = normalize(normal), view = normalize(u_eye - pos);
+      float facing = max(dot(n, u_sunDirection), 0.0);
+      float visibility = sunlightVisibility(pos, n);
+      float skyFill = u_citySkyFill.x + u_citySkyFill.y * max(n.z, 0.0);
+      vec3 lightIn = linearColour(u_shadeColour) * (u_sunlight.y + skyFill) + linearColour(u_sunColour) * facing * visibility * u_sunlight.z;
+      vec3 dW = linearColour(albedoW) * lightIn, dG = linearColour(albedoG) * lightIn;
+      if (gw > 0.0 && cgl > 0.0) {
+        vec3 reflected = reflect(-view, n);
+        float fresnel = pow(1.0 - clamp(abs(dot(n, view)), 0.0, 1.0), 5.0);
+        float reflectance = clamp(mix(u_sunlight.w, 1.0, fresnel) * gw * u_glassStrength, 0.0, 1.0);
+        vec3 environment = linearColour(reflectedSky(reflected));
+        float alignment = max(dot(reflected, u_sunDirection), 0.0);
+        float highlight = pow(alignment, u_glassSun.y) * u_glassSun.x + pow(alignment, u_glassSun.z) * u_glassSun.w;
+        environment += linearColour(u_sunColour) * highlight * visibility * smoothstep(0.0, .08, facing);
+        dG = mix(dG, environment, reflectance);
+      }
+      return mix(original, mix(displayColour(dW), displayColour(dG), cgl), u_sunPresence.x);
+    }
     #endif
   `;
   const FRAG_DECL = `
@@ -270,6 +312,8 @@
     uniform highp sampler2D u_ft;
     uniform float u_fAA;
     uniform float u_fParallax;
+    uniform float u_fdbg;
+    uniform float u_fRev;
     vec4 FD(int i){ return texelFetch(u_fd, ivec2(i & 2047, i >> 11), 0); }
     vec4 FTn(int tone, int k){ int i = tone * 4 + k; return texelFetch(u_ft, ivec2(i & 2047, i >> 11), 0); }
     float fCum(float x, float P, float a, float b, float i0, float i1) {
@@ -290,6 +334,7 @@
   const FRAG_APPLY = `
       #ifdef FACET_WALL
       float facetCg = 0.0, facetGW = 1.0;
+      vec3 facetAW = vec3(0.0), facetAG = vec3(0.0);
       {
         int pi = int(v_fPiece + .5);
         vec4 t0 = FD(pi), t1 = FD(pi + 1), t2 = FD(pi + 2), t3 = FD(pi + 3), t4 = FD(pi + 4), t5 = FD(pi + 5), t6 = FD(pi + 6), t7 = FD(pi + 7), t8 = FD(pi + 8), t9 = FD(pi + 9), t10 = FD(pi + 10), t11 = FD(pi + 11), t12 = FD(pi + 12);
@@ -366,8 +411,8 @@
           if (cF > 0.0) { int h = int(t5.w + .5); D = mix(D, FTn(h, 0).rgb, cF); G = mix(G, FTn(h, 1).rgb, cF); Nn = mix(Nn, FTn(h, 2).rgb, cF); }
           if (co > 0.0) {
             int rt = int(t3.x + .5), gt = int(t2.w + .5);
-            D = D * (1.0 - co) + FTn(rt, 0).rgb * (co - cg) + FTn(gt, 0).rgb * cg;
-            G = G * (1.0 - co) + FTn(rt, 1).rgb * (co - cg) + FTn(gt, 1).rgb * cg;
+            D = D * (1.0 - co) + FTn(rt, 0).rgb * ((co - cg) * u_fRev) + FTn(gt, 0).rgb * cg;
+            G = G * (1.0 - co) + FTn(rt, 1).rgb * ((co - cg) * u_fRev) + FTn(gt, 1).rgb * cg;
             Nn = Nn * (1.0 - co) + FTn(rt, 2).rgb * (co - cg) + glN;
           }
           if (cm > 0.0) { int mt = int(t7.y + .5); D = mix(D, FTn(mt, 0).rgb, cm); G = mix(G, FTn(mt, 1).rgb, cm); Nn = mix(Nn, FTn(mt, 2).rgb, cm); }
@@ -377,6 +422,16 @@
           D = mix(D, mD, farK); G = mix(G, mG, farK); Nn = mix(Nn, mN, farK); cg = mix(cg, t10.y, farK);
         }
         vec3 color = fMixP(D, G, Nn);
+        // the glass tone and the wall-only remainder of the pixel's colours (D, G, Nn are (1 - cg) wall + cg glass)
+        int gtI = int(t2.w + .5);
+        vec3 gD = FTn(gtI, 0).rgb, gG = FTn(gtI, 1).rgb, gN = FTn(gtI, 2).rgb;
+        float wallShare = max(1.0 - cg, 1e-3);
+        vec3 wD = cg > 0.999 ? D : clamp((D - cg * gD) / wallShare, 0.0, 1.0);
+        facetAW = wD; facetAG = gD;
+        if (u_fdbg > 1.5 && cg > 0.0 && cg < 0.999) {
+          vec3 wG = clamp((G - cg * gG) / wallShare, 0.0, 1.0), wN = clamp((Nn - cg * gN) / wallShare, 0.0, 1.0);
+          baseColor = vec4(mix(fLit(fMixP(wD, wG, wN), v_normal), fLit(fMixP(gD, gG, gN), v_normal), cg), 1.0) * u_opacity;
+        } else
         baseColor = vec4(fLit(color, v_normal), 1.0) * u_opacity;
         albedo = D; night = Nn;
         surface = cg > ${TUNE.glassKindMin.toFixed(2)} ? surfGlass : surfField;
@@ -396,18 +451,24 @@
     // the glass fraction of a pixel drives the glass effects CONTINUOUSLY (the app's own code switches them on a whole pixel at a time, which is right for a cell
     // and wrong for a pixel that is 40% window): window light, glass reflection, the sky seen in the glass, and the wall's night ambient
     const edits = [
-      ['float glassResponse=glazing*(shop?1.0:clamp(surface.w,0.0,1.0));', '\n#ifdef FACET_WALL\n      glazing = facetCg; glassResponse = facetCg * clamp(facetGW, 0.0, 1.0);\n#endif'],
+      ['float glassResponse=glazing*(shop?1.0:clamp(surface.w,0.0,1.0));', '\n#ifdef FACET_WALL\n      glazing = facetCg; glassResponse = facetCg * clamp(facetGW, 0.0, 1.0);\n      if (u_fdbg > 199.5) glassResponse = facetCg > .5 ? 1.0 : 0.0;   // debug (scripts/verify/facet-bias.mjs): glass response forced on wherever there is glass\n#endif'],
       ['float opaqueWall=(kind<3.5||kind>6.5)?1.0:0.0;', '\n#ifdef FACET_WALL\n      opaqueWall = 1.0 - facetCg;\n#endif'],
       ['float strength=surface.w;', '\n#ifdef FACET_WALL\n        if(kind>3.5&&kind<4.5) strength *= facetCg;\n#endif'],
     ];
     let fs0 = frag;
     for (const [anchor, add] of edits) { if (!fs0.includes(anchor)) throw new Error('[facet] js/slopes.js shader text moved: ' + anchor); fs0 = fs0.replace(anchor, anchor + add); }
+    const shade = 'col=cityShade(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse)*baseColor.a;';
+    if (!fs0.includes(shade)) throw new Error('[facet] js/slopes.js shader text moved: cityShade');
+    fs0 = fs0.replace(shade, '#ifdef FACET_WALL\n      if (mod(u_fdbg, 2.0) > .5) col = fShade(col / max(baseColor.a, .0001), facetAW, facetAG, v_pos, v_normal, facetCg, facetGW) * baseColor.a;\n      else\n#endif\n      ' + shade);
     const emit = 'col=cityEmission(col,night,((kind>3.5&&kind<5.5)||shop)?1.0:0.0);';
     if (!fs0.includes(emit)) throw new Error('[facet] js/slopes.js shader text moved: cityEmission');
     fs0 = fs0.replace(emit, '#ifdef FACET_WALL\n      col=cityEmission(col,night,facetCg);\n#else\n      ' + emit + '\n#endif');
     const gl = 'if(glazing>.5) {';
     if (!fs0.includes(gl)) throw new Error('[facet] js/slopes.js shader text moved: glass branch');
     fs0 = fs0.replace(gl, '#ifdef FACET_WALL\n        if(kind>3.5&&kind<4.5) {\n#else\n        ' + gl + '\n#endif');
+    const fin = 'gl_FragColor=vec4(col,baseColor.a*faceMix);';
+    if (!fs0.includes(fin)) throw new Error('[facet] js/slopes.js shader text moved: the final colour');
+    fs0 = fs0.replace(fin, '#ifdef FACET_WALL\n      if (u_fdbg > 99.5 && u_fdbg < 199.5) { gl_FragColor = vec4(facetCg, clamp(facetGW, 0.0, 1.0), kind / 8.0, 1.0); return; }   // debug: glass share, glass response, surface kind\n#endif\n      ' + fin);
     const fs = fs0.replace(a3, FRAG_DECL + a3).replace(a4, FRAG_FUNCS + a4).replace(a2, a2 + FRAG_APPLY);
     return { vs, fs };
   }
@@ -426,7 +487,7 @@
     tones.forEach((t, i) => { ftArr.set([...t.d, 0, ...t.g, 0, ...t.n, 0, t.s[0] || 0, t.s[1] || 0, t.s[2] || 0, t.s[3] || 0], i * 16); });
     const tex = (arr, w, h, fmt, type) => { const t = new T.DataTexture(arr, w, h, T.RGBAFormat, type); t.minFilter = t.magFilter = T.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; if (fmt) t.internalFormat = fmt; return t; };
     const tFd = tex(fdArr, FDW, hfd, 'RGBA32F', T.FloatType), tWt = tex(wtArr, FDW, hwt, null, T.UnsignedByteType), tFt = tex(ftArr, FDW, hft, 'RGBA32F', T.FloatType);
-    const uniforms = Object.assign({}, base.uniforms, { u_fd: { value: tFd }, u_wt: { value: tWt }, u_ft: { value: tFt }, u_fAA: { value: TUNE.aa }, u_fParallax: { value: TUNE.parallax } });
+    const uniforms = Object.assign({}, base.uniforms, { u_fd: { value: tFd }, u_wt: { value: tWt }, u_ft: { value: tFt }, u_fAA: { value: TUNE.aa }, u_fParallax: { value: TUNE.parallax }, u_fdbg: { value: +(q.get('facetmode') ?? TUNE.shadeMode) }, u_fRev: { value: TUNE.revealShade } });
     const mat = new T.ShaderMaterial({ defines: { FACET_WALL: 1 }, uniforms, vertexShader: vs, fragmentShader: fs, side: T.DoubleSide, depthTest: true, depthWrite: true, transparent: false, blending: T.NoBlending });
     mat.defaultAttributeValues.aGrad = [0, 0]; mat.defaultAttributeValues.cDay = [0, 0, 0]; mat.defaultAttributeValues.cGold = [0, 0, 0]; mat.defaultAttributeValues.cNight = [0, 0, 0];
     mat.defaultAttributeValues.aFacet = [0]; mat.defaultAttributeValues.aSurface = [0, 0, 0, 0];

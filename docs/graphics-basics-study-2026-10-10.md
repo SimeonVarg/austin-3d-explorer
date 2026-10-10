@@ -413,6 +413,94 @@ What it does deliver, measured: **39.7% of the authored triangles removed (36.7%
 
 **Not measured:** the page's frame time flag off against on (on the Intel chip or the L4; the app bench takes pictures and counters, no timing); the GPU cost of the interpreter shader at the app's real pixel counts (the probe's facade-like shader is the nearest: 0.31 ns a pixel on the Intel chip); a phone; and the far-view dark bias's cause.
 
+### 8.7 The Mac frame time of the real page (added after the call to action: this is the number the owner asked for)
+
+**What was measured.** The real page (`_harness.html`, the same one the other checks use) on the owner's Intel Iris Plus 655 Mac, headless Chrome with hardware GL, vsync off, 1440x900, three camera views (spawn, West Campus, a high view), the day light. Each frame is a repaint ended by a one-pixel readback, so the card has really finished. 45 frames a view, the first 5 dropped, p50 and p90 reported; each arm is a separate page load; arms are interleaved (a b c d, a b c d, a b c d) and the table keeps the **minimum over three reps** (`experiments/facet/mac-frame.mjs`, run through `gpu-run`; raw rows in `docs/graphics-basics-study-2026-10-10/mac/frame-1.json`).
+
+| arm | spawn p50 / p90 (ms) | West Campus p50 / p90 | high view p50 / p90 |
+|---|---|---|---|
+| a `main` (this branch, flag off) | 101.6 / 118.1 | 88.2 / 103.8 | 80.7 / 98.0 |
+| b `?facadeshader=1` | 92.7 / 102.8 | 80.7 / 91.7 | 72.0 / 87.0 |
+| c `?packverts=1` (PR #453, merged into a scratch copy) | **82.4 / 93.9** | **70.2 / 86.1** | **63.2 / 74.9** |
+| d b + c | 83.0 / 97.6 | 69.5 / 78.0 | 61.7 / 76.0 |
+
+**Reading it.** On this chip **packed vertices are the lever: 19% at spawn, 20% in West Campus, 22% at the high view at p50.** The Facet flag alone is worth 9 to 11%. **They do not add**: with packed vertices on, the Facet walls bring nothing measurable on top (d against c is within the run-to-run noise, about 2 ms). b and c compose without work (both flags on: the Facet mesh is drawn, the apartments are packed). So for this Mac what ships is `packverts`; the Facet flag stays an opt-in for memory (the buffers) and for the moire work, not for speed.
+
+What each arm submits (from the geometry arrays and the app's own draw count; the apartments only):
+
+| arm | triangles drawn at spawn / West Campus / high | vertices uploaded | bytes a vertex (all attribute arrays) | vertex bytes fetched at the high view |
+|---|---|---:|---:|---:|
+| a | 2.68 M / 3.10 M / 3.12 M | 6.53 M | 50 | 326 MB |
+| b | 1.85 M / 1.95 M / 1.97 M | 4.30 M | 50 | 215 MB |
+| c | 2.68 M / 3.10 M / 3.12 M | 6.53 M | 16 | 104 MB |
+| d | 1.85 M / 1.95 M / 1.97 M | 4.30 M | 16.4 | 71 MB |
+
+(The last column is vertices times bytes, with every vertex drawn at the high view; at spawn about 86% of it. The Facet mesh adds a tangent, a UV and a piece id, so d is 16.4 and not 16.) The frame time follows bytes, not triangles: a to c cuts bytes by 68% and time by about 20%; a to b cuts triangles by 37% and bytes by 34% and time by about 10%. That is what the weak-chip probe said (section 5): vertex-fetch bound.
+
+**Honest limits.** The machine was not quiet. Its swap was 85 to 94% full all night, other lanes kept rendering, and the load average at the timed views was 25 to 31 in rep 1 and 9 to 13 in reps 2 and 3 (my own Chrome is part of that). Rep 1 is the worst of the three in every arm, which is why the minimum is used. A second, independent run of arms a and c (`frame-2-lightvs.json`, the same day) gives a: 103.2 / 91.8 / 82.4 and c: 81.7 / 72.1 / 64.9 at p50, within about 2 ms of the table: the ranking and the size of the gap repeat. Absolute milliseconds on a quiet machine will be lower. Headless Chrome with vsync off is not the owner's browser window (which was not measured and is capped by the display).
+
+
+### 8.8 A lighter lighting vertex shader: measured, and it buys nothing on this chip
+
+The app's vertex shader (`VERT` in `js/slopes.js`) does, for every vertex: pick the day, golden or night colour by the hour (a branch and two mixes), normalise the normal, the facet-shade branch for sloped roofs, the light terms, six varyings out, and `projectionMatrix * modelViewMatrix * vec4(position, 1.0)`, which GLSL evaluates left to right, so it is **two 4x4 matrix products per vertex before the vector** (64 multiplies instead of 16). I profiled the pieces with one page (`experiments/facade-shader/page/probe-vs.html`, run by `probe-vs.mjs`): a grid of about 1 px triangles over the whole screen, the app's 28-byte vertex, seven vertex-shader variants, interleaved, minimum of 7 rounds, on the Mac chip (quiet at the time: load 1.6):
+
+| vertex shader | ns a vertex | Mvert/s |
+|---|---:|---:|
+| fetch only (position, normal, three colours), no matrix | 14.73 | 67.9 |
+| fetch + `P * MV * v` as written | 14.08 | 71.0 |
+| fetch + `P * (MV * v)` | 13.73 | 72.8 |
+| app lighting, one varying, no matrix | 13.92 | 71.8 |
+| app lighting + six varyings, no matrix | 13.77 | 72.6 |
+| **the app's vertex shader as written** | **13.67** | **73.1** |
+| the lighter one (weights, unit normal, `P * (MV * v)`) | 13.77 | 72.6 |
+
+**Every row is the same within noise (about 3%).** The lighting arithmetic, the six varyings and the double matrix product cost nothing measurable: this chip spends its vertex time fetching and setting up the vertex, not computing on it. Together with the earlier probe (a trivial 8-byte vertex 5.2 ns; 24 bytes 11.8 ns; 28 bytes 14 ns) it is a straight line in bytes, which is why packing the vertex works (section 8.7) and a lighter shader does not.
+
+The cheapest cut was still built and measured as arm e, behind `?lightvs=1` (the colour from three per-frame weights instead of the branch and two mixes, the unit normal used as written, `P * (MV * v)`; the five varyings were checked and **all** are read by the fragment shader, so none can be dropped on a low tier without changing the picture): on the real page, **no change**. Arm e against arm a, minimum of 3 interleaved reps, p50: spawn 102.2 against 103.2 ms, West Campus 93.1 against 91.8, high 82.5 against 82.4; with packed vertices on (arm g against arm c): 86.7 against 81.7, 70.5 against 72.1, 58.5 against 64.9, mixed in sign, i.e. noise. The picture check (a one-off page built on `packverts-pixels.mjs`'s method: one page load, the switch flipped in place, every non-three.js layer hidden, ten poses, exact per-channel compare, software GL on the laptop; the script is not kept because the switch is not) says **the cut is pixel-exact: zero pixels moved in all eight day views; in the two night views 114 and 219 pixels move, against 122 and 234 for the control (the same shader compared with itself later), so nothing beyond the page's own flicker.** There is no picture to tier-gate. The switch is therefore **not part of this pull request** (no benefit to tier-gate; it stays out of `js/slopes.js`). The profile page and the numbers stay in the branch so a different chip can be asked the same question in 20 seconds (`node experiments/facade-shader/probe-vs.mjs`).
+
+
+### 8.9 The dark bias: it was mostly the generator's bug, not the shader's shading; what is left
+
+**The instrument** (`scripts/verify/facet-bias.mjs`, one page load with `?facadeshader=1`; the same wall drawn both ways by `slopesApartments.facetSet(false)` plus a rebuild; every MapLibre layer hidden so only sky and the three.js buildings remain; the wall is the set of pixels the Facet mesh draws, found by hiding the mesh; 4x supersampled truth as in the meter). Four West Campus cameras (the meter's own west-far, west-mid, west-near, and west-far from higher up), two lights (day, p = 0.12; sunset, p = 0.5, the meter's). It switches terms off in both arms (`SLOPES.sunlight.shadows`, `GFX.windowReflections`, the whole sun path) and, in the shader arm only, runs candidate fixes (`u_fdbg`: shade wall and glass apart; light them apart; `u_fParallax`; `u_fRev`, the brightness of the recess seen past the glass), so each suspect is a measured number, not a guess. A stage switch (`DBG_STAGE`) draws the colour after `cityShade`, the glass response fed to it, and the view and sun terms, in both arms.
+
+**Step 1: the first measurement said the bias was not 3 levels but anything up to 21.** Day light, luminance over the Facet pixels, truth: vfar shader 142.6 against geometry 147.1 (-4.5), far 140.0 against 161.4 (**-21.4**), mid +1.6. That could not be the 0.4 to 1.9% of moved pixels the app's own day A/B had shown. The picture showed why: at the far camera one residence block's windows were **cream in the geometry and dark slate in the shader**. The stage pictures showed the geometry's windows there had glass response 0 (they are not glass at all) and the shader's had 1: the geometry was wrong, not the shader (section 8.11, issue #474, the generator drops the glass of a window whose edge has more than four decimals).
+
+**Step 2: with those pieces left as geometry (`roundingDefect()` in `take()`), the bias is small and changes sign with distance** (shader minus geometry, 4x truth, luminance 0..255, two runs of the instrument agree on every number to 0.05):
+
+| view | day (p 0.12) | sunset (p 0.5) |
+|---|---:|---:|
+| vfar (west-far from higher) | -0.22 | -0.71 |
+| far (the meter's west-far) | +1.93 | +1.32 |
+| mid (west-mid) | +2.42 | +0.38 |
+| near (west-near) | -0.02 (3 pixels) | +9.6 (**200 pixels only**; not explained, the block this camera looks at is now mostly geometry) |
+
+and the shader's own 1x against its own truth is within 1.6 levels everywhere (the geometry's own 1x against its truth is within 0.8). **So the far mean is within 1 level at vfar and about 1.3 to 1.9 over at the meter's far camera: better than the 3 levels under, not yet inside the 1 level the gate asks for.** The meter's own mask (all authored pixels, run 4) read 94.2 against 91.5 before this change; the next A/B (section 8.10) re-reads it.
+
+**Step 3: the suspects, each measured** (day, 1x means, `facet-bias.mjs` table C and D, `docs/graphics-basics-study-2026-10-10/bias/`):
+- *Averaging in the wrong space (cityShade lit once on a mean albedo, the sky mirror mixed from the wall colour).* **Real, and it has the opposite sign in the two arms:** switching the sky reflection off changes the geometry's mean by +1.85 and the shader's by -1.63 at vfar (the geometry's dark glass is brightened by the mirror; the shader mixes the mirror in from the bright wall mean and so darkens). `?facetmode=1` shades the wall part and the glass part of a pixel as two surfaces and averages the two framebuffer colours (`fShade`); it moves the shader's 1x mean by +3.3 at vfar, -0.9 at far, +1.6 at mid and 0 at near, and after the defect is out it **does not shrink the bias** (truth: vfar -0.22 to +0.67, far +1.98 to +1.34, mid +2.42 to +2.90): the other terms are the same size and the corrections overshoot. It stays as a switch, default off.
+- *Per-vertex light on a mean colour (`lightSplit`):* **no effect in daylight**, because the sun path replaces the per-vertex colour; it matters only with the sun off.
+- *Shadow terms the geometry has and the quad lacks:* real and small: the sun shadow darkens the geometry more than the shader by 1.3 (vfar), 0.4 (far) and 3.2 (mid) levels (the recess's own shadow). Not modelled.
+- *The recess seen past the glass (parallax):* the shader draws the recess wall lit like the wall; the geometry's recess faces are side faces, mostly turned from the sun. In the pictures the shader's window frames are visibly thicker and whiter at the far camera. `u_fRev` (the brightness of that region) at 0.75 / 0.5: far +1.93 to +1.51 / +1.08 (day) and +1.32 to +1.02 / +0.72 (sunset), vfar -0.22 to -0.73 / -1.23 and -0.71 to -1.11 / -1.49, mid +2.42 to +1.74 / -1.13. **Mean absolute bias over the six view-lights: 1.16 at 1.0, 1.08 at 0.75, 1.13 at 0.5: no setting wins, a single scalar cannot fix terms whose signs change with distance, so the default stays 1.0** (`TUNE.revealShade`, one line to change).
+- *The layout alone* (the sun path off, only albedo and per-vertex light): shader minus geometry +0.27 (vfar), +1.62 (far), -0.05 (mid), 0.00 (near): the window and frame areas agree to under 2 levels; the far-camera surplus is the white tower's frames and recess in the picture above.
+
+**What is left, plainly.** After the generator bug is taken out of the comparison the shader's mean is within about 2.4 levels of the geometry's at day and 1.3 at sunset for the three distances that have pixels, with several small terms of both signs (the sky mirror, the recess shadow, the recess brightness) that a single constant cannot cancel. The next step that could close it is to model the recess as geometry-like side faces (a dark strip with its own normal) rather than a re-lit wall tone, and to give the quad the recess shadow: both are bounded, neither is done.
+
+**Pictures** (`docs/graphics-basics-study-2026-10-10/bias/`): `far-geometry-vs-shader-before.jpg` (top shader, bottom geometry: the cream and the slate windows); `far-glass-response-stage1-stage2.jpg` (top row shader, bottom row geometry; left the colour after cityShade, right the glass response it was given: the geometry's windows are black, no glass); `far-after-refusal-shader-geometry-diff.jpg` (shader, geometry, difference x4: the block is identical now); `far-tower-recess-after.jpg` (left shader, right geometry: the white tower, thicker whiter frames in the shader). Tables: `run10-tables.txt`, rows in `run10-*.rows.json` and `run11-*.rows.json`, the first measurement in `run6-first-measurement.txt`.
+
+
+@@8.10@@
+
+### 8.11 A generator defect found on the way (issue #474), and what the module does about it
+
+**The defect (in `js/slopes-apartments.js`, the cell tiler; not changed in this pull request).** The tiler cuts every wall piece at `+z.toFixed(4)` but then decides which windows (and frame rings, spandrels, heads, accent panels) span a band with the **unrounded** edge and a 1e-6 slack. When the rounding moves an edge by more than 1e-6 the wrong way (down at the bottom, up at the top) the region fails its own test and its cell is not drawn: a window shows the frame colour where the glass should be. Example: a window top at `6.654571428571428` is cut at `6.6546`, and `6.654571... >= 6.6546 - 1e-6` is false. Over the catalog: 121 wall pieces in 9 buildings carry edges with more than four decimals; the glass is lost in 4 buildings (the Quarters, Grayson House `41627514-f0ac-4268-8e08-b123aec9cac1`, `5e94c2db-4245-4db3-b5c0-9ed631bcd658`, `90cfca73-6957-41b4-bd3a-1a3f3f91a93e`, `dad49016-2331-4a81-8d6d-78da02dc8092`), about 48,000 triangles, and by the module's more complete test 82 pieces. GitHub issue **#474** has the reproduction and the suggested fix.
+
+**Why it matters here.** It was the main cause of the "far view is 3 levels darker" bias this study had left open (section 8.9). At the West Campus far camera one residence block's windows are glass in the shader (dark slate) and frame-coloured (cream) in the geometry: over the Facet pixels the shader read 21 levels darker, and by the glass-response debug picture the geometry's windows have no glass response at all (red channel 0), the shader's have it. The shader draws what the recipe says; the geometry has the bug. Comparing the two as if the geometry were right overstated Facet's error.
+
+**What the module does.** `take()` refuses a piece in which any window or region would hit the defect (`roundingDefect()`, using the generator's own region formulas, no building ids): 82 pieces, 59,874 triangles stay geometry. That keeps the shader's pictures identical to the app's today, and makes the A/B and the bias measurement about the shader and not about the bug. When #474 is fixed the refusal can be deleted and those pieces become shader walls. Coverage with the five facade-filter buildings and these pieces kept as geometry: **34.8% of the city's triangles** (1,083,660 removed, 2,032,809 of 3,116,469 remain; the Node check and the page agree to the triangle; `facet/module-check-keep-filtered-defect-refused.json`).
+
+**Not explained, not chased.** The Node picture check still reports 0.29% of sampled points differing (1,987 of 684,523), almost all inside windows of about 50 pieces of a few campus halls (`hall`, `reading-hall`, `north-end`, `welch-upper-wings`) where the generator's cell is cream and the recipe says glass: the same symptom as the rounding defect, but my rounding rule does not catch them (a simulation of the generator's cuts finds none of them taken). Those windows may be clipped by the floor-slack rule before the tiler sees them. It is listed in issue #474 as a second cause to check.
+
+
 ### 8.6 How this was made, for the record
 
 Three consults with Astra (Azure, a few cents each): one for its own idea before seeing mine (it proposed a city compiler whose output includes tested error budgets, which is what Facet became), one red-team of the Facet design (it argued a new language buys nothing over JSON: accepted, so Facet's IR is generated, not typed), and one on the built v0 (order of widening, the phone gate). The question files and its answers are under `~/flyover-mail/council/2026-10-10-gfx-*`. Every browser run was on the AWS runner (no browser was started on the Mac); because that workflow keeps one pending run per group, one of my dispatches at 08:52 UTC replaced another lane's pending run (38039374123), which that lane may need to start again.

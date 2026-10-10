@@ -1,0 +1,28 @@
+[bias] vfar@0.12: mask 23962 of 144000 pixels are Facet-wall
+[bias] vfar@0.12 shader base: 1x 141.15 truth 142.56 (n 23962)
+[bias] vfar@0.12 shader noSun: 1x 143.15 truth -- (n 23962)
+[bias] far@0.12: mask 28637 of 144000 pixels are Facet-wall
+[bias] far@0.12 shader base: 1x 139.86 truth 140.04 (n 28637)
+[bias] far@0.12 shader noSun: 1x 137.40 truth -- (n 28637)
+[bias] mid@0.12: mask 28270 of 144000 pixels are Facet-wall
+[bias] mid@0.12 shader base: 1x 109.54 truth 109.47 (n 28270)
+[bias] mid@0.12 shader noSun: 1x 127.41 truth -- (n 28270)
+[bias] near@0.12: mask 1961 of 144000 pixels are Facet-wall
+[bias] near@0.12 shader base: 1x 94.56 truth 95.41 (n 1961)
+[bias] near@0.12 shader noSun: 1x 120.04 truth -- (n 1961)
+[bias] vfar@0.12 geom base: 1x 146.76 truth 147.05 (n 23962)
+[bias] vfar@0.12 geom noShadow: 1x 152.51 truth -- (n 23962)
+[bias] vfar@0.12 geom noGlassSky: 1x 145.12 truth -- (n 23962)
+[bias] vfar@0.12 geom noSun: 1x 145.48 truth -- (n 23962)
+[bias] far@0.12 geom base: 1x 161.17 truth 161.44 (n 28637)
+[bias] far@0.12 geom noShadow: 1x 164.41 truth -- (n 28637)
+[bias] far@0.12 geom noGlassSky: 1x 159.12 truth -- (n 28637)
+[bias] far@0.12 geom noSun: 1x 152.56 truth -- (n 28637)
+[bias] mid@0.12 geom base: 1x 108.32 truth 107.84 (n 28270)
+[bias] mid@0.12 geom noShadow: 1x 111.84 truth -- (n 28270)
+[bias] mid@0.12 geom noGlassSky: 1x 102.79 truth -- (n 28270)
+[bias] mid@0.12 geom noSun: 1x 129.09 truth -- (n 28270)
+[bias] near@0.12 geom base: 1x 110.24 truth 110.10 (n 1961)
+[bias] near@0.12 geom noShadow: 1x 110.63 truth -- (n 1961)
+[bias] near@0.12 geom noGlassSky: 1x 110.24 truth -- (n 1961)
+[bias] near@0.12 geom noSun: 1x 141.42 truth -- (n 1961)

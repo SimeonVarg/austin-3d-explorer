@@ -42,7 +42,7 @@ function cellsOf(rec) {
   for (const [a, b, c, d, col] of rec.quads) { const P4 = [a, b, c, d].map(co); const ds = P4.map(q => q[1]); if (Math.max(...ds) - Math.min(...ds) > 1e-4) continue; const ss = P4.map(q => q[0]), zs = P4.map(q => q[2]); cells.push({ s0: Math.min(...ss), s1: Math.max(...ss), z0: Math.min(...zs), z1: Math.max(...zs), d: ds[0], col }); }
   return cells;
 }
-let pts = 0, bad = 0, winPts = 0, nightBad = 0, lostGlassPieces = 0, nonWin = 0; const ex = [], byFeat = {};
+let pts = 0, bad = 0, winPts = 0, nightBad = 0, lostGlassPieces = 0, nonWin = 0; const ex = [], byFeat = {}, winEx = [], winSeen = new Set();
 const { fieldNameAt, winAt } = C._eval;
 const seen = new Map();
 for (const { rec, pk } of taken) {
@@ -53,12 +53,13 @@ for (const { rec, pk } of taken) {
     if (!best) continue;
     const want = fieldNameAt(pk, s, z), w = winAt(pk, s, z);
     pt++; pts++;
-    if (best.col[0] !== want[0]) { pb++; bad++; if (w == null) { nonWin++; const f = rec.sk.window ? Object.keys(rec.sk.window).filter(k => !['w','h','sill'].includes(k)).join('+') || 'plain window' : 'no window'; byFeat[f] = (byFeat[f] || 0) + 1; } if (w == null && ex.length < 6) ex.push({ key: rec.key, s: +s.toFixed(2), z: +z.toFixed(2), want: want[0], got: best.col[0] }); else if (w) lost++; }
+    if (best.col[0] !== want[0]) { pb++; bad++; if (w != null && winEx.length < 12 && !winSeen.has(rec.key)) { winSeen.add(rec.key); winEx.push({ key: rec.key, s: +s.toFixed(2), z: +z.toFixed(2), module: want, generator: best.col[0], len: +rec.len.toFixed(1), z0: rec.z0, z1: rec.z1 }); } if (w == null) { nonWin++; const f = rec.sk.window ? Object.keys(rec.sk.window).filter(k => !['w','h','sill'].includes(k)).join('+') || 'plain window' : 'no window'; byFeat[f] = (byFeat[f] || 0) + 1; } if (w == null && ex.length < 6) ex.push({ key: rec.key, s: +s.toFixed(2), z: +z.toFixed(2), want: want[0], got: best.col[0] }); else if (w) lost++; }
     else if (w) { winPts++; const nh = w.cell; const hx = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16)); const g = hx(best.col[2] || best.col[0]); if (Math.abs(g[0] - nh[0]) + Math.abs(g[1] - nh[1]) + Math.abs(g[2] - nh[2]) > 3) nightBad++; }
   }
   if (pt && pb / pt > 0.05 && lost >= 0.9 * pb) lostGlassPieces++;
 }
 out(`picture check: ${pts} sampled points on ${taken.length} taken pieces, ${bad} differ (${(100 * bad / Math.max(1, pts)).toFixed(3)}%) of which ${lostGlassPieces} pieces are the generator's lost-glass defect; night colour of ${winPts} glass points: ${nightBad} differ`);
+out(`   mismatching points INSIDE windows (examples, one per piece): ${JSON.stringify(winEx)}`);
 out(`   mismatching points away from windows: ${nonWin}; by skin features: ${JSON.stringify(byFeat)}`);
 if (ex.length) out('   examples: ' + JSON.stringify(ex));
 if (opt('--json', null)) fs.writeFileSync(opt('--json'), JSON.stringify({ totalTriangles: res.totalTriangles, takenTriangles: takenTris, takenPct: +(100 * takenTris / res.totalTriangles).toFixed(2), pieces: C.stats.pieces, taken: C.stats.taken, refused: C.stats.refused, pictureSamples: pts, pictureMismatch: bad, nightSamples: winPts, nightMismatch: nightBad }, null, 1));

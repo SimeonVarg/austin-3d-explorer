@@ -71,6 +71,8 @@
     el.src = cs && cs.src ? cs.src.replace(/slopes-apartments\.js/, 'facet-walls.js') : 'js/facet-walls.js';
     el.onload = el.onerror = () => done(); document.head.appendChild(el);
   }) : null;
+  // a test seam, not a feature: slopesApartments.facetSet(false) + rebuild() builds the same walls as geometry on the SAME page (scripts/verify/facet-bias.mjs)
+  const FACET_RT = { on: true };
 
   // ══════════════════════════════════════════════════════════════════════
   //  TASTE BLOCK — CLAUDE.md rule 11. Every value here is a choice, not a
@@ -2679,7 +2681,7 @@
     const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices) : S.build();
     B.filtered=[];
     B.filterPending=[];
-    if (FACET_LOAD) { await FACET_LOAD; if (window.FACET) B.facetWalls = window.FACET.collector(); }
+    if (FACET_LOAD) { await FACET_LOAD; if (window.FACET && FACET_RT.on) B.facetWalls = window.FACET.collector(); }
     const built = area ? [] : (_built = []);
     const cancelled = () => area && area.gen !== gen;
     const discard = () => {
@@ -3226,6 +3228,7 @@
   };
 
   window.slopesApartments = {
+    facetSet(on) { FACET_RT.on = !!on; if (!on) this.facetStats = null; },
     readyToReveal() {
       if (!mapStyleAvailable()) return false;
       if(!count.done)return false;

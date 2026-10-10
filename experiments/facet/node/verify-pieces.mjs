@@ -96,7 +96,7 @@ for (const [label, add] of levels) {
         else { if (badEx.length < 6) badEx.push(`${p.key}: picture ${r.bad}/${r.tot} ${JSON.stringify(r.examples)}`); reasons['picture differs'] = (reasons['picture differs'] || 0) + p.tris; continue; } } }
     covered += p.tris; coveredPieces++; winCovered += p.skin.windows.length;
   }
-  const row = { label, caps: [...caps], lostGlassTriangles: lostGlassTris, lostGlassBuildings: lostGlassKeys.size, coveredTriangles: covered, coveredPct: +(100 * covered / totalTris).toFixed(2), coveredPieces, windowsCovered: winCovered, windowMismatchPieces: winBad, pictureSamples: picTot, pictureMismatchPct: picTot ? +(100 * picBad / picTot).toFixed(3) : null, picturePieces: picPieces, examples: badEx };
+  const row = { label, caps: [...caps], lostGlassTriangles: lostGlassTris, lostGlassBuildings: lostGlassKeys.size, lostGlassIds: [...lostGlassKeys].sort(), coveredTriangles: covered, coveredPct: +(100 * covered / totalTris).toFixed(2), coveredPieces, windowsCovered: winCovered, windowMismatchPieces: winBad, pictureSamples: picTot, pictureMismatchPct: picTot ? +(100 * picBad / picTot).toFixed(3) : null, picturePieces: picPieces, examples: badEx };
   results.push(row);
   out(`${label.padEnd(30)} covers ${String(covered).padStart(8)} triangles = ${row.coveredPct.toFixed(1).padStart(5)}% of the city's ${totalTris} | pieces ${coveredPieces} | windows ${winCovered} | window-list mismatches ${winBad} | picture samples ${picTot} (${picPieces} pieces) mismatch ${row.pictureMismatchPct}%` + (lostGlassTris ? ` | of the covered, ${lostGlassTris} triangles are in ${lostGlassKeys.size} building(s) where the generator loses window glass (rounding)` : ''));
   if (badEx.length) out('   problems: ' + badEx.join(' ; '));

@@ -1,0 +1,3 @@
+west-far  px  80146 | geometry 1x vs geometry truth  2.76 | shader 1x vs geometry truth  5.82 | shader truth vs geometry truth  3.15 | shader 1x vs shader truth  2.89 | mean level: geometry truth 94.2, shader truth 91.5, shader 1x 91.4, geometry 1x 94.2
+west-mid  px  16728 | geometry 1x vs geometry truth  2.13 | shader 1x vs geometry truth  4.08 | shader truth vs geometry truth  1.68 | shader 1x vs shader truth  2.78 | mean level: geometry truth 107.7, shader truth 109.0, shader 1x 108.8, geometry 1x 107.7
+drag-mid  px  45090 | geometry 1x vs geometry truth  1.83 | shader 1x vs geometry truth  7.28 | shader truth vs geometry truth  0.14 | shader 1x vs shader truth  7.22 | mean level: geometry truth 86.2, shader truth 86.2, shader 1x 91.5, geometry 1x 86.0
