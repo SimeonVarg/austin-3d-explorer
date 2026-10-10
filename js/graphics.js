@@ -1419,7 +1419,9 @@
   }
 
   function aeMeter(F) {
-    if (!(GFX.autoExposure && bloomOK && mapCanvas)) {
+    // A frozen night (?nightfreeze / ?nightseed) holds the exposure at 1: the meter's gain depends on how many frames drew and when,
+    // so two loads settled at 0.9977 and 0.9967 (AWS L4, 2026-10-10), which moves whole surfaces by 1-2 of 255.
+    if (!(GFX.autoExposure && bloomOK && mapCanvas) || (window.CityNight && window.CityNight.frozen)) {
       if (aeGain !== 1) { aeGain = 1; aeLuma = null; aeLast = 0; applyGrade(); }
       aeOwed = []; aeGpuDrop();
       return;
