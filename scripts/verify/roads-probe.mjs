@@ -23,6 +23,7 @@ page.on('console', m => { if (m.type() === 'error') console.log('CONSOLE', m.tex
 
 await page.goto(SERVER + '/_harness.html?intro=0&drift=0', { waitUntil: 'networkidle', timeout: 90000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 90000 });
+await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
 await page.waitForFunction(() => {
   const m = window.__map;
   return m && m.getSource('austin-roads') && m.isSourceLoaded('austin-roads');

@@ -26,6 +26,7 @@ const LITE = process.argv.includes('--lite');
 const TAG = LITE ? 'lite-' : '';
 fs.mkdirSync(OUT, { recursive: true });
 
+// NOTE: deliberately does NOT call window.cancelGraphicsAutoDetect(): this script measures boot and the auto-detect result itself.
 const browser = await launch(chromium, { gl: 'hardware', maxMs: 900000 });
 const ctx = await browser.newContext(LITE
   ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }

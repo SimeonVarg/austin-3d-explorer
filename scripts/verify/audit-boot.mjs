@@ -31,6 +31,7 @@ const qi = process.argv.indexOf('--query');
 const EXTRA = qi > 0 ? process.argv[qi + 1] : '';
 fs.mkdirSync(outDir, { recursive: true });
 
+// NOTE: deliberately does NOT call window.cancelGraphicsAutoDetect(): this script measures boot and the auto-detect result itself.
 const browser = await launch(chromium, { gl: 'hardware', maxMs: 420000 });
 const ctx = await browser.newContext(LITE
   ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }
