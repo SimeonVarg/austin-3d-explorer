@@ -2268,7 +2268,7 @@
     NAME_PH: 'Your name (optional)',
     EMAIL_PH: 'Your email (optional, only if you want a reply)',
     VIEW_LABEL: 'Include where I\'m looking',
-    SEND: 'Send',
+    SEND: 'Open email',
     SENDING: 'Sending…',
     SENT: 'Sent — thank you. That goes straight to Simeon.',
     OFF: 'Sending is not switched on yet.',
