@@ -296,7 +296,7 @@ await stage('debug', async () => {
 // ======================================================================================================
 await stage('frozen', async () => {
   const N = Number(opt('--pairs', 5)), dir = path.join(OUT, 'frozen'); fs.mkdirSync(dir, { recursive: true });
-  const viewNames = (opt('--views', 'tower-night,spawn-night')).split(/[,&+]/), q = opt('--query', 'nightfreeze=1');
+  const viewNames = (opt('--views', 'tower-night,spawn-night')).split(/[,&+]/), q = opt('--query', 'nightfreeze=1').replace(/\+/g, '&');
   data.frozen = {};
   const regionsOf = (fa, fb, tol) => {
     const A = decodePNG(fa), B = decodePNG(fb), C = 24, gw = Math.ceil(A.width / C), gh = Math.ceil(A.height / C), cells = new Map();
@@ -347,7 +347,7 @@ await stage('frozen', async () => {
 // 2f. JITTER: the same frozen night drawn again and again with nothing changed: does the map canvas repeat itself?
 // ======================================================================================================
 await stage('jitter', async () => {
-  const q = opt('--query', 'nightfreeze=1'), pose = TUNE.poses[opt('--pose', 'skyline')], dir = path.join(OUT, 'jitter'); fs.mkdirSync(dir, { recursive: true });
+  const q = opt('--query', 'nightfreeze=1').replace(/\+/g, '&'), pose = TUNE.poses[opt('--pose', 'skyline')], dir = path.join(OUT, 'jitter'); fs.mkdirSync(dir, { recursive: true });
   const page = await open(q); await settle(page, pose); await waitStable(page, 150000, false);
   const series = [], hashes = [];
   for (let k = 0; k < 16; k++) {
