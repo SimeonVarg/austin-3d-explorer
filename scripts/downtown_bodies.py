@@ -344,6 +344,11 @@ def build(bo, feats, rep):
     landmark_union = unary_union(lmk) if lmk else Polygon()
     lm_keepout = lm_union.buffer(B["authored_keepout_m"]) if lm_polys else Polygon()
 
+    body_polys = [q for f, q in zip(feats, old)
+                  if not f["properties"].get("k") and not f["properties"].get("lm")
+                  and not q.is_empty]
+    body_tree = STRtree(body_polys)
+
     n = {"units": len(units), "measured": 0, "generic": 0, "authored": 0,
          "other_file": 0, "not_drawn": 0, "levels": 0, "plant": 0, "retail": 0,
          "unmapped_today": 0}
@@ -356,9 +361,19 @@ def build(bo, feats, rep):
         lon_c = bo.OUTER["minlon"] + P.centroid.x / bo.M_LON
         lat_c = bo.OUTER["minlat"] + P.centroid.y / bo.M_LAT
         if bo.in_rect(lon_c, lat_c, bo.CORE):
-            n["other_file"] += 1
-            u["state"] = "other_file"
-            continue
+            # The core box belongs to the dated snapshot. The ring draws there
+            # only what it drew before (a building the snapshot's extract
+            # missed, such as the Dell Seton hospital): that one is re-made
+            # from its measurement; nothing new is added in the box.
+            had = False
+            for j in body_tree.query(P):
+                if body_polys[int(j)].intersection(P).area >= B["replace_share"] * area:
+                    had = True
+                    break
+            if not had:
+                n["other_file"] += 1
+                u["state"] = "other_file"
+                continue
         if ex_tree is not None:
             hit = False
             for j in ex_tree.query(P):

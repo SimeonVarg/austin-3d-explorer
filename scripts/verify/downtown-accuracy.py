@@ -298,6 +298,10 @@ def main():
                 err = "shape: %.0f%% of the volume agrees with the scan" % (100 * row["viou"])
             if row["mae"] < 1.0 and abs(row["dh"]) < 1.5:
                 err = "within 1.5 m"
+        if state == "unmapped":
+            err = "not on today's map (in the City's 2023 survey): not drawn, on purpose"
+        elif state == "other file":
+            err = "drawn by the core snapshot or the Capitol bake; as a plain prism: " + err
         row["error"] = err
         rows.append(row)
 
