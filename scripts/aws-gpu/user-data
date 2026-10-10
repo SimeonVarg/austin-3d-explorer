@@ -26,6 +26,9 @@ IDLE_TIMEOUT_MIN="@@IDLE_TIMEOUT_MIN@@"
 RESULT_BUCKET="@@RESULT_BUCKET@@"
 PROJECT_TAG="@@PROJECT_TAG@@"
 CHECKS_JSON='@@CHECKS_JSON@@'
+MODE="@@MODE@@"                  # checks = the listed scripts; pr-suite = pr-suite.sh (a pull request's whole suite)
+SUITE_ONLY="@@SUITE_ONLY@@"
+WAIT_SCALE="@@WAIT_SCALE@@"
 
 BASE_PORT=8442
 WORK=/opt/flyover/work
@@ -46,7 +49,7 @@ echo "== flyover user-data start $(date -u +%FT%TZ) =="
 upload_results() {
   [ -n "$RESULT_BUCKET" ] || { echo "== no RESULT_BUCKET set; results are in ${OUT} on the instance only =="; return 0; }
   local iid; iid=$(cloud-init query instance_id 2>/dev/null || cat /var/lib/cloud/data/instance-id 2>/dev/null || date -u +%Y%m%dT%H%M%SZ)
-  local prefix="s3://${RESULT_BUCKET}/flyover-runs/${REF}-${iid}"
+  local prefix="s3://${RESULT_BUCKET}/flyover-runs/${REF//\//_}-${iid}"
   echo "== uploading results to ${prefix} (${1:-end}) =="
   aws s3 cp "$LOG" "${prefix}/user-data.log" --only-show-errors || true
   [ "${1:-end}" = "log-only" ] || aws s3 cp --recursive "$OUT" "${prefix}/out" --only-show-errors || true
@@ -126,6 +129,25 @@ exec /usr/bin/google-chrome \
 WRAP
 chmod +x "$CHROME_WRAPPER"
 
+# ---------------------------------------------------------------------------
+# MODE=pr-suite: a pull request's WHOLE suite (every check, the before/after pictures, a graphics probe) via
+# scripts/aws-gpu/pr-suite.sh, taken from main so the harness is main's and only the code under test is the PR's.
+# REF may be refs/pull/N/merge. Everything lands under $OUT and goes up with the log like any other run.
+# ---------------------------------------------------------------------------
+if [ "$MODE" = "pr-suite" ]; then
+  rm -rf "$WORK"; mkdir -p "$WORK"; cd "$WORK"
+  git init -q . && git remote add origin "$REPO"
+  # Full history without file contents (as the free run does: some checks read older commits with git show).
+  if git fetch -q --filter=blob:none origin "$REF" && git checkout -q FETCH_HEAD; then
+    echo "== suite code at $(git rev-parse HEAD) ($REF) =="
+    git fetch -q --depth 1 origin main && git show FETCH_HEAD:scripts/aws-gpu/pr-suite.sh > /opt/flyover/pr-suite.sh
+    beat
+    export WORK OUT CHROME_WRAPPER CONCURRENCY BASE_PORT HEARTBEAT SUITE_ONLY WAIT_SCALE
+    bash /opt/flyover/pr-suite.sh || echo "== pr-suite.sh exited $? =="
+  else
+    echo "== FAIL: could not fetch $REF from $REPO =="
+  fi
+else
 # ---------------------------------------------------------------------------
 # Clone the repo (shallow) at the exact ref, then make playwright-core
 # resolvable from scripts/verify the way the harness expects.
@@ -258,6 +280,8 @@ manifest = {"repo": repo, "ref": ref, "gpu_ok": bool(int(gpu_ok)),
 json.dump(manifest, open(os.path.join(out, "manifest.json"), "w"), indent=1)
 print("MANIFEST " + json.dumps(manifest))
 PY
+
+fi
 
 # ---------------------------------------------------------------------------
 # RESULTS: to S3 if a bucket is set (chosen delivery path; see README for the

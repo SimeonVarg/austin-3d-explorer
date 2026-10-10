@@ -1,0 +1,215 @@
+# A pull request's WHOLE check suite on ONE rented GPU machine (AWS g6.2xlarge, an NVIDIA L4), and a second comment on
+# the pull request with the same report the free GitHub run posts.
+#
+# WHY. The free GitHub run draws the city in software on 4-core machines: about 45 minutes a pull request, and with
+# several pull requests open they queue for hours. One L4 draws it at real speed, so the same suite should take a
+# fraction of that. The free GitHub run STAYS the verdict until two runs of this one agree with it (the checks assert
+# exact pixel colours, and a GPU and a software rasteriser disagree about edges: read scripts/aws-gpu/README.md,
+# "Checking a pull request on the GPU").
+#
+# Started by hand only (workflow_dispatch), by a person or agent with write access. Never by a pull request: this
+# repository is public, a fork's code must never run on the owner's account, and this refuses a pull request whose
+# branch is not in this repository.
+#
+# PRIVACY. This workflow, its inputs and its logs are PUBLIC. It only ever draws the checks' own cameras
+# (scripts/verify/ci/poses.json, made-up) - never a photograph's camera. Photo-camera renders go to the Colab lane
+# (astra-pipe/tools/colab-render.py), which is private.
+#
+# MONEY. One machine at a time (group aws-gpu, shared with aws-gpu.yml; the account's GPU quota is 8 vCPUs). The
+# machine ends itself at the limit below, after 20 idle minutes, and when the job ends; the last step removes anything
+# tagged project=flyover.
+name: AWS PR checks
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number (a branch of this repository, not a fork)
+        required: true
+      only:
+        description: Only these checks, separated by commas (empty = every check, plus the before/after pictures)
+        default: ''
+      max_runtime:
+        description: The machine switches itself off after this many minutes (hard limit on the machine)
+        default: '90'
+      wait_scale:
+        description: Multiplier on the checks' own waits (1 = as written; the free GitHub machines use 3)
+        default: '1'
+permissions:
+  contents: read
+concurrency:
+  group: aws-gpu
+  cancel-in-progress: false
+jobs:
+  run:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: read
+    outputs:
+      sha: ${{ steps.pr.outputs.sha }}
+      pr: ${{ steps.pr.outputs.pr }}
+    env:
+      AWS_REGION: us-east-1
+      RESULT_BUCKET: ${{ secrets.AWS_GPU_BUCKET }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop early when the account is not set up
+        run: |
+          if [ -z "${{ secrets.AWS_GPU_ROLE_ARN }}" ] || [ -z "$RESULT_BUCKET" ]; then
+            echo "::error::The AWS account is not set up yet: see scripts/aws-gpu/README.md, 'The owner's one-time setup'."; exit 1
+          fi
+      - name: Which commit is the pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+        run: |
+          set -euo pipefail
+          case "$PR" in ''|*[!0-9]*) echo "::error::pr must be a number"; exit 1;; esac
+          json=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR")
+          [ "$(jq -r .head.repo.full_name <<<"$json")" = "$GITHUB_REPOSITORY" ] || { echo "::error::this pull request is from a fork; fork code never runs on the owner's account"; exit 1; }
+          [ "$(jq -r .state <<<"$json")" = "open" ] || echo "::warning::the pull request is not open"
+          # The merge commit is what the free run checks too. It exists only while the branch merges cleanly.
+          if [ "$(jq -r .mergeable <<<"$json")" = "true" ]; then ref="refs/pull/$PR/merge"; else ref="$(jq -r .head.sha <<<"$json")"; echo "::warning::not mergeable (or still being worked out): checking the branch's own commit"; fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"; echo "sha=$(jq -r .head.sha <<<"$json")" >> "$GITHUB_OUTPUT"; echo "pr=$PR" >> "$GITHUB_OUTPUT"
+          echo "checking $ref (branch head $(jq -r .head.sha <<<"$json" | cut -c1-7))"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GPU_ROLE_ARN }}
+          aws-region: us-east-1
+          role-duration-seconds: 7200
+      - name: Start the machine
+        env:
+          REF: ${{ steps.pr.outputs.ref }}
+          INPUT_ONLY: ${{ inputs.only }}
+          INPUT_MAX: ${{ inputs.max_runtime }}
+          INPUT_SCALE: ${{ inputs.wait_scale }}
+        run: |
+          set -euo pipefail
+          scripts/aws-gpu/launch --mode pr-suite --ref "$REF" --bucket "$RESULT_BUCKET" --max-runtime "$INPUT_MAX" \
+            --only "$INPUT_ONLY" --wait-scale "$INPUT_SCALE" | tee launch.log
+          grep -q '^INSTANCE i-' launch.log
+      - name: Wait until the machine is gone, then fetch the results
+        env:
+          INPUT_MAX: ${{ inputs.max_runtime }}
+        run: |
+          set -euo pipefail
+          iid=$(grep -m1 '^INSTANCE i-' launch.log | awk '{print $2}')
+          started=$(date +%s)
+          deadline=$(( started + (INPUT_MAX + 10) * 60 ))
+          while :; do
+            n=$(aws ec2 describe-instances --filters Name=tag:project,Values=flyover Name=instance-state-name,Values=pending,running,stopping,shutting-down --query 'length(Reservations[].Instances[])' --output text)
+            [ "$n" = "0" ] && break
+            [ "$(date +%s)" -gt "$deadline" ] && { echo "::warning::still running after the limit; the next step removes it"; break; }
+            sleep 30
+          done
+          echo "machine time: $(( ($(date +%s) - started) / 60 )) minutes"
+          mkdir -p results
+          aws s3 cp "s3://$RESULT_BUCKET/flyover-runs/" results/ --recursive --exclude '*' --include "*-$iid/*" --only-show-errors || true
+          du -sh results; ls results | head
+      - name: Make sure nothing is left running
+        if: always()
+        run: scripts/aws-gpu/teardown || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aws-pr-raw
+          path: |
+            results/
+            launch.log
+          retention-days: 14
+          if-no-files-found: warn
+
+  # Turns the machine's files into the same report the free run posts, and posts it as its OWN comment. No AWS
+  # credentials here: this job only reads the artifact above and writes one comment.
+  report:
+    needs: run
+    if: always() && needs.run.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/verify
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: aws-pr-raw
+          path: in
+      - name: Keep the logs and pictures where the report can link to them
+        id: up_checks
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: checks-aws
+          path: |
+            in/results/*/out/ci-out/logs
+            in/results/*/out/ci-out/pictures
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Keep the before/after side-by-sides
+        id: up_pics
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: pictures-before-after
+          path: |
+            in/results/*/out/pictures/index.html
+            in/results/*/out/pictures/pictures.json
+            in/results/*/out/pictures/*.jpg
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Write the report
+        id: report
+        env:
+          CHECKS_ID: ${{ steps.up_checks.outputs.artifact-id }}
+          PICS_ID: ${{ steps.up_pics.outputs.artifact-id }}
+          SHA: ${{ needs.run.outputs.sha }}
+        run: |
+          set +e
+          : > artifacts.jsonl
+          if [ -n "$CHECKS_ID" ]; then for k in 0 1 2 3 4 5 6 7 only; do echo "{\"id\":$CHECKS_ID,\"name\":\"checks-aws-shard-$k\"}" >> artifacts.jsonl; done; fi
+          [ -n "$PICS_ID" ] && echo "{\"id\":$PICS_ID,\"name\":\"pictures-before-after\"}" >> artifacts.jsonl
+          node scripts/verify/ci/summary.mjs --results in --pictures in --probe aws=in --os aws --artifacts artifacts.jsonl \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" --sha "$SHA" \
+            --marker '<!-- visual-checks-summary-aws -->' --where "on one rented GPU (AWS g6.2xlarge, NVIDIA L4), real-GPU graphics" \
+            --out summary.md > /dev/null
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          [ -s summary.md ] || echo '<!-- visual-checks-summary-aws -->
+          ## Checks on the rented GPU: no report
+
+          The machine returned no results. See the run page.' > summary.md
+          {
+            echo '> **Rented GPU run (AWS L4).** The free GitHub run is still the verdict. Checks assert exact pixel colours; a GPU and the free run'"'"'s software renderer disagree about edges, so a check red here and green there is a question for a person, not yet a bug. Machine time is in the run log.'
+            echo
+          } > banner.md
+          head -n1 summary.md > body.md; cat banner.md >> body.md; tail -n +2 summary.md >> body.md
+          cat body.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Post or update the one comment on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ needs.run.outputs.pr }}
+        run: |
+          [ -n "$PR" ] || { echo "no pull request to comment on"; exit 0; }
+          id=$(gh api "repos/${{ github.repository }}/issues/$PR/comments" --paginate \
+                 --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- visual-checks-summary-aws -->")) | .id' | head -n1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$id" -F body=@body.md > /dev/null
+            echo "updated comment $id"
+          else
+            gh api -X POST "repos/${{ github.repository }}/issues/$PR/comments" -F body=@body.md > /dev/null
+            echo "posted a new comment"
+          fi
+      - name: Red if any check did not pass
+        run: exit ${{ steps.report.outputs.code }}

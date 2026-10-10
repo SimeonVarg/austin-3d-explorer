@@ -188,3 +188,68 @@ run fails at that lookup, the log names the parameter; list the family in the co
 - **Always stop the box.** Terminate-on-shutdown, the hard cap, the idle
   watchdog and the explicit shutdown at the end of a run are four independent
   ways the instance ends. If you edit `user-data`, keep all four.
+
+## Checking a pull request on the GPU (`aws-pr-checks.yml`)
+
+The free GitHub run draws in software on 4-core machines: about 45 minutes a pull request, hours when six are open.
+This runs the SAME suite on the one rented L4 and posts the SAME report as a second comment.
+
+```
+gh workflow run aws-pr-checks.yml --ref main -f pr=435                      # every check + the before/after pictures
+gh workflow run aws-pr-checks.yml --ref main -f pr=435 -f only=sky.mjs,dusk.mjs   # just those checks (names; the args come from checks.json)
+```
+
+- Hand-started, from main only, same-repository pull requests only (a fork's code never runs on the owner's account).
+- The machine checks out `refs/pull/N/merge` (what the free run checks), takes `scripts/aws-gpu/pr-suite.sh` from main, runs
+  the shards of `scripts/verify/ci/checks.json` four at a time (one tree and page server per browser), the graphics probe,
+  and the three picture shoots (before, after, before again), then uploads to the results bucket and ends itself.
+- A second job (no AWS credentials) runs `scripts/verify/ci/summary.mjs` over the files, uploads the logs and pictures as
+  artifacts, and posts or updates ONE comment whose first line is `<!-- visual-checks-summary-aws -->`.
+- Public cameras only. The inputs and logs are public; nothing here ever draws a photograph's camera (that is Colab's job,
+  `astra-pipe/tools/colab-render.py`, which is private).
+- `max_runtime` (default 90 minutes) is the hard limit on the machine; `wait_scale` multiplies the checks' own waits (1 here,
+  3 on the free machines).
+
+**The free run stays the verdict until two runs of this agree with it.** Two reasons it may not, both by design of the
+checks and not bugs of the lane: about a hundred checks assert exact pixel colours, and a GPU and a software rasteriser
+legitimately disagree about edges and filtering (`scripts/verify/chrome.mjs` explains why SwiftShader is the default); and
+timing-sensitive checks see four browsers on 8 vCPUs, not one browser on a whole machine. So: compare the two comments for
+the same commit. A check that fails here and passes there goes on the list to move to `VERIFY_GL=swiftshader` for this lane
+or to quarantine for it; a check that fails on both is a real finding.
+
+Needs the same one-time setup as `aws-gpu.yml` (the stack and the two secrets). It starts from main, so it works only after
+this workflow file is on main. `scripts/aws-gpu/test-offline` covers the wiring; the first real run is the proof.
+
+## Timing (`scripts/aws-gpu/perf`)
+
+```
+scripts/aws-gpu/perf --ref mac/speed-profile      # until the speed tools (PR #435) are on main
+```
+
+Starts `aws-gpu.yml` with the one check `perf-aws-suite.mjs` (the `scripts/perf` tools one after another: load-time table at
+1x and 4x CPU throttle with 3 cold loads, frame time on the L4, phone-size memory, the apartment buffer sizes), waits,
+downloads only that run's results and prints the tables. A quiet box by construction. About 25 minutes, about $0.40.
+
+## Raising the limits: what it buys and the owner's one step each
+
+Nothing here has been done; each is a step only the owner can take in his own browser.
+
+| Lane | Now | Raise to | What it buys | The owner's step |
+|---|---|---|---|---|
+| AWS GPU machines | 8 vCPUs of "Running On-Demand G and VT instances", us-east-1: ONE g6.2xlarge (8 vCPU) at a time | 32 vCPUs = 4 machines at once; 64 = 8 machines (or 16 `g6.xlarge`) | A pull request's suite split over 4 machines instead of 1: roughly a quarter of the wall time, same cost. Two lanes (a suite and a timing run) no longer queue behind each other. Cost is the same hours, billed in parallel; the monthly budget in the stack (default 100 dollars) still blocks launches. | AWS console, region US East (N. Virginia), Service Quotas, "AWS services", Amazon EC2, the entry named "Running On-Demand G and VT instances" (code L-DB2E81BA), "Request increase at account level", New quota value `32` (or `64`), Request. New accounts are often granted small steps first; ask for 32, expect hours to two days. The workflow's concurrency group (`aws-gpu`) must then be widened too (a code change, not his). |
+| Colab | Colab Pro, about 464 compute units on 2026-09-30 (expire about late December 2026); an L4 costs about 1.5 units an hour | Pro+ adds units and background runs | Units are not the limit: 464 units is about 300 L4 hours, and a render run is 0.4 units. The limit is sessions: Pro is documented as ONE high-resource session at a time (only a third-party source; not confirmed on his account). Four browsers in one L4 session is the current way to parallelise. | None needed for now. To test two sessions at once: run `colab-render.py` twice at the same time and read the second's error. Pro+ only if that fails and he wants more: colab.research.google.com/signup. |
+| Azure | A GPU quota ticket was filed 2026-09-28: 32 vCPUs of NCADSA10v4 (A10) in East US, 0 to 32 (the automatic increase was rejected). Status not read since. | Approved ticket | Nothing that AWS plus Colab cannot already do; it adds a THIRD independent queue. An A10 has the same 24 GB as the L4 (speed difference not measured here). Fractional A10 VMs (NVadsA10 v5, from 1/6 of a GPU with 4 GB) are too small for the full city. Azure bills separately from the AWS credits, but the Founders Hub credits are the ones Astra also draws on (not checked). Azure Container Instances' GPU offer: not researched to the end, do not plan on it. It needs a launcher and guardrails like `scripts/aws-gpu` (none exist) before it is useful. | Look at the ticket's reply (sent to his Microsoft e-mail), and if approved: Azure portal, Quotas, Compute, confirm 32 vCPUs of "Standard NCADSA10v4 Family" in East US. Nothing else; he should NOT pay for a VM until an agent has a launcher for it. |
+
+## Minutes and cost per run (g6.2xlarge, $0.98 an hour; the last row is an ESTIMATE, not a measurement)
+
+| Run | Machine time | Cost | Source |
+|---|---|---|---|
+| `aws-gpu.yml`, one check (`graphics.mjs`, 27 assertions) | 11 min start to end | about $0.18 | run 37911391819 |
+| `aws-gpu.yml`, `perf-aws-suite.mjs` (the speed tools, one after another) | about 25 min | about $0.40 | run 38028735398 |
+| The free GitHub run, the same 84 checks (software, 8 machines, waits x3) | 47 min wall, 270 machine-minutes | free | run 38028640189 (the slowest single check, `live-here.mjs`, is 43 min on its own) |
+| `aws-pr-checks.yml`, every check + pictures | NOT MEASURED. Estimate 15 to 35 min | $0.25 to $0.60 | 270 serial minutes on GitHub divided by 3 to 8 (hardware drawing, waits x1), over 4 browsers, plus about 5 min set-up and 3 to 5 min of pictures |
+
+The estimate has not been confirmed: on 2026-10-10 the one machine slot was held by other lanes' runs for the whole
+evening (one running, one pending, and a newer dispatch cancels an older pending run), so the planned full-suite
+measurement never got a turn. The first run of `aws-pr-checks.yml` after it is on main is the measurement; write the
+result here.

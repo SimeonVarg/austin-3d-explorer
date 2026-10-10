@@ -6,7 +6,7 @@
  * Usage (the workflow's summary job):
  *   node scripts/verify/ci/summary.mjs --results <dir> [--pictures <dir>]
  *        [--probe mac=<dir>] [--probe linux=<dir>] [--artifacts <jsonl>]
- *        [--run-url <url>] [--sha <sha>]
+ *        [--run-url <url>] [--sha <sha>] [--marker <first line>] [--where <words>]
  *        --out summary.md
  *
  * <dir>s are searched recursively, because downloaded artifacts land one
@@ -17,9 +17,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { loadConfig, plan, shardOf } from './plan.mjs';
 
-export const MARKER = '<!-- visual-checks-summary -->';
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
+// --marker: the first line of the comment, by which the workflow finds it again. The rented-GPU run (aws-pr-checks.yml)
+// uses its own, so the two reports are two comments and neither overwrites the other.
+export const MARKER = opt('--marker', '<!-- visual-checks-summary -->');
 
 function* files(dir, re) {
   if (!dir || !fs.existsSync(dir)) return;
@@ -114,7 +116,8 @@ const L = [MARKER];
 const failing = bad.length + lost.length;
 L.push(`## Visual checks: ${failing ? `${failing} not passing, ` : 'all '}${good.length} passed${sha ? ` (commit ${sha})` : ''}`);
 L.push('');
-L.push(`Every check in \`scripts/verify\` that can run without a graphics card, on GitHub's machines${OS ? ` (\`${OS}\`)` : ''}, software-rendered. ` +
+// --where: how the machine is described. The default is the free GitHub run; the rented-GPU run passes its own words.
+L.push(`Every check in \`scripts/verify\` that can run without a graphics card, ${opt('--where', `on GitHub's machines${OS ? ` (\`${OS}\`)` : ''}, software-rendered`)}. ` +
        `How to read this: \`scripts/verify/README.md\`, section "CI: the checks on every pull request".`);
 L.push('');
 

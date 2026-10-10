@@ -21,7 +21,7 @@ pass() { echo "  ok   $1"; }
 fail() { echo "  FAIL $1"; FAILED=1; }
 
 echo "== bash -n on every script =="
-for f in launch user-data teardown test-offline; do
+for f in launch user-data pr-suite.sh teardown test-offline; do
   if bash -n "$HERE/$f"; then pass "$f parses"; else fail "$f has a syntax error"; fi
 done
 
@@ -57,6 +57,26 @@ grep -q "idle watchdog" "$UD" && pass "user-data has an idle watchdog" || fail "
 grep -qi "swiftshader" "$UD" && pass "user-data gates on SwiftShader" || fail "user-data does not check the renderer"
 grep -q "VERIFY_GL=hardware" "$UD" && pass "user-data points harness at hardware GL" || fail "user-data missing VERIFY_GL=hardware"
 grep -q "serve.py" "$UD" && pass "user-data serves with scripts/serve.py" || fail "user-data does not use serve.py"
+
+echo "== pr-suite mode (a pull request's whole suite on the GPU) =="
+UDM="$("$HERE/launch" --print --mode pr-suite --ref refs/pull/1/merge 2>&1)" && pass "launch --print accepts --mode pr-suite" || fail "launch --print --mode pr-suite failed"
+grep -q '@@MODE@@' "$UD" && pass "user-data takes the mode from launch" || fail "user-data has no @@MODE@@"
+grep -q 'pr-suite.sh' "$UD" && pass "user-data runs pr-suite.sh in that mode" || fail "user-data does not run pr-suite.sh"
+# The four ways the machine ends are common to both modes: the pr-suite branch sits between the arming and the upload.
+awk '/GUARDRAIL 1/{g=NR} /MODE=pr-suite/{m=NR} /RESULTS: to S3/{r=NR} END{exit !(g && m && r && g<m && m<r)}' "$UD" && pass "pr-suite branch sits after the guardrails and before the upload" || fail "pr-suite branch is in the wrong place in user-data"
+PS="$HERE/pr-suite.sh"
+grep -q 'VERIFY_GL=hardware' "$PS" && pass "pr-suite.sh uses the GPU" || fail "pr-suite.sh does not set VERIFY_GL=hardware"
+grep -q 'serve.py' "$PS" && ! grep -q 'http.server' "$PS" && pass "pr-suite.sh serves with scripts/serve.py" || fail "pr-suite.sh must serve with scripts/serve.py"
+grep -q 'GITHUB_ACTIONS' "$PS" && fail "pr-suite.sh must not set GITHUB_ACTIONS (reap.mjs would kill the other workers' browsers)" || pass "pr-suite.sh leaves GITHUB_ACTIONS unset"
+echo "== the machine's response never reaches a public log whole =="
+grep -q "Instances\[\].InstanceId" "$HERE/launch" && pass "launch prints the instance id only" || fail "launch prints the whole run-instances response (it carries the account number)"
+grep -q "0-9\]{12}" "$HERE/launch" && pass "launch masks 12-digit numbers in errors" || fail "launch does not mask account numbers in errors"
+echo "== the pr-suite workflow =="
+W="$HERE/../../.github/workflows/aws-pr-checks.yml"
+grep -q "refs/heads/main" "$W" && pass "the machine starts only from main" || fail "aws-pr-checks.yml is not limited to main"
+grep -q "group: aws-gpu" "$W" && pass "shares the one-machine-at-a-time group with aws-gpu.yml" || fail "aws-pr-checks.yml does not share the aws-gpu group"
+grep -q "fork" "$W" && pass "refuses a pull request from a fork" || fail "aws-pr-checks.yml does not refuse forks"
+grep -q "visual-checks-summary-aws" "$W" && pass "posts its own comment, not the free run's" || fail "aws-pr-checks.yml would overwrite the free run's comment"
 
 echo "== teardown --print assertions =="
 TOUT="$("$HERE/teardown" --print 2>&1)"

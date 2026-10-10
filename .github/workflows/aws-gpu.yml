@@ -71,7 +71,15 @@ jobs:
             [ "$(date +%s)" -gt "$deadline" ] && { echo "::warning::still running after the limit; the next step removes it"; break; }
             sleep 30
           done
-          mkdir -p results && aws s3 cp "s3://$RESULT_BUCKET/flyover-runs/" results/ --recursive --only-show-errors || true
+          # Only THIS run's files: the bucket keeps 30 days of every lane's runs, and the artifact is public to anyone with
+          # read access to the repository. (launch prints "INSTANCE i-..." and nothing else of the AWS response.)
+          iid=$(grep -m1 '^INSTANCE i-' launch.log | awk '{print $2}' || true)
+          mkdir -p results
+          if [ -n "$iid" ]; then
+            aws s3 cp "s3://$RESULT_BUCKET/flyover-runs/" results/ --recursive --exclude '*' --include "*-$iid/*" --only-show-errors || true
+          else
+            aws s3 cp "s3://$RESULT_BUCKET/flyover-runs/" results/ --recursive --only-show-errors || true
+          fi
           ls -R results | head -50
       - name: Make sure nothing is left running
         if: always()
