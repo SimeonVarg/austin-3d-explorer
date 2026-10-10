@@ -100,7 +100,7 @@
     // 2. Glare: the eye's point spread, as two soft lobes beside the existing tight bloom, cooler than the lamp.
     //    Angles are for the 58 degree lens; the canvas widths below are what set them. See graphics.js.
     glare:master?num('glare',1):0,
-    glareLobes:[{w:96,blur:1.0,alpha:.30,gain:5},{w:40,blur:1.0,alpha:.22,gain:8}],   // measured with night-eye.mjs --only movie: what the glare adds, docs/night-eye-2026-10-10.md
+    glareLobes:[{w:96,blur:1.0,alpha:.30,gain:10},{w:40,blur:1.0,alpha:.22,gain:14}],   // measured with night-eye.mjs --only movie: what the glare adds, docs/night-eye-2026-10-10.md
     glareTint:'#bcd0ff',
     glareNightOnly:true,
     debug:false,         // true paints lit window texels by the path that draws them: green MapLibre glass, red bright non-glass, blue below the lit threshold, yellow authored buildings, cyan landmark glass
