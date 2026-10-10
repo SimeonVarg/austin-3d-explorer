@@ -131,7 +131,13 @@ echo "== scene layers =="
 mkdir -p "${DATA_DIR}/tiles"
 tile_layer "${DATA_DIR}/trees.geojson"            "${DATA_DIR}/tiles/trees.pmtiles"      "trees" -j "$(scatter_filter trees)"
 tile_layer "${DATA_DIR}/roads.geojson"            "${DATA_DIR}/tiles/roads.pmtiles"      "roads"
-tile_layer "${DATA_DIR}/outer_ring.geojson"       "${DATA_DIR}/tiles/outer.pmtiles"      "outer"
+# The outer ring carries six descriptive properties per downtown wall (facade
+# profile name, use, plan area, plan width, levels, year). The BAKES read them
+# from the GeoJSON (bake_outer_facades.py turns `fp` into the ordinal `fb`); the
+# browser reads none of them. Left in the tiles they were 2.5 % of the archive
+# (measured 2026-10-10: 2,392,254 -> 2,331,735 bytes on the same data).
+OUTER_BAKE_ONLY=(-x fp -x use -x fa -x fw -x lv -x yr)
+tile_layer "${DATA_DIR}/outer_ring.geojson"       "${DATA_DIR}/tiles/outer.pmtiles"      "outer" "${OUTER_BAKE_ONLY[@]}"
 tile_layer "${DATA_DIR}/roofscape.detail.geojson" "${DATA_DIR}/tiles/roofdetail.pmtiles" "roofdetail"
 tile_layer "${DATA_DIR}/props.geojson"            "${DATA_DIR}/tiles/props.pmtiles"      "props" -j "$(scatter_filter props)"
 

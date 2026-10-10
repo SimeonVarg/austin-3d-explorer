@@ -62,14 +62,53 @@
     roofNightDark: 0.30, roofNightCool: [16, 21, 42], roofNightMix: 0.6,
     // Draw-call grid: cells of this many metres are culled as one.
     chunk: 700,
-    // The file is fetched when the loading veil has lifted, or this long after
-    // the page started, whichever comes first.
-    fetchAfterMs: 15000,
+    // The file is fetched when the loading veil has lifted. If the veil is still
+    // up this long after the page started (a load that has gone wrong), it is
+    // fetched anyway. 15 s was too short: on a 2019 Intel laptop the veil took
+    // 35 s and the file was asked for at 16 s, in the middle of the load.
+    fetchAfterMs: 90000,
+    // WINDOWS. INFERRED, like the wall colour: no source says where a house's
+    // windows are. One on each long wall and one on an end wall, so a wall is
+    // not a blank sheet by day, and so that at night a share of the houses have
+    // a light on. Without them the outer city at night is a black field beside
+    // a lit campus. `litShare` of the houses are lit, and `litPerHouse` of a
+    // lit house's windows. Off on the phone tiers (js/mobile.js
+    // LITE.budget.outerHomeWindows): 18 more vertices a house.
+    windows: {
+      on: q.get('homewindows') !== '0',
+      share: 0.30, min: 0.5, max: 1.4,        // half width: a share of the wall's half length, clamped, metres
+      sill: 0.9, head: 2.1, proud: 0.04,     // metres
+      wander: 0.7,                            // how far off the wall's middle it may sit (share of the room there is)
+      day: '#46525c', golden: '#6b5a4c', dark: '#0b0e15',
+      lit: '#ffd08a',
+      litShare: 0.34, litPerHouse: 0.6,
+      // A light stays a light from far away; a 1 m window does not stay a pixel.
+      // At night a LIT window is drawn wider and taller with distance from the
+      // eye, by distance / glowMetres, never past its own wall or under its
+      // eave, and at most glowMax times. 0 = windows keep their size.
+      glowMetres: 500, glowMax: 4,
+    },
+    // PHONES (js/mobile.js LITE.budget.outerHomes, read below). The share of
+    // each chunk's houses a phone builds and draws, biggest first: 0.15 is
+    // about what the ring drew before this layer took its houses (4,897 of
+    // 39,820), so a phone loses no building and gains roofs. 0 or false = no
+    // houses and no fetch. null = not a phone.
+    phoneShare: null,
   };
   window.OUTER_HOMES = OUTER_HOMES;
+  // The phone gate. Read once, at parse time, like every other line of the phone budget.
+  (function phoneGate() {
+    const L = window.LITE_PROFILE;
+    if (!L || !L.on) return;
+    const b = L.budget || {};
+    const share = b.outerHomes;
+    OUTER_HOMES.phoneShare = (share === undefined || share === true) ? 1 : (+share || 0);
+    if (!OUTER_HOMES.phoneShare) OUTER_HOMES.on = false;
+    if (b.outerHomeWindows === false) OUTER_HOMES.windows.on = false;
+  })();
 
   const KIND_FLAT = 0, KIND_GABLE = 1, KIND_HIP = 2, KIND_GABLE_ACROSS = 3;
-  const count = { done: false, houses: 0, rects: 0, chunks: 0, drawn: 0, bytes: 0, ms: 0, error: null };
+  const count = { done: false, houses: 0, rects: 0, built: 0, chunks: 0, drawn: 0, bytes: 0, gpuBytes: 0, templateTriangles: 0, ms: 0, error: null };
   let _map = null, _data = null, _group = null, _material = null, _lastDensity = null;
 
   // ── the file ────────────────────────────────────────────────────────────
@@ -153,6 +192,8 @@
   // position.z  0 ground, 1 eave, 2 ridge
   // hFace       0 +u wall, 1 -u wall, 2 +v wall, 3 -v wall,
   //             4 +v roof slope, 5 -v roof slope, 6 +u end, 7 -u end
+  //             8 window in the +v wall, 9 in the -v wall, 10 in the +u wall
+  //             (position.x -1 / +1 = its two jambs, position.z 3 sill, 4 head)
   // The end faces are the gable's wall triangle on a gable and the hip's roof
   // triangle on a hip; the vertex prelude decides from the instance's kind.
   function place(p, face, L, W, eave, rise, hip, oh) {
@@ -161,6 +202,12 @@
     const su = p[0], sv = p[1], lvl = p[2];
     const inset = hip ? Math.min(W, L) : 0;
     const drop = oh * rise / Math.max(W, 0.1);
+    if (face > 7.5) {
+      const z = lvl < 3.5 ? 0.9 : 2.1;
+      if (face < 8.5) return [su, W + 0.04, z];
+      if (face < 9.5) return [su, -(W + 0.04), z];
+      return [L + 0.04, su, z];
+    }
     if (face < 3.5) return [su * L, sv * W, lvl < 0.5 ? 0 : eave];
     if (face < 5.5) {
       if (lvl > 1.5) return [su * (hip ? L - inset : L + oh), 0, eave + rise];
@@ -177,6 +224,9 @@
     if (face === 3) return [0, -1, 0];
     if (face === 4) return [0, rise, W];
     if (face === 5) return [0, -rise, W];
+    if (face === 8) return [0, 1, 0];
+    if (face === 9) return [0, -1, 0];
+    if (face === 10) return [1, 0, 0];
     const inset = hip ? Math.min(W, L) : 0;
     return [(face === 6 ? 1 : -1) * (hip ? rise : 1), 0, hip ? inset : 0];
   }
@@ -193,6 +243,10 @@
     for (const [f, a, b, c, d] of quads) { tris.push([f, a, b, c]); tris.push([f, a, c, d]); }
     tris.push([6, [1, -1, 1], [1, 1, 1], [1, 0, 2]]);
     tris.push([7, [-1, 1, 1], [-1, -1, 1], [-1, 0, 2]]);
+    if (OUTER_HOMES.windows.on) for (const f of [8, 9, 10]) {
+      const a = [-1, 0, 3], b = [1, 0, 3], c = [1, 0, 4], d = [-1, 0, 4];
+      tris.push([f, a, b, c]); tris.push([f, a, c, d]);
+    }
     const pos = [], face = [];
     for (const [f, a, b, c] of tris) {
       // measure the winding on a sample hip house; flip if it faces inward
@@ -239,6 +293,7 @@
   function prelude() {
     const H = OUTER_HOMES, tint = hex3(H.goldenTint).map(x => x / 255);
     return `
+    uniform vec3 u_eye;
     vec3 hP; vec3 hN; vec3 hCd; vec3 hCg; vec3 hCn; vec2 hGrad; float hFacet; vec4 hSurf;
     void homesPrelude() {
       float su = position.x, sv = position.y, lvl = position.z, face = aFacet;
@@ -248,8 +303,38 @@
       float oh = ${f1(H.overhang)} * pitched;
       float inset = hip * min(W, L);
       float drop = oh * rise / max(W, 0.1);
-      vec3 p; vec3 n; bool roofColour;
-      if (face < 3.5) {
+      vec3 p; vec3 n; bool roofColour; bool window = false; bool lit = false;
+      if (face > 7.5) {
+        // a window (inferred): where it sits and whether it is lit come from the house's own position, so a
+        // reload shows the same street
+        float h1 = fract(sin(dot(aSurface.xy, vec2(12.9898, 78.233))) * 43758.5453);
+        float h2 = fract(h1 * 97.13 + 0.37);
+        float h3 = fract(h1 * 31.71 + 0.11);
+        bool endWall = face > 9.5;
+        float wall = endWall ? W : L;
+        float hw = min(clamp(wall * ${f1(H.windows.share)}, ${f1(H.windows.min)}, ${f1(H.windows.max)}), wall * 0.8);
+        float room = max(0.0, wall - hw - 0.5) * ${f1(H.windows.wander)};
+        float off = (endWall ? (h2 - 0.5) : (face < 8.5 ? (h1 - 0.5) : (0.5 - h2))) * 2.0 * room;
+        float head = min(${f1(H.windows.head)}, eave - 0.25);
+        float sill = ${f1(H.windows.sill)};
+        lit = h3 < ${f1(H.windows.litShare)} && fract(h3 * 53.0 + face * 0.37) < ${f1(H.windows.litPerHouse)};
+        if (head < sill + 0.5) { hw = 0.0; lit = false; }           // a wall too low for a window: no window
+        if (lit && ${f1(H.windows.glowMetres)} > 0.0) {
+          // at night, a lit window grows with distance so it stays a light (OUTER_HOMES.windows.glowMetres)
+          float g = clamp(distance(u_eye, vec3(aSurface.xy, 2.0)) / ${f1(H.windows.glowMetres || 1)}, 1.0, ${f1(H.windows.glowMax)});
+          g = mix(1.0, g, smoothstep(0.6, 0.85, u_materialP));
+          hw = min(hw * g, wall * 0.9);
+          float mid = 0.5 * (sill + head), hh = min(0.5 * (head - sill) * g, 0.5 * (eave - 0.5));
+          sill = max(0.3, mid - hh); head = min(eave - 0.2, mid + hh);
+          off = clamp(off, -(wall - hw), wall - hw);
+        }
+        float z = lvl < 3.5 ? sill : head;
+        float side = face < 8.5 ? 1.0 : -1.0;
+        p = endWall ? vec3(L + ${f1(H.windows.proud)}, off + su * hw, z) : vec3(off + su * hw, side * (W + ${f1(H.windows.proud)}), z);
+        n = endWall ? vec3(1.0, 0.0, 0.0) : vec3(0.0, side, 0.0);
+        roofColour = false; window = true;
+        hGrad = vec2(0.0);
+      } else if (face < 3.5) {
         p = vec3(su * L, sv * W, lvl < 0.5 ? 0.0 : eave);
         n = face < 0.5 ? vec3(1.0, 0.0, 0.0) : face < 1.5 ? vec3(-1.0, 0.0, 0.0)
           : face < 2.5 ? vec3(0.0, 1.0, 0.0) : vec3(0.0, -1.0, 0.0);
@@ -273,7 +358,11 @@
       float c = aSurface.z, s2 = aSurface.w;
       hP = vec3(aSurface.x + p.x * c - p.y * s2, aSurface.y + p.x * s2 + p.y * c, p.z);
       hN = vec3(n.x * c - n.y * s2, n.x * s2 + n.y * c, n.z);
-      if (roofColour) {
+      if (window) {
+        hCd = ${v3(hex3(H.windows.day).map(x => x / 255))};
+        hCg = ${v3(hex3(H.windows.golden).map(x => x / 255))};
+        hCn = lit ? ${v3(hex3(H.windows.lit).map(x => x / 255))} : ${v3(hex3(H.windows.dark).map(x => x / 255))};
+      } else if (roofColour) {
         hCd = cGold;
         hCg = mix(hCd, ${v3(tint)}, ${f1(H.roofGoldenMix)});
         hCn = mix(hCd * ${f1(H.roofNightDark)}, ${v3(H.roofNightCool.map(x => x / 255))}, ${f1(H.roofNightMix)});
@@ -283,7 +372,8 @@
         hCn = mix(hCd * ${f1(H.nightDark)}, ${v3(H.nightCool.map(x => x / 255))}, ${f1(H.nightMix)});
       }
       hFacet = (roofColour && pitched > 0.5) ? 1.0 : 0.0;
-      hSurf = vec4(0.0);
+      // surface kind 5 is the shared material's "a light": it glows by its night colour once the city's night is on
+      hSurf = lit ? vec4(5.0, 0.0, 0.0, 0.0) : vec4(0.0);
     }
     #define position hP
     #define normal hN
@@ -361,7 +451,7 @@
       c.push(k);
     }
     const tplPos = new T.BufferAttribute(tpl.position, 3), tplFace = new T.BufferAttribute(tpl.face, 1);
-    let rects = 0;
+    let rects = 0, gpu = tpl.position.byteLength + tpl.face.byteLength;
     for (const idx of chunks.values()) {
       // rank: the building's first rectangle carries the size; its wings follow it
       const rank = new Float32Array(idx.length);
@@ -372,7 +462,8 @@
         rank[m] = lead;
       }
       const order = Array.from(idx.keys()).sort((a, b) => rank[b] - rank[a] || a - b);
-      const m = idx.length;
+      // a phone builds only the biggest houses of the chunk (OUTER_HOMES.phoneShare): the rest never reach the GPU
+      const m = H.phoneShare == null ? idx.length : Math.max(1, Math.ceil(idx.length * Math.min(1, H.phoneShare)));
       const A = new Float32Array(m * 4), B = new Float32Array(m * 3), K = new Float32Array(m * 2);
       const wallC = new Uint8Array(m * 3), roofC = new Uint8Array(m * 3);
       let sx = 0, sy = 0, top = 0, r2 = 0;
@@ -417,9 +508,11 @@
       mesh.layers.set(1);
       g.add(mesh);
       rects += m;
+      gpu += A.byteLength + B.byteLength + K.byteLength + wallC.byteLength + roofC.byteLength;
     }
     if (S.camera && S.camera.layers) S.camera.layers.enable(1);
-    count.rects = rects; count.chunks = chunks.size;
+    count.rects = n; count.built = rects; count.chunks = chunks.size;
+    count.gpuBytes = gpu; count.templateTriangles = tpl.vertices / 3;
     count.houses = 0; for (let k = 0; k < n; k++) if (d.kind[k] & 4) count.houses++;
     count.ms = +(performance.now() - t0).toFixed(1);
     return g;

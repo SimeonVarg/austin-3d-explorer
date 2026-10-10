@@ -67,9 +67,45 @@ def excluded(lon, lat):
     return in_box(lon, lat, CORE) or in_box(lon, lat, CAPITOL) or in_box(lon, lat, DOWNTOWN)
 
 
-def area_of(lon, lat):
-    """The reporting area of a point, None where another lane owns the city or outside the box."""
-    if not in_box(lon, lat, OUTER) or excluded(lon, lat):
+_districts = None
+
+
+def in_downtown_districts(lon, lat):
+    """True inside the City's nine Downtown Austin Plan districts (data/outer/downtown_districts.json, CC0).
+
+    The downtown lane's own definition of downtown. It reaches a little past the DOWNTOWN box (south to the lake
+    shore below Rainey Street), and every BUILDING in it is that lane's: scripts/downtown_bodies.py draws it from
+    its own measurement. False when the file is not there (a branch without the downtown work).
+    """
+    global _districts
+    if _districts is None:
+        p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "outer", "downtown_districts.json")
+        if not os.path.exists(p):
+            _districts = False
+        else:
+            import shapely
+            from shapely.geometry import shape
+            from shapely.ops import unary_union
+            u = unary_union([shape(r["g"]).buffer(0) for r in json.load(open(p, encoding="utf-8"))["rows"]])
+            shapely.prepare(u)
+            _districts = u
+    if _districts is False:
+        return False
+    import shapely
+    return bool(shapely.contains_xy(_districts, lon, lat))
+
+
+def excluded_building(lon, lat):
+    """True where another lane draws the BUILDINGS: the three boxes, and the downtown districts."""
+    return excluded(lon, lat) or in_downtown_districts(lon, lat)
+
+
+def area_of(lon, lat, buildings=True):
+    """The reporting area of a point, None where another lane owns the city or outside the box.
+
+    `buildings=False` is for trees: no other lane plants the strip of downtown districts outside the boxes.
+    """
+    if not in_box(lon, lat, OUTER) or (excluded_building(lon, lat) if buildings else excluded(lon, lat)):
         return None
     for k, b in AREAS.items():
         if in_box(lon, lat, b):

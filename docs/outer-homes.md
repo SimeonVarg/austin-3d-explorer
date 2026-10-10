@@ -1,5 +1,9 @@
 # The houses of the outer city
 
+> **Read `docs/city-join.md` for the numbers of the joined branch.** This page is the step as it was on its own
+> branch; the windows, the phone gate and the join with downtown came after it, and the counts moved a little
+> (39,807 buildings, 53,761 rectangles).
+
 Branch `mac/outer-city`, 2026-10-10. Step 1 of making the outer city (everything
 outside the campus core, the Capitol strip and downtown) accurate.
 

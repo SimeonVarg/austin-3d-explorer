@@ -18,21 +18,21 @@
    "roof_colour_n": 121
   },
   "ALL outer": {
-   "city_buildings": 37625,
+   "city_buildings": 37612,
    "present_pct": 15.6,
-   "present_area_pct": 44.9,
-   "missing": 31745,
-   "pieces_drawn": 5954,
+   "present_area_pct": 44.8,
+   "missing": 31740,
+   "pieces_drawn": 5942,
    "extra": 56,
    "extra_pct": 0.9,
-   "height_n": 5862,
+   "height_n": 5854,
    "height_median_abs_m": 0.04,
-   "height_mean_abs_m": 0.95,
+   "height_mean_abs_m": 0.94,
    "height_bias_m": -0.0,
    "height_within_1m_pct": 81.7,
-   "height_mean_abs_all_m": 5.65,
+   "height_mean_abs_all_m": 5.64,
    "roof_colour_dE": 30.0,
-   "roof_colour_n": 5880
+   "roof_colour_n": 5872
   },
   "Bouldin Creek": {
    "city_buildings": 3453,
@@ -188,21 +188,21 @@
    "roof_colour_n": 366
   },
   "Travis Heights-SoCo": {
-   "city_buildings": 2789,
-   "present_pct": 15.2,
-   "present_area_pct": 50.6,
-   "missing": 2366,
-   "pieces_drawn": 443,
+   "city_buildings": 2776,
+   "present_pct": 14.9,
+   "present_area_pct": 49.9,
+   "missing": 2361,
+   "pieces_drawn": 431,
    "extra": 5,
-   "extra_pct": 1.1,
-   "height_n": 423,
+   "extra_pct": 1.2,
+   "height_n": 415,
    "height_median_abs_m": 0.05,
-   "height_mean_abs_m": 1.94,
+   "height_mean_abs_m": 1.81,
    "height_bias_m": -0.02,
-   "height_within_1m_pct": 68.3,
-   "height_mean_abs_all_m": 6.12,
+   "height_within_1m_pct": 68.4,
+   "height_mean_abs_all_m": 6.09,
    "roof_colour_dE": 28.2,
-   "roof_colour_n": 423
+   "roof_colour_n": 415
   },
   "West Lake shore": {
    "city_buildings": 1233,
@@ -254,25 +254,25 @@
    "height_bias_m": -0.47,
    "height_within_1m_pct": 66.2,
    "height_mean_abs_all_m": 1.59,
-   "roof_colour_dE": 3.6,
+   "roof_colour_dE": 3.4,
    "roof_colour_n": 293
   },
   "ALL outer": {
-   "city_buildings": 37625,
+   "city_buildings": 37612,
    "present_pct": 93.8,
    "present_area_pct": 96.6,
-   "missing": 2318,
-   "pieces_drawn": 54799,
-   "extra": 1619,
-   "extra_pct": 3.0,
-   "height_n": 35253,
+   "missing": 2315,
+   "pieces_drawn": 54776,
+   "extra": 1615,
+   "extra_pct": 2.9,
+   "height_n": 35243,
    "height_median_abs_m": 0.51,
    "height_mean_abs_m": 0.89,
    "height_bias_m": -0.45,
    "height_within_1m_pct": 73.7,
-   "height_mean_abs_all_m": 1.21,
+   "height_mean_abs_all_m": 1.2,
    "roof_colour_dE": 3.0,
-   "roof_colour_n": 35307
+   "roof_colour_n": 35297
   },
   "Bouldin Creek": {
    "city_buildings": 3453,
@@ -288,7 +288,7 @@
    "height_bias_m": -0.42,
    "height_within_1m_pct": 76.8,
    "height_mean_abs_all_m": 1.26,
-   "roof_colour_dE": 3.0,
+   "roof_colour_dE": 3.1,
    "roof_colour_n": 3205
   },
   "Central East": {
@@ -296,7 +296,7 @@
    "present_pct": 93.2,
    "present_area_pct": 95.5,
    "missing": 359,
-   "pieces_drawn": 6852,
+   "pieces_drawn": 6853,
    "extra": 215,
    "extra_pct": 3.1,
    "height_n": 4890,
@@ -305,7 +305,7 @@
    "height_bias_m": -0.39,
    "height_within_1m_pct": 84.2,
    "height_mean_abs_all_m": 1.1,
-   "roof_colour_dE": 2.7,
+   "roof_colour_dE": 2.6,
    "roof_colour_n": 4897
   },
   "East Riverside": {
@@ -322,7 +322,7 @@
    "height_bias_m": -0.36,
    "height_within_1m_pct": 79.9,
    "height_mean_abs_all_m": 1.12,
-   "roof_colour_dE": 2.6,
+   "roof_colour_dE": 2.4,
    "roof_colour_n": 164
   },
   "Hancock-Cherrywood": {
@@ -347,7 +347,7 @@
    "present_pct": 92.1,
    "present_area_pct": 96.3,
    "missing": 221,
-   "pieces_drawn": 3762,
+   "pieces_drawn": 3763,
    "extra": 174,
    "extra_pct": 4.6,
    "height_n": 2585,
@@ -379,19 +379,19 @@
   "Old West Austin": {
    "city_buildings": 2524,
    "present_pct": 95.8,
-   "present_area_pct": 97.8,
-   "missing": 107,
-   "pieces_drawn": 3745,
+   "present_area_pct": 97.9,
+   "missing": 106,
+   "pieces_drawn": 3746,
    "extra": 102,
    "extra_pct": 2.7,
-   "height_n": 2412,
+   "height_n": 2413,
    "height_median_abs_m": 0.64,
    "height_mean_abs_m": 0.95,
    "height_bias_m": -0.59,
    "height_within_1m_pct": 67.6,
    "height_mean_abs_all_m": 1.14,
    "roof_colour_dE": 3.0,
-   "roof_colour_n": 2417
+   "roof_colour_n": 2418
   },
   "Rosedale-Heritage": {
    "city_buildings": 4307,
@@ -428,21 +428,21 @@
    "roof_colour_n": 3138
   },
   "Travis Heights-SoCo": {
-   "city_buildings": 2789,
-   "present_pct": 93.5,
+   "city_buildings": 2776,
+   "present_pct": 93.6,
    "present_area_pct": 97.4,
-   "missing": 180,
-   "pieces_drawn": 4071,
-   "extra": 140,
+   "missing": 178,
+   "pieces_drawn": 4045,
+   "extra": 136,
    "extra_pct": 3.4,
-   "height_n": 2607,
+   "height_n": 2596,
    "height_median_abs_m": 0.73,
-   "height_mean_abs_m": 1.16,
+   "height_mean_abs_m": 1.11,
    "height_bias_m": -0.67,
    "height_within_1m_pct": 63.2,
-   "height_mean_abs_all_m": 1.45,
+   "height_mean_abs_all_m": 1.4,
    "roof_colour_dE": 3.2,
-   "roof_colour_n": 2609
+   "roof_colour_n": 2598
   },
   "West Lake shore": {
    "city_buildings": 1233,
@@ -458,7 +458,7 @@
    "height_bias_m": -0.87,
    "height_within_1m_pct": 52.3,
    "height_mean_abs_all_m": 1.67,
-   "roof_colour_dE": 3.0,
+   "roof_colour_dE": 2.9,
    "roof_colour_n": 1155
   },
   "Zilker-Barton Hills": {

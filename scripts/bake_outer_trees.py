@@ -184,7 +184,7 @@ def main():
     areas = {}
     for i in range(0, nr):
         for j in range(0, nc):
-            a_ = area_of(float(lon[i, j]), float(lat[i, j]))
+            a_ = area_of(float(lon[i, j]), float(lat[i, j]), buildings=False)
             if a_ is None:
                 continue
             d = areas.setdefault(a_, [0, 0.0, 0])

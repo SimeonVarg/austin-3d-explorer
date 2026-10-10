@@ -63,7 +63,7 @@ import time
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from outer_homes_lib import (OUTER, DOWNTOWN, Scan, area_of, excluded, geom_m, in_box,  # noqa: E402
+from outer_homes_lib import (OUTER, DOWNTOWN, Scan, area_of, excluded_building, geom_m, in_box,  # noqa: E402
                              max_rect, rect_poly, to_ll, work_dir)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -235,11 +235,13 @@ def stage_a(log):
     hard, ringflat, ringidx = [], [], []
     for k, f in enumerate(json.load(open(RING, encoding="utf-8"))["features"]):
         p = f["properties"]
-        if "k" in p:
+        if p.get("k") == "g":                     # a park pad is ground, not a building
             continue
         g = shape(f["geometry"])
         c = g.centroid
-        if p.get("t") in (1, 2) or in_box(c.x, c.y, DOWNTOWN):
+        # A detail piece (`k`) is part of a building too: downtown's measured bodies are stacks of them, and the
+        # City's downtown districts reach a little past the DOWNTOWN box (two Rainey Street houses were drawn twice).
+        if "k" in p or p.get("t") in (1, 2) or in_box(c.x, c.y, DOWNTOWN):
             hard.append(g)
         else:
             ringflat.append(g)
@@ -264,7 +266,7 @@ def stage_a(log):
         if not in_box(c.x, c.y, OUTER):
             cnt["outside_box"] += 1
             continue
-        if excluded(c.x, c.y):
+        if excluded_building(c.x, c.y):
             cnt["core_capitol_downtown"] += 1
             continue
         P = geom_m(Polygon(g.exterior))
@@ -568,7 +570,7 @@ def stage_c(log):
         cnt[v] += 1
     known = [o["poly"] for i, o in enumerate(A) if verdict[i] in ("ok", "hidden", "noscan")]
     for f in json.load(open(RING, encoding="utf-8"))["features"]:
-        if "k" not in f["properties"]:
+        if f["properties"].get("k") != "g":       # every body and every piece of one; a park pad is ground
             known.append(geom_m(shape(f["geometry"]).buffer(0)))
     for fn in (CORE_SNAP, CAPITOL_GJ):
         for f in json.load(open(fn, encoding="utf-8"))["features"]:
@@ -606,7 +608,7 @@ def stage_c(log):
                 if not rects or min(rects[0][2], rects[0][3]) * 2 < BLOB_MIN_SIDE:
                     continue
                 lon, lat = (float(q) for q in to_ll(xs.mean(), ys.mean()))
-                if not in_box(lon, lat, OUTER) or excluded(lon, lat):
+                if not in_box(lon, lat, OUTER) or excluded_building(lon, lat):
                     continue
                 blobs.append(dict(id="scan:%d_%d" % (int(cr), int(ccn)), lon=lon, lat=lat, area=float(area), rects=rects, iou=iou,
                                   poly=MultiPoint(np.column_stack([xs, ys])).buffer(0.36, cap_style="square").buffer(0), ring=None))
@@ -677,6 +679,9 @@ def stage_d(log):
     cnt, builds = collections.Counter(), []
     for i, o in [(i, o) for i, o in enumerate(A)] + [(None, b) for b in C["blobs"]]:
         v = C["verdict"][i] if i is not None else "scan"
+        if excluded_building(o["lon"], o["lat"]):     # checked again here, so a cached stage cannot let one through
+            cnt["dropped_other_lane"] += 1
+            continue
         if v in ("gone", "moved", "hidden_dropped"):
             cnt["dropped_" + v] += 1
             continue
@@ -786,7 +791,7 @@ def stage_d(log):
             continue
         g = shape(f["geometry"])
         c = g.centroid
-        if in_box(c.x, c.y, DOWNTOWN) or excluded(c.x, c.y):
+        if in_box(c.x, c.y, DOWNTOWN) or excluded_building(c.x, c.y):
             continue
         P = geom_m(g.buffer(0))
         if P.geom_type != "Polygon":
@@ -812,6 +817,9 @@ def stage_d(log):
         drop += [e for e in old.get("drop", []) if (e[0], e[1]) not in have]
         have = {(e[0], e[1]) for e in heights}
         heights += [e for e in old.get("heights", []) if (e[0], e[1]) not in have]
+    # ... except an entry in another lane's area: that lane's buildings are not this layer's to remove or raise
+    drop = [e for e in drop if not excluded_building(e[0], e[1])]
+    heights = [e for e in heights if not excluded_building(e[0], e[1])]
     drop.sort()
     heights.sort()
     with open(SPLIT, "w", encoding="utf-8") as f:

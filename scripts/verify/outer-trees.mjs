@@ -11,6 +11,8 @@
  *   node outer-trees.mjs                 assertions only
  *   node outer-trees.mjs --out DIR       + before/after frames from made-up cameras
  *   node outer-trees.mjs --perf          frame time, trees off and on, six interleaved reps
+ *   node outer-trees.mjs --query outertreestyle=plain    the other look (extra page flags)
+ *   node outer-trees.mjs --poses FILE    your own cameras
  */
 import { chromium } from 'playwright-core';
 import { BASE, launch } from './chrome.mjs';
@@ -20,7 +22,7 @@ import path from 'node:path';
 const arg = k => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
 const OUT = arg('--out') ? path.resolve(arg('--out')) : null;
 // Made-up cameras over named neighbourhoods. None is a photograph's camera.
-const POSES = [
+const POSES = arg('--poses') ? JSON.parse(fs.readFileSync(arg('--poses'), 'utf8')) : [
   { name: 'tarrytown-air', center: [-97.7760, 30.2990], zoom: 16.0, pitch: 60, bearing: 300, p: 0.25 },
   { name: 'hyde-park-air', center: [-97.7290, 30.3060], zoom: 16.2, pitch: 55, bearing: 20, p: 0.25 },
   { name: 'hyde-park-low', center: [-97.7288, 30.3052], zoom: 18.2, pitch: 76, bearing: 350, p: 0.25 },
@@ -40,13 +42,13 @@ const browser = await launch(chromium, { maxMs: 1500000 });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 const errors = [], shaderErrors = [];
 page.on('pageerror', e => errors.push(e.message));
-page.on('console', m => { const t = m.text(); if (/Shader Error|VALIDATE_STATUS|\[outer-trees\]/.test(t) && m.type() !== 'log') shaderErrors.push(t.slice(0, 400)); });
+page.on('console', m => { const t = m.text(); if (/Shader Error|VALIDATE_STATUS|\[outer-trees\]/.test(t) && m.type() !== 'log') shaderErrors.push(t.slice(0, 1500)); });
 await page.route('**/js/controls.js*', r => r.fulfill({ contentType: 'application/javascript', body: 'function initControls(){return function(){};}' }));
 await page.addInitScript(() => {
   const t = setInterval(() => { if (window.cancelGraphicsAutoDetect) { window.cancelGraphicsAutoDetect(); clearInterval(t); } }, 20);
   setTimeout(() => clearInterval(t), 30000);
 });
-await page.goto(BASE + '/?intro=0&drift=0&namelabels=0&facadepace=0&timeofdaypace=0', { waitUntil: 'domcontentloaded', timeout: 180000 });
+await page.goto(BASE + '/?intro=0&drift=0&namelabels=0&facadepace=0&timeofdaypace=0' + (arg('--query') ? '&' + arg('--query') : ''), { waitUntil: 'domcontentloaded', timeout: 180000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 300000 });
 await page.waitForFunction(() => window.outerTrees && window.outerTrees.stats().done, null, { timeout: 600000, polling: 500 });
 await page.waitForFunction(() => !document.getElementById('veil'), null, { timeout: 600000, polling: 500 }).catch(() => log('WARN: veil still up'));
@@ -97,8 +99,8 @@ check(greener(A, B) > 0.15, 'over Tarrytown at least 15 % of the frame turns gre
 check(diff(A, C) < 0.02, 'switching them back on gives the same frame', (diff(A, C) * 100).toFixed(2) + ' %');
 // 2. far template from high up, and never both templates of a chunk
 await pose({ center: [-97.7760, 30.2990], zoom: 14.4, pitch: 50, bearing: 0, p: 0.25 });
-const s2 = await page.evaluate(() => { const g = window.outerTrees.group; let both = 0, tris = 0; for (const m of g.children) { if (m.userData.which === 'near' && m.visible && m.userData.twin.visible) both++; } return { ...window.outerTrees.stats(), both, hidden: window.LOD_isHidden ? window.LOD_isHidden('slopes-mesh') : null, groupVisible: g.visible }; });
-check(s2.far > 0 && s2.both === 0, 'from high up the far template draws, and no chunk draws both', JSON.stringify({ near: s2.near, far: s2.far, both: s2.both, groupVisible: s2.groupVisible }));
+const s2 = await page.evaluate(() => { const g = window.outerTrees.group; let both = 0; for (const m of g.children) { const set = m.userData.set; if (set && ['near', 'far', 'horizon'].filter(k => set[k] && set[k].visible).length > 1) both++; } return { ...window.outerTrees.stats(), both, groupVisible: g.visible }; });
+check(s2.far > 0 && s2.horizon > 0 && s2.near === 0 && s2.both === 0, 'from high up the far and horizon templates draw, no near one, and no chunk draws two', JSON.stringify({ near: s2.near, far: s2.far, horizon: s2.horizon, both: s2.both, groupVisible: s2.groupVisible }));
 // 3. somewhere else entirely
 await pose({ center: [-97.7400, 30.2470], zoom: 16.6, pitch: 35, bearing: 0, p: 0.25 });
 const D = await grab(); await setTrees(false); const E = await grab(); await setTrees(true);
@@ -116,7 +118,7 @@ const core = await page.evaluate(() => {
 check(core === 0, 'no tree of this layer inside the campus core or the Capitol strip', core);
 const dens = await page.evaluate(() => { window.OUTER_TREES.density = 0.5; window.applyOuterTrees(window.__map); const a = window.outerTrees.stats().drawn; window.OUTER_TREES.density = 1; window.applyOuterTrees(window.__map); const b = window.outerTrees.stats().drawn; window.OUTER_TREES.density = null; window.applyOuterTrees(window.__map); return [a, b]; });
 check(dens[0] > 0.4 * dens[1] && dens[0] < 0.6 * dens[1], 'density 0.5 draws about half', dens.join(' of '));
-check(shaderErrors.length === 0, 'no shader or module error was logged', shaderErrors.slice(0, 2).join(' | '));
+check(shaderErrors.length === 0, 'no shader or module error was logged', shaderErrors.slice(0, 1).join(' | '));
 check(errors.length === 0, 'no page error', errors.slice(0, 2).join(' | '));
 
 if (process.argv.includes('--perf')) {

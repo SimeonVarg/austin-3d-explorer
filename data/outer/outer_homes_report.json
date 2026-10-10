@@ -44,31 +44,32 @@
    "noscan": 1573,
    "ok": 34531
   },
-  "scan_only_buildings": 3360,
-  "scan_only_m2": 328988
+  "scan_only_buildings": 3358,
+  "scan_only_m2": 328568
  },
  "d": {
-  "buildings": 39820,
+  "buildings": 39807,
   "bytes_per_building": 10.6,
   "counts": {
-   "buildings": 39820,
+   "buildings": 39807,
    "dropped_gone": 298,
    "dropped_hidden_dropped": 1124,
    "dropped_moved": 641,
-   "from_hidden": 356,
+   "dropped_other_lane": 11,
+   "from_hidden": 355,
    "from_noscan": 1573,
-   "from_ok": 34531,
-   "from_scan": 3360,
-   "rect_inferred": 2424,
-   "rect_scan": 51356
+   "from_ok": 34526,
+   "from_scan": 3353,
+   "rect_inferred": 2423,
+   "rect_scan": 51338
   },
-  "gzip_bytes": 422203,
-  "raw_bytes": 645652,
-  "rectangles": 53780,
-  "ring_prisms_raised": 165,
-  "ring_prisms_taken": 4897,
-  "ring_prisms_that_stay_and_the_scan_covers": 980,
-  "roof_colours_measured": 49914,
+  "gzip_bytes": 422031,
+  "raw_bytes": 645424,
+  "rectangles": 53761,
+  "ring_prisms_raised": 164,
+  "ring_prisms_taken": 4889,
+  "ring_prisms_that_stay_and_the_scan_covers": 978,
+  "roof_colours_measured": 49896,
   "roof_palette": 64,
   "roof_quantisation_rgb_rms": 5.1
  },

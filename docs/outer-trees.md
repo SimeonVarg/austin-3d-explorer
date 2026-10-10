@@ -1,5 +1,9 @@
 # The tree cover of the outer city
 
+> **Read `docs/city-join.md` for the numbers of the joined branch.** This page is the step as it was on its own
+> branch; the campus look, the three distance templates, the phone gate and the join with downtown came after it, and the counts moved a little
+> (39,807 buildings, 53,761 rectangles).
+
 Branch `mac/outer-trees`, 2026-10-10. Step 2 of making the outer city accurate;
 it stands on step 1 (`docs/outer-homes.md`, the houses).
 

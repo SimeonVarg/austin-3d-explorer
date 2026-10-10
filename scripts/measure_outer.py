@@ -180,7 +180,7 @@ def canopy(S):
             continue
         g = shape(f["geometry"])
         c = g.centroid
-        a = area_of(c.x, c.y)
+        a = area_of(c.x, c.y, buildings=False)
         if a is not None:
             crowns[a] += geom_m(g).area
             crowns[ALL] += geom_m(g).area
@@ -201,7 +201,7 @@ def canopy(S):
             mine = np.zeros(lon.shape, bool)
             for i in range(lon.shape[0]):
                 for j in range(lon.shape[1]):
-                    mine[i, j] = area_of(float(lon[i, j]), float(lat[i, j])) == name
+                    mine[i, j] = area_of(float(lon[i, j]), float(lat[i, j]), buildings=False) == name
             with np.errstate(invalid="ignore"):
                 tall = (np.isfinite(z) & (z - g >= 3.0))[::8, ::8]
             veg += int((tall & mine).sum())
