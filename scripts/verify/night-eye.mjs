@@ -38,7 +38,7 @@ export const TUNE = {
   },
   determinism: { pose: 'tower-night', loads: 2, tolerance: 12 },
   sequence: { pose: 'west-far', frames: 8, stepMs: 250, nearM: 250, farM: 900, litLuma: 70,
-              minFarOverNear: 3, minFarCv: 0.02, maxNearCv: 0.01 },
+              minFarOverNear: 3, minFarCv: 0.03, maxNearCv: 0.01 },
   cost: { pose: 'tower-night', reps: 7, frames: 24, maxExtraMs: 2.0 },
   live: { seconds: 3, minFps: 8, pose: 'tower-night' },
 };
@@ -183,8 +183,11 @@ await stage('pictures', async () => {
 // 3. SEQUENCE: eight frames, 0.25 s apart, on a frozen clock that is stepped by hand.
 // ======================================================================================================
 await stage('sequence', async () => {
-  const S = TUNE.sequence, pose = TUNE.poses[S.pose], dir = path.join(OUT, 'sequence'); fs.mkdirSync(dir, { recursive: true });
-  const page = await open('nightfreeze=1'); await settle(page, pose);
+  const S = TUNE.sequence, pose = TUNE.poses[opt('--pose', S.pose)], dir = path.join(OUT, 'sequence'); fs.mkdirSync(dir, { recursive: true });
+  const page = await open('nightfreeze=1&twinkle=1'); await settle(page, pose);
+  const eyeSet = opt('--eye', null);   // JSON of CityNight.eye overrides for an experiment, e.g. '{"windowAmp":0.5}'
+  if (eyeSet) await page.evaluate(o => Object.assign(window.CityNight.eye, o), JSON.parse(eyeSet));
+  data.sequenceEye = await page.evaluate(() => { const e = window.CityNight.eye; return { windowAmp: e.windowAmp, lampAmp: e.lampAmp, nearM: e.nearM, farM: e.farM, glare: e.glare }; });
   // Distance of each screen row to the camera, along the ground (an upper bound for a wall on that row).
   const rowDist = await page.evaluate(() => {
     // Camera = the map centre pulled back along the view by cameraToCenterDistance, at the pitch (this MapLibre has no getFreeCameraOptions here).
@@ -198,46 +201,61 @@ await stage('sequence', async () => {
     return out;
   });
   console.log('row distances (m) at rows 450 / 600 / 800 / 899:', [450, 600, 800, 899].map(y => rowDist[y] && Math.round(rowDist[y])));
+  // Four places the modulation can be lost, measured on the same frames: the map's own canvas (before the page's colour grade and
+  // bloom), the grade without bloom (the bloom canvas hidden), and the final picture as a person sees it.
+  const STAGES = { raw: 60, nobloom: 70, final: 70 };
+  const grab = async (stage, file) => {
+    if (stage === 'raw') { const u = await page.evaluate(() => window.__map.getCanvas().toDataURL('image/png')); fs.writeFileSync(file, Buffer.from(u.split(',')[1], 'base64')); }
+    else if (stage === 'nobloom') {
+      await page.evaluate(() => { const c = document.getElementById('fx-canvas'); if (c) c.style.visibility = 'hidden'; });
+      await page.screenshot({ path: file });
+      await page.evaluate(() => { const c = document.getElementById('fx-canvas'); if (c) c.style.visibility = ''; });
+    } else await page.screenshot({ path: file });
+  };
   const frames = [];
   for (const mode of ['on', 'off']) {
     await page.evaluate(m => { window.CityNight.eye.twinkle = m === 'on' ? 1 : 0; window.CityNight.eye.drift = false; }, mode);   // shimmer alone: the slow change is measured by its own claim
     for (let k = 0; k < S.frames; k++) {
       await page.evaluate(ms => window.CityNight.hold(ms), 1000 + k * S.stepMs);
       await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
-      await page.waitForTimeout(300);
-      const f = path.join(dir, `${mode}-${k}.png`); await page.screenshot({ path: f }); frames.push([mode, k, f]);
+      await page.waitForTimeout(400);
+      for (const st of Object.keys(STAGES)) { const f = path.join(dir, `${st}-${mode}-${k}.png`); await grab(st, f); frames.push([st, mode, k, f]); }
     }
   }
-  // per pixel: lit in the reference (twinkle off, frame 0) -> temporal mean and std of luma over the 8 frames
-  const stats = mode => {
-    const imgs = frames.filter(f => f[0] === mode).map(f => decodePNG(f[2])), ref = decodePNG(frames.find(f => f[0] === 'off' && f[1] === 0)[2]);
-    const W = ref.width, H = ref.height, band = { near: { n: 0, s: 0, cv: 0 }, far: { n: 0, s: 0, cv: 0 } };
+  // per pixel: lit in the reference (twinkle off, frame 0) -> temporal mean and std of luma over the frames
+  const stats = (st, mode, mapFile) => {
+    const imgs = frames.filter(f => f[0] === st && f[1] === mode).map(f => decodePNG(f[3])), ref = decodePNG(frames.find(f => f[0] === st && f[1] === 'off' && f[2] === 0)[3]);
+    const W = ref.width, H = ref.height, hCss = rowDist.length, band = { near: { n: 0, s: 0, cv: 0, c2: 0, vary: 0 }, far: { n: 0, s: 0, cv: 0, c2: 0, vary: 0 } };
+    const vis = mapFile ? Buffer.alloc(W * H * 3) : null;
     for (let y = 0; y < H; y++) {
-      const d = rowDist[y]; if (d == null) continue;
-      const b = d < S.nearM ? 'near' : d > S.farM ? 'far' : null; if (!b) continue;
+      const d = rowDist[Math.min(hCss - 1, Math.floor(y * hCss / H))];
+      const b = d == null ? null : d < S.nearM ? 'near' : d > S.farM ? 'far' : null;
       for (let x = 0; x < W; x++) {
         const i = (y * W + x) * ref.bpp;
         const l0 = 0.2126 * ref.data[i] + 0.7152 * ref.data[i + 1] + 0.0722 * ref.data[i + 2];
-        if (l0 < S.litLuma || ref.data[i] < ref.data[i + 2]) continue;      // lit and warm: a window or a lamp, not a pale wall
-        let mu = 0, ss = 0; const ls = imgs.map(im => 0.2126 * im.data[i] + 0.7152 * im.data[i + 1] + 0.0722 * im.data[i + 2]);
-        ls.forEach(v => mu += v); mu /= ls.length; ls.forEach(v => ss += (v - mu) * (v - mu)); const sd = Math.sqrt(ss / ls.length);
-        band[b].n++; band[b].s += sd * sd; band[b].cv += sd / Math.max(1, mu);
+        const lit = l0 >= STAGES[st] && ref.data[i] >= ref.data[i + 2];
+        let mu = 0, ss = 0, sd = 0;
+        if (lit && (b || vis)) { const ls = imgs.map(im => 0.2126 * im.data[i] + 0.7152 * im.data[i + 1] + 0.0722 * im.data[i + 2]); mu = ls.reduce((a, c) => a + c, 0) / ls.length; ls.forEach(v => ss += (v - mu) * (v - mu)); sd = Math.sqrt(ss / ls.length); }
+        if (lit && b) { const B = band[b]; B.n++; B.s += sd * sd; const cv = sd / Math.max(1, mu); B.cv += cv; B.c2 += cv * cv; if (cv > 0.01) B.vary++; }
+        if (vis) { const o = (y * W + x) * 3; if (!lit) { vis[o] = ref.data[i] >> 2; vis[o + 1] = ref.data[i + 1] >> 2; vis[o + 2] = ref.data[i + 2] >> 2; } else if (sd / Math.max(1, mu) > 0.01) { vis[o + 1] = 255; } else { vis[o] = 255; vis[o + 2] = 255; } }
       }
     }
-    for (const b of Object.values(band)) { b.variance = b.n ? +(b.s / b.n).toFixed(3) : null; b.cv = b.n ? +(b.cv / b.n).toFixed(4) : null; delete b.s; }
+    if (vis) fs.writeFileSync(mapFile, encodePNG(W, H, vis));
+    for (const B of Object.values(band)) { B.variance = B.n ? +(B.s / B.n).toFixed(3) : null; B.cvMean = B.n ? +(B.cv / B.n).toFixed(4) : null; B.cvRms = B.n ? +Math.sqrt(B.c2 / B.n).toFixed(4) : null; B.shareVarying = B.n ? +(B.vary / B.n).toFixed(3) : null; delete B.s; delete B.cv; delete B.c2; delete B.vary; }
     return band;
   };
-  data.sequence = { on: stats('on'), off: stats('off'), frames: S.frames, stepMs: S.stepMs, nearM: S.nearM, farM: S.farM };
-  const on = data.sequence.on, off = data.sequence.off;
-  console.log('sequence shimmer ON  near', JSON.stringify(on.near), ' far', JSON.stringify(on.far));
-  console.log('sequence shimmer OFF near', JSON.stringify(off.near), ' far', JSON.stringify(off.far));
-  const ratio = on.far.variance && on.near.variance != null ? on.far.variance / Math.max(on.near.variance, 0.01) : null;
-  data.sequence.farOverNear = ratio;
+  data.sequence = { frames: S.frames, stepMs: S.stepMs, nearM: S.nearM, farM: S.farM, stages: {} };
+  for (const st of Object.keys(STAGES)) {
+    const on = stats(st, 'on', st === 'final' ? path.join(dir, 'where-it-moves.png') : null), off = stats(st, 'off');
+    data.sequence.stages[st] = { on, off };
+    console.log(`sequence stage ${st.padEnd(8)} ON  near ${JSON.stringify(on.near)}\n                         far  ${JSON.stringify(on.far)}\n                  OFF near/far variance ${off.near.variance}/${off.far.variance}`);
+  }
+  const fin = data.sequence.stages.final, on = fin.on, off = fin.off;
   report('sequence: lit pixels were found in both bands', on.near.n > 50 && on.far.n > 50, `near ${on.near.n}, far ${on.far.n}`);
   report('sequence: with shimmer off nothing moves (the measurement is clean)', off.far.variance === 0 && off.near.variance === 0, `far ${off.far.variance}, near ${off.near.variance}`);
-  report('sequence: far lights shimmer', on.far.cv >= S.minFarCv, `coefficient of variation ${on.far.cv} (want >= ${S.minFarCv})`);
-  report('sequence: near lights hold still', on.near.cv <= S.maxNearCv, `coefficient of variation ${on.near.cv} (want <= ${S.maxNearCv})`);
-  report('sequence: far varies much more than near', ratio != null && ratio >= S.minFarOverNear, `variance ratio far/near ${ratio && ratio.toFixed(1)} (want >= ${S.minFarOverNear})`);
+  report('sequence: far lights shimmer (final frame)', on.far.cvMean >= S.minFarCv, `mean coefficient of variation ${on.far.cvMean} (want >= ${S.minFarCv}); ${on.far.shareVarying} of lit pixels move`);
+  report('sequence: near lights hold still (final frame)', on.near.cvMean <= S.maxNearCv, `coefficient of variation ${on.near.cvMean} (want <= ${S.maxNearCv})`);
+  report('sequence: far varies much more than near', on.near.variance != null && on.far.variance / Math.max(on.near.variance, 0.01) >= S.minFarOverNear, `variance ratio ${(on.far.variance / Math.max(on.near.variance, 0.01)).toFixed(1)} (want >= ${S.minFarOverNear})`);
   await page.close();
 });
 
