@@ -3856,7 +3856,7 @@
     // this many ms; every further image is answered AT ONCE with a flat wall of the pattern's own colour at the
     // current hour, and painted for real in the paint workers (the paced repaint), which `updateImage`s it.
     // The first image of a request is always painted, so a request never runs more than this plus one image.
-    syncBudgetMs: 16,
+    syncBudgetMs: +((location.search.match(/[?&]wtbudget=(\d+)/) || [])[1] ?? 16),   // `?wtbudget=0`: every image flat (to look at it)
     // The element whose presence (before the reveal) means "the veil is up, nobody is looking". No element: the cap applies.
     veilId: 'veil',
     // `?wtcap=0` turns the cap off (every image painted in the request), for the A/B of the burst length.

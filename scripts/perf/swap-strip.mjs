@@ -24,6 +24,7 @@ const FRAMES = +arg('--frames', 5);
 const THROTTLE = +arg('--throttle', 1);
 const SETTLE = +arg('--settle', 16000);
 const MAX = +arg('--max', 420000);
+const QUERY = arg('--query', '').replaceAll('+', '&');   // e.g. wtbudget=0&wtwarm=0 to force every image flat and nothing warmed (the worst case)
 const INSTRUMENT = fs.readFileSync(path.join(HERE, 'lib/instrument.js'), 'utf8');
 // places the opening flight never meets, at street level
 const PLACES = [
@@ -40,7 +41,7 @@ try {
   await page.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   if (THROTTLE > 1) await page.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
   await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__PERF_CFG=${JSON.stringify({ wrap: [], autodetect: false })};` + INSTRUMENT });
-  await page.send('Page.navigate', { url: URL0 + (URL0.includes('?') ? '&' : '?') + 'drift=0&namelabels=0' });
+  await page.send('Page.navigate', { url: URL0 + (URL0.includes('?') ? '&' : '?') + 'drift=0&namelabels=0' + (QUERY ? '&' + QUERY : '') });
   const tNav = Date.now();
   const ev = async (expr) => (await page.send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true })).result.value;
   for (;;) {
