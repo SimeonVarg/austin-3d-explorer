@@ -1,0 +1,17 @@
+catalog files fetched at load: 54
+today-recipes (as committed)       raw   13.95 MB   gzip   2.56 MB   brotli9   1.61 MB
+today-recipes (minified JSON)      raw   13.92 MB   gzip   2.56 MB   brotli9   1.61 MB
+
+vertices 6523203, indices 9340887, triangles 3113629, distinct tones 1266
+today-buffers: position 74.65 MB, normal 74.65 MB, colours 55.99 MB, facet 6.22 MB, surface 99.54 MB, index 35.63 MB = 346.68 MB  (55.7 bytes per vertex)
+distinct flat normals: about 84852 (hash-counted, of 6523203 vertices)
+distinct (day,golden,night,surface,facet) tones actually used: 1266  -> one u16 per vertex replaces 26 bytes per vertex
+primitives: 742907 quads + 1627815 lone triangles; every index in the buffer is reproducible from one flag per primitive
+packed per-vertex 10.0 B; position max error 1.269 cm (int16 per 109 chunk(s) of up to 60k vertices)
+packed (int16/oct8/tone16)         raw   64.48 MB   gzip  10.61 MB   brotli9   9.54 MB
+packed + delta + byte-planes       raw   64.48 MB   gzip   3.11 MB   brotli9   2.47 MB
+meshopt vertex(12B) + index codec  raw   31.47 MB   gzip   4.25 MB   brotli9   3.97 MB   brotli11   3.53 MB
+   of which vertex stream 21.36 MB (raw 74.65 MB) and index stream 10.11 MB (raw 35.63 MB)
+   decode (Wasm, supported) of the whole city, 5 runs: min 122 ms, max 1565 ms (Node, loaded machine)
+   round trip identical: true
+{"todayBytes":363523698,"nV":6523203,"nI":9340887,"packedRaw":67609514,"distinctNormals":84852,"distinctTones":1266,"maxPosErrCm":1.269002801439001}

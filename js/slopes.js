@@ -334,6 +334,71 @@
   };
   window.SLOPES = SLOPES;
 
+  // ══════════════════════════════════════════════════════════════════════
+  //  THE RUST BUILDER SWITCH (?rustbuilder=1) — default OFF
+  //  The shared mesh builder (tri / quad / triN / facet, see build()) also exists as a 34 KB WebAssembly module
+  //  (experiments/rust-mesh, studied in docs/rust-study-2026-10-09.md) that makes byte-identical buffers.
+  //  With the switch OFF nothing below runs: no fetch, no import, no module. With it ON, the apartment builder
+  //  (js/slopes-apartments.js asks for it with build(undefined, { wasm: true })) writes into Wasm memory and hands
+  //  the finished arrays to three.js as views of that memory. Every other generator keeps the JS builder.
+  // ══════════════════════════════════════════════════════════════════════
+  const RUST = {
+    on: q.get('rustbuilder') === '1',
+    wasmUrl: 'wasm/meshkernel.wasm',   // the committed build of experiments/rust-mesh (scripts/verify/wasm-mesh-parity.mjs holds it to the source's hash)
+    moduleUrl: './slopes-rust.js',     // the JS side of it, imported only when the switch is on (relative to this file)
+    stageRecords: 8192,                // builder calls staged in Wasm memory before one process() call
+    // A vertex-count hint: the module reserves its buffers once instead of doubling them (the study's 650 MiB
+    // linear memory becomes 357 MiB). 0 = no hint. ?rustreserve=6523203 sets it for an A/B run.
+    reserveVertices: Math.max(0, Math.floor(Number(q.get('rustreserve')) || 0)),
+  };
+  let _rustBuild = null;   // set once the module is compiled; null = every builder is the JS one
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  THE PACKED VERTEX SWITCH (?packverts=1) — default OFF
+  //  The apartment meshes carry 55.7 bytes a vertex; 26 of them are the three colour triples, the facet flag and the surface
+  //  quad, which take only 1,266 distinct values over 6.5 M vertices, and 12 more are a flat normal that takes only about
+  //  94,000. With the switch ON the builder writes, per vertex, the position (exact, float32) and ONE 32-bit word: an index
+  //  into a tone table and an index into a normal table, both held in float textures the vertex shader reads (VERT,
+  //  PACKED_TONES). Nothing is quantised: the shader gets back exactly the numbers the unpacked layout would have fed it.
+  //  scripts/verify/packverts-decode.mjs proves that on the CPU, scripts/verify/packverts-pixels.mjs on the screen.
+  // ══════════════════════════════════════════════════════════════════════
+  const PACK = {
+    on: q.get('packverts') === '1',
+    // The word is 32 bits: toneBits of tone index, 1 facet bit, and 31 - toneBits of normal index. MEASURED on the real catalog with the real js/city-night.js
+    // (which picks a lit window's tone and brightness per window): 14,719 distinct tones and 94,312 distinct normals, so 14 bits (16,384) and 17 bits (131,072) is the
+    // only split that fits, with 10% and 28% to spare. (An earlier 13/18 split was sized from a build with a stand-in night module that makes 1,266 tones, and
+    // the real page overflowed it.) A build that overflows either table throws a packOverflow error and js/slopes-apartments.js rebuilds unpacked.
+    toneBits: 14,
+    texWidth: 4096,      // width of both tables' float textures, in texels (a tone takes 4 texels in one row, a normal 1)
+    normalHash0: 1 << 14, // the normal interner's first hash-table size (it doubles at half full)
+  };
+  const PACK_TONES = 2 ** PACK.toneBits, PACK_NLOW = 2 ** (15 - PACK.toneBits);
+  const RUST_INFO = { on: RUST.on, state: RUST.on ? 'loading' : 'off', compileMs: 0, builds: 0, error: null };
+  // The Rust builder broke AFTER it loaded (a trap, an out-of-memory error, a bad instance). Stop using it for good: every
+  // build() from here on is the JS builder, whatever the caller asked for. Safe to call twice.
+  function rustFallback(e) {
+    if (_rustBuild === null && RUST_INFO.state === 'failed') return;
+    _rustBuild = null;
+    RUST_INFO.state = 'failed'; RUST_INFO.error = String(e && e.message || e); RUST_INFO.fellBack = (RUST_INFO.fellBack || 0) + 1;
+    console.warn('[slopes] the Rust builder failed mid-build; building in JS from here on —', RUST_INFO.error);
+  }
+  /**
+   * Run a whole build with the Rust builder, and if (and only if) the Rust builder breaks, throw the half-built result away,
+   * switch to the JS builder for good and run the whole build again with it. `run(opts)` must make its builders with
+   * `slopes.build(undefined, opts)` (or buildChunked(..., opts)) and must let an error with `rustBuilderError` set (js/slopes-rust.js
+   * stamps it, only around calls into the module) out; any other error is the recipe's own and is rethrown untouched.
+   * Everything made so far is rebuilt, not patched: the failed instance's memory is not trusted for even the buildings that came
+   * before the trap, and the result is then exactly what the JS builder makes (scripts/verify/wasm-mesh-parity.mjs holds that).
+   */
+  async function withRustFallback(run) {
+    try { return await run({ wasm: true }); }
+    catch (e) {
+      if (!(e && e.rustBuilderError)) throw e;
+      rustFallback(e);
+      return run({ wasm: false });
+    }
+  }
+
   // `SLOPES.on` is an ACCESSOR, so `window.SLOPES.on = false` from the console
   // is still the whole switch — and the generators, which hide fill-extrusion
   // stand-ins by filter while the mesh draws, hear it and put them back. The
@@ -407,12 +472,22 @@
     uniform float u_facet_sin;
     uniform float u_facet_cos;
     uniform float u_sloped_max_z;
+    #ifdef PACKED_TONES
+    // ?packverts=1: ONE 32-bit word per vertex (two uint16, read as floats, exact below 2^24) indexes a tone table and a normal table
+    // held in float textures. The same cDay / cGold / cNight / aFacet / aSurface / normal values the attributes would have held.
+    attribute vec2 aPack;
+    uniform sampler2D u_packTones;
+    uniform sampler2D u_packNormals;
+    vec3 cDay; vec3 cGold; vec3 cNight; float aFacet; vec4 aSurface; vec3 packedNormal;
+    #define normal packedNormal
+    #else
     attribute vec3 cDay;
     attribute vec3 cGold;
     attribute vec3 cNight;
-    attribute vec2 aGrad;
     attribute float aFacet;
     attribute vec4 aSurface;
+    #endif
+    attribute vec2 aGrad;
     varying vec4 v_color;
     varying vec3 v_pos;
     varying vec3 v_normal;
@@ -420,6 +495,22 @@
     varying vec3 v_albedo;
     varying vec3 v_night;
     void main() {
+      #ifdef PACKED_TONES
+      {
+        float lo = aPack.x, hi = aPack.y;                         // the word, as two exact floats
+        float tone = mod(lo, PACK_TONES);                         // low toneBits of lo
+        float rest = floor(lo / PACK_TONES);                      // facet bit, then the low bits of the normal index
+        aFacet = mod(rest, 2.0);
+        float nid = hi * PACK_NLOW + floor(rest * 0.5);
+        float tx = tone * 4.0;
+        ivec2 t0 = ivec2(int(mod(tx, PACK_TEXW)), int(floor(tx / PACK_TEXW)));
+        cDay = texelFetch(u_packTones, t0, 0).rgb;
+        cGold = texelFetch(u_packTones, t0 + ivec2(1, 0), 0).rgb;
+        cNight = texelFetch(u_packTones, t0 + ivec2(2, 0), 0).rgb;
+        aSurface = texelFetch(u_packTones, t0 + ivec2(3, 0), 0);
+        packedNormal = texelFetch(u_packNormals, ivec2(int(mod(nid, PACK_TEXW)), int(floor(nid / PACK_TEXW))), 0).xyz;
+      }
+      #endif
       vec3 color = (u_materialP <= 0.5) ? mix(cDay, cGold, u_materialP * 2.0)
                                 : mix(cGold, cNight, (u_materialP - 0.5) * 2.0);
       vec3 n = normalize(normal);
@@ -910,19 +1001,177 @@ ${window.RoofTiles.apply}
              distance: h.distance, object: h.object, face: h.face };
   }
 
+  // ── ?packverts=1: the two tables a packed vertex word indexes ───────────────────────────────
+  /**
+   * Interns tones and flat normals as a builder (or several chunks of one) emits them, and hands back the 32-bit vertex word:
+   * low 16 bits = tone index (toneBits) | facet bit | low bits of the normal index; high 16 bits = the rest of the normal index.
+   * The tables are plain typed arrays until material() turns them into two float textures.
+   */
+  /**
+   * What THIS GPU turns a normalised UNSIGNED_BYTE attribute into, for every byte 0..255. The unpacked layout hands the shader its colours as such
+   * attributes, so the GPU does the byte-to-float conversion; the packed layout reads them from a float table and must hold the very numbers the GPU
+   * would have produced. The GL spec says c / 255, but an implementation may compute c * (1 / 255) instead, and the two differ by one float32 ulp for 126
+   * of the 256 bytes. That is invisible until a shader compares the colour with a threshold (the night windows do), when one pixel in a thousand flips: the
+   * 0.05% of two night views that the first pixel check found. So the table is built from a measurement: an offscreen WebGL2 context, a transform-feedback
+   * draw of the 256 bytes as normalised attributes, read back. Without WebGL (Node) it is c / 255 in float32, the spec.
+   */
+  let _byteFloats = null;
+  function byteFloats() {
+    if (_byteFloats) return _byteFloats;
+    const f = new Float32Array(256); for (let c = 0; c < 256; c++) f[c] = c / 255;
+    let how = 'untested';
+    try {
+      const gl = document.createElement('canvas').getContext('webgl2');
+      if (gl) {
+        const sh = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
+        const pr = gl.createProgram();
+        gl.attachShader(pr, sh(gl.VERTEX_SHADER, '#version 300 es\nin vec4 a; out vec4 o; void main() { o = a; gl_Position = vec4(0.0, 0.0, 0.0, 1.0); }'));
+        gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, '#version 300 es\nprecision mediump float; out vec4 c; void main() { c = vec4(0.0); }'));
+        gl.transformFeedbackVaryings(pr, ['o'], gl.INTERLEAVED_ATTRIBS); gl.linkProgram(pr);
+        if (gl.getProgramParameter(pr, gl.LINK_STATUS)) {
+          const bytes = new Uint8Array(256 * 4); for (let c = 0; c < 256; c++) bytes[c * 4] = c;
+          const vb = gl.createBuffer(), tb = gl.createBuffer(), tf = gl.createTransformFeedback();
+          gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, bytes, gl.STATIC_DRAW);
+          gl.useProgram(pr); const loc = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 4, gl.UNSIGNED_BYTE, true, 4, 0);
+          gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tb); gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 256 * 16, gl.STATIC_READ);
+          gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf); gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tb);
+          gl.enable(gl.RASTERIZER_DISCARD); gl.beginTransformFeedback(gl.POINTS); gl.drawArrays(gl.POINTS, 0, 256); gl.endTransformFeedback(); gl.disable(gl.RASTERIZER_DISCARD);
+          const out = new Float32Array(256 * 4); gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, 0, out);
+          const m = new Float32Array(256); for (let c = 0; c < 256; c++) m[c] = out[c * 4];
+          if (!gl.getError() && m[0] === 0 && m[255] === 1) {   // a sane read-back; anything else keeps the spec values
+            let div = 0, rec = 0; const inv = Math.fround(1 / 255);
+            for (let c = 0; c < 256; c++) { if (m[c] === Math.fround(c / 255)) div++; if (m[c] === Math.fround(c * inv)) rec++; }
+            how = div === 256 ? 'divide' : rec === 256 ? 'reciprocal' : 'other';
+            f.set(m);
+          }
+        }
+        const lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext();
+      }
+    } catch (e) { how = 'untested'; }
+    _byteFloats = f; _byteFloats.how = how;
+    return f;
+  }
+  function packOverflow(what, limit) {
+    const e = new Error('[slopes] ?packverts=1: more than ' + limit + ' distinct ' + what + ' (PACK.toneBits)');
+    e.packOverflow = true;   // js/slopes-apartments.js lets this out of its per-building catch and rebuilds unpacked
+    return e;
+  }
+  // what makes two palette entries ONE tone: the text of their hex colours and surface numbers (js/slopes-rust.js uses the same key)
+  const toneKey = col => col[0] + '|' + col[1] + '|' + col[2] + (col.surface ? '|' + col.surface[0] + ',' + col.surface[1] + ',' + col.surface[2] + ',' + col.surface[3] : '');
+  function vertexTables() {
+    const T = {
+      tones: new Float32Array(4 * 4 * 1024), nTones: 0,       // 4 RGBA texels per tone: day.rgb, golden.rgb, night.rgb, surface.xyzw
+      normals: new Float32Array(4 * 4096), nNormals: 0,        // 1 RGBA texel per normal: nx, ny, nz, 0
+      nbits: null,                                             // the same bytes as Uint32 (compare and hash by bits)
+      toneOf: new Map(), toneByObject: new WeakMap(),
+      hash: new Int32Array(PACK.normalHash0).fill(-1),          // open addressing: normal index, or -1
+      tex: null,
+    };
+    T.nbits = new Uint32Array(T.normals.buffer);
+    const f32 = new Float32Array(3), u32 = new Uint32Array(f32.buffer);
+    const hashOf = (a, b, c) => {
+      let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35) ^ Math.imul(c ^ 0x165667b1, 0x27d4eb2f);
+      h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); return h ^ (h >>> 12);
+    };
+    const byte = h => { const f = hexToRgb01(h); return [Math.round(f[0] * 255), Math.round(f[1] * 255), Math.round(f[2] * 255)]; };
+    /** the tone index of a [day, golden, night] palette entry (with optional .surface); the same array object is looked up once */
+    T.tone = col => {
+      let id = T.toneByObject.get(col);
+      if (id !== undefined) return id;
+      const key = toneKey(col);
+      id = T.toneOf.get(key);
+      if (id === undefined) {
+        if (T.nTones >= PACK_TONES) throw packOverflow('tones', PACK_TONES);
+        id = T.nTones++;
+        if (id * 16 + 16 > T.tones.length) { const g = new Float32Array(T.tones.length * 2); g.set(T.tones); T.tones = g; }
+        const d = byte(col[0]), g = byte(col[1]), n = byte(col[2]), s = col.surface, o = id * 16;
+        // what this GPU makes of a normalised UNSIGNED_BYTE attribute (byteFloats above), so the shader gets the very numbers the unpacked layout gives it
+        const bf = byteFloats();
+        for (let k = 0; k < 3; k++) { T.tones[o + k] = bf[d[k]]; T.tones[o + 4 + k] = bf[g[k]]; T.tones[o + 8 + k] = bf[n[k]]; }
+        if (s) { T.tones[o + 12] = s[0]; T.tones[o + 13] = s[1]; T.tones[o + 14] = s[2]; T.tones[o + 15] = s[3]; }
+        T.toneOf.set(key, id);
+      }
+      T.toneByObject.set(col, id);
+      return id;
+    };
+    /** the normal index of (x, y, z), by the exact float32 bits (so -0 and +0 stay distinct and nothing is merged that was not equal) */
+    T.normal = (x, y, z) => {
+      f32[0] = x; f32[1] = y; f32[2] = z;
+      const a = u32[0], b = u32[1], c = u32[2];
+      const mask = T.hash.length - 1, nb = T.nbits;
+      let i = hashOf(a, b, c) & mask;
+      for (;;) {
+        const id = T.hash[i];
+        if (id < 0) break;
+        const o = id * 4;
+        if (nb[o] === a && nb[o + 1] === b && nb[o + 2] === c) return id;
+        i = (i + 1) & mask;
+      }
+      if (T.nNormals >= 2 ** (31 - PACK.toneBits)) throw packOverflow('normals', 2 ** (31 - PACK.toneBits));
+      const id = T.nNormals++;
+      if (id * 4 + 4 > T.normals.length) { const g = new Float32Array(T.normals.length * 2); g.set(T.normals); T.normals = g; T.nbits = new Uint32Array(g.buffer); }
+      T.normals[id * 4] = x; T.normals[id * 4 + 1] = y; T.normals[id * 4 + 2] = z;
+      T.hash[i] = id;
+      if (T.nNormals * 2 > T.hash.length) {            // keep the table at most half full
+        const nh = new Int32Array(T.hash.length * 2).fill(-1), m2 = nh.length - 1, nb2 = T.nbits;
+        for (let id2 = 0; id2 < T.nNormals; id2++) {
+          const o = id2 * 4;
+          let j = hashOf(nb2[o], nb2[o + 1], nb2[o + 2]) & m2; while (nh[j] >= 0) j = (j + 1) & m2; nh[j] = id2;
+        }
+        T.hash = nh;
+      }
+      return id;
+    };
+    /** [lo, hi] of the 32-bit word for a vertex: tone id, facet flag (0/1) and normal id */
+    T.wordLo = (tone, facet, nid) => (tone | (facet << PACK.toneBits) | ((nid % PACK_NLOW) << (PACK.toneBits + 1))) >>> 0;
+    T.wordHi = nid => Math.floor(nid / PACK_NLOW);
+    T.bytes = () => T.nTones * 64 + T.nNormals * 16;
+    return T;
+  }
+  /** a new VertexTables if ?packverts=1 is on and the renderer can run the packed program, else null */
+  function packTables() {
+    if (!PACK.on) return null;
+    const c = renderer && renderer.capabilities;
+    if (c && !(c.isWebGL2 && c.maxVertexTextures >= 2)) return null;
+    return vertexTables();
+  }
+  /** the uniforms and defines of the packed-vertex program for these tables (the textures are made once and kept) */
+  function packedMaterialParts(tables) {
+    const T = window.THREE, W = PACK.texWidth;
+    if (!tables.tex) {
+      const tex = (data, count, perRow) => {
+        const rows = Math.max(1, Math.ceil(count / perRow));
+        const a = new Float32Array(rows * W * 4); a.set(data.subarray(0, Math.min(data.length, a.length)));
+        const t = new T.DataTexture(a, W, rows, T.RGBAFormat, T.FloatType);
+        t.minFilter = t.magFilter = T.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
+        return t;
+      };
+      tables.tex = { tones: tex(tables.tones, tables.nTones * 4, W), normals: tex(tables.normals, tables.nNormals, W) };
+    }
+    return {
+      uniforms: { u_packTones: { value: tables.tex.tones }, u_packNormals: { value: tables.tex.normals } },
+      defines: { PACKED_TONES: 1, PACK_TONES: PACK_TONES.toFixed(1), PACK_NLOW: PACK_NLOW.toFixed(1), PACK_TEXW: W.toFixed(1) },
+    };
+  }
+
   // ── Materials and geometry helpers ──────────────────────────────────────
   function material(opts) {
     if (!U) throw new Error('[slopes] material() before initSlopes — three.js not ready');
     const T = window.THREE;
     const o = opts || {};
+    // o.pack (the VertexTables a ?packverts=1 build filled): the packed-vertex program. Its two tables are textures of THIS material;
+    // every other uniform is still the shared U (the object holders are shared, so one hour, one sun still holds).
+    const packed = o.pack ? packedMaterialParts(o.pack) : null;
     const mat = new T.ShaderMaterial({
-      uniforms: U,                    // SHARED, deliberately: one hour, one sun, every mesh
+      uniforms: packed ? { ...U, ...packed.uniforms } : U,   // U SHARED, deliberately: one hour, one sun, every mesh
+      defines: packed ? packed.defines : undefined,
       vertexShader: VERT, fragmentShader: FRAG,
       side: o.side != null ? o.side : T.FrontSide,
       depthTest: true, depthWrite: true, transparent: false, blending: T.NoBlending,
     });
     window.WallPatterns.attach(mat);
     window.RoofTiles?.sync(mat.uniforms);
+    if (packed) mat.addEventListener('dispose', () => { const t = o.pack.tex; o.pack.tex = null; if (t) { t.tones.dispose(); t.normals.dispose(); } });
     // Builder meshes have no wall gradient. A constant vertex attribute is
     // exactly the old all-zero buffer, without eight CPU/GPU bytes per vertex.
     // colour() still supplies an attribute for meshes that need a gradient.
@@ -1001,184 +1250,12 @@ ${window.RoofTiles.apply}
   function add(obj) { if (FREE_CPU && obj && obj.traverse) freeOnUpload(obj); if (root) root.add(obj); if (_map) _map.triggerRepaint(); return obj; }
   function remove(obj) { if (root) root.remove(obj); if (_map) _map.triggerRepaint(); }
 
-  // ── The builder: one geometry, one draw call, flat normals ──────────────
-  //
-  // Every generator emits triangles into one of these per material group and
-  // gets back a single non-indexed BufferGeometry carrying position, normal
-  // and the colour triple — merged by construction, so a campus of roofs is
-  // one draw call and the dome another. Faces are flat-shaded (the normal is
-  // the face's own), which is what MapLibre gives an extrusion's wall and what
-  // a hip, a pediment and an archivolt want; the lathe computes smooth
-  // normals itself and does not come through here.
-  //
-  //   b.tri(a, b, c, col, want)         a triangle; `want` (optional) is the
-  //                                      side it must face — the order is
-  //                                      flipped if the winding disagrees
-  //   b.quad(a, b, c, d, col, want)     two triangles, split a-c
-  //   b.polygon(pts, col, want, plane)  a planar polygon (earcut), `plane` =
-  //                                      'xy' | 'uz' picks the 2-D projection
-  //   b.extrude(poly2d, frame, v0, v1, col, opts)
-  //                                      a polygon in a wall's (u, z) plane
-  //                                      swept from depth v0 to v1: front,
-  //                                      back and every side, faces outward
-  //                                      (opts.smooth: curved sides shade
-  //                                      continuously — see extrude)
-  //   b.facet(bool)                     mark what follows as roof facets for
-  //                                      SLOPES.facetShade (roof pitches only)
-  //   b.geometry()                      the BufferGeometry (call once)
-  //
-  // Points are [x, y, z] in local metres. `col` is [day, golden, night] hex.
-  function build(initialCapacity = 1 << 16) {
-    const T = window.THREE;
-    // Vertex store: growable Float32Arrays written in place. This used to be
-    // seven plain arrays fed one number at a time (170 million push() calls
-    // for the apartments alone, plus a per-vertex spread); profiled 2026-09-15
-    // that was ~6 s of the 11 s apartment build and 1.6 s of GC. Same API,
-    // same bytes out of geometry().
-    // Small one-face builders need only four vertices. Bulk generators keep
-    // their existing capacity; growth and the final trimmed geometry agree.
-    let cap = initialCapacity, nV = 0;
-    let P = new Float32Array(cap * 3), NM = new Float32Array(cap * 3);
-    // ── WHY THE COLOURS ARE BYTES ────────────────────────────────────────
-    //
-    // cDay, cGold and cNight are nine of the twenty-two floats a vertex
-    // carries — 36 of its 88 bytes, more than position and normal together.
-    // Every one of them is read from a SIX-DIGIT HEX STRING in the building's
-    // own data file, so the source has exactly 8 bits per channel and a
-    // Float32 stores 24 bits of precision the value never had.
-    //
-    // Held as normalized UNSIGNED_BYTE the attribute is 3 bytes instead of
-    // 12, the GPU expands it back to the same 0..1 float in the shader, and
-    // the pixel is IDENTICAL — this is a lossless change, not a quality
-    // setting. It also shrinks the growth buffers, so the build's own peak
-    // comes down with it.
-    let CD = new Uint8Array(cap * 3), CG = new Uint8Array(cap * 3), CN = new Uint8Array(cap * 3);
-    // aFacet is 0 or 1. It was a float.
-    let FC = new Uint8Array(cap);
-    let SF = new Float32Array(cap * 4);
-    const grow = () => {
-      cap *= 2;
-      const g = (a, k) => { const b = new Float32Array(cap * k); b.set(a); return b; };
-      const u = (a, k) => { const b = new Uint8Array(cap * k); b.set(a); return b; };
-      P = g(P, 3); NM = g(NM, 3); CD = u(CD, 3); CG = u(CG, 3); CN = u(CN, 3); FC = u(FC, 1); SF = g(SF, 4);
-    };
-    // ── THE INDEX, AND THE ONLY REASON IT IS HERE ────────────────────────
-    //
-    // A vertex in this layout costs 22 floats — position, normal, the three
-    // colour triples, aGrad, aFacet, aSurface — which is 88 bytes. A quad
-    // emitted as two independent triangles writes SIX of them for a shape
-    // with four corners, and two of those six are exact duplicates.
-    //
-    // Measured on this build: js/slopes-apartments.js alone draws 2,570,081
-    // triangles, and non-indexed that is 647 MB of attribute buffer. It is
-    // the single largest allocation in the app by an order of magnitude, and
-    // it is what made the site unopenable on a phone (js/mobile.js header).
-    //
-    // Indexing a planar quad writes 4 vertices (352 bytes) plus 6 Uint32
-    // indices (24 bytes) instead of 6 vertices (528 bytes) — 29% less, for
-    // BYTE-IDENTICAL output: same corners, same flat normal, same winding.
-    // A lone triangle costs 12 bytes more than it did, which is why the
-    // planar-quad path is the one that matters and the rest simply rides
-    // along.
-    //
-    // NON-PLANAR QUADS TAKE THE OLD PATH ON PURPOSE. `tri` computes each
-    // triangle's own normal, so a quad whose two halves do not share a plane
-    // is currently shaded as two facets. Welding it to four vertices would
-    // give both halves one averaged normal and CHANGE THE PIXELS. So `quad`
-    // measures the two normals and only welds when they agree; otherwise it
-    // emits the same two independent triangles it always did.
-    let icap = cap * 2, nI = 0;
-    let IDX = new Uint32Array(icap);
-    const igrow = () => { icap *= 2; const b = new Uint32Array(icap); b.set(IDX); IDX = b; };
-    const emit = (a, b, c) => {
-      while (nI + 3 > icap) igrow();
-      IDX[nI++] = a; IDX[nI++] = b; IDX[nI++] = c; tris++;
-    };
-    const cache = new Map();
-    // 0..255, rounded once per tone rather than once per vertex.
-    const rgb = hex => {
-      let c = cache.get(hex);
-      if (!c) { const f = hexToRgb01(hex); c = [Math.round(f[0] * 255), Math.round(f[1] * 255), Math.round(f[2] * 255)]; cache.set(hex, c); }
-      return c;
-    };
-    // A palette entry ([day, golden, night]) is the same array object for every
-    // vertex of a tone, so its three lookups are resolved once per object.
-    const colCache = new WeakMap();
-    const rgb3 = col => {
-      let c = colCache.get(col);
-      if (!c) { c = [rgb(col[0]), rgb(col[1]), rgb(col[2])]; colCache.set(col, c); }
-      return c;
-    };
-    // `facet(true)` marks everything pushed after it as a roof facet for
-    // SLOPES.facetShade (a sloped face shaded like the slab it replaces);
-    // `facet(false)` ends the run. Walls, decks, domes and arches never set it.
-    let _facet = 0;
-    const push = (p, n, col) => {
-      // Resolve the palette before touching any buffer. A rejected tone must
-      // not shift every subsequent vertex relative to its colour attributes.
-      const c = rgb3(col), d = c[0], g = c[1], k = c[2];
-      if (nV >= cap) grow();
-      const i3 = nV * 3, i4 = nV * 4;
-      P[i3] = p[0]; P[i3 + 1] = p[1]; P[i3 + 2] = p[2];
-      NM[i3] = n[0]; NM[i3 + 1] = n[1]; NM[i3 + 2] = n[2];
-      CD[i3] = d[0]; CD[i3 + 1] = d[1]; CD[i3 + 2] = d[2];
-      CG[i3] = g[0]; CG[i3 + 1] = g[1]; CG[i3 + 2] = g[2];
-      CN[i3] = k[0]; CN[i3 + 1] = k[1]; CN[i3 + 2] = k[2];
-      FC[nV] = _facet;
-      const s = col.surface;                        // fresh slots are already 0
-      if (s) { SF[i4] = s[0]; SF[i4 + 1] = s[1]; SF[i4 + 2] = s[2]; SF[i4 + 3] = s[3]; }
-      return nV++;
-    };
-    const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-    let tris = 0;
-    /** The unit normal of triangle (a, b, c), or null if it is degenerate. */
-    function faceN(a, b, c) {
-      const n = cross(sub(b, a), sub(c, a));
-      const L = Math.hypot(n[0], n[1], n[2]);
-      if (L < 1e-9) return null;
-      return [n[0] / L, n[1] / L, n[2] / L];
-    }
-    function tri(a, b, c, col, want) {
-      let n = faceN(a, b, c);
-      if (!n) return;                              // degenerate: nothing to draw
-      if (want && dot(n, want) < 0) { const t = b; b = c; c = t; n = [-n[0], -n[1], -n[2]]; }
-      emit(push(a, n, col), push(b, n, col), push(c, n, col));
-    }
-    function quad(a, b, c, d, col, want) {
-      // Two halves, two normals. They agree for every rectangle the cell
-      // tiler cuts and every side an extrusion sweeps, which is where all the
-      // bytes are; a quad that has been bent takes the two-triangle path so
-      // its shading is untouched.
-      // TRULY planar, not nearly. A first cut allowed 0.9999 (0.8 deg of
-      // disagreement) and the geometry fingerprint caught it: welding a
-      // slightly bent quad gives its second half the FIRST half's normal, so
-      // 0.8 deg of shading moved on every bent quad in the city. For a quad
-      // that really is flat the two cross products differ only in the last
-      // bit or two, so this keeps the weld exact and sends anything bent down
-      // the old two-triangle path.
-      const n1 = faceN(a, b, c), n2 = faceN(a, c, d);
-      if (!n1 || !n2 || dot(n1, n2) < 1 - 1e-12) { tri(a, b, c, col, want); tri(a, c, d, col, want); return; }
-      let n = n1;
-      let flip = false;
-      if (want && dot(n, want) < 0) { n = [-n[0], -n[1], -n[2]]; flip = true; }
-      const ia = push(a, n, col), ib = push(b, n, col), ic = push(c, n, col), id = push(d, n, col);
-      // Flipping the winding is a reversal of the corner ORDER, which the
-      // index list expresses without touching a vertex.
-      if (flip) { emit(ia, ic, ib); emit(ia, id, ic); }
-      else { emit(ia, ib, ic); emit(ia, ic, id); }
-    }
-    /** A triangle with its own per-vertex normals (a smooth-shaded curve); wound to face their mean. */
-    function triN(a, b, c, na, nb, nc, col) {
-      let n = cross(sub(b, a), sub(c, a));
-      const L = Math.hypot(n[0], n[1], n[2]);
-      if (L < 1e-9) return;
-      n = [n[0] / L, n[1] / L, n[2] / L];
-      const avg = [na[0] + nb[0] + nc[0], na[1] + nb[1] + nc[1], na[2] + nb[2] + nc[2]];
-      if (dot(n, avg) < 0) { let t = b; b = c; c = t; t = nb; nb = nc; nc = t; }
-      emit(push(a, na, col), push(b, nb, col), push(c, nc, col));
-    }
+  /**
+   * polygon() and extrude(): the two shape operations of a builder, written once over a builder's own tri / triN / quad
+   * so the JS vertex store below and the Rust one (js/slopes-rust.js, ?rustbuilder=1) share every line of them and cannot
+   * drift. They hold no state; the vertex store is the only thing the two builders do differently.
+   */
+  function shapeOps(tri, triN, quad) {
     /** A planar polygon, any orientation; triangulated in the given plane. */
     function polygon(pts, col, want, plane) {
       if (pts.length < 3) return;
@@ -1255,8 +1332,223 @@ ${window.RoofTiles.apply}
         }
       }
     }
+    return { polygon, extrude };
+  }
+
+  // ── The builder: one geometry, one draw call, flat normals ──────────────
+  //
+  // Every generator emits triangles into one of these per material group and
+  // gets back a single non-indexed BufferGeometry carrying position, normal
+  // and the colour triple — merged by construction, so a campus of roofs is
+  // one draw call and the dome another. Faces are flat-shaded (the normal is
+  // the face's own), which is what MapLibre gives an extrusion's wall and what
+  // a hip, a pediment and an archivolt want; the lathe computes smooth
+  // normals itself and does not come through here.
+  //
+  //   b.tri(a, b, c, col, want)         a triangle; `want` (optional) is the
+  //                                      side it must face — the order is
+  //                                      flipped if the winding disagrees
+  //   b.quad(a, b, c, d, col, want)     two triangles, split a-c
+  //   b.polygon(pts, col, want, plane)  a planar polygon (earcut), `plane` =
+  //                                      'xy' | 'uz' picks the 2-D projection
+  //   b.extrude(poly2d, frame, v0, v1, col, opts)
+  //                                      a polygon in a wall's (u, z) plane
+  //                                      swept from depth v0 to v1: front,
+  //                                      back and every side, faces outward
+  //                                      (opts.smooth: curved sides shade
+  //                                      continuously — see extrude)
+  //   b.facet(bool)                     mark what follows as roof facets for
+  //                                      SLOPES.facetShade (roof pitches only)
+  //   b.geometry()                      the BufferGeometry (call once)
+  //
+  // Points are [x, y, z] in local metres. `col` is [day, golden, night] hex.
+  function build(initialCapacity = 1 << 16, opts) {
+    // The Rust builder, when the page asked for it (?rustbuilder=1), it has loaded, and this caller opted in.
+    // With opts.pack (?packverts=1) it writes the packed layout itself and fills the same tables object (js/slopes-rust.js).
+    if (_rustBuild && opts && opts.wasm) {
+      try { return _rustBuild(initialCapacity, opts); }
+      catch (e) { rustFallback(e); }   // the module would not even start (out of memory, a bad instance): the JS builder, now and from here on
+    }
+    const T = window.THREE;
+    const PK = (opts && opts.pack) || null;   // ?packverts=1: the VertexTables this build (and the chunks around it) share
+    // Vertex store: growable Float32Arrays written in place. This used to be
+    // seven plain arrays fed one number at a time (170 million push() calls
+    // for the apartments alone, plus a per-vertex spread); profiled 2026-09-15
+    // that was ~6 s of the 11 s apartment build and 1.6 s of GC. Same API,
+    // same bytes out of geometry().
+    // Small one-face builders need only four vertices. Bulk generators keep
+    // their existing capacity; growth and the final trimmed geometry agree.
+    let cap = initialCapacity, nV = 0;
+    let P = new Float32Array(cap * 3), NM = PK ? null : new Float32Array(cap * 3);
+    // ── WHY THE COLOURS ARE BYTES ────────────────────────────────────────
+    //
+    // cDay, cGold and cNight are nine of the twenty-two floats a vertex
+    // carries — 36 of its 88 bytes, more than position and normal together.
+    // Every one of them is read from a SIX-DIGIT HEX STRING in the building's
+    // own data file, so the source has exactly 8 bits per channel and a
+    // Float32 stores 24 bits of precision the value never had.
+    //
+    // Held as normalized UNSIGNED_BYTE the attribute is 3 bytes instead of
+    // 12, the GPU expands it back to the same 0..1 float in the shader, and
+    // the pixel is IDENTICAL — this is a lossless change, not a quality
+    // setting. It also shrinks the growth buffers, so the build's own peak
+    // comes down with it.
+    let CD = PK ? null : new Uint8Array(cap * 3), CG = PK ? null : new Uint8Array(cap * 3), CN = PK ? null : new Uint8Array(cap * 3);
+    // aFacet is 0 or 1. It was a float.
+    let FC = PK ? null : new Uint8Array(cap);
+    let SF = PK ? null : new Float32Array(cap * 4);
+    let PW = PK ? new Uint16Array(cap * 2) : null;   // ?packverts=1: the 32-bit vertex word, as two uint16 (little-endian: low first)
+    const grow = () => {
+      cap *= 2;
+      const g = (a, k) => { const b = new Float32Array(cap * k); b.set(a); return b; };
+      const u = (a, k) => { const b = new Uint8Array(cap * k); b.set(a); return b; };
+      if (PK) { P = g(P, 3); const w = new Uint16Array(cap * 2); w.set(PW); PW = w; return; }
+      P = g(P, 3); NM = g(NM, 3); CD = u(CD, 3); CG = u(CG, 3); CN = u(CN, 3); FC = u(FC, 1); SF = g(SF, 4);
+    };
+    // ── THE INDEX, AND THE ONLY REASON IT IS HERE ────────────────────────
+    //
+    // A vertex in this layout costs 22 floats — position, normal, the three
+    // colour triples, aGrad, aFacet, aSurface — which is 88 bytes. A quad
+    // emitted as two independent triangles writes SIX of them for a shape
+    // with four corners, and two of those six are exact duplicates.
+    //
+    // Measured on this build: js/slopes-apartments.js alone draws 2,570,081
+    // triangles, and non-indexed that is 647 MB of attribute buffer. It is
+    // the single largest allocation in the app by an order of magnitude, and
+    // it is what made the site unopenable on a phone (js/mobile.js header).
+    //
+    // Indexing a planar quad writes 4 vertices (352 bytes) plus 6 Uint32
+    // indices (24 bytes) instead of 6 vertices (528 bytes) — 29% less, for
+    // BYTE-IDENTICAL output: same corners, same flat normal, same winding.
+    // A lone triangle costs 12 bytes more than it did, which is why the
+    // planar-quad path is the one that matters and the rest simply rides
+    // along.
+    //
+    // NON-PLANAR QUADS TAKE THE OLD PATH ON PURPOSE. `tri` computes each
+    // triangle's own normal, so a quad whose two halves do not share a plane
+    // is currently shaded as two facets. Welding it to four vertices would
+    // give both halves one averaged normal and CHANGE THE PIXELS. So `quad`
+    // measures the two normals and only welds when they agree; otherwise it
+    // emits the same two independent triangles it always did.
+    let icap = cap * 2, nI = 0;
+    let IDX = new Uint32Array(icap);
+    const igrow = () => { icap *= 2; const b = new Uint32Array(icap); b.set(IDX); IDX = b; };
+    const emit = (a, b, c) => {
+      while (nI + 3 > icap) igrow();
+      IDX[nI++] = a; IDX[nI++] = b; IDX[nI++] = c; tris++;
+    };
+    const cache = new Map();
+    // 0..255, rounded once per tone rather than once per vertex.
+    const rgb = hex => {
+      let c = cache.get(hex);
+      if (!c) { const f = hexToRgb01(hex); c = [Math.round(f[0] * 255), Math.round(f[1] * 255), Math.round(f[2] * 255)]; cache.set(hex, c); }
+      return c;
+    };
+    // A palette entry ([day, golden, night]) is the same array object for every
+    // vertex of a tone, so its three lookups are resolved once per object.
+    const colCache = new WeakMap();
+    const rgb3 = col => {
+      let c = colCache.get(col);
+      if (!c) { c = [rgb(col[0]), rgb(col[1]), rgb(col[2])]; colCache.set(col, c); }
+      return c;
+    };
+    // `facet(true)` marks everything pushed after it as a roof facet for
+    // SLOPES.facetShade (a sloped face shaded like the slab it replaces);
+    // `facet(false)` ends the run. Walls, decks, domes and arches never set it.
+    let _facet = 0;
+    // ?packverts=1: position and ONE word per vertex. The four corners of a quad share a normal, a tone and a facet flag, so the word is
+    // worked out once per primitive (compared by value, not identity: a caller may reuse an array).
+    let _ln0 = NaN, _ln1 = 0, _ln2 = 0, _lcol = null, _lfac = -1, _llo = 0, _lhi = 0;
+    const pushPacked = (p, n, col) => {
+      // Object.is, not ===: -0 and +0 are different float32 bits and a normal must come back exactly as the unpacked layout holds it
+      if (!Object.is(n[0], _ln0) || !Object.is(n[1], _ln1) || !Object.is(n[2], _ln2) || col !== _lcol || _facet !== _lfac) {
+        const nid = PK.normal(n[0], n[1], n[2]);          // tone and normal resolved before any buffer is touched, as in push()
+        _llo = PK.wordLo(PK.tone(col), _facet, nid); _lhi = PK.wordHi(nid);
+        _ln0 = n[0]; _ln1 = n[1]; _ln2 = n[2]; _lcol = col; _lfac = _facet;
+      }
+      if (nV >= cap) grow();
+      const i3 = nV * 3, i2 = nV * 2;
+      P[i3] = p[0]; P[i3 + 1] = p[1]; P[i3 + 2] = p[2];
+      PW[i2] = _llo; PW[i2 + 1] = _lhi;
+      return nV++;
+    };
+    const push = PK ? pushPacked : (p, n, col) => {
+      // Resolve the palette before touching any buffer. A rejected tone must
+      // not shift every subsequent vertex relative to its colour attributes.
+      const c = rgb3(col), d = c[0], g = c[1], k = c[2];
+      if (nV >= cap) grow();
+      const i3 = nV * 3, i4 = nV * 4;
+      P[i3] = p[0]; P[i3 + 1] = p[1]; P[i3 + 2] = p[2];
+      NM[i3] = n[0]; NM[i3 + 1] = n[1]; NM[i3 + 2] = n[2];
+      CD[i3] = d[0]; CD[i3 + 1] = d[1]; CD[i3 + 2] = d[2];
+      CG[i3] = g[0]; CG[i3 + 1] = g[1]; CG[i3 + 2] = g[2];
+      CN[i3] = k[0]; CN[i3 + 1] = k[1]; CN[i3 + 2] = k[2];
+      FC[nV] = _facet;
+      const s = col.surface;                        // fresh slots are already 0
+      if (s) { SF[i4] = s[0]; SF[i4 + 1] = s[1]; SF[i4 + 2] = s[2]; SF[i4 + 3] = s[3]; }
+      return nV++;
+    };
+    const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    let tris = 0;
+    /** The unit normal of triangle (a, b, c), or null if it is degenerate. */
+    function faceN(a, b, c) {
+      const n = cross(sub(b, a), sub(c, a));
+      const L = Math.hypot(n[0], n[1], n[2]);
+      if (L < 1e-9) return null;
+      return [n[0] / L, n[1] / L, n[2] / L];
+    }
+    function tri(a, b, c, col, want) {
+      let n = faceN(a, b, c);
+      if (!n) return;                              // degenerate: nothing to draw
+      if (want && dot(n, want) < 0) { const t = b; b = c; c = t; n = [-n[0], -n[1], -n[2]]; }
+      emit(push(a, n, col), push(b, n, col), push(c, n, col));
+    }
+    function quad(a, b, c, d, col, want) {
+      // Two halves, two normals. They agree for every rectangle the cell
+      // tiler cuts and every side an extrusion sweeps, which is where all the
+      // bytes are; a quad that has been bent takes the two-triangle path so
+      // its shading is untouched.
+      // TRULY planar, not nearly. A first cut allowed 0.9999 (0.8 deg of
+      // disagreement) and the geometry fingerprint caught it: welding a
+      // slightly bent quad gives its second half the FIRST half's normal, so
+      // 0.8 deg of shading moved on every bent quad in the city. For a quad
+      // that really is flat the two cross products differ only in the last
+      // bit or two, so this keeps the weld exact and sends anything bent down
+      // the old two-triangle path.
+      const n1 = faceN(a, b, c), n2 = faceN(a, c, d);
+      if (!n1 || !n2 || dot(n1, n2) < 1 - 1e-12) { tri(a, b, c, col, want); tri(a, c, d, col, want); return; }
+      let n = n1;
+      let flip = false;
+      if (want && dot(n, want) < 0) { n = [-n[0], -n[1], -n[2]]; flip = true; }
+      const ia = push(a, n, col), ib = push(b, n, col), ic = push(c, n, col), id = push(d, n, col);
+      // Flipping the winding is a reversal of the corner ORDER, which the
+      // index list expresses without touching a vertex.
+      if (flip) { emit(ia, ic, ib); emit(ia, id, ic); }
+      else { emit(ia, ib, ic); emit(ia, ic, id); }
+    }
+    /** A triangle with its own per-vertex normals (a smooth-shaded curve); wound to face their mean. */
+    function triN(a, b, c, na, nb, nc, col) {
+      let n = cross(sub(b, a), sub(c, a));
+      const L = Math.hypot(n[0], n[1], n[2]);
+      if (L < 1e-9) return;
+      n = [n[0] / L, n[1] / L, n[2] / L];
+      const avg = [na[0] + nb[0] + nc[0], na[1] + nb[1] + nc[1], na[2] + nb[2] + nc[2]];
+      if (dot(n, avg) < 0) { let t = b; b = c; c = t; t = nb; nb = nc; nc = t; }
+      emit(push(a, na, col), push(b, nb, col), push(c, nc, col));
+    }
+    const { polygon, extrude } = shapeOps(tri, triN, quad);
     function geometry() {
       const g = new T.BufferGeometry();
+      if (PK) {
+        g.setAttribute('position', new T.BufferAttribute(P.slice(0, nV * 3), 3));
+        g.setAttribute('aPack', new T.BufferAttribute(PW.slice(0, nV * 2), 2, false));   // two uint16 read as floats by VERT
+        g.setIndex(new T.BufferAttribute(IDX.slice(0, nI), 1));
+        g.userData.pack = PK;
+        g.computeBoundingSphere();
+        return g;
+      }
       // slice(): trimmed copies, so the oversized growth buffers can be freed.
       // BufferAttribute takes ownership of the trimmed array. The convenience
       // Float32BufferAttribute constructor would copy that array a second time.
@@ -1753,15 +2045,15 @@ ${window.RoofTiles.apply}
    * ArrayBuffers for a result of ~235 MB, measured on the phone profile. A
    * chunk's buffers never grow past the chunk.
    */
-  function buildChunked(maxTris, pack) {
+  function buildChunked(maxTris, pack, opts) {
     const done = [];
-    let cur = build(), facetOn = false, before = 0;
+    let cur = build(undefined, opts), facetOn = false, before = 0;
     const finish = () => (pack ? packGeometry(cur.geometry()) : cur.geometry());
     const roll = () => {
       if (cur.triangles < maxTris) return;
       before += cur.triangles;
       done.push(finish());
-      cur = build();
+      cur = build(undefined, opts);
       cur.facet(facetOn);
     };
     const api = {
@@ -1818,6 +2110,15 @@ ${window.RoofTiles.apply}
     canRestoreContext: !FREE_CPU,
     toLocal, toLngLat, project, raycast, material, facadeMaterial, colour, add, remove, detail,
     onSwitch, build, buildChunked, packGeometry, frame, stats, fetchJSON,
+    // null with the switch off; with it on, a promise that settles when the Rust builder is ready (or has failed and
+    // every builder stays the JS one). Callers that want the Rust builder await it before their first build().
+    rustReady: null, get rustBuilder() { return !!_rustBuild; }, rustInfo: () => RUST_INFO, withRustFallback,
+    // ?packverts=1: a fresh set of tone/normal tables for one build (pass it as build(cap, { pack }) and material({ pack })), or null
+    // when the switch is off or this GPU cannot read float textures in the vertex shader (WebGL2 only): callers then build as before.
+    packTables, packOn: () => PACK.on, packInfo: () => ({ toneBits: PACK.toneBits, texWidth: PACK.texWidth, byteConversion: _byteFloats ? _byteFloats.how : 'not yet measured' }),
+    // a test seam, not a feature: flip the switch at run time so ONE page can build the apartments both ways (scripts/verify/packverts-pixels.mjs
+    // rebuilds with slopesApartments.rebuild() and photographs each); a visitor sets it only through ?packverts=1
+    packSet: on => { PACK.on = !!on; },
     light: () => ({ enu: _light.enu.slice(), colour: _light.colour.slice(), intensity: _light.intensity }),
     get scene() { return scene; }, get root() { return root; }, get camera() { return camera; },
     get renderer() { return renderer; }, get layer() { return layer; },
@@ -1827,6 +2128,19 @@ ${window.RoofTiles.apply}
     sunlightStats: () => ({shadowUpdates:_sunShadow?.updates||0,shadowMapRenders:_sunShadow?.mapRenders||0,shadowSize:_sunShadow?.size||0,shadowMaps:_sunShadow?2:0}),
     precompileStats: () => ({ on: SLOPES.turn.precompile, compiled: _pc.compiled, warmed: _pc.warmed, pending: _pc.pending.size, materials: _pc.materials, ms: +_pc.ms.toFixed(1) }),
   };
+
+  // ?rustbuilder=1: fetch + compile the module now (streaming), well before the first big build asks for it. The switch off
+  // never reaches this block, so a page without it requests nothing extra. A failure leaves every builder the JS one.
+  if (RUST.on) {
+    window.slopes.rustReady = import(RUST.moduleUrl)
+      .then(m => m.loadRustBuilder({
+        wasmUrl: RUST.wasmUrl, stageRecords: RUST.stageRecords, reserveVertices: RUST.reserveVertices,
+        shapeOps, hexToRgb01, three: () => window.THREE, info: RUST_INFO,
+        toneKey, packOverflow, toneBits: PACK.toneBits, byteFloats,   // for packed builds (?packverts=1)
+      }))
+      .then(factory => { _rustBuild = factory; RUST_INFO.state = 'ready'; })
+      .catch(e => { RUST_INFO.state = 'failed'; RUST_INFO.error = String(e && e.message || e); console.warn('[slopes] ?rustbuilder=1: the Rust builder did not load; building in JS —', RUST_INFO.error); });
+  }
 
   // Self-boot, the shape js/roofs.js documents: take the style's own `load`
   // event, then poll only for what has to exist — the buildings layer and
