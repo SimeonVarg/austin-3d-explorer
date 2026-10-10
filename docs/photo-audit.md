@@ -86,6 +86,15 @@ material.
 **7. Openings.** Is the glass dark or bright? What shows behind an arch or a
 shop front?
 
+**7b. Look in the photograph's own light, and once in the other light.** Shoot
+the render with the sun on the wall if the photograph has sun on it, and once
+more in shade. A dusk or shaded render hides missing parts: every tone goes
+dark, so a wall with no windows and a wall with dark windows look alike. For
+each opening, name the pixel colour of the glass in the sunlit render. If it
+is the wall colour, the glass is not drawn (it may sit behind a wall sheet).
+If it is the sky colour, it mirrors the sky: dark glass in the photograph
+needs a dark tone, not the shared glass tone.
+
 **8. Roof line.** Flat edge, overhang, slope, things that stand on the roof.
 
 **9. Fixed things.** Pipes, signs, lights, rails, canopies. Count them. Say
@@ -148,6 +157,10 @@ made or sharpened.
 - 2026-10-09, found by the main lane: Moontower's draft had a flat front and a
   random panel pattern, and 35 of 42 audit rows differed. Steps 1c and 1d (read
   the scan past the outline; flatten the wall and state its rule first).
+- 2026-10-09, found by the main lane on the live site: the DKR stadium west
+  wall was checked only in a dusk render. By day its window bands were bare
+  wall (the glass sat behind one wall sheet) and then sky blue (the shared
+  glass tone). Check 7b.
 - 2026-10-07. Three photographs filed under one building showed another
   building: check 0.
 - 2026-10-03. "can't see the sign cuz the tree": check 9, from the camera of
