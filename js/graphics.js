@@ -2371,6 +2371,9 @@
     if (on && fbText) fbText.focus();
   }
 
+  // Explore (js/explore.js) asks the two corner panels to step aside on a phone (G02).
+  window.addEventListener('menus:close-panels', () => { toggle(false); fbToggle(false); });
+
   async function fbSubmit() {
     if (fbBusy || !fbOn() || !fbText) return;
     const msg = fbText.value.trim();
