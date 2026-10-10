@@ -113,13 +113,17 @@ async function settle(page, pose) {
 }
 async function shot(page, file) { await page.screenshot({ path: file }); await page.waitForTimeout(500); await page.screenshot({ path: file }); return file; }
 
+const stage = async (name, fn) => {
+  if (!ONLY.includes(name)) return;
+  try { await fn(); } catch (e) { report(`stage ${name} ran to the end`, false, String(e && e.stack || e).slice(0, 600)); }
+};
 const data = { when: new Date().toISOString(), tune: TUNE };
 const gpu = async page => page.evaluate(() => { const c = document.createElement('canvas'); const g = c.getContext('webgl'); const e = g && g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'unknown'; });
 
 // ======================================================================================================
 // 1. DETERMINISM: two loads of the same page, same camera, same hour.
 // ======================================================================================================
-if (ONLY.includes('determinism')) {
+await stage('determinism', async () => {
   const D = TUNE.determinism, pose = TUNE.poses[D.pose], dir = path.join(OUT, 'determinism'); fs.mkdirSync(dir, { recursive: true });
   const arms = { before: 'nighteye=0', after_unfrozen: '', after_frozen: 'nightfreeze=1', after_frozen_seed7: 'nightseed=7' };
   data.determinism = {};
@@ -137,12 +141,12 @@ if (ONLY.includes('determinism')) {
   }
   report('determinism: the frozen night moves 0% between two loads', data.determinism.after_frozen.pctAny === 0, `${data.determinism.after_frozen.pctAny}% any, ${data.determinism.after_frozen.pctOver}% over ${D.tolerance}`);
   report('determinism: a different seed is a different night (the switch does something)', diff(path.join(dir, 'after_frozen-0.png'), path.join(dir, 'after_frozen_seed7-0.png'), 0).pctAny > 0);
-}
+});
 
 // ======================================================================================================
 // 2. PICTURES: before and after, frozen, from four cameras.
 // ======================================================================================================
-if (ONLY.includes('pictures')) {
+await stage('pictures', async () => {
   const dir = path.join(OUT, 'pictures'); fs.mkdirSync(dir, { recursive: true });
   data.pictures = {};
   const arms = { before: 'nighteye=0&nightfreeze=1', after: 'nightfreeze=1', 'after-t2': 'nightfreeze=1' };
@@ -158,12 +162,12 @@ if (ONLY.includes('pictures')) {
   data.shaderFailures = await pages.after.evaluate(() => window.CityLighting && window.CityLighting.stats.failures);
   report('pictures: no shader failed to build', Array.isArray(data.shaderFailures) && data.shaderFailures.length === 0, JSON.stringify(data.shaderFailures));
   for (const p of Object.values(pages)) await p.close();
-}
+});
 
 // ======================================================================================================
 // 3. SEQUENCE: eight frames, 0.25 s apart, on a frozen clock that is stepped by hand.
 // ======================================================================================================
-if (ONLY.includes('sequence')) {
+await stage('sequence', async () => {
   const S = TUNE.sequence, pose = TUNE.poses[S.pose], dir = path.join(OUT, 'sequence'); fs.mkdirSync(dir, { recursive: true });
   const page = await open('nightfreeze=1'); await settle(page, pose);
   // Distance of each screen row to the camera, along the ground (an upper bound for a wall on that row).
@@ -215,12 +219,12 @@ if (ONLY.includes('sequence')) {
   report('sequence: near lights hold still', on.near.cv <= S.maxNearCv, `coefficient of variation ${on.near.cv} (want <= ${S.maxNearCv})`);
   report('sequence: far varies much more than near', ratio != null && ratio >= S.minFarOverNear, `variance ratio far/near ${ratio && ratio.toFixed(1)} (want >= ${S.minFarOverNear})`);
   await page.close();
-}
+});
 
 // ======================================================================================================
 // 4. LIVE: the repaint ticker redraws a parked night camera, and only then.
 // ======================================================================================================
-if (ONLY.includes('live')) {
+await stage('live', async () => {
   const L = TUNE.live;
   for (const [label, q, want] of [['shimmer on', 'twinkle=1', true], ['shimmer off', 'twinkle=0', false], ['frozen', 'nightfreeze=1&twinkle=1', false]]) {
     const page = await open(q); await settle(page, TUNE.poses[L.pose]);
@@ -230,12 +234,12 @@ if (ONLY.includes('live')) {
     report(`live: parked night camera, ${label}: ${want ? 'redraws' : 'does not redraw'}`, want ? fps >= L.minFps : fps <= 1, `${fps.toFixed(1)} fps`);
     await page.close();
   }
-}
+});
 
 // ======================================================================================================
 // 5. COST: milliseconds a frame, each part on and off, interleaved, minimum of the reps (README rule 10).
 // ======================================================================================================
-if (ONLY.includes('cost')) {
+await stage('cost', async () => {
   const C = TUNE.cost, pose = TUNE.poses[C.pose];
   const page = await open('nightfreeze=1&twinkle=1'); await settle(page, pose);
   data.renderer = data.renderer || await gpu(page);
@@ -266,7 +270,7 @@ if (ONLY.includes('cost')) {
   data.cost.extraMs = +extra.toFixed(2);
   report('cost: everything on costs at most ' + C.maxExtraMs + ' ms a frame more than everything off', extra <= C.maxExtraMs, `+${extra.toFixed(2)} ms`);
   await page.close();
-}
+});
 
 data.errors = [...new Set(errors)].slice(0, 12);
 data.results = results;
