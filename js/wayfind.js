@@ -8723,7 +8723,7 @@
     // The row says what it does NEXT, which is a different sentence depending
     // on whether anything has been imported. A row that promises an importer
     // and opens a day plan is the defect this replaced.
-    hintEmpty: 'Import from Google, Apple or UT — read on this phone, never uploaded',
+    hintEmpty: 'Import from Google, Apple or UT — read on this device, never uploaded',
     hintHave: 'Your classes, in order, with the walks between them',
     backLabel: 'Change',
   };
@@ -12571,7 +12571,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       accepts: ['image'],
       steps: [
         'A screenshot of your calendar, or a photo of a printed schedule.',
-        'Straight on and in focus reads best. It is read on this phone and never uploaded.',
+        'Straight on and in focus reads best. It is read on this device and never uploaded.',
       ],
       imageLabel: 'Choose a photo or screenshot',
     },
@@ -12635,7 +12635,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
   // render function.
   const SAY_IMP = {
     entry: 'Import your class schedule',
-    entryNote: 'Google, Apple or UT — read on this phone, never uploaded',
+    entryNote: 'Google, Apple or UT — read on this device, never uploaded',
     title: 'Add your schedule',
     resultTitle: 'What imported',
     failTitle: 'Nothing imported',
@@ -12647,7 +12647,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     // this app; a file picked here is read by FileReader in the tab and is
     // gone when the tab is. Saying so is the difference between a student
     // pasting their schedule and closing the panel.
-    privacy: 'Read on your device. This app has no server to send it to.',
+    privacy: 'Read on this device. This app has no server to send it to.',
     placed: (n, total) => n + ' of ' + total + (total === 1 ? ' class placed' : ' classes placed'),
     placedAll: (n) => 'All ' + n + (n === 1 ? ' class' : ' classes') + ' placed',
     fromSource: (label) => 'from ' + label,
@@ -12706,7 +12706,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     // screen is a button a student presses again, so this route gets its own
     // busy line saying which of the two is happening.
     imgLoading: 'Getting the reader ready…',
-    imgReading: 'Reading your picture on this phone…',
+    imgReading: 'Reading your picture on this device…',
     // WHAT COMES BACK WHEN THE STUDENT CLOSED THE CHECK SCREEN. Not an error —
     // they did a thing on purpose — so it is stated flatly and the panel is
     // left exactly where they can try again.
@@ -14696,18 +14696,18 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
    * same words. `scripts/verify` asserts the two agree; see docs/si-privacy.md.
    */
   const SCHEDULE_PRIVACY_COPY = {
-    line: 'Your schedule stays on this device — saved in this browser only, ' +
-          'never uploaded anywhere, and Delete wipes it for good.',
+    line: 'Your schedule stays in this browser and is never uploaded. ' +
+          'Importing a calendar link contacts its provider. Delete wipes it for good.',
     deleteBtn: 'Delete my schedule',
     deleted: 'Deleted. Nothing of it is left in this browser.',
-    empty: 'No schedule saved on this device yet.',
+    empty: 'No schedule saved in this browser yet.',
     confirm: 'Delete it? This cannot be undone.',
   };
   /** Rendered when a schedule IS stored. Counts and a source, never a class
    *  name — the panel sits in the footer of a sheet that may be on screen
    *  while someone else is looking. */
   const scheduleSavedLine = (n, srcLabel) =>
-    n + (n === 1 ? ' class' : ' classes') + ' from ' + srcLabel + ', on this device only';
+    n + (n === 1 ? ' class' : ' classes') + ' from ' + srcLabel + ', in this browser only';
 
   /** The panel's look. Reuses the feature's own custom properties so it is not
    *  a second design system living in the footer. */

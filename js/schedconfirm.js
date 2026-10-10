@@ -2334,7 +2334,7 @@ export function mount(host, rev, opts = {}) {
     }
     root.appendChild(body);
     root.appendChild(el('div', 'cfm-priv',
-      'Read on this phone. The picture was never uploaded and is deleted when you close this.'));
+      'Read on this device. The picture was never uploaded and is deleted when you close this.'));
     const f = el('div', 'cfm-foot');
     if (steps) {
       const back = el('button', 'cfm-back', '‹ Back');
