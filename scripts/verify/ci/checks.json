@@ -143,6 +143,7 @@
     "timeofday-style-recovery.mjs": {"est_s": 10},
     "tour-check.mjs": {"est_s": 120},
     "tower-check.mjs": {"est_s": 150},
+    "transit-live.mjs": {"est_s": 10},
     "walk.mjs": {"timeout_s": 2400, "est_s": 1010},
     "walkmeter.mjs": {"est_s": 190},
     "walkwidth.mjs": {"est_s": 160},
