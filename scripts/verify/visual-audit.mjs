@@ -417,6 +417,7 @@ async function modesGroup() {
       for (let y = 0, k = 0; y < H && k < 6; y += vp.viewport.height * 0.9, k++) { await page.evaluate(y => scrollTo(0, y), y); await shot(page, vp, `terms-${k}`, 'terms page scroll ' + y, { once: true, noMetrics: k > 0 }); }
       await page.evaluate(() => scrollTo(0, 1e6)); await shot(page, vp, 'terms-end', 'terms page end');
       await go(page, '/does-not-exist'); await page.waitForTimeout(800); await shot(page, vp, 'err-404', 'a page that is not there', { noMetrics: true });
+      await go(page, '/404.html'); await page.waitForTimeout(600); await shot(page, vp, 'err-404-page', 'the branded 404.html page', { noMetrics: true });
       await ctx.close();
     });
     const routes = [
