@@ -373,7 +373,7 @@ await stage('sequence', async () => {
     await page.evaluate(apply.fn, apply.arg);
     for (let k = 0; k < S.frames; k++) {
       await page.evaluate(() => { window.CityLighting.stats.eyeLog = {}; });
-      await page.evaluate(ms => window.CityNight.hold(ms), 1000 + k * S.stepMs);
+      await page.evaluate(ms => { window.CityNight.hold(1000); window.CityNight.holdShimmer(ms); }, 1000 + k * S.stepMs);   // the sky and haze stay at 1 s; only the shimmer clock steps
       await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
       await page.waitForTimeout(400);
       if (label !== 'off' && label !== 'off-again') pathLog.push(await page.evaluate(() => JSON.parse(JSON.stringify(window.CityLighting.stats.eyeLog || {}))));

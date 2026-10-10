@@ -34,6 +34,10 @@ ok('?twinkle=2 doubles it', Math.abs(u('?twinkle=2', 1).a[1] - 2 * u('', 1).a[1]
 ok('?nightdrift=0 removes the late-night dropout and the slow change (bits 1)', u('?nightdrift=0', 1).a[3] === 0 && u('?nightdrift=0', 1).b[3] === 1);
 ok('?nighteye=0 turns every part off', (r = u('?nighteye=0', 1), r.a[1] === 0 && r.b[3] === 0 && r.c.eye.glare === 0 && !r.c.eye.colour));
 
+{ const c = load('?nightfreeze=1'), x = U(); c.hold(1000); c.holdShimmer(5000); c.uniforms(x, 1, null);
+  ok('the shimmer clock steps on its own while the sky clock is held', x.u_cityEye.value.a[0] === 5 && c.now() === 1000);
+  c.holdShimmer(null); c.uniforms(x, 1, null); ok('holdShimmer(null) follows the clock again', x.u_cityEye.value.a[0] === 1); }
+
 // 3. palettes by building type
 const tonesFor = (search, category, count = 4000) => {
   const c = load(search); c.register({ id: 'b1', category }); const seen = new Map();

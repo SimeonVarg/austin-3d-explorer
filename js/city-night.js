@@ -122,13 +122,17 @@
   const rand=(()=>{let a=(seed>>>0)+0x9e3779b9;return frozen?()=>{a=(a+0x6d2b79f5)>>>0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;}:Math.random;})();
   const now=()=>held!==null?held:frozen?seed*1000*37.7:performance.now();
   const hold=ms=>{held=ms==null?null:+ms;try{window.__map?.triggerRepaint();}catch(e){}};
+  // The shimmer's own clock, steppable on its own: the sky and haze read now(), and they animate too, so a test that steps the shimmer
+  // must be able to hold the sky still (night-eye.mjs --only sequence). null = follow now().
+  let heldShimmer=null;
+  const holdShimmer=ms=>{heldShimmer=ms==null?null:+ms;try{window.__map?.triggerRepaint();}catch(e){}};
   // The two uniforms every window shader reads (see city-lighting.js, cityEyeGain).
   // u_cityEye = (seconds, window amp, 1/pixel footprint rad, late), u_cityEye2 = (lamp amp, nearM, farM, bits)
   function uniforms(U,p,map){
     const night=tune.on?lamps(p):0,on=eye.on&&night>0&&eye.twinkle>0;
     let px=.0013;try{const t=map?.transform;if(t)px=2*Math.tan(t.fov*Math.PI/360)/Math.max(1,t.height);}catch(e){}
     const late=eye.drift?smooth(eye.lateStart,1,p):0;
-    U.u_cityEye.value.set(now()/1000,on?eye.windowAmp*eye.twinkle:0,px,late);
+    U.u_cityEye.value.set((heldShimmer!==null?heldShimmer:now())/1000,on?eye.windowAmp*eye.twinkle:0,px,late);
     U.u_cityEye2.value.set(on?eye.lampAmp*eye.twinkle:0,eye.nearM,eye.farM,(on?1:0)+(eye.drift&&night>0?2:0)+(eye.debug&&night>0?4:0));   // bit 0 shimmer, bit 1 slow change, bit 2 debug colours
   }
   // The shimmer needs frames: this app draws only when something changes. A parked night camera is redrawn at
@@ -149,7 +153,17 @@
       map.triggerRepaint();
     },Math.round(1000/eye.repaintHz));
   }
+  // A frozen night is also a still page. Two things moved between two loads of the same night view (night-eye.mjs --only frozen, 5 pairs):
+  // (1) the page's buttons, which fade in with a CSS transition that the first load of a browser had not finished (the 'Switch modes' button);
+  // (2) the name labels, whose collision placement depends on the order the map tiles arrived in, so a different set of names showed each load.
+  // Both are frozen here: transitions and animations off, and the label layers hidden as they are added. Sign labels stay (they are lit signs).
+  if(frozen&&typeof document!=='undefined'){
+    const st=document.createElement('style');st.textContent='*,*::before,*::after{transition:none!important;animation:none!important}';
+    (document.head||document.documentElement).appendChild(st);
+    const hideLabels=()=>{const m=window.__map;if(!m||!m.getStyle)return;try{for(const l of m.getStyle().layers)if(l.type==='symbol'&&!/^signs-/.test(l.id)&&(l.layout?.visibility)!=='none')m.setLayoutProperty(l.id,'visibility','none');}catch(e){}};
+    const wait=setInterval(()=>{const m=window.__map;if(!m||!m.on)return;clearInterval(wait);m.on('styledata',hideLabels);m.on('idle',hideLabels);hideLabels();},200);
+  }
   // The ticker starts after the first lamps-on frame; harmless before the map exists.
   if(typeof document!=='undefined'&&typeof addEventListener==='function')setTimeout(startTicker,0);
-  window.CityNight={eye,now,hold,rand,frozen,seed,uniforms,tune,crown,profiles,fixtures,hash,smooth,lamps,materialP,register,registerFixtures,nearest,room,emissive};
+  window.CityNight={eye,now,hold,holdShimmer,rand,frozen,seed,uniforms,tune,crown,profiles,fixtures,hash,smooth,lamps,materialP,register,registerFixtures,nearest,room,emissive};
 })();
