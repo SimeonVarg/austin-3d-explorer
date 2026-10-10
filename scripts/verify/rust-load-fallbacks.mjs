@@ -4,9 +4,9 @@
  * NO BROWSER, NO GPU, no three.js: Node and the repo's own files. Runs in CI. It loads the REAL js/slopes.js (and js/slopes-rust.js, wasm/meshkernel.wasm) the way the
  * page does and breaks one thing at a time.
  *
- *   A. DEFAULTS   a desktop gets neither switch; a phone (window.LITE_PROFILE.budget.rustBuilder / packTones, js/mobile.js) gets both; ?rustbuilder=0|1 and ?packverts=0|1
+ *   A. DEFAULTS   a desktop gets neither switch; a phone (window.LITE_PROFILE.budget.packTones, js/mobile.js) gets packed vertices and NOT the Rust builder (budget.rustBuilder is false); ?rustbuilder=0|1 and ?packverts=0|1
  *                 override either way; where the builder is off the .wasm is NEVER fetched.
- *   B. LOADING    on a phone, with: a 404 for the .wasm; a network error / blocked fetch; bytes that are not WebAssembly; no WebAssembly at all (an old browser);
+ *   B. LOADING    with ?rustbuilder=1 on a phone (the switch is the only way in now), with: a 404 for the .wasm; a network error / blocked fetch; bytes that are not WebAssembly; no WebAssembly at all (an old browser);
  *                 an instance that cannot be made (an out-of-memory RangeError). Each: the page keeps going (rustReady settles, never rejects), the builder is the JS one,
  *                 exactly ONE console line says so, and the buffers are the JS builder's bytes (packed and unpacked). And two that must still WORK because the loader has a
  *                 non-streaming path: a host that serves the .wasm as text/plain (compileStreaming refuses it) and a browser without compileStreaming.
@@ -49,7 +49,7 @@ async function load(search, { phone = false, net = null, canvas = null } = {}) {
   ctx.window = ctx; ctx.self = ctx; ctx.location = { search, href: 'http://x/' };
   ctx.document = { getElementById: () => null, hidden: false, readyState: 'complete', createElement: t => t === 'canvas' && canvas ? canvas() : ({ getContext: () => null, style: {} }), addEventListener() {}, body: {} };
   ctx.addEventListener = () => {}; ctx.devicePixelRatio = 1;
-  ctx.LITE_PROFILE = phone ? { on: true, budget: { rustBuilder: true, packTones: true, freeGeometryCpu: true } } : undefined;
+  ctx.LITE_PROFILE = phone ? { on: true, budget: { rustBuilder: false, packTones: true, freeGeometryCpu: true } } : undefined;
   if (!ctx.navigator) Object.defineProperty(ctx, 'navigator', { value: { userAgent: 'node' }, configurable: true });
   installStubs(ctx); ctx.THREE = THREE_STUB;
   ctx.fetch = async url => { calls.push(String(url)); return net ? net(String(url)) : new Response(wasmBytes, { headers: { 'content-type': 'application/wasm' } }); };
@@ -65,19 +65,20 @@ const restore = () => { globalThis.WebAssembly = RealWA; WebAssembly.Instance = 
   const d = await load('?slopes=0');
   say(d.slopes.rustReady === null && d.slopes.packOn() === false && d.calls.length === 0, 'desktop, no switch: the Rust builder is not loaded, packed vertices are off, nothing is fetched');
   const p = await load('?slopes=0', { phone: true });
-  say(p.slopes.rustBuilder === true && p.slopes.packOn() === true && p.calls.join() === 'wasm/meshkernel.wasm', 'phone profile, no switch: both ON, and exactly one fetch, wasm/meshkernel.wasm');
-  const p0 = await load('?slopes=0&rustbuilder=0', { phone: true });
-  say(p0.slopes.rustReady === null && p0.calls.length === 0 && p0.slopes.packOn() === true, 'phone + ?rustbuilder=0: the builder is off and the .wasm is never fetched (packed stays on)');
+  say(p.slopes.rustReady === null && p.slopes.rustBuilder === false && p.slopes.packOn() === true && p.calls.length === 0, 'phone profile, no switch: packed vertices ON, the Rust builder OFF, and NOTHING is fetched (no .wasm, no js/slopes-rust.js)');
+  const p1 = await load('?slopes=0&rustbuilder=1', { phone: true });
+  say(p1.slopes.rustBuilder === true && p1.slopes.packOn() === true && p1.calls.join() === 'wasm/meshkernel.wasm', 'phone + ?rustbuilder=1: the Rust builder on too, exactly one fetch, wasm/meshkernel.wasm');
   const q0 = await load('?slopes=0&packverts=0', { phone: true });
-  say(q0.slopes.packOn() === false && q0.slopes.rustBuilder === true, 'phone + ?packverts=0: unpacked, Rust builder still on');
+  say(q0.slopes.packOn() === false && q0.slopes.rustReady === null && q0.calls.length === 0, 'phone + ?packverts=0: unpacked, still no Rust builder, nothing fetched (the page as it was)');
   const d1 = await load('?slopes=0&rustbuilder=1&packverts=1');
   say(d1.slopes.rustBuilder === true && d1.slopes.packOn() === true, 'desktop + ?rustbuilder=1&packverts=1: both on');
-  const ref = await load('?slopes=0&rustbuilder=0&packverts=0', { phone: true });
-  say(ref.slopes.rustReady === null && ref.slopes.packOn() === false && ref.calls.length === 0, 'phone + both =0: both off, no fetch (the page as it was)');
+  const p2 = await load('?slopes=0&rustbuilder=0', { phone: true });
+  say(p2.slopes.rustReady === null && p2.slopes.packOn() === true, 'phone + ?rustbuilder=0: the same as the default');
 }
 
 // ── B. LOADING ────────────────────────────────────────────────────────────
 const refUnpacked = drive((await load('?slopes=0&rustbuilder=0&packverts=0', { phone: true })).slopes.build(), false);
+const RB = '?slopes=0&rustbuilder=1';
 const refPackedL = await load('?slopes=0&rustbuilder=0&packverts=1', { phone: true });
 const refPacked = drive(refPackedL.slopes.build(undefined, { wasm: true, pack: refPackedL.slopes.packTables() }), false);
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -90,7 +91,7 @@ const cases = [
 for (const [name, opts] of cases) {
   try {
     if (opts.noWA) globalThis.WebAssembly = undefined;
-    const l = await load('?slopes=0', { phone: true, ...opts });
+    const l = await load(RB, { phone: true, ...opts });
     restore();
     const info = l.slopes.rustInfo();
     say(l.slopes.rustBuilder === false && info.state === 'failed', `${name}: rustReady settles, the Rust builder is off (state ${info.state})`);
@@ -103,7 +104,7 @@ for (const [name, opts] of cases) {
 }
 {
   // the instance cannot be made (out of memory): the module compiled, the first build throws RangeError: the JS builder, now and from here on
-  const l = await load('?slopes=0', { phone: true });
+  const l = await load(RB, { phone: true });
   const warns = []; const w0 = console.warn; console.warn = (...a) => warns.push(a.join(' '));
   WebAssembly.Instance = function () { throw new RangeError('WebAssembly.Instance(): Out of memory: Cannot allocate Wasm memory for new instance'); };
   let un, pk; try { un = drive(l.slopes.build(undefined, { wasm: true }), BREAK); pk = drive(l.slopes.build(undefined, { wasm: true, pack: l.slopes.packTables() }), BREAK); } finally { WebAssembly.Instance = RealInstance; console.warn = w0; }
@@ -112,7 +113,7 @@ for (const [name, opts] of cases) {
 }
 for (const [name, mod] of [['the host serves the .wasm as text/plain (compileStreaming refuses it)', { net: () => new Response(wasmBytes, { headers: { 'content-type': 'text/plain' } }) }], ['the browser has no compileStreaming', { noCS: true }]]) {
   if (mod.noCS) WebAssembly.compileStreaming = undefined;
-  const l = await load('?slopes=0', { phone: true, ...mod }); restore();
+  const l = await load(RB, { phone: true, ...mod }); restore();
   say(l.slopes.rustBuilder === true && l.warns.length === 0, `${name}: the non-streaming path still loads the module, no warning`);
   const un = drive(l.slopes.build(undefined, { wasm: true }), false);
   say(same(un, refUnpacked), `${name}: and the Rust buffers equal the JS builder's`);

@@ -224,6 +224,7 @@
   },
   "_laptop_only": "Timing. Frame times on a shared cloud CPU with a software rasteriser measure the runner, not the code (README: 'right for pixel assertions and useless for timing'). These stay on a quiet laptop.",
   "laptop_only": {
+    "perf-rustpack-suite.mjs": "timing (the AWS A/B for packed vertices and the Rust builder: arms interleaved, desktop and the phone profile, phone-emulation memory)",
     "apts-perf.mjs": "timing",
     "rust-builder-page.mjs": "timing (the real page, ?rustbuilder=1 against the JS builder, interleaved; wasm-mesh-parity.mjs is its correctness half and runs in CI)",
     "arts-perf.mjs": "timing",

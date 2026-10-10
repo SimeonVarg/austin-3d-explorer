@@ -163,14 +163,20 @@
       // Sep 30 2026: still off. Measured on vs off it barely moves the flight
       // peak (HANDOFF.md); it mainly lowers settled memory. Owner's call.
       packVertices: false,
-      // js/slopes.js, the authored buildings' vertex store. ON for a phone, OFF on a desktop (a desktop gets neither unless the URL says so).
-      // rustBuilder: the shared mesh builder as a 43 KB WebAssembly module (wasm/meshkernel.wasm, source in experiments/rust-mesh/): byte-identical
-      // buffers, about half the JS heap at the peak. packTones: ONE 32-bit word a vertex (an index into a tone table and a normal table, both float
-      // textures the vertex shader reads) instead of 55.7 bytes: the authored buildings' GPU upload 186 MB -> 67 MB on the phone profile, no time or frame cost.
-      // Measured on AWS (A10G), phone profile, min of 5, off vs both: peak JS heap 803 -> 521 MB, GPU upload 186 -> 67 MB, browser memory 3,295 -> 3,030 MB.
-      // Both fall back by themselves (a missing or failing .wasm -> the JS builder; a full tone or normal table -> the unpacked layout; docs in js/slopes.js).
+      // js/slopes.js, the authored buildings' vertex store.
+      // packTones: ON for a phone, OFF on a desktop (a desktop gets it only with ?packverts=1). ONE 32-bit word a vertex (an index into a tone table and a
+      // normal table, both float textures the vertex shader reads) instead of 55.7 bytes. Exact: every vertex decodes to the unpacked one bit for bit, and the
+      // pixel check passes on software and hardware rendering (docs: scripts/verify/README.md). It falls back to the unpacked layout by itself if a table overflows.
+      //   phone emulation, AWS L4, mobile-memory.mjs (JS heap + typed-array backing store + every live GL texture and buffer), min of 5, off -> packed:
+      //   see the table in the pull request that added this line; the first 2-run table: peak 1,195 -> 1,026 MB, settled 806 -> 685 MB, GL buffers 385 -> 246 MB.
+      // rustBuilder: OFF everywhere (the switch ?rustbuilder=1 stays). The shared mesh builder as a 43 KB WebAssembly module (wasm/meshkernel.wasm, experiments/rust-mesh/):
+      //   it makes byte-identical buffers and halves the JS heap, but by the whole-memory measure it adds nothing to packed alone, and ALONE it is worse:
+      //     phone emulation, AWS L4, 2 runs:   off 1,195 / 806   Rust alone 1,299 (one run 1,627) / 811   packed alone 1,026 / 685   Rust + packed 1,025 / 678   (peak / settled, MB)
+      //     desktop, AWS A10G, 5 runs, browser memory at the peak:   off 4,567 MB   Rust alone 6,288 MB (+1.7 GB)   packed alone 3,833   Rust + packed 3,855
+      //   What would turn it on: the +1.7 GB explained (see the pull request) AND a phone peak at or under packed alone over 5 runs. Until then a phone fetches no .wasm
+      //   and instantiates nothing.
       // ?rustbuilder=0|1 and ?packverts=0|1 override either way. false = off. The wasm is never fetched where rustBuilder is off.
-      rustBuilder: true,
+      rustBuilder: false,
       packTones: true,
       // js/slopes.js SLOPES.sunlight.shadowSize: the two sun shadow maps
       // (near, far). Desktop keeps 1536. Each map is a colour target plus a
