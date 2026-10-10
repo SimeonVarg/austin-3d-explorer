@@ -2275,3 +2275,9 @@ body.gfx-open #mode-launcher,body.fb-open #mode-launcher{visibility:hidden}
 
 /* The loading card's failure line (A09): readable body text instead of the 12px time line. */
 #load-estimate.load-fail{font-size:15px;line-height:1.5;color:var(--load-ink);margin:14px 0 4px}
+
+/* Touch minimum (G03): the app's own 44 px floor (--touch-min) for the buttons and fields in the two menus and the
+   mode pill that were 24 to 39 px. Applies on touch screens of any width, so a tablet gets it too. */
+html.has-touch #gfx-foot button,html.has-touch #fb-send,html.has-touch #fb-copy,html.has-touch .gfx-preset,
+html.has-touch #mode-launcher,html.has-touch #fb-panel input[type=text],html.has-touch #fb-panel input[type=email]{
+  min-height:var(--touch-min)}
