@@ -101,6 +101,25 @@ const FINDER = {
   },
   rowBuildings: 4,                // buildings listed under a selected row
   liveBus: q.get('livebus') !== '0',   // the live bus line under a selected home (js/finder-live.js)
+  // The bus on the map and in the ranking (the pathfinder pass, 2026-10-10). Each is a switch with a URL override;
+  // the numbers they use (the margin a bus must win by, the moment the ranking asks for) are in js/finder-bus.js's BUS.
+  bus: {
+    rank: q.get('busrank') !== '0',   // every home's bus trip by the TIMETABLE joins the ranking (not live)
+  },
+  trip: {
+    on: q.get('tripmap') !== '0',     // draw the selected home's bus trip on the map
+    routeColour: true,                // the bus leg in the route's own colour from the baked slice (false = route.busColour)
+    stopRadiusPx: 5.5,                // board / change / alight stops
+    stopFill: '#fff4d8',
+    stopStrokePx: 3,
+    labels: true,                     // a small tag at the board and the alight stop
+  },
+  liveBuses: {
+    // "Show live buses": the buses of the routes in the selected trip, nothing else. OFF until the visitor ticks it
+    // (`?livebuses=1` ticks it for a capture; `?livebuses=0` removes the switch).
+    available: q.get('livebuses') !== '0',
+    on: q.get('livebuses') === '1',
+  },
   compareMax: 3,
   compareBuildings: 6,            // rows in a compare card
 
@@ -154,6 +173,10 @@ const FINDER = {
     busZoom: 16.0,
     busPitch: 58,
     busFaceCampus: [-97.7394, 30.2861], // bus homes look toward the UT Tower
+    // A home whose trip is by bus is framed on the WHOLE trip (the home, both stops, the door). That needs the eye above the
+    // controller's 900 m ceiling (see maxAltM), and an ease is stopped up there, so this view is reached by the finder's own
+    // glide (a jump a frame at a time), which stops the moment the visitor moves the camera. `on: false` keeps the old view.
+    tripFit: { on: true, pitch: 40, maxZoom: 16.2, minZoom: 12.5, ms: 1400 },
   },
 
   copy: {
@@ -193,6 +216,14 @@ const FINDER = {
     avgNote: 'average trip to your classes',
     how: { walk: 'walk', bus: 'bus', mixed: 'walk + bus' },
     dorm: 'UT residence hall',
+    // One row: how the average trip to the classes is made, said as a range. A bus is "about": the timetable's range.
+    via: { walk: (r) => 'walk ' + r + ' min', bus: (r) => 'bus about ' + r + ' min on class days', mixed: (r) => 'walk + bus about ' + r + ' min on class days' },
+    tripBoard: (route, name) => 'Board ' + route + ' · ' + name.replace(/^\d+-/, ''),
+    tripChange: (route, name) => 'Change to ' + route + ' · ' + name.replace(/^\d+-/, ''),
+    tripAlight: (name) => 'Get off · ' + name.replace(/^\d+-/, ''),
+    liveBusesToggle: 'Show live buses',
+    liveBusesNone: 'Select a home that is reached by bus to see its buses.',
+    liveBusesOn: (routes) => 'Live buses on ' + (routes.length === 1 ? 'route ' : 'routes ') + routes.join(', ') + '. Only these routes are shown.',
     busLeg: (route, name, kind) => kind + ' ' + route + ' · ' + name.replace(/^\d+-/, ''),
     busTimes: (dep, board) => 'bus leaves ' + board + ' at ' + dep,
     busNote: (arrive) => 'Bus times: weekday, arriving by ' + arrive + ', from the CapMetro timetable. UT shuttles run only when classes are in session, every 15–20 min, and not on Saturdays.',
@@ -211,7 +242,7 @@ const FINDER = {
     loadFail: 'The finder could not load its data. Reload to try again.',
     sourcesTitle: 'Where these numbers come from',
     sources: (asOf) => 'Walking: OpenStreetMap paths (' + (asOf || 'snapshot') +
-      '), at a brisk to slow pace, with traffic lights and stairs counted. Buses: CapMetro timetable, one ride, no transfers. ' +
+      '), at a brisk to slow pace, with traffic lights and stairs counted, to the bus stop too. Buses: CapMetro timetable. The list counts one ride, no transfers, on class days (weekday mornings), and only where the bus beats walking by 3 minutes; live times appear under a home you select. ' +
       'Majors: the 2026–27 catalog’s first three years, with the rooms those courses used in Fall 2026. ' +
       'Riverside has no 3D buildings yet, but its pins and colours are accurate.',
     pinLabel: (n, name, t) => '#' + n + ' ' + name + ', ' + t + ' minutes',
@@ -241,6 +272,9 @@ function boot() {
     result: null, selected: null, hot: null, compare: [],
     markers: new Map(), destMarkers: [],
     importReady: false, importLoading: null,
+    // the bus (js/finder-bus.js): the baked slice + a cache of timetable trips, the module, the trip on screen, the live buses
+    slice: null, busData: null, busLoad: null, fb: null, busStats: null, trip: null,
+    liveOn: FINDER.liveBuses.on && FINDER.liveBuses.available, liveH: null, glideId: 0,
   };
   const prefs = loadPrefs();
   S.preferMajor = !!prefs.preferMajor;   // "use a major instead" survives a reload (I12)
@@ -294,6 +328,8 @@ function boot() {
     </section>
     <footer class="fd-foot">
       <label class="fd-heat"><input type="checkbox"> <span></span></label>
+      <label class="fd-livebuses" hidden><input type="checkbox"> <span></span></label>
+      <p class="fd-livebuses-note" hidden></p>
       <div class="fd-legend"><div class="fd-legend-title"></div><div class="fd-ramp"></div><div class="fd-ticks"></div></div>
     </footer>`;
   const tray = el('div'); tray.id = 'fd-tray'; tray.hidden = true;
@@ -314,6 +350,9 @@ function boot() {
   $('.fd-mode-lab').textContent = C.modeLabel;
   $('.fd-heat span').textContent = C.heatToggle;
   $('.fd-heat input').checked = S.heat;
+  $('.fd-livebuses span').textContent = C.liveBusesToggle;
+  $('.fd-livebuses').hidden = !FINDER.liveBuses.available;
+  $('.fd-livebuses input').checked = S.liveOn;
   $('.fd-legend-title').textContent = C.legendTitle;
   $('.fd-src summary').textContent = C.sourcesTitle;
   for (const m of ['walk', 'bus', 'either']) {
@@ -348,6 +387,7 @@ function boot() {
   $('.fd-hide').onclick = () => setView('pill', true);
   $('.fd-handle').onclick = () => setView(S.view === 'open' ? 'peek' : 'open', true);
   $('.fd-heat input').onchange = (e) => { S.heat = e.target.checked; savePrefs(); drawHeat(); };
+  $('.fd-livebuses input').onchange = (e) => { S.liveOn = e.target.checked; syncLiveBuses(); };
   $('.fd-import').onclick = openImport;
   $('.fd-swap').onclick = () => { S.preferMajor = !S.preferMajor; savePrefs(); recompute(); };
   window.addEventListener('resize', () => { if (S.view === 'peek' && !isPhone()) setView('open'); else placeTray(); });
@@ -418,6 +458,7 @@ function boot() {
   function isPhone() { return matchMedia(FINDER.sheetQuery).matches; }
   function setView(v, byUser) {
     if (v === 'pill' && S.liveStop) { S.liveStop(); S.liveStop = null; }   // a hidden finder polls nothing
+    if (v === 'pill') { S.trip = null; S.glideId++; stopLiveBuses(); }
     if (v === 'peek' && !isPhone()) v = 'open';
     S.view = v;
     const shown = v !== 'pill';
@@ -574,6 +615,48 @@ function boot() {
     return { basis: 'default', ...core.normaliseTargets(FINDER.defaultTargets, ok) };
   }
 
+  // ── the bus in the ranking ──
+  // The bus module and the baked slice load the first time the mode allows a bus (never in Walk), then the list is
+  // ranked again with them. Until then the list is the walking list, so the first answer never waits for the buses.
+  function doorPoint(code) {
+    const ds = S.G.code && S.G.code[code], door = ds && ds.length && S.G.doors[ds[0]], n = door && door[2][0];
+    return n === undefined || n === false || n === null ? null : [S.G.Y[n], S.G.X[n]];       // [lat, lon]
+  }
+  function ensureBus() {
+    if (!FINDER.bus.rank || S.busLoad || S.mode === 'walk' || !S.loaded) return;
+    S.busLoad = Promise.all([import('./finder-bus.js'), import('./finder-live.js').then(m => m.loadBus())])
+      .then(([fb, L]) => {
+        if (!L) return;
+        S.fb = fb; S.slice = L.slice; S.busData = { slice: L.slice, cache: new Map() };
+        recompute();
+      }).catch(() => {});
+  }
+  function timetableBus(T, trees, items) {
+    if (!S.busData || !S.fb || S.mode === 'walk') return null;
+    const targets = T.targets.map(t => ({ code: t.code, to: doorPoint(t.code) }));
+    const homes = items.map(it => ({ id: it.home.id, from: [it.home.p[1], it.home.p[0]] }));
+    const cb = {
+      skip: (hi) => !!S.transit.homes[items[hi].home.id],          // the East Riverside homes keep their baked table
+      walkAll: (hi, ti) => { const w = items[hi].legs[ti].walk; return w ? [w.lo * 60, w.hi * 60] : null; },
+      endWalk: (ti, p) => {
+        const n = core.nearestNode(S.G, [p[1], p[0]]);
+        const w = n && core.walkFrom(S.G, trees[ti], [{ node: n.node, c: n.m, m: n.m }]);
+        return w ? [w.lo, w.hi] : null;
+      },
+      // The walk from the home to a stop is a lookup in that home's own tree; homes are asked one after another, so only one
+      // tree is alive at a time.
+      startWalk: (hi, p) => {
+        if (held.hi !== hi) held = { hi, tree: core.homeTree(S.G, anchorsOf(items[hi].home)) };
+        return core.walkToPoint(S.G, held.tree, [p[1], p[0]]);
+      },
+    };
+    let held = { hi: -1, tree: null };
+    const r = S.fb.busLegs(S.busData.slice, homes, targets, cb, S.busData.cache, () => performance.now());
+    held = null;
+    S.busStats = { searches: r.searches, cached: r.cached, ms: Math.round(r.ms), homes: homes.length, targets: targets.length };
+    return r.legs;
+  }
+
   function recompute() {
     if (!S.loaded) return;
     const T = currentTargets();
@@ -593,8 +676,13 @@ function boot() {
         walk: anchors.length ? toMin(core.walkFrom(S.G, trees[i], anchors)) : null,
         bus: row ? core.busTo(row, walkFromAnchor[i]) : null,
       }));
-      return { home, legs, score: core.scoreHome(legs, S.mode) };
+      return { home, legs, score: null };
     });
+    // Every other home gets its bus trip from the timetable, where a bus beats walking by a margin (js/finder-bus.js).
+    const tt = timetableBus(T, trees, items);
+    if (tt) items.forEach((it, hi) => it.legs.forEach((l, ti) => { if (!l.bus && tt[hi][ti]) l.bus = tt[hi][ti]; }));
+    for (const it of items) it.score = core.scoreHome(it.legs, S.mode);
+    ensureBus();
     const { ranked, unranked } = core.rankHomes(items);
     S.result = { T, trees, anchorIds, walkFromAnchor, ranked, unranked };
     if (S.selected && !ranked.some(r => r.home.id === S.selected)) S.selected = null;
@@ -648,6 +736,9 @@ function boot() {
   function renderList() {
     const R = S.result, list = $('.fd-list');
     list.replaceChildren();
+    // The list is rebuilt, so the live line's box is gone: stop its poll NOW (a deselected home must not leave the bus feeds
+    // polling until the next timer finds the box detached; the browser look saw one trip-feed request after "deselect").
+    if (S.liveStop) { S.liveStop(); S.liveStop = null; }
     if (!R) return;
     $('.fd-list-title').textContent = C.listTitle(R.ranked.length);
     for (const r of R.ranked) {
@@ -657,7 +748,7 @@ function boot() {
       row.setAttribute('aria-pressed', String(S.selected === h.id));
       const n = el('span', 'fd-n', String(r.rank)); n.style.setProperty('--c', colourOf(sc.mid));
       const name = el('span', 'fd-name', h.name);
-      const sub = el('span', 'fd-sub', (h.kind === 'dorm' ? C.dorm : h.area) + ' · ' + C.how[sc.how]);
+      const sub = el('span', 'fd-sub', (h.kind === 'dorm' ? C.dorm : h.area) + ' · ' + C.via[sc.how](fmtRange(sc.lo, sc.hi)));
       const min = el('span', 'fd-min'); min.append(fmtRange(sc.lo, sc.hi), el('small', null, ' ' + C.minUnit));
       row.append(n, name, sub, min);
       row.onclick = () => select(S.selected === h.id ? null : h.id);
@@ -686,7 +777,7 @@ function boot() {
       chips.append(c);
     }
     d.append(el('p', 'fd-avg', C.avgNote), chips);
-    const bus = legs.find(l => l.bus);
+    const bus = legs.find(l => l.bus && l.bus.t);              // the baked table's line; a timetable trip is the live line below
     if (bus) {
       const t = bus.bus.t, route = S.transit.routes[t.route] || { name: t.route, kind: 'bus' };
       const board = S.transit.stops[t.board];
@@ -695,7 +786,10 @@ function boot() {
     }
     // Only where the bus is the answer: the heaviest class building this home reaches BY BUS (or, in bus mode, the
     // heaviest one). A home that walks everywhere gets no bus line.
-    const busLeg = S.mode === 'walk' ? null : (legs.find(l => l.how === 'bus') || (S.mode === 'bus' ? legs[0] : null));
+    // Searched among ALL the buildings, not just the few listed: the trip drawn on the map is the heaviest by-bus building too
+    // (finder-bus.js drawLegs), and the line under the home must be about the same trip.
+    const byWeight = r.score.legs.slice().sort((a, b) => b.w - a.w);
+    const busLeg = S.mode === 'walk' ? null : (byWeight.find(l => l.how === 'bus') || (S.mode === 'bus' ? byWeight[0] : null));
     if (S.liveStop) { S.liveStop(); S.liveStop = null; }
     if (FINDER.liveBus && busLeg) { const lv = el('div', 'fd-live'); d.append(lv); liveBus(r, busLeg, lv); }
     return d;
@@ -703,13 +797,26 @@ function boot() {
   // The live bus line (js/finder-live.js): from this home to the class building that weighs most, with the next
   // buses from CapMetro's public feed. Loaded on the first selected home, never before. `?livebus=0` turns it off.
   function liveBus(r, leg, box) {
-    const ds = S.G.code && S.G.code[leg.code], door = ds && ds.length && S.G.doors[ds[0]], n = door && door[2][0];
-    if (n === undefined || n === false) return;
-    const from = [r.home.p[1], r.home.p[0]], to = [S.G.Y[n], S.G.X[n]];
-    import('./finder-live.js').then((m) => {
+    const to = doorPoint(leg.code);
+    if (!to) return;
+    const from = [r.home.p[1], r.home.p[0]], homeId = r.home.id, code = leg.code;
+    Promise.all([import('./finder-live.js'), import('./finder-bus.js')]).then(([m, fb]) => {
       if (S.liveStop) S.liveStop();
-      S.liveStop = box.isConnected ? m.watch(box, from, to, { code: leg.code, el }) : null;
+      S.fb = S.fb || fb;
+      S.liveStop = box.isConnected ? m.watch(box, from, to, { code, el, onPlan: (o, slice) => onTrip(homeId, code, o, slice) }) : null;
     }).catch(() => {});
+  }
+  // The live search's answer for the selected home: draw it (replacing the timetable trip for the same building) when
+  // its stops or routes changed, and tell the live buses which routes to show.
+  const tripSigOf = (o) => (o && o.legs || []).filter(l => l.kind === 'bus').map(l => l.routeId + '/' + l.dir + ':' + l.board + '>' + l.alight).join('|');
+  function onTrip(homeId, code, option, slice) {
+    if (S.selected !== homeId) return;
+    if (slice) S.slice = slice;
+    const sig = tripSigOf(option), had = S.trip && S.trip.homeId === homeId && S.trip.code === code ? S.trip.sig : null;
+    if (!option) { if (had !== null) { S.trip = null; drawRoute(); syncLiveBuses(); } return; }
+    if (had === sig) { S.trip.option = option; return; }
+    S.trip = { homeId, code, option, sig };
+    drawRoute(); syncLiveBuses();
   }
 
   function buildLegend() {
@@ -798,7 +905,7 @@ function boot() {
   // ── layers ──
   const SRC_HEAT = 'finder-heat', SRC_ROUTE = 'finder-route';
   const L_HEAT = 'finder-heat', L_CASE = 'finder-route-casing', L_WALK = 'finder-route-walk',
-    L_BUS = 'finder-route-bus', L_LINK = 'finder-route-link';
+    L_BUS = 'finder-route-bus', L_LINK = 'finder-route-link', L_STOP = 'finder-route-stop';
   const empty = () => ({ type: 'FeatureCollection', features: [] });
   function overOf(m) {
     // The first symbol layer above the buildings: over the city, under labels.
@@ -838,9 +945,18 @@ function boot() {
     line(L_CASE, ['match', ['get', 'k'], ['walk', 'bus'], true, false],
       { 'line-color': Rt.casingColour, 'line-width': Rt.widthPx + 2 * Rt.casingPx });
     line(L_WALK, ['==', ['get', 'k'], 'walk'], { 'line-color': Rt.walkColour, 'line-width': Rt.widthPx });
-    line(L_BUS, ['==', ['get', 'k'], 'bus'], { 'line-color': Rt.busColour, 'line-width': Rt.widthPx });
+    // The bus leg in the route's own colour when the feature carries one (a trip from the timetable does; the baked
+    // East Riverside table does not), else the finder's bus blue. FINDER.trip.routeColour = false: always the blue.
+    line(L_BUS, ['==', ['get', 'k'], 'bus'], { 'line-color': FINDER.trip.routeColour ? ['coalesce', ['get', 'c'], Rt.busColour] : Rt.busColour, 'line-width': Rt.widthPx });
     line(L_LINK, ['==', ['get', 'k'], 'link'], { 'line-color': Rt.walkColour, 'line-width': Rt.widthPx * 0.7,
       'line-opacity': Rt.linkOpacity, 'line-dasharray': Rt.linkDash }, { 'line-cap': 'butt' });
+    if (!m.getLayer(L_STOP)) {
+      const Tp = FINDER.trip;
+      m.addLayer({ id: L_STOP, type: 'circle', source: SRC_ROUTE, filter: ['==', ['get', 'k'], 'stop'], paint: {
+        'circle-radius': Tp.stopRadiusPx, 'circle-color': Tp.stopFill,
+        'circle-stroke-width': Tp.stopStrokePx,
+        'circle-stroke-color': Tp.routeColour ? ['coalesce', ['get', 'c'], Rt.busColour] : Rt.busColour } }, over);
+    }
     return true;
   }
   // A graphics preset or a style recovery can rebuild the style; put ours back.
@@ -851,7 +967,9 @@ function boot() {
     let t = 0;
     map().on('styledata', () => {
       clearTimeout(t);
-      t = setTimeout(() => { if (S.view !== 'pill' && S.loaded && mapReady() && !map().getLayer(L_HEAT)) { drawHeat(); drawRoute(); } }, 250);
+      t = setTimeout(() => {
+        if (S.view !== 'pill' && S.loaded && mapReady() && !map().getLayer(L_HEAT)) { drawHeat(); drawRoute(); if (S.liveH) S.liveH.reattach(); }
+      }, 250);
     });
   }
 
@@ -899,7 +1017,7 @@ function boot() {
 
   // ── selection: routes, labels, camera ──
   function routeOf(r) {
-    const feats = [], ends = [], pts = [];
+    const feats = [], ends = [], pts = [], stops = [], tripPts = [];
     const push = (k, coords) => { if (coords.length > 1) { feats.push({ type: 'Feature', properties: { k }, geometry: { type: 'LineString', coordinates: coords } }); pts.push(...coords); } };
     // treePath: [where we started (a door or the snapped centre), graph
     // nodes..., the class building's door]. The two ends are our own straight
@@ -912,8 +1030,9 @@ function boot() {
       return p[p.length - 1];
     };
     const R = S.result;
-    const legs = r.score.legs.map((l, i) => ({ ...l, i: R.T.targets.findIndex(t => t.code === l.code) }))
-      .sort((a, b) => b.w - a.w).slice(0, FINDER.route.topN);
+    const all = r.score.legs.map((l, i) => ({ ...l, i: R.T.targets.findIndex(t => t.code === l.code) }));
+    // The top few by weight, plus the heaviest building reached by bus when it is not one of them (finder-bus.js drawLegs).
+    const legs = S.fb ? S.fb.drawLegs(all, FINDER.route.topN) : all.sort((a, b) => b.w - a.w).slice(0, FINDER.route.topN);
     for (const l of legs) {
       const tree = R.trees[l.i];
       if (!tree) continue;
@@ -921,6 +1040,16 @@ function boot() {
       if (l.how === 'walk') {
         const w = core.walkFrom(S.G, tree, anchorsOf(r.home));
         if (w) end = walkPath(tree, w.anchor);
+      } else if (l.bus && l.bus.option) {
+        // A trip from the timetable (js/finder-bus.js), or the live search's own answer for this building: the walk to the
+        // stop, the bus along the route's real line, the walk from the stop to the door, and the stops.
+        if (FINDER.trip.on && S.slice) {
+          const live = S.trip && S.trip.homeId === r.home.id && S.trip.code === l.code ? S.trip.option : null;
+          end = tripPart(r, l, live || l.bus.option, tree, feats, pts, stops, tripPts);
+          if (end) ends.push({ code: l.code, p: end, t: fmtRange(l.lo, l.hi) + ' ' + C.minUnit, how: l.how });
+        }
+      } else if (l.bus && S.trip && S.trip.homeId === r.home.id && S.trip.code === l.code && FINDER.trip.on && S.slice) {
+        end = tripPart(r, l, S.trip.option, tree, feats, pts, stops, tripPts);       // a baked home, drawn from the live search instead
       } else if (l.bus) {
         const t = l.bus.t, st = S.transit.stops;
         const board = st[t.board], alight = st[t.alight];
@@ -936,7 +1065,29 @@ function boot() {
       // title bar; their minutes are in the list, so no label there.
       if (end && l.how === 'walk') ends.push({ code: l.code, p: end, t: fmtRange(l.lo, l.hi) + ' ' + C.minUnit, how: l.how });
     }
-    return { feats, ends, pts };
+    return { feats, ends, pts, stops, tripPts };
+  }
+  // One bus trip as map features (finder-bus.js tripFeatures). The last walk follows the walking graph's own path.
+  function tripPart(r, l, option, tree, feats, pts, stops, tripPts) {
+    const to = doorPoint(l.code);
+    if (!to || !S.fb) return null;
+    const endPath = (stop) => {
+      const n = tree && core.nearestNode(S.G, stop);
+      const w = n && core.walkFrom(S.G, tree, [{ node: n.node, c: n.m, m: n.m, from: stop }]);
+      return w ? core.treePath(S.G, tree, w.anchor) : null;
+    };
+    // The first walk follows the walking graph too: the home's own tree, walked from the stop back to the home's door.
+    let ht;
+    const startPath = (stop) => {
+      if (ht === undefined) ht = core.homeTree(S.G, anchorsOf(r.home));
+      const n = ht && core.nearestNode(S.G, stop);
+      if (!n || ht.cost[n.node] === Infinity) return null;
+      return core.treePath(S.G, ht, { node: n.node, c: n.m, m: n.m, from: stop }).reverse();
+    };
+    const tf = S.fb.tripFeatures(S.slice, option, [r.home.p[1], r.home.p[0]], to, { endPath, startPath });
+    feats.push(...tf.feats); pts.push(...tf.pts); stops.push(...tf.stops);
+    if (!tripPts.length) tripPts.push(...tf.pts);                 // the camera frames the first trip drawn (the heaviest by bus)
+    return tf.feats.length ? [to[1], to[0]] : null;
   }
   function drawRoute() {
     whenMap(() => {
@@ -945,14 +1096,21 @@ function boot() {
       S.destMarkers = [];
       const r = S.selected && S.result && S.result.ranked.find(x => x.home.id === S.selected);
       S.routeKinds = {};
+      if (S.trip && (!r || S.trip.homeId !== r.home.id)) S.trip = null;
       if (!r || S.view === 'pill') { map().getSource(SRC_ROUTE).setData(empty()); return; }
-      const { feats, ends } = routeOf(r);
+      const { feats, ends, stops } = routeOf(r);
       for (const f of feats) S.routeKinds[f.properties.k] = (S.routeKinds[f.properties.k] || 0) + 1;
       map().getSource(SRC_ROUTE).setData({ type: 'FeatureCollection', features: feats });
       for (const e of ends) {
         const tag = el('div', 'fd-dest');
         tag.append(el('b', null, e.code), ' ' + e.t);
         S.destMarkers.push(new maplibregl.Marker({ element: tag, anchor: 'bottom', offset: [0, -6], subpixelPositioning: FINDER.pins.subpixel }).setLngLat(e.p).addTo(map()));
+      }
+      if (FINDER.trip.labels) for (const s of stops) {
+        if (s.role === 'change') continue;
+        const tag = el('div', 'fd-dest fd-stoptag', s.role === 'board' ? C.tripBoard(s.route, s.name) : C.tripAlight(s.name));
+        if (s.c && FINDER.trip.routeColour) tag.style.borderColor = s.c;
+        S.destMarkers.push(new maplibregl.Marker({ element: tag, anchor: 'top', offset: [0, 8], subpixelPositioning: FINDER.pins.subpixel }).setLngLat(s.p).addTo(map()));
       }
     });
   }
@@ -974,8 +1132,11 @@ function boot() {
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const fa = freeArea();
     const walk = r.score.how === 'walk';
+    // A trip by bus is framed whole (F.tripFit); a walking home keeps its own framing.
+    const tf = F.tripFit, tripPts = !walk && tf.on && FINDER.trip.on ? routeOf(r).tripPts : [];
+    const trip = tripPts.length > 1;
     let bearing = m.getBearing();
-    const pitch = walk ? F.walkPitch : F.busPitch;
+    const pitch = walk ? F.walkPitch : trip ? tf.pitch : F.busPitch;
     if (!walk && F.busFaceCampus) {
       const [lon, lat] = r.home.p, [tl, tt] = F.busFaceCampus;
       bearing = Math.atan2((tl - lon) * Math.cos(lat * Math.PI / 180), tt - lat) * 180 / Math.PI;
@@ -990,17 +1151,17 @@ function boot() {
     const zAlt = Math.log2(m.transform.cameraToCenterDistance * 40075016.686 * Math.cos(r.home.p[1] * Math.PI / 180) *
       Math.cos(pitch * Math.PI / 180) / (512 * F.maxAltM));
     let mid = home, zoom = F.busZoom;
-    if (walk) {
-      // Fit the home and the routes to its top buildings into the free area...
-      const { pts } = routeOf(r);
+    if (walk || trip) {
+      // Fit the home and the routes to its top buildings (or the whole bus trip) into the free area...
+      const pts = walk ? routeOf(r).pts : tripPts;
       const pr = pts.map(p => rot(maplibregl.MercatorCoordinate.fromLngLat(p))).concat([home]);
       const xs = pr.map(p => p[0]), ys = pr.map(p => p[1]);
       const w = Math.max(1e-9, Math.max(...xs) - Math.min(...xs)), h = Math.max(1e-9, Math.max(...ys) - Math.min(...ys));
       zoom = Math.min(Math.log2((fa.w - 2 * F.marginPx) / (512 * w)), Math.log2((fa.h - 2 * F.marginPx) / (512 * h)));
-      zoom = Math.min(F.maxZoom, zoom - F.pitchZoomLoss);
+      zoom = Math.min(trip ? tf.maxZoom : F.maxZoom, zoom - F.pitchZoomLoss);
       mid = [(Math.max(...xs) + Math.min(...xs)) / 2, (Math.max(...ys) + Math.min(...ys)) / 2];
     }
-    zoom = Math.max(zoom, zAlt);
+    zoom = trip ? Math.max(zoom, tf.minZoom) : Math.max(zoom, zAlt);       // the trip view lifts the ceiling (F.tripFit)
     const scale = 512 * Math.pow(2, zoom);
     // ...and when the ceiling makes that impossible (a phone is narrow), the
     // HOME stays in frame and the routes run off toward campus. Measured: the
@@ -1015,17 +1176,74 @@ function boot() {
     const target = { center: new maplibregl.MercatorCoordinate(c[0], c[1]).toLngLat(), zoom, pitch, bearing,
       padding: { left: 0, right: 0, top: 0, bottom: 0 } };
     m.stop();
-    if (reduce) m.jumpTo(target);
+    if (trip) glide(m, target, reduce ? 0 : tf.ms);
+    else if (reduce) m.jumpTo(target);
     else m.easeTo({ ...target, duration: F.durationMs, essential: true });
   }
+  // The camera to a pose, a frame at a time (an ease would be stopped above the controller's ceiling). It happens ONCE per
+  // selection and stops the moment anything else moves the camera: a visitor who has already panned is never pulled back, and
+  // a live poll never calls it.
+  function glide(m, target, ms) {
+    const id = ++S.glideId;
+    if (!ms) { m.jumpTo(target); return; }
+    const c0 = m.getCenter(), z0 = m.getZoom(), p0 = m.getPitch(), b0 = m.getBearing();
+    const db = ((target.bearing - b0 + 540) % 360) - 180, t0 = performance.now();
+    let last = null;
+    const step = (now) => {
+      if (id !== S.glideId || S.view === 'pill') return;
+      if (last) {
+        const c = m.getCenter();
+        if (Math.abs(c.lng - last.lng) > 1e-5 || Math.abs(c.lat - last.lat) > 1e-5 || Math.abs(m.getZoom() - last.zoom) > 0.01) return;
+      }
+      const k = Math.min(1, (now - t0) / ms), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      m.jumpTo({ center: [c0.lng + (target.center.lng - c0.lng) * e, c0.lat + (target.center.lat - c0.lat) * e],
+        zoom: z0 + (target.zoom - z0) * e, pitch: p0 + (target.pitch - p0) * e, bearing: b0 + db * e, padding: target.padding });
+      const c = m.getCenter(); last = { lng: c.lng, lat: c.lat, zoom: m.getZoom() };
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
   function select(id, opt = {}) {
-    S.selected = id;
+    S.selected = id; S.glideId++;
     if (id && isPhone() && S.view === 'open') setView('peek');
-    renderList(); renderPins(); drawRoute();
+    renderList(); renderPins(); drawRoute(); syncLiveBuses();
     const r = id && S.result && S.result.ranked.find(x => x.home.id === id);
     if (r && opt.keepCamera !== true) whenMap(() => flyToHome(r));
     const li = id && root.querySelector('.fd-item[data-id="' + id + '"]');
     if (li) li.scrollIntoView({ block: 'nearest' });
+  }
+
+  // ── "Show live buses" (js/finder-live.js liveBuses) ──
+  // The buses of the routes in the selected trip, nothing else on the map. It polls only while the switch is on, the
+  // finder is open and a trip with a route is on screen; off, hidden or deselected, the poll and the layer are gone.
+  function liveRoutes() {
+    const r = S.selected && S.result && S.result.ranked.find(x => x.home.id === S.selected);
+    if (!r || !S.fb) return [];
+    if (S.trip && S.trip.homeId === r.home.id) return S.fb.tripRoutes(S.trip.option);
+    const l = r.score.legs.slice().sort((a, b) => b.w - a.w).find(x => x.bus && x.bus.option);
+    return l ? S.fb.tripRoutes(l.bus.option) : [];
+  }
+  function stopLiveBuses() { if (S.liveH) { S.liveH.stop(); S.liveH = null; } renderLiveNote([]); }
+  function renderLiveNote(routes) {
+    const n = $('.fd-livebuses-note'), on = S.liveOn && FINDER.liveBuses.available;
+    n.hidden = !on;
+    if (!on) { n.textContent = ''; return; }
+    n.textContent = routes.length ? C.liveBusesOn(routes) + ' ' + (S.credit || '') : C.liveBusesNone;
+  }
+  function syncLiveBuses() {
+    if (!S.liveOn || !FINDER.liveBuses.available || S.view === 'pill' || !S.loaded) { stopLiveBuses(); return; }
+    const routes = liveRoutes();
+    renderLiveNote(routes);
+    if (!routes.length) { if (S.liveH) S.liveH.set([]); return; }
+    whenMap(() => {
+      if (!S.liveOn || S.view === 'pill') return;
+      import('./finder-live.js').then(m => {
+        if (!S.liveOn || S.view === 'pill') return;
+        if (!S.liveH) S.liveH = m.liveBuses(map());
+        S.liveH.set(liveRoutes());
+        if (window.TransitLive) { S.credit = window.TransitLive.credit; renderLiveNote(liveRoutes()); }
+      }).catch(() => {});
+    });
   }
 
   // ── the compare tray ──
@@ -1106,6 +1324,7 @@ function boot() {
     S.markers.clear();
     for (const m of S.destMarkers) m.remove();
     S.destMarkers = [];
+    S.trip = null;
     const m = map();
     S.heatCount = 0;
     if (m && m.getSource && m.getSource(SRC_HEAT)) {
@@ -1127,6 +1346,9 @@ function boot() {
       pins: S.markers.size,
       heatCells: S.heatCount == null ? null : S.heatCount,
       route: Object.assign({}, S.routeKinds || {}), labels: S.destMarkers.length,
+      bus: { rank: !!S.busData, stats: S.busStats, trip: S.trip ? { home: S.trip.homeId, code: S.trip.code, sig: S.trip.sig } : null,
+        timetableLegs: R ? R.ranked.reduce((n, r) => n + r.score.legs.filter(l => l.bus && l.bus.src === 'timetable').length, 0) : 0 },
+      liveBuses: { on: S.liveOn, active: !!(S.liveH && S.liveH.active()) },
       importReady: S.importReady,
     };
   };

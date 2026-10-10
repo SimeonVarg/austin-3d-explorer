@@ -338,6 +338,47 @@ for (const mode of ['hide', 'dim']) {
   });
 }
 
+// 5b. the buses of chosen routes only, and only the buses layer (the finder's "Show live buses")
+await ok('attach(map, {layers, routes}) draws only the buses of those routes; setRoutes() changes them; vehiclesGeo() filters', async () => {
+  const b = boot(), map = fakeMap();
+  b.T.attach(map, { layers: ['vehicles'], routes: ['10'] }); b.T.start(b.opts({})); await flush();
+  deq(Object.keys(map.layers).sort(), ['transit-live-vehicle-halo', 'transit-live-vehicles']);
+  deq(Object.keys(map.sources).sort(), ['transit-live-vehicles'], 'no stops source and no lines source');
+  const feats = () => map.sources['transit-live-vehicles'].data.features;
+  assert.equal(feats().length, 2, 'the saved feed has two buses on route 10 and none of them is dropped');
+  assert.ok(feats().every(f => f.properties.route === '10'));
+  b.T.setRoutes(['99']); assert.equal(feats().length, 0, 'a route with no bus on the road draws none');
+  b.T.setRoutes(['1', '10']); assert.equal(feats().length, 2);
+  b.T.setRoutes(null); assert.equal(feats().length, 2, 'null = every route (the fixture\'s other baked routes have no buses)');
+  assert.equal(b.T.vehiclesGeo(['10']).features.length, 2, 'vehiclesGeo(list) filters on its own');
+  assert.equal(b.T.vehiclesGeo(['20']).features.length, 0);
+  assert.equal(b.T.vehiclesGeo(null).features.length, 2);
+  assert.equal(b.T.vehiclesGeo().features.length, 2, 'vehiclesGeo() with no argument uses what attach/setRoutes chose');
+  b.T.setRoutes([]); assert.equal(feats().length, 0, 'an empty list draws no bus');
+  b.T.detach();
+  deq(Object.keys(map.layers).concat(Object.keys(map.sources)), []);
+  // the old call still draws everything
+  const all = fakeMap(); b.T.attach(all); await flush();
+  deq(Object.keys(all.layers).sort(), ['transit-live-lines', 'transit-live-stops', 'transit-live-vehicle-halo', 'transit-live-vehicles'], 'attach(map) with no options is unchanged');
+  b.T.detach(); b.T.stop();
+});
+
+// 5c. a map that has a style but is not 'loaded' (tiles still arriving) takes the layers now; one with no style waits for 'load'
+await ok('attach() on a map whose tiles are still loading draws now; with no style yet it waits for load', async () => {
+  const b = boot(), busy = fakeMap(), once = {};
+  busy.isStyleLoaded = () => false; busy.getStyle = () => ({ layers: [] }); busy.once = (e, f) => { once[e] = f; };
+  b.T.attach(busy, { layers: ['vehicles'], routes: ['10'] }); b.T.start(b.opts({})); await flush();
+  assert.ok(busy.layers['transit-live-vehicles'] && !once.load, 'layers added at once, no wait for a load event that may never come');
+  b.T.detach(); b.T.stop();
+  const b2 = boot(), bare = fakeMap();
+  bare.isStyleLoaded = () => false; bare.getStyle = () => undefined; bare.once = (e, f) => { once[e] = f; };
+  b2.T.attach(bare); await flush();
+  assert.equal(Object.keys(bare.layers).length, 0, 'no style yet: nothing added'); assert.ok(once.load, 'it waits for load');
+  bare.isStyleLoaded = () => true; once.load();
+  assert.ok(bare.layers['transit-live-vehicles'], 'and draws when the style loads');
+  b2.T.detach(); b2.T.stop();
+});
+
 // 6. scheduled(): tomorrow's first trips
 await ok('real bake: no baked trip reaches any stop before 02:00, so a look-ahead past midnight has nothing to miss; a re-bake that does is still covered', async () => {
   const d = JSON.parse(fs.readFileSync(here('../../data/transit-live.json')));

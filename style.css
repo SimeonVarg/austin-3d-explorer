@@ -1463,6 +1463,16 @@ body.wf-live #wf-orig{display:none}
   color:rgba(248,234,208,.72);font-weight:500;min-width:0}
 .wf-door-ic{width:12px;height:12px;flex:none;opacity:.75;transform:translateY(.5px)}
 body.wf-live #wf-sub{margin-top:2px}
+/* THE BUS ROW (js/wayfind.js busRowSync): one dim line under a long walk when a bus is faster. Hidden when empty, and
+   while walking it steps aside like the other small print. */
+#wf-busrow{margin-top:5px;font-size:11px;line-height:1.35;color:#cfeaff}
+#wf-busrow[hidden]{display:none}
+#wf-busrow p{margin:2px 0 0}
+#wf-busrow .fd-live-note{color:#e8c98a}
+#wf-busrow .fd-live-credit{color:rgba(255,255,255,.45);font-size:9.5px}
+#wf-busrow .fd-live-line.is-live::before{content:'';display:inline-block;width:6px;height:6px;margin-right:5px;
+  border-radius:50%;background:#5fe08a;vertical-align:1px}
+body.wf-live #wf-busrow{display:none}
 /* ROUND 6: AND WHILE YOU ARE WALKING IT WAITS UNTIL YOU ARE NEARLY THERE.
    Photographed at 390 x 844 walking JES -> WEL, `Entrances are on this side`
    is the LONGEST line on the bar and it was on screen for the whole six
