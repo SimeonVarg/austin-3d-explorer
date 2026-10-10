@@ -751,7 +751,7 @@
       skinReveal: wantReveals() ? (skin.reveal != null ? skin.reveal : APTS.reveal) : 0,
       // the night colour tileFace gives a window's glass cell
       windowNight: (w, glass) => w.lit ? (w.nightTone || APTS.nightLitTone)
-        : ((window.CityNight?.tune.on && w.lit === false && (glass.surface?.[0] === 4 || glass.surface?.[0] === 6)) ? window.CityNight.tune.unlitGlass : glass[2]) };
+        : ((window.CityNight?.tune.on && w.lit === false && (((glass.surface || P._surfaceGlass)?.[0]) === 4 || ((glass.surface || P._surfaceGlass)?.[0]) === 6)) ? window.CityNight.tune.unlitGlass : glass[2]) };
   }
 
   /**

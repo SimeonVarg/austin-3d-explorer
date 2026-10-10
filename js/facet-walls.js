@@ -39,9 +39,9 @@
   const toneIdx = new Map(), tones = [];   // key = day|gold|night|surface
   const geo = { pos: [], nrm: [], tan: [], uv: [], piece: [], idx: [] };
   const hex = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; };
-  function toneId(P, name) {
+  function toneId(P, name, surfOverride) {
     const t = P[name]; if (!t) return -1;
-    const surf = t.surface || [0, 0, 0, 0];
+    const surf = surfOverride || t.surface || [0, 0, 0, 0];
     const key = t[0] + '|' + t[1] + '|' + t[2] + '|' + surf.join(',');
     let i = toneIdx.get(key);
     if (i === undefined) { i = tones.length; toneIdx.set(key, i); tones.push({ d: hex(t[0]), g: hex(t[1]), n: hex(t[2]), s: surf }); }
@@ -127,7 +127,7 @@
     // T0..T11 fixed, then lists
     T(len, z0, z1, 0);                                           // 0
     T(nrows, ncols, lines.length, tableBase);                    // 1
-    T(tid(fieldName), stripSpec ? tid(stripSpec.tone) : -1, lineSpec ? tid(lineSpec.tone) : -1, tid(glassName));   // 2
+    T(tid(fieldName), stripSpec ? tid(stripSpec.tone) : -1, lineSpec ? tid(lineSpec.tone) : -1, toneId(P, glassName, glass.surface || P._surfaceGlass || null));   // 2 (the glass takes the building's glass surface when its tone has none, as tileFace does)
     T(tid(revealName), reveal, lineSpec ? lineSpec.h : 0, strip[0]);                                         // 3
     T(strip[1], strip[2], strip[3], strip[4]);                                                          // 4
     T(strip[5], frame ? frame.w : 0, frame ? fh : 0, frame ? tid(frame.tone) : -1);                          // 5
