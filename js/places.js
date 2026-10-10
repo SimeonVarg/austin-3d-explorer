@@ -114,7 +114,10 @@
     // Host buildings whose recipe (data/apartments/) draws its OWN shopfront, sign and awnings from a photograph.
     // The generic slab (bulkhead, glass, brand fascia, awning, entry) is not drawn on them; the name label stays.
     // One entry per building: its footprint id. Raising Cane's: scripts/author_raising_canes.py.
+    // Hidden ONLY while that recipe is really drawn (ownFrontDrawn below), never merely because it is listed: if the recipe
+    // does not download, is switched off (?slopes=0) or has not finished building, the generic shop front stays.
     ownFront: ['b32544f3-3221-480b-86bd-236b0eeb7be1'],
+    ownFrontPollMs: 1000,   // how often to look again whether those recipes are drawn (a drop, a rebuild or a late finish)
     minZoom: 15,
     // "restaurant names are a bit too visible from afar". They were: shop names
     // started at z16 in BOLD white on a saturated brand halo, while building names
@@ -432,6 +435,47 @@
 
   let _added = false, _stats = null;
 
+  /**
+   * The ownFront buildings whose recipe is drawn RIGHT NOW: js/slopes-apartments.js has its mesh group in the scene
+   * (`group`) and that group holds a building with this id (`built`). `built` alone is not enough, it is not cleared when
+   * the group is dropped; `group` alone says nothing about which buildings. A recipe that failed to download, timed out,
+   * is off (?slopes=0, apartments off) or is still building is not in this set, and its generic shop front must be drawn.
+   */
+  function ownFrontDrawn() {
+    const out = new Set();
+    try {
+      const A = window.slopesApartments;
+      if (!A || !A.group) return out;
+      for (const b of A.built) if (b && PLACES.ownFront.includes(b.id)) out.add(b.id);
+    } catch (e) { /* not loaded: nothing is drawn */ }
+    return out;
+  }
+  /** The shop-front features without those of buildings in `drawn`; name labels always stay. */
+  function withoutDrawnOwnFront(features, drawn) {
+    if (!drawn.size) return features;
+    return features.filter(f => f.properties.kind === 'label' || !drawn.has(f.properties.bid));
+  }
+  /** Re-read ownFrontDrawn() every PLACES.ownFrontPollMs and push new data to the source only when the set changed. */
+  function watchOwnFront(map, gj, all, drawnNow) {
+    if (!PLACES.ownFront.length) return;
+    let last = [...drawnNow].sort().join('|'), timer = null, gone = false;
+    const tick = () => {
+      timer = null;
+      if (gone) return;
+      const drawn = ownFrontDrawn(), sig = [...drawn].sort().join('|');
+      if (sig !== last) {
+        const src = map.getSource && map.getSource(SRC);
+        if (src && src.setData) {
+          last = sig;
+          src.setData({ ...gj, features: withoutDrawnOwnFront(all, drawn) });
+        }
+      }
+      timer = setTimeout(tick, PLACES.ownFrontPollMs);
+    };
+    timer = setTimeout(tick, PLACES.ownFrontPollMs);
+    if (map.once) map.once('remove', () => { gone = true; clearTimeout(timer); });
+  }
+
   window.initPlaces = async function initPlaces(map) {
     if (!PLACES.on || _added || map.getSource(SRC)) return;
     _added = true;
@@ -441,11 +485,14 @@
       const r = await fetch(DATA);
       if (!r.ok) throw new Error(DATA + ': ' + r.status);
       gj = await r.json();
-      if (PLACES.ownFront.length) gj.features = gj.features.filter(f => f.properties.kind === 'label' || !PLACES.ownFront.includes(f.properties.bid));
     } catch (e) {
       console.warn('[places]', e.message, '- pass not drawn');
       return;
     }
+
+    // every feature, and the part of it drawn now: the recipes that own their shop front hide the generic one only once drawn
+    const allFeatures = gj.features, drawnAtStart = ownFrontDrawn();
+    gj.features = withoutDrawnOwnFront(allFeatures, drawnAtStart);
 
     const p = (window.__todCurrentP != null) ? window.__todCurrentP : 0.3;
     try { map.addImage(GLASS_IMG, glassTile(p)); } catch (e) { /* already there */ }
@@ -621,6 +668,7 @@
     // The tenant catalogue this layer is authoritative for. Derived here, once,
     // from the file that was actually loaded — see placesTenantNames() above.
     _names = [...new Set([...src, ...gen])].sort();
+    watchOwnFront(map, gj, allFeatures, drawnAtStart);
     // js/app.js owns the cross-layer label hierarchy and does the suppression.
     // It is called from BOTH ends because the two modules boot independently:
     // signs.js calls orderLabelLayers() when `signs-label` appears, and this
