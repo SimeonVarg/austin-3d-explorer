@@ -138,7 +138,8 @@ export function watch(box, from, to, opts) {
         when: austinNow(), beatsWalkS: opts.beatsWalkS, walkSec,
         live: (sid, rid, dir) => { const d = TL.departures(sid, LIVE.nextBuses, { route: rid, dir }).filter((x) => x.live).map((x) => x.minutes); return d.length ? d : null; },
       });
-      const out = describe(res, opts.code, st.ok, st.timetableExpired);
+      // Before the first answer from the feed there is no error to report: "not answering" would be a claim we cannot back yet.
+      const out = describe(res, opts.code, st.ok || (!st.fetchedAt && !st.error), st.timetableExpired);
       box.textContent = '';
       if (opts.quiet && !out.option) { box.hidden = true; if (opts.onPlan) opts.onPlan(null, slice); return; }
       box.hidden = false;

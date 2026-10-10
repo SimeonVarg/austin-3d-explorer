@@ -39,6 +39,7 @@ try {
   await page.goto(BASE + '/index.html?intro=0&drift=0&finder=1&major=computer-science&mode=either', { waitUntil: 'domcontentloaded', timeout: 240000 });
   await page.waitForFunction(() => window.finderState && window.finderState().loaded, null, { timeout: 240000 });
   await page.waitForFunction(() => window.finderState().bus.rank && window.finderState().bus.timetableLegs > 0, null, { timeout: 120000 }).catch(() => {});
+  await page.waitForFunction(() => !document.getElementById('veil'), null, { timeout: 240000 }).catch(() => note.veilStayed = true);
   let s = await st();
   check('the ranking took the timetable bus for walkable homes', s.bus.rank && s.bus.timetableLegs > 0, { timetableLegs: s.bus.timetableLegs, stats: s.bus.stats });
   note.rankingMsInBrowser = s.bus.stats && s.bus.stats.ms;
@@ -92,18 +93,25 @@ try {
   check('and nothing but the line is polling before it is on (no vehicles layer)', await page.evaluate(() => !window.__map.getLayer('transit-live-vehicles')));
   await page.click('.fd-livebuses input');
   await page.waitForFunction(() => window.finderState().liveBuses.active && window.__map.getLayer('transit-live-vehicles'), null, { timeout: 30000 }).catch(() => {});
-  await sleep(25000);                                              // one or two polls
-  s = await st();
-  const live = await page.evaluate(() => {
+  await sleep(22000);                                              // one or two polls
+  const probe = () => page.evaluate(() => {
     const m = window.__map, feats = window.TransitLive ? window.TransitLive.vehiclesGeo().features : [];     // what is drawn, by the module's own filter
     return { layers: m.getStyle().layers.map((l) => l.id).filter((id) => /^transit-live/.test(id)), shown: feats.length, routes: [...new Set(feats.map((f) => f.properties.route))],
       city: window.TransitLive ? window.TransitLive.vehiclesGeo(null).features.length : null, note: document.querySelector('.fd-livebuses-note').textContent, state: window.TransitLive ? window.TransitLive.state().ok : null };
   });
-  note.live = live;
+  let live = await probe(); const tried = [{ home: pick.name, shown: live.shown, note: live.note.slice(0, 40) }];
+  // route 640 (or whatever this home rides) may have no bus on the road right now: try the other bus homes until one has buses to draw
+  for (const r of busRows.filter((x) => x.id !== pick.id).slice(0, 6)) {
+    if (live.shown > 0) break;
+    await page.evaluate((id) => window.finderSelect(id), r.id); await sleep(5000);
+    live = await probe(); tried.push({ home: r.name, shown: live.shown, note: live.note.slice(0, 40) });
+  }
+  note.liveTried = tried; note.live = live;
   check('live buses: only the vehicles layers are on the map (no stops, no lines)', live.layers.sort().join() === 'transit-live-vehicle-halo,transit-live-vehicles', live.layers);
   const tripRoutes = (live.note.match(/route[s]? ([\w, ]+)\./) || [])[1];
   check('and the note names the trip\'s routes (' + tripRoutes + ')', !!tripRoutes);
-  check('only those routes\' buses are drawn, not the city\'s', live.routes.every((r) => (tripRoutes || '').split(/,\s*/).includes(r)) && (live.city === null || live.shown <= live.city), live);
+  check('buses are really drawn for a trip\'s routes (some home had buses on the road)', live.shown > 0, tried);
+  check('only those routes\' buses are drawn, not the city\'s', live.routes.every((r) => (tripRoutes || '').split(/,\s*/).includes(r)) && live.shown < live.city, live);
   await shot('04-live-buses');
   await page.click('.fd-livebuses input');
   await sleep(1500);
@@ -148,7 +156,7 @@ try {
   const homes = await (await fetch(BASE + '/data/finder/homes.json')).json();
   const h = homes.homes.find((x) => x.id === pick.id);
   const needles = [h.id, h.name, h.name.toLowerCase().replace(/ /g, '-'), h.p[0].toFixed(4), h.p[1].toFixed(4), 'CS', 'GDC'].filter((x) => x && x.length > 4);
-  const bad = reqs.filter((r) => r.method !== 'GET' || r.body);
+  const bad = reqs.filter((r) => (r.method !== 'GET' && !(r.method === 'HEAD' && /\.pmtiles$/.test(r.url))) || r.body);        // the map's own tile-archive probe is a HEAD
   check('every request is a bodiless GET', bad.length === 0, bad.map((r) => r.method + ' ' + r.url).slice(0, 5));
   const feed = reqs.filter((r) => /data\.texas\.gov/.test(r.url));
   check('the bus feeds were asked only for the two public files', feed.length > 0 && feed.every((r) => /^https:\/\/data\.texas\.gov\/api\/views\/(eiei-9rpf|rmk2-acnw)(\.json$|\/files\/[a-z0-9-]+\?filename=[a-z.]+$)/.test(r.url)), { n: feed.length, sample: [...new Set(feed.map((r) => r.url.replace(/files\/[a-z0-9-]+/, 'files/<id>')))] });
@@ -167,6 +175,7 @@ try {
     p.on('pageerror', (e) => errors.push('wf: ' + e.message));
     await p.addInitScript(() => { const t = setInterval(() => { if (window.cancelGraphicsAutoDetect) { window.cancelGraphicsAutoDetect(); clearInterval(t); } }, 50); });
     await p.goto(`${BASE}/index.html?intro=0&drift=0&finder=0&walk=1&from=${from}&to=${to}`, { waitUntil: 'domcontentloaded', timeout: 240000 });
+    await p.waitForFunction(() => !document.getElementById('veil'), null, { timeout: 240000 }).catch(() => {});
     await p.waitForFunction(() => { const h = document.getElementById('wf-headline'); return h && /min/.test(h.textContent); }, null, { timeout: 240000 }).catch(() => {});
     return { p, rq };
   };
@@ -180,7 +189,7 @@ try {
     check('and it names the credit', /CapMetro/.test(r.row));
     await p.screenshot({ path: `${OUT}/06-wayfind-row.png` });
     const fd = rq.filter((x) => /data\.texas\.gov/.test(x.url));
-    check('its downloads are the two public feeds only', fd.every((x) => /^https:\/\/data\.texas\.gov\/api\/views\/(eiei-9rpf|rmk2-acnw)/.test(x.url)) && rq.every((x) => x.method === 'GET' && !x.body), { feed: fd.length });
+    check('its downloads are the two public feeds only', fd.every((x) => /^https:\/\/data\.texas\.gov\/api\/views\/(eiei-9rpf|rmk2-acnw)/.test(x.url)) && rq.every((x) => (x.method === 'GET' || (x.method === 'HEAD' && /\.pmtiles$/.test(x.url))) && !x.body), { feed: fd.length });
     check('no request names the buildings', !rq.some((x) => /[?&=\/](ADH|HCG)(&|$|\.|\/)/.test(x.url.replace(/from=ADH&to=HCG/, ''))), rq.filter((x) => /ADH|HCG/.test(x.url)).map((x) => x.url).slice(0, 3));
     // clearing the route stops the row's downloads
     await p.evaluate(() => { const b = document.querySelector('.wf-act-clr'); if (b) b.click(); });

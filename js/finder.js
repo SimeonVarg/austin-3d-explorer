@@ -235,7 +235,7 @@ const FINDER = {
     loadFail: 'The finder could not load its data. Reload to try again.',
     sourcesTitle: 'Where these numbers come from',
     sources: (asOf) => 'Walking: OpenStreetMap paths (walking graph ' + (asOf || 'snapshot') +
-      '), brisk to slow pace, lights and stairs included. Buses: CapMetro timetable, one ride, no transfers. ' +
+      '), brisk to slow pace, lights and stairs included. Buses: CapMetro timetable. The list counts a bus only where it beats walking by 3 minutes, on a weekday morning; live times appear under a home you select. ' +
       'Majors: the 2026–27 catalog’s first three years, with the rooms those courses used in Fall 2026. ' +
       'Riverside has no 3D buildings yet; its pins and colours are still exact.',
     pinLabel: (n, name, t) => '#' + n + ' ' + name + ', ' + t + ' minutes',
