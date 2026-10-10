@@ -28,6 +28,7 @@
                                       // for a footprint of any size, so a fade there only adds error (the first in-app run used 0.5 to 1.2 and the moire meter read worse than the geometry, and the lit windows washed out)
     selfCheckPoints: 24, selfCheckTolerance: 0.02,   // share of sampled points that may disagree with the generator's tone function
     parallax: 1.0, aa: 1.0,
+    glassKindMin: 0.2,                // a pixel with at least this much glass takes the glass surface (reflection, window light), scaled by its glass coverage
   };
   function newCollector() {
   const stats = { pieces: 0, taken: 0, refused: {}, trianglesSaved: 0, quads: 0, windows: 0, selfCheckRefused: 0, bytes: { fd: 0, wt: 0, ft: 0, geometry: 0 } };
@@ -172,7 +173,7 @@
     for (const [s, z] of corner) { const p = W.at(s, 0, z); geo.pos.push(p[0], p[1], p[2]); geo.nrm.push(N[0], N[1], N[2]); geo.tan.push(Tn[0], Tn[1], Tn[2]); geo.uv.push(s, z); geo.piece.push(pid); }
     geo.idx.push(v0, v0 + 1, v0 + 2, v0, v0 + 2, v0 + 3);
     // ---- the mean colours (the far field) ----
-    fillMean(pk, meanAt);
+    fd[(base + 10) * 4 + 1] = fillMean(pk, meanAt);
     if (collectorSelf.debug) collectorSelf.debug.push({ pk, rec });
     stats.taken++; stats.quads++; stats.trianglesSaved += rec.tris ?? 0; stats.windows += wins.length;
     return true;
@@ -215,15 +216,16 @@
     return P[pk.field];
   }
   function fillMean(pk, at) {
-    const N = 24; const D = [0, 0, 0], G = [0, 0, 0], Nn = [0, 0, 0]; let count = 0;
+    const N = 24; const D = [0, 0, 0], G = [0, 0, 0], Nn = [0, 0, 0]; let count = 0, glassPts = 0;
     for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
       const s = (i + 0.5) / N * pk.len, z = pk.z0 + (j + 0.5) / N * (pk.z1 - pk.z0);
       const t = fieldNameAt(pk, s, z); const w = winAt(pk, s, z);
       const d = hex(t[0]), g = hex(t[1]), n = w ? [w.cell[0] / 255, w.cell[1] / 255, w.cell[2] / 255] : hex(t[2]);
-      for (let k = 0; k < 3; k++) { D[k] += d[k]; G[k] += g[k]; Nn[k] += n[k]; } count++;
+      for (let k = 0; k < 3; k++) { D[k] += d[k]; G[k] += g[k]; Nn[k] += n[k]; } count++; if (w) glassPts++;
     }
     const set = (o, v) => { fd[(at / 4 + o) * 4] = v[0] / count; fd[(at / 4 + o) * 4 + 1] = v[1] / count; fd[(at / 4 + o) * 4 + 2] = v[2] / count; };
     set(0, D); set(1, G); set(2, Nn);
+    return glassPts / count;
   }
 
   // ── GLSL: spliced into slopes.js's own vertex and fragment source ───────
@@ -284,6 +286,7 @@
   // the block spliced in after `vec3 albedo=v_albedo, night=v_night;`: it sets baseColor, albedo, night and surface
   const FRAG_APPLY = `
       #ifdef FACET_WALL
+      float facetCg = 0.0, facetGW = 1.0;
       {
         int pi = int(v_fPiece + .5);
         vec4 t0 = FD(pi), t1 = FD(pi + 1), t2 = FD(pi + 2), t3 = FD(pi + 3), t4 = FD(pi + 4), t5 = FD(pi + 5), t6 = FD(pi + 6), t7 = FD(pi + 7), t8 = FD(pi + 8), t9 = FD(pi + 9), t10 = FD(pi + 10), t11 = FD(pi + 11), t12 = FD(pi + 12);
@@ -368,12 +371,13 @@
         }
         if (farK > 0.0) {
           vec3 mD = FD(pi + 13).rgb, mG = FD(pi + 14).rgb, mN = FD(pi + 15).rgb;
-          D = mix(D, mD, farK); G = mix(G, mG, farK); Nn = mix(Nn, mN, farK); cg = mix(cg, 0.5, farK);
+          D = mix(D, mD, farK); G = mix(G, mG, farK); Nn = mix(Nn, mN, farK); cg = mix(cg, t10.y, farK);
         }
         vec3 color = fMixP(D, G, Nn);
         baseColor = vec4(fLit(color, v_normal), 1.0) * u_opacity;
         albedo = D; night = Nn;
-        surface = cg > .5 ? surfGlass : surfField;
+        surface = cg > ${TUNE.glassKindMin.toFixed(2)} ? surfGlass : surfField;
+        facetCg = cg; facetGW = surfGlass.w;
       }
       #endif
   `;
@@ -386,7 +390,22 @@
     const vs = VERT_DECL + vert.replace(a1, a1 + VERT_SET);
     const a4 = 'void main() {';
     if (!frag.includes(a4)) throw new Error('[facet] js/slopes.js shader text moved: no main()');
-    const fs = frag.replace(a3, FRAG_DECL + a3).replace(a4, FRAG_FUNCS + a4).replace(a2, a2 + FRAG_APPLY);
+    // the glass fraction of a pixel drives the glass effects CONTINUOUSLY (the app's own code switches them on a whole pixel at a time, which is right for a cell
+    // and wrong for a pixel that is 40% window): window light, glass reflection, the sky seen in the glass, and the wall's night ambient
+    const edits = [
+      ['float glassResponse=glazing*(shop?1.0:clamp(surface.w,0.0,1.0));', '\n#ifdef FACET_WALL\n      glazing = facetCg; glassResponse = facetCg * clamp(facetGW, 0.0, 1.0);\n#endif'],
+      ['float opaqueWall=(kind<3.5||kind>6.5)?1.0:0.0;', '\n#ifdef FACET_WALL\n      opaqueWall = 1.0 - facetCg;\n#endif'],
+      ['float strength=surface.w;', '\n#ifdef FACET_WALL\n        if(kind>3.5&&kind<4.5) strength *= facetCg;\n#endif'],
+    ];
+    let fs0 = frag;
+    for (const [anchor, add] of edits) { if (!fs0.includes(anchor)) throw new Error('[facet] js/slopes.js shader text moved: ' + anchor); fs0 = fs0.replace(anchor, anchor + add); }
+    const emit = 'col=cityEmission(col,night,((kind>3.5&&kind<5.5)||shop)?1.0:0.0);';
+    if (!fs0.includes(emit)) throw new Error('[facet] js/slopes.js shader text moved: cityEmission');
+    fs0 = fs0.replace(emit, '#ifdef FACET_WALL\n      col=cityEmission(col,night,facetCg);\n#else\n      ' + emit + '\n#endif');
+    const gl = 'if(glazing>.5) {';
+    if (!fs0.includes(gl)) throw new Error('[facet] js/slopes.js shader text moved: glass branch');
+    fs0 = fs0.replace(gl, '#ifdef FACET_WALL\n        if(kind>3.5&&kind<4.5) {\n#else\n        ' + gl + '\n#endif');
+    const fs = fs0.replace(a3, FRAG_DECL + a3).replace(a4, FRAG_FUNCS + a4).replace(a2, a2 + FRAG_APPLY);
     return { vs, fs };
   }
 
