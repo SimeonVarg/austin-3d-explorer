@@ -388,7 +388,7 @@
   };
   const PACK_TONES = 2 ** PACK.toneBits, PACK_NLOW = 2 ** (15 - PACK.toneBits);
 
-  // THE MOIRE FIX (docs/moire-fix.md): js/moire.js, loaded by js/city-lighting.js only where the fix is on. MF is its hook object, or undefined.
+  // The moire fix (docs/moire-fix.md): js/moire.js, loaded by js/city-lighting.js only where it is on. MF is its hook object, or undefined.
   const MF = window.MoireFix;
   const RUST_INFO = { on: RUST.on, state: RUST.on ? 'loading' : 'off', compileMs: 0, builds: 0, error: null };
   // The Rust builder broke AFTER it loaded (a trap, an out-of-memory error, a bad instance). Stop using it for good: every
@@ -495,9 +495,7 @@
     attribute vec2 aPack;
     uniform sampler2D u_packTones;
     #if defined(MOIRE_FACES) && !defined(MOIRE_LOWP)
-    // highp, and it matters: a sampler without a precision is LOWP in a vertex shader, and on ANGLE's desktop-GL backend (an NVIDIA L4) the
-    // fetched value then came back with about eleven bits. A unit normal survives that; a wall face's NUMBER (thousands) lost its low two bits,
-    // so every face read a neighbour's record.
+    // highp: a lowp fetch loses a face number's low bits (docs/moire-fix.md)
     uniform highp sampler2D u_packNormals;
     #else
     uniform sampler2D u_packNormals;
@@ -505,7 +503,7 @@
     vec3 cDay; vec3 cGold; vec3 cNight; float aFacet; vec4 aSurface; vec3 packedNormal;
     #define normal packedNormal
     #ifdef MOIRE_FACES
-    varying float v_faceRaw;   // THE MOIRE FIX: the wall face this cell belongs to (0 = none); the normal table's fourth float
+    varying float v_faceRaw;   // the moire fix's wall face number (the normal table's fourth float)
     #endif
     #else
     attribute vec3 cDay;
@@ -597,9 +595,100 @@
       v_albedo = cDay; v_night = cNight;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`;
-  // FRAG's shading of a lit tone, in the three pieces THE MOIRE FIX reuses: main() below is these, in this order, exactly as it always was;
-  // the fix shades a wall face's mean tones with SHADE_CORE and SHADE_REFLECT again (one text, so the two cannot drift apart).
-  const SHADE_CORE = `      vec3 col=baseColor.rgb;
+  const FRAG0 = `
+    #ifdef FACADE_FILTER
+    varying vec2 v_faceUV;
+    #ifdef FACADE_FILTER_ARRAY
+    varying float v_faceLayer;
+    varying vec2 v_faceSize;
+    uniform highp sampler2DArray u_faceDay;
+    uniform highp sampler2DArray u_faceGold;
+    uniform highp sampler2DArray u_faceNight;
+    #else
+    uniform sampler2D u_faceDay;
+    uniform sampler2D u_faceGold;
+    uniform sampler2D u_faceNight;
+    #endif
+    uniform vec2 u_faceSize;
+    uniform vec2 u_faceFade;
+    uniform vec2 u_faceNightFade;
+    uniform float u_faceEnabled;
+    uniform float u_materialP;
+    uniform vec3 u_lightpos;
+    uniform vec3 u_lightcolor;
+    uniform float u_lightintensity;
+    uniform float u_opacity;
+    #endif
+    varying vec4 v_color;
+    varying vec3 v_pos;
+    varying vec3 v_normal;
+    varying vec4 v_surface;
+    varying vec3 v_albedo;
+    varying vec3 v_night;
+    uniform vec4 u_surfaceStyle;
+    uniform vec3 u_surfaceRange;
+    uniform vec3 u_surfaceSky;
+    uniform vec3 u_surfaceNoise;
+    uniform vec3 u_brickPatch;
+    uniform vec4 u_brickMottle;
+    uniform vec4 u_surfaceHorizon;
+    uniform vec4 u_weatherScale;
+    uniform vec3 u_weatherTone;
+    uniform vec4 u_shopRoom;
+    uniform vec4 u_shopStyle;
+    uniform vec4 u_shopCeiling;
+    uniform float u_shopShelfTop;
+    uniform float u_shopClosedAmbient;
+    uniform vec3 u_shopWall;
+    uniform vec3 u_shopFloor;
+    uniform vec3 u_shopMerch;
+    uniform vec3 u_shopLight;
+    uniform float u_p;
+    uniform float u_nightWallAmbient;
+    ${window.CityLighting.uniforms}
+    #include <packing>
+    ${window.CityLighting.glsl}
+${window.WallPatterns.glsl}
+${window.RoofTiles.glsl}
+    float hashCell(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+    float surfaceNoise(vec2 p) {
+      vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+      return mix(mix(hashCell(i),hashCell(i+vec2(1,0)),f.x),
+        mix(hashCell(i+vec2(0,1)),hashCell(i+vec2(1,1)),f.x),f.y);
+    }
+    void main() {
+      vec4 baseColor=v_color, surface=v_surface;
+      vec3 albedo=v_albedo, night=v_night;
+${window.WallPatterns.apply}
+${window.RoofTiles.apply}
+      float faceMix=1.0;
+      #ifdef FACADE_FILTER
+      #ifdef FACADE_FILTER_ARRAY
+      vec2 footprint=fwidth(v_faceUV*v_faceSize);
+      #else
+      vec2 footprint=fwidth(v_faceUV*u_faceSize);
+      #endif
+      faceMix=u_faceEnabled*smoothstep(u_faceFade.x,u_faceFade.y,max(footprint.x,footprint.y));
+      faceMix*=1.0-smoothstep(u_faceNightFade.x,u_faceNightFade.y,u_p);
+      if(faceMix<=0.0)discard;
+      #ifdef FACADE_FILTER_ARRAY
+      vec3 faceCoord=vec3(v_faceUV,v_faceLayer);
+      vec4 day=texture(u_faceDay,faceCoord);
+      vec4 gold=texture(u_faceGold,faceCoord);
+      vec4 dark=texture(u_faceNight,faceCoord);
+      #else
+      vec4 day=texture2D(u_faceDay,v_faceUV);
+      vec4 gold=texture2D(u_faceGold,v_faceUV);
+      vec4 dark=texture2D(u_faceNight,v_faceUV);
+      #endif
+      albedo=day.rgb; night=dark.rgb;
+      vec3 color=u_materialP<=.5?mix(day.rgb,gold.rgb,u_materialP*2.0):mix(gold.rgb,dark.rgb,(u_materialP-.5)*2.0);
+      float value=dot(color,vec3(.2126,.7152,.0722));
+      float directional=mix(1.0-u_lightintensity,max(1.0-value+u_lightintensity,1.0),clamp(dot(normalize(v_normal),u_lightpos),0.0,1.0));
+      baseColor=vec4(clamp((color+vec3(.03))*directional*u_lightcolor,mix(vec3(0),vec3(.3),vec3(1)-u_lightcolor),vec3(1)),1)*u_opacity;
+      surface=vec4(0);
+      #endif
+      vec3 col=baseColor.rgb;
       float kind=surface.x;
       bool shop=kind>5.5&&kind<6.5;
       float glazing=((kind>3.5&&kind<4.5)||shop)?1.0:0.0;
@@ -621,19 +710,17 @@
       #else
       col=cityEmission(col,night,((kind>3.5&&kind<5.5)||shop)?1.0:0.0);
       #endif
-`;
-  const SHADE_REFLECT = `          float fresnel=pow(1.0-abs(dot(n,view)),3.0);
-          float daylight=1.0-smoothstep(.5,.95,u_p);
-          vec3 reflection=u_surfaceSky*mix(u_surfaceHorizon.x,u_surfaceHorizon.y,smoothstep(u_surfaceHorizon.z,u_surfaceHorizon.w,reflect(-view,n).z));
-          col=mix(col,reflection,u_surfaceStyle.w*mix(u_surfaceNoise.z,1.0,fresnel)*strength*daylight);
-`;
-  const SHADE_DETAIL = `      if(kind>.5 && u_surfaceRange.x>.5) {
+      if(kind>.5 && u_surfaceRange.x>.5) {
         vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);
         float strength=surface.w;
         float nearDetail=1.0-smoothstep(u_surfaceRange.y,u_surfaceRange.z,distance(u_eye,v_pos));
         if(glazing>.5) {
           if(u_sunlight.x<.5) {
-${SHADE_REFLECT}          }
+          float fresnel=pow(1.0-abs(dot(n,view)),3.0);
+          float daylight=1.0-smoothstep(.5,.95,u_p);
+          vec3 reflection=u_surfaceSky*mix(u_surfaceHorizon.x,u_surfaceHorizon.y,smoothstep(u_surfaceHorizon.z,u_surfaceHorizon.w,reflect(-view,n).z));
+          col=mix(col,reflection,u_surfaceStyle.w*mix(u_surfaceNoise.z,1.0,fresnel)*strength*daylight);
+          }
           if(shop&&u_shopRoom.y>0.0) {
             // Ray/box intersection exposes side walls and ceiling as the eye
             // moves past. Glass stays opaque in the shared depth buffer.
@@ -713,108 +800,10 @@ ${SHADE_REFLECT}          }
           }
         }
       }
-`;
-  const MOIRE_GLSL = MF ? MF.glsl(SHADE_CORE, SHADE_REFLECT) : '';
-  const FRAG = `
-    #ifdef FACADE_FILTER
-    varying vec2 v_faceUV;
-    #ifdef FACADE_FILTER_ARRAY
-    varying float v_faceLayer;
-    varying vec2 v_faceSize;
-    uniform highp sampler2DArray u_faceDay;
-    uniform highp sampler2DArray u_faceGold;
-    uniform highp sampler2DArray u_faceNight;
-    #else
-    uniform sampler2D u_faceDay;
-    uniform sampler2D u_faceGold;
-    uniform sampler2D u_faceNight;
-    #endif
-    uniform vec2 u_faceSize;
-    uniform vec2 u_faceFade;
-    uniform vec2 u_faceNightFade;
-    uniform float u_faceEnabled;
-    uniform float u_materialP;
-    uniform vec3 u_lightpos;
-    uniform vec3 u_lightcolor;
-    uniform float u_lightintensity;
-    uniform float u_opacity;
-    #endif
-    varying vec4 v_color;
-    varying vec3 v_pos;
-    varying vec3 v_normal;
-    varying vec4 v_surface;
-    varying vec3 v_albedo;
-    varying vec3 v_night;
-    uniform vec4 u_surfaceStyle;
-    uniform vec3 u_surfaceRange;
-    uniform vec3 u_surfaceSky;
-    uniform vec3 u_surfaceNoise;
-    uniform vec3 u_brickPatch;
-    uniform vec4 u_brickMottle;
-    uniform vec4 u_surfaceHorizon;
-    uniform vec4 u_weatherScale;
-    uniform vec3 u_weatherTone;
-    uniform vec4 u_shopRoom;
-    uniform vec4 u_shopStyle;
-    uniform vec4 u_shopCeiling;
-    uniform float u_shopShelfTop;
-    uniform float u_shopClosedAmbient;
-    uniform vec3 u_shopWall;
-    uniform vec3 u_shopFloor;
-    uniform vec3 u_shopMerch;
-    uniform vec3 u_shopLight;
-    uniform float u_p;
-    uniform float u_nightWallAmbient;
-    ${window.CityLighting.uniforms}
-    #include <packing>
-    ${window.CityLighting.glsl}
-${window.WallPatterns.glsl}
-${window.RoofTiles.glsl}
-    float hashCell(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
-    float surfaceNoise(vec2 p) {
-      vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
-      return mix(mix(hashCell(i),hashCell(i+vec2(1,0)),f.x),
-        mix(hashCell(i+vec2(0,1)),hashCell(i+vec2(1,1)),f.x),f.y);
-    }
-${MOIRE_GLSL}
-    void main() {
-      vec4 baseColor=v_color, surface=v_surface;
-      vec3 albedo=v_albedo, night=v_night;
-${window.WallPatterns.apply}
-${window.RoofTiles.apply}
-      float faceMix=1.0;
-      #ifdef FACADE_FILTER
-      #ifdef FACADE_FILTER_ARRAY
-      vec2 footprint=fwidth(v_faceUV*v_faceSize);
-      #else
-      vec2 footprint=fwidth(v_faceUV*u_faceSize);
-      #endif
-      faceMix=u_faceEnabled*smoothstep(u_faceFade.x,u_faceFade.y,max(footprint.x,footprint.y));
-      faceMix*=1.0-smoothstep(u_faceNightFade.x,u_faceNightFade.y,u_p);
-      if(faceMix<=0.0)discard;
-      #ifdef FACADE_FILTER_ARRAY
-      vec3 faceCoord=vec3(v_faceUV,v_faceLayer);
-      vec4 day=texture(u_faceDay,faceCoord);
-      vec4 gold=texture(u_faceGold,faceCoord);
-      vec4 dark=texture(u_faceNight,faceCoord);
-      #else
-      vec4 day=texture2D(u_faceDay,v_faceUV);
-      vec4 gold=texture2D(u_faceGold,v_faceUV);
-      vec4 dark=texture2D(u_faceNight,v_faceUV);
-      #endif
-      albedo=day.rgb; night=dark.rgb;
-      vec3 color=u_materialP<=.5?mix(day.rgb,gold.rgb,u_materialP*2.0):mix(gold.rgb,dark.rgb,(u_materialP-.5)*2.0);
-      float value=dot(color,vec3(.2126,.7152,.0722));
-      float directional=mix(1.0-u_lightintensity,max(1.0-value+u_lightintensity,1.0),clamp(dot(normalize(v_normal),u_lightpos),0.0,1.0));
-      baseColor=vec4(clamp((color+vec3(.03))*directional*u_lightcolor,mix(vec3(0),vec3(.3),vec3(1)-u_lightcolor),vec3(1)),1)*u_opacity;
-      surface=vec4(0);
-      #endif
-${SHADE_CORE}${SHADE_DETAIL}      #ifdef MOIRE_ACTIVE
-      col=moireBlend(col,glazing);
-      #endif
       gl_FragColor=vec4(col,baseColor.a*faceMix);
     }`;
 
+  const FRAG = MF ? MF.patch(FRAG0) : FRAG0;   // the moire fix (js/moire.js) adds its chunk and one call; main's text otherwise
   // ── State ───────────────────────────────────────────────────────────────
   let _map = null, _gl = null;
   let scene = null, root = null, camera = null, renderer = null, dirLight = null;
@@ -1095,7 +1084,7 @@ ${SHADE_CORE}${SHADE_DETAIL}      #ifdef MOIRE_ACTIVE
   function packOverflow(what, limit, faces) {
     const e = new Error('[slopes] ?packverts=1: more than ' + limit + ' distinct ' + what + ' (PACK.toneBits)');
     e.packOverflow = true;   // js/slopes-apartments.js lets this out of its per-building catch and rebuilds unpacked
-    e.moireFaces = !!faces;  // ...or, when it was a wall face's normal that did not fit, packed again without the moire fix's faces
+    e.moireFaces = !!faces;  // ...and when it was the moire fix's wall faces, packed again without them first
     return e;
   }
   // what makes two palette entries ONE tone: the text of their hex colours and surface numbers (js/slopes-rust.js uses the same key)
@@ -1111,7 +1100,7 @@ ${SHADE_CORE}${SHADE_DETAIL}      #ifdef MOIRE_ACTIVE
     };
     T.nbits = new Uint32Array(T.normals.buffer);
     const f32 = new Float32Array(3), u32 = new Uint32Array(f32.buffer);
-    // `d` is the face number a wall cell's normal carries (THE MOIRE FIX; 0 = none, and then this is the hash it always was)
+    // `d`: the moire fix's wall face number (0 = none: the hash it always was)
     const hashOf = (a, b, c, d) => {
       let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35) ^ Math.imul(c ^ 0x165667b1, 0x27d4eb2f) ^ Math.imul(d, 0x2545f491);
       h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); return h ^ (h >>> 12);
@@ -1505,7 +1494,7 @@ ${SHADE_CORE}${SHADE_DETAIL}      #ifdef MOIRE_ACTIVE
     // ?packverts=1: position and ONE word per vertex. The four corners of a quad share a normal, a tone and a facet flag, so the word is
     // worked out once per primitive (compared by value, not identity: a caller may reuse an array).
     let _ln0 = NaN, _ln1 = 0, _ln2 = 0, _lcol = null, _lfac = -1, _llo = 0, _lhi = 0;
-    // THE MOIRE FIX: `face(id)` gives every vertex pushed after it that wall face's number (it rides with the normal); `face(0)` ends the run.
+    // moire fix: face(id) gives the vertices pushed after it that wall face's number; face(0) ends the run
     let _face = 0, _lface = 0;
     const pushPacked = (p, n, col) => {
       // Object.is, not ===: -0 and +0 are different float32 bits and a normal must come back exactly as the unpacked layout holds it

@@ -78,6 +78,10 @@ const ARMS = {
   fix:  { js: 'window.MoireFix.reset(); window.MoireFix.set("on")',  truth: 'main' },
   flat: { js: 'window.MoireFix.reset(); window.MoireFix.set("flat")', truth: 'flat' },
 };
+// Tuning arms, named in --arms (held to main's truth, shown in the EXTRA ARMS table): one parameter of the fix changed, the rest at their defaults.
+const TUNING = Object.fromEntries(Object.entries({
+  ne5: 'nightEdge=0.5', ne10: 'nightEdge=1', nothru: 'through=0', nopar: 'parallax=0', norows: 'rows=0', noedge: 'edge=false',
+}).map(([k, v]) => [k, { js: `window.MoireFix.reset(); window.MoireFix.set(1); window.MoireFix.params.${v}`, truth: 'main', extra: true }]));
 // ----------------------------------------------------------------------------
 
 const argv = process.argv.slice(2);
@@ -94,7 +98,8 @@ const QS = ['intro=0', 'drift=0', 'namelabels=0', 'facadepace=0', 'timeofdaypace
   .concat((opt('--q', '') || '').split(',').map(s => s.trim()).filter(Boolean));
 // --xarm "name=js" (repeatable): one more arm, held to main's truth, whose page state is that JavaScript (for tuning a parameter inside one page load)
 for (let i = 0; i < argv.length; i++) if (argv[i] === '--xarm') { const a = argv[i + 1], k = a.indexOf('='); ARMS[a.slice(0, k)] = { js: a.slice(k + 1), truth: 'main', extra: true }; }
-const armNames = (opt('--arms', 'main,fix,flat')).split(',').filter(Boolean).concat(Object.keys(ARMS).filter(k => ARMS[k].extra));
+for (const a of (opt('--arms', '') || '').split(',')) if (TUNING[a]) ARMS[a] = TUNING[a];
+const armNames = [...new Set((opt('--arms', 'main,fix,flat')).split(',').filter(Boolean).concat(Object.keys(ARMS).filter(k => ARMS[k].extra)))];
 const REPEAT = !argv.includes('--no-repeat');   // the second shot of main (the noise); off only for a tuning run
 for (const a of armNames) if (!ARMS[a]) { console.error('unknown arm ' + a); process.exit(2); }
 if (!armNames.includes('main')) { console.error('the main arm is the reference; it must be in --arms'); process.exit(2); }

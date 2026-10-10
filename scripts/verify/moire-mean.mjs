@@ -239,5 +239,10 @@ say(worstPic <= 8.0, `3b. dusk and night: worst channel difference ${worstPic.to
 // the normal table: a face number separates two entries of one direction, and no face is the entry it always was
 { const T3 = S.packTables(); const a = T3.normal(1, 0, 0), b = T3.normal(1, 0, 0, 7), c = T3.normal(1, 0, 0, 7), d = T3.normal(1, 0, 0);
   say(a === 0 && b === 1 && c === 1 && d === 0 && T3.normals[3] === 0 && T3.normals[7] === 7, 'a wall face rides in the normal table\'s fourth float; a normal without one keeps its entry'); }
+// the shader patch finds its anchors in js/slopes.js's fragment shader text (a rewrite of that shader that moves them turns the fix off in the page)
+{ const src = fs.readFileSync(path.join(REPO, 'js/slopes.js'), 'utf8'), a = src.indexOf('const FRAG0 = `') + 'const FRAG0 = `'.length, b = src.indexOf('`;', a);
+  const frag = new Function('window', 'return `' + src.slice(a, b) + '`')(globalThis);
+  const out = globalThis.MoireFix.patch(frag), open = (out.match(/{/g) || []).length, close = (out.match(/}/g) || []).length;
+  say(out !== frag && out.includes('col=moireBlend(col,glazing);') && out.includes('vec3 moireFar(') && out.indexOf('vec3 moireFar(') < out.indexOf('void main() {') && open === close, `the shader patch finds its anchors in FRAG (${frag.length} -> ${out.length} characters, braces ${open}/${close})`); }
 console.log(failed ? `\nFAIL: ${failed} check(s)` : '\nPASS: the means are the true means, and the far wall is as bright as the near wall');
 process.exit(failed ? 1 : 0);

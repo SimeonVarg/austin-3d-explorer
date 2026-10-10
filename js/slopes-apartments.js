@@ -744,7 +744,7 @@
    * resolved skin (rows, cols, tone(row, col, cell), windows). Emits one quad
    * per cell; a window cell is recessed by `reveal` with four reveal strips.
    */
-  const _held = [];   // tileFace's cells, held until it knows the face has more than one tone (THE MOIRE FIX)
+  const _held = [];   // MOIRE FIX: tileFace's cells, held until it knows whether the face has more than one tone (docs/moire-fix.md)
   const isGlassTone = col => !!col.surface && (col.surface[0] === 4 || col.surface[0] === 6);
   function tileFace(B, face, skin, P, opts) {
     const { W, len, z0, z1, cut } = face;
@@ -817,11 +817,20 @@
     const zs = [...zc].sort((a, b) => a - b);
     const glass = P[skin.glass || 'glass'];
     const revealCol = P[skin.revealTone || skin.frame || 'frame'] || P.frame || glass;
-    // THE MOIRE FIX (js/slopes.js MOIRE): a face with more than one tone is reported to the builder, cell by cell, so the shader can
-    // draw a window too small for a pixel as the mean of its row and of its face. The cells are held until the loop knows whether there
-    // IS more than one tone (a blank wall takes no face number), then drawn in the order they were made. A face under a raking cut is left alone.
+    // MOIRE FIX: with js/moire.js loaded, the cells are held, then drawn in order and reported to it (a face under a cut is left alone)
     const MF = !cut && B.moire && B.face ? B.moire : null;
-    let held = 0, firstCol = null, manyTones = false;
+    let held = 0;
+    const paneOf = w => {   // what window `w`'s pane is drawn in
+      const pane = w.tone ? P[w.tone] || glass : glass;
+      const col = w.lit ? [pane[0], pane[1], w.nightTone || APTS.nightLitTone] : pane.slice();
+      // Explicit opening tones also describe garage mouths and masonry recesses. Only an actual window inherits the glass material.
+      if(pane.surface)col.surface=pane.surface;
+      else if(!w.tone&&P._surfaceGlass)col.surface=P._surfaceGlass;
+      // A closed room must not inherit a storefront's luminous night tone. Undefined occupancy and non-glass openings retain authored colours.
+      if(window.CityNight?.tune.on&&w.lit===false&&(col.surface?.[0]===4||col.surface?.[0]===6))col[2]=window.CityNight.tune.unlitGlass;
+      return col;
+    };
+    const cell = (sa, sb, za, zb, d, col, w) => MF ? (_held[held++] = [sa, sb, za, zb, d, col, w], true) : faceCell(B, W, sa, sb, za, zb, d, col, cut);
     for (let r = 0; r < zs.length - 1; r++) {
       const za = zs[r], zb = zs[r + 1];
       if (zb - za < 1e-4) continue;
@@ -842,23 +851,13 @@
         const win = inBand.find(w => sm > w.s0 && sm < w.s1);
         let drawn;
         if (win) {
-          const pane = win.tone ? P[win.tone] || glass : glass;
-          const col = win.lit ? [pane[0], pane[1], win.nightTone || APTS.nightLitTone] : pane.slice();
-          // Explicit opening tones also describe garage mouths and masonry
-          // recesses. Only an actual window inherits the glass material.
-          if(pane.surface)col.surface=pane.surface;
-          else if(!win.tone&&P._surfaceGlass)col.surface=P._surfaceGlass;
-          // A closed room must not inherit a storefront's luminous night tone.
-          // Undefined occupancy and non-glass openings retain authored colours.
-          if(window.CityNight?.tune.on&&win.lit===false&&(col.surface?.[0]===4||col.surface?.[0]===6))col[2]=window.CityNight.tune.unlitGlass;
-          if (MF) { _held[held++] = [sa, sb, za, zb, -revealOf(win), col, win]; manyTones = true; drawn = true; }
-          else drawn = faceCell(B, W, sa, sb, za, zb, -revealOf(win), col, cut);
+          const col = paneOf(win);
+          drawn = cell(sa, sb, za, zb, -revealOf(win), col, win);
           if(filterRects&&drawn)filterRects.push([sa,sb,za,zb,col]);
         } else {
           const fr = frBand.length ? frBand.find(f => sm > f.s0 && sm < f.s1) : null;
           const col=fr?fr.col:(skin.tone(zm,sm,r,c)||P.wall);
-          if (MF) { _held[held++] = [sa, sb, za, zb, 0, col, null]; if (!firstCol) firstCol = col; else if (col !== firstCol) manyTones = true; drawn = true; }
-          else drawn = faceCell(B, W, sa, sb, za, zb, 0, col, cut);
+          drawn = cell(sa, sb, za, zb, 0, col);
           if(filterRects&&drawn)filterRects.push([sa,sb,za,zb,col]);
         }
         if (drawn) count.cells++;
@@ -866,26 +865,18 @@
     }
     let fid = 0;
     if (MF) {
-      // where s = 0 is and which way s runs, read off the frame's own at() (a recess or a mirrored piece does not run along W.T)
-      const p0 = W.at(0, 0, z0), p1 = W.at(len, 0, z0);   // (and how high z0 really stands: a frame may lift its wall)
-      fid = manyTones ? MF.faceOpen(z0, z1, len, p0, [(p1[0] - p0[0]) / len, (p1[1] - p0[1]) / len, 0], W.N) : 0;
+      // where s = 0 is and which way s runs, read off the frame's own at() (and how high z0 really stands: a frame may lift its wall)
+      const p0 = W.at(0, 0, z0), p1 = W.at(len, 0, z0);
+      for (let i = 1; i < held && !fid; i++) if (_held[i][5] !== _held[0][5]) fid = MF.faceOpen(z0, z1, len, p0, [(p1[0] - p0[0]) / len, (p1[1] - p0[1]) / len, 0], W.N);   // a one-tone face takes no number
       if (fid) B.face(fid);
       for (let i = 0; i < held; i++) {
-        const h = _held[i], col = h[5], w = h[6];
-        faceQuad(B, W, h[0], h[1], h[2], h[3], h[4], col);
-        if (fid) {
-          if (w) MF.faceCell(h[0], h[1], h[2], h[3], col, isGlassTone(col), w.lit === true, w.s1 - w.s0, w.z1 - w.z0, -h[4]);
-          else MF.faceCell(h[0], h[1], h[2], h[3], col, isGlassTone(col), false, h[1] - h[0], h[3] - h[2], 0);   // a glazed panel that is no window is still glass to the shader
-        }
+        const [sa, sb, za, zb, d, col, w] = _held[i];
+        faceQuad(B, W, sa, sb, za, zb, d, col);
+        if (fid) MF.faceCell(sa, sb, za, zb, col, isGlassTone(col), !!w && w.lit === true, w ? w.s1 - w.s0 : sb - sa, w ? w.z1 - w.z0 : zb - za, w ? -d : 0);
         _held[i] = null;
       }
       B.face(0);
     }
-    // what the pane of window `w` is drawn in (the same rule as the cell loop above), for the parts laid over a pane below
-    const paneOf = w => { const pane = w.tone ? P[w.tone] || glass : glass; const col = w.lit ? [pane[0], pane[1], w.nightTone || APTS.nightLitTone] : pane.slice();
-      if (pane.surface) col.surface = pane.surface; else if (!w.tone && P._surfaceGlass) col.surface = P._surfaceGlass;
-      if (window.CityNight?.tune.on && w.lit === false && (col.surface?.[0] === 4 || col.surface?.[0] === 6)) col[2] = window.CityNight.tune.unlitGlass;
-      return col; };
     // a piece of wall or bar laid over a pane, in the wall's own plane: it joins the face, and the face's means move from glass to it
     const over = (w, sa, sb, za, zb, col) => { if (!fid || !(zb > za) || !(sb > sa)) return; const pane = paneOf(w);
       MF.faceCell(sa, sb, za, zb, col, false, false, 0, 0, 0); MF.faceCell(sa, sb, za, zb, pane, isGlassTone(pane), w.lit === true, 0, 0, 0, true); };
@@ -2698,25 +2689,16 @@
     // area's failure list, which buildOnce has already added to) and the whole build runs again on the JS builder.
     // With the switch off the Rust builder never exists, nothing can carry the stamp, and this is one plain call.
     const snap = area ? { tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k]])), names: count.names.length, failed: area.failed.length } : null;
-    return S.withRustFallback(async opts => {
+    return S.withRustFallback(async function run(opts) {
       try { return await buildOnce(specs, area, opts); }
       catch (e) {
         if (e && (e.rustBuilderError || e.packOverflow) && snap) {
           untally({ tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k] - snap.tally[k]])), names: count.names.slice(snap.names) });
           area.failed.length = snap.failed;
         }
-        // ?packverts=1 ran out of tone or normal indices (js/slopes.js PACK): the whole build again with the unpacked layout.
-        // If it was a wall face of the moire fix that did not fit the normal table, first once more packed WITHOUT the faces.
-        if (e && e.packOverflow && e.moireFaces && !opts.nopack && !opts.nofaces) {
-          console.warn('[slopes-apartments]', e.message, '— building this one without the moire fix');
-          try { return await buildOnce(specs, area, { ...opts, nofaces: true }); }
-          catch (e2) {
-            if (!(e2 && e2.packOverflow)) throw e2;
-            if (snap) { untally({ tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k] - snap.tally[k]])), names: count.names.slice(snap.names) }); area.failed.length = snap.failed; }
-            e = e2;
-          }
-        }
-        if (e && e.packOverflow && !opts.nopack) { console.warn('[slopes-apartments]', e.message, '— building this one unpacked'); return buildOnce(specs, area, { ...opts, nopack: true }); }
+        // ?packverts=1 ran out of tone or normal indices (js/slopes.js PACK): the whole build again with the unpacked layout
+        // (when it was the moire fix's wall faces that did not fit, first once more packed without them)
+        if (e && e.packOverflow && !opts.nopack) { console.warn('[slopes-apartments]', e.message); return run(e.moireFaces && !opts.nofaces ? { ...opts, nofaces: true } : { ...opts, nopack: true }); }
         throw e;
       }
     });

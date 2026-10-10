@@ -9,7 +9,8 @@
  *   VERIFY_URL=http://127.0.0.1:<port> node moire-off.mjs --out dir [--views a,b] [--b name=query ...] [--size WxH] [--max-px N] [--gate]
  *     --b name=query   one page B to compare with A (repeatable; default `compiled=`). `query` is extra URL switches; `control=moirefix=0` loads
  *                      main's program a second time: what two loads of the SAME program move on their own (the noise to read the others against)
- *     --b-js js        page state run before every picture of every B (default MoireFix.set("off"))
+ *     --b-js js        page state run before every picture of every B (default MoireFix.set("off")); `window.MoireFix.set("on")` compares main with the fix
+ *     --poses file     use the cameras of a poses file (scripts/verify/ci/poses.json) instead of the six
  * Writes <out>/off.txt, off.json and <name>.<view>.diff.png (differing pixels white, the rest black) for a view that differs.
  */
 import { chromium } from 'playwright-core';
@@ -36,7 +37,8 @@ fs.mkdirSync(OUT, { recursive: true });
 let [VW, VH] = opt('--size', '960x600').split('x').map(Number);
 const MAXPX = +opt('--max-px', '0'), GATE = argv.includes('--gate');
 const want = (opt('--views', '') || '').split(',').filter(Boolean);
-const list = want.length ? want.map(n => VIEWS.find(v => v.name === n) || (console.error('unknown view ' + n), process.exit(2))) : VIEWS;
+const POSES = opt('--poses', null);   // a poses file (ci/poses.json: the ten cameras of the pictures job) instead of the bar's six
+const list = POSES ? JSON.parse(fs.readFileSync(path.resolve(POSES), 'utf8')) : want.length ? want.map(n => VIEWS.find(v => v.name === n) || (console.error('unknown view ' + n), process.exit(2))) : VIEWS;
 const B_JS = opt('--b-js', 'window.MoireFix && window.MoireFix.set("off")');
 const Bs = (all('--b').length ? all('--b') : ['compiled=']).map(s => { const i = s.indexOf('='); return { name: s.slice(0, i), q: s.slice(i + 1) }; });
 const FROZEN = ['intro=0', 'drift=0', 'namelabels=0', 'facadepace=0', 'timeofdaypace=0', 'smooth=0'];
@@ -104,18 +106,18 @@ for (const b of Bs) {
   for (const v of list) {
     const a = A.shots[v.name], c = B.shots[v.name], N = a.w * a.h;
     if (a.w !== c.w || a.h !== c.h) { rows.push({ b: b.name, view: v.name, failed: `canvas ${a.w}x${a.h} against ${c.w}x${c.h}` }); continue; }
-    let n = 0, n2 = 0, sum = 0, max = 0; const g = Buffer.alloc(N);
+    let n = 0, n2 = 0, n8 = 0, sum = 0, max = 0; const g = Buffer.alloc(N);
     for (let p = 0, i = 0; p < N; p++, i += 4) {
       const d = Math.max(Math.abs(a.d[i] - c.d[i]), Math.abs(a.d[i + 1] - c.d[i + 1]), Math.abs(a.d[i + 2] - c.d[i + 2]));
-      if (d) { n++; sum += d; if (d > max) max = d; if (d > 1) n2++; g[p] = 255; }
+      if (d) { n++; sum += d; if (d > max) max = d; if (d > 1) n2++; if (d > 8) n8++; g[p] = 255; }
     }
-    rows.push({ b: b.name, view: v.name, differ: n, pct: 100 * n / N, over1: n2, mean: n ? sum / n : 0, max, total: N });
+    rows.push({ b: b.name, view: v.name, differ: n, pct: 100 * n / N, over1: n2, over8: n8, pct8: 100 * n8 / N, mean: n ? sum / n : 0, max, total: N });
     if (n) fs.writeFileSync(path.join(OUT, `${b.name}.${v.name}.diff.png`), png(a.w, a.h, g));
   }
 }
 const lines = [`moire-off  ${VW}x${VH}  renderer=${A.info.renderer}  samples A ${A.info.samples}`, 'A = ?moirefix=0; B = ?moirefix=1 + MoireFix.set("off") (+ the variant\'s switches). differing pixel = any channel differs.',
-  'variant'.padEnd(22) + 'view'.padEnd(20) + 'differ'.padStart(9) + '%'.padStart(8) + '>1 level'.padStart(10) + 'mean|d|'.padStart(9) + 'max'.padStart(5)];
-for (const r of rows) lines.push(r.failed ? `${r.b.padEnd(22)}${r.view.padEnd(20)} FAILED ${r.failed}` : r.b.padEnd(22) + r.view.padEnd(20) + String(r.differ).padStart(9) + r.pct.toFixed(3).padStart(8) + String(r.over1).padStart(10) + r.mean.toFixed(2).padStart(9) + String(r.max).padStart(5));
+  'variant'.padEnd(22) + 'view'.padEnd(20) + 'differ'.padStart(9) + '%'.padStart(8) + '>1 level'.padStart(10) + '%>8'.padStart(8) + 'mean|d|'.padStart(9) + 'max'.padStart(5)];
+for (const r of rows) lines.push(r.failed ? `${r.b.padEnd(22)}${r.view.padEnd(20)} FAILED ${r.failed}` : r.b.padEnd(22) + r.view.padEnd(20) + String(r.differ).padStart(9) + r.pct.toFixed(3).padStart(8) + String(r.over1).padStart(10) + r.pct8.toFixed(3).padStart(8) + r.mean.toFixed(2).padStart(9) + String(r.max).padStart(5));
 if (errs.length) lines.push('PAGE ERRORS: ' + [...new Set(errs)].slice(0, 6).join(' | '));
 const text = lines.join('\n'); console.log(text);
 fs.writeFileSync(path.join(OUT, 'off.txt'), text + '\n'); fs.writeFileSync(path.join(OUT, 'off.json'), JSON.stringify(rows, null, 1));

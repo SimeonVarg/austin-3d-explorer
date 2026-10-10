@@ -1,7 +1,7 @@
 /* THE MOIRE FIX (docs/moire-fix.md). Loaded by js/city-lighting.js, only where the fix is on (?moirefix=1, or the default for the tiers
  * without Smooth edges); js/slopes.js and js/slopes-apartments.js call it through the hooks named here. Without this file they draw main's picture.
  *   tables(T, hex)   the recorder on a VertexTables: faceOpen / faceCell / faceClose per wall face (the apartment tiler reports its cells)
- *   glsl(core, refl) the fragment shader chunk;  parts(...) its textures, uniforms and defines;  frame(U, gl) its uniforms each frame */
+ *   patch(frag)      js/slopes.js's fragment shader with the fix added;  parts(...) its textures, uniforms and defines;  frame(U, gl) its uniforms each frame */
 (function () {
   'use strict';
   const q = new URLSearchParams(location.search), CityLighting = window.CityLighting;
@@ -23,7 +23,6 @@
 
   function glsl(core, reflect) {
     const call = 'cityShade(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse)';
-    if (!core.includes(call)) { console.warn('[slopes] the moire fix cannot find FRAG\'s cityShade call; it is off'); CityLighting.moire.on = false; return ''; }
     const far = CityLighting.moire.split ? core.replace(call, 'cityShadeLit(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse,cityVisibility)') : core;
     return `
     #if defined(MOIRE_FACES) && !defined(FACADE_FILTER)
@@ -132,6 +131,16 @@ ${reflect}      }
     }
     #endif
   `;
+  }
+  /** js/slopes.js's fragment shader with this chunk added before main() and one call before gl_FragColor; the class shades reuse FRAG's own text */
+  function patch(frag) {
+    const a = frag.indexOf('vec3 col=baseColor.rgb;'), b = frag.indexOf('if(kind>.5 && u_surfaceRange.x>.5) {'), r = frag.indexOf('float fresnel=pow('),
+      e = frag.indexOf('*daylight);', r) + 11, m = frag.indexOf('void main() {'), g = frag.indexOf('gl_FragColor=');
+    const core = '      ' + frag.slice(a, b).trimEnd() + '\n';
+    if (a < 0 || b < a || r < b || e < r || m < 0 || g < m || !core.includes('cityShade(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse)')) {
+      console.warn('[moire] cannot find the cell shader\'s text in js/slopes.js; the fix is off'); CityLighting.moire.on = false; return frag;
+    }
+    return frag.slice(0, m) + glsl(core, '          ' + frag.slice(r, e) + '\n') + frag.slice(m, g) + '#ifdef MOIRE_ACTIVE\n      col=moireBlend(col,glazing);\n      #endif\n      ' + frag.slice(g);
   }
   function tables(T, hexToRgb01) {
     const FT = P.FACE_TEXELS * 4, RW = P.ROW_W;
@@ -284,7 +293,7 @@ ${reflect}      }
     U.u_moireD.value.set(P.through, P.nightEdge, P.rows, 0);
   }
   window.MoireFix = {
-    params: P, tables, glsl, parts, uniforms, frame,
+    params: P, tables, patch, parts, uniforms, frame,
     /** the meter flips arms inside one page: 'off' draws main's picture through this program, 'flat' the floor */
     set(mode) {
       const m = typeof mode === 'number' ? mode : { off: 0, on: 1, flat: 2 }[mode];

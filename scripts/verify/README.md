@@ -1878,10 +1878,13 @@ Traps this check cost time:
 
 ## The moire bar: `moire-bar.mjs`, `moire-mean.mjs`, `moire-clip.mjs`, `moire-cost.mjs` (added October 10 2026)
 
-"Moire" here is shimmer and crawling on walls: a window grid sampled about once per pixel. The fix is in `js/slopes.js`
-(the `MOIRE` block: authored buildings) and `js/city-lighting.js` (`moire`: MapLibre's pattern walls). It is OFF by default
-(`MOIRE_DEFAULT_ON`); `?moirefix=1` turns it on, and then `?moireedge=0` and `?moirewalls=0` turn off the window edge
-smoothing and the pattern-wall part alone. The meter and the tools load the page with `moirefix=1`.
+"Moire" here is shimmer and crawling on walls: a window grid sampled about once per pixel. The fix is `js/moire.js` (authored
+buildings) and `js/city-lighting.js` (`moire`: MapLibre's pattern walls, and the loader); `docs/moire-fix.md` is the description.
+`js/moire.js` is fetched only where the fix is on (`?moirefix=1|0`, else `MOIRE_DEFAULT_ON` in `js/city-lighting.js`); `?moireedge=0`
+and `?moirewalls=0` turn off the window edge smoothing and the pattern-wall part alone. The meter and the tools load the page
+with `moirefix=1`. **`moire-off.mjs`** holds "off" exact: it loads `?moirefix=0`, then the fix compiled in and set off (`--b`
+variants, and a `control` that loads `?moirefix=0` twice), draws six cameras (or `--poses ci/poses.json`, the ten of the pictures
+job) in each and counts differing pixels; with `--b-js 'window.MoireFix.set("on")'` it measures how much the fix moves the picture.
 
 **`moire-bar.mjs` is the meter, and "zero" is stated so it can be failed.** One page load, three arms flipped inside the
 page (`window.MoireFix.set('off' | 'on' | 'flat')`): `main`, `fix`, and `flat`, THE FLOOR, where every window cell is drawn

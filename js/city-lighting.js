@@ -97,12 +97,11 @@
     vec4 cityPatternTexel(sampler2D img,vec4 point,vec2 v,vec2 tl,vec2 br,vec2 texsize,float dist){
       vec2 dx=dFdx(v),dy=dFdy(v);
       if(u_cityPatternFilter.x<.5)return point;
-      if(u_cityPatternFilter.x>1.5){
-        // FLAT (the moire meter's floor arm): the whole repeat's mean, 8 x 8 taps at fixed places in the repeat, so a wall is one colour
+      ${moire.on?`if(u_cityPatternFilter.x>1.5){   // the meter's floor: the repeat's mean, 8 x 8 taps
         vec4 all=vec4(0.0);
         for(int i=0;i<8;i++)for(int j=0;j<8;j++)all+=textureLod(img,mix(tl,br,(vec2(float(i),float(j))+.5)/8.0),0.0);
         return all/64.0;
-      }
+      }`:''}
       float fade=smoothstep(u_cityPatternFilter.y,u_cityPatternFilter.z,dist);
       if(fade<=0.0)return point;
       vec2 texels=(br-tl)*texsize;
@@ -240,8 +239,7 @@
       if(nearEdge>.02&&a.z>0.0&&a.z<1.0)return mix(distant,shadowSample(u_sunShadow0,a),smoothstep(.02,.07,nearEdge));
       return distant;
     }
-    ${moire.split?`// cityShade measures the sun's visibility (the shadow maps) and hands the rest to cityShadeLit. The split is for js/slopes.js's
-    // moire fix, which shades a wall face's mean tones at the same point: it reuses cityVisibility instead of reading the maps again.
+    ${moire.split?`// split in two for the moire fix, whose class shades reuse this visibility instead of reading the shadow maps again
     float cityVisibility=1.0;
     vec3 cityShadeLit(vec3 original,vec3 albedo,vec3 pos,vec3 normal,float glass,float visibility);
     vec3 cityShade(vec3 original,vec3 albedo,vec3 pos,vec3 normal,float glass) {
