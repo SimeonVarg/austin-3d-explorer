@@ -103,8 +103,16 @@ const d = await page.evaluate(async () => {
   const src = m.getSource('austin-westcampus');
   const inSource = m.querySourceFeatures('austin-westcampus') || [];
   const stamped = inSource.filter(f => f.properties && f.properties.kind === 'wall');
+  // js/facades.js WALL TIERS paints a wall image when a tile first asks for it, so an id no tile at this pose has
+  // asked for yet is not registered YET. The assertion is "no id is left without an image", so an id that is not
+  // there is asked for the way MapLibre's tile worker asks (`_getImagesForIds` fires `styleimagemissing`), and
+  // only an id that is STILL not there afterwards is missing. With ?walltiers=0 nothing is asked for.
   const missingImg = [...new Set(stamped.map(f => f.properties.wp).filter(Boolean))]
-    .filter(id => !m.hasImage(id));
+    .filter(id => {
+      if (m.hasImage(id)) return false;
+      try { m.style.imageManager._getImagesForIds([id]); } catch (e) { /* the id stays missing */ }
+      return !m.hasImage(id);
+    });
   const unstamped = stamped.filter(f => !f.properties.wp).length;
 
   // The generic prisms must be gone from BOTH building layers.
