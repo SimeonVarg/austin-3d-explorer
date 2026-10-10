@@ -9,6 +9,7 @@ Branch `mac/custom-renderer-study`. Code and commands: `experiments/renderer/` (
 - **estimated** means worked out from measured numbers or from a source, not run.
 - **software** means SwiftShader (a CPU rasteriser): valid for pictures and for counting GL calls, NOT valid for frame time. No frame time in this document comes from software rendering.
 - Frame times come from two real GPUs: the AWS runner's NVIDIA L4 ("L4", Chrome, vsync off, 1280x800) and this Mac's Intel Iris Plus 655 ("Mac iGPU", Chrome, vsync off, 1280x800, the machine shared with other lanes, so noisier). The owner was away (idle over 10 minutes) for the Mac runs.
+- The app measured is `main` at `7c0a280` (PR #426, 2026-10-09): Chrome 155 headless, `index.html?intro=0&drift=0&namelabels=0`, graphics auto-detect cancelled.
 - **MB** in this document are mebibytes (1,048,576 bytes), as the repo's other memory notes use them.
 - Other lanes' numbers are cited by name: `flyover-speed` (`docs/speed-2026-10-09.md`, a first draft, one sample each) and the repo's own `docs/perf/*`.
 
