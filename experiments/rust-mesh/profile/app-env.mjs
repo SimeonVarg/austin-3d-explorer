@@ -27,6 +27,9 @@ export async function loadApp({ record = false, timeBuilder = false, nullBuilder
     vm.runInThisContext(slopesSrc, { filename: 'file://' + file, importModuleDynamically: vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER });
   } else vm.runInThisContext(slopesSrc, { filename: 'slopes.js' });
   installLateStubs(ctx);
+  // REAL_NIGHT=1: the page's own js/city-night.js instead of the stand-in. The stand-in lights every window the same warm tone; the real one picks a
+  // lit window's tone and brightness per window, which is what makes the real page's palette far bigger (see the packverts notes).
+  if (process.env.REAL_NIGHT) { ctx.CityNight = undefined; vm.runInThisContext(fs.readFileSync(R + 'js/city-night.js', 'utf8'), { filename: 'city-night.js' }); }
   if (wasm) { await ctx.slopes.rustReady; if (!ctx.slopes.rustBuilder) throw new Error('?rustbuilder=1 did not load the Rust builder: ' + JSON.stringify(ctx.slopes.rustInfo())); }
   vm.runInThisContext(patchApartments(fs.readFileSync(R + 'js/slopes-apartments.js', 'utf8')), { filename: 'slopes-apartments.js' });
   if (useNull) ctx.slopes.build = nullBuilder(ctx);

@@ -364,7 +364,11 @@
   // ══════════════════════════════════════════════════════════════════════
   const PACK = {
     on: q.get('packverts') === '1',
-    toneBits: 13,        // tone table capacity 2^13 = 8,192 tones (1,266 today). The word also holds a facet bit and 31 - toneBits = 18 bits of normal index (262,144 normals; 94,312 today)
+    // The word is 32 bits: toneBits of tone index, 1 facet bit, and 31 - toneBits of normal index. MEASURED on the real catalog with the real js/city-night.js
+    // (which picks a lit window's tone and brightness per window): 14,719 distinct tones and 94,312 distinct normals, so 14 bits (16,384) and 17 bits (131,072) is the
+    // only split that fits, with 10% and 28% to spare. (An earlier 13/18 split was sized from a build with a stand-in night module that makes 1,266 tones, and
+    // the real page overflowed it.) A build that overflows either table throws a packOverflow error and js/slopes-apartments.js rebuilds unpacked.
+    toneBits: 14,
     texWidth: 4096,      // width of both tables' float textures, in texels (a tone takes 4 texels in one row, a normal 1)
     normalHash0: 1 << 14, // the normal interner's first hash-table size (it doubles at half full)
   };
@@ -1003,6 +1007,11 @@ ${window.RoofTiles.apply}
    * low 16 bits = tone index (toneBits) | facet bit | low bits of the normal index; high 16 bits = the rest of the normal index.
    * The tables are plain typed arrays until material() turns them into two float textures.
    */
+  function packOverflow(what, limit) {
+    const e = new Error('[slopes] ?packverts=1: more than ' + limit + ' distinct ' + what + ' (PACK.toneBits)');
+    e.packOverflow = true;   // js/slopes-apartments.js lets this out of its per-building catch and rebuilds unpacked
+    return e;
+  }
   function vertexTables() {
     const T = {
       tones: new Float32Array(4 * 4 * 1024), nTones: 0,       // 4 RGBA texels per tone: day.rgb, golden.rgb, night.rgb, surface.xyzw
@@ -1027,7 +1036,7 @@ ${window.RoofTiles.apply}
       const key = toneKey(col);
       id = T.toneOf.get(key);
       if (id === undefined) {
-        if (T.nTones >= PACK_TONES) throw new Error('[slopes] ?packverts=1: more than ' + PACK_TONES + ' distinct tones (PACK.toneBits)');
+        if (T.nTones >= PACK_TONES) throw packOverflow('tones', PACK_TONES);
         id = T.nTones++;
         if (id * 16 + 16 > T.tones.length) { const g = new Float32Array(T.tones.length * 2); g.set(T.tones); T.tones = g; }
         const d = byte(col[0]), g = byte(col[1]), n = byte(col[2]), s = col.surface, o = id * 16;
@@ -1052,7 +1061,7 @@ ${window.RoofTiles.apply}
         if (nb[o] === a && nb[o + 1] === b && nb[o + 2] === c) return id;
         i = (i + 1) & mask;
       }
-      if (T.nNormals >= 2 ** (31 - PACK.toneBits)) throw new Error('[slopes] ?packverts=1: more than ' + 2 ** (31 - PACK.toneBits) + ' distinct normals (PACK.toneBits)');
+      if (T.nNormals >= 2 ** (31 - PACK.toneBits)) throw packOverflow('normals', 2 ** (31 - PACK.toneBits));
       const id = T.nNormals++;
       if (id * 4 + 4 > T.normals.length) { const g = new Float32Array(T.normals.length * 2); g.set(T.normals); T.normals = g; T.nbits = new Uint32Array(g.buffer); }
       T.normals[id * 4] = x; T.normals[id * 4 + 1] = y; T.normals[id * 4 + 2] = z;
@@ -2060,7 +2069,7 @@ ${window.RoofTiles.apply}
     rustReady: null, get rustBuilder() { return !!_rustBuild; }, rustInfo: () => RUST_INFO, withRustFallback,
     // ?packverts=1: a fresh set of tone/normal tables for one build (pass it as build(cap, { pack }) and material({ pack })), or null
     // when the switch is off or this GPU cannot read float textures in the vertex shader (WebGL2 only): callers then build as before.
-    packTables, packOn: () => PACK.on,
+    packTables, packOn: () => PACK.on, packInfo: () => ({ toneBits: PACK.toneBits, texWidth: PACK.texWidth }),
     // a test seam, not a feature: flip the switch at run time so ONE page can build the apartments both ways (scripts/verify/packverts-pixels.mjs
     // rebuilds with slopesApartments.rebuild() and photographs each); a visitor sets it only through ?packverts=1
     packSet: on => { PACK.on = !!on; },

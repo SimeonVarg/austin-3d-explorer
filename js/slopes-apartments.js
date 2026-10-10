@@ -2660,10 +2660,12 @@
     return S.withRustFallback(async opts => {
       try { return await buildOnce(specs, area, opts); }
       catch (e) {
-        if (e && e.rustBuilderError && snap) {
+        if (e && (e.rustBuilderError || e.packOverflow) && snap) {
           untally({ tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k] - snap.tally[k]])), names: count.names.slice(snap.names) });
           area.failed.length = snap.failed;
         }
+        // ?packverts=1 ran out of tone or normal indices (js/slopes.js PACK): the whole build again with the unpacked layout
+        if (e && e.packOverflow && !opts.nopack) { console.warn('[slopes-apartments]', e.message, '— building this one unpacked'); return buildOnce(specs, area, { ...opts, nopack: true }); }
         throw e;
       }
     });
@@ -2684,7 +2686,7 @@
     // so a page without the switch awaits nothing and builds exactly as before.
     if (rustOpts.wasm && S.rustReady) await S.rustReady;
     // ?packverts=1: one pair of tone/normal tables for every chunk of this build; null with the switch off (then nothing changes).
-    const pack = S.packTables ? S.packTables() : null;
+    const pack = !rustOpts.nopack && S.packTables ? S.packTables() : null;
     const buildOpts = pack ? { ...rustOpts, pack } : rustOpts;
     const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices, buildOpts) : S.build(undefined, buildOpts);
     B.filtered=[];
@@ -2737,7 +2739,7 @@
       catch (e) {
         // The Rust builder broke (stamped by js/slopes-rust.js): this is not this building's fault and every later building would
         // run on the same broken instance. Leave the loop; build() above takes the build back and runs it again on the JS builder.
-        if (e && e.rustBuilderError) throw e;
+        if (e && (e.rustBuilderError || e.packOverflow)) throw e;
         B.filterPending.length=pendingStart; console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); if (area) area.failed.push(spec.id || spec.name); }
       await pause();
     }

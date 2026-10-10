@@ -13,7 +13,7 @@ const sha = a => crypto.createHash('sha256').update(Buffer.from(a.buffer, a.byte
 const meshes = []; g.traverse(o => { if (o.isMesh) meshes.push(o); });
 if (meshes.length !== 1) throw new Error('expected one mesh, got ' + meshes.length);
 const geo = meshes[0].geometry, T = geo.userData.pack, w = geo.attributes.aPack.array, V = w.length / 2;
-const TONES = 2 ** 13, NLOW = 4, dec = { normal: new Float32Array(V * 3), cDay: new Uint8Array(V * 3), cGold: new Uint8Array(V * 3), cNight: new Uint8Array(V * 3), aFacet: new Uint8Array(V), aSurface: new Float32Array(V * 4) };
+const B = globalThis.slopes.packInfo().toneBits, TONES = 2 ** B, NLOW = 2 ** (15 - B), dec = { normal: new Float32Array(V * 3), cDay: new Uint8Array(V * 3), cGold: new Uint8Array(V * 3), cNight: new Uint8Array(V * 3), aFacet: new Uint8Array(V), aSurface: new Float32Array(V * 4) };
 for (let v = 0; v < V; v++) {
   const lo = w[v * 2], hi = w[v * 2 + 1], tone = lo % TONES, rest = Math.floor(lo / TONES), nid = hi * NLOW + (rest >> 1), t = tone * 16;
   dec.aFacet[v] = rest & 1;

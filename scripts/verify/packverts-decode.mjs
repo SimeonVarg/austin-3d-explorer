@@ -57,7 +57,7 @@ function drive(B, stream, records, tones) {
 }
 
 /** VERT's decode, in JS, on the float values the GPU would read from the two textures (float32 throughout) */
-function decode(g, tables, wiredBits = 13) {
+function decode(g, tables, wiredBits = S.packInfo().toneBits) {
   const f = Math.fround;
   const lo16 = g.attributes.aPack.array, V = lo16.length / 2, TONES = 2 ** wiredBits, NLOW = 2 ** (15 - wiredBits);
   const out = { normal: new Float32Array(V * 3), cDay: new Float32Array(V * 3), cGold: new Float32Array(V * 3), cNight: new Float32Array(V * 3), aFacet: new Float32Array(V), aSurface: new Float32Array(V * 4) };
@@ -105,16 +105,22 @@ check('Moontower (the real generator\'s calls)', fx.stream, fx.records, toneObje
 const syn = synthetic();
 check('synthetic (bent and degenerate quads, triN, facet runs, flipped winding)', syn.stream, syn.records, toneObjects(syn.palette));
 
-// the word itself: every field at its limits survives the round trip
+// the word itself: every field at its limits survives the round trip, and running out of either table is a packOverflow error, not wrong output
 {
   const T = S.packTables(); let ok = true;
-  const TONES = 2 ** 13, NLOW = 4;
-  for (const tone of [0, 1, TONES - 1]) for (const facet of [0, 1]) for (const nid of [0, 1, 3, 4, 65535, 65536, 2 ** 18 - 1]) {
+  const B = S.packInfo().toneBits, TONES = 2 ** B, NLOW = 2 ** (15 - B), NMAX = 2 ** (31 - B);
+  for (const tone of [0, 1, TONES - 1]) for (const facet of [0, 1]) for (const nid of [0, 1, NLOW - 1, NLOW, 65535, 65536, NMAX - 1]) {
     const lo = T.wordLo(tone, facet, nid), hi = T.wordHi(nid);
     const t = lo % TONES, rest = Math.floor(lo / TONES), f = rest % 2, n = hi * NLOW + Math.floor(rest * 0.5);
     if (t !== tone || f !== facet || n !== nid || lo > 65535 || hi > 65535) ok = false;
   }
-  say(ok, 'the vertex word round-trips tone (13 bits), facet (1) and normal index (18) at their limits, both halves within 16 bits');
+  say(ok, `the vertex word round-trips tone (${B} bits), facet (1) and normal index (${31 - B}) at their limits, both halves within 16 bits`);
+  const U = S.packTables(); let thrown = null;
+  try { for (let i = 0; i <= TONES; i++) U.tone(['#' + (i + 0x100000).toString(16), '#000000', '#000000']); } catch (e) { thrown = e; }
+  say(!!(thrown && thrown.packOverflow), `more than ${TONES} distinct tones throws a packOverflow error (the apartments rebuild unpacked)`);
+  const N = S.packTables(); thrown = null;
+  try { for (let i = 0; i <= NMAX; i++) N.normal(i + 1, 0, 0); } catch (e) { thrown = e; }
+  say(!!(thrown && thrown.packOverflow), `more than ${NMAX} distinct normals throws a packOverflow error`);
 }
 console.log(failed ? `\nFAIL: ${failed} check(s) failed${BREAK ? ' (--break: this is the expected result)' : ''}` : '\nPASS: packed vertices decode to exactly the unpacked ones');
 process.exit(failed ? 1 : 0);

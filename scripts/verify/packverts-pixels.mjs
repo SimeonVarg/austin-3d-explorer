@@ -56,9 +56,12 @@ await page.waitForFunction(() => {
     .every(s => !m.getSource(s) || m.isSourceLoaded(s));
 }, null, { timeout: 90000 }).catch(() => console.log('WARN: sources not all loaded'));
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
+// the opening veil ("Still building 90%") sits over the page until the city is ready: a first version photographed it, and its control moved 99.9999% of the pixels
+await page.waitForFunction(() => !document.getElementById('veil'), null, { timeout: PARAMS.buildWaitMs, polling: 1000 });
 await page.waitForFunction(() => { const A = window.slopesApartments; return !!(A && A.count.done && A.group); }, null, { timeout: PARAMS.buildWaitMs, polling: 1000 });
 if (!(await page.evaluate(() => !!(window.slopes && window.slopes.packSet)))) { console.log('FAIL: this checkout has no slopes.packSet (the packed layout is not here)'); await browser.__done(); process.exit(1); }
 
+const tris = [];
 async function rebuild(packed) {
   const r = await page.evaluate(async packed => {
     const A = window.slopesApartments, before = A.count.ms;
@@ -71,6 +74,8 @@ async function rebuild(packed) {
   console.log(`build ${packed ? 'PACKED' : 'unpacked'}: ${JSON.stringify(info)}`);
   if (packed && !info.packedMeshes) throw new Error('packSet(true) but no mesh is packed: the check would compare the unpacked layout with itself');
   if (!packed && info.packedMeshes) throw new Error('packSet(false) but a mesh is still packed');
+  tris.push(info.tris);
+  if (tris.length > 1 && tris[tris.length - 1] !== tris[0]) throw new Error(`this build has ${info.tris} triangles, the first had ${tris[0]}: buildings failed to build (see the page errors), so the pictures would differ for the wrong reason`);
   return info;
 }
 const wallsBusy = () => { const P = window.__facadePace, A = window.slopesApartments && window.slopesApartments.count; return { pace: !!(P && P.busy), apartments: !!(A && !A.done) }; };
@@ -99,6 +104,7 @@ const diff = (a, b) => {
   return { moved, over12, max, total: n };
 };
 
+process.on('uncaughtException', e => { console.log('FAIL: ' + e.message + (errors.length ? '\npage errors: ' + errors.slice(0, 3).join(' | ') : '')); process.exit(1); });
 const infoOff = await rebuild(false); await shootAll('off');
 const infoOn = await rebuild(true); await shootAll('on', BREAK ? PARAMS.breakShiftP : 0);
 await rebuild(false); await shootAll('again');
