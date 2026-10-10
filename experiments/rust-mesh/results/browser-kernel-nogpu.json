@@ -1,0 +1,373 @@
+{
+ "host": "Intel(R) Core(TM) i7-8569U CPU @ 2.80GHz x8",
+ "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+ "rounds": 5,
+ "summary": {
+  "app": {
+   "cold": {
+    "min": 2320.800000011921,
+    "median": 3605.899999976158,
+    "max": 4305.400000035763,
+    "n": 5
+   },
+   "warm": {
+    "min": 1724.7999999523163,
+    "median": 3488,
+    "max": 5409.5,
+    "n": 10
+   },
+   "compileMs": null,
+   "instantiateMs": null,
+   "copyInMs": null,
+   "processMs": null,
+   "uploadMs": null,
+   "jsHeapMB": {
+    "min": 1209.2071838378906,
+    "median": 1209.561092376709,
+    "max": 1210.4758033752441,
+    "n": 5
+   },
+   "fetchMs": {
+    "min": 3054.099999964237,
+    "median": 3852.5,
+    "max": 5367,
+    "n": 5
+   }
+  },
+  "typed": {
+   "cold": {
+    "min": 2132.300000011921,
+    "median": 2720,
+    "max": 6486.5,
+    "n": 5
+   },
+   "warm": {
+    "min": 2087.600000023842,
+    "median": 4754,
+    "max": 6921.899999976158,
+    "n": 10
+   },
+   "compileMs": null,
+   "instantiateMs": null,
+   "copyInMs": null,
+   "processMs": null,
+   "uploadMs": null,
+   "jsHeapMB": {
+    "min": 1208.5329513549805,
+    "median": 1210.3453483581543,
+    "max": 1210.407527923584,
+    "n": 5
+   },
+   "fetchMs": {
+    "min": 2976.5,
+    "median": 3535.199999988079,
+    "max": 8960.300000011921,
+    "n": 5
+   }
+  },
+  "wasm": {
+   "cold": {
+    "min": 701.8000000119209,
+    "median": 1338.800000011921,
+    "max": 3148.399999976158,
+    "n": 5
+   },
+   "warm": {
+    "min": 658.8999999761581,
+    "median": 2959.5,
+    "max": 3980.599999964237,
+    "n": 10
+   },
+   "compileMs": {
+    "min": 5.300000011920929,
+    "median": 7.399999976158142,
+    "max": 23.30000001192093,
+    "n": 5
+   },
+   "instantiateMs": {
+    "min": 0.09999996423721313,
+    "median": 0.19999998807907104,
+    "max": 0.5,
+    "n": 5
+   },
+   "copyInMs": {
+    "min": 96.89999979734421,
+    "median": 229.80000001192093,
+    "max": 522.1000002622604,
+    "n": 5
+   },
+   "processMs": {
+    "min": 750.1000001430511,
+    "median": 2690.699999809265,
+    "max": 3740.199999988079,
+    "n": 5
+   },
+   "uploadMs": null,
+   "jsHeapMB": {
+    "min": 366.463490486145,
+    "median": 366.54578495025635,
+    "max": 366.5742769241333,
+    "n": 5
+   },
+   "wasmMiB": 649.875,
+   "fetchMs": {
+    "min": 1815.300000011921,
+    "median": 5104.800000011921,
+    "max": 6641.399999976158,
+    "n": 5
+   }
+  }
+ },
+ "rows": [
+  {
+   "impl": "app",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 4985.5,
+   "cold": 4305.400000035763,
+   "warms": [
+    4840.800000011921,
+    5409.5
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "jsHeapMB": 1209.7826194763184,
+   "round": 0,
+   "load1": 55.6
+  },
+  {
+   "impl": "typed",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 3535.199999988079,
+   "cold": 6138.699999988079,
+   "warms": [
+    6604.900000035763,
+    6679.599999964237
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "jsHeapMB": 1208.5329513549805,
+   "round": 0,
+   "load1": 50.7
+  },
+  {
+   "impl": "wasm",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 5905.600000023842,
+   "compileMs": 23.30000001192093,
+   "cold": 3148.399999976158,
+   "warms": [
+    3963.5,
+    3455.5
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "copyInMs": 496.0000001192093,
+   "processMs": 2955.9999998807907,
+   "instantiateMs": 0.5,
+   "wasmMiB": 649.875,
+   "jsHeapMB": 366.56167697906494,
+   "round": 0,
+   "load1": 82.7
+  },
+  {
+   "impl": "wasm",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 4554.400000035763,
+   "compileMs": 6.699999988079071,
+   "cold": 2923.600000023842,
+   "warms": [
+    2557.300000011921,
+    3980.599999964237
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "copyInMs": 229.80000001192093,
+   "processMs": 3740.199999988079,
+   "instantiateMs": 0.3999999761581421,
+   "wasmMiB": 649.875,
+   "jsHeapMB": 366.463490486145,
+   "round": 1,
+   "load1": 126.4
+  },
+  {
+   "impl": "typed",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 8960.300000011921,
+   "cold": 6486.5,
+   "warms": [
+    6383.200000047684,
+    6921.899999976158
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "jsHeapMB": 1210.347812652588,
+   "round": 1,
+   "load1": 165.1
+  },
+  {
+   "impl": "app",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 3605.300000011921,
+   "cold": 2516.900000035763,
+   "warms": [
+    4068.100000023842,
+    3327.2999999523163
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "jsHeapMB": 1209.2071838378906,
+   "round": 1,
+   "load1": 198.7
+  },
+  {
+   "impl": "app",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 3054.099999964237,
+   "cold": 3605.899999976158,
+   "warms": [
+    2306.400000035763,
+    2071
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "jsHeapMB": 1210.4758033752441,
+   "round": 2,
+   "load1": 169.1
+  },
+  {
+   "impl": "typed",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 2976.5,
+   "cold": 2377.599999964237,
+   "warms": [
+    2270.5,
+    3208.300000011921
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "jsHeapMB": 1210.3453483581543,
+   "round": 2,
+   "load1": 147.6
+  },
+  {
+   "impl": "wasm",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 6641.399999976158,
+   "compileMs": 13.099999964237213,
+   "cold": 1338.800000011921,
+   "warms": [
+    1198.800000011921,
+    1022.8999999761581
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "copyInMs": 116.09999978542328,
+   "processMs": 904.0000002384186,
+   "instantiateMs": 0.19999998807907104,
+   "wasmMiB": 649.875,
+   "jsHeapMB": 366.54578495025635,
+   "round": 2,
+   "load1": 131.5
+  },
+  {
+   "impl": "wasm",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 5104.800000011921,
+   "compileMs": 7.399999976158142,
+   "cold": 1307,
+   "warms": [
+    2959.5,
+    3215.599999964237
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "copyInMs": 522.1000002622604,
+   "processMs": 2690.699999809265,
+   "instantiateMs": 0.09999996423721313,
+   "wasmMiB": 649.875,
+   "jsHeapMB": 366.5323762893677,
+   "round": 3,
+   "load1": 122.1
+  },
+  {
+   "impl": "typed",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 3761.699999988079,
+   "cold": 2132.300000011921,
+   "warms": [
+    2218,
+    2653.100000023842
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "jsHeapMB": 1208.626838684082,
+   "round": 3,
+   "load1": 119.5
+  },
+  {
+   "impl": "app",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 3852.5,
+   "cold": 3957.7999999523163,
+   "warms": [
+    4693,
+    3488
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "jsHeapMB": 1209.561092376709,
+   "round": 3,
+   "load1": 115.6
+  },
+  {
+   "impl": "app",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 5367,
+   "cold": 2320.800000011921,
+   "warms": [
+    1724.7999999523163,
+    2889
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "jsHeapMB": 1209.337200164795,
+   "round": 4,
+   "load1": 112.5
+  },
+  {
+   "impl": "typed",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 3321.399999976158,
+   "cold": 2720,
+   "warms": [
+    4754,
+    2087.600000023842
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "jsHeapMB": 1210.407527923584,
+   "round": 4,
+   "load1": 102.5
+  },
+  {
+   "impl": "wasm",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+   "fetchMs": 1815.300000011921,
+   "compileMs": 5.300000011920929,
+   "cold": 701.8000000119209,
+   "warms": [
+    658.8999999761581,
+    849.5
+   ],
+   "triangles": 3113629,
+   "vertices": 6523203,
+   "copyInMs": 96.89999979734421,
+   "processMs": 750.1000001430511,
+   "instantiateMs": 0.19999998807907104,
+   "wasmMiB": 649.875,
+   "jsHeapMB": 366.5742769241333,
+   "round": 4,
+   "load1": 91.3
+  }
+ ]
+}

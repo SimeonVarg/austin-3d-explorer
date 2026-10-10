@@ -1,0 +1,45 @@
+<!doctype html><meta charset="utf-8"><title>rust-mesh bench</title>
+<body style="font:14px monospace"><pre id="o">running…</pre>
+<script type="module">
+// One implementation per page load (fresh page = cold JIT, fresh heap). Driven by bench-browser.mjs.
+//   ?impl=app|typed|wasm   &warm=2   &upload=1   (upload = time gl.bufferData of the finished buffers on a real WebGL2 context)
+import { REC, hexBytes } from './js/common.mjs';
+import { makeBuild, toneObjects, runApp } from './js/builder-app.mjs';
+import { runTyped } from './js/builder-typed.mjs';
+import { runWasm } from './js/builder-wasm.mjs';
+const q = new URLSearchParams(location.search), impl = q.get('impl'), warm = +(q.get('warm') || 2), doUpload = q.get('upload') === '1';
+const res = { impl, ua: navigator.userAgent };
+try {
+  let t = performance.now();
+  const [sbuf, palette, slopes] = await Promise.all([fetch('/stream/stream.f64').then(r => r.arrayBuffer()), fetch('/stream/palette.json').then(r => r.json()), fetch('/repo/js/slopes.js').then(r => r.text())]);
+  res.fetchMs = performance.now() - t;
+  const stream = new Float64Array(sbuf), records = stream.length / REC;
+  const tb = { bytes: new Uint8Array(palette.length * 9), surf: new Float32Array(palette.length * 4) };
+  palette.forEach((p, i) => { tb.bytes.set([...hexBytes(p.hex[0]), ...hexBytes(p.hex[1]), ...hexBytes(p.hex[2])], i * 9); if (p.surface) tb.surf.set(p.surface, i * 4); });
+  let mod = null;
+  if (impl === 'wasm') { t = performance.now(); mod = await WebAssembly.compileStreaming(fetch('/dist/meshkernel.wasm')); res.compileMs = performance.now() - t; }
+  const build = impl === 'app' ? makeBuild(slopes) : null, tones = impl === 'app' ? toneObjects(palette) : null;
+  let last, timing = {};
+  const once = () => {
+    const t0 = performance.now();
+    if (impl === 'app') last = runApp(build, tones, stream, records, 1 << 16);
+    else if (impl === 'typed') last = runTyped(tb, stream, records);
+    else { const t1 = performance.now(); const x = new WebAssembly.Instance(mod, {}).exports; timing.instantiateMs = performance.now() - t1; timing.x = x; last = runWasm(x, palette, stream, records, { timing }); }
+    return performance.now() - t0;
+  };
+  res.cold = once();
+  res.warms = []; for (let i = 0; i < warm; i++) { last = null; timing = {}; await new Promise(r => setTimeout(r, 50)); res.warms.push(once()); }
+  res.triangles = last.triangles; res.vertices = last.position.length / 3;
+  if (timing.copyMs != null) { res.copyInMs = timing.copyMs; res.processMs = timing.procMs; res.instantiateMs = timing.instantiateMs; res.wasmMiB = timing.x.memory.buffer.byteLength / 1048576; }
+  res.jsHeapMB = performance.memory ? performance.memory.usedJSHeapSize / 1048576 : null;
+  if (doUpload) {
+    const c = document.createElement('canvas'); c.width = c.height = 16; const gl = c.getContext('webgl2');
+    res.renderer = (() => { const d = gl.getExtension('WEBGL_debug_renderer_info'); return d ? gl.getParameter(d.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); })();
+    const names = ['position', 'normal', 'cDay', 'cGold', 'cNight', 'aFacet', 'aSurface', 'index'];
+    const px = new Uint8Array(4); let bytes = 0; const bufs = [];
+    const upload = () => { const t0 = performance.now(); for (const n of names) { const b = gl.createBuffer(); bufs.push(b); const tgt = n === 'index' ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER; gl.bindBuffer(tgt, b); gl.bufferData(tgt, last[n], gl.STATIC_DRAW); bytes += last[n].byteLength; } gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return performance.now() - t0; };
+    res.upload = [upload(), (bufs.splice(0).forEach(b => gl.deleteBuffer(b)), upload())]; res.uploadMB = bytes / 2 / 1048576;
+  }
+} catch (e) { res.error = String(e && e.stack || e); }
+window.__result = res; document.getElementById('o').textContent = JSON.stringify(res, null, 1);
+</script>
