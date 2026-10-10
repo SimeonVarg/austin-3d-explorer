@@ -115,7 +115,9 @@ const BANNED = [
   // Dynamic import stays banned EXCEPT the two literal, same-origin specifiers below:
   // finder.js loads its own arithmetic and the router's graph code when the panel first
   // loads, so a visit that never opens it fetches neither (img-import.mjs gate 1).
-  ['dynamic import', /\bimport\s*\((?!\s*'\.\/(?:finder-core|walkgraph)\.js'\s*\))/g], ['navigator', /navigator\./g], ['serviceWorker', /serviceWorker/g],
+  // finder-live.js (2026-10-09) is the third: the live bus line, loaded when a home is first selected. Section 2b
+  // below checks that file and the two it uses.
+  ['dynamic import', /\bimport\s*\((?!\s*'\.\/(?:finder-core|walkgraph|finder-live)\.js'\s*\))/g], ['navigator', /navigator\./g], ['serviceWorker', /serviceWorker/g],
 ];
 for (const [name, re] of BANNED) {
   ok(count(finder, re) === 0, `js/finder.js uses ${name}`);
@@ -141,6 +143,38 @@ ok(/const p = \{ major: S\.majorId \|\| null, mode: S\.mode, heat: S\.heat, clos
 // The one injected script is the page's own wayfind.js.
 ok(count(finder, /createElement\('script'\)/g) === 1, 'one script element created');
 ok(/js\\\/wayfind\\\.js/.test(finder) && /s\.src = own;/.test(finder), 'it is the page\'s own js/wayfind.js');
+
+// 2b. THE LIVE BUS LINE (js/finder-live.js -> js/transit-route.js, js/transit-live.js)
+// The class building's door goes into finder-live.js. It may reach transit-route.js (no network code at all) and
+// nothing else. transit-live.js downloads the same public files for everyone: none of its addresses may depend on
+// anything a caller passes in.
+{
+  const flive = strip(read('js/finder-live.js')), troute = strip(read('js/transit-route.js')), tlive = strip(read('js/transit-live.js'));
+  ok(count(finder, /\bimport\s*\(\s*'\.\/finder-live\.js'\s*\)/g) === 1, 'js/finder.js imports finder-live.js in exactly one place');
+  for (const [name, re] of BANNED) {
+    if (name === 'dynamic import') { ok(count(flive, /\bimport\s*\(/g) === 0 && count(troute, /\bimport\s*\(/g) === 0, 'no dynamic import in finder-live.js or transit-route.js'); continue; }
+    ok(count(flive, re) === 0, `js/finder-live.js uses ${name}`);
+    ok(count(troute, re) === 0, `js/transit-route.js uses ${name}`);
+  }
+  ok(count(flive, /\bfetch\s*\(/g) === 0 && count(troute, /\bfetch\s*\(/g) === 0, 'finder-live.js and transit-route.js never fetch');
+  ok(count(troute, /\b(window|document|localStorage|sessionStorage|indexedDB|globalThis)\b/g) === 0, 'js/transit-route.js touches no browser state');
+  ok(count(flive, /\b(localStorage|sessionStorage|indexedDB)\b/g) === 0, 'js/finder-live.js stores nothing');
+  const imports = [...flive.matchAll(/^\s*import\s+[^;]*?from\s+'([^']+)'/gm)].map((m) => m[1]);
+  ok(imports.length === 1 && imports[0] === './transit-route.js', `finder-live.js statically imports only transit-route.js (${imports.join(', ')})`);
+  ok(count(flive, /createElement\('script'\)/g) === 1 && /transit-live\.js/.test(flive), 'finder-live.js injects one script: the page\'s own js/transit-live.js');
+  // transit-live.js: what it knows and where it may go.
+  // ("schedule" is not in this list: the file uses that word for the BUS timetable.)
+  ok(count(tlive, /\b(localStorage|sessionStorage|indexedDB|wayfind\w*|finder\w*|__wayfind\w*)\b/gi) === 0, 'js/transit-live.js never names storage, the finder or the walking feature');
+  const abs = [...tlive.matchAll(/['"`](https?:\/\/[^'"`]*)['"`]/g)].map((m) => m[1]);
+  ok(abs.length >= 1 && abs.every((u) => u.startsWith('https://data.texas.gov/')), `every address in transit-live.js is on data.texas.gov (${[...new Set(abs)].join(', ')})`);
+  for (const [name, re] of BANNED) {
+    if (['absolute URL', 'dynamic import'].includes(name)) continue;
+    ok(count(tlive, re) === 0, `js/transit-live.js uses ${name}`);
+  }
+  // departures(stopId, ...) must not start a download: the stop is the one argument that could carry a class building.
+  const dep = tlive.match(/function departures\([\s\S]*?\n  \}/);
+  ok(dep && !/\bfetch\s*\(|\bkick\s*\(|\bpoll\w*\s*\(|\bload\w*\s*\(|\bstart\s*\(/.test(dep[0]), 'TransitLive.departures() reads what is already downloaded and starts no request');
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 // 3. THE SWITCHES

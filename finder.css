@@ -135,6 +135,12 @@
 .fd-chip { padding: 3px 7px; border-radius: 6px; background: rgba(255, 255, 255, .07); font-size: 11px; font-variant-numeric: tabular-nums; }
 .fd-chip b { color: var(--fd-accent); }
 .fd-busline { margin: 6px 0 0; color: #cfeaff; font-size: 11px; }
+.fd-live { margin: 6px 0 0; font-size: 11px; }
+.fd-live p { margin: 2px 0 0; }
+.fd-live-line { color: #cfeaff; }
+.fd-live-line.is-live::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: #5fe08a; vertical-align: 1px; }
+.fd-live-note { color: #e8c98a; }
+.fd-live-credit { color: rgba(255, 255, 255, .45); font-size: 9.5px; }
 .fd-unav { margin: 8px 8px 0; color: var(--fd-dimmer); font-size: 11px; }
 .fd-unav:empty { display: none; }
 

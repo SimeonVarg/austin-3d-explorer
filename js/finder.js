@@ -60,8 +60,11 @@ const FINDER = {
   // A visitor who takes the controls mid-flight is exploring, so they keep the
   // pill; one who closed the finder last time is not re-opened.
   firstVisit: {
-    openWhenLanded: 'open',       // desktop: 'open' | 'pill'
-    openWhenLandedPhone: 'peek',  // phone:   'peek' | 'open' | 'pill'
+    // 2026-10-10: ships as the small pill. The owner's chosen design is the panel open on landing ('open', and 'peek'
+    // on a phone), with the ground coloured by minutes: that changes the first screen of the site for every visitor,
+    // so it waits for him to see it on the live site first (`?finder=1` shows it). One line each to switch.
+    openWhenLanded: 'pill',       // desktop: 'open' | 'pill'
+    openWhenLandedPhone: 'pill',  // phone:   'peek' | 'open' | 'pill'
     openIfIntroCancelled: false,
     landedDelayMs: 700,           // a beat after the flight settles
     noIntroDelayMs: 1200,         // no flight on this URL: after the veil is gone
@@ -95,6 +98,7 @@ const FINDER = {
     subpixel: true,
   },
   rowBuildings: 4,                // buildings listed under a selected row
+  liveBus: q.get('livebus') !== '0',   // the live bus line under a selected home (js/finder-live.js)
   compareMax: 3,
   compareBuildings: 6,            // rows in a compare card
 
@@ -668,7 +672,19 @@ function boot() {
       d.append(el('p', 'fd-busline', C.busLeg(t.route, route.name, route.kind) + ' · ' +
         C.busTimes(t.bus_departs, board ? board[2] : '')));
     }
+    if (FINDER.liveBus && S.mode !== 'walk' && legs[0]) { const lv = el('div', 'fd-live'); d.append(lv); liveBus(r, legs[0], lv); }
     return d;
+  }
+  // The live bus line (js/finder-live.js): from this home to the class building that weighs most, with the next
+  // buses from CapMetro's public feed. Loaded on the first selected home, never before. `?livebus=0` turns it off.
+  function liveBus(r, leg, box) {
+    const ds = S.G.code && S.G.code[leg.code], door = ds && ds.length && S.G.doors[ds[0]], n = door && door[2][0];
+    if (n === undefined || n === false) return;
+    const from = [r.home.p[1], r.home.p[0]], to = [S.G.Y[n], S.G.X[n]];
+    import('./finder-live.js').then((m) => {
+      if (S.liveStop) S.liveStop();
+      S.liveStop = box.isConnected ? m.watch(box, from, to, { code: leg.code, el }) : null;
+    }).catch(() => {});
   }
 
   function buildLegend() {
