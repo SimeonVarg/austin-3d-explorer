@@ -38,7 +38,8 @@ const CLOSEUPS = [
 const argv = process.argv.slice(2);
 const OUT = path.resolve(argv.includes('--out') ? argv[argv.indexOf('--out') + 1] : 'ci-out/campus-trees-pictures');
 fs.mkdirSync(OUT, { recursive: true });
-const poses = [...JSON.parse(fs.readFileSync(new URL('./ci/poses.json', import.meta.url), 'utf8')), ...CLOSEUPS];
+const ONLY = argv.includes('--only') ? argv[argv.indexOf('--only') + 1].split(',') : null;   // view names, to repeat a few views quickly
+const poses = [...JSON.parse(fs.readFileSync(new URL('./ci/poses.json', import.meta.url), 'utf8')), ...CLOSEUPS].filter(p => !ONLY || ONLY.includes(p.name));
 
 const browser = await launch(chromium, { gl: process.env.VERIFY_GL || 'hardware', maxMs: 40 * 60 * 1000 });
 const report = { instrument: { url: BASE, gl: process.env.VERIFY_GL || 'hardware', viewport: LOOK.viewport, query: LOOK.query, tolerance: LOOK.tolerance }, states: {}, views: [] };
@@ -83,7 +84,7 @@ try {
         }, p);
         await settle();
         placed = await page.evaluate(() => ({ c: __map.getCenter().toArray(), z: __map.getZoom(), pitch: __map.getPitch(), bearing: __map.getBearing(), p: window.__todCurrentP, driving: !!(window.__fly && __fly.eye().driving) }));
-        const off = Math.max(Math.abs(placed.c[0] - p.center[0]) * 1e5, Math.abs(placed.c[1] - p.center[1]) * 1e5, Math.abs(placed.z - p.zoom) * 100, Math.abs(placed.pitch - p.pitch), Math.abs(placed.bearing - p.bearing), Math.abs((placed.p ?? p.p) - p.p) * 100);
+        const off = Math.max(Math.abs(placed.c[0] - p.center[0]) * 1e5, Math.abs(placed.c[1] - p.center[1]) * 1e5, Math.abs(placed.z - p.zoom) * 100, Math.abs(placed.pitch - p.pitch), Math.abs(((placed.bearing - p.bearing + 540) % 360) - 180), Math.abs((placed.p ?? p.p) - p.p) * 100);
         if (off < LOOK.placeTolerance && !placed.driving) break;
         console.log(`${label} ${p.name}: not where asked (off ${off.toFixed(3)}), try ${attempt + 1}`, JSON.stringify(placed));
       }
@@ -92,6 +93,13 @@ try {
       await page.screenshot({ path: file });
       await page.waitForTimeout(500);
       await page.screenshot({ path: file });   // trust the second
+      // What the planting looked like to the renderer at this view (for a view that comes out wrong).
+      (cost.diag ||= {})[p.name] = await page.evaluate(() => {
+        const T = THREE, g = campusLandscape.group, f = new T.Frustum().setFromProjectionMatrix(slopes.camera.projectionMatrix), out = { calls: slopes.renderer.info.render.calls, groupVisible: g.visible, meshes: 0, visibleInFrustum: 0, crownsInFrustum: 0, crowns: 0, programs: [] };
+        g.traverse(o => { if (!o.isInstancedMesh) return; out.meshes++; const inside = f.intersectsObject(o); if (inside) out.visibleInFrustum++; if (o.instanceColor) { out.crowns++; if (inside) out.crownsInFrustum++; } });
+        const gl = slopes.renderer.getContext(); out.glError = gl.getError();
+        return out;
+      });
       if (!cost.atFirstView) {
         cost.atFirstView = await page.evaluate(() => {
           const s = slopes.stats(), c = campusLandscape.count, g = campusLandscape.group, r = slopes.renderer.info;
