@@ -425,7 +425,7 @@ The same eight typed arrays are uploaded either way (`gl.bufferData` takes a vie
 is what happens *before* it: the shipped builder allocates growth buffers (doubling seven arrays, copying each time) and then copies
 every array again with `.slice()` to trim it (`geometry()`), the difference between the "tuned JS" rows above; the Wasm path hands
 out views of memory it already holds. **The upload timing itself is UNMEASURED:** the shared GPU slot was held by another lane for
-the whole study (`gpu-run` status: busy, my request queued for more than 30 minutes), and a CPU-only headless Chrome has no WebGL. The harness
+the whole study (`gpu-run` status: busy, my request queued for about 35 minutes before I withdrew it), and a CPU-only headless Chrome has no WebGL. The harness
 for it is written (`bench-browser.html?upload=1`, which times `gl.bufferData` of all eight arrays on a real WebGL2 context);
 run it when the slot is free. Two facts bound the answer: a view of Wasm memory is an ordinary `ArrayBufferView` to WebGL, and
 a view into Wasm memory is invalid after the next `memory.grow()`, so a three.js attribute that keeps pointing at it needs either a
