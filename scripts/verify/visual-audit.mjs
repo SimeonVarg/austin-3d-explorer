@@ -25,6 +25,8 @@ import { BASE, launch } from './chrome.mjs';
 
 const GROUP = process.argv[2];
 const vi = process.argv.indexOf('--vp');
+const onlyI = process.argv.indexOf('--only');
+if (onlyI > 0) process.env.VA_ONLY = process.argv[onlyI + 1];
 const oi = process.argv.indexOf('--out');
 const OUT = path.resolve(oi > 0 ? process.argv[oi + 1] : (process.env.VERIFY_OUT || 'va-out'));
 fs.mkdirSync(OUT, { recursive: true });
