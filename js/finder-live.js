@@ -20,6 +20,13 @@
  * reason). "live" only for minutes that came from the feed in this very poll;
  * everything else says "timetable". If the feed is not answering it says so.
  * It gives no arrival clock time and no promise ("you will make it").
+ *
+ * 2026-10-10, the pathfinder pass: the same module also serves (1) the map's live buses of the selected trip
+ * (liveBuses), (2) the one row under a walking route in js/wayfind.js (watchRow), and (3) the loader the ranking uses
+ * for the baked slice (loadBus). All of them share ONE poll of the public feed: acquire() counts the users, so the
+ * live line, the buses on the map and the pathfinder row start it together and the last one out stops it. Same privacy
+ * rule for all of them: they are handed points, they pass points to transit-route.js, and nothing they ask the network
+ * for depends on a stop, a route, a home or a building.
  */
 import { plan, rangeText } from './transit-route.js';
 
@@ -27,6 +34,9 @@ export const LIVE = {
   script: 'js/transit-live.js',   // the page's own copy; injected once
   tz: 'America/Chicago',          // the buses run on Austin time, wherever the visitor's clock is
   nextBuses: 4,                   // how many coming buses to hand the search for a stop
+  // The hours the list means (class days: weekdays, between these minutes after midnight). Outside them the line says why it may differ.
+  classHours: [6 * 60, 22 * 60],
+  quietRecheckMs: 300000,         // a quiet row (the pathfinder's) with no bus to show looks at the timetable again this often; it downloads nothing meanwhile
   say: {
     to: (code) => 'Bus to ' + code + ' now: ',
     ride: (route, stop) => route + ' from ' + stop,
@@ -37,6 +47,10 @@ export const LIVE = {
     none: (code) => 'No bus links this home and ' + code + ' right now.',
     notRunning: 'No bus is running right now (timetable).',
     walkingWins: (code, range) => 'Walking to ' + code + ' is as quick as any bus: about ' + range + '.',
+    // WHY the live line can disagree with the list. The list is the weekday class-time timetable (BUS.when in finder-bus.js);
+    // when the moment is not such a day or hour, the line says so first, in plain words. A reason, never a promise.
+    offDay: (day) => 'Today is ' + (['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day] || 'a weekend day') + ': fewer buses. ',
+    offHour: 'It is late: fewer buses. ',
     samePlace: (code) => 'This home and ' + code + ' are the same place.',
     outOfDate: 'The bus timetable on this page has run out of date, so no timetable times are shown.',
     feedDown: 'Live bus data is not answering. These are timetable times.',
@@ -52,17 +66,25 @@ export function austinNow(date = new Date(), tz = LIVE.tz) {
   return { day, minute: Number(get('hour')) % 24 * 60 + Number(get('minute')) };
 }
 
-/** The lines to show for one search result. Pure: no DOM, so node can check every sentence. */
-export function describe(res, code, feedOk, expired) {
+/** Why the line may differ from the list, or '': a weekend, or a weekday outside LIVE.classHours. `when` = {day, minute} in Austin. */
+export function offReason(when) {
+  if (!when || !Number.isFinite(when.day) || !Number.isFinite(when.minute)) return '';
+  if (when.day === 0 || when.day === 6) return LIVE.say.offDay(when.day);
+  if (when.minute < LIVE.classHours[0] || when.minute >= LIVE.classHours[1]) return LIVE.say.offHour;
+  return '';
+}
+
+/** The lines to show for one search result. Pure: no DOM, so node can check every sentence. `when` (optional) = {day, minute}. */
+export function describe(res, code, feedOk, expired, when) {
   const S = LIVE.say, o = res && res.options && res.options[0];
   const buses = o && o.legs.filter((l) => l.kind === 'bus'), wait = o && o.legs.find((l) => l.kind === 'wait');
   // A timetable past its last date is not "the timetable": only a bus that came from the live feed may be described.
   if (expired && !(o && wait.live)) return { lines: [S.outOfDate], live: false };
   if (!o) {
-    const why = (res && res.reason) || '';
+    const why = (res && res.reason) || '', off = offReason(when);
     if (/already/.test(why)) return { lines: [S.samePlace(code)], live: false };
-    if (/walking/.test(why) && res.walk) return { lines: [S.walkingWins(code, rangeText(res.walk.lo, res.walk.hi))], live: false };
-    return { lines: [/running/.test(why) ? S.notRunning : S.none(code)], live: false };
+    if (/walking/.test(why) && res.walk) return { lines: [off + S.walkingWins(code, rangeText(res.walk.lo, res.walk.hi))], live: false };
+    return { lines: [/running/.test(why) ? off + S.notRunning : S.none(code)], live: false };
   }
   let s = S.to(code) + S.ride(buses[0].route, buses[0].boardName) + ', ' + (wait.live ? S.live(wait.inMin) : S.timetable(wait.headway));
   if (buses[1]) s += ' · ' + S.change(buses[1].route, buses[0].alightName);
@@ -74,6 +96,7 @@ export function describe(res, code, feedOk, expired) {
 
 let loading = null;
 /** The bus module and the baked slice, once. Resolves to null when either cannot be had. */
+export function loadBus() { return load(); }
 function load() {
   if (loading) return loading;
   loading = new Promise((resolve) => {
@@ -88,34 +111,102 @@ function load() {
   return loading;
 }
 
+// ONE poll, however many users. start() on the first, stop() when the last is gone; trip updates (260 KB) only while a user
+// that shows departures is on screen. Each acquire() returns a release that works once.
+let users = 0, tripUsers = 0;
+function acquire(TL, wantTrips) {
+  let done = false;
+  if (users++ === 0) TL.start();
+  if (wantTrips && tripUsers++ === 0) TL.wantTrips(true);
+  return () => {
+    if (done) return;
+    done = true;
+    if (wantTrips && --tripUsers === 0) TL.wantTrips(false);
+    if (--users === 0) TL.stop();
+  };
+}
+/** How many things hold the poll open right now (for the checks). */
+export function pollUsers() { return users; }
+
+const near = (a, b) => a === b || (a && b && a[0] === b[0] && a[1] === b[1]);
+
 /**
  * Fill `box` with the live bus line for from -> to ([lat, lon] each) and keep it fresh. `opts.code` is the class
  * building's code; `opts.el(tag, cls, text)` makes an element. Returns a function that stops the updates.
+ * opts.onPlan(option | null, slice) hears every answer (the finder draws the trip from it).
+ * opts.quiet: show NOTHING unless a bus beats walking (js/wayfind.js's row): no "loading", no "walking is as quick".
+ * opts.walkS: [lo, hi] seconds, the caller's own walking time for from -> to (the baseline a bus must beat).
+ * opts.beatsWalkS: how far under the walk a bus must be (default: transit-route.js's ROUTE.busBeatsWalkS).
  */
 export function watch(box, from, to, opts) {
-  let off = null, stopped = false;
-  box.textContent = LIVE.say.loading;
+  let off = null, stopped = false, held = null, timer = 0;
+  if (!opts.quiet) box.textContent = LIVE.say.loading;
+  const walkSec = opts.walkS ? (a, b) => near(a, from) && near(b, to) ? opts.walkS : undefined : undefined;
   load().then((L) => {
     if (stopped || !L) { if (!L) box.textContent = ''; return; }
     const { TL, slice } = L;
-    TL.start(); TL.wantTrips(true);
     const paint = () => {
       if (stopped || !box.isConnected) { stop(); return; }
       const st = TL.state();
+      const now = austinNow();
       const res = plan(slice, from, to, {
-        when: austinNow(),
+        when: now, beatsWalkS: opts.beatsWalkS, walkSec,
         live: (sid, rid, dir) => { const d = TL.departures(sid, LIVE.nextBuses, { route: rid, dir }).filter((x) => x.live).map((x) => x.minutes); return d.length ? d : null; },
       });
-      const out = describe(res, opts.code, st.ok, st.timetableExpired);
+      // Before the first answer from the feed there is no error to report: "not answering" would be a claim we cannot back yet.
+      const out = describe(res, opts.code, st.ok || (!st.fetchedAt && !st.error), st.timetableExpired, now);
       box.textContent = '';
+      if (opts.quiet && !out.option) { box.hidden = true; if (opts.onPlan) opts.onPlan(null, slice); return; }
+      box.hidden = false;
       out.lines.forEach((t, i) => box.append(opts.el('p', i ? 'fd-live-note' : 'fd-live-line' + (out.live ? ' is-live' : ''), t)));
       box.append(opts.el('p', 'fd-live-credit', TL.credit));
       if (opts.onPlan) opts.onPlan(out.option || null, slice);
     };
-    off = TL.on(paint);
-    paint();
-    function stop() { if (off) off(); off = null; TL.wantTrips(false); TL.stop(); }
+    const begin = () => {
+      timer = 0;
+      if (stopped) return;
+      if (opts.quiet) {
+        // A row that says nothing unless a bus wins does not poll for one: ask the timetable first (no download at all),
+        // and look again later (the walk stays on screen while the clock moves on).
+        const first = plan(slice, from, to, { when: austinNow(), beatsWalkS: opts.beatsWalkS, walkSec });
+        if (!first.options.length) {
+          box.textContent = ''; box.hidden = true;
+          if (opts.onPlan) opts.onPlan(null, slice);
+          timer = setTimeout(begin, LIVE.quietRecheckMs);
+          return;
+        }
+      }
+      if (!held) { held = acquire(TL, true); off = TL.on(paint); }
+      paint();
+    };
+    begin();
+    function stop() { if (off) off(); off = null; if (held) held(); held = null; clearTimeout(timer); timer = 0; }
   });
-  // Stopping the line stops the downloads too: nothing else on the page uses the bus module yet.
-  return () => { stopped = true; if (off) off(); off = null; if (window.TransitLive) { window.TransitLive.wantTrips(false); window.TransitLive.stop(); } };
+  // Stopping the line stops the downloads too, unless something else on the page is still showing buses.
+  return () => { stopped = true; if (off) off(); off = null; if (held) held(); held = null; clearTimeout(timer); timer = 0; };
+}
+
+/** The wayfind row: the same line, only when a bus beats the walk (opts.quiet). Returns the stop function. */
+export function watchRow(box, from, to, opts) { return watch(box, from, to, Object.assign({}, opts, { quiet: true })); }
+
+/**
+ * The live buses of the routes of the trip on screen, on the map, and nothing else on the map: no stops, no lines, no
+ * other route's buses. The handle: set(['20', '801']) draws those routes (an empty list stops the poll and removes the
+ * layer), reattach() puts the layer back after a style swap, stop() ends everything. Polls only while it has a route.
+ */
+export function liveBuses(map) {
+  let routes = [], stopped = false, held = null, TLref = null;
+  const sync = () => load().then((L) => {
+    if (stopped || !L) return;
+    TLref = L.TL;
+    if (routes.length && !held) { held = acquire(L.TL, false); L.TL.attach(map, { layers: ['vehicles'], routes: routes.slice() }); }
+    else if (routes.length) L.TL.setRoutes(routes.slice());
+    else if (held) { L.TL.detach(); held(); held = null; }
+  });
+  return {
+    set(list) { routes = Array.isArray(list) ? list.slice() : []; if (!stopped) sync(); },
+    reattach() { if (held && TLref && !stopped) TLref.attach(map, { layers: ['vehicles'], routes: routes.slice() }); },
+    active() { return !!held; },
+    stop() { stopped = true; routes = []; if (held) { if (TLref) TLref.detach(); held(); held = null; } },
+  };
 }

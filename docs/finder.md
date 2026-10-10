@@ -67,11 +67,54 @@ The honest limit: the schedule is never sent, but when the map flies to a route,
 downloads show the tile host roughly where the camera looked. That tells the host which part of
 Austin was on screen, not why, and not which class or building the student chose.
 
+## The bus: ranking, map, live buses, the walking pathfinder (2026-10-10)
+
+Four things, each behind a switch (`FINDER.bus`, `FINDER.trip`, `FINDER.liveBuses`, `WAYFIND.busRow*`), each with a URL override,
+every number in a named block (`BUS` in `js/finder-bus.js`, `LIVE` in `js/finder-live.js`, the taste block in `js/finder.js`).
+
+1. **The bus trip on the map** (`?tripmap=0` removes it). Select a home whose trip is by bus and the map draws it: a dashed walk
+   to the stop, the bus along the route's own line (`shapeBetween`) in the route's colour from the baked slice
+   (`FINDER.trip.routeColour = false` uses the finder's bus blue), the walk from the stop to the door along the walking graph's
+   mapped path, a ring at each stop and a "Board 20 · stop" / "Get off · stop" tag. It uses the same source and layers as the
+   walk lines (`finder-route`, cleaned by the same `drawRoute` / `clearCity`). The timetable trip from the ranking is drawn at
+   once (the first walk and the last follow the walking graph's mapped path); the camera frames the WHOLE trip (home, both stops,
+   the door) with `FINDER.fly.tripFit`: its own glide a frame at a time (the controller's 900 m ceiling stops an ease above it), once
+   per selection, stopped the moment the visitor moves the camera, never moved by a live poll; a walking home keeps its own framing.
+   When the live line's search answers, its trip replaces it for that building when the stops or routes differ.
+2. **A bus for every home in the ranking** (`?busrank=0` removes it). Each walkable home x class building is asked the timetable
+   (`busLeg`, a weekday 08:00, not live) and takes the bus where it beats the walk by `BUS.beatsWalkS` (3 minutes) by the
+   midpoint. A row says what the average trip is: `walk 14–18 min`, `bus about 12–17 min on class days`, `walk + bus about 9–15 min on class
+   days` ("class days" because the ranking is the weekday morning timetable, the day a student is choosing a home for). The walk to
+   the first stop follows the walking graph (a tree from the home, `homeTree` / `walkToPoint` in `finder-core.js`, one home's tree
+   alive at a time), as the walk from the last stop already did; this made the ranking more honest (the straight-line estimate had
+   been optimistic: 255 bus trips over the 42 majors instead of 818) and cost about 150 ms more (see the PR). When the live line under
+   a selected home disagrees with the list because today is a weekend or outside 06:00 to 22:00, it says why first: "Today is
+   Saturday: fewer buses. Walking to GDC is as quick as any bus: about 5-6 min." (`LIVE.say.offDay`, `offHour`, `LIVE.classHours` in
+   `finder-live.js`). Four homes (East Riverside) keep their baked table. Loaded the first time the mode is Bus or Either (never in Walk), then the list is ranked
+   again. Measured: the search adds about 50 to 70 ms in Node for 49 homes x 12 buildings, cold (budget `BUS.budgetMs`, 800 ms); a
+   walk under `BUS.skipWalkMin` (12 min) is never searched and the ranking allows no change of bus: over all 42 majors both gave the
+   same 818 trips as searching everything (`scripts/verify/finder-bus.mjs` repeats that).
+3. **Show live buses** (a switch in the footer, OFF by default; `?livebuses=1` ticks it, `?livebuses=0` removes it). The buses of
+   the routes in the selected trip, nothing else (`TransitLive.attach(map, {layers: ['vehicles'], routes})`). It polls only while
+   it is on, the finder is open and a trip with a route is on screen. Off, deselected or hidden, the layer and the poll are gone.
+   The live line, the buses and the pathfinder row share ONE poll (`acquire()` in `js/finder-live.js`: the last user out stops it).
+4. **The bus row in the walking pathfinder** (`js/wayfind.js`, `?busrow=0` removes it). Under a walking route longer than
+   `WAYFIND.busRowMinWalkMin` (15 min) whose bus beats the walk by `WAYFIND.busRowBeatsWalkS` (5 min): one row with the route, the stop,
+   a range and "timetable" or "live", in exactly the finder's words (it is `watchRow` of `finder-live.js`). Nothing at all otherwise.
+   With no bus winning it asks the bus feeds nothing; it looks at the timetable again every 5 minutes.
+
+The wording rules are the live line's: a range, "live" only for minutes from this poll, no arrival clock time, no promise.
+A ranking row is the timetable, so it never says "live".
+
 ## Checks (no browser)
 
     node scripts/verify/finder-core.mjs     # hand-computed scoring + real-graph cross-check
     node scripts/verify/finder-static.mjs   # schemas, sizes, network scan, switches
-    node scripts/verify/finder-egress.mjs   # the live bus line at run time: every request of 5 minutes, none carries the schedule
+    node scripts/verify/finder-egress.mjs   # the live bus line, the ranking, the map trip, the live-buses switch and the pathfinder row at run time: every request, none carries the schedule
+    node scripts/verify/finder-bus.mjs      # the bus in the ranking and on the map: hand-computed cases, all 42 majors on the real data, the ranking time before and after
+    node scripts/verify/transit-route.mjs   # the route search (walk + bus + walk)
+    node scripts/verify/finder-live.mjs     # every sentence of the live line (the pathfinder row says the same)
+    # one browser look, by hand on a cloud lane (needs a GPU and the live feed): scripts/verify/finder-busmap.mjs
 
 ## What the browser pass found (2026-09-24, AMD Radeon iGPU, D3D11)
 

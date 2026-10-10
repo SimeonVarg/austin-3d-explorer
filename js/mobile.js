@@ -215,6 +215,22 @@
       // 1x, so they are barely minified), for up to 16 texture reads a pixel.
       // false = MapLibre's own single read.
       farPatternFilter: false,
+      // js/outer-homes.js: the houses of the outer city (53,780 instanced
+      // rectangles on a desktop). A phone builds and draws this share of each
+      // 700 m chunk's houses, biggest first. 0.15 is about what the outer ring
+      // drew before that layer took its house-sized boxes (4,897 of 39,820),
+      // so a phone loses no building it had and gains their roofs, for 0.35 MB
+      // of vertex buffers instead of 2.3 MB. 0 or false = no houses, and
+      // data/outer_homes.bin (0.42 MB) is never fetched. Raise it only with a
+      // mobile-memory.mjs run that says there is room (docs/city-join.md).
+      outerHomes: 0.15,
+      // ... and their windows (18 more vertices a house, a light at night).
+      outerHomeWindows: false,
+      // js/outer-trees.js: the outer city's tree cover (196,109 instanced
+      // trees on a desktop). OFF: a phone drew no back-yard tree before either,
+      // so nothing is lost, and data/outer_trees.bin (0.14 MB) is never
+      // fetched. A number is the share of trees built (0.25 = the far set).
+      outerTrees: false,
     },
     // The tiers, lightest last. Each is the phone budget with its own changes.
     // `flags` are the URL flags that tier writes for the parse (see above).
