@@ -776,7 +776,11 @@
               vec3 shaded=cityShade(cityBase*v_lighting.rgb/max(v_lighting.a,.0001),cityBase,v_cityPos,v_cityNormal,glass);
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
               shaded=cityLocalLight(shaded,min(cityBase*4.0,vec3(1.0)),v_cityPos,v_cityNormal,glass);
-              vec3 lit=cityEmission(shaded,cityBase,glass);lit=shaded+(lit-shaded)*cityEyeGain(v_cityPos,cityBase);
+              vec3 lit=cityEmission(shaded,cityBase,glass);
+              // The gain scales the whole lit window, not only the emission term: the window's edge pixels (filtered with the wall) are bright
+              // by their texel colour with little emission, and a gain on emission alone left most of a far window's pixels still. A resting
+              // window falls to a tenth of its lit colour, a shimmering one goes above it.
+              vec3 eg=cityEyeGain(v_cityPos,cityBase);lit=mix(shaded*.1,lit,min(eg,vec3(1.0)))*max(eg,vec3(1.0));
               if(int(u_cityEye2.w+.5)>=4){float sl=dot(cityBase,vec3(.2126,.7152,.0722));lit=sl>=u_cityNight.z?(glass>.5?vec3(0.,1.,0.):vec3(1.,0.,0.)):vec3(0.,0.,.4);}
               fragColor=vec4(lit*v_lighting.a,v_lighting.a);}`
               :`if(u_citySolidSurface<.5){

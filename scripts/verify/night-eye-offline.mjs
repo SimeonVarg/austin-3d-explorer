@@ -51,7 +51,7 @@ ok('occupancy (which windows are lit) is untouched by the palette switch', (() =
 
 // 4. the shader hooks are wired in
 const cl = fs.readFileSync(new URL('../../js/city-lighting.js', import.meta.url), 'utf8'), sl = fs.readFileSync(new URL('../../js/slopes.js', import.meta.url), 'utf8');
-ok('MapLibre window shader applies cityEyeGain to the emission', /cityEmission\(shaded,cityBase,glass\);lit=shaded\+\(lit-shaded\)\*cityEyeGain/.test(cl));
+ok('MapLibre window shader applies cityEyeGain to the whole lit window', /vec3 eg=cityEyeGain\(v_cityPos,cityBase\);lit=mix\(shaded\*\.1,lit,min\(eg,vec3\(1\.0\)\)\)\*max\(eg,vec3\(1\.0\)\)/.test(cl));
 ok('authored-building shader applies it too (both facade paths)', (sl.match(/cityEyeGain\(v_pos,night\)/g) || []).length === 2);
 ok('the shared uniforms are declared and allocated for both renderers', /uniform vec4 u_cityEye, u_cityEye2;/.test(cl) && /u_cityEye:\{value:new T\.Vector4\(\)\}/.test(sl));
 ok('only the lamp heads get a lamp amplitude', /painter\.id==='night-streetlight-core'/.test(cl));
