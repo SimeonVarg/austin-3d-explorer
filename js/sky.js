@@ -37,8 +37,11 @@
  */
 (function () {
   'use strict';
-  // The night clock (js/city-night.js): the real clock, or a frozen one under ?nightfreeze / ?nightseed so the stars hold still.
-  const skyNow = () => (window.CityNight && window.CityNight.now ? window.CityNight.now() : performance.now());
+  // The sky's clock: ?skyfreeze=<ms> (window.SKY_FREEZE_MS) holds it; else the night clock (js/city-night.js: the real clock, or a frozen one
+  // under ?nightfreeze / ?nightseed); else the real one. Star twinkle, star drift and cloud drift all read it; nothing else in the sky pass should.
+  const _fq = new URLSearchParams(location.search).get('skyfreeze');
+  if (_fq !== null && window.SKY_FREEZE_MS == null) window.SKY_FREEZE_MS = parseFloat(_fq) || 0;
+  const skyNow = () => (typeof window.SKY_FREEZE_MS === 'number' ? window.SKY_FREEZE_MS : (window.CityNight && window.CityNight.now ? window.CityNight.now() : performance.now()));
 
 
   const PI = Math.PI;

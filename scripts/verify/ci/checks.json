@@ -158,6 +158,7 @@
   "_quarantine": "Checks that do NOT run in CI, each with the reason. Broken on main itself, or cannot work without a GPU. Fix the check (or main), then delete its line here.",
   "quarantine": {
     "night-eye.mjs": "needs a GPU: its cost and live-repaint numbers are meaningless on the runner, and each part waits on a settled night. Run it on the AWS runner: scripts/aws-gpu/README.md, checks night-eye.mjs --only determinism etc.",
+    "frozen-redraw.mjs": "needs a GPU, run by hand (Colab or the laptop lane): draws one frozen night page 8 times at the two night cameras and asserts 0 pixels over 12/255 between any two. --break must exit 1; --explain and --arms say where a difference comes from. Software drawing is too slow to settle the page and does not reproduce the GPU's drawing.",
     "finder-busmap-phone.mjs": "needs a GPU and the live bus feed: the finder's bus parts inside the bottom sheet of a touch screen (390 x 844), run by hand on a cloud lane",
     "finder-busmap.mjs": "needs a GPU and the live bus feed: one browser look at the bus on the finder map, the ranking rows, the live-buses switch and the pathfinder row, run by hand on a cloud lane (Colab scripts/colab/run.py or acer-run.sh) with pictures to a private folder",
     "facadegrid.mjs": "cannot score on main (exit 2): 'only 1 template grid(s) were testable. This self-check has decayed to the point of proving nothing'",
