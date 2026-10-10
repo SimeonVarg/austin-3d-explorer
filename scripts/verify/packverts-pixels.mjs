@@ -81,6 +81,7 @@ async function rebuild(packed) {
   await page.waitForFunction(r => { const A = window.slopesApartments; return !!(A.group && A.count.done && A.count.ms !== r && A.count.ms > 0); }, r, { timeout: PARAMS.buildWaitMs, polling: 1000 });
   const info = await page.evaluate(() => { let tris = 0, packed = 0, bytes = 0; window.slopesApartments.group.traverse(o => { const g = o.geometry; if (g && g.index) { tris += g.index.count / 3; if (g.userData.pack) packed++; for (const k in g.attributes) { const a = g.attributes[k].array; if (a) bytes += a.byteLength; } if (g.index.array) bytes += g.index.array.byteLength; } }); return { tris, packedMeshes: packed, bytesMb: +(bytes / 1048576).toFixed(1), ms: window.slopesApartments.count.ms }; });
   console.log(`build ${packed ? 'PACKED' : 'unpacked'}: ${JSON.stringify(info)}`);
+  if (packed) console.log('packed layout: ' + JSON.stringify(await page.evaluate(() => window.slopes.packInfo())));   // byteConversion: how this GPU turns a normalised byte into a float
   if (packed && !info.packedMeshes) throw new Error('packSet(true) but no mesh is packed: the check would compare the unpacked layout with itself');
   if (!packed && info.packedMeshes) throw new Error('packSet(false) but a mesh is still packed');
   tris.push(info.tris);
