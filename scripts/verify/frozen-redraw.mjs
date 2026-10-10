@@ -102,13 +102,15 @@ async function open(view) {
 }
 /** Two canvas grabs 3 s apart must be the same, three times running, with the cloud panorama up and the shadow pass built. */
 async function waitStill(page, maxMs = 150000) {
-  const t0 = Date.now(); let same = 0;
+  const t0 = Date.now(); let same = 0, lastLamps = null;
   while (Date.now() - t0 < maxMs && same < 3) {
     await redraw(page);
     const a = await page.evaluate(() => window.__map.getCanvas().toDataURL('image/png')); await page.waitForTimeout(3000);
     await redraw(page); const b = await page.evaluate(() => window.__map.getCanvas().toDataURL('image/png'));
     const ready = await page.evaluate(() => (!window.__skyGL || window.__skyGL.cloudsReady() || window.__skyGL.state() === 'failed') && !(window.CityLighting && window.CityLighting.stats && window.CityLighting.stats.shadowProxyBuilding) && !(window.__facadePace && window.__facadePace.busy) && !(window.slopesApartments && window.slopesApartments.count && !window.slopesApartments.count.done));
-    same = ready && a === b ? same + 1 : 0;
+    // the lamps are found from the road tiles that are loaded and re-sent when more arrive (js/night.js): their count must have stopped changing
+    const lamps = await page.evaluate(() => window.__nightLights ? window.__nightLights.count : null);
+    same = ready && a === b && lamps === lastLamps ? same + 1 : 0; lastLamps = lamps;
   }
   return same >= 3;
 }
