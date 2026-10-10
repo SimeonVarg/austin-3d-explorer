@@ -132,7 +132,9 @@ async function waitStable(page, maxMs = 150000, restore = false) {
     const sig = () => page.evaluate(() => { const m = window.__map, out = []; for (const l of m.getStyle().layers) if (/^(outer|buildings-3d|parts-3d)/.test(l.id)) { try { out.push(l.id + ':' + m.queryRenderedFeatures({ layers: [l.id] }).length); } catch (e) {} } return out.join(',') + '|' + (m.areTilesLoaded ? m.areTilesLoaded() : ''); });
     const s0 = await sig(); const a = await page.screenshot(); await page.waitForTimeout(3000); const b = await page.screenshot(); const s1 = await sig(); tries++;
     // the picture must stop changing AND the number of buildings the map draws must stop changing: a far tile arriving late changes the second and not the first for seconds
-    const same = Buffer.compare(a, b) === 0 && s0 === s1; if (same) stableSigs.push(s1); else stableSigs.length = 0;
+    // the cloud panorama is fetched when the browser is idle (up to 6 s after the first paint) and uploaded when it decodes: a picture before that has a different sky
+    const clouds = await page.evaluate(() => !window.__skyGL || window.__skyGL.cloudsReady() || window.__skyGL.state() === 'failed');
+    const same = clouds && Buffer.compare(a, b) === 0 && s0 === s1; if (same) stableSigs.push(s1); else stableSigs.length = 0;
     if (same && stableSigs.length >= 3 && new Set(stableSigs.slice(-3)).size === 1) { console.log(`  scene stable after ${tries} tries, ${Math.round((Date.now() - t0) / 1000)} s`); return done(true); }
     if (Date.now() - t0 > maxMs) { console.log(`  WARN: scene still changing after ${Math.round(maxMs / 1000)} s`); return done(false); }
   }
@@ -361,6 +363,38 @@ await stage('jitter', async () => {
   console.log(`  distinct states: ${new Set(series).size} of ${series.length}`);
   data.jitter = { query: q, series };
   report(`jitter [${q}]: the map canvas repeats itself 16 times`, new Set(series).size === 1, `${new Set(series).size} distinct`);
+  await page.close();
+});
+
+// ======================================================================================================
+// 2g. JITTER-LAYERS: which layer makes the map canvas differ from one identical redraw to the next? Each fill-extrusion layer is faded out in turn
+//     and 8 redraws are compared; the authored-building layer is switched off too.
+// ======================================================================================================
+await stage('jitterlayers', async () => {
+  const pose = TUNE.poses[opt('--pose', 'skyline')], dir = path.join(OUT, 'jitterlayers'); fs.mkdirSync(dir, { recursive: true });
+  const page = await open('nighteye=0&nightfreeze=1'); await settle(page, pose); await waitStable(page, 150000, false);
+  const frames = async () => {
+    const hs = [];
+    for (let k = 0; k < 8; k++) {
+      await page.evaluate(() => new Promise(r => { window.__map.once('render', () => requestAnimationFrame(() => requestAnimationFrame(() => r()))); window.__map.triggerRepaint(); }));
+      await page.waitForTimeout(350);
+      hs.push(await page.evaluate(() => { const u = window.__map.getCanvas().toDataURL('image/png'); let h = 5381; for (let i = 0; i < u.length; i += 7) h = ((h << 5) + h + u.charCodeAt(i)) | 0; return h; }));
+    }
+    return new Set(hs).size;
+  };
+  const rows = []; const base = await frames(); rows.push({ what: 'everything on', distinct: base }); console.log(`jitterlayers everything on: ${base} distinct frames of 8`);
+  const ids = await page.evaluate(() => window.__map.getStyle().layers.filter(l => l.type === 'fill-extrusion' || l.type === 'circle' || l.type === 'fill' || l.type === 'line').map(l => [l.id, l.type]));
+  for (const [id, type] of ids) {
+    const prop = type === 'fill-extrusion' ? 'fill-extrusion-opacity' : type === 'circle' ? 'circle-opacity' : type === 'fill' ? 'fill-opacity' : 'line-opacity';
+    const old = await page.evaluate(({ id, prop }) => { const m = window.__map; const v = m.getPaintProperty(id, prop); m.setPaintProperty(id, prop, 0); return v; }, { id, prop });
+    await page.waitForTimeout(600); const d = await frames(); rows.push({ what: id, distinct: d });
+    await page.evaluate(({ id, prop, old }) => window.__map.setPaintProperty(id, prop, old === undefined ? null : old), { id, prop, old });
+    if (d === 1 || id.startsWith('outer')) console.log(`jitterlayers without ${id} (${type}): ${d} distinct`);
+  }
+  await page.evaluate(() => window.slopes && window.slopes.setVisible(false)); await page.waitForTimeout(600);
+  const ds = await frames(); rows.push({ what: 'authored buildings (slopes) off', distinct: ds }); console.log(`jitterlayers without authored buildings: ${ds} distinct`);
+  data.jitterlayers = rows;
+  console.log('jitterlayers: layers whose removal makes the redraws identical:', rows.filter(r => r.distinct === 1).map(r => r.what).join(', ') || 'none');
   await page.close();
 });
 
