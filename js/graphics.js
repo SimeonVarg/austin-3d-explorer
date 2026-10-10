@@ -1100,6 +1100,7 @@
                           // correction — only real outliers move the gain
     STRENGTH: 0.7,        // fraction of the beyond-knee correction applied
     TAU_MS: 900,          // EMA time constant of the meter
+    pauseUnderVeil: Q.get('aeveil') !== '1',   // no metering while the load veil is up (see aeMeter); ?aeveil=1 = as before
     MIN: 0.85, MAX: 1.20, // hard gain clamps
     W: 40, H: 24,         // meter buffer
     DEADBAND: 0.006,      // skip the style write for gain moves below this
@@ -1416,6 +1417,14 @@
       aeOwed = []; aeGpuDrop();
       return;
     }
+    // NOT UNDER THE LOAD VEIL. Every frame painted while the veil is up is invisible, drawn at AE.veilScale of the
+    // preset's resolution (js/app.js INTRO.veilRenderScale sets window.__veilRenderScale below 1 until reveal), and
+    // the meter's fence + readback + EMA on each of them is main-thread time taken from the build the veil waits for
+    // (aeGpuCollect 1.05 s of a 1x load, docs/speed-2026-10-09.md). At reveal __veilRenderScale returns to 1, the
+    // first frame seeds the EMA from the picture the visitor is actually shown, and the meter runs as before. The gain
+    // sits at 1 until then, which is where the dead zone (AE.KNEE) leaves every authored pose anyway.
+    // ?aeveil=1 meters under the veil as before (A/B on one page load).
+    if (AE.pauseUnderVeil && (window.__veilRenderScale || 1) < 1) return;
     const now = performance.now();
     const dt = aeLast ? Math.min(250, now - aeLast) : 16.7;
     aeLast = now;
