@@ -3876,6 +3876,11 @@
       budgetMs: 6,            // main-thread ms a frame may spend drawing and adding warm images
       commitsPerFrame: 2,     // images added (map.addImage) in one frame
     },
+    // Every map.addImage fires a style `data` event, and every app listener of `styledata` (basemap cleanup, layer
+    // sweeps, sky and fog placement, label sync, ...) runs for it. A request that adds 34 images ran them 34 times. With
+    // this on, the events of a request (or of one warm-up frame) are held back and ONE is fired when it ends.
+    // `?wtcoalesce=0` turns it off.
+    coalesce: !/[?&]wtcoalesce=0(?:&|$)/.test(location.search),
     // Also answer flat when the running mean of a real paint would push the request past `syncBudgetMs` times this.
     meanGuard: true,
     meanGuardX: 2,
@@ -3887,7 +3892,7 @@
     // Paints that happen in the same call stack are one tile's request: how long the biggest such run held the thread.
     bursts: 0, burstMsMax: 0, burstImagesMax: 0,
     // Every request that painted or answered anything: [performance.now() at its start, images, ms, answered flat]
-    burstLog: [], placeholders: 0, syncPainted: 0, syncMs: 0, flatMs: 0, addMs: 0,
+    burstLog: [], placeholders: 0, styleEventsHeld: 0, styleEventsFired: 0, syncPainted: 0, syncMs: 0, flatMs: 0, addMs: 0,
     // [performance.now(), image id, flat?] for every image a tile asked for (capped): the flight's own shopping list
     askLog: [],
     warm: { planned: 0, committed: 0, skipped: 0, stale: 0, startedAt: 0, doneAt: 0, mainMs: 0, workerMs: 0 },
@@ -3920,6 +3925,32 @@
    */
   // "The veil is up" ends at the REVEAL (window.__intro.reason is set), not when the veil element is removed: the
   // veil fades for up to 2.6 s after the reveal while the city is already moving under it.
+  // ── hold back the style events of a batch of addImage calls, fire one at the end ──
+  const _quiet = { depth: 0, held: 0, style: null, orig: undefined };
+  function quietOpen(map) {
+    if (!WALLTIERS.coalesce || _quiet.depth) { if (_quiet.depth) _quiet.depth++; return; }
+    const st = map && map.style;
+    if (!st || typeof st.fire !== 'function') return;
+    _quiet.depth = 1; _quiet.held = 0; _quiet.style = st;
+    _quiet.orig = Object.prototype.hasOwnProperty.call(st, 'fire') ? st.fire : undefined;
+    const P = Object.getPrototypeOf(st);
+    st.fire = function (event, props) {
+      const type = typeof event === 'string' ? event : event && event.type;
+      const kind = typeof event === 'string' ? props && props.dataType : event && event.dataType;
+      if (type === 'data' && kind === 'style') { _quiet.held++; return this; }
+      return (_quiet.orig || P.fire).apply(this, arguments);
+    };
+  }
+  function quietClose() {
+    if (!_quiet.depth) return;
+    if (--_quiet.depth) return;
+    const st = _quiet.style, held = _quiet.held;
+    if (_quiet.orig) st.fire = _quiet.orig; else delete st.fire;
+    _quiet.style = null; _quiet.orig = undefined; _quiet.held = 0;
+    WT.styleEventsHeld += held;
+    if (held) { try { st.fire('data', { dataType: 'style' }); WT.styleEventsFired++; } catch (e) { /* a listener threw; it would have in the loop too */ } }
+  }
+
   function veilUp() {
     if (window.__intro && window.__intro.reason) return false;
     return typeof document !== 'undefined' && !!document.getElementById(WALLTIERS.veilId);
@@ -3937,6 +3968,7 @@
     return { width: res, height: res, data: d };
   }
   function flushBurst() {
+    quietClose();
     WT.bursts++;
     if (_burst.ms > WT.burstMsMax) WT.burstMsMax = +_burst.ms.toFixed(1);
     if (_burst.n > WT.burstImagesMax) WT.burstImagesMax = _burst.n;
@@ -3949,7 +3981,7 @@
   }
   function lazyWallImage(map, key, info) {
     const t0 = performance.now();
-    if (!_burst.open) { _burst.open = true; _burst.start = t0; queueMicrotask(flushBurst); }
+    if (!_burst.open) { _burst.open = true; _burst.start = t0; quietOpen(map); queueMicrotask(flushBurst); }
     const { fam, idx } = parseId(info.id);
     // Cap: only after the veil has gone, only when the paced repaint can finish the job, never for the first image.
     // Over budget when the request has already used its ms, OR when this image alone is expected to (the running mean
@@ -4077,9 +4109,12 @@
     if (!map) return;
     const t0 = performance.now();
     let wrote = 0;
-    while (_warm.ready.length && wrote < W.commitsPerFrame && (wrote === 0 || performance.now() - t0 < W.budgetMs)) {
-      warmCommit(map, _warm.ready.shift()); wrote++;
-    }
+    quietOpen(map);
+    try {
+      while (_warm.ready.length && wrote < W.commitsPerFrame && (wrote === 0 || performance.now() - t0 < W.budgetMs)) {
+        warmCommit(map, _warm.ready.shift()); wrote++;
+      }
+    } finally { quietClose(); }
     const pool = _pace.poolDead ? [] : pacePool();
     if (!pool.length) { _warm.queue.length = 0; _warm.ready.length = 0; }     // no workers: everything stays lazy
     while (_warm.queue.length && performance.now() - t0 < W.budgetMs) {

@@ -68,6 +68,8 @@ function build(on) {
     'const PM_LITTLE_ENDIAN = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;',
     'const PACE = { on: true }; const palette = [{}]; const lerpHexAt = () => [10, 200, 30]; const mulOf = () => 1;',
     'const tierRes = t => 8 / t.div; const requestAnchorRepaint = (m) => __repaints.push(m);',
+    'const _quiet = { depth: 0, held: 0, style: null, orig: undefined };',
+    fnText('quietOpen'), fnText('quietClose'),
     fnText('parseId'), fnText('veilUp'), fnText('wallPlaceholder'), fnText('flushBurst'),
     fnText('wallKeyInfo'), fnText('lazyWallImage'), fnText('armWallTiers'),
     fnText('ensureImages'), fnText('paintCombo'), fnText('comboCurrent'), fnText('presentTiers'),
@@ -206,6 +208,29 @@ function build(on) {
   });
   assert.equal(JSON.stringify(A.W.points), JSON.stringify(centres),
     'WALLTIERS.warm.points are INTRO.start / crest / end of js/app.js: the flight moved, so the warm-up must move with it');
+}
+
+// ── the style events of a request are held back and one is fired at its end ──
+{
+  const S = build(true);
+  const fired = [];
+  class Style { fire(e, p) { fired.push(typeof e === 'string' ? e + ':' + (p && p.dataType) : e.type); return this; } }
+  S.map.style = new Style();
+  const realAdd = S.map.addImage;
+  S.map.addImage = (k, img, o) => { realAdd(k, img, o); S.map.style.fire('data', { dataType: 'style' }); S.map.style.fire('data', { dataType: 'source' }); };
+  for (const id of ['mh03', 'tg07', 'lo01']) S.api.ensureImages(S.map, id, 0.3);
+  S.askMany(['mh03x', 'tg07x', 'lo01x']);
+  assert.equal(fired.filter(e => e === 'data:style').length, 1, 'three images, ONE style data event, fired after the request');
+  assert.equal(fired.filter(e => e === 'data:source').length, 3, 'events of other kinds are not held');
+  assert.equal(Object.prototype.hasOwnProperty.call(S.map.style, 'fire'), false, 'the style\'s own fire is put back');
+  assert.equal(S.api.WT.styleEventsHeld, 3);
+  // switched off: every event goes through
+  const T = build(true); T.api.WALLTIERS.coalesce = false;
+  const f2 = []; T.map.style = { fire(e, p) { f2.push(e + ':' + (p && p.dataType)); } };
+  const add2 = T.map.addImage; T.map.addImage = (k, i, o) => { add2(k, i, o); T.map.style.fire('data', { dataType: 'style' }); };
+  for (const id of ['mh03', 'tg07']) T.api.ensureImages(T.map, id, 0.3);
+  T.askMany(['mh03x', 'tg07x']);
+  assert.equal(f2.length, 2, 'with ?wtcoalesce=0 every event is delivered');
 }
 
 // ── OFF (?walltiers=0): the old eager path, every tier at registration ──

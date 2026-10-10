@@ -25,8 +25,8 @@ const STEPS = arg('--steps', 'bursts,load,mem').split(',');
 const REPS = +arg('--reps', 5);
 const REPS4 = +arg('--reps4', 3);
 const REPSB = +arg('--repsb', 3);
-// bursts step: --armsb both (default: cap off, cap on), nocap (cap off only), cap (cap on only); --throttleb 1,4; --maxb ms
-const ARMSB = { both: 'wtcap=0;', nocap: 'wtcap=0', cap: '' }[arg('--armsb', 'both')];
+// bursts step: --armsb both (default: lazy as first shipped = no cap, no warm-up, no event coalescing; then everything on), nocap (cap off only), cap (cap on only); --throttleb 1,4; --maxb ms
+const ARMSB = { both: 'wtcap=0&wtwarm=0&wtcoalesce=0;', nocap: 'wtcap=0', cap: '' }[arg('--armsb', 'both')];
 const THROTTLEB = arg('--throttleb', '1,4');
 const MAXB = arg('--maxb', '420000');
 const OUT = process.env.VERIFY_OUT || '/tmp/perf-walltiers-suite';
