@@ -22,7 +22,8 @@ the stars twinkle and the clouds drift by; without it a still night sky changes 
 **The jitter that was reported came from one configuration: bloom on and auto-exposure off.** With both on (the Balanced,
 Cinematic and Ultra tiers) or both off (Performance), the canvas repeats. With bloom on and auto-exposure off it draws a
 different frame every redraw, by whole-frame brightness (`spawn-night`: 7 to 8 different frames of 8, up to 48,405
-pixels over 12/255, 925,950 by any amount in one pair; `~/flyover-private/night-2026-10-10/jitter/ae-off-bloom-on-strip.webp`
+pixels over 12/255, 925,950 by any amount in one pair; at `tower-night` it was 0 pixels over 12 on `main` and 71 to 9,853 on
+the night-eye branch, where its frozen night also skipped the exposure read; `~/flyover-private/night-2026-10-10/jitter/ae-off-bloom-on-strip.webp`
 is the 8 redraws and the difference from the first, x8). The number 48,405 repeated exactly in separate runs, so it is a
 fixed sequence of states, not noise.
 
