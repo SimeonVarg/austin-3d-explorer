@@ -1676,6 +1676,7 @@
       p.wf = fam;
       if (combos.indexOf(p.wp) === -1) combos.push(p.wp);
     }
+    try { warmFromFeatures(features, true); } catch (e) { /* only a head start */ }
   };
 
   // The stadium's perimeter wall is baked geometry, not a building feature, so
@@ -1711,6 +1712,7 @@
       // on screen — see ensureImages.
       added += ensureImages(map, p.wp, window.__todCurrentP != null ? window.__todCurrentP : 0.5);
     }
+    try { warmFromFeatures(features, true, map); } catch (e) { /* only a head start */ }
     return added;
   };
 
@@ -3872,7 +3874,7 @@
       points: [[-97.7420, 30.2680], [-97.7404, 30.2748], [-97.7365, 30.2900]],
       nearM: 700,
       farM: 2500,
-      outerTowers: 'far',     // 'both' | 'far' | 'near' | '' (none)
+      outerTowers: 'both',    // 'both' | 'far' | 'near' | '' (none)
       budgetMs: 6,            // main-thread ms a frame may spend drawing and adding warm images
       commitsPerFrame: 2,     // images added (map.addImage) in one frame
     },
@@ -4034,9 +4036,9 @@
     for (const t of tiers) e.add(t.id);
   }
   /** The rule, over the buildings the palette was just stamped on. Called from stampAll. */
-  function warmFromFeatures(features) {
+  function warmFromFeatures(features, append, map) {
     const W = WALLTIERS.warm;
-    _warm.plan = new Map();
+    if (!append) _warm.plan = new Map();
     if (!W.on || !WALLTIERS.on) return;
     for (const f of features) {
       const p = f.properties, g = f.geometry;
@@ -4049,6 +4051,8 @@
       if (best <= W.nearM) warmAdd(p.wp, TIERS);
       else if (best <= W.farM) warmAdd(p.wp, TIERS.filter(t => t.id));
     }
+    // registered after initFacades (the stadium, the west campus): the warm-up is already running, extend it
+    if (append && map && _warm.started) warmStart(map);
   }
   function armWarm() {
     if (_warm.raf || _warm.timer) return;

@@ -198,6 +198,11 @@ function build(on) {
   A.warmFromFeatures([feat('mh01', at(300, 0)), feat('mr02', at(0, 1500)), feat('lo03', at(0, 9000)), { properties: {}, geometry: null }]);
   const got = Object.fromEntries([...A.plan()].map(([k, v]) => [k, [...v].sort().join('+')]));
   assert.equal(JSON.stringify(got), JSON.stringify({ mh01: '+x', mr02: 'x' }), 'a building near a waypoint warms both tiers, one farther only the far tier, a distant one nothing');
+  // a later registration (stadium, parts) ADDS to the plan, it does not replace it
+  A.warmFromFeatures([feat('sp65', at(100, 100))], true);
+  assert.equal(JSON.stringify([...A.plan().keys()].sort()), JSON.stringify(['mh01', 'mr02', 'sp65']), 'append keeps the earlier plan');
+  A.warmFromFeatures([feat('lo09', at(50, 0))]);
+  assert.equal(JSON.stringify([...A.plan().keys()]), JSON.stringify(['lo09']), 'a fresh election replaces it');
   // the waypoints must be the flight's own: js/app.js INTRO.start / crest / end
   const app = fs.readFileSync(new URL('../../js/app.js', import.meta.url), 'utf8');
   const intro = app.slice(app.indexOf('const INTRO = {'), app.indexOf('leg1Ms'));
