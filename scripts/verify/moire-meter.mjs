@@ -48,13 +48,13 @@
  *     --arms "a=js|b=js"  runtime variants run in the SAME page load (one load, every arm on every
  *                    view; `m` is the map). Default: one arm, "main", which runs nothing.
  *     --json file    write the table as JSON
+ *     --from file    no browser: score a --json file from an earlier run (same table, same exit code)
  * Run it through the machine's one-browser queue (gpu-run.mjs); software GL is
  * enough, the aliasing comes from the shader maths, not the chip.
  */
-import { chromium } from 'playwright-core';
-import { BASE, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
+import { statOver, settleWith, tableLines, verdict } from './moire-score.mjs';
 
 // ---- everything you may want to change is in this block -------------------
 let VIEW_W = 480, VIEW_H = 300;         // CSS px (--size WxH); the SS frame is SS x this
@@ -86,19 +86,28 @@ const VIEWS = [
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
 const OUT = opt('--out', null);
-if (!OUT) { console.error('usage: moire-meter.mjs --out <dir> [--views a,b] [--msaa 0|1] [--q k=v] [--ss 4] [--frames 8] [--json f]'); process.exit(2); }
-fs.mkdirSync(OUT, { recursive: true });
+const FROM = opt('--from', null);
+if (!OUT && !FROM) { console.error('usage: moire-meter.mjs --out <dir> [--views a,b] [--msaa 0|1] [--q k=v] [--ss 4] [--frames 8] [--json f]   |   --from <json>'); process.exit(2); }
+if (OUT) fs.mkdirSync(OUT, { recursive: true });
 { const sz = opt('--size', null); if (sz) [VIEW_W, VIEW_H] = sz.split('x').map(Number); }
-const SS = +opt('--ss', '4'), FRAMES = +opt('--frames', '8');
-const MSAA = opt('--msaa', '0') === '1';
-const QS = (opt('--q', '') || '').split(',').map(s => s.trim()).filter(Boolean);
+let SS = +opt('--ss', '4'), FRAMES = +opt('--frames', '8');
+let MSAA = opt('--msaa', '0') === '1';
+let QS = (opt('--q', '') || '').split(',').map(s => s.trim()).filter(Boolean);
 const ARMS = (opt('--arms', 'main=') || 'main=').split('|').map(a => { const i = a.indexOf('='); return { name: a.slice(0, i), js: a.slice(i + 1) }; });
 const want = (opt('--views', '') || '').split(',').filter(Boolean);
 const list = want.length ? VIEWS.filter(v => want.includes(v.name)) : VIEWS;
 
-const browser = await launch(chromium, { maxMs: +(process.env.VERIFY_MAX_MS || 3000000) });
-const page = await browser.newPage({ viewport: { width: VIEW_W, height: VIEW_H }, deviceScaleFactor: 1 });
+let rows = [], browser = null, page = null;
 const errs = [];
+if (FROM) {
+  const j = JSON.parse(fs.readFileSync(FROM, 'utf8'));
+  rows = j.rows; if (j.size) [VIEW_W, VIEW_H] = j.size;
+  MSAA = !!j.msaa; QS = j.q || []; SS = j.ss ?? SS; FRAMES = j.frames ?? FRAMES;
+} else {
+const { chromium } = await import('playwright-core');
+const { BASE, launch } = await import('./chrome.mjs');
+browser = await launch(chromium, { maxMs: +(process.env.VERIFY_MAX_MS || 3000000) });
+page = await browser.newPage({ viewport: { width: VIEW_W, height: VIEW_H }, deviceScaleFactor: 1 });
 page.on('pageerror', e => errs.push(e.message));
 // MSAA and "already auto-detected" must be in storage before the map is built.
 await page.addInitScript(cfg => {
@@ -119,18 +128,15 @@ await page.evaluate(() => { window.cancelGraphicsAutoDetect && window.cancelGrap
 console.error(`[meter] style loaded ${T()}`);
 
 // ---- the in-page instrument ------------------------------------------------
+await page.evaluate(`window.__moireScore = { statOver: ${statOver}, settleWith: ${settleWith} };`);
 await page.evaluate(({ SS, FLAT_LEVELS, MASK_LEVELS, NOT_BUILDING, AUTHORED, STEP_PX, SUN_P }) => {
   const m = window.__map;
   const quiet = () => { const P = window.__facadePace, A = window.slopesApartments && window.slopesApartments.count; return !(P && P.busy) && !(A && !A.done); };
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  async function settle() {                       // walls stamped, buildings built, map idle - twice
-    for (let k = 0; k < 2; k++) {
-      const t = Date.now();
-      while (!quiet() && Date.now() - t < 120000) await sleep(200);
-      await new Promise(r => { const to = setTimeout(r, 60000); m.once('idle', () => { clearTimeout(to); r(); }); m.triggerRepaint(); });
-      await sleep(150);
-    }
-  }
+  const { statOver, settleWith } = window.__moireScore;
+  // walls stamped, buildings built, map idle - twice (moire-score.mjs)
+  const settle = () => settleWith({ quiet, sleep, now: Date.now, quietMaxMs: 120000, idleMaxMs: 60000,
+    waitIdle: ms => new Promise(r => { const to = setTimeout(() => r(false), ms); m.once('idle', () => { clearTimeout(to); r(true); }); m.triggerRepaint(); }) });
   async function setScale(s) { window.GFX.renderScale = s; window.applyGraphics(); await settle(); }
   const cv2 = document.createElement('canvas'), cx2 = cv2.getContext('2d', { willReadFrequently: true });
   function grab() {
@@ -156,7 +162,6 @@ await page.evaluate(({ SS, FLAT_LEVELS, MASK_LEVELS, NOT_BUILDING, AUTHORED, STE
   }
   const png = (rgb3, w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); const im = x.createImageData(w, h);
     for (let p = 0, o = 0, i = 0; p < w * h; p++, o += 3, i += 4) { im.data[i] = rgb3[o]; im.data[i + 1] = rgb3[o + 1]; im.data[i + 2] = rgb3[o + 2]; im.data[i + 3] = 255; } x.putImageData(im, 0, 0); return c.toDataURL('image/png'); };
-  const pctl = (arr, q) => { if (!arr.length) return 0; const a = Float32Array.from(arr).sort(); return a[Math.min(a.length - 1, Math.floor(q * a.length))]; };
 
   window.__meter = async function (v, frames) {
     m.stop(); m.jumpTo({ center: v.center, zoom: v.zoom, pitch: v.pitch, bearing: v.bearing });
@@ -203,28 +208,7 @@ await page.evaluate(({ SS, FLAT_LEVELS, MASK_LEVELS, NOT_BUILDING, AUTHORED, STE
       flat[y * W + x] = hi - lo < FLAT_LEVELS ? 1 : 0;
     }
     // -- per-frame errors, pooled --
-    const stat = (sel) => {                          // sel(p) -> bool
-      const errAll = [], bandAll = [], flick = [];
-      let sErr = 0, sBand = 0, sFl = 0, n = 0;
-      for (let p = 0; p < N; p++) {
-        if (!sel(p) || (p % W) < 1 || (p % W) > W - 2 || p < W || p >= N - W) continue;
-        n++;
-        let fm = 0, fm2 = 0, bandAcc = 0;
-        for (let f = 0; f < frames; f++) {
-          const E = e[f], o = p * 3;
-          const err = (Math.abs(E[o]) + Math.abs(E[o + 1]) + Math.abs(E[o + 2])) / 3;
-          sErr += err; if (f === 0 || f === frames >> 1 || f === frames - 1) errAll.push(err);
-          // band: 3x3 box of the signed error (blur(1x) - blur(truth) = blur(1x - truth))
-          let bs0 = 0, bs1 = 0, bs2 = 0;
-          for (let j = -1; j <= 1; j++) for (let q = -1; q <= 1; q++) { const oo = (p + j * W + q) * 3; bs0 += E[oo]; bs1 += E[oo + 1]; bs2 += E[oo + 2]; }
-          const band = (Math.abs(bs0) + Math.abs(bs1) + Math.abs(bs2)) / 27; sBand += band;
-          const l = (E[o] + E[o + 1] + E[o + 2]) / 3; fm += l; fm2 += l * l;
-        }
-        const mean = fm / frames, sd = Math.sqrt(Math.max(0, fm2 / frames - mean * mean));
-        sFl += sd; flick.push(sd);
-      }
-      return { n, err: n ? sErr / (n * frames) : 0, p99: pctl(errAll, 0.99), band: n ? sBand / (n * frames) : 0, flick: n ? sFl / n : 0, flickP99: pctl(flick, 0.99) };
-    };
+    const stat = sel => statOver(sel, { e, N, W, frames });
     const res = {
       name: v.name, canvas: [W, H], mask: nMask / N, authored: nA / N, maplibre: nB / N,
       all: stat(p => mask[p]), apt: stat(p => src[p] === 1), mpl: stat(p => src[p] === 2),
@@ -237,7 +221,6 @@ await page.evaluate(({ SS, FLAT_LEVELS, MASK_LEVELS, NOT_BUILDING, AUTHORED, STE
   };
 }, { SS, FLAT_LEVELS, MASK_LEVELS, NOT_BUILDING: NOT_BUILDING.source, AUTHORED, STEP_PX, SUN_P });
 
-const rows = [];
 for (const v of list) for (const arm of ARMS) {
   const tv = Date.now();
   await page.evaluate(js => { const m = window.__map; if (js) new Function('m', js)(m); }, arm.js);
@@ -252,24 +235,17 @@ for (const v of list) for (const arm of ARMS) {
   console.error(`[meter] ${tag} ${((Date.now() - tv) / 1000).toFixed(0)}s mask ${(r.mask * 100).toFixed(1)}% err ${r.all.err.toFixed(2)} flick ${r.all.flick.toFixed(2)}`);
 }
 
+}
+
 // ---- the table ---------------------------------------------------------------
-const f2 = x => x.toFixed(2), pad = (s, n) => String(s).padEnd(n), lp = (s, n) => String(s).padStart(n);
-const atFloor = (x, fl) => x <= fl * FLOOR_SLACK + FLOOR_ABS;
 console.log(`moire-meter  msaa=${MSAA ? 'on' : 'off'}  q=[${QS.join(',')}]  ${VIEW_W}x${VIEW_H} ss=${SS} frames=${FRAMES} step=${STEP_PX}px  floor rule: <= ${FLOOR_SLACK} x floor + ${FLOOR_ABS}`);
-console.log(pad('view', 22) + lp('bldg%', 6) + lp('aptShare', 9) + lp('err', 7) + lp('p99', 7) + lp('band', 7) + lp('flick', 7) + lp('flkP99', 7) + ' |' + lp('aptErr', 7) + lp('mplErr', 7) + ' |' + lp('flrErr', 7) + lp('flrP99', 7) + lp('flrFlk', 7) + lp('flat%', 6) + '  at-floor(err/p99/flk)');
-for (const r of rows) {
-  const a = r.all, fl = r.floor;
-  const ok = [atFloor(a.err, fl.err), atFloor(a.p99, fl.p99), atFloor(a.flick, fl.flick)].map(b => b ? 'Y' : 'n').join('/');
-  console.log(pad(r.name, 22) + lp((r.mask * 100).toFixed(1), 6) + lp((r.authored / Math.max(r.mask, 1e-9) * 100).toFixed(0) + '%', 9) + lp(f2(a.err), 7) + lp(f2(a.p99), 7) + lp(f2(a.band), 7) + lp(f2(a.flick), 7) + lp(f2(a.flickP99), 7) + ' |' + lp(f2(r.apt.err), 7) + lp(f2(r.mpl.err), 7) + ' |' + lp(f2(fl.err), 7) + lp(f2(fl.p99), 7) + lp(f2(fl.flick), 7) + lp((r.flatShare * 100).toFixed(0), 6) + '  ' + ok);
-}
-for (const arm of ARMS) {
-  const rs = rows.filter(r => r.arm === arm.name);
-  const avg = k => rs.reduce((s, r) => s + r.all[k], 0) / rs.length;
-  console.log(pad('MEAN ' + arm.name, 22) + lp('', 6) + lp('', 9) + lp(f2(avg('err')), 7) + lp(f2(avg('p99')), 7) + lp(f2(avg('band')), 7) + lp(f2(avg('flick')), 7) + lp(f2(avg('flickP99')), 7));
-}
-{ const h = await page.evaluate(() => ({ compiled: !!(window.CityLighting && window.CityLighting.patternFilter.compiled), failures: (window.CityLighting && window.CityLighting.stats.failures) || [], vertex: window.CityLighting && window.CityLighting.stats.vertexShaders, fragment: window.CityLighting && window.CityLighting.stats.fragmentShaders }));
+for (const line of tableLines(rows, { FLOOR_SLACK, FLOOR_ABS })) console.log(line);
+if (page) { const h = await page.evaluate(() => ({ compiled: !!(window.CityLighting && window.CityLighting.patternFilter.compiled), failures: (window.CityLighting && window.CityLighting.stats.failures) || [], vertex: window.CityLighting && window.CityLighting.stats.vertexShaders, fragment: window.CityLighting && window.CityLighting.stats.fragmentShaders }));
   console.log(`city-lighting: pattern filter compiled=${h.compiled}, shader failures=${h.failures.length}${h.failures.length ? ' ' + JSON.stringify(h.failures).slice(0, 300) : ''}`); }
 if (errs.length) console.error('PAGE ERRORS:', [...new Set(errs)].slice(0, 5).join(' | '));
 const jf = opt('--json', null);
-if (jf) fs.writeFileSync(jf, JSON.stringify({ msaa: MSAA, q: QS, ss: SS, frames: FRAMES, rows }, null, 1));
-await browser.__done();
+if (jf) fs.writeFileSync(jf, JSON.stringify({ msaa: MSAA, q: QS, ss: SS, frames: FRAMES, size: [VIEW_W, VIEW_H], rows }, null, 1));
+const failures = verdict(rows, { FLOOR_SLACK, FLOOR_ABS, FRAMES });
+for (const f of failures) console.error('[meter] FAIL: ' + f);
+if (failures.length) process.exitCode = 1;
+if (browser) await browser.__done();
