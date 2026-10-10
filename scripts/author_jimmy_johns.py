@@ -56,8 +56,8 @@ UP_WIN = [(9.58, 0.87), (7.89, 0.87), (6.05, 0.87), (4.13, 0.87), (1.72, 0.87)] 
 UP_Z = (4.50, 6.31)          # PHOTO: sill-line to head, 1.81 m tall; the meeting rail is at the middle
 GROUND_WIN = [(7.73, 9.69, 0.72, 2.45, 'shop'), (3.75, 5.34, 0.80, 2.59, 'shop')]   # v0, v1, z0, z1: the two storefront windows
 DOOR = (1.05, 1.93, 0.28, 2.57)   # v0, v1, z0, z1: the entrance, 0.88 x 2.29 m
-AWNING = dict(z_top=3.70, z_front=2.77, valance=0.26, out=1.0)   # PHOTO: black slope over the whole north wall, red valance; depth INFERRED
-FRAME_T, FRAME_PROUD, PANE_PROUD, SILL_PROUD, SILL_H = 0.09, 0.10, 0.04, 0.14, 0.12
+AWNING = dict(z_top=3.70, z_front=2.77, valance=0.20, out=1.0)   # PHOTO: black slope over the whole north wall, red valance; depth INFERRED
+FRAME_T, FRAME_PROUD, PANE_PROUD, SILL_PROUD, SILL_H = 0.055, 0.10, 0.04, 0.14, 0.12
 # ---- the signs (PHOTO): real words, solid letters standing off the wall ----
 SIGN_JJ = dict(text='JJ', v_centre=8.425, w=0.95, h=0.96, z0=6.69, tone='signRed')        # the red double J, x 1.78 to 2.73 m from the NE end
 SIGN_WORD = dict(text="JIMMY JOHN'S", v_centre=5.05, w=5.36, h=0.59, z0=6.95, tone='signDark')   # x 2.95 to 8.31 m, cap height 0.57 m
