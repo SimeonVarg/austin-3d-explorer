@@ -40,7 +40,7 @@ export const TUNE = {
   },
   determinism: { pose: 'tower-night', loads: 2, tolerance: 12 },
   sequence: { pose: 'west-far', frames: 8, stepMs: 250, nearM: 250, farM: 900, litLuma: 70,
-              minFarOverNear: 3, minFarCv: 0.03, maxNearCv: 0.01 },
+              minFarOverNear: 3, minFarCv: 0.03, maxNearCv: 0.01, farMaxM: 6000, warmMargin: 8 },
   cost: { pose: 'tower-night', reps: 7, frames: 24, maxExtraMs: 2.0 },
   live: { seconds: 3, minFps: 8, pose: 'tower-night' },
 };
@@ -290,11 +290,11 @@ await stage('sequence', async () => {
     const vis = mapFile ? Buffer.alloc(W * H * 3) : null;
     for (let y = 0; y < H; y++) {
       const d = rowDist[Math.min(hCss - 1, Math.floor(y * hCss / H))];
-      const b = d == null ? null : d < S.nearM ? 'near' : d > S.farM ? 'far' : null;
+      const b = d == null ? null : d < S.nearM ? 'near' : (d > S.farM && d < S.farMaxM) ? 'far' : null;   // rows above the horizon give a huge distance: stars and sky are not lights
       for (let x = 0; x < W; x++) {
         const i = (y * W + x) * ref.bpp;
         const l0 = 0.2126 * ref.data[i] + 0.7152 * ref.data[i + 1] + 0.0722 * ref.data[i + 2];
-        const lit = l0 >= STAGES[st] && ref.data[i] >= ref.data[i + 2];
+        const lit = l0 >= STAGES[st] && ref.data[i] >= ref.data[i + 2] + S.warmMargin;   // warm: a window or a lamp, not a white star or a pale wall
         let mu = 0, ss = 0, sd = 0;
         if (lit && (b || vis)) { const ls = imgs.map(im => 0.2126 * im.data[i] + 0.7152 * im.data[i + 1] + 0.0722 * im.data[i + 2]); mu = ls.reduce((a, c) => a + c, 0) / ls.length; ls.forEach(v => ss += (v - mu) * (v - mu)); sd = Math.sqrt(ss / ls.length); }
         if (lit && b) { const B = band[b]; B.n++; B.s += sd * sd; const cv = sd / Math.max(1, mu); B.cv += cv; B.c2 += cv * cv; if (cv > 0.01) B.vary++; }
@@ -336,7 +336,7 @@ await stage('live', async () => {
   ];
   for (const [label, q, prep, want] of arms) {
     const page = await open(q); await settle(page, TUNE.poses[L.pose]);
-    if (prep) await page.evaluate(prep);
+    if (prep) { await page.evaluate(prep); await page.waitForTimeout(1500); }   // let a redraw that was already queued finish
     await page.evaluate(() => window.dispatchEvent(new Event('pointermove')));   // someone is at the screen (the ticker stops after 5 idle minutes)
     const frames = await page.evaluate(sec => new Promise(r => { let n = 0; const m = window.__map; const f = () => n++; m.on('render', f); setTimeout(() => { m.off('render', f); r(n); }, sec * 1000); }), L.seconds);
     const fps = frames / L.seconds;

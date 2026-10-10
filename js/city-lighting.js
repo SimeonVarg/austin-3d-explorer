@@ -192,12 +192,14 @@
     vec3 cityEyeGain(vec3 pos,vec3 src) {
       int bits=int(u_cityEye2.w+.5);
       if(bits==0||u_cityNight.x<=0.0)return vec3(1.0);
-      if(dot(src,vec3(.2126,.7152,.0722))<u_cityNight.z)return vec3(1.0);
+      // src.r < 0 means 'no per-window colour here' (a solid glass tower): the window is named by its place in a 2.8 m x 3.4 m grid instead.
+      bool placed=src.r<0.0;
+      if(!placed&&dot(src,vec3(.2126,.7152,.0722))<u_cityNight.z)return vec3(1.0);
       // The name drops the low 3 bits of each channel: a filtered edge pixel (a window blended with its wall) then keeps
       // its neighbour's name more often, so a camera move does not re-roll a window's bedtime. A name still cannot tell
       // two windows of one colour apart; the 37 m cell and the position phase do that.
       highp uvec3 q=uvec3(clamp(floor(src*255.0+.5),0.0,255.0))>>3u;
-      highp uvec3 h=cityPcg(uvec3(q.r|(q.g<<5u)|(q.b<<10u),9157u,23501u));
+      highp uvec3 h=placed?cityPcg(uvec3(ivec3(floor(pos/vec3(2.8,2.8,3.4)))+ivec3(8192))):cityPcg(uvec3(q.r|(q.g<<5u)|(q.b<<10u),9157u,23501u));
       highp uvec3 h2=cityPcg(h^uvec3(1752346532u));
       vec3 f=vec3(h>>8u)/16777216.0,g=vec3(h2>>8u)/16777216.0;
       highp uvec3 hc=cityPcg(uvec3(ivec3(floor(pos/vec3(37.0,37.0,11.0)))+ivec3(4096)));
@@ -784,7 +786,8 @@
               vec3 shaded=cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,${campusMaterials.gdcReflection.toFixed(3)});
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
               shaded=cityLocalLight(shaded,v_cityAlbedo.rgb,v_cityPos,v_cityNormal,1.0);
-              fragColor=vec4(cityEmission(shaded,v_cityAlbedo.rgb,1.0)*v_color.a,v_color.a);
+              vec3 lit=cityEmission(shaded,v_cityAlbedo.rgb,1.0);lit=shaded+(lit-shaded)*cityEyeGain(v_cityPos,vec3(-1.0));
+              fragColor=vec4(lit*v_color.a,v_color.a);
               }else{
               float glass=1.0-step(1.5,u_citySolidSurface);
               vec4 grid=glass>.5?landmarkGrid(v_cityPos,normalize(v_cityNormal)):vec4(0.0);
@@ -793,7 +796,7 @@
               vec3 original=mix(v_color.rgb/max(v_color.a,.0001)*recess,grid.rgb*${landmarkMaterials.frameShade.toFixed(3)},grid.a);
               vec3 shaded=cityShade(original,albedo,v_cityPos,v_cityNormal,glass*(1.0-grid.a)*${landmarkMaterials.reflection.toFixed(3)});
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
-              if(glass>.5)shaded=cityEmission(shaded,v_cityAlbedo.rgb,1.0-grid.a);
+              if(glass>.5){vec3 lit=cityEmission(shaded,v_cityAlbedo.rgb,1.0-grid.a);shaded=shaded+(lit-shaded)*cityEyeGain(v_cityPos,vec3(-1.0));}
               else shaded=mix(shaded,max(shaded,albedo*u_cityNight.y),u_cityNight.x);
               fragColor=vec4(shaded*v_color.a,v_color.a);
               }`;

@@ -58,7 +58,7 @@
   //   ?twinkle=<n>     scale of the far-light shimmer (0 off, 1 default, 2 double)
   //   ?glare=<n>       scale of the eye's glare lobes added to the bloom (0 off)
   //   ?nightcolour=0   the old four-tone window palette for every building type
-  //   ?officecool=<n>  share of office windows lit cool white (0 = the old mix, default .65)
+  //   ?officecool=<n>  share of office windows lit cool white (0 = the old mix, default .85)
   //   ?nightdrift=0    no slow switching and no late-night windows going dark
   //   ?nightseed=<n>   freeze every time-driven and random part of the night at seed n
   //   ?nightfreeze=1   same, at seed 0 (what the picture checks use)
@@ -88,7 +88,7 @@
     cardsOnly:true,      // on by default only where graphics.js finds a graphics card (like the far pattern filter)
     // 3. Variety by building type and hour.
     colour:master&&q.get('nightcolour')!=='0',
-    officeCool:master?num('officecool',.65):0,   // share of an office family's lit windows that are neutral or cool white (generic buildings, facades.js)
+    officeCool:master?num('officecool',.85):0,   // share of an office family's lit windows that are neutral or cool white (generic buildings, facades.js)
     // 4. Slow change. Each lit window rests for `offBase` of a private cycle of switchS seconds; late in the
     //    night the windows go dark in order (each has a fixed bedtime), offices sooner than homes.
     drift:master&&q.get('nightdrift')!=='0',

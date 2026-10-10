@@ -1033,6 +1033,10 @@
 
   const TONE_CUM = [];
   { let acc = 0; for (const t of WINDOW_TONES) TONE_CUM.push(acc += t.w); }
+  // What a lit office is: neutral white, 4000 K white, 5000 K cool white. Taken by the share of an office family's windows that
+  // js/city-night.js `eye.officeCool` names (?officecool=<n>); the rest of its windows keep the mixed palette above.
+  const OFFICE_TONES = [{ rgb: [244, 235, 200], w: 0.30 }, { rgb: [205, 219, 235], w: 0.45 }, { rgb: [222, 232, 244], w: 0.25 }];
+  function pickOfficeTone(u) { let a = 0; for (const t of OFFICE_TONES) { a += t.w; if (u <= a) return t.rgb; } return OFFICE_TONES[OFFICE_TONES.length - 1].rgb; }
   function pickTone(roll) {
     const x = roll * TONE_CUM[TONE_CUM.length - 1];
     for (let i = 0; i < TONE_CUM.length; i++) if (x <= TONE_CUM[i]) return WINDOW_TONES[i].rgb;
@@ -2161,7 +2165,7 @@
           // Offices are lit with 4000-5000 K white, not the warm mix a home gets (js/city-night.js, eye.officeCool: share of an office
           // family's lit windows that take a neutral or cool-white tone; ?officecool=0 puts the old mix back).
           const officeCool = (mat === 'tw' || mat === 'tg') ? (window.CityNight?.eye?.officeCool || 0) : 0;
-          let tone = pickTone(toneRoll < officeCool ? 0.70 + 0.27 * (toneRoll / officeCool) : toneRoll * warmBias);
+          let tone = toneRoll < officeCool ? pickOfficeTone(toneRoll / officeCool) : pickTone(toneRoll * warmBias);
           const bRoll = hash01(seed + 2003, r, c);
           let bright = PANE_BRIGHT_MIN + (PANE_BRIGHT_MAX - PANE_BRIGHT_MIN) * (1 - bRoll * bRoll);
           if (hash01(seed + 3001, r, c) < HOT_PANE_RATE) {
