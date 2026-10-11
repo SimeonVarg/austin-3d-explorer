@@ -80,7 +80,7 @@ const ARMS = {
 };
 // Tuning arms, named in --arms (held to main's truth, shown in the EXTRA ARMS table): one parameter of the fix changed, the rest at their defaults.
 const TUNING = Object.fromEntries(Object.entries({
-  ne5: 'nightEdge=0.5', ne10: 'nightEdge=1', nothru: 'through=0', nopar: 'parallax=0', norows: 'rows=0', noedge: 'edge=false',
+  ne0: 'nightEdge=0', ne5: 'nightEdge=0.5', nothru: 'through=0', noedge: 'edge=false',
 }).map(([k, v]) => [k, { js: `window.MoireFix.reset(); window.MoireFix.set(1); window.MoireFix.params.${v}`, truth: 'main', extra: true }]));
 // ----------------------------------------------------------------------------
 
@@ -289,7 +289,7 @@ for (const v of list) {
 
 // ---- the table ---------------------------------------------------------------
 const f2 = x => x.toFixed(2), f3 = x => x.toFixed(3), pad = (s, n) => String(s).padEnd(n), lp = (s, n) => String(s).padStart(n);
-const ctx = await page.evaluate(() => { const gl = window.__map.painter.context.gl; const e = gl.getExtension('WEBGL_debug_renderer_info'); return { samples: gl.getParameter(gl.SAMPLES), renderer: e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : '?', fix: window.MoireFix ? window.MoireFix.info() : null, failures: (window.CityLighting && window.CityLighting.stats.failures) || [] }; });
+const ctx = await page.evaluate(() => { const gl = window.__map.painter.context.gl; const e = gl.getExtension('WEBGL_debug_renderer_info'); return { samples: gl.getParameter(gl.SAMPLES), renderer: e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : '?', fix: window.MoireFix ? (window.MoireFix ? { params: window.MoireFix.params } : null) : null, failures: (window.CityLighting && window.CityLighting.stats.failures) || [] }; });
 const lines = [];
 lines.push(`moire-bar  msaa=${MSAA ? 'on' : 'off'} (context samples ${ctx.samples})  ${VIEW_W}x${VIEW_H} truth=${TRUTH} ss=${SS} frames=${FRAMES} step=${STEP_PX}px  arms=${armNames.join(',')}  renderer=${ctx.renderer}`);
 lines.push(`levels of 255 over building pixels. err = mean |1x - 4x4 truth|; flicker = mean |e(f+1) - e(f)|; noise = second shot of main against the first. AT FLOOR: fix <= flat + noise + ${SLACK}`);

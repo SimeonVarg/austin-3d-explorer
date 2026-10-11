@@ -10,8 +10,7 @@
  *  1. THE RECORD. What faceOpen / faceCell / faceClose write for a face equals the area-weighted means worked out a second way
  *     (the face rasterised at 1 cm, every sample classified on its own): opaque day / golden / night, glass day / golden,
  *     unlit and lit glass night, the glass share, the lit share. Tolerance 0.02 of a level (the raster's own resolution).
- *  2. THE ROW STRIP. Every strip texel equals that raster's mean over the texel's height: colour x opaque share and glass share
- *     within 0.75 of a level (bytes), lit share the same.
+ *  2. (the row strips of the first version were measured worth under 0.05 of a level and removed; the number is kept so the others stay put)
  *  3. THE PICTURE. A JS transcription of VERT's lighting and FRAG's shading (sun, shade, glass reflection, night ambient, window
  *     emission) is run on every CELL and averaged by area (what a supersampled picture of a far wall averages to, in the 8-bit
  *     space the frame buffer holds), and on the fix's three CLASS means with the fix's weights. Over 400 seeded lightings
@@ -23,7 +22,7 @@
  *  4. THE EDGE STRIPS, read the way FRAG reads them (the wall's own direction as the axis, the height its foot is drawn at):
  *     every pane's centre is glass, a wall point clear of the panes is not, and a pixel-sized box reads the raster's glass share.
  *
- *   node scripts/verify/moire-mean.mjs            exit 0 = all four hold
+ *   node scripts/verify/moire-mean.mjs            exit 0 = all hold
  *   node scripts/verify/moire-mean.mjs --break    the glass share of every record is scaled by 1.15 after the build: must FAIL (exit 1)
  */
 import fs from 'node:fs'; import path from 'node:path'; import vm from 'node:vm';
@@ -107,9 +106,9 @@ function record(T, F) {
     const sm = (xs[i] + xs[i + 1]) / 2, zm = (zs[j] + zs[j + 1]) / 2;
     let own = null; for (const r of F.rects) if (!r[10] && sm > r[0] && sm < r[1] && zm > r[2] && zm < r[3]) own = r;   // the last one laid there
     if (!own) continue;
-    T.faceCell(xs[i], xs[i + 1], zs[j], zs[j + 1], own[4], own[5], own[6], own[7], own[8], own[9]);
+    T.faceCell(xs[i], xs[i + 1], zs[j], zs[j + 1], own[4], own[6], own[7], own[8], own[9]);
   }
-  for (const r of F.rects) if (r[10]) { T.faceCell(r[0], r[1], r[2], r[3], r[4], false, false, 0, 0, 0); T.faceCell(r[0], r[1], r[2], r[3], r[10].over, true, r[10].lit, 0, 0, 0, true); }
+  for (const r of F.rects) if (r[10]) { T.faceCell(r[0], r[1], r[2], r[3], r[4], false, 0, 0, 0); T.faceCell(r[0], r[1], r[2], r[3], r[10].over, r[10].lit, 0, 0, 0, true); }
   T.faceClose();
   return { id, R };
 }
@@ -154,9 +153,9 @@ function lighting() {
 const T = S.packTables(); const MAXN = 2 ** (31 - 14);
 say(!!(T && T.faceOpen), 'the packed tables carry the face recorder');
 const recs = FACES.map(F => record(T, F));
-const FT = MOIRE.FACE_TEXELS * 4, RW = MOIRE.ROW_W;
+const FT = MOIRE.FACE_TEXELS * 4;
 if (BREAK) for (const r of recs) T.faces[r.id * FT + 3] *= 1.15;
-let worstRec = 0, worstRow = 0, worstPic = 0, worstDay = 0, where = '';
+let worstRec = 0, worstPic = 0, worstDay = 0, where = '';
 FACES.forEach((F, fi) => {
   const { id, R } = recs[fi], W = T.faces, o = id * FT, tex = k => [W[o + k * 4], W[o + k * 4 + 1], W[o + k * 4 + 2], W[o + k * 4 + 3]];
   // -- 1. the record against the raster --
@@ -168,16 +167,6 @@ FACES.forEach((F, fi) => {
   for (const k in want) for (let c = 0; c < 3; c++) worstRec = Math.max(worstRec, Math.abs(want[k].c[c] - got[k][c]) * 255);
   const g = want.gD.a / tot, L = want.lN.a / tot;
   worstRec = Math.max(worstRec, Math.abs(g - tex(0)[3]) * 255, Math.abs(L - tex(1)[3]) * 255);
-  // -- 2. the strip against the raster --
-  const r8 = tex(8), n = tex(9)[0], base = (r8[1] * RW + r8[0]) * 4, perTexel = (F.z1 - F.z0) / n / STEP;
-  for (let k = 0; k < n; k++) {
-    const u0 = k * perTexel, u1 = (k + 1) * perTexel;                 // the texel's height in raster lines; a line it only partly covers counts for that part
-    let cnt = 0, gl = 0, li = 0; const od = [0, 0, 0], on = [0, 0, 0];
-    for (let y = Math.floor(u0); y < Math.min(R.nz, Math.ceil(u1)); y++) { const wt = Math.min(u1, y + 1) - Math.max(u0, y); if (wt <= 0) continue;
-      for (let x = 0; x < R.nx; x++) { const r = F.rects[R.idx[y * R.nx + x]]; cnt += wt; if (r[5]) { gl += wt; if (r[6]) li += wt; } else { const d = b3(r[4][0]), nn = b3(r[4][2]); for (let c = 0; c < 3; c++) { od[c] += wt * d[c]; on[c] += wt * nn[c]; } } } }
-    for (let c = 0; c < 3; c++) worstRow = Math.max(worstRow, Math.abs(od[c] / cnt - T.rowA[base + k * 4 + c]), Math.abs(on[c] / cnt - T.rowB[base + k * 4 + c]));
-    worstRow = Math.max(worstRow, Math.abs(255 * gl / cnt - T.rowA[base + k * 4 + 3]), Math.abs(255 * li / cnt - T.rowB[base + k * 4 + 3]));
-  }
   // -- 3. the picture: every cell shaded and averaged, against the fix's class shades of the record --
   const f01 = h => b3(h).map(v => v / 255);
   for (let t = 0; t < 400; t++) {
@@ -202,7 +191,7 @@ FACES.forEach((F, fi) => {
   const nrm = (FRAME.out[0] * FRAME.t[1] - FRAME.out[1] * FRAME.t[0]) > 0 ? [FRAME.t[1], -FRAME.t[0]] : [-FRAME.t[1], FRAME.t[0]], ax = [-nrm[1], nrm[0]];
   let worstPane = 1, worstWall = 0, worstBox = 0, panes = 0;
   FACES.forEach((F, fi) => {
-    const o = recs[fi].id * FT, r8z = W[o + 34], base = W[o + 37], nz = W[o + 38], ns = W[o + 39], invZ = W[o + 40], invS = W[o + 41], s0 = W[o + 42];
+    const o = recs[fi].id * FT, r8z = W[o + 19], base = W[o + 33], nz = W[o + 34], ns = W[o + 35], invZ = W[o + 36], invS = W[o + 37], s0 = W[o + 38];
     if (!(nz > 0)) return;                              // a face with no glass has no strips
     const R = recs[fi].R;
     const cover = (sc, zc, fs, fz) => { const p = [FRAME.o[0] + sc * FRAME.t[0], FRAME.o[1] + sc * FRAME.t[1]], axis = p[0] * ax[0] + p[1] * ax[1], zDrawn = zc + FRAME.lift;
@@ -227,13 +216,12 @@ FACES.forEach((F, fi) => {
   say(worstBox <= 0.12, `4c. edge strips: the glass share of a 0.3 to 1.5 m box matches the 1 cm raster within ${worstBox.toFixed(3)} (limit 0.12: the strips' 0.1 m texel)`);
 }
 say(worstRec <= 0.02, `1. face records equal the rastered area means: worst difference ${worstRec.toFixed(4)} of a level (limit 0.02)`);
-say(worstRow <= 0.75, `2. row strips equal the rastered row means: worst difference ${worstRow.toFixed(3)} of a level (limit 0.75)`);
 say(worstDay <= 1.0, `3a. by day (the sun's own shading fully on) the far wall is as bright as the near wall: worst channel difference ${worstDay.toFixed(3)} of a level over ${FACES.length} faces (limit 1.0)`);
 // Dusk and night are NOT exact, and this line says by how much: VERT brightens a dark tone (max(1 - luma + intensity, 1)), which is not linear in the
 // tone, and from dusk on that vertex colour shows. A wall of dark and pale parts side by side is the worst case. The limit holds the size of it.
 say(worstPic <= 8.0, `3b. dusk and night: worst channel difference ${worstPic.toFixed(3)} of a level (limit 8.0; not exact, see the comment) at ${where}`);
 // a face of one tone takes no record; the fix off takes no face at all
-{ const T2 = S.packTables(); const id = T2.faceOpen(0, 10); T2.faceCell(0, 5, 0, 10, tone([100, 100, 100]), false, false, 0, 0, 0); T2.faceClose();
+{ const T2 = S.packTables(); const id = T2.faceOpen(0, 10); T2.faceCell(0, 5, 0, 10, tone([100, 100, 100]), false, 0, 0, 0); T2.faceClose();
   say(id === 1 && T2.faces[id * FT + 11] === 0, 'a face of one tone stays inactive (feature size 0: FRAG leaves it alone)');
   T2.nNormals = MAXN; say(T2.faceOpen(0, 10) === 0, 'with the normal table nearly full no face number is handed out (no overflow)'); }
 // the normal table: a face number separates two entries of one direction, and no face is the entry it always was

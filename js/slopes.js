@@ -1182,7 +1182,7 @@ ${window.RoofTiles.apply}
       uniforms: { u_packTones: { value: tables.tex.tones }, u_packNormals: { value: tables.tex.normals } },
       defines: { PACKED_TONES: 1, PACK_TONES: PACK_TONES.toFixed(1), PACK_NLOW: PACK_NLOW.toFixed(1), PACK_TEXW: W.toFixed(1) },
     };
-    if (MF && tables.nFaces > 1 && tables.faces && tables.rowA) MF.parts(tables, parts, T, tex, W);
+    if (MF && tables.nFaces > 1 && tables.faces) MF.parts(tables, parts, T, tex, W);
     return parts;
   }
 

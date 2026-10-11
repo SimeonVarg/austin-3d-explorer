@@ -745,7 +745,6 @@
    * per cell; a window cell is recessed by `reveal` with four reveal strips.
    */
   const _held = [];   // MOIRE FIX: tileFace's cells, held until it knows whether the face has more than one tone (docs/moire-fix.md)
-  const isGlassTone = col => !!col.surface && (col.surface[0] === 4 || col.surface[0] === 6);
   function tileFace(B, face, skin, P, opts) {
     const { W, len, z0, z1, cut } = face;
     // Complex cut/arched openings keep their geometric representation. The
@@ -872,14 +871,14 @@
       for (let i = 0; i < held; i++) {
         const [sa, sb, za, zb, d, col, w] = _held[i];
         faceQuad(B, W, sa, sb, za, zb, d, col);
-        if (fid) MF.faceCell(sa, sb, za, zb, col, isGlassTone(col), !!w && w.lit === true, w ? w.s1 - w.s0 : sb - sa, w ? w.z1 - w.z0 : zb - za, w ? -d : 0);
+        if (fid) MF.faceCell(sa, sb, za, zb, col, !!w && w.lit === true, w ? w.s1 - w.s0 : sb - sa, w ? w.z1 - w.z0 : zb - za, w ? -d : 0);
         _held[i] = null;
       }
       B.face(0);
     }
     // a piece of wall or bar laid over a pane, in the wall's own plane: it joins the face, and the face's means move from glass to it
     const over = (w, sa, sb, za, zb, col) => { if (!fid || !(zb > za) || !(sb > sa)) return; const pane = paneOf(w);
-      MF.faceCell(sa, sb, za, zb, col, false, false, 0, 0, 0); MF.faceCell(sa, sb, za, zb, pane, isGlassTone(pane), w.lit === true, 0, 0, 0, true); };
+      MF.faceCell(sa, sb, za, zb, col, false, 0, 0, 0); MF.faceCell(sa, sb, za, zb, pane, w.lit === true, 0, 0, 0, true); };
     if(filterRects&&filterRects.length>1) {
       const face={W,len,z0,z1,rects:filterRects};
       // Plan the selected facades together: early buildings must not consume

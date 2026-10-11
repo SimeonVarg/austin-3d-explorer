@@ -3,7 +3,7 @@
  *
  * One page load. At each view the map is redrawn FRAMES times with the fix off and FRAMES times with it on, REPS times, interleaved
  * (off, on, off, on ...), each redraw closed by a one-pixel read so the GPU has really finished. Reported: the MINIMUM over the reps of
- * the median frame, per arm, and the difference. Also: the fix's table sizes (MoireFix.info) and the triangles drawn.
+ * the median frame, per arm, and the difference. Also: the fix's table sizes (from the tables on the meshes) and the triangles drawn.
  * Quote the machine with the number: this page is CPU-bound on a fast card, so a difference under the spread is no difference.
  *
  *   VERIFY_URL=http://127.0.0.1:<port> VERIFY_GL=hardware node moire-cost.mjs [--out dir] [--size 1440x900] [--frames 60] [--reps 5] [--msaa 0|1]
@@ -58,11 +58,11 @@ for (const v of VIEWS) {
   rows.push(r);
   console.error(`[cost] ${r.name} off ${r.off.toFixed(2)} ms  on ${r.on.toFixed(2)} ms  (${(r.on - r.off >= 0 ? '+' : '') + (r.on - r.off).toFixed(2)})`);
 }
-const info = await page.evaluate(() => { const gl = window.__map.painter.context.gl, e = gl.getExtension('WEBGL_debug_renderer_info'); return { fix: window.MoireFix.info(), renderer: e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : '?', samples: gl.getParameter(gl.SAMPLES) }; });
+const info = await page.evaluate(() => { const gl = window.__map.painter.context.gl, e = gl.getExtension('WEBGL_debug_renderer_info'); return { fix: (() => { let faces = 0, tableBytes = 0, tables = 0; const seen = new Set(), g = window.slopesApartments && window.slopesApartments.group; if (g) g.traverse(o => { const pk = o.isMesh && o.geometry && o.geometry.userData.pack; if (pk && !seen.has(pk)) { seen.add(pk); tables++; faces += pk.nFaces - 1; tableBytes += pk.faceBytes ? pk.faceBytes() : 0; } }); return { faces, tableBytes, tables }; })(), renderer: e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : '?', samples: gl.getParameter(gl.SAMPLES) }; });
 const lines = [`moire-cost  ${W}x${H}  msaa=${MSAA ? 'on' : 'off'} (samples ${info.samples})  frames=${FRAMES} reps=${REPS}  renderer=${info.renderer}`,
   'frame = one forced redraw + a one-pixel read; min over reps of the median, ms', 'view                 off      on    diff   spread off        spread on         triangles'];
 for (const r of rows) lines.push(r.name.padEnd(18) + r.off.toFixed(2).padStart(7) + r.on.toFixed(2).padStart(8) + ((r.on - r.off >= 0 ? '+' : '') + (r.on - r.off).toFixed(2)).padStart(8) + ('   ' + Math.min(...r.offAll).toFixed(2) + '-' + Math.max(...r.offAll).toFixed(2)).padEnd(19) + (Math.min(...r.onAll).toFixed(2) + '-' + Math.max(...r.onAll).toFixed(2)).padEnd(18) + r.tris);
-lines.push(`tables: ${info.fix.faces} wall faces, ${(info.fix.tableBytes / 1048576).toFixed(2)} MiB in ${info.fix.tables} table set(s) (face records + row strips + edge strips); vertices and vertex bytes unchanged`);
+lines.push(`tables: ${info.fix.faces} wall faces, ${(info.fix.tableBytes / 1048576).toFixed(2)} MiB in ${info.fix.tables} table set(s) (face records + edge strips); vertices and vertex bytes unchanged`);
 console.log(lines.join('\n'));
 if (OUT) { fs.mkdirSync(OUT, { recursive: true }); fs.writeFileSync(path.join(OUT, 'cost.txt'), lines.join('\n') + '\n'); fs.writeFileSync(path.join(OUT, 'cost.json'), JSON.stringify({ size: [W, H], msaa: MSAA, info, rows }, null, 1)); }
 await browser.__done();

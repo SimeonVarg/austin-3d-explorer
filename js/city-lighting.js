@@ -51,7 +51,7 @@
   // not even the registers. A live `on` switch works only where it compiled.
   // THE MOIRE FIX (docs/moire-fix.md): this file holds its MapLibre-wall half and loads js/moire.js (the authored-building half) only where it is on.
   const query=new URLSearchParams(location.search), canLoad=typeof document!=='undefined'&&document.readyState==='loading'&&!!document.currentScript;
-  const MOIRE_DEFAULT_ON=false, moireSwitch=query.get('moirefix');
+  const MOIRE_DEFAULT_ON=window.GFX_MSAA===false, moireSwitch=query.get('moirefix');   // on where Smooth edges is not (js/graphics.js decides that before this file loads)
   const moire={on:canLoad&&(moireSwitch==='1'||(moireSwitch!=='0'&&MOIRE_DEFAULT_ON)),walls:query.get('moirewalls')!=='0',nearM:0,fullM:60,mode:1,mainOn:patternFilter.on};
   if(moire.on&&moire.walls)patternFilter.on=true;
   patternFilter.compiled=patternFilter.on;
@@ -237,19 +237,12 @@
       if(nearEdge>.02&&a.z>0.0&&a.z<1.0)return mix(distant,shadowSample(u_sunShadow0,a),smoothstep(.02,.07,nearEdge));
       return distant;
     }
-    ${moire.on?`// split in two for the moire fix, whose class shades reuse this visibility instead of reading the shadow maps again
-    float cityVisibility=1.0;
-    vec3 cityShadeLit(vec3 original,vec3 albedo,vec3 pos,vec3 normal,float glass,float visibility);
+    ${moire.on?'float cityVisibility=-1.0,cityReuse=-1.0;':''}   // the moire fix's class shades reuse the cell's own shadow read
     vec3 cityShade(vec3 original,vec3 albedo,vec3 pos,vec3 normal,float glass) {
-      if(u_sunlight.x<.5||u_sunPresence.x<=0.0)return original;
-      cityVisibility=sunlightVisibility(pos,normalize(normal));
-      return cityShadeLit(original,albedo,pos,normal,glass,cityVisibility);
-    }
-    vec3 cityShadeLit(vec3 original,vec3 albedo,vec3 pos,vec3 normal,float glass,float visibility) {`:`vec3 cityShade(vec3 original,vec3 albedo,vec3 pos,vec3 normal,float glass) {`}
       if(u_sunlight.x<.5||u_sunPresence.x<=0.0)return original;
       vec3 n=normalize(normal),view=normalize(u_eye-pos);
       float facing=max(dot(n,u_sunDirection),0.0);
-      ${moire.on?'':'float visibility=sunlightVisibility(pos,n);'}
+      ${moire.on?'float visibility=cityReuse>=0.0?cityReuse:sunlightVisibility(pos,n);cityVisibility=visibility;':'float visibility=sunlightVisibility(pos,n);'}
       float skyFill=u_citySkyFill.x+u_citySkyFill.y*max(n.z,0.0);
       vec3 diffuse=linearColour(albedo)*(linearColour(u_shadeColour)*(u_sunlight.y+skyFill)+
         linearColour(u_sunColour)*facing*visibility*u_sunlight.z);
