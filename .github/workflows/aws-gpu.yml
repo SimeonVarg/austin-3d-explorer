@@ -71,8 +71,23 @@ jobs:
             [ "$(date +%s)" -gt "$deadline" ] && { echo "::warning::still running after the limit; the next step removes it"; break; }
             sleep 30
           done
-          mkdir -p results && aws s3 cp "s3://$RESULT_BUCKET/flyover-runs/" results/ --recursive --only-show-errors || true
-          ls -R results | head -50
+          # ONLY this run's folder (flyover-runs/<ref>-<instance id>/). The prefix holds every lane's old runs: fetching all of
+          # it was slow, and on 2026-10-10 one old folder with ':' and '|' in its file names made upload-artifact refuse
+          # every later run's results.
+          iid="$(grep -oE 'i-[0-9a-f]{8,17}' launch.log | head -1 || true)"
+          mkdir -p results
+          if [ -n "$iid" ]; then
+            aws s3 cp "s3://$RESULT_BUCKET/flyover-runs/" results/ --recursive --only-show-errors --exclude '*' --include "*-${iid}/*" || true
+          else
+            echo "::warning::no instance id in launch.log; nothing fetched"
+          fi
+          # upload-artifact refuses " : < > | * ? in a name: rename (deepest first), so one odd file cannot lose a whole run.
+          find results -depth -name '*[":<>|*?]*' | while IFS= read -r p; do
+            mv -- "$p" "$(dirname "$p")/$(basename "$p" | tr '":<>|*?' '_______')"
+          done
+          # NOT `ls -R | head`: under pipefail, ls dies of a broken pipe (exit 2) once head has its 50 lines, and the step
+          # went red although every check had passed. That one line is why 20 of 35 runs read "failure" on 2026-10-10.
+          find results -type f | sed -n '1,50p'
       - name: Make sure nothing is left running
         if: always()
         run: scripts/aws-gpu/teardown || true
