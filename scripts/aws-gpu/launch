@@ -87,6 +87,7 @@ while [ $# -gt 0 ]; do
     --region)         REGION="$2"; shift 2 ;;
     --key-name)       KEY_NAME="$2"; shift 2 ;;
     --print)          PRINT=1; shift ;;
+    --print-checks)   PRINT_CHECKS=1; shift ;;
     --dry-run)        DRYRUN=1; shift ;;
     -h|--help)        usage 0 ;;
     *) echo "unknown argument: $1" >&2; usage 1 ;;
@@ -104,7 +105,7 @@ USER_DATA_SRC="$HERE/user-data"
 
 # Build the CHECKS JSON the way run.py does: [{name,cmd,args}, ...].
 checks_json() {
-  local first=1
+  local first=1 used=$'\n'
   printf '['
   for c in "${CHECKS[@]}"; do
     # shellcheck disable=SC2206
@@ -119,6 +120,17 @@ checks_json() {
       name+="_${parts[$i]#--}"
     done
     args_json+="]"
+    # The name becomes ONE folder on the machine ($OUT/<name>) and a row in the manifest. An argument such as
+    # `--out /opt/flyover/out/guard` used to put slashes in it: the output landed in nested folders, the manifest
+    # (which reads the top folders only) recorded a null exit for a check that had passed (run 38122495368), and
+    # `: | * ?` in a name once made the artifact upload refuse a whole run. So: letters, digits, dot, dash and
+    # underscore only, at most 80 characters, and a number at the end when two checks would share a name.
+    # The command and its arguments are NOT changed.
+    name="$(printf '%s' "$name" | LC_ALL=C tr -c 'A-Za-z0-9._-' '_' | LC_ALL=C sed -E 's/_+/_/g; s/^[._-]+//; s/[._-]+$//' | cut -c1-80)"
+    [ -n "$name" ] || name="check"
+    local n=1 try="$name"
+    while case "$used" in *$'\n'"$try"$'\n'*) true ;; *) false ;; esac; do n=$((n+1)); try="${name}-${n}"; done
+    name="$try"; used+="${name}"$'\n'
     [ $first -eq 1 ] && first=0 || printf ','
     printf '{"name":"%s","cmd":"%s","args":%s}' "$name" "$cmd" "$args_json"
   done
@@ -126,6 +138,8 @@ checks_json() {
 }
 
 CHECKS_JSON="$(checks_json)"
+# --print-checks: only the name / command / arguments list the machine will get (test-offline reads it). Nothing starts.
+if [ "${PRINT_CHECKS:-0}" -eq 1 ]; then printf '%s\n' "$CHECKS_JSON"; exit 0; fi
 
 # The user-data template carries @@PLACEHOLDER@@ tokens; fill them in. Every
 # value is either a literal we control or shell-quoted inside the script, so no
