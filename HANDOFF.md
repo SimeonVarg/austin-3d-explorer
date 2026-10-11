@@ -88,6 +88,15 @@ Full rules: `CLAUDE.md` (same text in `AGENTS.md`). The short version:
 
 ## What is next
 
+**The owner's two open priorities (2026-10-11; the first as reported by the moire lane in lane mail, not yet said to
+the publishing lane directly):**
+1. **Moire is NOT accepted.** On his Mac the apartments in the opening flight still shimmer severely, and blur is not
+   an acceptable fix. #488 (roofs) and the optional #490 do not meet his bar. Acceptance is his eye on the real Mac in
+   the opening flight's motion, with a sharp picture. Passing numeric gates is evidence, not acceptance.
+2. **A photo-matched city from his rooftop photographs:** first the whole views (campus, east, north Austin: missing
+   apartments and distant buildings), then exact roof decks on three West Campus towers. Nothing is built yet; the
+   photographs are not on the build machine yet.
+
 `QUEUE.md` is 280 KB and mostly history. Its top-level headings, in order:
 - DONE 2026-09-29: four defects the owner saw on the live site (names, roads,
   time switch, night windows).
