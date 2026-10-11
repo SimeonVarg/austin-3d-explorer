@@ -744,7 +744,36 @@
    * resolved skin (rows, cols, tone(row, col, cell), windows). Emits one quad
    * per cell; a window cell is recessed by `reveal` with four reveal strips.
    */
+  // ROUND 3: deliberately coarse generator bound; no per-frame work, opt-in only.
+  const detailCut = q.get('detailcut') || '';
+  const cutClass = k => detailCut === 'all' || detailCut === k;
+  const cutStats = window.DetailCut = {mode:detailCut, faces:0, fins:0, rails:0, replacement:0};
+  function detailSink(kind, normal) {
+    const sum=Array.from({length:3},()=>[0,0,0]); let area=0;
+    const S={allowFilter:false};
+    S.tri=(a,b,c,col)=>{
+      cutStats[kind]++;
+      if(!normal || !col)return;
+      const u=b.map((x,i)=>x-a[i]),v=c.map((x,i)=>x-a[i]);
+      const n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];
+      const w=Math.abs(n.reduce((t,x,i)=>t+x*normal[i],0))/2; area+=w;
+      for(let t=0;t<3;t++){const rgb=hx3(col[t]||col[0]);for(let k=0;k<3;k++)sum[t][k]+=w*rgb[k];}
+    };
+    S.quad=(a,b,c,d,col)=>{S.tri(a,b,c,col);S.tri(a,c,d,col);};
+    S.polygon=(pts,col)=>{for(let i=1;i<pts.length-1;i++)S.tri(pts[0],pts[i],pts[i+1],col);};
+    S.mean=fallback=>area?sum.map(rgb=>hexify(rgb.map(x=>x/area))):fallback;
+    return S;
+  }
   function tileFace(B, face, skin, P, opts) {
+    if(!cutClass('faces'))return tileFaceFull(B,face,skin,P,opts);
+    const sink=detailSink('faces',face.W.N);
+    tileFaceFull(sink,face,{...skin,piers:null,fins:null,facets:null},P,opts);
+    faceCell(B,face.W,0,face.len,face.z0,face.z1,0,sink.mean(P.wall),face.cut);
+    cutStats.replacement+=2;
+    if(skin.piers)blades(B,face.W,skin.piers,face.len,face.z0,face.z1,P,face.cut);
+    if(skin.fins)blades(B,face.W,skin.fins,face.len,face.z0,face.z1,P,face.cut);
+  }
+  function tileFaceFull(B, face, skin, P, opts) {
     const { W, len, z0, z1, cut } = face;
     // Complex cut/arched openings keep their geometric representation. The
     // filtered sheet covers only a completely tiled rectangular facade.
@@ -967,6 +996,7 @@
     return at;
   }
   function blades(B, W, spec, len, z0, z1, P, cut) {
+    if(cutClass('fins')&&!spec.isPier)B=detailSink('fins');
     const w = spec.w || 0.3, d = spec.d != null ? spec.d : 0.3, off = spec.off || 0;
     const col = toneOf(P, spec.tone, 'frame'), front = spec.frontTone ? P[spec.frontTone] || col : null;
     const zb0 = Math.max(z0, spec.z0 != null ? spec.z0 : z0), zb1 = Math.min(z1, spec.z1 != null ? spec.z1 : z1);
@@ -1412,15 +1442,16 @@
     }
     const slab = P[spec.slabTone || 'slab'], rail = P[spec.railTone || 'rail'];
     function railing(a, b, d0, d1, z0, z1) {
-      if (!(spec.railPitch > 0)) return box(B, W, a, b, d0, d1, z0, z1, rail, { back: true });
+      const R=cutClass('rails')?detailSink('rails'):B;
+      if (!(spec.railPitch > 0)) return box(R, W, a, b, d0, d1, z0, z1, rail, { back: true });
       const post = spec.railPost || rt;
-      box(B, W, a, b, d0, d1, z1 - rt, z1, rail, { back: true });
-      box(B, W, a, b, d0, d1, z0, z0 + rt, rail, { back: true });
+      box(R, W, a, b, d0, d1, z1 - rt, z1, rail, { back: true });
+      box(R, W, a, b, d0, d1, z0, z0 + rt, rail, { back: true });
       const along = b - a >= d1 - d0, length = along ? b - a : d1 - d0;
       const n = Math.max(1, Math.ceil(length / spec.railPitch));
       for (let i = 0; i <= n; i++) {
         const x = (length - post) * i / n;
-        box(B, W, along ? a + x : a, along ? a + x + post : b,
+        box(R, W, along ? a + x : a, along ? a + x + post : b,
           along ? d0 : d0 + x, along ? d1 : d0 + x + post,
           z0 + rt, z1 - rt, rail, { back: true });
       }
@@ -2402,6 +2433,7 @@
     // brackets that cannot be represented honestly by stacked extrusion boxes.
     for (const mesh of spec.detailMeshes || []) {
       if ((mesh.minDetail || 0) > detailNow()) continue;
+      if(cutClass('rails')&&/rail|mullion|louvr|screen|baluster|window|frame/i.test([mesh.name,mesh.id,mesh.tone].join(' '))){cutStats.rails+=(mesh.triangles||[]).length;continue;}
       const col = P[mesh.tone], vertices = mesh.vertices;
       const points = vertices.map(p => F.at(...p));
       for (const tri of mesh.triangles || []) {
@@ -2414,6 +2446,7 @@
     if (APTS.deck && spec.deck) {
       const z = spec.deck.z;
       for (const it of spec.deck.items || []) {
+        if(cutClass('rails')&&/rail|screen|baluster/i.test([it.name,it.tone].join(' '))){cutStats.rails+=10;continue;}
         const R = rectWalls(F, it.plan);
         const z0 = z + (it.z0 || 0), z1 = z + (it.z1 != null ? it.z1 : (it.z0 || 0) + (it.h || 0.1));
         const col = P[it.tone];
