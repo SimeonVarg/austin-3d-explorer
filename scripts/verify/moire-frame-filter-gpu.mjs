@@ -26,8 +26,14 @@ try{
  const clean=p=>p.filter.attached&&!p.filter.blocked&&!p.filter.lastError&&!p.error&&!p.state?.mismatches&&p.defaultRead&&p.defaultDraw&&p.tracker&&p.filter.engine.textureFramebuffersComplete;
  await draw(18);await shot('day');let p=await proof();check('URL loader and active GPU filter',clean(p)&&p.filter.engine.sceneFrames===p.filter.engine.resolves,p);
 
- const labels=await page.evaluate(async()=>{const api=window.nameLabels,rows=api.visibility(),stats=api.stats();const cases=[];for(const row of [rows.find(r=>r.alpha>.95&&r.raw),rows.find(r=>r.layoutAlpha>.9&&r.alpha<.001&&!r.raw)].filter(Boolean)){const result=await api.hitTest((row.box[0]+row.box[2])/2,(row.box[1]+row.box[3])/2);cases.push({name:row.name,visible:row.alpha>.95,alpha:row.alpha,raw:row.raw,result:result?.id||result?.name||result});}return{failed:stats.failed,submitted:stats.submitted,cases};});
- check('visible names retain working hit targets',!labels.failed&&labels.cases.some(c=>c.visible&&c.result)&&labels.cases.every(c=>c.visible||!c.result),labels);
+ const probeLabels=names=>page.evaluate(async names=>{const api=window.nameLabels,rows=api.visibility(),stats=api.stats();const targets=names?names.map(name=>rows.find(r=>r.name===name)).filter(Boolean):[rows.find(r=>r.alpha>.95&&r.raw),rows.find(r=>r.layoutAlpha>.9&&r.alpha<.001&&!r.raw)].filter(Boolean);const cases=[];for(const row of targets){const result=await api.hitTest((row.box[0]+row.box[2])/2,(row.box[1]+row.box[3])/2);cases.push({name:row.name,alpha:row.alpha,raw:row.raw,hit:result?.properties?.name||null});}return{failed:stats.failed,submitted:stats.submitted,cases};},names);
+ const labels=await probeLabels(null);
+ await page.evaluate(()=>window.FrameFilter.setEnabled(false));await page.waitForTimeout(2200);await draw(18);
+ const nativeLabels=await probeLabels(labels.cases.map(c=>c.name));
+ // Native Intel rendering can return an occluded name from its hit query.
+ // Preserve actual baseline behavior; do not silently claim that existing bug is fixed.
+ check('label hit behavior matches native control',!labels.failed&&!nativeLabels.failed&&labels.cases.some(c=>c.alpha>.95&&c.hit===c.name)&&labels.cases.length===nativeLabels.cases.length&&labels.cases.every(c=>nativeLabels.cases.some(n=>n.name===c.name&&n.hit===c.hit)),{filtered:labels,native:nativeLabels});
+ await page.evaluate(()=>window.FrameFilter.setEnabled(true));await ready();
  await page.evaluate(()=>window.FrameFilter.setEnabled(false));await page.waitForTimeout(2200);await draw(18);const read=()=>page.evaluate(()=>{window.__map.redraw();const g=window.__map.painter.context.gl,d=new Uint8Array(g.drawingBufferWidth*g.drawingBufferHeight*4);g.readPixels(0,0,g.drawingBufferWidth,g.drawingBufferHeight,g.RGBA,g.UNSIGNED_BYTE,d);return Array.from(d);});const off1=await read();await draw(2);const offControl=await read();
  check('off frees filter',!(await proof()).filter.attached,(await proof()).filter);
  await page.evaluate(()=>window.FrameFilter.setEnabled(true));await draw(18);await page.evaluate(()=>window.FrameFilter.setEnabled(false));await page.waitForTimeout(2200);await draw(18);const off2=await read();
