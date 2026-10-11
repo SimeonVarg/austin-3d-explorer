@@ -5,7 +5,7 @@
 # shuts itself down (and, because the instance was launched with
 # instance-initiated-shutdown-behavior=terminate, shutting down TERMINATES it).
 #
-# The launch script fills the @@TOKENS@@ before this is sent as user-data.
+# The launch script fills the tokens between double at-signs before this is sent as user-data.
 #
 # ORDER MATTERS: arm the guardrails FIRST, before the long install/clone/run,
 # so a hang anywhere after this point still hits the hard cap and the box dies.
@@ -25,7 +25,10 @@ MAX_RUNTIME_MIN="@@MAX_RUNTIME_MIN@@"
 IDLE_TIMEOUT_MIN="@@IDLE_TIMEOUT_MIN@@"
 RESULT_BUCKET="@@RESULT_BUCKET@@"
 PROJECT_TAG="@@PROJECT_TAG@@"
-CHECKS_JSON='@@CHECKS_JSON@@'
+# The check list travels as base64 so that no character of a check's arguments (& | \ ' " $ * ?) can be read by sed,
+# awk or this shell on the way (run 38129844212: in `smooth=0&packmerge=1` the `&` arrived as the template token's own name).
+CHECKS_JSON_B64='@@CHECKS_JSON_B64@@'
+CHECKS_JSON="$(printf '%s' "$CHECKS_JSON_B64" | base64 -d)"
 
 BASE_PORT=8442
 WORK=/opt/flyover/work
@@ -181,9 +184,21 @@ echo "== graphics chip the browser reports: $(cat "$RENDERER_FILE" 2>/dev/null |
 # Run the checks, up to CONCURRENCY at once. Each gets its own port + server,
 # VERIFY_GL=hardware, and CHROME_PATH pointed at the EGL wrapper.
 # ---------------------------------------------------------------------------
+# args_of <index>: that check's arguments, one per NUL byte, exactly as given.
+args_of() {
+  python3 - "$CHECKS_JSON" "$1" <<'PY'
+import json, sys
+for a in json.loads(sys.argv[1])[int(sys.argv[2])].get("args", []): sys.stdout.write(a + "\0")
+PY
+}
+
 run_one() {
   local idx="$1" name="$2" cmd="$3" args="$4" port="$5"
   local outdir="$OUT/$name"
+  # The arguments go to node as they were given: an unquoted $args would be split again by this shell and its
+  # * ? [ ] matched against the files in scripts/verify.
+  local argv=() a
+  while IFS= read -r -d '' a; do argv+=("$a"); done < <(args_of "$idx")
   mkdir -p "$outdir"
   beat
   ( cd "$WORK/scripts/verify" \
@@ -192,7 +207,7 @@ run_one() {
        CHROME_PATH="$CHROME_WRAPPER" \
        VERIFY_OUT="$outdir" \
        VERIFY_MAX_MS="${VERIFY_MAX_MS:-600000}" \
-       node "$cmd" $args ) > "$outdir/stdout.txt" 2>&1
+       node "$cmd" ${argv[@]+"${argv[@]}"} ) > "$outdir/stdout.txt" 2>&1
   echo "$?" > "$outdir/exit"
   beat
 }

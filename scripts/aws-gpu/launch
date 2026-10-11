@@ -88,6 +88,7 @@ while [ $# -gt 0 ]; do
     --key-name)       KEY_NAME="$2"; shift 2 ;;
     --print)          PRINT=1; shift ;;
     --print-checks)   PRINT_CHECKS=1; shift ;;
+    --print-user-data) PRINT_UD=1; shift ;;
     --dry-run)        DRYRUN=1; shift ;;
     -h|--help)        usage 0 ;;
     *) echo "unknown argument: $1" >&2; usage 1 ;;
@@ -103,59 +104,62 @@ fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
 USER_DATA_SRC="$HERE/user-data"
 
-# Build the CHECKS JSON the way run.py does: [{name,cmd,args}, ...].
+# Build the CHECKS JSON the way run.py does: [{name,cmd,args}, ...]. Python, not shell: a shell array split
+# (`parts=($c)`) also expands * ? [ ] against the files in the folder, and hand-built JSON breaks on a quote or a
+# backslash in an argument. The name becomes ONE folder on the machine ($OUT/<name>) and a row in the manifest:
+# letters, digits, dot, dash and underscore only, at most 80 characters, numbered when two checks would share one
+# (run 38122495368: `--out /opt/flyover/out/guard` put slashes in it, the output nested, and the manifest recorded a
+# null exit for a check that had passed). The command and its arguments are NOT changed.
 checks_json() {
-  local first=1 used=$'\n'
-  printf '['
-  for c in "${CHECKS[@]}"; do
-    # shellcheck disable=SC2206
-    local parts=($c)
-    local cmd="${parts[0]}"
-    local base="${cmd%.mjs}"
-    local name="${base//\//_}"
-    local args_json="[" af=1
-    for ((i=1; i<${#parts[@]}; i++)); do
-      [ $af -eq 1 ] && af=0 || args_json+=","
-      args_json+="\"${parts[$i]}\""
-      name+="_${parts[$i]#--}"
-    done
-    args_json+="]"
-    # The name becomes ONE folder on the machine ($OUT/<name>) and a row in the manifest. An argument such as
-    # `--out /opt/flyover/out/guard` used to put slashes in it: the output landed in nested folders, the manifest
-    # (which reads the top folders only) recorded a null exit for a check that had passed (run 38122495368), and
-    # `: | * ?` in a name once made the artifact upload refuse a whole run. So: letters, digits, dot, dash and
-    # underscore only, at most 80 characters, and a number at the end when two checks would share a name.
-    # The command and its arguments are NOT changed.
-    name="$(printf '%s' "$name" | LC_ALL=C tr -c 'A-Za-z0-9._-' '_' | LC_ALL=C sed -E 's/_+/_/g; s/^[._-]+//; s/[._-]+$//' | cut -c1-80)"
-    [ -n "$name" ] || name="check"
-    local n=1 try="$name"
-    while case "$used" in *$'\n'"$try"$'\n'*) true ;; *) false ;; esac; do n=$((n+1)); try="${name}-${n}"; done
-    name="$try"; used+="${name}"$'\n'
-    [ $first -eq 1 ] && first=0 || printf ','
-    printf '{"name":"%s","cmd":"%s","args":%s}' "$name" "$cmd" "$args_json"
-  done
-  printf ']'
+  python3 - "${CHECKS[@]}" <<'PY'
+import json, re, sys
+out, used = [], set()
+for c in sys.argv[1:]:
+    parts = c.split()
+    if not parts: continue
+    cmd, args = parts[0], parts[1:]
+    name = re.sub(r'\.mjs$', '', cmd)
+    for a in args: name += '_' + re.sub(r'^--', '', a)
+    name = re.sub(r'_+', '_', re.sub(r'[^A-Za-z0-9._-]', '_', name)).strip('._-')[:80] or 'check'
+    n, t = 1, name
+    while t in used: n += 1; t = '%s-%d' % (name, n)
+    used.add(t); out.append({'name': t, 'cmd': cmd, 'args': args})
+print(json.dumps(out, separators=(',', ':')))
+PY
 }
 
 CHECKS_JSON="$(checks_json)"
 # --print-checks: only the name / command / arguments list the machine will get (test-offline reads it). Nothing starts.
 if [ "${PRINT_CHECKS:-0}" -eq 1 ]; then printf '%s\n' "$CHECKS_JSON"; exit 0; fi
 
-# The user-data template carries @@PLACEHOLDER@@ tokens; fill them in. Every
-# value is either a literal we control or shell-quoted inside the script, so no
-# untrusted interpolation reaches the instance shell.
+# The user-data template carries tokens between double at-signs; fill them in LITERALLY.
+# 2026-10-11, run 38129844212: the old `awk gsub` read the `&` in `--query smooth=0&packmerge=1` as "the matched
+# text", so the machine got `smooth=0@@CHECKS_JSON@@packmerge=1` and ran a different experiment than the one asked for.
+# `sed s|..|..|` has the same trap (& | and backslash). So: the check list travels as base64 (its alphabet has no
+# character that sed, awk or a shell quote can read), plain string replacement does the rest, the simple values are
+# refused when they hold a character the machine's shell could read, and a token left unfilled stops the launch.
 render_user_data() {
-  sed \
-    -e "s|@@REPO@@|${REPO}|g" \
-    -e "s|@@REF@@|${REF}|g" \
-    -e "s|@@CONCURRENCY@@|${CONCURRENCY}|g" \
-    -e "s|@@MAX_RUNTIME_MIN@@|${MAX_RUNTIME_MIN}|g" \
-    -e "s|@@IDLE_TIMEOUT_MIN@@|${IDLE_TIMEOUT_MIN}|g" \
-    -e "s|@@RESULT_BUCKET@@|${RESULT_BUCKET}|g" \
-    -e "s|@@PROJECT_TAG@@|${PROJECT_TAG}|g" \
-    "$USER_DATA_SRC" \
-  | awk -v checks="$CHECKS_JSON" '{gsub(/@@CHECKS_JSON@@/, checks); print}'
+  REPO="$REPO" REF="$REF" CONCURRENCY="$CONCURRENCY" MAX_RUNTIME_MIN="$MAX_RUNTIME_MIN" IDLE_TIMEOUT_MIN="$IDLE_TIMEOUT_MIN" \
+  RESULT_BUCKET="$RESULT_BUCKET" PROJECT_TAG="$PROJECT_TAG" python3 - "$USER_DATA_SRC" "$CHECKS_JSON" <<'PY'
+import base64, os, re, sys
+s = open(sys.argv[1]).read()
+rules = {'REPO': r'[A-Za-z0-9._:/@-]+', 'REF': r'[A-Za-z0-9._/-]+', 'CONCURRENCY': r'[0-9]+', 'MAX_RUNTIME_MIN': r'[0-9]+',
+         'IDLE_TIMEOUT_MIN': r'[0-9]+', 'RESULT_BUCKET': r'[a-z0-9.-]*', 'PROJECT_TAG': r'[A-Za-z0-9._-]+'}
+for k, rule in rules.items():
+    v = os.environ.get(k, '')
+    if not re.fullmatch(rule, v): sys.exit('launch: %s=%r holds a character that is not allowed in the machine script' % (k, v))
+    s = s.replace('@@%s@@' % k, v)
+json_text = sys.argv[2]
+import json; json.loads(json_text)
+s = s.replace('@@CHECKS_JSON_B64@@', base64.b64encode(json_text.encode()).decode())
+left = sorted(set(re.findall(r'@@[A-Z0-9_]+@@', s)))
+if left: sys.exit('launch: unfilled tokens in user-data: %s' % left)
+sys.stdout.write(s)
+PY
 }
+
+# --print-user-data: the filled script exactly as the machine would get it (test-offline reads it). Nothing starts.
+if [ "${PRINT_UD:-0}" -eq 1 ]; then render_user_data; exit $?; fi
 
 # TagSpecifications: the project tag on BOTH the instance and its volumes, so a
 # forgotten disk is still findable and teardown can list it.
