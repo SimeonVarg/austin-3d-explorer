@@ -699,6 +699,7 @@
   // ── DOM ───────────────────────────────────────────────────────────
   let _map = null, fxCanvas = null, fx = null, mapCanvas = null;
   let bloomCv = null, bloomCtx = null, bloomOK = false;
+  const glareCv = [];   // the eye-glare lobes (see the bloom pass), created on first night frame
   let elDof = null, elGrain = null, elVig = null;
   let grade = { exposure: 1, contrast: 1, saturation: 1, tint: null, vignette: 0.1 };
 
@@ -722,13 +723,20 @@
    * the deviations become grain, so this darkens and lightens symmetrically
    * instead of just fogging the frame.
    */
+  // Seeded under ?nightfreeze / ?nightseed (the picture checks), Math.random otherwise.
+  const grainRand = (() => {
+    const q = new URLSearchParams(location.search), sp = q.get('nightseed'), nf = q.get('nightfreeze');
+    if (sp === null && (nf === null || nf === '0')) return Math.random;
+    let a = ((parseInt(sp, 10) || 0) >>> 0) + 0x9e3779b9;
+    return () => { a = (a + 0x6d2b79f5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  })();
   function grainTile(size) {
     const c = document.createElement('canvas');
     c.width = c.height = size;
     const g = c.getContext('2d');
     const img = g.createImageData(size, size);
     for (let i = 0; i < img.data.length; i += 4) {
-      const v = 128 + (Math.random() - 0.5) * 150;
+      const v = 128 + (grainRand() - 0.5) * 150;
       img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
       img.data[i + 3] = 255;
     }
@@ -1687,6 +1695,33 @@
       fx.globalAlpha = Math.min(1, 0.16 + 0.38 * a);
       fx.drawImage(bloomCv, 0, 0, F.W, F.H);
       fx.globalAlpha = 1;
+      // The eye's own glare (docs/night-eye-2026-10-10.md): a point of light is not a point on the retina. Beside the
+      // tight bloom above, the eye's point spread has a middle lobe (about a degree) and a wide skirt (a few
+      // degrees), both cooler than the lamp because the skirt is scattered light. Each lobe is the already-bright,
+      // already-blurred bloom image shrunk to a few dozen pixels and blurred once more: two tiny canvases, no
+      // second pass over the frame, and only where this bloom pass already runs (the low tiers skip it whole).
+      const ey = nt && nt.eye;
+      if (ey && ey.on && ey.glare > 0 && night > 0.02) {
+        ey.glareLobes.forEach((lobe, i) => {
+          const cv = glareCv[i] || (glareCv[i] = document.createElement('canvas'));
+          const gh = Math.max(16, Math.round(lobe.w * F.H / Math.max(1, F.W)));
+          if (cv.width !== lobe.w || cv.height !== gh) { cv.width = lobe.w; cv.height = gh; }
+          const g = cv.getContext('2d');
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.globalCompositeOperation = 'source-over';
+          g.clearRect(0, 0, cv.width, cv.height);
+          g.filter = `blur(${lobe.blur}px) brightness(${lobe.gain || 1})`;   // the lobe is a spread-out copy of a few bright points: it needs lifting to be seen at all
+          g.drawImage(bloomCv, 0, 0, cv.width, cv.height);
+          g.filter = 'none';
+          g.globalCompositeOperation = 'multiply';
+          g.fillStyle = ey.glareTint;
+          g.fillRect(0, 0, cv.width, cv.height);
+          g.globalCompositeOperation = 'source-over';
+          fx.globalAlpha = Math.min(1, lobe.alpha * ey.glare * night);
+          fx.drawImage(cv, 0, 0, F.W, F.H);
+        });
+        fx.globalAlpha = 1;
+      }
     }
 
     if (!wantRays) { fx.globalCompositeOperation = 'source-over'; return; }

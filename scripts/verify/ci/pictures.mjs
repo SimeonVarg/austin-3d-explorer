@@ -59,7 +59,13 @@ export const LOOK = {
   // picture caught a different part-painted city: a changed patch on a building the pull request could not touch,
   // in the first run of three pull requests in a row. The two switches make the app paint walls at once, the old way.
   // The pixels at rest are the same; only WHEN they are painted differs.
-  shotQuery: 'namelabels=0&facadepace=0&timeofdaypace=0',
+  // nightfreeze=1 (2026-10-10): the night's lit windows, stars and shimmer are functions of a clock; frozen, two loads of a night view
+  // are the same picture (js/city-night.js, docs/night-eye-2026-10-10.md). On the base branch the switch is ignored.
+  // Under it the page's CSS transitions stop, and at night every label layer is hidden (their collision placement follows tile arrival
+  // order); by day nothing changes. Night noise floor: tower-night main against main moved 3.474% in CI (run 38062549887, spawn-night 0%);
+  // frozen, on a GPU, the same two views move 0.004% to 2.2% between loads (night-eye.mjs --only frozen). Lower, not zero: the map canvas
+  // does not redraw identically even with everything frozen (section 3.7 of the doc), which is a fault in the base app.
+  shotQuery: 'namelabels=0&facadepace=0&timeofdaypace=0&nightfreeze=1',
 };
 
 const argv = process.argv.slice(2);
