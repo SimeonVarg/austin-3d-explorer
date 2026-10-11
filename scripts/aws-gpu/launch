@@ -112,10 +112,18 @@ USER_DATA_SRC="$HERE/user-data"
 # null exit for a check that had passed). The command and its arguments are NOT changed.
 checks_json() {
   python3 - "${CHECKS[@]}" <<'PY'
-import json, re, sys
+import json, re, shlex, sys
 out, used = [], set()
 for c in sys.argv[1:]:
-    parts = c.split()
+    # A check with quotes in it is read by shell rules, so `--settings '{"ae":false}'` and `--name "two words"` are ONE
+    # argument each, without the quote characters (2026-10-11: a quoted JSON setting reached the check with its quotes,
+    # was not understood, and the run fell back to the default settings without saying so). A check with no quote is
+    # split on spaces as before, and so is one whose quotes do not pair up (a lone apostrophe).
+    parts = None
+    if '"' in c or "'" in c:
+        try: parts = shlex.split(c)
+        except ValueError: parts = None
+    if parts is None: parts = c.split()
     if not parts: continue
     cmd, args = parts[0], parts[1:]
     name = re.sub(r'\.mjs$', '', cmd)

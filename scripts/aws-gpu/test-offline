@@ -108,6 +108,26 @@ then pass "ampersand, backslash, both quotes, dollar, star, pipe, semicolon, bac
 rm -rf "$RT_TMP"
 if "$HERE/launch" --print-user-data --ref 'main"; touch pwned; "' >/dev/null 2>&1; then fail "a ref with a quote and a semicolon was accepted"; else pass "a ref that the machine's shell could read is refused"; fi
 
+echo "== a quoted argument is one argument, without its quotes =="
+QA="z.mjs --settings '{\"ae\":false,\"x\":\"a b\"}' --name \"two words\" --plain v"     # in variables: bash 3.2 miscounts quotes inside $( )
+QB="w.mjs --c it's --d plain"
+QJ="$("$HERE/launch" --print-checks --check "$QA" --check "$QB" 2>&1)"
+if printf '%s' "$QJ" | python3 -c '
+import json, sys
+c = json.load(sys.stdin)
+assert c[0]["args"] == ["--settings", "{\"ae\":false,\"x\":\"a b\"}", "--name", "two words", "--plain", "v"], c[0]["args"]
+assert json.loads(c[0]["args"][1]) == {"ae": False, "x": "a b"}
+assert c[1]["args"] == ["--c", "it" + chr(39) + "s", "--d", "plain"], c[1]["args"]
+'; then pass "a quoted JSON setting and a two-word name arrive whole; a lone apostrophe stays as typed"; else fail "quoted arguments: $QJ"; fi
+SC1="$("$HERE/split-checks" ' graphics.mjs ,  movement.mjs --report , ')"
+SCIN='a.mjs --q x=1,y=2 ;; b.mjs --s {"k":1,"m":2} ;;'     # in a variable: bash 3.2 misreads ;; inside $( )
+SC2="$("$HERE/split-checks" "$SCIN")"
+[ "$SC1" = "graphics.mjs
+movement.mjs --report" ] && pass "commas separate checks, trimmed, empty ones dropped" || fail "split-checks commas: $SC1"
+[ "$SC2" = 'a.mjs --q x=1,y=2
+b.mjs --s {"k":1,"m":2}' ] && pass "with a double semicolon as separator, a comma stays inside an argument" || fail "split-checks double semicolon: $SC2"
+grep -q 'scripts/aws-gpu/split-checks "\$INPUT_CHECKS"' "$HERE/../../.github/workflows/aws-gpu.yml" && pass "the workflow reads its checks through split-checks" || fail "the workflow does not use split-checks"
+
 echo "== a vCPU limit held by a machine that is shutting down: wait and try again =="
 # A fake `aws` on the PATH: the image lookup answers, run-instances refuses twice with VcpuLimitExceeded, then starts.
 FA="$(mktemp -d)"

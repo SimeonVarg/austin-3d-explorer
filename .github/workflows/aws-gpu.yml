@@ -17,7 +17,7 @@ on:
         description: Branch, tag or commit to check
         default: main
       checks:
-        description: Checks to run, separated by commas (each one a scripts/verify file with its arguments; an argument cannot hold a comma or a space)
+        description: Checks to run, separated by commas (each one a scripts/verify file with its arguments; or by ;; when an argument holds a comma; quote an argument that holds a space)
         default: graphics.mjs
       max_runtime:
         description: The machine switches itself off after this many minutes (hard limit on the machine)
@@ -56,9 +56,8 @@ jobs:
         run: |
           set -euo pipefail
           args=(--ref "$INPUT_REF" --bucket "$RESULT_BUCKET" --max-runtime "$INPUT_MAX")
-          IFS=',' read -ra list <<< "$INPUT_CHECKS"
-          # Trim with the shell itself: `xargs` also strips quotes and reads backslashes, and stops on a lone apostrophe.
-          for c in "${list[@]}"; do c="${c#"${c%%[![:space:]]*}"}"; c="${c%"${c##*[![:space:]]}"}"; [ -n "$c" ] && args+=(--check "$c"); done
+          # One check per line from split-checks: commas separate them, or `;;` when an argument holds a comma.
+          while IFS= read -r c; do args+=(--check "$c"); done < <(scripts/aws-gpu/split-checks "$INPUT_CHECKS")
           scripts/aws-gpu/launch "${args[@]}" | tee launch.log
       - name: Wait until the machine is gone, then fetch the results
         env:

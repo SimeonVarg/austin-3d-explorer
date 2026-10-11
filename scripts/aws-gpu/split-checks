@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""split-checks - the workflow's `checks` input, one check per line.
+
+    scripts/aws-gpu/split-checks 'graphics.mjs, movement.mjs --report'
+    scripts/aws-gpu/split-checks 'a.mjs --q x=1,y=2 ;; b.mjs --s {"k":1,"m":2}'
+
+Checks are separated by commas. When the text holds `;;`, that separates them instead, so that an argument may hold a
+comma (a JSON setting). Each check is trimmed; empty ones are dropped. Nothing else is changed: `launch --check` reads
+the quotes and the spaces.
+"""
+import sys
+text = sys.argv[1] if len(sys.argv) > 1 else ''
+for c in (text.split(';;') if ';;' in text else text.split(',')):
+    c = ' '.join(c.split('\n')).strip()
+    if c: print(c)
