@@ -320,3 +320,8 @@ math agrees within the explicit pixel tolerance. It does not prove the source
 camera, metric scale, ground elevation, object identity or model likeness.
 The output binds all three input hashes. A mismatch exits nonzero and must not
 be described as a source-aligned comparison. Keep earlier captures as diagnostics.
+
+The pose and projection CLIs reject output paths that alias any supplied input,
+including symbolic links and hard links. Pose receipts and app-view outputs must
+also be distinct. All destinations are checked before the first write; an
+unrelated prior output may still be replaced.

@@ -48,6 +48,17 @@ def write_json(path, value):
     path.write_bytes(canonical(value) + b"\n")
 
 
+def preserve_inputs(inputs, outputs):
+    """Reject evidence/output aliases before any output is written, including hard links."""
+    protected = [Path(path).expanduser().resolve() for path in inputs]
+    for output in outputs:
+        output = private_path(output)
+        for source in protected:
+            if output == source or (output.exists() and source.exists() and output.samefile(source)):
+                raise Rejected("output destinations must not overwrite input evidence or each other")
+        protected.append(output)
+
+
 def asset(path):
     path = Path(path).expanduser().resolve()
     data = path.read_bytes()

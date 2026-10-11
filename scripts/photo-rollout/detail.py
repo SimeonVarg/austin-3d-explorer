@@ -7,7 +7,7 @@ import math
 from pathlib import Path
 import sys
 
-from accept import Rejected, asset, private_path, write_json
+from accept import Rejected, asset, preserve_inputs, private_path, write_json
 from pose_check import check as check_pose
 
 # Reuse the scene author's tested closed-box, cylinder and wall coordinate primitives.
@@ -126,9 +126,7 @@ def build(recipe_path,spec_path,output):
     if not spec.get('pose_evidence'):
         raise Rejected('photo detail trials require pose_evidence; unknown ground remains CHECK')
     receipt_path=private_path(output.with_suffix('.receipt.json'))
-    input_paths={Path(path).expanduser().resolve() for path in (recipe_path,spec_path,spec['pose_evidence'])}
-    if output in input_paths or receipt_path in input_paths or receipt_path==output:
-        raise Rejected('candidate and receipt destinations must not overwrite input evidence')
+    preserve_inputs([recipe_path,spec_path,spec['pose_evidence']],[output,receipt_path])
     input_records={key:asset(path) for key,path in [('baseline',recipe_path),('spec',spec_path)]}
     pose_record=asset(spec['pose_evidence'])
     pose_result=check_pose(json.loads(Path(spec['pose_evidence']).read_text()))

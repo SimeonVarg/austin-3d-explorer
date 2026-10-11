@@ -4,7 +4,7 @@ import argparse
 import json
 import math
 from pathlib import Path
-from accept import Rejected, asset, write_json
+from accept import Rejected, asset, preserve_inputs, write_json
 
 
 def angles_from_rotation(rotation, hfov):
@@ -82,9 +82,10 @@ def check(value):
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--pose',required=True);p.add_argument('--out',required=True)
     p.add_argument('--recipe');p.add_argument('--view-out');a=p.parse_args()
+    if a.view_out and not a.recipe:p.error('--view-out requires --recipe')
+    preserve_inputs([a.pose]+([a.recipe] if a.recipe else []),[a.out]+([a.view_out] if a.view_out else []))
     value=json.loads(Path(a.pose).read_text());result=check(value);result['input']=asset(a.pose)
     if a.view_out:
-        if not a.recipe:p.error('--view-out requires --recipe')
         if result['status']!='REJECT':
             view=app_view(json.loads(Path(a.recipe).read_text()),value['camera'],value['local_angles'],value.get('R'))
             view['status']=result['status'];view['angle_source']='world-to-camera R' if 'R' in value else 'supplied local_angles';write_json(a.view_out,view)

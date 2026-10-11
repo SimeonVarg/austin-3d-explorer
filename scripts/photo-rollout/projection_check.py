@@ -5,7 +5,7 @@ import json
 import math
 from pathlib import Path
 import numpy as np
-from accept import Rejected, asset, write_json
+from accept import Rejected, asset, preserve_inputs, write_json
 from pose_check import angles_from_rotation
 
 
@@ -52,6 +52,7 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     for key in ('pose','plan','projection','out'):parser.add_argument('--'+key,required=True)
     parser.add_argument('--limit-px',required=True,type=float);a=parser.parse_args()
+    preserve_inputs([a.pose,a.plan,a.projection],[a.out])
     records={k:asset(getattr(a,k)) for k in ('pose','plan','projection')}
     result=check(*(json.loads(Path(getattr(a,k)).read_text()) for k in ('pose','plan','projection')),a.limit_px)
     result['inputs']=records;write_json(a.out,result)
