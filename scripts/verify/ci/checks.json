@@ -131,6 +131,7 @@
     "si-fold-shots.mjs": {"est_s": 190},
     "si-integration.mjs": {"est_s": 420},
     "sky.mjs": {"est_s": 620},
+    "sign-lettering.mjs": {"est_s": 5},
     "slopes-buffer-memory.mjs": {"est_s": 10},
     "slopes-chunked-build.mjs": {"est_s": 10},
     "slopes-context-loss.mjs": {"est_s": 10},

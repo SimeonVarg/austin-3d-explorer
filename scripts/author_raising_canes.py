@@ -21,6 +21,7 @@ from pathlib import Path
 import json
 import math
 from compact_models import compact
+from sign_outlines import load_sign
 
 PATH = Path(__file__).resolve().parents[1] / 'data/apartments/raising-canes.json'
 ID = 'b32544f3-3221-480b-86bd-236b0eeb7be1'
@@ -85,29 +86,34 @@ OPENINGS = [
 AWNINGS = [('E', 5.9, 9.3), ('E', 0.2, 2.4), ('W', 4.2, 7.2), ('W', 7.4, 10.2), ('N', 7.9, 9.9)]
 CANOPIES = [('N', 1.5, 9.5, 1.0), ('E', 2.4, 5.7, 1.1), ('W', 11.3, 13.7, 1.0)]   # wall, from, to, depth
 
-# ---- the signs: a red board with white lettering and a yellow strip (PHOTO). Plain shapes and the dot font only. ----
+# ---- the signs: a red board with white lettering and a yellow strip (PHOTO). ----
+# LETTERS ARE SMOOTH OUTLINES (scripts/sign_outlines.py), NEVER THE DOT FONT. Owner, 2026-10-10, on the dot-font board that
+# went live for two hours: "The canes logo is pixelated I thought that was never gonna happen again". The two name words are
+# a brush script in mixed case, like the shop's own sign; the strip is a bold condensed sans. scripts/verify/sign-lettering.mjs
+# fails any recipe outside its frozen legacy list that uses dot lettering.
 SIGN_BOARD = (3.0, 1.35)       # PHOTO: about 2.6 to 3 m wide, 1.2 to 1.4 m high on both towers
 SIGNS = [   # tower, face key, centre along the tower face (m from its low-u/low-v end), bottom z
     ('north', 'u0', 2.5, 3.9),
     ('east', 'v1', 1.5, 3.6),
 ]
-SIGN_LINES = [   # text, dot, gap, tone, bottom z above the board's foot, width is worked out from the dot font (5 dots a letter)
-    ('RAISING', 0.032, 0.032, 'white', 1.02),
-    ("CANE'S", 0.075, 0.075, 'white', 0.42),
-    ('CHICKEN FINGERS', 0.02, 0.02, 'black', 0.18),
+SIGN_LINES = [   # word key in data/sign_outlines.json, letter height (m), tone, bottom z above the board's foot, shift along the board (m)
+    ('raising', 0.25, 'white', 1.03, -0.42),          # PHOTO: the small word sits upper left of the big one
+    ('canes', 0.68, 'white', 0.35, 0.0),              # PHOTO: the big word spans about two thirds of the board
+    ('chicken-fingers', 0.13, 'black', 0.155, 0.0),   # on the yellow strip (z 0.12 to 0.32)
 ]
-MURAL_LINES = [("CANE'S", 0.06, 0.06, 'white', 1.55), ('ONE LOVE', 0.05, 0.05, 'white', 0.95)]   # PHOTO: the words on the red panel
+MURAL_LINES = [('canes', 0.55, 'white', 1.50, 0.0), ('one-love', 0.28, 'white', 0.98, 0.0)]   # PHOTO: the words on the red panel
+SIGN_OFF, SIGN_DEPTH = 0.052, 0.012   # the letters' back stands clear of the board (0.03), the strip (0.045) and the panel (0.05)
 MURAL = dict(u0=11.0, u1=14.0, z0=0.8, z1=3.0)   # PHOTO (east view): the red wall panel, ONE LOVE (Austin)
 PYLON = dict(u0=-0.7, u1=0.0, v0=2.0, v1=3.5, z0=0.5, z1=4.8, stem=0.95, flag_z=3.6)   # PHOTO (north view): the big red numeral 1 at the corner of the north tower
 DECIMALS = 3
 
 
-def text_w(text, dot, gap):
-    return len(text) * (5 * dot + gap) - gap
-
-
 def lines(items, centre, zb, mirror=False):
-    return [dict(text=t, s0=round(centre - text_w(t, dot, gap) / 2, 3), z0=round(zb + dz, 3), dot=dot, gap=gap, tone=tone) for t, dot, gap, tone, dz in items]
+    out = []
+    for key, h, tone, dz, ds in items:
+        o = load_sign(key); aspect = o.pop('aspect')      # width / height of the word as drawn: the sign is never stretched
+        out.append(dict(outline=o, s=round(centre + ds, 3), z0=round(zb + dz, 3), w=round(h * aspect, 3), h=h, depth=SIGN_DEPTH, off=SIGN_OFF, tone=tone))
+    return out
 
 
 def verts_box(u0, u1, v0, v1, z0, z1):
@@ -248,7 +254,7 @@ def build():
     P = PYLON
     meshes['pylonRed'].box(P['u0'], P['u1'], P['v0'], P['v0'] + P['stem'], P['z0'], P['z1'])      # the stem of the 1
     meshes['pylonRed'].box(P['u0'], TOWERS['north']['plan'][0], P['v0'] + P['stem'], P['v1'], P['flag_z'], P['z1'])   # its flag, on the side that faces east (the photograph's left)
-    # sign boards on the tower faces (the lettering is added as dot-font `signs` on the tower blocks)
+    # sign boards on the tower faces (the lettering is added as outline `signs` on the tower blocks)
     for tower, key, centre, zb in SIGNS:
         u0, u1, v0, v1 = TOWERS[tower]['plan']
         w, h = SIGN_BOARD
