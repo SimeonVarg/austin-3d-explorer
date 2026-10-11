@@ -1,0 +1,495 @@
+{
+ "when": "2026-10-10T09:30:41.523Z",
+ "hardware": true,
+ "gate": 1.5,
+ "info": {
+  "renderer": "ANGLE (NVIDIA Corporation, NVIDIA L4/PCIe/SSE2, OpenGL ES 3.2)",
+  "vendor": "Google Inc. (NVIDIA Corporation)",
+  "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+  "timerQuery": true,
+  "maxTex": 32768,
+  "maxRB": 32768,
+  "maxSamples": 8,
+  "anisotropic": true,
+  "multiDraw": true
+ },
+ "facet": {
+  "shaderBytes": 3768,
+  "wallPackageBytes": 19992,
+  "triangles": 196,
+  "walls": 98
+ },
+ "stats": {
+  "A": {
+   "triangles": 42252,
+   "vertices": 84504,
+   "bytesPacked24": 2535120,
+   "bytesAppFormat": 4732224,
+   "drawCalls": 1
+  },
+  "B": {
+   "triangles": 196,
+   "vertices": 392,
+   "bytes": 21560,
+   "drawCalls": 1
+  },
+  "rest": {
+   "triangles": 3333,
+   "vertices": 6967,
+   "bytes": 207204
+  },
+  "walls": 98,
+  "windows": null
+ },
+ "sweep": [
+  {
+   "dist": 40,
+   "bayPx": 16.15,
+   "mPerPx": 0.111,
+   "interiorPct": 61.55,
+   "errA": 0.975,
+   "errB": 0.194,
+   "errF": 0.194,
+   "errNear": 0.175,
+   "flickA": 1.416,
+   "flickB": 0.433,
+   "flickF": 0.433,
+   "flickNear": 0.324,
+   "bandF": 0.164,
+   "bandNear": 0.112,
+   "FvsB": 0,
+   "FvsA4": 0.601,
+   "FvsTruthA": 0.535
+  },
+  {
+   "dist": 55,
+   "bayPx": 11.74,
+   "mPerPx": 0.152,
+   "interiorPct": 42.72,
+   "errA": 1.546,
+   "errB": 0.324,
+   "errF": 0.324,
+   "errNear": 0.244,
+   "flickA": 2.15,
+   "flickB": 0.71,
+   "flickF": 0.71,
+   "flickNear": 0.439,
+   "bandF": 0.296,
+   "bandNear": 0.16,
+   "FvsB": 0,
+   "FvsA4": 0.804,
+   "FvsTruthA": 0.705
+  },
+  {
+   "dist": 80,
+   "bayPx": 8.07,
+   "mPerPx": 0.222,
+   "interiorPct": 25.69,
+   "errA": 2.34,
+   "errB": 0.437,
+   "errF": 0.437,
+   "errNear": 0.316,
+   "flickA": 3.037,
+   "flickB": 1,
+   "flickF": 1,
+   "flickNear": 0.556,
+   "bandF": 0.443,
+   "bandNear": 0.204,
+   "FvsB": 0,
+   "FvsA4": 0.995,
+   "FvsTruthA": 0.867
+  },
+  {
+   "dist": 110,
+   "bayPx": 5.87,
+   "mPerPx": 0.305,
+   "interiorPct": 12.64,
+   "errA": 3.229,
+   "errB": 0.659,
+   "errF": 0.659,
+   "errNear": 0.456,
+   "flickA": 4.193,
+   "flickB": 1.455,
+   "flickF": 1.455,
+   "flickNear": 0.756,
+   "bandF": 0.683,
+   "bandNear": 0.276,
+   "FvsB": 0,
+   "FvsA4": 1.311,
+   "FvsTruthA": 1.134
+  },
+  {
+   "dist": 160,
+   "bayPx": 4.04,
+   "mPerPx": 0.443,
+   "interiorPct": 5.59,
+   "errA": 4.655,
+   "errB": 1.065,
+   "errF": 1.065,
+   "errNear": 0.701,
+   "flickA": 5.942,
+   "flickB": 2.24,
+   "flickF": 2.24,
+   "flickNear": 1.136,
+   "bandF": 1.049,
+   "bandNear": 0.386,
+   "FvsB": 0,
+   "FvsA4": 1.909,
+   "FvsTruthA": 1.623
+  },
+  {
+   "dist": 230,
+   "bayPx": 2.81,
+   "mPerPx": 0.637,
+   "interiorPct": 2.6,
+   "errA": 6.418,
+   "errB": 1.559,
+   "errF": 1.559,
+   "errNear": 1.123,
+   "flickA": 7.861,
+   "flickB": 3.22,
+   "flickF": 3.22,
+   "flickNear": 1.679,
+   "bandF": 1.481,
+   "bandNear": 0.455,
+   "FvsB": 0,
+   "FvsA4": 2.707,
+   "FvsTruthA": 2.271
+  },
+  {
+   "dist": 330,
+   "bayPx": 1.96,
+   "mPerPx": 0.915,
+   "interiorPct": 1.22,
+   "errA": 7.956,
+   "errB": 2.101,
+   "errF": 2.101,
+   "errNear": 1.678,
+   "flickA": 9.35,
+   "flickB": 4.337,
+   "flickF": 4.337,
+   "flickNear": 2.324,
+   "bandF": 1.899,
+   "bandNear": 0.645,
+   "FvsB": 0,
+   "FvsA4": 3.455,
+   "FvsTruthA": 2.903
+  },
+  {
+   "dist": 500,
+   "bayPx": 1.29,
+   "mPerPx": 1.386,
+   "interiorPct": 0.51,
+   "errA": 10.326,
+   "errB": 3.533,
+   "errF": 3.533,
+   "errNear": 2.614,
+   "flickA": 11.466,
+   "flickB": 5.879,
+   "flickF": 5.879,
+   "flickNear": 3.134,
+   "bandF": 3.936,
+   "bandNear": 0.665,
+   "FvsB": 0,
+   "FvsA4": 5.563,
+   "FvsTruthA": 4.671
+  },
+  {
+   "dist": 700,
+   "bayPx": 0.92,
+   "mPerPx": 1.94,
+   "interiorPct": 0.26,
+   "errA": 13.58,
+   "errB": 4.228,
+   "errF": 4.228,
+   "errNear": 3.468,
+   "flickA": 14.164,
+   "flickB": 6.679,
+   "flickF": 6.679,
+   "flickNear": 3.926,
+   "bandF": 4.478,
+   "bandNear": 0.806,
+   "FvsB": 0,
+   "FvsA4": 6.812,
+   "FvsTruthA": 5.914
+  },
+  {
+   "dist": 1100,
+   "bayPx": 0.59,
+   "mPerPx": 3.049,
+   "interiorPct": 0.1,
+   "errA": 16.13,
+   "errB": 6.086,
+   "errF": 6.086,
+   "errNear": 4.308,
+   "flickA": 17.983,
+   "flickB": 8.195,
+   "flickF": 8.195,
+   "flickNear": 4.857,
+   "bandF": 5.907,
+   "bandNear": 1.47,
+   "FvsB": 0,
+   "FvsA4": 9.09,
+   "FvsTruthA": 8.42
+  },
+  {
+   "dist": 1600,
+   "bayPx": 0.4,
+   "mPerPx": 4.434,
+   "interiorPct": 0.04,
+   "errA": 14.533,
+   "errB": 8.605,
+   "errF": 8.605,
+   "errNear": 5.921,
+   "flickA": 18.367,
+   "flickB": 8.979,
+   "flickF": 8.979,
+   "flickNear": 6.532,
+   "bandF": 9.607,
+   "bandNear": 1.216,
+   "FvsB": 0,
+   "FvsA4": 11.312,
+   "FvsTruthA": 10.697
+  }
+ ],
+ "budget": {
+  "gate": 1.5,
+  "switchBayPx": 3.425,
+  "rows": [
+   {
+    "dist": 40,
+    "bayPx": 16.15,
+    "errF": 0.194,
+    "errNear": 0.175,
+    "flickF": 0.433,
+    "flickNear": 0.324,
+    "ratioErr": 1.1085714285714288,
+    "ratioFlick": 1.3364197530864197
+   },
+   {
+    "dist": 55,
+    "bayPx": 11.74,
+    "errF": 0.324,
+    "errNear": 0.244,
+    "flickF": 0.71,
+    "flickNear": 0.439,
+    "ratioErr": 1.3278688524590165,
+    "ratioFlick": 1.6173120728929384
+   },
+   {
+    "dist": 80,
+    "bayPx": 8.07,
+    "errF": 0.437,
+    "errNear": 0.316,
+    "flickF": 1,
+    "flickNear": 0.556,
+    "ratioErr": 1.3829113924050633,
+    "ratioFlick": 1.7985611510791366
+   },
+   {
+    "dist": 110,
+    "bayPx": 5.87,
+    "errF": 0.659,
+    "errNear": 0.456,
+    "flickF": 1.455,
+    "flickNear": 0.756,
+    "ratioErr": 1.4451754385964912,
+    "ratioFlick": 1.9246031746031746
+   },
+   {
+    "dist": 160,
+    "bayPx": 4.04,
+    "errF": 1.065,
+    "errNear": 0.701,
+    "flickF": 2.24,
+    "flickNear": 1.136,
+    "ratioErr": 1.5192582025677603,
+    "ratioFlick": 1.9718309859154932
+   },
+   {
+    "dist": 230,
+    "bayPx": 2.81,
+    "errF": 1.559,
+    "errNear": 1.123,
+    "flickF": 3.22,
+    "flickNear": 1.679,
+    "ratioErr": 1.388245770258237,
+    "ratioFlick": 1.9178082191780823
+   },
+   {
+    "dist": 330,
+    "bayPx": 1.96,
+    "errF": 2.101,
+    "errNear": 1.678,
+    "flickF": 4.337,
+    "flickNear": 2.324,
+    "ratioErr": 1.2520858164481525,
+    "ratioFlick": 1.8661790017211703
+   },
+   {
+    "dist": 500,
+    "bayPx": 1.29,
+    "errF": 3.533,
+    "errNear": 2.614,
+    "flickF": 5.879,
+    "flickNear": 3.134,
+    "ratioErr": 1.3515684774292274,
+    "ratioFlick": 1.875877472878111
+   },
+   {
+    "dist": 700,
+    "bayPx": 0.92,
+    "errF": 4.228,
+    "errNear": 3.468,
+    "flickF": 6.679,
+    "flickNear": 3.926,
+    "ratioErr": 1.2191464821222606,
+    "ratioFlick": 1.7012226184411614
+   },
+   {
+    "dist": 1100,
+    "bayPx": 0.59,
+    "errF": 6.086,
+    "errNear": 4.308,
+    "flickF": 8.195,
+    "flickNear": 4.857,
+    "ratioErr": 1.4127205199628599,
+    "ratioFlick": 1.687255507514927
+   },
+   {
+    "dist": 1600,
+    "bayPx": 0.4,
+    "errF": 8.605,
+    "errNear": 5.921,
+    "flickF": 8.979,
+    "flickNear": 6.532,
+    "ratioErr": 1.4533018071271744,
+    "ratioFlick": 1.3746172688303735
+   }
+  ],
+  "worstRatioErr": 1.5192582025677603,
+  "geometryNearerThan": 160,
+  "note": "use geometry when a bay is wider than switchBayPx pixels; the shader wall otherwise"
+ },
+ "hybrid": [
+  {
+   "dist": 40,
+   "uses": "geometry 4x MSAA",
+   "err": 0.175,
+   "flick": 0.324,
+   "errNear": 0.175,
+   "popAtSwitch": 0.601
+  },
+  {
+   "dist": 55,
+   "uses": "geometry 4x MSAA",
+   "err": 0.244,
+   "flick": 0.439,
+   "errNear": 0.244,
+   "popAtSwitch": 0.804
+  },
+  {
+   "dist": 80,
+   "uses": "geometry 4x MSAA",
+   "err": 0.316,
+   "flick": 0.556,
+   "errNear": 0.316,
+   "popAtSwitch": 0.995
+  },
+  {
+   "dist": 110,
+   "uses": "geometry 4x MSAA",
+   "err": 0.456,
+   "flick": 0.756,
+   "errNear": 0.456,
+   "popAtSwitch": 1.311
+  },
+  {
+   "dist": 160,
+   "uses": "geometry 4x MSAA",
+   "err": 0.701,
+   "flick": 1.136,
+   "errNear": 0.701,
+   "popAtSwitch": 1.909
+  },
+  {
+   "dist": 230,
+   "uses": "Facet shader wall",
+   "err": 1.559,
+   "flick": 3.22,
+   "errNear": 1.123,
+   "popAtSwitch": 2.707
+  },
+  {
+   "dist": 330,
+   "uses": "Facet shader wall",
+   "err": 2.101,
+   "flick": 4.337,
+   "errNear": 1.678,
+   "popAtSwitch": 3.455
+  },
+  {
+   "dist": 500,
+   "uses": "Facet shader wall",
+   "err": 3.533,
+   "flick": 5.879,
+   "errNear": 2.614,
+   "popAtSwitch": 5.563
+  },
+  {
+   "dist": 700,
+   "uses": "Facet shader wall",
+   "err": 4.228,
+   "flick": 6.679,
+   "errNear": 3.468,
+   "popAtSwitch": 6.812
+  },
+  {
+   "dist": 1100,
+   "uses": "Facet shader wall",
+   "err": 6.086,
+   "flick": 8.195,
+   "errNear": 4.308,
+   "popAtSwitch": 9.09
+  },
+  {
+   "dist": 1600,
+   "uses": "Facet shader wall",
+   "err": 8.605,
+   "flick": 8.979,
+   "errNear": 5.921,
+   "popAtSwitch": 11.312
+  }
+ ],
+ "perf": {
+  "W": 1440,
+  "H": 900,
+  "towers": 100,
+  "parts": "facade",
+  "coveredPct": 33.6,
+  "trianglesA": 4225200,
+  "trianglesB": 19600,
+  "A": {
+   "wallMin": 0.915,
+   "wallMed": 0.925,
+   "gpuMin": 0.899,
+   "reps": 7
+  },
+  "B": {
+   "wallMin": 0.06,
+   "wallMed": 0.07,
+   "gpuMin": 0.04,
+   "reps": 7
+  },
+  "F": {
+   "wallMin": 0.065,
+   "wallMed": 0.075,
+   "gpuMin": 0.035,
+   "reps": 7
+  }
+ },
+ "overdraw": null,
+ "errors": [
+  "Failed to load resource: the server responded with a status of 404 (File not found)"
+ ]
+}

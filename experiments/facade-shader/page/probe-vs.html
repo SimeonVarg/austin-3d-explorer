@@ -1,0 +1,85 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>vertex shader probe</title>
+<!-- Dev-only (experiments/facade-shader). What limits a graphics chip for THIS app: triangles, small triangles, vertex work, vertex bytes, pixels, pixel work.
+     Each test is the minimum over interleaved repetitions of a GPU-synchronised batch. Run it on a QUIET machine (nothing else drawing). -->
+<canvas id="c" width="16" height="16"></canvas>
+<script type="module">
+const gl = document.getElementById('c').getContext('webgl2', { antialias: false, powerPreference: 'high-performance' });
+const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+const W = 1440, H = 900;
+const mk = (t, s) => { const sh = gl.createShader(t); gl.shaderSource(sh, s); gl.compileShader(sh); if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh)); return sh; };
+const prog = (vs, fs) => { const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p; };
+const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex); gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, W, H); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+gl.viewport(0, 0, W, H); gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
+const sync = () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+
+// ---- the app's vertex shader (js/slopes.js VERT), cut into the parts it pays for. One whole-screen grid of ~1 px triangles, the vertex layout the app writes (28 B:
+//      position 12, normal 4, three colours 4 each), every variant's varyings read by the fragment shader so none is optimised away. ----
+const ATTR = `layout(location=0) in vec3 position; layout(location=1) in vec4 nrm; layout(location=2) in vec4 cd; layout(location=3) in vec4 cg; layout(location=4) in vec4 cn;`;
+const UNI = `uniform mat4 projectionMatrix, modelViewMatrix; uniform vec3 lp, lc; uniform float li, mp; uniform vec3 mw;`;
+const LIGHT_A = `vec3 color=(mp<=0.5)?mix(cd.rgb,cg.rgb,mp*2.0):mix(cg.rgb,cn.rgb,(mp-0.5)*2.0); vec3 n=normalize(nrm.xyz); float cv=dot(color,vec3(0.2126,0.7152,0.0722)); color+=vec3(0.03);
+  float d=clamp(dot(n,lp),0.0,1.0); d=mix(1.0-li,max(1.0-cv+li,1.0),d); vec3 lit=clamp(color*d*lc,vec3(0.0),vec3(1.0));`;
+const LIGHT_B = `vec3 color=cd.rgb*mw.x+cg.rgb*mw.y+cn.rgb*mw.z; vec3 n=nrm.xyz; float cv=dot(color,vec3(0.2126,0.7152,0.0722)); color+=vec3(0.03);
+  float d=clamp(dot(n,lp),0.0,1.0); d=mix(1.0-li,max(1.0-cv+li,1.0),d); vec3 lit=clamp(color*d*lc,vec3(0.0),vec3(1.0));`;
+const vsFull = (light, pos, outs) => `#version 300 es
+precision highp float; ${ATTR} ${UNI}
+${outs ? 'out vec4 v_color; out vec3 v_pos; out vec3 v_normal; out vec4 v_surface; out vec3 v_albedo; out vec3 v_night;' : 'out vec4 v_color;'}
+void main(){ ${light}
+  v_color=vec4(lit,1.0);
+  ${outs ? 'v_pos=position; v_normal=nrm.xyz; v_surface=cg; v_albedo=cd.rgb; v_night=cn.rgb;' : ''}
+  gl_Position=${pos}; }`;
+const vsFetch = (pos) => `#version 300 es
+precision highp float; ${ATTR} ${UNI} out vec4 v_color;
+void main(){ v_color=vec4(nrm.x+cd.x+cg.x+cn.x,0.0,0.0,1.0); gl_Position=${pos}; }`;
+const POS_A = 'projectionMatrix * modelViewMatrix * vec4(position, 1.0)', POS_B = 'projectionMatrix * (modelViewMatrix * vec4(position, 1.0))', POS_0 = 'vec4(position.xy, 0.5, 1.0)';
+const fsOf = outs => `#version 300 es
+precision mediump float; in vec4 v_color; ${outs ? 'in vec3 v_pos; in vec3 v_normal; in vec4 v_surface; in vec3 v_albedo; in vec3 v_night;' : ''} out vec4 o;
+void main(){ o=vec4(v_color.rgb${outs ? '+0.0001*(v_pos+v_normal+v_surface.xyz+v_albedo+v_night)' : ''},1.0); }`;
+const V = {
+  'fetch only (position + 3 colours + normal, 28 B), no matrix':          prog(vsFetch(POS_0), fsOf(false)),
+  'fetch + P*MV*v as written (two matrix products a vertex)':             prog(vsFetch(POS_A), fsOf(false)),
+  'fetch + P*(MV*v) (one product and a vector)':                          prog(vsFetch(POS_B), fsOf(false)),
+  'app lighting, 1 varying, no matrix':                                   prog(vsFull(LIGHT_A, POS_0, false), fsOf(false)),
+  'app lighting + 6 varyings, no matrix':                                 prog(vsFull(LIGHT_A, POS_0, true), fsOf(true)),
+  'app VS as written (lighting + 6 varyings + P*MV*v)':                   prog(vsFull(LIGHT_A, POS_A, true), fsOf(true)),
+  'app VS lighter (weights, unit normal, P*(MV*v))':                      prog(vsFull(LIGHT_B, POS_B, true), fsOf(true)),
+};
+function grid(cellsX, cellsY, stride) {
+  const nv = (cellsX + 1) * (cellsY + 1), vb = new ArrayBuffer(nv * stride), f = new Float32Array(vb), u8 = new Uint8Array(vb);
+  for (let j = 0; j <= cellsY; j++) for (let i = 0; i <= cellsX; i++) { const o = (j * (cellsX + 1) + i); f[o * stride / 4] = i / cellsX * 2 - 1; f[o * stride / 4 + 1] = j / cellsY * 2 - 1; f[o * stride / 4 + 2] = 0.5; u8[o * stride + 12] = 0; u8[o * stride + 13] = 0; u8[o * stride + 14] = 127; for (let k = 16; k < 28; k++) u8[o * stride + k] = 90 + (k * 7) % 100; }
+  const idx = new Uint32Array(cellsX * cellsY * 6); let n = 0;
+  for (let j = 0; j < cellsY; j++) for (let i = 0; i < cellsX; i++) { const a = j * (cellsX + 1) + i, b = a + 1, c = a + cellsX + 1, d = c + 1; idx.set([a, b, d, a, d, c], n); n += 6; }
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, vb, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, stride, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.BYTE, true, stride, 12);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.UNSIGNED_BYTE, true, stride, 16);
+  gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 4, gl.UNSIGNED_BYTE, true, stride, 20);
+  gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 4, gl.UNSIGNED_BYTE, true, stride, 24);
+  const ibo = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+  return { vao, tris: idx.length / 3, verts: nv };
+}
+async function bench(fn, { frames = 5, reps = 7 } = {}) {
+  fn(); fn(); sync(); const t = [];
+  for (let r = 0; r < reps; r++) { const t0 = performance.now(); for (let i = 0; i < frames; i++) fn(); sync(); t.push((performance.now() - t0) / frames); await new Promise(r => setTimeout(r, 0)); }
+  return Math.min(...t);
+}
+
+const m = grid(1440, 900, 28);
+const ident = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+const setU = p => { gl.useProgram(p); gl.uniformMatrix4fv(gl.getUniformLocation(p, 'projectionMatrix'), false, ident); gl.uniformMatrix4fv(gl.getUniformLocation(p, 'modelViewMatrix'), false, ident);
+  gl.uniform3f(gl.getUniformLocation(p, 'lp'), 0.5, -0.35, 1.0); gl.uniform3f(gl.getUniformLocation(p, 'lc'), 1, 1, 1); gl.uniform1f(gl.getUniformLocation(p, 'li'), 0.28); gl.uniform1f(gl.getUniformLocation(p, 'mp'), 0.1); gl.uniform3f(gl.getUniformLocation(p, 'mw'), 0.8, 0.2, 0); };
+const out = { renderer: dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER), W, H, vertices: m.verts, triangles: m.tris, tests: {} };
+// interleaved: every variant once per round, 7 rounds, minimum per variant
+const names = Object.keys(V), best = Object.fromEntries(names.map(n => [n, Infinity]));
+for (let round = 0; round < 7; round++) for (const n of names) {
+  setU(V[n]);
+  const ms = await bench(() => { gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.bindVertexArray(m.vao); gl.drawElements(gl.TRIANGLES, m.tris * 3, gl.UNSIGNED_INT, 0); }, { frames: 4, reps: 3 });
+  best[n] = Math.min(best[n], ms);
+}
+for (const n of names) out.tests[n] = { ms: +best[n].toFixed(3), MvertPerS: +(m.verts / best[n] / 1000).toFixed(1), nsPerVertex: +(best[n] * 1e6 / m.verts).toFixed(2) };
+window.__probe = out; window.__probeReady = true;
+</script>

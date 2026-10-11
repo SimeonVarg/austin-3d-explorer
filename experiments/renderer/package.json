@@ -1,0 +1,7 @@
+{
+  "name": "renderer-experiment",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only. A study of a purpose-built renderer for the Austin 3D Explorer. Nothing here is loaded by the site.",
+  "dependencies": { "meshoptimizer": "^0.22.0" }
+}

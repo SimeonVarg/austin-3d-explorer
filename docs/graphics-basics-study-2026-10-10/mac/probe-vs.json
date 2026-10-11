@@ -1,0 +1,44 @@
+{
+ "renderer": "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Iris(TM) Plus Graphics 655, Unspecified Version)",
+ "W": 1440,
+ "H": 900,
+ "vertices": 1298341,
+ "triangles": 2592000,
+ "tests": {
+  "fetch only (position + 3 colours + normal, 28 B), no matrix": {
+   "ms": 19.125,
+   "MvertPerS": 67.9,
+   "nsPerVertex": 14.73
+  },
+  "fetch + P*MV*v as written (two matrix products a vertex)": {
+   "ms": 18.275,
+   "MvertPerS": 71,
+   "nsPerVertex": 14.08
+  },
+  "fetch + P*(MV*v) (one product and a vector)": {
+   "ms": 17.825,
+   "MvertPerS": 72.8,
+   "nsPerVertex": 13.73
+  },
+  "app lighting, 1 varying, no matrix": {
+   "ms": 18.075,
+   "MvertPerS": 71.8,
+   "nsPerVertex": 13.92
+  },
+  "app lighting + 6 varyings, no matrix": {
+   "ms": 17.875,
+   "MvertPerS": 72.6,
+   "nsPerVertex": 13.77
+  },
+  "app VS as written (lighting + 6 varyings + P*MV*v)": {
+   "ms": 17.75,
+   "MvertPerS": 73.1,
+   "nsPerVertex": 13.67
+  },
+  "app VS lighter (weights, unit normal, P*(MV*v))": {
+   "ms": 17.875,
+   "MvertPerS": 72.6,
+   "nsPerVertex": 13.77
+  }
+ }
+}

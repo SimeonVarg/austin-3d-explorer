@@ -1,0 +1,15 @@
+{
+ "slug": "dobie-twenty21",
+ "skin": "curtain",
+ "layers": [
+  "field",
+  "opening"
+ ],
+ "walls": 98,
+ "triangles": 196,
+ "wallPackageBytes": 19992,
+ "geometryTriangles": 42252,
+ "geometryBytesApp": 4732224,
+ "fragShaderBytes": 2108,
+ "vertShaderBytes": 1658
+}

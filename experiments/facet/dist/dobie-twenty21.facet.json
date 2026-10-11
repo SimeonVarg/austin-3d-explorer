@@ -1,0 +1,70 @@
+{
+ "facet": 1,
+ "name": "Dobie Twenty21 / curtain",
+ "source": {
+  "recipe": "Dobie Twenty21",
+  "skin": "curtain"
+ },
+ "fit": {
+  "bay": 1.79
+ },
+ "floors": {
+  "first": 15.8,
+  "pitch": 2.629999999999999,
+  "count": 25,
+  "rows": 24,
+  "z0": 15.8,
+  "z1": 80.22
+ },
+ "tones": {
+  "spandrel": {
+   "day": [
+    43,
+    58,
+    66
+   ],
+   "gold": [
+    77,
+    79,
+    76
+   ],
+   "night": [
+    12,
+    16,
+    24
+   ]
+  },
+  "glassTeal": {
+   "day": [
+    76,
+    109,
+    116
+   ],
+   "gold": [
+    105,
+    122,
+    118
+   ],
+   "night": [
+    16,
+    24,
+    35
+   ]
+  }
+ },
+ "layers": [
+  {
+   "op": "field",
+   "tone": "spandrel"
+  },
+  {
+   "op": "opening",
+   "w": 1.35,
+   "h": 1.45,
+   "sill": 1.15,
+   "reveal": 0.05,
+   "glass": "glassTeal",
+   "revealTone": "spandrel"
+  }
+ ]
+}

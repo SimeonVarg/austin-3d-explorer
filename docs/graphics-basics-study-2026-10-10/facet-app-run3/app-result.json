@@ -1,0 +1,469 @@
+{
+ "when": "2026-10-10T13:40:11.574Z",
+ "base": "http://127.0.0.1:8442",
+ "flags": {
+  "0": {
+   "errors": [
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|podium|v0 white: band z0 4.55 sits 4.55 m above the floor line at 0 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|podium|v0 fin: band z0 5 sits 0.40 m above the floor line at 4.6 — that storey's windows are kept and clipped to the band (APARTMENTS.floorSlack 1)",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|podium|v0 spandrelBand: band z0 20.8 sits 2.53 m above the floor line at 18.27 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|podium|v0 amenity: band z0 21.8 sits 3.53 m above the floor line at 18.27 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|podium|v0 white: band z0 25.15 sits 3.15 m above the floor line at 22 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|north-end|u0 northPanel: band z0 28.3 sits 2.70 m above the floor line at 25.6 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|leasing-fascia|v0 white: band z0 3.5 sits 3.50 m above the floor line at 0 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|street-number|v0 dark: band z0 1.7 sits 1.70 m above the floor line at 0 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 93cc2567-aa16-4909-ace6-fa13ff385bde|northWing|v1 capBand: band z0 5.9 sits 2.60 m above the floor line at 3.3 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: performance warning: READ-usage buffer was written, then fenced, but written again before being read back. This discarded the shadow copy that was created to accelerate readback.",
+    "warning: [slopes-apartments] 9363b194-9c98-4d84-a3a5-2e8cce340bba|south|v0 string: band z0 6.85 sits 2.65 m above the floor line at 4.2 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5|podium|v0 garageLouvre: band z0 7.5 sits 1.30 m above the floor line at 6.2 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5|podium|v0 garageLouvre: band z0 10.74 sits 1.30 m above the floor line at 9.44 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5|podium|v0 garageLouvre: band z0 13.98 sits 1.30 m above the floor line at 12.68 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5|podium|v0 garageLouvre: band z0 17.22 sits 1.30 m above the floor line at 15.92 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5|podium|v0 garageLouvre: band z0 20.46 sits 1.30 m above the floor line at 19.16 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: performance warning: READ-usage buffer was written, then fenced, but written again before being read back. This discarded the shadow copy that was created to accelerate readback.",
+    "warning: [slopes-apartments] b423d7a9-4059-44b3-8fed-3d088563c870|base|v1 storeBar: band z0 3.7 sits 3.70 m above the floor line at 0 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 583f3864-f044-4c2c-9d5b-8af47112562b|main-n|v0 cornice: band z0 19.05 sits 2.63 m above the floor line at 16.42 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: performance warning: READ-usage buffer was written, then fenced, but written again before being read back. This discarded the shadow copy that was created to accelerate readback.",
+    "warning: [slopes-apartments] dd38bf46-46cc-4ea9-b1ac-138fc2a56019|tower|1 cream: band z0 28.63 sits 0.01 m above the floor line at 28.62 — that storey's windows are kept and clipped to the band (APARTMENTS.floorSlack 1)",
+    "warning: [slopes-apartments] dd38bf46-46cc-4ea9-b1ac-138fc2a56019|tower|2 cream: band z0 52.13 sits 0.01 m above the floor line at 52.12 — that storey's windows are kept and clipped to the band (APARTMENTS.floorSlack 1)",
+    "warning: performance warning: READ-usage buffer was written, then fenced, but written again before being read back. This discarded the shadow copy that was created to accelerate readback.",
+    "warning: performance warning: READ-usage buffer was written, then fenced, but written again before being read back. This discarded the shadow copy that was created to accelerate readback.",
+    "warning: [slopes-apartments] 165236c4-c518-419b-a55a-87d5aedd45ce|tower|11 towerWall: band z0 21.8 sits 3.28 m above the floor line at 18.52 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 165236c4-c518-419b-a55a-87d5aedd45ce|tower|12 towerWall: band z0 18.6 sits 0.08 m above the floor line at 18.52 — that storey's windows are kept and clipped to the band (APARTMENTS.floorSlack 1)",
+    "warning: performance warning: READ-usage buffer was written, then fenced, but written again before being read back. This discarded the shadow copy that was created to accelerate readback.",
+    "warning: [slopes-apartments] 1161f877-68fe-4754-8c2b-3a52e2ecf2ed|bar|13 towerWall: band z0 18.6 sits 0.08 m above the floor line at 18.52 — that storey's windows are kept and clipped to the band (APARTMENTS.floorSlack 1)",
+    "warning: [slopes-apartments] 87f9cf87-79b7-46e5-803c-2936c8d98fbf|podium|v0 ribPodium: band z0 19.1 sits 2.50 m above the floor line at 16.6 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 87f9cf87-79b7-46e5-803c-2936c8d98fbf|garage|v0 garage: band z0 4.2 sits 4.20 m above the floor line at 0 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it"
+   ],
+   "readyMs": 8735,
+   "page": {
+    "triangles": 3116469,
+    "buildings": 198,
+    "cells": 644425,
+    "windows": 83434,
+    "facetStats": null,
+    "jsFiles": 55,
+    "jsBytes": 3601445,
+    "allBytes": 40980420,
+    "facetFile": [],
+    "glLive": {
+     "buf": {
+      "three": 0,
+      "maplibre": 591505922,
+      "other": 0
+     },
+     "tex": {
+      "three": 0,
+      "maplibre": 121268320,
+      "other": 0
+     }
+    },
+    "meshes": [
+     {
+      "name": "apartments",
+      "tris": 3116469,
+      "bytes": 363857078
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 26,
+      "bytes": 3796
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 14,
+      "bytes": 2044
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 10,
+      "bytes": 1460
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 14,
+      "bytes": 2044
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 16,
+      "bytes": 2336
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 22,
+      "bytes": 3212
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 8,
+      "bytes": 1168
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 2,
+      "bytes": 292
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 4,
+      "bytes": 584
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 42,
+      "bytes": 6132
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 26,
+      "bytes": 3796
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 24,
+      "bytes": 3504
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 10,
+      "bytes": 1460
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 12,
+      "bytes": 1752
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 16,
+      "bytes": 2336
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 6,
+      "bytes": 876
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 4,
+      "bytes": 584
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 12,
+      "bytes": 1752
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 60,
+      "bytes": 8760
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 10,
+      "bytes": 1460
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 8,
+      "bytes": 1168
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 2,
+      "bytes": 292
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 4,
+      "bytes": 584
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 12,
+      "bytes": 1752
+     }
+    ]
+   },
+   "after": {
+    "glLive": {
+     "buf": {
+      "three": 0,
+      "maplibre": 575640248,
+      "other": 0
+     },
+     "tex": {
+      "three": 0,
+      "maplibre": 87991784,
+      "other": 0
+     }
+    },
+    "programs": 44,
+    "triangles": 3116469
+   }
+  },
+  "1": {
+   "errors": [
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|podium|v0 white: band z0 4.55 sits 4.55 m above the floor line at 0 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|podium|v0 fin: band z0 5 sits 0.40 m above the floor line at 4.6 — that storey's windows are kept and clipped to the band (APARTMENTS.floorSlack 1)",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|podium|v0 spandrelBand: band z0 20.8 sits 2.53 m above the floor line at 18.27 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|podium|v0 amenity: band z0 21.8 sits 3.53 m above the floor line at 18.27 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|podium|v0 white: band z0 25.15 sits 3.15 m above the floor line at 22 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|north-end|u0 northPanel: band z0 28.3 sits 2.70 m above the floor line at 25.6 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|leasing-fascia|v0 white: band z0 3.5 sits 3.50 m above the floor line at 0 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 307878e3-63d2-471c-83d1-6b405de9e7b7|street-number|v0 dark: band z0 1.7 sits 1.70 m above the floor line at 0 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 93cc2567-aa16-4909-ace6-fa13ff385bde|northWing|v1 capBand: band z0 5.9 sits 2.60 m above the floor line at 3.3 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: performance warning: READ-usage buffer was written, then fenced, but written again before being read back. This discarded the shadow copy that was created to accelerate readback.",
+    "warning: [slopes-apartments] 9363b194-9c98-4d84-a3a5-2e8cce340bba|south|v0 string: band z0 6.85 sits 2.65 m above the floor line at 4.2 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5|podium|v0 garageLouvre: band z0 7.5 sits 1.30 m above the floor line at 6.2 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5|podium|v0 garageLouvre: band z0 10.74 sits 1.30 m above the floor line at 9.44 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5|podium|v0 garageLouvre: band z0 13.98 sits 1.30 m above the floor line at 12.68 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5|podium|v0 garageLouvre: band z0 17.22 sits 1.30 m above the floor line at 15.92 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5|podium|v0 garageLouvre: band z0 20.46 sits 1.30 m above the floor line at 19.16 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] b423d7a9-4059-44b3-8fed-3d088563c870|base|v1 storeBar: band z0 3.7 sits 3.70 m above the floor line at 0 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: performance warning: READ-usage buffer was written, then fenced, but written again before being read back. This discarded the shadow copy that was created to accelerate readback.",
+    "warning: [slopes-apartments] 583f3864-f044-4c2c-9d5b-8af47112562b|main-n|v0 cornice: band z0 19.05 sits 2.63 m above the floor line at 16.42 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: performance warning: READ-usage buffer was written, then fenced, but written again before being read back. This discarded the shadow copy that was created to accelerate readback.",
+    "warning: [slopes-apartments] dd38bf46-46cc-4ea9-b1ac-138fc2a56019|tower|1 cream: band z0 28.63 sits 0.01 m above the floor line at 28.62 — that storey's windows are kept and clipped to the band (APARTMENTS.floorSlack 1)",
+    "warning: [slopes-apartments] dd38bf46-46cc-4ea9-b1ac-138fc2a56019|tower|2 cream: band z0 52.13 sits 0.01 m above the floor line at 52.12 — that storey's windows are kept and clipped to the band (APARTMENTS.floorSlack 1)",
+    "warning: performance warning: READ-usage buffer was written, then fenced, but written again before being read back. This discarded the shadow copy that was created to accelerate readback.",
+    "warning: performance warning: READ-usage buffer was written, then fenced, but written again before being read back. This discarded the shadow copy that was created to accelerate readback.",
+    "warning: [slopes-apartments] 165236c4-c518-419b-a55a-87d5aedd45ce|tower|11 towerWall: band z0 21.8 sits 3.28 m above the floor line at 18.52 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 165236c4-c518-419b-a55a-87d5aedd45ce|tower|12 towerWall: band z0 18.6 sits 0.08 m above the floor line at 18.52 — that storey's windows are kept and clipped to the band (APARTMENTS.floorSlack 1)",
+    "warning: performance warning: READ-usage buffer was written, then fenced, but written again before being read back. This discarded the shadow copy that was created to accelerate readback.",
+    "warning: [slopes-apartments] 1161f877-68fe-4754-8c2b-3a52e2ecf2ed|bar|13 towerWall: band z0 18.6 sits 0.08 m above the floor line at 18.52 — that storey's windows are kept and clipped to the band (APARTMENTS.floorSlack 1)",
+    "warning: [slopes-apartments] 87f9cf87-79b7-46e5-803c-2936c8d98fbf|podium|v0 ribPodium: band z0 19.1 sits 2.50 m above the floor line at 16.6 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it",
+    "warning: [slopes-apartments] 87f9cf87-79b7-46e5-803c-2936c8d98fbf|garage|v0 garage: band z0 4.2 sits 4.20 m above the floor line at 0 — that storey's windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it"
+   ],
+   "readyMs": 8430,
+   "page": {
+    "triangles": 1880289,
+    "buildings": 198,
+    "cells": 260470,
+    "windows": 33800,
+    "facetStats": {
+     "pieces": 16635,
+     "taken": 14145,
+     "refused": {
+      "band openings": 744,
+      "pier": 95,
+      "kind storefront": 600,
+      "kind pixel": 318,
+      "per-offset spandrel": 11,
+      "louvre": 110,
+      "bands": 162,
+      "kind mod4": 6,
+      "no glass tone": 50,
+      "cols overlap": 9,
+      "self-check": 62,
+      "windowSkip": 3,
+      "accent tones": 17,
+      "fields": 15,
+      "cut": 56,
+      "fins": 18,
+      "arch": 135,
+      "rows overlap": 4,
+      "mullion count": 75
+     },
+     "trianglesSaved": 0,
+     "quads": 14145,
+     "windows": 49634,
+     "selfCheckRefused": 62,
+     "bytes": {
+      "fd": 3932160,
+      "wt": 204800,
+      "ft": 65536,
+      "geometry": 3055320
+     }
+    },
+    "jsFiles": 56,
+    "jsBytes": 3636323,
+    "allBytes": 41015298,
+    "facetFile": [
+     {
+      "url": "facet-walls.js",
+      "bytes": 34878
+     }
+    ],
+    "glLive": {
+     "buf": {
+      "three": 0,
+      "maplibre": 463837706,
+      "other": 0
+     },
+     "tex": {
+      "three": 0,
+      "maplibre": 122472536,
+      "other": 0
+     }
+    },
+    "meshes": [
+     {
+      "name": "apartments",
+      "tris": 1880289,
+      "bytes": 225404918
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 24,
+      "bytes": 3504
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 10,
+      "bytes": 1460
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 8,
+      "bytes": 1168
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 10,
+      "bytes": 1460
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 14,
+      "bytes": 2044
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 22,
+      "bytes": 3212
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 6,
+      "bytes": 876
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 2,
+      "bytes": 292
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 2,
+      "bytes": 292
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 18,
+      "bytes": 2628
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 8,
+      "bytes": 1168
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 10,
+      "bytes": 1460
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 6,
+      "bytes": 876
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 16,
+      "bytes": 2336
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 2,
+      "bytes": 292
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 4,
+      "bytes": 584
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 6,
+      "bytes": 876
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 60,
+      "bytes": 8760
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 10,
+      "bytes": 1460
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 2,
+      "bytes": 292
+     },
+     {
+      "name": "filtered-facade",
+      "tris": 12,
+      "bytes": 1752
+     },
+     {
+      "name": "apartments-facet",
+      "tris": 28290,
+      "bytes": 3055320
+     }
+    ]
+   },
+   "after": {
+    "glLive": {
+     "buf": {
+      "three": 0,
+      "maplibre": 440227056,
+      "other": 0
+     },
+     "tex": {
+      "three": 0,
+      "maplibre": 89196008,
+      "other": 0
+     }
+    },
+    "programs": 45,
+    "triangles": 1880289
+   }
+  }
+ },
+ "pairs": [
+  {
+   "name": "spawn-day",
+   "movedPct": 1.975,
+   "meanAbsDiff": 0.609
+  },
+  {
+   "name": "spawn-night",
+   "movedPct": 1.213,
+   "meanAbsDiff": 0.698
+  },
+  {
+   "name": "west-campus-day",
+   "movedPct": 0.73,
+   "meanAbsDiff": 0.3
+  },
+  {
+   "name": "west-campus-night",
+   "movedPct": 0.451,
+   "meanAbsDiff": 0.167
+  },
+  {
+   "name": "drag-street-day",
+   "movedPct": 1.786,
+   "meanAbsDiff": 0.78
+  },
+  {
+   "name": "drag-street-night",
+   "movedPct": 0.766,
+   "meanAbsDiff": 1.518
+  }
+ ]
+}
