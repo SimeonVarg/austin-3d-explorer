@@ -99,8 +99,9 @@ stretch, a wider pier, a corner)?
 points on ONE wall cannot say how far back that wall stands: the fit moves the
 camera to suit any depth. Before you move a wall forward or back, add a ground
 line (a curb, a path edge) or a second wall to the fit, and check that the
-camera height it gives is one a person could hold a phone at (1.4 to 2.1 m above
-where they stand; 5c says what that does and does not prove). And a
+camera height it gives fits the place the photograph was taken from and a
+ground or floor height whose source you can name. A usual hand-held height is
+an assumption, not a required range and not a measure of scale (see 5c). And a
 frontal photograph cannot show how deep a recess is. For every recess (an
 arcade, a porch, a set-back storey) find the oblique photograph, and measure
 there: recess depth ÷ pier width, and pier depth ÷ pier width. Compare the
