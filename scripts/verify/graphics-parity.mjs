@@ -15,12 +15,20 @@ const out=path.resolve(opt('--out',process.env.VERIFY_OUT||'/tmp/graphics-parity
 const repo=fileURLToPath(new URL('../../',import.meta.url));
 const refA=opt('--ref-a',null),refB=opt('--ref-b',null);
 const queryA=opt('--query-a','smooth=0'),queryB=opt('--query-b','smooth=0');
+for(const query of [queryA,queryB]) {
+ if(query.includes('@@'))throw Error('Unexpanded template placeholder in query');
+ const parsed=new URLSearchParams(query);
+ for(const flag of ['smooth','packmerge','packverts']) {
+  const values=parsed.getAll(flag);
+  if(values.length>1||values.some(v=>v!=='0'&&v!=='1'))throw Error('Expected one binary '+flag+' query value');
+ }
+}
 if(!refA&&!refB&&queryA===queryB&&!args.includes('--break'))throw Error('Supply a source ref or different queries to compare');
 const resolved=ref=>ref?execFileSync('git',['rev-parse','--verify',ref+'^{commit}'],{cwd:repo,encoding:'utf8'}).trim():null;
 const refs={a:resolved(refA),b:resolved(refB)};
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const local={head:resolved('HEAD'),status:execFileSync('git',['status','--porcelain'],{cwd:repo,encoding:'utf8'}).trim(),diffSha256:sha(execFileSync('git',['diff','HEAD'],{cwd:repo,maxBuffer:64<<20})),served:{}};
-for(const f of ['js/city-lighting.js','js/slopes.js','js/wall-patterns.js']) {
+for(const f of ['js/city-lighting.js','js/slopes.js','js/slopes-apartments.js','js/wall-patterns.js']) {
  const response=await fetch(BASE+'/'+f);if(!response.ok)throw Error('Cannot fingerprint served '+f);
  local.served[f]=sha(Buffer.from(await response.arrayBuffer()));
 }
@@ -34,7 +42,7 @@ const wanted=opt('--views','campus-far,west-mid').split(',');
 if(wanted.some(n=>!poses.some(p=>p.name===n)))throw Error('Unknown view');
 const views=poses.filter(p=>wanted.includes(p.name));fs.mkdirSync(out,{recursive:true});
 const browser=await launch(chromium,{gl:'hardware',args:HW_ARGS,maxMs:1200000});
-const result={settings:{width:960,height:600,dpr:1,secondCaptures:true,refs,local,programs:'Unmodified production except explicit --break'},arms:[],comparisons:[]};
+const result={settings:{callerArgs:args,queries:{a:queryA,b:queryB},width:960,height:600,dpr:1,secondCaptures:true,refs,local,programs:'Unmodified production except explicit --break'},arms:[],comparisons:[]};
 const save=()=>fs.writeFileSync(path.join(out,'result.json'),JSON.stringify(result,null,2));
 function difference(a,b){const A=decodePNG(a),B=decodePNG(b);let moved=0,max=0,sum=0,over1=0,over12=0;for(let i=0;i<A.width*A.height;i++){let d=0;for(let c=0;c<3;c++){const x=Math.abs(A.data[i*A.bpp+c]-B.data[i*B.bpp+c]);d=Math.max(d,x);sum+=x;}moved+=d>0;over1+=d>1;over12+=d>12;max=Math.max(max,d);}return {moved,over1,over12,max,mae:sum/(A.width*A.height*3)};}
 try{
@@ -56,7 +64,10 @@ try{
    await page.waitForFunction(()=>!document.getElementById('veil')&&window.slopesApartments?.count.done&&window.slopesApartments.count.buildings>0&&window.slopesApartments?.group,null,{timeout:300000});
    await page.evaluate(()=>{window.cancelGraphicsAutoDetect();window.GFX.autoExposure=false;window.applyGraphics();const m=window.__map;for(const l of m.getStyle().layers)if(l.type==='symbol')m.setLayoutProperty(l.id,'visibility','none');const jump=m.jumpTo,roll=m.setRoll;m.jumpTo=function(p,e){return e?.fly?this:jump.call(this,p,e);};if(roll)m.setRoll=function(v,e){return e?.fly?this:roll.call(this,v,e);};});
    row.hardware=await page.evaluate(()=>{const g=window.slopes.renderer.getContext(),e=g.getExtension('WEBGL_debug_renderer_info');return {renderer:e?g.getParameter(e.UNMASKED_RENDERER_WEBGL):g.getParameter(g.RENDERER),samples:g.getParameter(g.SAMPLES),shaderFailures:window.CityLighting.stats.failures,antialias:g.getContextAttributes().antialias};});
-   const smooth=new URLSearchParams(query).get('smooth');
+   row.effectiveUrl=page.url();
+   const intended=new URLSearchParams(query),effective=new URL(row.effectiveUrl).searchParams;
+   for(const flag of ['smooth','packmerge','packverts'])if(intended.has(flag)&&effective.get(flag)!==intended.get(flag))throw Error('Effective '+flag+' differs from caller query');
+   const smooth=intended.get('smooth');
    if((smooth==='0'&&row.hardware.samples!==0)||(smooth==='1'&&row.hardware.samples===0))throw Error('Requested MSAA state did not activate');
    if(/swiftshader|llvmpipe|software/i.test(row.hardware.renderer))throw Error('Hardware GL required');
    if(row.hardware.shaderFailures.length)throw Error('Shader compilation failures');

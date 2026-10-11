@@ -1640,7 +1640,8 @@ ${window.RoofTiles.apply}
       return out;
     }
     const api = { tri, triN, quad, polygon, extrude, geometry, facet, get triangles() { return tris; } };
-    if (PK && PACK.merge) api.geometries = geometries;
+    // Only this merger preserves index-range order; buildChunked does not advertise it.
+    if (PK && PACK.merge) { api.geometries = geometries; api.packedMerge = true; }
     return api;
   }
 

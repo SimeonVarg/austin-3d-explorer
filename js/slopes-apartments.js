@@ -2567,7 +2567,8 @@
   const _cullStats = { passes: 0, ranges: 0, drawnRanges: 0, drawnTriangles: 0, totalTriangles: 0 };
 
   function cullAvailable(B, T, S) {
-    return !!(APTS.cull && !B.geometries && T && T.REVISION === CULL_REVISION && T.Frustum && T.Matrix4 && S && S.scene);
+    // Exact packed merging keeps index ranges; the phone chunk wrapper stays out.
+    return !!(APTS.cull && (!B.geometries || B.packedMerge === true) && T && T.REVISION === CULL_REVISION && T.Frustum && T.Matrix4 && S && S.scene);
   }
   /** Bounding sphere [cx, cy, cz, r] of every vertex the index range [s, e) can reach. */
   function rangeSphere(idx, pos, s, e, margin) {

@@ -11,6 +11,8 @@
  * than "off again" does (the control: what the page moves against itself, zero when it is deterministic). Exact: any channel, any amount.
  *
  *   VERIFY_URL=http://127.0.0.1:PORT node scripts/verify/packverts-pixels.mjs [--out DIR] [--poses file.json] [--phone] [--query "packverts=0&rustbuilder=1"] [--break]
+ *   --merge  desktop-only packed-unmerged -> merged -> unmerged; strict zero changes AND zero controls.
+ *            Uses a response-only JS switch, records source hashes and per-view draw/cull counts in result.json.
  *   --phone  390x844 @3x with ?lite=1 (the phone profile: the build is chunked, three.js frees the CPU copies after upload)
  *   --query  extra query for the page (e.g. rustbuilder=1: then "off" is the Rust builder and "on" is the packed JS builder)
  *   --break  the "on" build is photographed at a different hour: must report moved pixels and exit 1
@@ -41,15 +43,36 @@ const PARAMS = {
 };
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
-const OUT = path.resolve(opt('--out', 'packverts-pixels-out'));
+const OUT = path.resolve(opt('--out', process.env.VERIFY_OUT || 'packverts-pixels-out'));
 const poses = JSON.parse(fs.readFileSync(path.resolve(opt('--poses', path.join(HERE, 'ci/poses.json'))), 'utf8'));
-const PHONE = argv.includes('--phone'), BREAK = argv.includes('--break');
+const PHONE = argv.includes('--phone'), BREAK = argv.includes('--break'), MERGE = argv.includes('--merge');
+if (MERGE && PHONE) throw new Error('--merge is not used by the chunked phone builder; use the desktop profile');
 const VP = PHONE ? PARAMS.phone : PARAMS.desktop;
 fs.mkdirSync(OUT, { recursive: true });
 
 const browser = await launch(chromium, { maxMs: PARAMS.maxMs });
 const page = await browser.newPage({ viewport: { width: VP.width, height: VP.height }, deviceScaleFactor: VP.dpr });
 const errors = [];
+const result = MERGE ? { mode: 'packed merge', rows: [], scenes: {}, query: opt('--query', '') } : null;
+if (MERGE) {
+  // Expose only the existing merge switch. PACK.on stays true in all three
+  // builds; shader source and geometry algorithms are unmodified.
+  const { createHash } = await import('node:crypto');
+  const sourcePath = path.resolve(HERE, '../../js/slopes.js');
+  const source = fs.readFileSync(sourcePath, 'utf8');
+  const needle = 'packSet: on => { PACK.on = !!on; },';
+  const hook = 'packSet: on => { PACK.on = true; PACK.merge = !!on; },';
+  if (source.split(needle).length !== 2) throw new Error('Expected one packSet hook');
+  const served = source.replace(needle, hook);
+  const sha = s => createHash('sha256').update(s).digest('hex');
+  result.sourceHashes = Object.fromEntries(['js/slopes-apartments.js', 'js/city-lighting.js', 'js/wall-patterns.js'].map(f => [f, sha(fs.readFileSync(path.resolve(HERE, '../..', f)))]));
+  result.instrument = { warmCameraPasses: 1, path: 'js/slopes.js', sourceSha256: sha(source), servedSha256: sha(served), needle, hook };
+  await page.route('**/js/slopes.js', route => route.fulfill({ status: 200, contentType: 'application/javascript', body: served }));
+  await page.addInitScript(() => {
+    localStorage.setItem('austin3d.gfx.v1', JSON.stringify({ autoDetected: true, autoExposure: false }));
+    const t = setInterval(() => { if (window.cancelGraphicsAutoDetect) { window.cancelGraphicsAutoDetect(); clearInterval(t); } }, 20);
+  });
+}
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 200)); });
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 const q = [PARAMS.shotQuery, PHONE ? PARAMS.phone.query : '', opt('--query', '')].filter(Boolean).join('&');
@@ -74,6 +97,16 @@ if (!(await page.evaluate(() => !!(window.slopes && window.slopes.packSet)))) { 
 await page.evaluate(() => { if (window.GFX) window.GFX.autoExposure = false; if (window.applyGraphics) window.applyGraphics(); });
 const hidden = await page.evaluate(() => { const m = window.__map; let n = 0; for (const l of m.getStyle().layers) if (l.type !== 'custom') { try { m.setLayoutProperty(l.id, 'visibility', 'none'); n++; } catch (e) {} } return n; });
 console.log(`hid ${hidden} MapLibre layers; the custom (three.js) layers stay`);
+if (MERGE) {
+  result.hiddenNoncustomLayers = hidden;
+  result.hardware = await page.evaluate(() => {
+    const gl = window.slopes.renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
+    return { renderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER), samples: gl.getParameter(gl.SAMPLES) };
+  });
+  const smooth = new URLSearchParams(opt('--query', '')).get('smooth');
+  if ((smooth === '0' && result.hardware.samples !== 0) || (smooth === '1' && result.hardware.samples === 0))
+    throw new Error('Requested MSAA state did not activate');
+}
 const tris = [];
 async function rebuild(packed) {
   const r = await page.evaluate(async packed => {
@@ -84,10 +117,48 @@ async function rebuild(packed) {
   }, packed);
   await page.waitForFunction(r => { const A = window.slopesApartments; return !!(A.group && A.count.done && A.count.ms !== r && A.count.ms > 0); }, r, { timeout: PARAMS.buildWaitMs, polling: 1000 });
   const info = await page.evaluate(() => { let tris = 0, packed = 0, bytes = 0; window.slopesApartments.group.traverse(o => { const g = o.geometry; if (g && g.index) { tris += g.index.count / 3; if (g.userData.pack) packed++; for (const k in g.attributes) { const a = g.attributes[k].array; if (a) bytes += a.byteLength; } if (g.index.array) bytes += g.index.array.byteLength; } }); return { tris, packedMeshes: packed, bytesMb: +(bytes / 1048576).toFixed(1), ms: window.slopesApartments.count.ms }; });
-  console.log(`build ${packed ? 'PACKED' : 'unpacked'}: ${JSON.stringify(info)}`);
+  console.log(`build ${MERGE ? (packed ? 'merged' : 'packed unmerged') : (packed ? 'PACKED' : 'unpacked')}: ${JSON.stringify(info)}`);
   if (packed) console.log('packed layout: ' + JSON.stringify(await page.evaluate(() => window.slopes.packInfo())));   // byteConversion: how this GPU turns a normalised byte into a float
   if (packed && !info.packedMeshes) throw new Error('packSet(true) but no mesh is packed: the check would compare the unpacked layout with itself');
-  if (!packed && info.packedMeshes) throw new Error('packSet(false) but a mesh is still packed');
+  if (MERGE) {
+    const types = await page.evaluate(() => {
+      const counts = {};
+      window.slopesApartments.group.traverse(o => {
+        const g = o.geometry;
+        if (g?.userData.pack) { const type = g.index?.array?.constructor.name || 'released'; counts[type] = (counts[type] || 0) + 1; }
+      });
+      return counts;
+    });
+    const expected = packed ? 'Uint16Array' : 'Uint32Array';
+    if (!info.packedMeshes || Object.keys(types).length !== 1 || types[expected] !== info.packedMeshes)
+      throw new Error(`Expected packed ${expected} geometry, got ${JSON.stringify(types)}`);
+    info.indexTypes = types;
+    info.cullBounds = await page.evaluate(() => {
+      let meshes = 0, ranges = 0, corners = 0, outside = 0;
+      window.slopesApartments.group.traverse(o => {
+        const g = o.geometry, c = o.userData?.cull;
+        if (!g?.userData.pack) return;
+        if (!c) throw new Error('Packed desktop mesh has no cull ranges');
+        meshes++;
+        const idx = g.index.array, pos = g.attributes.position.array;
+        let end = 0;
+        for (let r = 0; r < c.n; r++) {
+          if (c.start[r] !== end) throw new Error('Cull ranges omit or overlap indices');
+          end += c.count[r]; ranges++;
+          const [x, y, z, radius] = c.sph.subarray(r * 4, r * 4 + 4);
+          for (let k = c.start[r]; k < end; k++) {
+            const v = idx[k] * 3;
+            const dx = pos[v] - x, dy = pos[v + 1] - y, dz = pos[v + 2] - z;
+            if (!(dx * dx + dy * dy + dz * dz <= radius * radius)) outside++;
+            corners++;
+          }
+        }
+        if (end !== idx.length) throw new Error('Cull ranges omit trailing indices');
+      });
+      if (!meshes || outside) throw new Error(`Invalid cull bounds: ${meshes} meshes, ${outside} corners outside`);
+      return { meshes, ranges, corners, outside };
+    });
+  } else if (!packed && info.packedMeshes) throw new Error('packSet(false) but a mesh is still packed');
   tris.push(info.tris);
   if (tris.length > 1 && tris[tris.length - 1] !== tris[0]) throw new Error(`this build has ${info.tris} triangles, the first had ${tris[0]}: buildings failed to build (see the page errors), so the pictures would differ for the wrong reason`);
   return info;
@@ -108,6 +179,10 @@ async function shootAll(side, shiftP = 0) {
     await page.waitForTimeout(1500);
     const file = path.join(OUT, `${side}-${s.name}.png`);
     await page.screenshot({ path: file }); await page.waitForTimeout(600); await page.screenshot({ path: file });
+    if (MERGE) {
+      result.scenes[side] ||= {};
+      result.scenes[side][s.name] = await page.evaluate(() => ({ draw: window.slopes.stats(), cull: window.slopesApartments.cull }));
+    }
   }
   console.log(`shot ${side}: ${poses.length} views`);
 }
@@ -119,13 +194,16 @@ const diff = (a, b) => {
 };
 
 process.on('uncaughtException', e => { console.log('FAIL: ' + e.message + (errors.length ? '\npage errors: ' + errors.slice(0, 3).join(' | ') : '')); process.exit(1); });
-const infoOff = await rebuild(false); await shootAll('off');
+const infoOff = await rebuild(false);
+if (MERGE) await shootAll('warm'); // One bounded visit to every camera; preserve these frames, never retry until green.
+await shootAll('off');
 const infoOn = await rebuild(true); await shootAll('on', BREAK ? PARAMS.breakShiftP : 0);
 await rebuild(false); await shootAll('again');
+if (MERGE) await browser.close();
 await browser.__done();
 
 let bad = 0;
-console.log(`\n${PHONE ? 'phone profile (390x844 @3x, ?lite=1)' : 'desktop (1440x900)'}${BREAK ? '  [--break: the on shoot is at a later hour]' : ''}; apartment geometry ${infoOff.bytesMb} MiB unpacked -> ${infoOn.bytesMb} MiB packed (arrays on the CPU side; the tables are textures)`);
+console.log(`\n${PHONE ? 'phone profile (390x844 @3x, ?lite=1)' : 'desktop (1440x900)'}${BREAK ? '  [--break: the on shoot is at a later hour]' : ''}; apartment geometry ${infoOff.bytesMb} MiB ${MERGE ? 'packed unmerged' : 'unpacked'} -> ${infoOn.bytesMb} MiB ${MERGE ? 'packed merged' : 'packed'} (arrays on the CPU side; the tables are textures)`);
 console.log('view                 moved px (on vs off)   control (off vs again)   max channel diff   over 12/255');
 for (const p of poses) {
   let row;
@@ -136,11 +214,18 @@ for (const p of poses) {
     // pixels (a channel off by more than 12/255, the pictures job's own threshold): the packed layout may not move more of those than
     // the control does, within the noise band. Counting sub-threshold pixels against ONE control shot failed twice on 2026-10-10 on a
     // pull request that touched no mesh (1,696 against 1,694; then 354 against 197 with a largest change of 7/255).
-    const ok = ctl.moved === 0 ? on.moved <= PARAMS.maxMovedPixels : on.over12 <= Math.floor(ctl.over12 * (1 + PARAMS.noiseBand)) + PARAMS.maxMovedPixels; if (!ok) bad++;
+    const ok = MERGE ? ctl.moved === 0 && on.moved === 0
+      : ctl.moved === 0 ? on.moved <= PARAMS.maxMovedPixels : on.over12 <= Math.floor(ctl.over12 * (1 + PARAMS.noiseBand)) + PARAMS.maxMovedPixels;
+    if (!ok) bad++;
+    if (MERGE) result.rows.push({ view: p.name, on, control: ctl, exact: ok });
     row = `${ok ? 'same   ' : 'MOVED  '}${p.name.padEnd(17)} ${String(on.moved).padStart(8)} (${(100 * on.moved / on.total).toFixed(4)}%)   ${String(ctl.moved).padStart(8)}               ${String(on.max).padStart(3)}              ${on.over12} (control ${ctl.over12})`;
   } catch (e) { bad++; row = `ERROR  ${p.name.padEnd(17)} ${e.message}`; }
   console.log(row);
 }
 if (errors.length) console.log('page errors:', errors.slice(0, 5));
 console.log(bad ? `\nFAIL: ${bad} of ${poses.length} view(s) moved pixels${BREAK ? ' (--break: this is the expected result)' : ''}` : `\nPASS: ${poses.length} views, zero pixels moved by the packed layout`);
-process.exit(bad ? 1 : 0);
+if (MERGE) {
+  Object.assign(result, { infoOff, infoOn, errors, pass: !bad && !errors.length });
+  fs.writeFileSync(path.join(OUT, 'result.json'), JSON.stringify(result, null, 2));
+}
+process.exit(bad || (MERGE && errors.length) ? 1 : 0);
