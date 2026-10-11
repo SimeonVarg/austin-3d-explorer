@@ -141,7 +141,9 @@ await page.route(/\/data\/tiles\/(outer|roads|props)\.pmtiles(\?.*)?$/, async ro
 });
 
 // ---- one load ----------------------------------------------------------------
-await page.goto(`${BASE}/_harness.html?intro=0&drift=0${BREAK ? '&tileheal=0' : ''}`,
+// skyfreeze=0 holds the sky clock (js/sky.js): clouds drift and stars twinkle by design, and the "instrument is steady" rule read
+// that drift as 0.975% of the frame on 2026-10-10 (two unrelated pull requests failed on it).
+await page.goto(`${BASE}/_harness.html?intro=0&drift=0&skyfreeze=0${BREAK ? '&tileheal=0' : ''}`,
   { waitUntil: 'networkidle', timeout: 120000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 120000 });
 await page.waitForFunction(() => window.__map.getLayer('outer-3d') && window.__map.getLayer('ground-road-far'), null, { timeout: 120000 })
