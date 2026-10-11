@@ -91,7 +91,7 @@
     // no outer trees and no fetch. A number = the share of each chunk's trees
     // a phone builds; at or under farShare it builds no near template at all.
     phoneShare: null,
-    walkPitch: 80, walkRadius: 650,   // as js/outer-homes.js
+    walkPitch: 80, walkHeight: 15, walkRadius: 650,   // as js/outer-homes.js
     // Share of trees drawn. null = follow GFX.treeDensity.
     density: null,
     // Canopy colours by the hour: js/timeofday.js's own canopyLo / canopyHi
@@ -456,6 +456,18 @@
     return g;
   }
 
+  // Pitch alone also describes a rooftop panorama. Restrict walking culling to
+  // a low eye, and centre its unchanged radius on that eye rather than the
+  // ground look-at point (kilometres away when a high camera looks level).
+  function walkingEye(map, S, H) {
+    if (map.getPitch() <= H.walkPitch) return null;
+    try {
+      const p = map.getFreeCameraOptions().position, ll = p.toLngLat();
+      const eye = S.toLocal(ll.lng, ll.lat, p.toAltitude());
+      return [eye.x, eye.y, eye.z].every(Number.isFinite) && eye.z >= 0 && eye.z <= H.walkHeight ? eye : null;
+    } catch (e) { return null; }
+  }
+
   /** Which template each chunk draws, and how many trees of it. */
   function update(force) {
     if (!_group || !_map) return;
@@ -464,7 +476,7 @@
     const eyeU = _mat && _mat.uniforms && _mat.uniforms.u_eye && _mat.uniforms.u_eye.value;
     const c = _map.getCenter(), ctr = S.toLocal(c.lng, c.lat, 0);
     const eye = (eyeU && isFinite(eyeU.x) && (eyeU.x || eyeU.y || eyeU.z)) ? eyeU : { x: ctr.x, y: ctr.y, z: 300 };
-    const walking = _map.getPitch() > H.walkPitch;
+    const walkEye = walkingEye(_map, S, H), walking = !!walkEye;
     const key = [Math.round(eye.x / 40), Math.round(eye.y / 40), Math.round(eye.z / 40), walking, dens].join(',');
     if (!force && key === _lastKey) return;
     _lastKey = key;
@@ -480,7 +492,7 @@
       let pick = dist < H.nearMetres + (was === 'near' ? H.hysteresis : 0) ? 'near'
                : dist < H.farMetres + (was !== 'horizon' ? H.hysteresis : 0) ? 'far' : 'horizon';
       if (pick === 'near' && !set.near) pick = 'far';
-      if (walking && Math.hypot(u.centre[0] - ctr.x, u.centre[1] - ctr.y) - u.radius > H.walkRadius) pick = null;
+      if (walking && Math.hypot(u.centre[0] - walkEye.x, u.centre[1] - walkEye.y) - u.radius > H.walkRadius) pick = null;
       for (const k of ['near', 'far', 'horizon']) {
         const mesh = set[k];
         if (!mesh) continue;

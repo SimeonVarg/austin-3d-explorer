@@ -29,59 +29,95 @@
   // The phone memory budget (js/mobile.js LITE.budget); null on a desktop.
   const PHONE_BUDGET = (window.LITE_PROFILE && window.LITE_PROFILE.budget) || null;
 
-  // ── Y12 — THE NEAR PLANE, AND WHY IT ONLY MOVES NEAR THE PAVEMENT ─
-  //
-  // MapLibre derives its near plane from the VIEWPORT, not from how close you
-  // are standing to anything: `_nearZ = height / 50`, in the projection's pixel
-  // units. Convert that to metres and it scales with the camera distance D, so
-  // at a flyover altitude it is tens of metres in front of a city that is
-  // hundreds of metres away — invisible. At 1.7 m eye height D collapses to
-  // ~30 m and the same rule puts the near plane 0.35–1.0 m in front of your
-  // face. Anything nearer is cut, and because fill-extrusions are back-face
-  // culled, cutting a surface's near face does not show you its inside — IT
-  // SHOWS YOU WHAT IS BEHIND IT. That is why a live oak you walk under loses
-  // its crown and a doorway you step into loses its surround
-  // (docs/mobile/driving-at-eye-level.md §2; HANDOFF §108).
-  //
-  // THE TRADE, STATED BEFORE THE VALUES. A nearer near plane costs depth
-  // precision everywhere, because depth resolution goes with near/far. So this
-  // does NOT set one small value: it scales the near plane with altitude, is a
-  // STRICT NO-OP above WALK_NEAR.ALT_HI, and never pushes the near plane
-  // further out than MapLibre's own answer. Nothing scripted in this app flies
-  // below 113.9 m (js/controls.js: SPAWN is 162.9 m), so the intro, the tour,
-  // the default pose and every hero frame are above ALT_HI by a factor of
-  // three and are byte-identical by construction, not by hope.
-  //
-  // Three taste values, all overrulable in one line (CLAUDE.md rule 11):
+  // MapLibre's viewport-derived near plane can cut nearby surfaces away.
+  // Preserve the pavement blend; at higher altitudes shorten it only near an
+  // authored roof or canopy. A 1m roof near plane retains more depth precision
+  // than the 0.12m walking value. Away from those surfaces both planes remain
+  // MapLibre's own answers. Values are overrulable here in one place.
   const WALK_NEAR = {
     ALT_LO: 2.0,    // m — at or below this the near plane is exactly NEAR_M
-    ALT_HI: 40.0,   // m — at or above this MapLibre's own value is untouched
+    ALT_HI: 40.0,   // m — pavement blend ends; authored-roof checks apply above
     NEAR_M: 0.12,   // m — the near plane you get standing on a pavement
   };
   window.__walkNear = WALK_NEAR;   // read/overrule from the verify harness
 
-  /**
-   * Hook the transform's own near/far calculation rather than calling the
-   * public `overrideNearFarZ()`.
-   *
-   * WHY, because the public call looks like the right answer and is not:
-   * `overrideNearFarZ(near, far)` sets BOTH planes and latches
-   * `autoCalculateNearFarZ` off, so the FAR plane then freezes at whatever it
-   * was when you called it and the city clips out behind you the moment the
-   * camera climbs. There is no public setter for near alone. So: let MapLibre
-   * compute both exactly as it always has, then adjust `_nearZ` after it, and
-   * bail out untouched if anything has taken the override for itself.
-   *
-   * Patched on the transform's PROTOTYPE, not on the instance, and this is the
-   * one thing here that was found by looking rather than by reasoning: an
-   * instance patch applied at construction reads as installed and does
-   * nothing, because **MapLibre replaces the whole transform when the style
-   * loads.** Measured — the constructor name changes and the patched instance
-   * is no longer `map.transform`. So it is applied to the class, once, and
-   * re-asserted on `style.load` in case a later style swap changes the class
-   * too. Cloned transforms (the easing and `cameraForBounds` paths) inherit it
-   * and are unaffected in practice, because every scripted pose in this app is
-   * far above ALT_HI, where this function returns without touching anything.
+  // A roof needs less aggressive depth precision than pavement walking.
+  const ROOF_NEAR = { CLEAR_LO: 2.5, CLEAR_HI: 8, NEAR_M: 1, RADIUS_M: 2 };
+  let roofNearCatalog = null, roofNearBounds = [];
+
+  function roofSurfaceClearance(transform, altitude) {
+    const apartments = window.slopesApartments, catalog = apartments?.data;
+    const eye = transform.getCameraLngLat?.();
+    if (!catalog || !Number.isFinite(eye?.lng) || !Number.isFinite(eye?.lat) ||
+        typeof apartments.lngLatToUV !== 'function') return Infinity;
+    // Catalog identity changes when an area loads. Only nearby, actually built
+    // recipes need UV conversion; unloaded frames return null from this API.
+    if (catalog !== roofNearCatalog) {
+      roofNearCatalog = catalog;
+      roofNearBounds = (catalog.buildings || []).flatMap(spec => {
+        const ring = spec.footprint?.ring;
+        if (!Array.isArray(ring) || ring.length < 3 ||
+            ring.some(p => !Array.isArray(p) || !Number.isFinite(p[0]) || !Number.isFinite(p[1]))) return [];
+        return [{spec, west: Math.min(...ring.map(p => p[0])), east: Math.max(...ring.map(p => p[0])),
+          south: Math.min(...ring.map(p => p[1])), north: Math.max(...ring.map(p => p[1]))}];
+      });
+    }
+    const padLat = ROOF_NEAR.RADIUS_M / 110540;
+    const padLng = ROOF_NEAR.RADIUS_M / (111320 * Math.max(.01, Math.cos(eye.lat * Math.PI / 180)));
+    let nearest = Infinity;
+    for (const entry of roofNearBounds) {
+      if (eye.lng < entry.west-padLng || eye.lng > entry.east+padLng ||
+          eye.lat < entry.south-padLat || eye.lat > entry.north+padLat) continue;
+      const spec = entry.spec, point = apartments.lngLatToUV(spec.name, eye.lng, eye.lat);
+      if (!Array.isArray(point) || !point.slice(0,2).every(Number.isFinite)) continue;
+      const asRing = plan => {
+        if (plan === 'footprint') return spec.footprint.ring.map(p => apartments.lngLatToUV(spec.name, p[0], p[1]));
+        if (Array.isArray(plan) && plan.length === 4 && plan.every(Number.isFinite)) {
+          const [a,b,c,d] = plan;
+          return [[a,c],[b,c],[b,d],[a,d]];
+        }
+        return plan;
+      };
+      // Signed distance: negative inside, positive outside; the hole's inside
+      // becomes outside the roof. This includes a roof edge within two metres.
+      const ringDistance = input => {
+        const ring = asRing(input);
+        if (!Array.isArray(ring) || ring.length < 3 ||
+            ring.some(p => !Array.isArray(p) || !Number.isFinite(p[0]) || !Number.isFinite(p[1]))) return Infinity;
+        let inside = false, distance = Infinity;
+        const [x,y] = point;
+        for (let i=0,j=ring.length-1; i<ring.length; j=i++) {
+          const [ax,ay]=ring[j], [bx,by]=ring[i], dx=bx-ax, dy=by-ay;
+          if ((ay>y)!==(by>y) && x < ax+(y-ay)*dx/(by-ay)) inside=!inside;
+          const f = Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy || 1)));
+          distance = Math.min(distance,Math.hypot(x-ax-f*dx,y-ay-f*dy));
+        }
+        return inside ? -distance : distance;
+      };
+      for (const block of spec.blocks || []) {
+        if (!Number.isFinite(block.z0) || !Number.isFinite(block.z1) || block.z1 < block.z0) continue;
+        // Highest roof below the eye is distinct from the lowest canopy above
+        // it: maxHeight alone mistakes a pavilion roof for its walking floor.
+        const vertical = block.z1 <= altitude && block.cap !== false ? altitude-block.z1
+          : block.z0 > altitude ? block.z0-altitude : Infinity;
+        if (!(vertical < ROOF_NEAR.CLEAR_HI) || vertical >= nearest) continue;
+        const plan = block.plan, wrapped = plan && !Array.isArray(plan) && typeof plan === 'object';
+        let horizontal = Math.max(0,ringDistance(wrapped ? plan.ring : plan));
+        for (const hole of wrapped ? plan.holes || [] : []) {
+          const distance = ringDistance(hole);
+          if (!Number.isFinite(distance)) { horizontal = Infinity; break; }
+          if (distance < 0) horizontal = Math.max(horizontal,-distance);
+        }
+        if (horizontal <= ROOF_NEAR.RADIUS_M) nearest = Math.min(nearest,Math.hypot(horizontal,vertical));
+      }
+    }
+    return nearest;
+  }
+
+  /** Keep MapLibre's recalculated far plane, and respect external overrides.
+   * Patch the prototype because style loads replace the transform instance;
+   * easing clones must use their own actual eye, never the live map's pose.
+   * overrideNearFarZ is unsuitable: it disables automatic far-plane updates.
    */
   function installWalkingNearPlane(map) {
     const t = map && map.transform;
@@ -95,22 +131,28 @@
       // Somebody else owns the planes this frame — leave both alone.
       if (!h || !h.autoCalculateNearFarZ) return;
       const ppm = h._pixelPerMeter;
-      if (!(ppm > 0)) return;
+      if (!(ppm > 0) || !Number.isFinite(ppm)) return;
       // The transform's own altitude answer, above ground, in metres.
-      const alt = this.getCameraAltitude() - (this.elevation || 0);
-      // `!(alt < HI)` and not `alt >= HI`: a NaN altitude must take the
-      // untouched branch, never the shortening one.
-      if (!(alt < WALK_NEAR.ALT_HI)) return;
-      const defM = h._nearZ / ppm;               // MapLibre's answer, in metres
-      if (!(defM > WALK_NEAR.NEAR_M)) return;    // already nearer than we ask
-      const x = (alt - WALK_NEAR.ALT_LO) /
-                (WALK_NEAR.ALT_HI - WALK_NEAR.ALT_LO);
+      const elevation = this.elevation ?? 0;
+      if (!Number.isFinite(elevation)) return;
+      const alt = this.getCameraAltitude() - elevation;
+      if (!Number.isFinite(alt)) return;
+      const defM = h._nearZ / ppm;
+      if (!(defM > 0) || !Number.isFinite(defM)) return;
+      let distance = alt, lo = WALK_NEAR.ALT_LO, hi = WALK_NEAR.ALT_HI, near = WALK_NEAR.NEAR_M;
+      if (!(alt < WALK_NEAR.ALT_HI)) {
+        distance = roofSurfaceClearance(this, alt);
+        lo = ROOF_NEAR.CLEAR_LO; hi = ROOF_NEAR.CLEAR_HI; near = ROOF_NEAR.NEAR_M;
+      }
+      if (![lo,hi,near].every(Number.isFinite) || !(hi > lo) || !(near > 0) ||
+          !(distance < hi) || !(defM > near)) return;
+      const x = (distance-lo)/(hi-lo);
       const u = x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);   // smoothstep
       // Blend in LOG space. A near plane is a scale, not a length: a linear
       // ramp from 0.12 to 3 m spends nine tenths of its travel in the range
       // where the difference is invisible and steps hard at the bottom.
       // pow(k, 0) is exactly 1, so u = 1 returns MapLibre's value bit for bit.
-      h._nearZ = defM * Math.pow(WALK_NEAR.NEAR_M / defM, 1 - u) * ppm;
+      h._nearZ = defM * Math.pow(near / defM, 1 - u) * ppm;
     };
     proto.__walkNearInstalled = true;
     return true;

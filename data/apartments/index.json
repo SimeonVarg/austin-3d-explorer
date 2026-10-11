@@ -51,7 +51,15 @@
     "robert-b-rowling-hall.json",
     "dominos.json",
     "jimmy-johns.json",
-    "raising-canes.json"
+    "raising-canes.json",
+    "rise-at-west-campus.json",
+    "twenty-two-15.json",
+    "noble-2500.json",
+    "yugo-the-corner.json",
+    "quarters-nueces-house.json",
+    "texan-tower.json",
+    "26-west-garage.json",
+    "26-west-rio-grande.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -106,7 +114,15 @@
     "3e41820f-7a63-49d5-950a-b1b46767617e",
     "9f1e1dcd-9fc3-4771-b83e-e290483f80b7",
     "12a8cbfc-5d0d-4131-b055-d3c0516929d8",
-    "b32544f3-3221-480b-86bd-236b0eeb7be1"
+    "b32544f3-3221-480b-86bd-236b0eeb7be1",
+    "65e5a9ce-377b-4eac-928e-c9634ce2c4da",
+    "7a5984d8-919c-405c-afe5-cd31ba969b63",
+    "ffb87957-520e-4340-bdd2-e331c2c51046",
+    "3de7a448-64eb-450d-94ad-76489525c634",
+    "5e94c2db-4245-4db3-b5c0-9ed631bcd658",
+    "f142fa08-fece-4a8d-8aae-efe0b88b38cf",
+    "23994eaf-1258-43d1-9648-fdff8c14acc1",
+    "529724dc-ce98-4052-a23c-ca3c8e776217"
   ],
   "replacedNames": [
     "The Standard",
@@ -159,7 +175,15 @@
     "Robert B. Rowling Hall",
     "Domino's",
     "Jimmy John's",
-    "Raising Cane's"
+    "Raising Cane's",
+    "Rise at West Campus",
+    "Twenty Two 15",
+    "Noble 2500",
+    "Yugo The Corner",
+    "The Quarters Nueces House",
+    "Texan Tower",
+    "26 West Garage",
+    "26 West Rio Grande Bar"
   ],
   "collections": [
     "data/campus_buildings.json",
