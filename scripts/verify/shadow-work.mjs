@@ -9,7 +9,7 @@ import {chromium} from 'playwright-core';
 import {BASE,launch,HW_ARGS} from './chrome.mjs';
 import {decodePNG} from './lib/png.mjs';
 const args=process.argv.slice(2),opt=(k,d)=>args.includes(k)?args[args.indexOf(k)+1]:d;
-const out=path.resolve(opt('--out','/tmp/shadow-work'));
+const out=path.resolve(opt('--out',process.env.VERIFY_OUT||'/tmp/shadow-work'));
 const broken=args.includes('--break'),frames=Number(opt('--frames','0'));
 const views=[
  {name:'campus-far',p:.2,center:[-97.7393,30.2874],zoom:16.85,pitch:74,bearing:197.4},
