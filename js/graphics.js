@@ -668,9 +668,11 @@
   // WebGL context. Bloom needs to read the GL canvas, so it needs the buffer
   // kept; asking for it only when bloom is actually wanted means the performance
   // preset stops paying for it on the next load.
+  const FRAME_FILTER_URL = Q.get('framefilter') === '1';
+  let frameFilterLoad = null;
   const SMOOTH_URL = Q.get('smooth') === '1' ? true : Q.get('smooth') === '0' ? false : null;
-  window.GFX_MSAA = SMOOTH_URL == null ? !!GFX.msaa : SMOOTH_URL;   // the flag is not written to GFX: nothing is saved
-  window.GFX_PDB = GFX.bloom > 0.01 || !!GFX.autoExposure;  // auto-exposure meters the same buffer
+  window.GFX_MSAA = FRAME_FILTER_URL ? false : SMOOTH_URL == null ? !!GFX.msaa : SMOOTH_URL;   // the flag is not written to GFX: nothing is saved
+  window.GFX_PDB = FRAME_FILTER_URL || GFX.bloom > 0.01 || !!GFX.autoExposure;  // auto-exposure meters the same buffer
   // Does this browser draw with a graphics card? The same test as the Smooth
   // edges default (EDGE_SMOOTHING.fullDefaultGpu). js/city-lighting.js keeps
   // its far pattern filter to cards by default. On the phone profile this may
@@ -791,6 +793,27 @@
 
   window.initGraphics = function initGraphics(map) {
     _map = map;
+    if (FRAME_FILTER_URL) {
+      // Seed the persistent framebuffer tracker BEFORE the filter wraps GL.
+      // Otherwise toggling auto-exposure later could retain a stale filter hook.
+      aeGlState(map.painter.context.gl);
+      if (!frameFilterLoad) frameFilterLoad = new Promise((resolve, reject) => {
+        if (window.FrameFilter) { resolve(window.FrameFilter); return; }
+        const script = document.createElement('script');
+        script.src = 'js/frame-filter.js';
+        script.onload = () => window.FrameFilter ? resolve(window.FrameFilter) : reject(new Error('Frame filter unavailable'));
+        script.onerror = () => reject(new Error('Frame filter could not load'));
+        document.head.appendChild(script);
+      });
+      let removed = false;
+      const onRemove = () => { removed = true; };
+      map.on('remove', onRemove);
+      frameFilterLoad.then(filter => {
+        if (!removed) filter.attach(map).setEnabled(true);
+      }).catch(error => console.warn('[frame-filter] native rendering retained:', error.message))
+        .finally(() => map.off('remove', onRemove));
+    }
+
 
     // Order is the post-processing order, bottom to top: distance blur reads the
     // raw geometry, bloom must see the sky overlay and the rays, and the
