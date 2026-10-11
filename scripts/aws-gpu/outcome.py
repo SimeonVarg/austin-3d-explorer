@@ -15,14 +15,24 @@ import glob, json, os, sys, tempfile
 def judge(root):
     """Returns the list of reasons the run is not a pass (empty = pass)."""
     bad = []
-    manifests = sorted(glob.glob(os.path.join(root, '**', 'manifest.json'), recursive=True))
+    # Only the RUNNER's record counts: <run folder>/out/manifest.json, where the run folder is <ref>-<instance> and a ref
+    # may hold slashes. A check may write a manifest.json of its own deeper down (out/<check>/...): that is its business,
+    # and judging it as runner metadata would fail a passing run. So: the FIRST folder named `out` on the way down, and
+    # the manifest directly inside it.
+    manifests = []
+    for m in sorted(glob.glob(os.path.join(root, '**', 'manifest.json'), recursive=True)):
+        parts = os.path.relpath(m, root).split(os.sep)
+        if len(parts) >= 3 and parts[-2] == 'out' and 'out' not in parts[:-2]:
+            manifests.append(m)
     if not manifests:
-        return ['no manifest.json under %s: the machine wrote no result record' % root]
+        return ['no <run>/out/manifest.json under %s: the machine wrote no result record' % root]
     for m in manifests:
         try:
             d = json.load(open(m))
         except Exception as e:
             bad.append('%s: not readable (%s)' % (m, type(e).__name__)); continue
+        if not isinstance(d, dict):
+            bad.append('%s: the record is a %s, not an object' % (m, type(d).__name__)); continue
         if d.get('gpu_ok') is not True:
             bad.append('%s: gpu_ok is %r (the browser did not draw on the graphics card)' % (m, d.get('gpu_ok')))
         res = d.get('results')
@@ -54,6 +64,25 @@ def self_test():
     with tempfile.TemporaryDirectory() as t:
         got = 1 if judge(t) else 0
     print(('ok  ' if got == 1 else 'FAIL') + ' no manifest at all: want 1, got %d' % got); wrong += got != 1
+    good = {'gpu_ok': True, 'results': [{'name': 'a', 'exit': 0}]}
+
+    def tree(files):
+        t = tempfile.mkdtemp()
+        for rel, doc in files.items():
+            f = os.path.join(t, *rel.split('/')); os.makedirs(os.path.dirname(f), exist_ok=True)
+            open(f, 'w').write(doc if isinstance(doc, str) else json.dumps(doc))
+        return t
+    more = {
+        "a passing run whose check wrote its own nested manifest.json": ({'main-i-0/out/manifest.json': good, 'main-i-0/out/a/manifest.json': {'frames': 3}}, 0),
+        'a ref with slashes (mac/x-i-0/out/manifest.json)': ({'mac/x-i-0/out/manifest.json': good}, 0),
+        'only a nested check manifest, no runner record': ({'main-i-0/out/a/manifest.json': {'frames': 3}}, 1),
+        'the record is a list, not an object': ({'main-i-0/out/manifest.json': [1, 2]}, 1),
+        'the record is not JSON': ({'main-i-0/out/manifest.json': '<html>'}, 1),
+        'two runs, one failed': ({'main-i-0/out/manifest.json': good, 'main-i-1/out/manifest.json': {'gpu_ok': True, 'results': [{'name': 'b', 'exit': 2}]}}, 1),
+    }
+    for name, (files, want) in more.items():
+        got = 1 if judge(tree(files)) else 0
+        print(('ok  ' if got == want else 'FAIL') + ' %s: want %d, got %d' % (name, want, got)); wrong += got != want
     return 1 if wrong else 0
 
 
