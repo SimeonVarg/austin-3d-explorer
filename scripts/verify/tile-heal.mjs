@@ -74,6 +74,7 @@ const MIN_FEATURES = 100;
 const MIN_BETWEEN = 5;
 // Far under the road floor, or the road share could be noise. It measures 0.
 const MAX_NOISE = 0.03;
+const SETTLE_MAX_TRIES = 30;   // extra shots (about 3 s each) to wait for a frame that is still painting, before the steadiness rule is read
 
 // One load of the whole city plus about ten settled frames: 312 s on the laptop
 // and 314 s on the build server, which is over the harness's 300 s default. A
@@ -141,7 +142,9 @@ await page.route(/\/data\/tiles\/(outer|roads|props)\.pmtiles(\?.*)?$/, async ro
 });
 
 // ---- one load ----------------------------------------------------------------
-await page.goto(`${BASE}/_harness.html?intro=0&drift=0${BREAK ? '&tileheal=0' : ''}`,
+// skyfreeze=0 holds the sky clock (js/sky.js): clouds drift and stars twinkle by design, and the "instrument is steady" rule read
+// that drift as 0.975% of the frame on 2026-10-10 (two unrelated pull requests failed on it).
+await page.goto(`${BASE}/_harness.html?intro=0&drift=0&skyfreeze=0${BREAK ? '&tileheal=0' : ''}`,
   { waitUntil: 'networkidle', timeout: 120000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 120000 });
 await page.waitForFunction(() => window.__map.getLayer('outer-3d') && window.__map.getLayer('ground-road-far'), null, { timeout: 120000 })
@@ -232,6 +235,16 @@ const labels = await page.evaluate(() => {
 });
 await snap('all');
 await snap('all2');                       // the same state twice: the noise floor
+// Wait until the frame has stopped changing BY ITSELF before anything is hidden. The city goes on painting after the
+// map is idle (wall images are painted when a tile first asks, the outer houses and trees arrive in steps), and on a
+// slow machine that was still going at the first shot: on 2026-10-10 three unrelated pull requests failed here with
+// "noise" 0.975%, 13.3% and a road share of 6.7% and 18.2% (true: 0.3%), each on a run that took over 500 s where a
+// passing run takes 260 to 420 s. The rule below is unchanged: once settled, first, second and LAST must still agree.
+let settleTries = 0, settleLast = await moved('all', 'all2');
+while (settleLast >= MAX_NOISE && settleTries < SETTLE_MAX_TRIES) {
+  frames.all = frames.all2; await snap('all2'); settleLast = await moved('all', 'all2'); settleTries++;
+}
+console.log(`settled after ${settleTries} more shot(s); the last two frames differ by ${settleLast}%`);
 await setHidden('austin-outer', true);  await snap('noOuter');  await setHidden('austin-outer', false);
 await setHidden('austin-roads', true);  await snap('noRoads');  await setHidden('austin-roads', false);
 await snap('all3');                       // the first state again, last: a frame that changed by itself in between
