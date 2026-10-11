@@ -238,7 +238,11 @@ To convert a supported or CHECK local camera into an application view, add
 `local_angles: {"yaw":0,"pitch":0,"roll":0,"hfov":60}` to that evidence and
 supply `--recipe /private/run/baseline.json --view-out /private/run/app-view.json`.
 The adapter uses the recipe's stored `frame.obb` exactly and binds the recipe and
-emitted view hashes to the preflight receipt. It refuses implicit frames; use the
+emitted view hashes to the preflight receipt. The view explicitly carries
+`camera_math_version: 2`: use a renderer that recognizes this version and applies
+the corrected frustum and Mercator placement. Preserve this field when placing the
+view in a job; do not route it through a consumer that drops version metadata or
+relabel an approved legacy pose as version 2. It refuses implicit frames; use the
 existing camera fitter to resolve those rather than guessing another bounding box.
 A rejected pose emits no application view. This guards the quarter-turn error from
 recomputing an already-authored frame from the footprint's longer side.

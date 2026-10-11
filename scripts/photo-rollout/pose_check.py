@@ -34,7 +34,7 @@ def app_view(recipe, camera, local_angles, rotation=None):
         raise Rejected('invalid explicit frame or local pose')
     north=math.degrees(math.atan2(-ay,ax))
     de,dn=camera[0]*ax-camera[1]*ay,camera[0]*ay+camera[1]*ax
-    return dict(pose=dict(h=camera[2],yaw=(local_angles['yaw']+north)%360,
+    return dict(camera_math_version=2,pose=dict(h=camera[2],yaw=(local_angles['yaw']+north)%360,
                          pitch=local_angles['pitch'],roll=local_angles['roll'],hfov=local_angles['hfov']),
                 latlon=dict(lat=o['o'][1]+dn/my,lon=o['o'][0]+de/mx))
 

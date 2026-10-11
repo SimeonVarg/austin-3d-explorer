@@ -40,6 +40,7 @@ class PoseTests(unittest.TestCase):
         recipe={'frame':{'obb':{'o':[0,0],'ax':1,'ay':0,'mx':100,'my':100}}}
         view=app_view(recipe,[1,2,3],dict(yaw=0,pitch=0,roll=-30,hfov=60),rotation)
         self.assertAlmostEqual(view['pose']['roll'],30)
+        self.assertEqual(view['camera_math_version'],2)
         with self.assertRaises(Rejected):angles_from_rotation([[1,0,0],[0,1,0],[0,0,-1]],60)
 
     def test_bad_number_rejected(self):
