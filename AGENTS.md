@@ -466,3 +466,29 @@ and unobserved areas. Preserve low memory use and provide matched before/after
 views; report raw/compressed data size, geometry and texture memory changes.
 The authorized spending ceiling for this pass is $100. Keep source photos and
 their identities in the private evidence store.
+
+## Photo-matched city views and roof decks — October 11, 2026
+
+The owner's latest direction for the next passes is, in order:
+1. Match the complete campus, east Austin and north Austin reference views,
+   including missing apartments and distant buildings, visible ground and
+   planting, materials, textures, sky, lighting and reflections. A few improved
+   isolated buildings do not complete a photographed view.
+2. Rebuild The Standard's deck, then the photographed Union and Mark decks,
+   with their actual structures and furnishings instead of block substitutes.
+   Confirm which Union property from the evidence before selecting its recipe.
+
+The owner still rejects the Mac moire result: distant apartments shimmer during
+the opening flight, and blur does not satisfy the goal. Sharp, stable motion in
+the normal Mac intro and slow pans is a quality requirement within these passes;
+do not divert the photo pass into a separate open-ended moire experiment.
+Earlier roof and optional temporal-filter results are not owner acceptance.
+
+Use original photo metadata as camera constraints, then verify against visible
+landmarks and independently supported scale. Compare each reference with the
+actual app from a matched camera and check other available angles. Preserve
+the evidence/inference distinction and private-source rules above. Offer visual
+options for material aesthetic choices; agents own ordinary omissions and
+engineering decisions. The immediate request is photo access, coordination with
+the main lane, and a staged plan; this record does not claim photos were obtained
+or a building pass completed.
