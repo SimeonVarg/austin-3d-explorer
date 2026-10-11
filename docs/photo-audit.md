@@ -22,6 +22,14 @@ table: one row per check, the number from the PHOTO, the number from the
 RENDER, and SAME or DIFFERENT. Measure in pixels and write ratios. Do not write
 "looks right".
 
+Start with the tools that exist: `scripts/photo-rollout/README.md` has the photo
+inventory, the reviewed source packets, the camera check before a job and the
+check of the real capture. Use them and the recorded inputs before you build
+another pipeline. When they pass, the inputs and the camera agree with each
+other. That is not yet a likeness to the photograph. A short list of
+overlapping photographs still needs its landmarks looked at, and an extraction
+that fails its quality check stays a rejected trial.
+
 **0. Is it the right building?** Confirm the photograph shows this building
 and which wall, before anything else.
 
@@ -61,10 +69,12 @@ A pattern that looks random from the street is nearly never random. Moontower:
 white blocks three floors tall, charcoal columns with one window a floor, and
 each tier the same layout moved 1.07 m north. The draft had painted it at
 random, and no audit row can turn a random wall into the right one.
-Two flat drawings of two walls that are NOT in one plane also give a camera you
-can trust for size: fit it to points from both. On Moontower the tower wall
-and the box front, 3.4 m apart, fitted to 5.6 px, and two photographs taken
-from one spot gave the same spot twice.
+Two walls that are NOT in one plane hold a fitted camera much better than one
+wall: fit it to points from both (Moontower: the tower wall and the box front,
+3.4 m apart, fitted to 5.6 px). They do not give the real size by themselves:
+keep the one measured length from 1b. Two fits that land on the same spot can
+both repeat the same wrong model or the same wrong match. Write down which
+points you kept OUT of the fit before you use them as a check.
 
 **2. Measure each repeated part.** For a window, an arch, a balcony, a post:
 - width ÷ spacing (how much of a bay it fills);
@@ -89,11 +99,33 @@ stretch, a wider pier, a corner)?
 points on ONE wall cannot say how far back that wall stands: the fit moves the
 camera to suit any depth. Before you move a wall forward or back, add a ground
 line (a curb, a path edge) or a second wall to the fit, and check that the
-camera height it gives is a height a person holds a phone (1.4 to 2.1 m). And a
+camera height it gives is one a person could hold a phone at (1.4 to 2.1 m above
+where they stand; 5c says what that does and does not prove). And a
 frontal photograph cannot show how deep a recess is. For every recess (an
 arcade, a porch, a set-back storey) find the oblique photograph, and measure
 there: recess depth ÷ pier width, and pier depth ÷ pier width. Compare the
 render from that same oblique camera, not from the front.
+
+**5c. Check the camera in the real app before you grade the model.** A small
+fitting error is not enough. Check the camera against a ground plane whose
+source you can name, and write down whether the camera height and the scale are
+MEASURED or ASSUMED. Reject a camera that sits under that ground. Do not turn a
+usual phone height into a measured fact: a photograph may be taken from steps
+or from an upper floor. Ground of unknown source stays uncertain.
+Then project points on the wall, on the ground and on any object in front
+through BOTH the fitted camera and the app's real camera, after the same crop
+or warp of the picture, and compare. Keep the roll, the building frame, the
+picture size and the camera-math version with the capture. A change of version
+must never quietly re-read an old pose. When the two agree, the two camera
+paths agree. It does not prove that the shape, the real camera or the scale is
+right.
+
+**5d. A second photograph checks only the feature that both show.** Look at the
+matching landmarks before you call an overlapping photograph a holdout.
+Repeated windows give matches that look right and are wrong. A similar table,
+or a piece of the same wall, is no evidence for a hidden seat or for one
+ornament. Write down which features the second view really confirms. If you
+used it to FIT those features, it is no longer an independent check of them.
 
 **6. Colour, by measurement.** Take the middle colour of each material in the
 photograph and in the render. Light differs, so compare RATIOS between
@@ -202,3 +234,10 @@ made or sharpened.
   again": a new shop went live with its name in the 5x7 dot font, and the lead
   looked at the whole picture and not at the sign. Check 9b, and
   `sign-lettering.mjs` (the dot font is frozen to the 12 recipes that had it).
+- 2026-10-11. Not an owner comment: the overnight detail trial found a camera
+  with a small fitting error that sat UNDER the modelled ground, and a fitted
+  camera whose projection did not agree with the app's. Checks 5c and 5d, the
+  sharper end of 1d, and the first step in "The audit". The second photograph
+  did not prove that it showed the same table, nor the one ornament, and a
+  corrected outline still left out most of its inner pattern: the whole-picture
+  audit stays required.
