@@ -172,6 +172,15 @@
   'use strict';
 
   const q = new URLSearchParams(window.location.search);
+  const SAMPLE_PCF=q.get('samplepcf')==='1';
+  const SAMPLE_BOUNDS=SAMPLE_PCF&&q.get('samplebounds')==='1';
+  if(SAMPLE_BOUNDS&&!window.ShadowBounds){
+    const script=document.createElement('script'),url=document.currentScript?.src;
+    script.src=url?new URL('./shadow-bounds.js',url).href:'js/shadow-bounds.js';
+    script.onload=()=>window.__map?.triggerRepaint?.();
+    script.onerror=()=>console.error('[shadow-bounds] module failed to load');
+    document.head.appendChild(script);
+  }
 
   // ══════════════════════════════════════════════════════════════════════
   //  TASTE BLOCK — CLAUDE.md rule 11. Every value in this file that is a
@@ -797,11 +806,21 @@ ${window.RoofTiles.apply}
   let _lastPreset = null;
   let _frames = 0, _warnedMatrix = false;
   let _sunShadow = null;
+  let _sunShadowFallback = null;
+  function comparisonDepth(size) {
+    const T=window.THREE,texture=new T.DepthTexture(size,size,T.UnsignedIntType);
+    texture.compareFunction=T.LessEqualCompare;
+    texture.minFilter=texture.magFilter=T.LinearFilter;
+    texture.wrapS=texture.wrapT=T.ClampToEdgeWrapping;
+    texture.generateMipmaps=false;texture.needsUpdate=true;
+    return texture;
+  }
 
   function releaseSunShadows() {
     if(!_sunShadow)return;
     _sunShadow.targets.forEach(t=>t.dispose());_sunShadow.depth.dispose();_sunShadow=null;
-    if(U){U.u_sunShadow0.value=null;U.u_sunShadow1.value=null;U.u_shadowSettings.value.x=0;}
+    if(U){U.u_sunShadow0.value=SAMPLE_PCF?_sunShadowFallback:null;U.u_sunShadow1.value=SAMPLE_PCF?_sunShadowFallback:null;U.u_shadowSettings.value.x=0;}
+    if(U&&SAMPLE_BOUNDS){U.u_sunShadowBounds0.value=U.u_sunShadowBounds1.value=null;}
   }
 
   // The viewport and scissor box as the shared context last set them, so the
@@ -839,12 +858,19 @@ ${window.RoofTiles.apply}
     U.u_shadowSettings.value.x=0;
     const gl=renderer?.getContext();
     if(!gl||gl.isContextLost())return;
+    if(SAMPLE_BOUNDS&&!window.ShadowBounds)return;
     if(!s.on||!s.shadows||window.GFX?.shadows===false||U.u_sunDirection.value.z<=0||!window.slopesApartments?.count.done)return;
     // No new per-frame scene traversal or geometry. Render the existing mesh
     // scene from the sun only when the hour or completed building set changes.
     if(_sunShadow&&_sunShadow.size!==s.shadowSize)releaseSunShadows();
     if(!_sunShadow) {
-      const targets=[0,1].map(()=>new T.WebGLRenderTarget(s.shadowSize,s.shadowSize,{minFilter:T.NearestFilter,magFilter:T.NearestFilter,depthBuffer:true,stencilBuffer:false}));
+      const targets=[0,1].map(()=>{
+        const target=new T.WebGLRenderTarget(s.shadowSize,s.shadowSize,{minFilter:T.NearestFilter,magFilter:T.NearestFilter,depthBuffer:true,stencilBuffer:false});
+        // DepthTexture replaces the DEPTH_COMPONENT24 renderbuffer Three
+        // otherwise allocates. Keep the existing colour attachment for A/B.
+        if(SAMPLE_PCF)target.depthTexture=comparisonDepth(s.shadowSize);
+        return target;
+      });
       const depth=new T.ShaderMaterial({
         vertexShader:'varying float v_depth; void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);v_depth=gl_Position.z/gl_Position.w*.5+.5;}',
         fragmentShader:'#include <packing>\nvarying float v_depth; void main(){gl_FragColor=packDepthToRGBA(v_depth);}',
@@ -852,7 +878,9 @@ ${window.RoofTiles.apply}
       });
       const cameras=s.shadowRadii.map(r=>new T.OrthographicCamera(-r,r,r,-r,1,s.shadowDistance*2));
       _sunShadow={targets,depth,cameras,keys:[null,null],size:s.shadowSize,updates:0,mapRenders:0};
-      U.u_sunShadow0.value=targets[0].texture;U.u_sunShadow1.value=targets[1].texture;
+      U.u_sunShadow0.value=SAMPLE_PCF?targets[0].depthTexture:targets[0].texture;
+      U.u_sunShadow1.value=SAMPLE_PCF?targets[1].depthTexture:targets[1].texture;
+      if(SAMPLE_BOUNDS){U.u_sunShadowBounds0.value=targets[0].texture;U.u_sunShadowBounds1.value=targets[1].texture;}
     }
     const look=toLocal(_map.getCenter().lng,_map.getCenter().lat,30);
     // Each map on its own grid (shadowSnap near, shadowSnapFar far) and its
@@ -877,10 +905,15 @@ ${window.RoofTiles.apply}
       const scissor=V?V.scissor.slice():gl.getParameter(gl.SCISSOR_BOX),scissorTest=gl.isEnabled(gl.SCISSOR_TEST);
       if(!viewport||!scissor)return; // loss can occur during a GL state query
       const clear=renderer.getClearColor(new T.Color()),alpha=renderer.getClearAlpha();
+      // The colour depth shader stores clip depth in 0..1, while MapLibre
+      // normally narrows GL depthRange. Comparison depth must use that same
+      // clip convention; restore the owner's range even if rendering throws.
+      const depthRange=SAMPLE_PCF?gl.getParameter(gl.DEPTH_RANGE):null;
       // Filtering changes coverage, not the building's shadow geometry.
       const filtered=(window.slopesApartments?.group?.children||[]).filter(o=>o.userData?.disposeFacade&&o.visible);
       for(const o of filtered)o.visible=false;
       try {
+        if(SAMPLE_PCF)gl.depthRange(0,1);
         scene.overrideMaterial=_sunShadow.depth;
         if(proxy){scene.add(proxy);proxy.visible=true;}
         renderer.setClearColor(0xffffff,1);
@@ -893,10 +926,12 @@ ${window.RoofTiles.apply}
           cam.lookAt(c.x,c.y,c.z);cam.updateMatrixWorld(true);
           U[i===0?'u_sunShadowMatrix0':'u_sunShadowMatrix1'].value.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);
           renderer.setRenderTarget(_sunShadow.targets[i]);renderer.clear();renderer.render(scene,cam);
+          if(SAMPLE_BOUNDS)window.ShadowBounds.update(renderer,_sunShadow.targets[i]);
           _sunShadow.keys[i]=keys[i];_sunShadow.mapRenders++;
         }
         _sunShadow.updates++;
       } finally {
+        if(depthRange)gl.depthRange(depthRange[0],depthRange[1]);
         for(const o of filtered)o.visible=true;
         if(proxy){scene.remove(proxy);proxy.visible=false;}
         scene.overrideMaterial=override;renderer.setRenderTarget(target);renderer.setClearColor(clear,alpha);
@@ -1786,7 +1821,8 @@ ${window.RoofTiles.apply}
       renderer.resetState();
       updateSunShadows();
       if(gl.isContextLost())return;
-      window.CityLighting.frame(U,camera.projectionMatrixInverse,_sunShadow?.targets.map(t=>renderer.properties.get(t.texture).__webglTexture));
+      window.CityLighting.frame(U,camera.projectionMatrixInverse,_sunShadow?.targets.map(t=>renderer.properties.get(SAMPLE_PCF?t.depthTexture:t.texture).__webglTexture),
+        SAMPLE_BOUNDS?_sunShadow?.targets.map(t=>renderer.properties.get(t.texture).__webglTexture):undefined);
       if(prepareOnly)return;
       renderer.render(scene, camera);
       _frames++;
@@ -1990,6 +2026,13 @@ ${window.RoofTiles.apply}
       u_facet_hi: { value: 1.28 }, u_facet_sin: { value: 0 }, u_facet_cos: { value: 1 },
       u_sloped_max_z: { value: Math.cos(6 * Math.PI / 180) },
     };
+    if(SAMPLE_PCF){
+      // A cold night/shadows-off load still needs complete comparison
+      // samplers. No visibility lookup occurs while shadowSettings.x is 0.
+      _sunShadowFallback??=comparisonDepth(1);
+      U.u_sunShadow0.value=U.u_sunShadow1.value=_sunShadowFallback;
+    }
+    if(SAMPLE_BOUNDS){U.u_sunShadowBounds0={value:null};U.u_sunShadowBounds1={value:null};}
     facetUniforms();
     scene = new T.Scene();
     root = new T.Group(); root.name = 'slopes-root';   // identity: NO mirror here, see point 3
@@ -2139,7 +2182,7 @@ ${window.RoofTiles.apply}
     get origin() { return originMerc; }, get scale() { return originScale; },
     get frames() { return _frames; }, get debugGroup() { return _debugGroup; },
     uniforms: () => U,
-    sunlightStats: () => ({shadowUpdates:_sunShadow?.updates||0,shadowMapRenders:_sunShadow?.mapRenders||0,shadowSize:_sunShadow?.size||0,shadowMaps:_sunShadow?2:0}),
+    sunlightStats: () => ({shadowUpdates:_sunShadow?.updates||0,shadowMapRenders:_sunShadow?.mapRenders||0,shadowSize:_sunShadow?.size||0,shadowMaps:_sunShadow?2:0,samplePCF:SAMPLE_PCF,sampleBounds:SAMPLE_BOUNDS,boundsRefreshes:window.ShadowBounds?.stats.refreshes||0}),
     precompileStats: () => ({ on: SLOPES.turn.precompile, compiled: _pc.compiled, warmed: _pc.warmed, pending: _pc.pending.size, materials: _pc.materials, ms: +_pc.ms.toFixed(1) }),
   };
 
