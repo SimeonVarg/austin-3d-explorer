@@ -74,13 +74,18 @@ jobs:
           # ONLY this run's folder (flyover-runs/<ref>-<instance id>/). The prefix holds every lane's old runs: fetching all of
           # it was slow, and on 2026-10-10 one old folder with ':' and '|' in its file names made upload-artifact refuse
           # every later run's results.
-          iid="$(grep -oE 'i-[0-9a-f]{8,17}' launch.log | head -1 || true)"
+          # The id is read from the "InstanceId" field ONLY. A bare 'i-[0-9a-f]+' also matches the tail of the AMI id
+          # ("ami-0a24..." contains "i-0a24..."), which comes first in the log: the first real run after #480 was green
+          # and fetched nothing for that reason.
+          iid="$(grep -oE '"InstanceId": *"i-[0-9a-f]+"' launch.log | head -1 | grep -oE 'i-[0-9a-f]+' || true)"
           mkdir -p results
           if [ -n "$iid" ]; then
             aws s3 cp "s3://$RESULT_BUCKET/flyover-runs/" results/ --recursive --only-show-errors --exclude '*' --include "*-${iid}/*" || true
           else
             echo "::warning::no instance id in launch.log; nothing fetched"
           fi
+          # A run that started a machine and brought nothing back is NOT a success.
+          [ -n "$(find results -type f -print -quit 2>/dev/null)" ] || { echo "::error::no result files were fetched for instance '${iid}'"; exit 1; }
           # upload-artifact refuses " : < > | * ? in a name: rename (deepest first), so one odd file cannot lose a whole run.
           find results -depth -name '*[":<>|*?]*' | while IFS= read -r p; do
             mv -- "$p" "$(dirname "$p")/$(basename "$p" | tr '":<>|*?' '_______')"
