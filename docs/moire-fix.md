@@ -9,27 +9,32 @@ Meter: `scripts/verify/moire-bar.mjs`; exactness of "off": `scripts/verify/moire
 ## What it does
 
 1. **Recording.** `js/slopes-apartments.js`'s cell tiler (`tileFace`) holds the cells of a wall face, and if the face has more than one tone it
-   asks `MoireFix.tables(T)`'s `faceOpen`, reports every cell (`faceCell`: rectangle, tone, glass or not, lit or not, the size of the window it
-   belongs to, its recess) and `faceClose`s. A blank wall takes no face number. The face's number rides in the unused fourth float of the
-   packed normal table (so a vertex is still 16 bytes, and the fix needs `?packverts=1`, the default).
-2. **The record**, 12 float texels per face (`T.faces`): the mean tones of the opaque parts and of the glass (day, golden, night; lit and unlit
-   glass apart), the glass share, the lit share, the window's size as the "feature" a pixel is compared with, the reveal-hide factors, the
-   strip addresses. Colours are the tones' own 8-bit values / 255, the space the frame buffer averages in.
-3. **Two strips per face** at 0.25 m: `rowA` = opaque day colour x (1 - glass share) and the glass share of that height; `rowB` the same for
-   night with the lit share. What a horizontal line across the face averages to.
-4. **Two edge strips** at 0.1 m (`T.fine`): running sums of "a pane stands at this height" and "a pane stands at this place along the wall".
-   For windows in an aligned grid the glass share of any box is the product of two differences of these sums (two reads each).
-5. **The shader** (`glsl()` in `js/moire.js`, after the cell's own shading):
-   - *far mean*: as a window shrinks under `px[0]` pixels across the cell blends to its row's mean (then to its face's mean as it shrinks under
-     `pxV[0]` pixels up). The class means (opaque, unlit glass, lit glass) are SHADED by the cell shader's own text (`SHADE_CORE`, `SHADE_REFLECT`
-     in `js/slopes.js`: one text, so the two cannot drift apart), so far glass keeps its sky reflection and lit windows their glow.
+   opens a face with `faceOpen`, reports every cell (`faceCell`: rectangle, tone, lit or not, the size of the window it belongs to, its recess)
+   and `faceClose`s. A blank wall takes no face number. The number rides in the unused fourth float of the packed normal table (so a vertex is
+   still 16 bytes, and the fix needs `?packverts=1`, the default). When the normal table is `normalShare` full no more faces are opened.
+2. **The record**, 10 float texels per face (`T.faces`): the mean tones of the opaque parts (day, golden, night) and of the glass (day, golden,
+   unlit night, lit night), the glass share, the lit share, the window's size as the "feature" a pixel is compared with (`4ab / (a + b)` for a
+   window a and a pier b: one sample per pixel is off by about f / (2 (a + b)) of the contrast, the flat mean by 2ab / (a + b)^2, so the mean is
+   the better picture once the pixel on the wall passes that length), the face's foot height, the panes' mean recess, the glass's reflection
+   response, the wall tone's surface, and the edge strips' address. Colours are the tones' own 8-bit values / 255, the space the frame buffer
+   averages in.
+3. **Two edge strips** at 0.1 m (`T.fine`): running sums of "a pane stands at this height" and "a pane stands at this place along the wall".
+   For windows in an aligned grid the glass share of any box is the product of two differences of these sums (two reads each). Where windows of
+   two sizes share a face the product also claims the wall above the shorter one; the record keeps `claimed` (real pane area / the product's) so
+   the shader leaves such wall cells alone.
+4. **The shader** (`glsl()` in `js/moire.js`, after the cell's own shading):
+   - *far mean*: as a window shrinks under `px[0]` pixels across (or `pxV[0]` up) the cell blends to its face's mean. The class means (opaque,
+     unlit glass, lit glass) are SHADED by the cell shader's own text, cut out of FRAG by `patch()` (one text, so the two cannot drift apart), so
+     far glass keeps its sky reflection and lit windows their glow. `cityShade` in `js/city-lighting.js` stores its shadow read and reuses it for
+     the class shades (`cityVisibility`, `cityReuse`; present only when the fix is on).
    - *edges*: where a pixel is more than about one strip texel wide, a pixel on a window's edge is wall and glass mixed by the glass share of its
-     own footprint. A recessed pane is looked up where the pixel's ray crosses the wall plane (`through`), and a far mean leaves out the glass that
-     the window reveals hide at this view angle (`parallax`).
-   - `cityShade` in `js/city-lighting.js` is split in two (`cityShade` measures the sun's visibility, `cityShadeLit` shades) only when the fix is
-     on, so the class shades reuse the cell's own shadow read.
-6. **MapLibre's pattern walls**: the far pattern filter that was already there (a box of taps over the pixel's own footprint) runs on every
+     own footprint. A recessed pane is looked up where the pixel's ray crosses the wall plane (`through`). At night the wall side of the edge is
+     turned down (`nightEdge`): the face's MEAN glass is not that pane's lit or dark tone.
+5. **MapLibre's pattern walls**: the far pattern filter that was already there (a box of taps over the pixel's own footprint) runs on every
    device and from the camera outward (0 to 60 m fade), not only past 150 m on a graphics card.
+
+What the first version also had and was cut, each measured on an NVIDIA L4 (far campus / West Campus, error, levels of 255): row strips (the
+cell blends to its ROW's mean before its face's) 0.01 / 0.04; reveal parallax (a far mean leaves out the glass the reveals hide) 0.00 / 0.00.
 
 ## Where it is loaded
 
@@ -40,15 +45,17 @@ face is recorded, no shader define exists, and `cityShade` is main's. If the pag
 ## Switches and named values
 
 `?moirefix=1|0`; `?moireedge=0` (no window edges); `?moirewalls=0` (no pattern-wall part); `?moiresmooth=1` (also on a multisampled context).
-Every threshold is a field of `MoireFix.params` (`js/moire.js`, live): `px`, `pxV`, `rowRes`, `edgeRes`, `edgePx`, `nightEdge`, `through`,
-`parallax`, `goldSlope`, `footprint`, `withSmoothEdges`, `rows`. `MoireFix.set('off' | 'on' | 'flat')` flips the picture inside one page: `off` is
+Every threshold is a field of `MoireFix.params` (`js/moire.js`, live): `px`, `pxV`, `normalShare`, `rowRes`, `edgeRes`, `edgePx`, `nightEdge`, `through`,
+`withSmoothEdges`. `MoireFix.set('off' | 'on' | 'flat')` flips the picture inside one page: `off` is
 main's picture drawn through this program, `flat` the floor (every cell its face's mean) the meter measures against.
 
 ## Traps (each cost a run)
 
 - **A sampler without a precision is `lowp` in a vertex shader.** The normal table is read in the vertex shader; on ANGLE's desktop-GL backend
-  (an NVIDIA L4) a `lowp` fetch came back with about eleven bits, so a face number of thousands lost its low bits and every wall read a
-  neighbour's record. The first builds of this fix scored worse than main while looking plausible. `uniform highp sampler2D`.
+  (an NVIDIA L4) a `lowp` fetch comes back with about eleven bits. A face number of thousands lost its low bits and every wall read a
+  neighbour's record (the first builds of this fix scored worse than main while looking plausible). Making the whole fetch `highp` cures that but
+  moves 0.2 to 0.3% of main's pixels by a level or two (the packed program's normals were fp16 all along), which breaks "off is exact". So the
+  normal keeps main's fetch and the face number is read from the same table through a second, `highp` sampler (`u_packFaces`).
 - **A truth drawn at 4x the pixels is not the same picture** (roof tiles, brick joints and every fade that reads the pixel size draw more detail
   at 4x). The meter's truth is 16 pictures at the same resolution, the lens shifted a fraction of a pixel each (map padding).
 - **The style being loaded is not the page being ready.** Wait for the veil and the buildings; hide the name labels.
@@ -57,6 +64,13 @@ main's picture drawn through this program, `flat` the floor (every cell its face
   by day and under 8 levels from dusk on.
 - **The night wall side.** A wall pixel beside a pane is mixed with the face's MEAN glass, not that pane's lit or dark tone; `nightEdge` turns
   that part down by the night amount.
+
+## What "off" means, and how it is held
+
+`?moirefix=0` is main's program (no file, no define, no face). With the fix compiled in and set off (`MoireFix.set('off')`) the picture is main's:
+`moire-off.mjs` loads both and compares six cameras, and also loads `?moirefix=0` twice as a control, because two loads of the SAME program differ
+at night by the stars and the moon (they twinkle on `performance.now()`: 0.05 to 0.09% of the pixels, nowhere else). Counted outside what the
+control moved, "off" differs from main in 0 pixels of 576,000 in all six views.
 
 ## The meter
 

@@ -17,7 +17,7 @@
     FACE_TEXELS: 10,
   };
   const DEFAULTS = JSON.parse(JSON.stringify(P));
-  let samples = -1;
+  let multisampled;
 
   function glsl(core, reflect) {
     return `
@@ -216,8 +216,8 @@ ${reflect}      }
   const uniforms = T => ({ u_moire: { value: new T.Vector4() }, u_moireB: { value: new T.Vector4() }, u_moireC: { value: new T.Vector4() }, u_moireD: { value: new T.Vector4() } });
   /** each frame's uniforms; off on a multisampled context (four real samples place an edge better) unless moiresmooth=1 */
   function frame(U, gl) {
-    if (samples < 0 && gl) { try { samples = gl.getParameter(gl.SAMPLES) | 0; } catch (e) { samples = 0; } }
-    U.u_moire.value.set(P.mode === 1 && samples > 0 && !P.withSmoothEdges ? 0 : P.mode, P.px[0], P.px[1], 0);
+    if (multisampled === undefined && gl) multisampled = !!gl.getContextAttributes().antialias;   // (gl.SAMPLES reads 0 inside the layer's own framebuffer)
+    U.u_moire.value.set(P.mode === 1 && multisampled && !P.withSmoothEdges ? 0 : P.mode, P.px[0], P.px[1], 0);
     U.u_moireB.value.set(P.pxV[0], P.pxV[1], 0, 0);
     U.u_moireC.value.set(P.edge && P.mode === 1 ? 1 : 0, P.edgePx[0], P.edgePx[1], 0);
     U.u_moireD.value.set(P.through, P.nightEdge, 0, 0);

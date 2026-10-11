@@ -1917,7 +1917,10 @@ Six traps, each one cost a run or more:
   and the authored buildings to be built.
 - **A sampler with no precision is `lowp` in a vertex shader.** The face number rides in the packed normal table; on
   ANGLE's desktop-GL backend (NVIDIA L4) it came back with about eleven bits, so every wall read a neighbour's record
-  and the first two fixes scored WORSE than main. `uniform highp sampler2D`. The pictures looked plausible throughout.
+  and the first two fixes scored WORSE than main. A `highp` fetch of the whole normal moves main's picture (0.2 to 0.3%
+  of pixels, a level or two), so the face number is read through a second `highp` sampler of the same table.
+- **Two loads of one program are not the same night.** The stars and the moon twinkle on the clock: 0.05 to 0.09% of the
+  pixels at night, in the sky. `moire-off.mjs` loads `?moirefix=0` twice as a control and counts outside what it moved.
 - **An arm must set every value it depends on.** Arms run in turn at every frame; one that changes a parameter and does
   not put it back hands the next arm its state. `MoireFix.reset()` is the first thing each arm does.
 
