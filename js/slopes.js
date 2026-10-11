@@ -172,7 +172,6 @@
   'use strict';
 
   const q = new URLSearchParams(window.location.search);
-  const SHADOW_COMPARE=q.get('shadowcompare')==='1';
 
   // ══════════════════════════════════════════════════════════════════════
   //  TASTE BLOCK — CLAUDE.md rule 11. Every value in this file that is a
@@ -797,20 +796,12 @@ ${window.RoofTiles.apply}
   let _visible = true;          // js/lod.js's decision, via layer.setVisible
   let _lastPreset = null;
   let _frames = 0, _warnedMatrix = false;
-  let _sunShadow = null, _sunShadowFallback = null;
-  function comparisonDepth(size) {
-    const T=window.THREE,texture=new T.DepthTexture(size,size,T.UnsignedIntType);
-    texture.compareFunction=T.LessEqualCompare;
-    texture.minFilter=texture.magFilter=T.LinearFilter;
-    texture.wrapS=texture.wrapT=T.ClampToEdgeWrapping;
-    texture.generateMipmaps=false;texture.needsUpdate=true;
-    return texture;
-  }
+  let _sunShadow = null;
 
   function releaseSunShadows() {
     if(!_sunShadow)return;
     _sunShadow.targets.forEach(t=>t.dispose());_sunShadow.depth.dispose();_sunShadow=null;
-    if(U){U.u_sunShadow0.value=U.u_sunShadow1.value=SHADOW_COMPARE?_sunShadowFallback:null;U.u_shadowSettings.value.x=0;}
+    if(U){U.u_sunShadow0.value=null;U.u_sunShadow1.value=null;U.u_shadowSettings.value.x=0;}
   }
 
   // The viewport and scissor box as the shared context last set them, so the
@@ -853,12 +844,7 @@ ${window.RoofTiles.apply}
     // scene from the sun only when the hour or completed building set changes.
     if(_sunShadow&&_sunShadow.size!==s.shadowSize)releaseSunShadows();
     if(!_sunShadow) {
-      const targets=[0,1].map(()=>{
-        const target=new T.WebGLRenderTarget(s.shadowSize,s.shadowSize,{minFilter:T.NearestFilter,magFilter:T.NearestFilter,depthBuffer:true,stencilBuffer:false});
-        // Replaces the existing depth renderbuffer; no extra full-size attachment.
-        if(SHADOW_COMPARE)target.depthTexture=comparisonDepth(s.shadowSize);
-        return target;
-      });
+      const targets=[0,1].map(()=>new T.WebGLRenderTarget(s.shadowSize,s.shadowSize,{minFilter:T.NearestFilter,magFilter:T.NearestFilter,depthBuffer:true,stencilBuffer:false}));
       const depth=new T.ShaderMaterial({
         vertexShader:'varying float v_depth; void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);v_depth=gl_Position.z/gl_Position.w*.5+.5;}',
         fragmentShader:'#include <packing>\nvarying float v_depth; void main(){gl_FragColor=packDepthToRGBA(v_depth);}',
@@ -866,8 +852,7 @@ ${window.RoofTiles.apply}
       });
       const cameras=s.shadowRadii.map(r=>new T.OrthographicCamera(-r,r,r,-r,1,s.shadowDistance*2));
       _sunShadow={targets,depth,cameras,keys:[null,null],size:s.shadowSize,updates:0,mapRenders:0};
-      U.u_sunShadow0.value=SHADOW_COMPARE?targets[0].depthTexture:targets[0].texture;
-      U.u_sunShadow1.value=SHADOW_COMPARE?targets[1].depthTexture:targets[1].texture;
+      U.u_sunShadow0.value=targets[0].texture;U.u_sunShadow1.value=targets[1].texture;
     }
     const look=toLocal(_map.getCenter().lng,_map.getCenter().lat,30);
     // Each map on its own grid (shadowSnap near, shadowSnapFar far) and its
@@ -892,13 +877,10 @@ ${window.RoofTiles.apply}
       const scissor=V?V.scissor.slice():gl.getParameter(gl.SCISSOR_BOX),scissorTest=gl.isEnabled(gl.SCISSOR_TEST);
       if(!viewport||!scissor)return; // loss can occur during a GL state query
       const clear=renderer.getClearColor(new T.Color()),alpha=renderer.getClearAlpha();
-      // Packed colour depth uses clip 0..1; the depth attachment must match it.
-      const depthRange=SHADOW_COMPARE?gl.getParameter(gl.DEPTH_RANGE):null;
       // Filtering changes coverage, not the building's shadow geometry.
       const filtered=(window.slopesApartments?.group?.children||[]).filter(o=>o.userData?.disposeFacade&&o.visible);
       for(const o of filtered)o.visible=false;
       try {
-        if(SHADOW_COMPARE)gl.depthRange(0,1);
         scene.overrideMaterial=_sunShadow.depth;
         if(proxy){scene.add(proxy);proxy.visible=true;}
         renderer.setClearColor(0xffffff,1);
@@ -915,7 +897,6 @@ ${window.RoofTiles.apply}
         }
         _sunShadow.updates++;
       } finally {
-        if(depthRange)gl.depthRange(depthRange[0],depthRange[1]);
         for(const o of filtered)o.visible=true;
         if(proxy){scene.remove(proxy);proxy.visible=false;}
         scene.overrideMaterial=override;renderer.setRenderTarget(target);renderer.setClearColor(clear,alpha);
@@ -1700,7 +1681,6 @@ ${window.RoofTiles.apply}
     onAdd(map, gl) { _gl = gl; },
     onRemove() {
       releaseSunShadows();
-      _sunShadowFallback?.dispose();_sunShadowFallback=null;
       _pc.pending.clear();
       _pc.next = 0;
       try { if (renderer) renderer.dispose(); } catch (e) {}
@@ -1806,7 +1786,7 @@ ${window.RoofTiles.apply}
       renderer.resetState();
       updateSunShadows();
       if(gl.isContextLost())return;
-      window.CityLighting.frame(U,camera.projectionMatrixInverse,_sunShadow?.targets.map(t=>renderer.properties.get(SHADOW_COMPARE?t.depthTexture:t.texture).__webglTexture));
+      window.CityLighting.frame(U,camera.projectionMatrixInverse,_sunShadow?.targets.map(t=>renderer.properties.get(t.texture).__webglTexture));
       if(prepareOnly)return;
       renderer.render(scene, camera);
       _frames++;
@@ -2010,10 +1990,6 @@ ${window.RoofTiles.apply}
       u_facet_hi: { value: 1.28 }, u_facet_sin: { value: 0 }, u_facet_cos: { value: 1 },
       u_sloped_max_z: { value: Math.cos(6 * Math.PI / 180) },
     };
-    if(SHADOW_COMPARE){
-      _sunShadowFallback??=comparisonDepth(1);
-      U.u_sunShadow0.value=U.u_sunShadow1.value=_sunShadowFallback;
-    }
     facetUniforms();
     scene = new T.Scene();
     root = new T.Group(); root.name = 'slopes-root';   // identity: NO mirror here, see point 3

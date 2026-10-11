@@ -7,7 +7,6 @@
 (function () {
   'use strict';
   const stats = {vertexShaders:0, fragmentShaders:0, programs:0, draws:0, poolPrograms:0, poolDraws:0, solidGlassDraws:0, solidLightDraws:0, failures:[], glassImages:0};
-  const SHADOW_COMPARE=new URLSearchParams(location.search).get('shadowcompare')==='1';
   let frame=null, serial=0, fallbackShadow=null;
   // Pattern texels below this alpha are translucent overlays, not glass-coded
   // facade texels (which are 191..255). Anything between the two bands works.
@@ -78,7 +77,7 @@
     uniform vec3 u_skyZenith, u_skyHorizon, u_sunsetColour, u_groundColour;
     uniform vec4 u_glassSun, u_reflectionSky;
     uniform vec2 u_sunPresence;
-    uniform ${SHADOW_COMPARE?'highp sampler2DShadow':'sampler2D'} u_sunShadow0, u_sunShadow1;
+    uniform sampler2D u_sunShadow0, u_sunShadow1;
     uniform mat4 u_sunShadowMatrix0, u_sunShadowMatrix1;
     uniform vec4 u_shadowSettings;
     uniform vec4 u_cityPatternFilter, u_cityPatternFilterB;
@@ -192,17 +191,7 @@
       sky=mix(sky,u_sunsetColour,clamp(warmth,0.0,1.0));
       return mix(u_groundColour,sky,smoothstep(-u_reflectionSky.w,u_reflectionSky.w,r.z));
     }
-    ${SHADOW_COMPARE?`float shadowSample(highp sampler2DShadow shadowMap,vec3 p) {
-      vec2 stepUV=vec2(u_shadowSettings.y);
-      vec2 center=(floor(p.xy/u_shadowSettings.y)+.5)*u_shadowSettings.y;
-      float ref=p.z-u_shadowSettings.z;
-      // The four bilinear groups partition the original nine equal comparisons.
-      float a=textureLod(shadowMap,vec3(center+vec2(-.5,-.5)*stepUV,ref),0.0);
-      float b=textureLod(shadowMap,vec3(center+vec2(-.5,1.0)*stepUV,ref),0.0);
-      float c=textureLod(shadowMap,vec3(center+vec2(1.0,-.5)*stepUV,ref),0.0);
-      float d=textureLod(shadowMap,vec3(center+vec2(1.0,1.0)*stepUV,ref),0.0);
-      return (4.0*a+2.0*b+2.0*c+d)/9.0;
-    }`:`float shadowSample(sampler2D shadowMap,vec3 p) {
+    float shadowSample(sampler2D shadowMap,vec3 p) {
       float light=0.0;
       for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++) {
         // Three r159 RGBADepthPacking, also used by the extrusion adapter.
@@ -210,7 +199,7 @@
         light+=step(p.z-u_shadowSettings.z,depth);
       }
       return light/9.0;
-    }`}
+    }
     // One shadow-map texel in metres, read off the map's own matrix: an
     // orthographic row's xyz length is 1/radius.
     float shadowTexel(mat4 m){return 2.0*u_shadowSettings.y/length(vec3(m[0][0],m[1][0],m[2][0]));}
@@ -646,15 +635,9 @@
     // Samplers still need a complete texture even when the shader skips them.
     const oldTexture=gl.getParameter(gl.TEXTURE_BINDING_2D);
     fallbackShadow=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,fallbackShadow);
-    if(SHADOW_COMPARE){
-      gl.texImage2D(gl.TEXTURE_2D,0,gl.DEPTH_COMPONENT24,1,1,0,gl.DEPTH_COMPONENT,gl.UNSIGNED_INT,new Uint32Array([0xffffffff]));
-      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_COMPARE_MODE,gl.COMPARE_REF_TO_TEXTURE);
-      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_COMPARE_FUNC,gl.LEQUAL);
-      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-    }else gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([255,255,255,255]));
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,SHADOW_COMPARE?gl.LINEAR:gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,SHADOW_COMPARE?gl.LINEAR:gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([255,255,255,255]));
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
     gl.bindTexture(gl.TEXTURE_2D,oldTexture);
     const originals={},shaders=new WeakMap(),programs=new WeakMap(),locations=new WeakMap();
     const groundLights=new Set(['night-streetlight-pool','night-streetlight-core',
@@ -775,7 +758,7 @@
         stats.poolPrograms++;return;
       }
       const u={};
-      for(const name of [...uniforms.matchAll(/uniform\s+(?:(?:lowp|mediump|highp)\s+)?\w+\s+([^;]+);/g)].flatMap(m=>m[1].split(',').map(s=>s.trim())))u[name]=gl.getUniformLocation(program,name);
+      for(const name of [...uniforms.matchAll(/uniform \w+ ([^;]+);/g)].flatMap(m=>m[1].split(',').map(s=>s.trim())))u[name]=gl.getUniformLocation(program,name);
       u.u_cityTileToLocal=gl.getUniformLocation(program,'u_cityTileToLocal');
       const projection=gl.getUniformLocation(program,'u_projection_matrix');
       const record={u,serial:-1,projection:null,tile:null,tileDirty:true};
@@ -892,7 +875,7 @@
     const lost=()=>{map.off('remove',removed);cleanup();map.once('webglcontextrestored',()=>install(map));};
     map.once('webglcontextlost',lost);map.once('remove',removed);
   }
-  window.CityLighting={shadowCompare:SHADOW_COMPARE,uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,proxyHash,patternFilter,
+  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,proxyHash,patternFilter,
     setBuildings(features){buildings=features;proxyDirty=true;},
     frame(U,inverse,textures){
       // Before either renderer draws. Materials retain this shared U object.

@@ -126,7 +126,6 @@
     "scene-unavailable.mjs": {"args": ["--out", "{out}"], "est_s": 1190},
     "schedconfirm.mjs": {"est_s": 260},
     "schedimg.mjs": {"est_s": 120},
-    "shadow-filter-math.mjs": {"est_s": 1},
     "shadow-proxy-pacing.mjs": {"est_s": 10},
     "shadow-proxy-recovery.mjs": {"est_s": 10},
     "si-fold-shots.mjs": {"est_s": 190},
@@ -233,8 +232,7 @@
   },
   "_laptop_only": "Timing. Frame times on a shared cloud CPU with a software rasteriser measure the runner, not the code (README: 'right for pixel assertions and useless for timing'). These stay on a quiet laptop.",
   "laptop_only": {
-    "shadow-work.mjs": "hardware GL: exact shared-shader guard pixels, --out artifact directory; optional diagnostic timing",
-    "shadow-compare-pixels.mjs": "hardware GL: cold production shadow sampler comparison, exact pixels and repeat-noise control",
+    "graphics-parity.mjs": "hardware GL: cold production graphics comparison with explicit source/query arms, exact pixels and repeat-noise control",
     "perf-rustpack-suite.mjs": "timing (the AWS A/B for packed vertices and the Rust builder: arms interleaved, desktop and the phone profile, phone-emulation memory)",
     "apts-perf.mjs": "timing",
     "rust-builder-timing.mjs": "timing (the real page, ?rustbuilder=1 against the JS builder, interleaved; wasm-mesh-parity.mjs is its correctness half and runs in CI)",
