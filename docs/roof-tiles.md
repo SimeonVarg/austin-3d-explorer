@@ -5,14 +5,20 @@ Status: candidate under visual review. Passing numerical checks is not photo acc
 ![Close view of a campus roof, before and after](shots/roof-tiles-close-before-after.jpg)
 
 The existing pitched roof faces carry a repeated clay barrel pattern. Columns
-follow the fall line. Curved course lips, narrow valleys, clay variation and
-short pale runs are evaluated in the fragment shader. No tile geometry or image
-texture is generated. The existing surface attribute selects this material.
+follow the fall line. Clay variation and short pale runs are evaluated in the
+fragment shader. Curved course lips, narrow valleys and barrel relief share one
+generated 256-square mipmapped texture. No tile geometry is added. The existing
+surface attribute selects this material.
 
 `js/slopes-roofs.js` owns every appearance parameter in `SLOPES_ROOFS.tiles`.
 `js/wall-patterns.js` supplies `RoofTiles` in the already loaded material module.
 `js/slopes.js` attaches its uniforms and applies it before city lighting.
-No extra script, resource request, data change or bake is needed.
+No extra script, resource request or building-data change is needed. The relief
+texture is baked once in memory, and rebuilt only when its shape changes.
+Its complete mip chain uses 349,524 GPU bytes; the retained source uses 262,144
+CPU bytes so Three can restore it after context loss. These counts exclude
+driver overhead. Resolution and maximum anisotropy are named constants beside
+the bake; other appearance parameters remain in `SLOPES_ROOFS.tiles`.
 
 ## Selection
 
@@ -43,22 +49,21 @@ percent; beside the reference photograph that drew long pale streaks where the
 photograph shows single pale tiles and a few pairs. The share is still an
 estimate by eye, not a measured distribution.
 
-Clay colour integrates the constant tile cells over the pixel footprint.
-Three fades return the roof to its original colour before a tile is too small
-to draw:
+Clay colour integrates the constant tile cells over the pixel footprint. Relief
+uses explicit derivatives of the continuous roof coordinates to filter the
+complete curved pattern before sampling it. Averaging the curve's displacement
+before evaluating a narrow lip did not preserve that lip's coverage.
 
-- `clayFilter` fades the tile colours by projected tile area: full at 33
-  pixels per tile, gone at 11.
-- `axisFilter` fades them when one axis alone falls from three pixels per
-  tile to two.
-- `filter` fades the valleys and course lips, each on its own axis: full at
-  six pixels per column or course, gone near three.
+The current fades are measured in tile cells per device pixel:
 
-The first pass kept tile colours down to under two pixels per tile. A tile that
-small is not a tile on screen, it is grain: every pixel takes a different
-random clay tone, and the grain crawls when the camera moves. The fades above
-end before that. A foreshortened hip still keeps its column lines while they
-cover several pixels. Fully filtered pixels use exactly the original roof
+- `clayFilter: [.20, .65]` fades the tile colours by projected tile area.
+- `axisFilter: [.60, 1.0]` also fades clay when either axis becomes unresolved.
+- `filter: [.65, 1.25]` fades relief on each axis separately. It also controls
+  the existing clay-coordinate bow; changing it is not a relief-only adjustment.
+
+These fades and footprint integrals reduce aliasing but do not establish zero
+moire. A foreshortened hip can retain its column lines while courses fade.
+Fully filtered pixels use exactly the original roof
 colour. `perScreenPixel` (off) measures the same fades in screen pixels instead
 of device pixels; a phone then fades tiles at the same apparent size as a
 desktop, which is calmer and shows fewer tiles.
@@ -82,8 +87,8 @@ remain outside this opt-in. The ownership list is an explicit parameter.
 Run `scripts/verify/roof-tiles.mjs` through the GPU queue with `VERIFY_URL` set.
 Use `--baseline <scratch>` on the unchanged implementation, or supply saved
 unchanged modules with `--legacy <scratch>`. Then use `--out <scratch>` and
-`--against <baseline>` for the candidate. The baseline intentionally fails the
-tile-period assertion because the original material has no tile pattern.
+`--against <baseline>` for the candidate. A historical baseline from before the material existed will fail the tile-period
+assertion; a current baseline with tile detail should pass it.
 
 The instrument renders the actual production mesh and shared material into a
 temporary orthographic target. It measures column repetition, far mean,
@@ -92,7 +97,16 @@ buffer bytes, resource requests and disabled ridge/hip lines. Test render target
 are disposed and are not application allocations. Application camera pairs,
 motion checks and interleaved hardware timings are also required before release.
 
-The production gate passes all sixteen checks with the fades above.
+Run `moire-roof-texture.mjs` for shared-uniform, bake, mean and disposal checks.
+`moire-roof-study.mjs` compares the frozen pre-change renderer with candidate
+shaders in one scene, with source hashes, exact repeated controls and both
+original and candidate jitter references. `moire-roof-fps.mjs` measures cold,
+interleaved flights on the real page. A changed pixel is expected from an
+antialiasing fix; unchanged geometry and unrelated-material controls remain
+strict. A candidate's own jitter reference alone cannot establish retained detail.
+
+The following numbers are historical measurements from the earlier fade pass,
+not acceptance evidence for the mipmapped relief change.
 
 Flicker was measured as the mean brightness change on clay roofs for a camera
 turn of 0.015 degrees (under one pixel), one page load, hardware GL. Phone

@@ -138,16 +138,79 @@
   window.WallPatterns={register,glsl,apply,attach(mat){mat.uniforms.u_wallPatterns={value:tex()};},get size(){return keys.size;}};
 })();
 
-// Roof material shares this already-loaded shader module. It adds no request,
-// image texture, table allocation or vertex attribute. Taste: SLOPES_ROOFS.tiles.
+// Roof material shares this module and one mipmapped relief texture.
+// Taste: SLOPES_ROOFS.tiles; texture resolution and anisotropy are below.
 (() => {
   'use strict';
-  const uniforms={};let signature='';
+  const uniforms={u_roofReliefAtlas:{value:null}};let signature='';
   const set=(k,v)=>{if(uniforms[k])uniforms[k].value=v;else uniforms[k]={value:v};};
   const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255);
+  const RELIEF_SIZE=256,RELIEF_SUBSAMPLES=8,RELIEF_ANISOTROPY=8;
+  let reliefSignature='',reliefRenderer=null,reliefAnisotropy=1;
+  function bakeRelief(t) {
+    if(![t.valleyWidth,t.lipWidth,t.lipCurve].every(Number.isFinite)||
+      t.valleyWidth<0||t.valleyWidth>1||t.lipWidth<0||t.lipWidth>1)
+      throw Error('Invalid roof relief shape');
+    const T=window.THREE,size=RELIEF_SIZE,data=new Uint8Array(size*size*4);
+    const fract=x=>x-Math.floor(x);
+    const integral=(x,w)=>Math.floor(x)*w+Math.min(fract(x),w);
+    const step=1/size,tau=2*Math.PI,sinc=Math.sin(Math.PI/size)/(Math.PI/size);
+    const strip=(x,w)=>(integral(x+step/2,w)-integral(x-step/2,w))/step;
+    const byte=x=>Math.round(Math.max(0,Math.min(1,x))*255);
+    // Bake the curved lines before filtering: moving a mean displacement
+    // through a narrow strip does not preserve that strip's pixel coverage.
+    for(let x=0;x<size;x++) {
+      const u=(x+.5)/size;
+      const cover=byte(.5-.5*Math.cos(tau*u)*sinc);
+      const valley=byte(strip(u+t.valleyWidth/2,t.valleyWidth));
+      const warps=Array.from({length:RELIEF_SUBSAMPLES},(_,k)=>
+        t.lipCurve*(.5-.5*Math.cos(tau*(x+(k+.5)/RELIEF_SUBSAMPLES)/size)));
+      for(let y=0;y<size;y++) {
+        const v=(y+.5)/size;let lip=0,highlight=0;
+        // Integrate y exactly; eight subtexel x positions resolve the bow.
+        for(const warp of warps) {
+          lip+=strip(v+warp,t.lipWidth)/RELIEF_SUBSAMPLES;
+          highlight+=strip(-v-warp,t.lipWidth)/RELIEF_SUBSAMPLES;
+        }
+        const at=(y*size+x)*4;
+        data[at]=cover;data[at+1]=valley;data[at+2]=byte(lip);data[at+3]=byte(highlight);
+      }
+    }
+    const texture=new T.DataTexture(data,size,size,T.RGBAFormat,T.UnsignedByteType);
+    try {
+      texture.name='roof-relief';
+      texture.wrapS=texture.wrapT=T.RepeatWrapping;
+      texture.magFilter=T.LinearFilter;texture.minFilter=T.LinearMipmapLinearFilter;
+      texture.generateMipmaps=true;texture.flipY=false;texture.anisotropy=reliefAnisotropy;
+      if('colorSpace' in texture&&T.NoColorSpace!==undefined)texture.colorSpace=T.NoColorSpace;
+      else if(T.LinearEncoding!==undefined)texture.encoding=T.LinearEncoding;
+      // Retain the pixels: Three reuploads them after WebGL context recovery.
+      texture.needsUpdate=true;
+      return texture;
+    } catch(error) {texture.dispose();throw error;}
+  }
+  function syncRelief(t) {
+    const renderer=window.slopes?.renderer;
+    if(renderer&&renderer!==reliefRenderer) {
+      reliefRenderer=renderer;
+      reliefAnisotropy=Math.min(RELIEF_ANISOTROPY,renderer.capabilities.getMaxAnisotropy());
+      const texture=uniforms.u_roofReliefAtlas.value;
+      if(texture&&texture.anisotropy!==reliefAnisotropy) {
+        texture.anisotropy=reliefAnisotropy;texture.needsUpdate=true;
+      }
+    }
+    const key=[t.valleyWidth,t.lipWidth,t.lipCurve].join(',');
+    if(t.on&&key!==reliefSignature) {
+      const next=bakeRelief(t),previous=uniforms.u_roofReliefAtlas.value;
+      uniforms.u_roofReliefAtlas.value=next;reliefSignature=key;
+      previous?.dispose();
+    }
+  }
+
   function sync(U) {
     const t=window.SLOPES_ROOFS?.tiles;
     if(!t)return;
+    syncRelief(t);
     set('u_rtOn',t.on?1:0);
     const ratio=t.perScreenPixel?Math.max(1,window.__map?.getPixelRatio?.()||1):1;
     const key=JSON.stringify(t)+ratio;
@@ -172,6 +235,7 @@
   }
   const glsl=`
     uniform float u_rtOn;
+    uniform sampler2D u_roofReliefAtlas;
     uniform vec4 u_rtFootprint;
     uniform vec4 u_rtTones[5];
     uniform vec4 u_rtCell,u_rtFilter,u_rtShape,u_rtLip,u_rtPale,u_rtWeather,u_rtHour,u_rtEdges,u_rtEave;
@@ -207,6 +271,7 @@
       vec3 down=vec3(n.xy*n.z/h,-h);
       vec2 uv=vec2(dot(p.xy,across),dot(p,down))/u_rtCell.xy;
       vec2 fw=fwidth(uv);
+      vec2 reliefUV=uv,reliefDx=dFdx(uv),reliefDy=dFdy(uv);
       // Fades use cells per SCREEN pixel: a tile must be large enough to see,
       // not only to sample. Edge smoothing below keeps device pixels.
       vec2 fv=fw*u_rtWeather.w;
@@ -253,11 +318,10 @@
       }
       // Integrate periodic relief instead of smoothing the nearest edge.
       // This conserves the narrow lip/valley coverage at grazing angles.
-      float valley=rtStrip(uv.x+u_rtShape.x*.5,u_rtShape.x,aa);
-      float lip=rtStrip(uv.y,u_rtLip.x,ay);
-      float highlight=rtStrip(-uv.y,u_rtLip.x,ay);
+      vec4 reliefSample=textureGrad(u_roofReliefAtlas,reliefUV,reliefDx,reliefDy);
+      float valley=reliefSample.g,lip=reliefSample.b,highlight=reliefSample.a;
       // Each relief term has zero area mean. Distant pixels return exactly 1.
-      float relief=1.+u_rtShape.z*(cover-.5)-u_rtShape.y*(valley-u_rtShape.x)
+      float relief=1.+u_rtShape.z*(reliefSample.r-.5)-u_rtShape.y*(valley-u_rtShape.x)
         -u_rtLip.y*(lip-u_rtLip.x)+u_rtLip.z*(highlight-u_rtLip.x);
       if(wpHash(cell,u_rtCell.w+4.)<u_rtWeather.x) {
         float stain=rtWeatherNoise(uv*u_rtWeather.yz);
@@ -267,7 +331,7 @@
       // Course foreshortening must not erase a still-resolved column field.
       // Integrated clay uses tile area; relief uses its own axis.
       // All terms converge to the same mean.
-      float columnRelief=u_rtShape.z*(cover-.5)-u_rtShape.y*(valley-u_rtShape.x);
+      float columnRelief=u_rtShape.z*(reliefSample.r-.5)-u_rtShape.y*(valley-u_rtShape.x);
       float courseRelief=-u_rtLip.y*(lip-u_rtLip.x)+u_rtLip.z*(highlight-u_rtLip.x);
       float weatherResolved=1.-smoothstep(.2,1.,max(coverage.x*u_rtWeather.y,coverage.y*u_rtWeather.z));
       float weatherRelief=(relief-1.-columnRelief-courseRelief)*weatherResolved;
