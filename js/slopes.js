@@ -1588,6 +1588,11 @@ ${window.RoofTiles.apply}
     function facet(v) { _facet = v ? 1 : 0; }
     /** ?packmerge=1: the packed mesh as several meshes with 16-bit indices and identical vertices stored once (see PACK.merge); triangles keep their order */
     function geometries() {
+      // Three sorts opaque meshes by their bound centre. Keep the unsplit
+      // mesh's bound so chunks preserve its draw order, including coplanar ties.
+      const bounds = new T.BufferGeometry();
+      bounds.setAttribute('position', new T.BufferAttribute(P.subarray(0, nV * 3), 3));
+      bounds.computeBoundingSphere();
       const MAXV = PACK.mergeChunkVertices, HS = PACK.mergeHash, HM = HS - 1;
       const out = [];
       const hash = new Int32Array(HS);
@@ -1603,7 +1608,7 @@ ${window.RoofTiles.apply}
         g.setAttribute('aPack', new T.BufferAttribute(cw.slice(0, nv * 2), 2, false));
         g.setIndex(new T.BufferAttribute(cidx.slice(0, ni), 1));
         g.userData.pack = PK;
-        g.computeBoundingSphere();
+        g.boundingSphere = bounds.boundingSphere.clone();
         out.push(g);
         for (const s of used) hash[s] = 0;
         used.length = 0; nv = 0; ni = 0;

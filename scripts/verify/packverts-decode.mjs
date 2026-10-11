@@ -30,6 +30,8 @@ const { loadStream } = await import(pathToFileURL(path.join(RM, 'js/stream.mjs')
 const { installStubs } = await import(pathToFileURL(path.join(RM, 'profile/app-patch.mjs')));
 const { THREE_STUB, toneObjects } = await import(pathToFileURL(path.join(RM, 'js/builder-app.mjs')));
 const { synthetic } = await import(pathToFileURL(path.join(RM, 'js/synthetic.mjs')));
+// The reduced Three fixture omits bounds; supply the sphere clone contract.
+THREE_STUB.BufferGeometry.prototype.computeBoundingSphere=function(){this.boundingSphere={clone:()=>({})};};
 
 // the real js/slopes.js, as the page loads it, with the switch on
 {
