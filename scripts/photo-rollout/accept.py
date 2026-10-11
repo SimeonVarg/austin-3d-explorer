@@ -48,6 +48,17 @@ def write_json(path, value):
     path.write_bytes(canonical(value) + b"\n")
 
 
+def preserve_inputs(inputs, outputs):
+    """Reject evidence/output aliases before any output is written, including hard links."""
+    protected = [Path(path).expanduser().resolve() for path in inputs]
+    for output in outputs:
+        output = private_path(output)
+        for source in protected:
+            if output == source or (output.exists() and source.exists() and output.samefile(source)):
+                raise Rejected("output destinations must not overwrite input evidence or each other")
+        protected.append(output)
+
+
 def asset(path):
     path = Path(path).expanduser().resolve()
     data = path.read_bytes()
@@ -112,6 +123,7 @@ def quality(frame_data, mask_data, crop=None):
 
 
 def begin(recipe, camera, camera_tag, settings, output):
+    preserve_inputs([recipe, camera, settings], [output])
     if not camera_tag:
         raise Rejected("camera tag must be nonempty")
     settings_value = read_json(settings)
@@ -129,6 +141,8 @@ def seal(inputs_path, frame, mask, output):
     inputs = json.loads(verified(inputs_record))
     if inputs.get("kind") != "capture-inputs" or inputs.get("schema") != 1:
         raise Rejected("unknown capture-inputs receipt")
+    preserve_inputs([inputs_path, frame, mask] +
+                    [inputs[name]["file"] for name in ("recipe", "camera", "settings")], [output])
     for name in ("recipe", "camera", "settings"):
         verified(inputs[name])
     for path in (frame, mask):
@@ -142,12 +156,15 @@ def seal(inputs_path, frame, mask, output):
     return result
 
 
-def capture(path):
+def capture(path, read_paths=None):
     record = asset(path)
     value = json.loads(verified(record))
     if value.get("kind") != "capture" or value.get("schema") != 1:
         raise Rejected("unknown capture receipt")
     inputs = json.loads(verified(value["inputs"]))
+    if read_paths is not None:
+        read_paths.extend([path, value["inputs"]["file"], value["frame"]["file"], value["mask"]["file"]])
+        read_paths.extend(inputs[name]["file"] for name in ("recipe", "camera", "settings"))
     if inputs.get("kind") != "capture-inputs" or inputs.get("schema") != 1:
         raise Rejected("unknown capture-inputs receipt")
     for name in ("recipe", "camera", "settings"):
@@ -167,12 +184,15 @@ def capture(path):
             "settings_value": settings, "quality": metrics}
 
 
-def accept(plan_path, output):
+def accept(plan_path, output, read_paths=None):
     plan_record = asset(plan_path)
     plan = json.loads(verified(plan_record))
     if plan.get("schema") != 1:
         raise Rejected("plan schema must be 1")
     baseline, candidate = asset(plan["before_recipe"]), asset(plan["after_recipe"])
+    if read_paths is None:
+        read_paths = []
+    read_paths.extend([plan_path, plan["before_recipe"], plan["after_recipe"]])
     if not isinstance(plan.get("sheets"), dict) or not plan["sheets"]:
         raise Rejected("plan must contain at least one sheet")
     sheets = {}
@@ -188,8 +208,9 @@ def accept(plan_path, output):
         if settings.get("trees") is not True:
             raise Rejected("comparison settings must enable trees")
         panels = {"photo": {"frame": asset(sheet["photo"]), "camera_tag": tag}}
+        read_paths.extend([sheet["camera_file"], sheet["settings_file"], sheet["photo"]])
         for role in ROLES[1:]:
-            panel = capture(sheet[role])
+            panel = capture(sheet[role], read_paths)
             wanted_recipe = baseline if role == "before" else candidate
             if panel["recipe"]["sha256"] != wanted_recipe["sha256"]:
                 raise Rejected("%s/%s uses the wrong recipe" % (tag, role))
@@ -215,11 +236,12 @@ def accept(plan_path, output):
                                  "colour_bin_width": COLOUR_BIN,
                                  "mask_threshold": MASK_THRESHOLD},
               "sheets": sheets}
+    preserve_inputs(read_paths, [output])
     write_json(output, result)
     return result
 
 
-def verify_manifest(path):
+def verify_manifest(path, read_paths=None):
     value = read_json(path)
     if value.get("kind") != "accepted-comparison" or value.get("schema") != 1:
         raise Rejected("unknown comparison manifest")
@@ -227,7 +249,7 @@ def verify_manifest(path):
     # inserted stale panel, altered camera or weaker threshold cannot slip in.
     import tempfile
     with tempfile.TemporaryDirectory(prefix="photo-accept-") as folder:
-        expected = accept(value["plan"]["file"], Path(folder) / "manifest.json")
+        expected = accept(value["plan"]["file"], Path(folder) / "manifest.json", read_paths)
     verified(value["plan"])
     if expected != value:
         raise Rejected("manifest differs from the accepted plan")
@@ -235,8 +257,11 @@ def verify_manifest(path):
 
 
 def sheets(manifest, out_dir):
-    value = verify_manifest(manifest)
+    read_paths = [manifest]
+    value = verify_manifest(manifest, read_paths)
     out_dir = private_path(out_dir)
+    preserve_inputs(read_paths, [out_dir / (tag + ".png") for tag in value["sheets"]] +
+                    [out_dir / "sheets.json"])
     out_dir.mkdir(parents=True, exist_ok=True)
     outputs = {}
     for tag, sheet in value["sheets"].items():

@@ -226,6 +226,46 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("Acceptance failed", result.stderr)
 
+    def test_begin_and_seal_preserve_all_direct_and_indirect_inputs(self):
+        before = {p:p.read_bytes() for p in self.root.iterdir()}
+        for target in (self.before, self.camera, self.settings):
+            with self.subTest(command='begin', target=target.name), self.assertRaisesRegex(accept.Rejected, 'must not overwrite'):
+                accept.begin(self.before, self.camera, 'view-a', self.settings, target)
+        inputs = self.root/'before-inputs.json'; frame = self.root/'before.png'; mask = self.root/'before-mask.png'
+        for target in (inputs, frame, mask, self.before, self.camera, self.settings):
+            with self.subTest(command='seal', target=target.name), self.assertRaisesRegex(accept.Rejected, 'must not overwrite'):
+                accept.seal(inputs, frame, mask, target)
+        for path, data in before.items(): self.assertEqual(path.read_bytes(), data)
+
+    def test_accept_preserves_every_capture_dependency_and_unrelated_output_reuse(self):
+        before = {p:p.read_bytes() for p in self.root.iterdir()}
+        for target in before:
+            with self.subTest(target=target.name), self.assertRaisesRegex(accept.Rejected, 'must not overwrite'):
+                accept.accept(self.plan_path, target)
+        for path, data in before.items(): self.assertEqual(path.read_bytes(), data)
+        self.manifest.write_text('unrelated previous output')
+        first = accept.accept(self.plan_path, self.manifest)
+        self.assertEqual(accept.accept(self.plan_path, self.manifest), first)
+        self.assertEqual(accept.verify_manifest(self.manifest), first)
+
+    def test_all_sheet_destinations_checked_before_first_write(self):
+        self.accept()
+        originals = {p:p.read_bytes() for p in self.root.iterdir()}
+        out = self.root/'pairs'; out.mkdir()
+        for name, source in [('view-a.png', self.photo), ('sheets.json', self.root/'before-inputs.json'),
+                             ('sheets.json', self.manifest)]:
+            alias = out/name; alias.symlink_to(source)
+            with self.subTest(name=name, source=source.name), self.assertRaisesRegex(accept.Rejected, 'must not overwrite'):
+                accept.sheets(self.manifest, out)
+            self.assertEqual(list(out.iterdir()), [alias])
+            alias.unlink()
+        first = out/'view-a.png'; second = out/'sheets.json'
+        first.write_text('unrelated previous output'); os.link(first, second)
+        with self.assertRaisesRegex(accept.Rejected, 'must not overwrite'):
+            accept.sheets(self.manifest, out)
+        self.assertEqual(first.read_text(), 'unrelated previous output')
+        for path, data in originals.items(): self.assertEqual(path.read_bytes(), data)
+
 
 if __name__ == "__main__":
     unittest.main()

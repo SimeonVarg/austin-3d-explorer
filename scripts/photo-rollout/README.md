@@ -1,10 +1,11 @@
-# Photo rollout acceptance tools
+# Photo rollout tools
 
-These tools prepare a private photo-building run. They do not change the app,
-draw a building, fit a camera, start a browser or spend API money. Keep using the
-existing camera preflight, outline-fit and recipe comparison tools. This folder
-adds the dependency check and the missing link between validated captures and
-the pixels actually embedded in a comparison sheet.
+These tools inventory private photo evidence, prepare reviewed inputs, generate
+bounded detail trials, and check camera/capture consistency. They extend the
+existing fitter and renderer with explicit physical, projection and receipt
+checks. Capture still uses the existing browser machinery; these tools do not
+publish city geometry or spend API money. Source photos, cameras, candidates and
+comparison artifacts stay outside Git.
 
 ## Python setup
 
@@ -145,3 +146,195 @@ runtime; no real photo, browser, server or network access is needed:
 PYTHONDONTWRITEBYTECODE=1 "$PHOTO_PYTHON" -m unittest discover \
   -s scripts/photo-rollout -p 'test_*.py' -v
 ```
+
+## Whole-library coverage and reviewed inputs
+
+`catalog.py` joins the existing walk metadata, private ray index and visual
+confirmations, per-building `sources.json`, and the library manifest. It inventories
+all local image files and hashes exact-byte copies. Missing location, missing
+images and unassigned files remain explicit. Unassigned files can include working
+images and contact sheets: their count is **not** a count of missing original
+photographs. Different encodings are not deduplicated as one photograph. Existing
+walk records join their known thumbnail/full-size derivatives. Known symlinks keep
+both logical source paths and resolved provenance; a manifest cannot expand the
+inventory outside the supplied source tree.
+
+```sh
+"$PHOTO_PYTHON" scripts/photo-rollout/catalog.py build \
+  --root /private/references --index /private/existing-photo-index \
+  --out /private/run/catalog.json
+"$PHOTO_PYTHON" scripts/photo-rollout/catalog.py packet \
+  --catalog /private/run/catalog.json --plan /private/run/selection.json \
+  --out /private/run/packet
+```
+
+A selection has `views`, each with `file`, `reviewed: true`, `role` (`build` or
+`holdout`), an explicit `viewpoint_group`, `categories` drawn from `building`,
+`ground`, `decoration`, and `observation`/`uncertainty`. Optional `crop` is an
+integer box in orientation-normalized source pixels. The packet retains source
+hashes and produces orientation-normalized JPEGs without source metadata. It
+rejects changed sources, shared build/holdout viewpoint groups, duplicate bytes,
+known shared originals, and overwriting an earlier packet. Reviewers must establish
+identity and viewpoint groups; the tool does not infer them. A photograph of
+another facade does not validate an invisible feature. Record corroboration per
+feature, including “not independently visible.” Packet receipts and images stay
+private. These tools do not call a model or incur API charges.
+
+## Bounded detail trials
+
+`detail.py` produces an additive candidate in the existing building recipe format.
+It reuses the existing author's closed geometric primitives for a clipped-corner
+picnic table with connected tubular supports, a wall diamond, and a convex ground
+surface inset. Every shape/dimension comes from an explicit private specification.
+This is a small component trial, not a general reconstruction system.
+
+```sh
+"$PHOTO_PYTHON" scripts/photo-rollout/detail.py \
+  --recipe /private/run/baseline.json --spec /private/run/features.json \
+  --out /private/run/candidate.json
+```
+
+The specification requires `pose_evidence`, the private input JSON described below.
+The generator runs that check itself, refuses `REJECT`, and binds the evidence hash
+and check result into its receipt. `CHECK` creates an exploratory candidate only.
+It also has a unique `prefix` ending in `-`, `tones` in the recipe's
+`colours` form (for example `{"trialMetal":{"hex":"#35544c"}}`), `materials`,
+and `features`. Each feature has an `id`, `kind`, `tone`, explicit geometry values,
+and `_src` evidence. See the synthetic fixture in `test_detail.py` for the parameter
+shape. Place observed shape/count and inferred dimensions, hidden connections and
+placement in separate field-level source entries; keep original source identities
+private. Existing colour/material keys cannot change. Existing blocks and meshes
+are retained, and duplicate generated IDs are rejected. Always regenerate from
+the frozen baseline. A ground inset adds a thin surface; it does not excavate the
+retained slab. Table perforations and hidden fabrication details are not modeled.
+
+The receipt records hashes and added triangle count. Inspect the candidate in the
+real city from the source-facing and opposite views before any publication. Tests
+check closed nondegenerate geometry and retention, not resemblance. Building masks
+in `accept.py` do not establish furniture, soil-boundary or whole-scene accuracy.
+
+## Physical camera preflight
+
+A low image-fitting error can still put the camera underground. `pose_check.py`
+checks that failure separately from reprojection quality:
+
+```sh
+"$PHOTO_PYTHON" scripts/photo-rollout/pose_check.py \
+  --pose /private/run/pose-evidence.json --out /private/run/pose-check.json
+```
+
+Supply local `camera: [x,y,z]`, `ground_z` at that point (or `null`),
+`ground_source`, `ground_support` (`independent` or `model`), optional
+`height_range: [minimum,maximum]` above that plane, `height_support` (`observed`
+or `assumed`), `mean_error_px`, `heldout_error_px`, and an explicit
+`error_limit_px`. No universal error threshold is assumed. A camera at or below
+that ground plane is `REJECT` even with tiny residuals. Modeled ground or assumed
+capture-height bounds remain `CHECK`; only independently supported inputs can
+be `SUPPORTED`. That status still does not prove building identity, metric scale,
+or hidden geometry. A rejected receipt exits nonzero; inspect `status` for all
+other cases rather than equating exit success with a proven camera.
+
+To convert a supported or CHECK local camera into an application view, add
+`local_angles: {"yaw":0,"pitch":0,"roll":0,"hfov":60}` to that evidence and
+supply `--recipe /private/run/baseline.json --view-out /private/run/app-view.json`.
+The adapter uses the recipe's stored `frame.obb` exactly and binds the recipe and
+emitted view hashes to the preflight receipt. The view explicitly carries
+`camera_math_version: 2`: use a renderer that recognizes this version and applies
+the corrected frustum and Mercator placement. Preserve this field when placing the
+view in a job; do not route it through a consumer that drops version metadata or
+relabel an approved legacy pose as version 2. It refuses implicit frames; use the
+existing camera fitter to resolve those rather than guessing another bounding box.
+A rejected pose emits no application view. This guards the quarter-turn error from
+recomputing an already-authored frame from the footprint's longer side.
+
+Before using an existing photo-camera renderer, run its frustum helper through:
+
+```sh
+node scripts/photo-rollout/check-frustum.mjs /private/renderer/camera.mjs
+```
+
+The check samples the full image across ten upward/downward/rolled camera cases.
+A helper must either contain the image or declare clipping. It catches the older
+symmetric-frame calculation that used only the upper extent and silently lost
+lower ground/furniture pixels for downward views. Correct both existing JavaScript
+and Python twins to use the maximum absolute vertical extent; the checker does
+not patch another tool. A clipped view remains unsuitable for a complete comparison.
+
+When the pose contains an OpenCV world-to-camera `R` matrix, the adapter derives
+yaw, pitch and roll from that matrix and uses only `hfov` from `local_angles`.
+This is explicit in the emitted `angle_source`. OpenCV rows are right/down/forward;
+the photo renderer's roll is **minus** `atan2(right.z, up.z)`. Copying the older
+fitter's reported roll reverses that rotation. A proper rotation is required;
+a reflection, non-orthonormal matrix or vertical optical axis is rejected.
+
+## Find candidate overlap before reserving a holdout
+
+`overlap.py` checks a bounded explicit set of 2–12 images on one CPU thread:
+
+```sh
+"$PHOTO_PYTHON" scripts/photo-rollout/overlap.py \
+  --plan /private/run/overlap-plan.json --out /private/run/new-overlap-output
+```
+
+The plan is `{"views":[{"id":"front","file":"/private/front.jpg"},
+{"id":"side","file":"/private/side.jpg"}]}`. Relative paths are relative to
+that plan. Existing building groups can supply these small sets; missing GPS and
+assignment remain unknown. The matcher normalizes orientation, rejects duplicate
+bytes/pixels, checks mutual feature matches, two-way planar errors, spatial spread
+and repeated half-fits. Results and a correspondence sheet stay private, bound to
+the input hashes. Inspect recognizable physical landmarks in every proposed pair.
+Repeated windows can support a coherent wrong plane even when every numerical
+check passes. A shortlist is not proof of object identity, calibration, metric
+scale or withheld-view accuracy. The half-fits withhold selected correspondences,
+not independent photographs. The tool never marks a packet visually reviewed.
+
+Use `camera-placement.mjs` when placing a near-horizontal MapLibre camera. Its
+`placement({eye, scale, h, yaw, pitch, fs})` takes the eye in Mercator coordinates,
+the **scene origin's** Mercator units per local metre, height in scene units,
+compass yaw, MapLibre pitch and planned focal length in pixels. It returns a
+Mercator center and zoom. Convert that center with `MercatorCoordinate.toLngLat`.
+Approximating latitude with metres/110540 can displace a low eye by tens of
+centimetres at pitch 88, despite unchanged reported height/yaw. Run
+`node scripts/photo-rollout/test-camera-placement.mjs` for the inverse placement
+regression. Physical source-camera support still requires the preflight above.
+
+
+After capture, check actual point projections across multiple depths and heights:
+
+```sh
+"$PHOTO_PYTHON" scripts/photo-rollout/projection_check.py \
+  --pose /private/run/projection-pose.json --plan /private/run/capture.plan.json \
+  --projection /private/run/app-projections.json --limit-px 1 \
+  --out /private/run/projection-check.json
+```
+
+The pose contains `camera`, OpenCV world-to-camera `R`, intrinsic `K`, and
+`image_size: [width,height]`. The renderer plan contains `outW`, `outH`, `cx`,
+`cy`, `fs`, `fp`, `enginePitch`, and photo `pose` angles. The app snapshot is
+`{"points":[{"name":"ground","xyz":[u,v,z],"engine":{"x":123,"y":456}},...]}`:
+project each point with `slopes.project` after converting through the same recipe
+frame used to build it. Use at least four points spanning three dimensions;
+a single wall plane is insufficient for this check. Snapshot the actual rendered
+camera, not a separate ideal camera. `CONSISTENT` means the fitter-to-app-to-warp
+math agrees within the explicit pixel tolerance. It does not prove the source
+camera, metric scale, ground elevation, object identity or model likeness.
+The output binds all three input hashes. A mismatch exits nonzero and must not
+be described as a source-aligned comparison. Keep earlier captures as diagnostics.
+
+The pose and projection CLIs reject output paths that alias any supplied input,
+including symbolic links and hard links. Pose receipts and app-view outputs must
+also be distinct. All destinations are checked before the first write; an
+unrelated prior output may still be replaced.
+
+The same guard protects capture begin/seal/accept inputs, including referenced
+capture snapshots and their recipes, cameras, settings, frames and masks. Sheet
+creation checks every image/receipt destination before saving any panel; catalog
+builds protect external indexes and linked source files as well as the source
+tree. Packet and overlap outputs must be empty directories. Runtime setup also
+rejects a receipt alias of its lock, interpreter or ownership marker. These
+checks preserve existing receipt schemas and hashes.
+
+Overlap keypoint de-duplication uses adjacent spatial buckets while preserving
+match order, the exact Euclidean three-pixel predicate, and the duplicate rule
+in either image. Synthetic equivalence tests cover shuffled/dense points,
+negative coordinates, cell boundaries and the strict distance threshold.

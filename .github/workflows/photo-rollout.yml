@@ -1,0 +1,49 @@
+name: Photo rollout tools
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/photo-rollout/**'
+      - 'scripts/author_welch_courtyard.py'
+      - 'scripts/compact_models.py'
+      - '.github/workflows/photo-rollout.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/photo-rollout/**'
+      - 'scripts/author_welch_courtyard.py'
+      - 'scripts/compact_models.py'
+      - '.github/workflows/photo-rollout.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PROJ_NETWORK: 'OFF'
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+      - name: Prepare the pinned external runtime
+        run: |
+          python -B scripts/photo-rollout/setup.py --runtime-root "$RUNNER_TEMP/photo-rollout" > "$RUNNER_TEMP/photo-runtime.json"
+          python -c 'import json, sys; print("PHOTO_PYTHON=" + json.load(open(sys.argv[1]))["python_executable"])' "$RUNNER_TEMP/photo-runtime.json" >> "$GITHUB_ENV"
+      - name: Run synthetic photo tool regressions
+        run: '"$PHOTO_PYTHON" -m unittest discover -s scripts/photo-rollout -p "test_*.py" -v'
+      - name: Check camera placement
+        run: node scripts/photo-rollout/test-camera-placement.mjs
