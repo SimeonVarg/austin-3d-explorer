@@ -51,7 +51,7 @@ def main():
  d['materials']['glass']={'type':'glass','strength':.10};d['materials']['darkGlass']={'type':'glass','strength':.05}
  d['skins']['hidden']={'kind':'bays','field':'tan','bay':3.65,'windowRule':'all','glass':'glass','frame':'frame','reveal':.15,'window':{'w':1.75,'h':1.8,'sill':.7,'mullion':{'cols':[.5],'rows':[.5],'w':.05,'tone':'frame'}},'_src':'INFER repeated visible window family on hidden faces'}
  def op(c,z,h=1.8,w=1.75,dark=False,ground=False):
-  return {'s0':round(c-w/2,4),'s1':round(c+w/2,4),'z0':round(z+.65,4),'z1':round(z+.65+h,4),'d':.16,'tone':'trim','glass':'darkGlass' if dark else 'glass','mullion':{'cols':[.25,.5,.75] if ground else [.5],'rows':[.5],'w':.055,'tone':'frame'}}
+  return {'s0':round(c-w/2,4),'s1':round(c+w/2,4),'z0':round(z+.65,4),'z1':round(z+.65+h,4),'d':.16,'tone':'trim','glass':'darkGlass' if dark else 'glass','lit':'room','mullion':{'cols':[.25,.5,.75] if ground else [.5],'rows':[.5],'w':.055,'tone':'frame'}}
  def westbands(start,end,offset=0,limit=117.2,red=False):
   out=[]
   for j,z in enumerate(FLOORS[:-1]):

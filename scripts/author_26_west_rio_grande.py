@@ -15,7 +15,7 @@ def poly(t,ps):
 def box(t,a,b,c,d,z,h):
  vs=[(a,c,z),(b,c,z),(b,d,z),(a,d,z),(a,c,z+h),(b,c,z+h),(b,d,z+h),(a,d,z+h)]
  for ids in [(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)]:poly(t,[vs[i] for i in ids])
-def opening(c,w,z):return {'s0':round(c-w/2,4),'s1':round(c+w/2,4),'z0':z+.65,'z1':z+2.46,'d':.16,'glass':'glass','tone':'frame','mullion':{'cols':[.5],'rows':[.32],'w':.06,'tone':'frame'}}
+def opening(c,w,z):return {'s0':round(c-w/2,4),'s1':round(c+w/2,4),'z0':z+.65,'z1':z+2.46,'d':.16,'glass':'glass','lit':'room','tone':'frame','mullion':{'cols':[.5],'rows':[.32],'w':.06,'tone':'frame'}}
 def bands(length,skin,balcony=False):
  cols=[(length*f,1.5 if i%2 else 2.35) for i,f in enumerate([.13,.36,.64,.87])]
  base={'z0':0,'z1':7.55,'skin':'brick','openings':[opening(c,w,z) for z in FLOORS[:2] for c,w in cols]}

@@ -63,7 +63,7 @@ def main():
  def block(name,plan,a,b,skin='stucco',**kw):
   ob=dict(id=name,plan=plan,z0=a,z1=b,bands=[band(a,b,skin)],roofTone='flatRoof',**kw);d['blocks'].append(ob);return ob
  def opening(s,w,z,h=2.15,depth=.18,tone='pane'):
-  return dict(s0=round(s-w/2,4),s1=round(s+w/2,4),z0=round(z,4),z1=round(z+h,4),d=depth,glass=tone,tone='trim',mullion={'cols':[.5],'rows':[.45],'w':.05,'tone':'frame'})
+  return dict(s0=round(s-w/2,4),s1=round(s+w/2,4),z0=round(z,4),z1=round(z+h,4),d=depth,glass=tone,lit='room' if tone=='pane' else False,tone='trim',mullion={'cols':[.5],'rows':[.45],'w':.05,'tone':'frame'})
  # Keep the mapped court open; a simplified wall line fits within its map envelope.
  outer=[[L-.45,.45],[SPLIT,.45],[SPLIT,W-.45],[L-.45,W-.45]]
  body=block('north-residence',{'ring':outer,'holes':holes},0,EAVE,

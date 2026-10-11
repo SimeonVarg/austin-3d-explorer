@@ -43,7 +43,7 @@ def band(a, b, skin='white', **kw):
 def window(s, width, z, height=WIN_H):
     return {'s0': round(s - width / 2, 4), 's1': round(s + width / 2, 4),
             'z0': round(z + SILL, 4), 'z1': round(z + SILL + height, 4),
-            'd': REVEAL, 'glass': 'pane', 'tone': 'frame',
+            'd': REVEAL, 'glass': 'pane', 'lit': 'room', 'tone': 'frame',
             'mullion': {'cols': [.66], 'rows': [.24], 'w': .035, 'tone': 'frame'}}
 
 

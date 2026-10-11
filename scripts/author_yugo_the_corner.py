@@ -36,7 +36,7 @@ def block(name,plan,a,b,skin='white',**kw):
     return {'id':name,'plan':plan,'z0':round(a,4),'z1':round(b,4),'bands':[band(a,b,skin)],'roofTone':'roof',**kw}
 def opening(c,w,z,h=1.75):
     return {'s0':round(c-w/2,4),'s1':round(c+w/2,4),'z0':round(z+.72,4),'z1':round(z+.72+h,4),
-      'd':.12,'glass':'glass','tone':'frame','mullion':{'cols':[.5] if w>1.25 else [],'rows':[.28],'w':.035,'tone':'frame'}}
+      'd':.12,'glass':'glass','lit':'room','tone':'frame','mullion':{'cols':[.5] if w>1.25 else [],'rows':[.28],'w':.035,'tone':'frame'}}
 def window_bands(layouts,length,upper_white=True):
     result=[band(0,3.8,'lobby')]
     for i,z in enumerate(FLOORS[1:-1]):
@@ -120,7 +120,7 @@ def main():
     blocks=[body]
     # Two distinctly paneled upper shafts, interrupted by small square punched windows.
     for name,plan,face,start in [('south',[7.7,12.2,-.5,1.1],'v0',16.5),('east',[33.1,37.1,13.7,15.2],'v0',15.1)]:
-        L=plan[1]-plan[0];ops=[{'s0':L*.5-.29,'s1':L*.5+.29,'z0':z,'z1':z+.52,'d':.14,'glass':'glass','tone':'frame'} for z in [18.3,21.8]]
+        L=plan[1]-plan[0];ops=[{'s0':L*.5-.29,'s1':L*.5+.29,'z0':z,'z1':z+.52,'d':.14,'glass':'glass','lit':'room','tone':'frame'} for z in [18.3,21.8]]
         blocks.append(block(name+'-paneled-shaft',plan,start,24.75,'shaft',faces={face:{'bands':[band(start,24.75,'shaft',openings=ops)]}},parapet=.13,parapetTone='coping',_src='PHOTO: two pale-blue gridded shafts and small punched squares; depths and exact metres inferred.'))
     # Glazed corner projects into the mapped southeast re-entrant notch.
     blocks.append(block('glazed-corner',[27.0,31.0,10.2,14.65],3.8,22.95,'atrium',faces={'u0':None,'v1':None},

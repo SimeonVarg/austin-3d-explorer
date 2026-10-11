@@ -59,7 +59,7 @@ def block(name,plan,a,b,skin='gray',**kw):
 
 def opening(c,w,z,h=WIN_H):
     return dict(s0=round(c-w/2,4),s1=round(c+w/2,4),z0=round(z+SILL,4),
-                z1=round(z+SILL+h,4),d=REVEAL,glass='glass',tone='frame',
+                z1=round(z+SILL+h,4),d=REVEAL,glass='glass',lit='room',tone='frame',
                 mullion={'cols':[.5],'rows':[.72],'w':.045,'tone':'frame'})
 
 
@@ -73,14 +73,14 @@ def glazing(length,a,b,rows):
     for z in rows:
         h=min(2.78,b-z-.20)
         ops.append(dict(s0=.08,s1=length-.08,z0=z+.12,z1=z+h,d=.045,
-            glass='glass',tone='frame',mullion={'cols':[.33,.66],'rows':[.22],
+            glass='glass',lit='room',tone='frame',mullion={'cols':[.33,.66],'rows':[.22],
                                              'w':.065,'tone':'frame'}))
     return band(a,b,'dark',openings=ops)
 
 
 def lounge(length):
     return band(MAIN,ROOF-.6,'wood',openings=[dict(s0=.28,s1=length-.28,
-        z0=MAIN+.12,z1=ROOF-.72,d=LOUNGE_RECESS,glass='glass',tone='wood',
+        z0=MAIN+.12,z1=ROOF-.72,d=LOUNGE_RECESS,glass='glass',lit='room',tone='wood',
         mullion={'cols':[.33,.66],'rows':[],'w':.075,'tone':'frame'})],
         _src='PHOTO: deeply recessed glazing behind open upper lounge; depth inferred.')
 
@@ -162,7 +162,7 @@ def build():
             bd=band(BASE,MAIN,'dark',floors=ROWS,
                 balconies=[{'s0':.22,'s1':b-a-.22,'inset':1.45,'insetTone':'wood',
                             'railTone':'rail','lift':0}],
-                openings=[dict(s0=.5,s1=b-a-.5,z0=z+.1,z1=z+2.72,d=1.47,glass='glass',tone='dark') for z in ROWS])
+                openings=[dict(s0=.5,s1=b-a-.5,z0=z+.1,z1=z+2.72,d=1.47,glass='glass',lit='room',tone='dark') for z in ROWS])
         elif a==43:bd=glazing(b-a,BASE,MAIN,ROWS)
         main['overrides'].append(region([a,b,.99,1.01],[bd]))
     # East front: corner glass / pale vertical field / glass / dark punctured edge.
