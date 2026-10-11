@@ -2129,10 +2129,17 @@ ${window.RoofTiles.apply}
     rustReady: null, get rustBuilder() { return !!_rustBuild; }, rustInfo: () => RUST_INFO, withRustFallback,
     // ?packverts=1: a fresh set of tone/normal tables for one build (pass it as build(cap, { pack }) and material({ pack })), or null
     // when the switch is off or this GPU cannot read float textures in the vertex shader (WebGL2 only): callers then build as before.
+    // the Web Worker seam (js/build-worker.js): set the local origin the way onAdd() does, with no map
+    initOrigin: () => { originMerc = maplibregl.MercatorCoordinate.fromLngLat({ lng: SLOPES.origin[0], lat: SLOPES.origin[1] }, 0); originScale = originMerc.meterInMercatorCoordinateUnits(); },
+    // ?buildworker=1 with ?packverts=1: the tables a worker filled (plain arrays) as VertexTables the main thread's material() can use
+    packAdopt: d => { const T = vertexTables(); T.tones = d.tones; T.nTones = d.nTones; T.normals = d.normals; T.nNormals = d.nNormals; T.nbits = new Uint32Array(T.normals.buffer, T.normals.byteOffset, T.normals.length); return T; },
     packTables, packOn: () => PACK.on, packInfo: () => ({ toneBits: PACK.toneBits, texWidth: PACK.texWidth, byteConversion: _byteFloats ? _byteFloats.how : 'not yet measured' }),
     // a test seam, not a feature: flip the switch at run time so ONE page can build the apartments both ways (scripts/verify/packverts-pixels.mjs
     // rebuilds with slopesApartments.rebuild() and photographs each); a visitor sets it only through ?packverts=1
     packSet: on => { PACK.on = !!on; },
+    // the Web Worker seam (js/build-worker.js, ?buildworker=1): a worker has no GL, so it cannot measure the byte-to-float rule. The page measures it (byteFloats)
+    // and hands the 256 floats over; the worker's tone table then holds the very numbers this GPU makes of a normalised byte, as a main-thread build does.
+    byteFloats, byteFloatsSet: f => { _byteFloats = new Float32Array(f); _byteFloats.how = 'from the page'; },
     light: () => ({ enu: _light.enu.slice(), colour: _light.colour.slice(), intensity: _light.intensity }),
     get scene() { return scene; }, get root() { return root; }, get camera() { return camera; },
     get renderer() { return renderer; }, get layer() { return layer; },

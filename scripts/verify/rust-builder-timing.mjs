@@ -37,6 +37,9 @@ const PARAMS = {
     reserve: '&rustbuilder=1&rustreserve=6523203',   // the Rust builder told the vertex count (the study: 650 MiB of linear memory -> 357 MiB)
     pack: '&packverts=1',                             // the packed vertex layout (js/slopes.js PACK)
     packrust: '&rustbuilder=1&packverts=1',           // both switches (the Rust builder writes the packed layout when the Rust-packed pull request is in; else the JS one does)
+    noworker: '&buildworker=0',                       // what a visitor gets today with the worker explicitly off (packed vertices are the default; the Rust builder is off)
+    worker: '&buildworker=1',                         // the generator + builder in a Web Worker (js/build-worker.js), the main thread replays what it registers
+    workerpack: '&buildworker=1&packverts=1',
   },
   phone: { viewport: { width: 390, height: 844 }, dpr: 3, query: '&lite=1' },   // --phone: the phone profile (js/mobile.js) on a desktop browser, as scripts/verify/mobile-memory.mjs does
   bigUploadBytes: 4 * 1048576,        // a gl.bufferData at least this big is counted as a building mesh buffer (MapLibre's tile buffers are far smaller)
@@ -48,6 +51,7 @@ const RUNS = Number(pos[0] || 5);
 const MODES = (pos[1] || 'off,on').split(/[,+]/);   // + also separates (the AWS workflow splits its checks on commas)
 const OUT = flag('--out');
 const PHONE = argv.includes('--phone');
+const THROTTLE = Number(flag('--throttle') || 1);   // --throttle 4: Emulation.setCPUThrottlingRate on the PAGE (a dedicated worker's thread is not slowed by it: say so next to any 4x number that includes a worker)
 if (PHONE) { PARAMS.viewport = PARAMS.phone.viewport; PARAMS.dpr = PARAMS.phone.dpr; }
 
 const stats = a => { const s = [...a].sort((x, y) => x - y); return { min: s[0], median: s[s.length >> 1], max: s[s.length - 1] }; };
@@ -96,6 +100,7 @@ async function one(mode, run) {
         if (rb.builtAt === null && c && c.ms > 0) rb.builtAt = now;
       }, sampleMs);
     }, { sampleMs: PARAMS.sampleMs, big: PARAMS.bigUploadBytes });
+    if (THROTTLE > 1) { const cdp = await page.context().newCDPSession(page); await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE }); }
     const url = `${BASE}/index.html?${PARAMS.query}${PARAMS.modes[mode]}${PHONE ? PARAMS.phone.query : ''}`;
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 180000 });
     await page.waitForFunction(() => window.cancelGraphicsAutoDetect, null, { timeout: 120000 }).catch(() => {});
@@ -110,8 +115,9 @@ async function one(mode, run) {
       if (group) for (const o of group.children) {
         const g = o.geometry; if (!g || !g.index || !g.attributes.position) continue;
         if (g.attributes.position.array == null) continue;   // a phone has already dropped the CPU copy after the upload (freeGeometryCpu)
-        for (const k of Object.keys(g.attributes)) { const a = g.attributes[k].array; if (a) { bytes += a.byteLength; if (!g.userData.pack) { const h = await sha(a); parts.push(h); (window.__parts = window.__parts || {})[k] = h.slice(0, 12); } } }
-        if (!g.userData.pack) { const h = await sha(g.index.array); parts.push(h); (window.__parts = window.__parts || {}).index = h.slice(0, 12); }
+        for (const k of Object.keys(g.attributes)) { const a = g.attributes[k].array; if (a) { bytes += a.byteLength; const h = await sha(a); parts.push(h); (window.__parts = window.__parts || {})[o.name + '.' + k] = h.slice(0, 12); } }
+        { const h = await sha(g.index.array); parts.push(h); (window.__parts = window.__parts || {})[o.name + '.index'] = h.slice(0, 12); }
+        { const pk = g.userData.pack; if (pk) for (const [nm, a] of [['tones', pk.tones.subarray(0, pk.nTones * 16)], ['normals', pk.normals.subarray(0, pk.nNormals * 4)]]) { const h = await sha(a); parts.push(h); window.__parts[o.name + '.pack.' + nm] = h.slice(0, 12); } }   // the packed layout's tone and normal tables are part of the geometry
         bytes += g.index.array.byteLength; tris += g.index.count / 3;
       }
       // frame time with the buildings on screen: 240 frames of a slow turn at the spawn view, p50 / p90 of the gaps (the packed shader reads two textures per
@@ -120,7 +126,7 @@ async function one(mode, run) {
       const fs = dts.slice(10).sort((a, b) => a - b), frameP50 = fs[fs.length >> 1], frameP90 = fs[Math.floor(fs.length * 0.9)];
       if (window.gc) { window.gc(); window.gc(); }   // the settled heap: after a forced collection, once the build has landed
       const heapSettledMb = performance.memory ? performance.memory.usedJSHeapSize / 1048576 : 0;
-      return { wasmMb: (window.slopes.rustInfo().lastWasmBytes || 0) / 1048576, geomParts: window.__parts || null, frameP50, frameP90, heapSettledMb, longTaskMaxMs: rb.longTaskMax, longTaskTotalMs: rb.longTaskTotal, longTasks: rb.longTasks, workerState: window.__aptsBuild && window.__aptsBuild.buildWorkerState ? window.__aptsBuild.buildWorkerState() : null, gpuUploadMb: rb.uploads.reduce((a, b) => a + b, 0) / 1048576, gpuUploads: rb.uploads.length, countMs: c.ms, slices: c.buildSlices, triangles: c.triangles, builtAt: rb.builtAt, readyAt: rb.readyAt, heapPeakMb: rb.heapPeak / 1048576,
+      return { workerState: window.__aptsBuild && window.__aptsBuild.buildWorkerState ? window.__aptsBuild.buildWorkerState() : null, wasmMb: (window.slopes.rustInfo().lastWasmBytes || 0) / 1048576, geomParts: window.__parts || null, frameP50, frameP90, heapSettledMb, longTaskMaxMs: rb.longTaskMax, longTaskTotalMs: rb.longTaskTotal, longTasks: rb.longTasks, workerState: window.__aptsBuild && window.__aptsBuild.buildWorkerState ? window.__aptsBuild.buildWorkerState() : null, gpuUploadMb: rb.uploads.reduce((a, b) => a + b, 0) / 1048576, gpuUploads: rb.uploads.length, countMs: c.ms, slices: c.buildSlices, triangles: c.triangles, builtAt: rb.builtAt, readyAt: rb.readyAt, heapPeakMb: rb.heapPeak / 1048576,
         rust: window.slopes.rustInfo(), packOn: window.slopes.packOn(), geomBytesMb: bytes / 1048576, geomTris: tris, geomSha: parts.length ? await sha(new TextEncoder().encode(parts.join(''))) : null,
         gfx: window.GFX && window.GFX.preset };
     });
@@ -150,5 +156,16 @@ for (const m of MODES) {
   console.log(`${m.padEnd(8)} n=${rs.length}  count.ms ${fmt(rs.map(x => x.countMs))}   builtAt s ${fmt(rs.map(x => x.builtAt / 1000), 1)}   readyAt s ${fmt(rs.map(x => x.readyAt / 1000), 1)}   gpuUpload MB ${fmt(rs.map(x => x.gpuUploadMb))}   heapPeak MB ${fmt(rs.map(x => x.heapPeakMb))}   settled MB ${fmt(rs.map(x => x.heapSettledMb))}   frame p50 ms ${fmt(rs.map(x => x.frameP50), 1)}   longest task ms ${fmt(rs.map(x => x.longTaskMaxMs))}   rssPeak MB ${fmt(rs.map(x => x.rssPeakMb))}   geometry ${[...new Set(rs.map(x => x.geomSha && x.geomSha.slice(0, 10)))].join(',')}`);
 }
 const shas = new Set(results.filter(x => !x.failed).map(x => x.geomSha));
-console.log(shas.size === 1 ? 'every run built the identical geometry (sha256 of all eight arrays)' : `GEOMETRY DIFFERS between runs: ${[...shas].join(' ')}`);
-process.exit(shas.size === 1 || MODES.some(m => m.includes('pack')) ? 0 : 1);   // a packed run holds different arrays by design: packverts-pixels.mjs and packverts-decode.mjs are its proof
+console.log(shas.size === 1 ? 'every run built the identical geometry (sha256 of every array of every mesh, the packed tone and normal tables too)' : `GEOMETRY DIFFERS between runs: ${[...shas].join(' ')}`);
+{   // which array differs, when one does: the hash of every array of every mesh, by mesh name and attribute, arm against arm
+  const byMode = {};
+  for (const m of MODES) { const r = results.find(x => x.mode === m && x.geomParts); if (r) byMode[m] = r.geomParts; }
+  const ks = Object.keys(byMode);
+  for (const m of ks.slice(1)) {
+    const A = byMode[ks[0]], B = byMode[m], all = new Set([...Object.keys(A), ...Object.keys(B)]), diff = [...all].filter(k => A[k] !== B[k]);
+    console.log(`per-mesh arrays, ${ks[0]} against ${m}: ${Object.keys(A).length} vs ${Object.keys(B).length} hashed; ${diff.length} differ${diff.length ? ': ' + diff.slice(0, 12).map(k => k + ' ' + (A[k] || 'missing') + ' vs ' + (B[k] || 'missing')).join('; ') : ''}`);
+  }
+}
+// the exit code: every arm except `off` (the plain layout) builds the packed layout now (the shipped default), so they must all hold the same bytes; `off` differs by design
+// (packverts-pixels.mjs and packverts-decode.mjs are the plain-against-packed proof)
+{ const packedShas = new Set(results.filter(x => !x.failed && x.mode !== 'off').map(x => x.geomSha)); process.exit(PHONE || packedShas.size <= 1 ? 0 : 1); }   // --phone: the CPU copies are freed after upload (js/slopes.js FREE_CPU), so there is nothing to hash and the sha only reflects which small mesh had not uploaded yet
