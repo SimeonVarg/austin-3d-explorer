@@ -1,10 +1,11 @@
-# Photo rollout acceptance tools
+# Photo rollout tools
 
-These tools prepare a private photo-building run. They do not change the app,
-draw a building, fit a camera, start a browser or spend API money. Keep using the
-existing camera preflight, outline-fit and recipe comparison tools. This folder
-adds the dependency check and the missing link between validated captures and
-the pixels actually embedded in a comparison sheet.
+These tools inventory private photo evidence, prepare reviewed inputs, generate
+bounded detail trials, and check camera/capture consistency. They extend the
+existing fitter and renderer with explicit physical, projection and receipt
+checks. Capture still uses the existing browser machinery; these tools do not
+publish city geometry or spend API money. Source photos, cameras, candidates and
+comparison artifacts stay outside Git.
 
 ## Python setup
 
