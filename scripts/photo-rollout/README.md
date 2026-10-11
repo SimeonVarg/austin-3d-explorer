@@ -145,3 +145,99 @@ runtime; no real photo, browser, server or network access is needed:
 PYTHONDONTWRITEBYTECODE=1 "$PHOTO_PYTHON" -m unittest discover \
   -s scripts/photo-rollout -p 'test_*.py' -v
 ```
+
+## Whole-library coverage and reviewed inputs
+
+`catalog.py` joins the existing walk metadata, private ray index and visual
+confirmations, per-building `sources.json`, and the library manifest. It inventories
+all local image files and hashes exact-byte copies. Missing location, missing
+images and unassigned files remain explicit. Unassigned files can include working
+images and contact sheets: their count is **not** a count of missing original
+photographs. Different encodings are not deduplicated as one photograph. Existing
+walk records join their known thumbnail/full-size derivatives. Known symlinks keep
+both logical source paths and resolved provenance; a manifest cannot expand the
+inventory outside the supplied source tree.
+
+```sh
+"$PHOTO_PYTHON" scripts/photo-rollout/catalog.py build \
+  --root /private/references --index /private/existing-photo-index \
+  --out /private/run/catalog.json
+"$PHOTO_PYTHON" scripts/photo-rollout/catalog.py packet \
+  --catalog /private/run/catalog.json --plan /private/run/selection.json \
+  --out /private/run/packet
+```
+
+A selection has `views`, each with `file`, `reviewed: true`, `role` (`build` or
+`holdout`), an explicit `viewpoint_group`, `categories` drawn from `building`,
+`ground`, `decoration`, and `observation`/`uncertainty`. Optional `crop` is an
+integer box in orientation-normalized source pixels. The packet retains source
+hashes and produces orientation-normalized JPEGs without source metadata. It
+rejects changed sources, shared build/holdout viewpoint groups, duplicate bytes,
+known shared originals, and overwriting an earlier packet. Reviewers must establish
+identity and viewpoint groups; the tool does not infer them. A photograph of
+another facade does not validate an invisible feature. Record corroboration per
+feature, including “not independently visible.” Packet receipts and images stay
+private. These tools do not call a model or incur API charges.
+
+## Bounded detail trials
+
+`detail.py` produces an additive candidate in the existing building recipe format.
+It reuses the existing author's closed geometric primitives for a clipped-corner
+picnic table with connected tubular supports, a wall diamond, and a convex ground
+surface inset. Every shape/dimension comes from an explicit private specification.
+This is a small component trial, not a general reconstruction system.
+
+```sh
+"$PHOTO_PYTHON" scripts/photo-rollout/detail.py \
+  --recipe /private/run/baseline.json --spec /private/run/features.json \
+  --out /private/run/candidate.json
+```
+
+The specification requires `pose_evidence`, the private input JSON described below.
+The generator runs that check itself, refuses `REJECT`, and binds the evidence hash
+and check result into its receipt. `CHECK` creates an exploratory candidate only.
+It also has a unique `prefix` ending in `-`, `tones` in the recipe's
+`colours` form (for example `{"trialMetal":{"hex":"#35544c"}}`), `materials`,
+and `features`. Each feature has an `id`, `kind`, `tone`, explicit geometry values,
+and `_src` evidence. See the synthetic fixture in `test_detail.py` for the parameter
+shape. Place observed shape/count and inferred dimensions, hidden connections and
+placement in separate field-level source entries; keep original source identities
+private. Existing colour/material keys cannot change. Existing blocks and meshes
+are retained, and duplicate generated IDs are rejected. Always regenerate from
+the frozen baseline. A ground inset adds a thin surface; it does not excavate the
+retained slab. Table perforations and hidden fabrication details are not modeled.
+
+The receipt records hashes and added triangle count. Inspect the candidate in the
+real city from the source-facing and opposite views before any publication. Tests
+check closed nondegenerate geometry and retention, not resemblance. Building masks
+in `accept.py` do not establish furniture, soil-boundary or whole-scene accuracy.
+
+## Physical camera preflight
+
+A low image-fitting error can still put the camera underground. `pose_check.py`
+checks that failure separately from reprojection quality:
+
+```sh
+"$PHOTO_PYTHON" scripts/photo-rollout/pose_check.py \
+  --pose /private/run/pose-evidence.json --out /private/run/pose-check.json
+```
+
+Supply local `camera: [x,y,z]`, `ground_z` at that point (or `null`),
+`ground_source`, `ground_support` (`independent` or `model`), optional
+`height_range: [minimum,maximum]` above that plane, `height_support` (`observed`
+or `assumed`), `mean_error_px`, `heldout_error_px`, and an explicit
+`error_limit_px`. No universal error threshold is assumed. A camera at or below
+that ground plane is `REJECT` even with tiny residuals. Modeled ground or assumed
+capture-height bounds remain `CHECK`; only independently supported inputs can
+be `SUPPORTED`. That status still does not prove building identity, metric scale,
+or hidden geometry. A rejected receipt exits nonzero; inspect `status` for all
+other cases rather than equating exit success with a proven camera.
+
+To convert a supported or CHECK local camera into an application view, add
+`local_angles: {"yaw":0,"pitch":0,"roll":0,"hfov":60}` to that evidence and
+supply `--recipe /private/run/baseline.json --view-out /private/run/app-view.json`.
+The adapter uses the recipe's stored `frame.obb` exactly and binds the recipe and
+emitted view hashes to the preflight receipt. It refuses implicit frames; use the
+existing camera fitter to resolve those rather than guessing another bounding box.
+A rejected pose emits no application view. This guards the quarter-turn error from
+recomputing an already-authored frame from the footprint's longer side.
