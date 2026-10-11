@@ -88,14 +88,16 @@ Full rules: `CLAUDE.md` (same text in `AGENTS.md`). The short version:
 
 ## What is next
 
-**The owner's two open priorities (2026-10-11; the first as reported by the moire lane in lane mail, not yet said to
-the publishing lane directly):**
-1. **Moire is NOT accepted.** On his Mac the apartments in the opening flight still shimmer severely, and blur is not
-   an acceptable fix. #488 (roofs) and the optional #490 do not meet his bar. Acceptance is his eye on the real Mac in
-   the opening flight's motion, with a sharp picture. Passing numeric gates is evidence, not acceptance.
-2. **A photo-matched city from his rooftop photographs:** first the whole views (campus, east, north Austin: missing
-   apartments and distant buildings), then exact roof decks on three West Campus towers. Nothing is built yet; the
-   photographs are not on the build machine yet.
+**The owner's direction of 2026-10-11, in the order the photo lane reports it (lane mail; he has not yet said it to
+the publishing lane directly, so the order is "as reported"):**
+1. **Photo-matched whole views first:** campus, east and north Austin as seen in his rooftop photographs, with the
+   apartments and distant buildings that are missing. Nothing is built yet; the photographs are not on the build
+   machine yet.
+2. **Then exact roof decks** on three West Campus towers.
+3. **Moire is NOT accepted, and it stays a requirement inside that work, not a separate project on the photo budget.**
+   On his Mac the apartments in the opening flight still shimmer severely. #488 (roofs) and the optional #490 did not
+   meet his bar, and blur can not stand in for a sharp, steady picture in motion. Acceptance is his eye on the real Mac
+   in the opening flight and in slow rooftop pans. A numeric gate that passes is evidence, not acceptance.
 
 `QUEUE.md` is 280 KB and mostly history. Its top-level headings, in order:
 - DONE 2026-09-29: four defects the owner saw on the live site (names, roads,
