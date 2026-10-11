@@ -282,3 +282,36 @@ Repeated windows can support a coherent wrong plane even when every numerical
 check passes. A shortlist is not proof of object identity, calibration, metric
 scale or withheld-view accuracy. The half-fits withhold selected correspondences,
 not independent photographs. The tool never marks a packet visually reviewed.
+
+Use `camera-placement.mjs` when placing a near-horizontal MapLibre camera. Its
+`placement({eye, scale, h, yaw, pitch, fs})` takes the eye in Mercator coordinates,
+the **scene origin's** Mercator units per local metre, height in scene units,
+compass yaw, MapLibre pitch and planned focal length in pixels. It returns a
+Mercator center and zoom. Convert that center with `MercatorCoordinate.toLngLat`.
+Approximating latitude with metres/110540 can displace a low eye by tens of
+centimetres at pitch 88, despite unchanged reported height/yaw. Run
+`node scripts/photo-rollout/test-camera-placement.mjs` for the inverse placement
+regression. Physical source-camera support still requires the preflight above.
+
+
+After capture, check actual point projections across multiple depths and heights:
+
+```sh
+"$PHOTO_PYTHON" scripts/photo-rollout/projection_check.py \
+  --pose /private/run/projection-pose.json --plan /private/run/capture.plan.json \
+  --projection /private/run/app-projections.json --limit-px 1 \
+  --out /private/run/projection-check.json
+```
+
+The pose contains `camera`, OpenCV world-to-camera `R`, intrinsic `K`, and
+`image_size: [width,height]`. The renderer plan contains `outW`, `outH`, `cx`,
+`cy`, `fs`, `fp`, `enginePitch`, and photo `pose` angles. The app snapshot is
+`{"points":[{"name":"ground","xyz":[u,v,z],"engine":{"x":123,"y":456}},...]}`:
+project each point with `slopes.project` after converting through the same recipe
+frame used to build it. Use at least four points spanning three dimensions;
+a single wall plane is insufficient for this check. Snapshot the actual rendered
+camera, not a separate ideal camera. `CONSISTENT` means the fitter-to-app-to-warp
+math agrees within the explicit pixel tolerance. It does not prove the source
+camera, metric scale, ground elevation, object identity or model likeness.
+The output binds all three input hashes. A mismatch exits nonzero and must not
+be described as a source-aligned comparison. Keep earlier captures as diagnostics.

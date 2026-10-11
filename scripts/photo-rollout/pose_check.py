@@ -46,11 +46,10 @@ def check(value):
     result={'status':'CHECK','reasons':[],'height_above_ground':None}
     if ground is None:
         result['reasons'].append('ground elevation at the camera is unknown')
-        return result
-    if type(ground) not in (int,float) or not math.isfinite(ground):
+    elif type(ground) not in (int,float) or not math.isfinite(ground):
         raise Rejected('ground_z must be finite or null')
-    height=camera[2]-ground;result['height_above_ground']=height
-    if height<=0:
+    height=None if ground is None else camera[2]-ground;result['height_above_ground']=height
+    if height is not None and height<=0:
         result['status']='REJECT'
         result['reasons'].append('camera is at or below the supplied ground plane')
         return result
@@ -58,7 +57,7 @@ def check(value):
     if bounds is not None:
         if len(bounds)!=2 or any(type(v) not in (int,float) or not math.isfinite(v) for v in bounds) or not 0<bounds[0]<bounds[1]:
             raise Rejected('height_range must contain increasing positive finite bounds')
-        if not bounds[0]<=height<=bounds[1]:
+        if height is not None and not bounds[0]<=height<=bounds[1]:
             result['status']='REJECT';result['reasons'].append('camera is outside the supplied capture-height bounds')
             return result
     if value.get('ground_support')!='independent' or not value.get('ground_source'):

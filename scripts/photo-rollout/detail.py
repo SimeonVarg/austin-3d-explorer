@@ -83,7 +83,12 @@ def diamond(feature):
     t=((b[0]-a[0])/length,(b[1]-a[1])/length)
     points=[(mid,z+p['height']/2),(mid+p['width']/2,z),(mid,z-p['height']/2),(mid-p['width']/2,z)]
     world=[(a[0]+t[0]*s+t[1]*p['projection']/2,a[1]+t[1]*s-t[0]*p['projection']/2,h) for s,h in points]
-    for v,w in zip(world,world[1:]+world[:1]): geometry.beam(feature['tone'],v,w,p['stroke'],p['projection'])
+    normal=[t[1],-t[0],0]
+    for v,w in zip(world,world[1:]+world[:1]):
+        edge=geometry.unit(geometry.sub(w,v));across=geometry.cross(edge,normal)
+        vertices=[[end[k]+i*normal[k]*p['projection']/2+j*across[k]*p['stroke']/2 for k in range(3)]
+                  for end in (v,w) for i,j in [(-1,-1),(1,-1),(1,1),(-1,1)]]
+        geometry.polyhedron(feature['tone'],vertices,[(3,2,1,0),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)])
 
 
 def ground_inset(feature):
@@ -100,6 +105,10 @@ def ground_inset(feature):
         for a,b in zip(ring,ring[1:]+ring[:1]):
             if a==b or any((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]) < -1e-10 for c in ring):
                 raise Rejected('ground ring must be convex and counter-clockwise')
+        # Fan caps need strict corners: remove redundant straight boundary vertices.
+        ring=[b for a,b,c in zip(ring[-1:]+ring[:-1],ring,ring[1:]+ring[:1])
+              if abs((b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0]))>1e-10]
+        if len(ring)<3:raise Rejected('ground ring collapses after collinear points are removed')
         ring=[(x+a,y+b) for a,b in ring]
     else:
         for key in ['width','depth','clip']: positive(p[key],key)
@@ -116,6 +125,11 @@ def build(recipe_path,spec_path,output):
     recipe=json.loads(Path(recipe_path).read_text());spec=json.loads(Path(spec_path).read_text())
     if not spec.get('pose_evidence'):
         raise Rejected('photo detail trials require pose_evidence; unknown ground remains CHECK')
+    receipt_path=private_path(output.with_suffix('.receipt.json'))
+    input_paths={Path(path).expanduser().resolve() for path in (recipe_path,spec_path,spec['pose_evidence'])}
+    if output in input_paths or receipt_path in input_paths or receipt_path==output:
+        raise Rejected('candidate and receipt destinations must not overwrite input evidence')
+    input_records={key:asset(path) for key,path in [('baseline',recipe_path),('spec',spec_path)]}
     pose_record=asset(spec['pose_evidence'])
     pose_result=check_pose(json.loads(Path(spec['pose_evidence']).read_text()))
     if pose_result['status']=='REJECT':raise Rejected('camera preflight rejected: '+ '; '.join(pose_result['reasons']))
@@ -141,17 +155,21 @@ def build(recipe_path,spec_path,output):
             mesh['_src']=copy.deepcopy(f['_src'])
             for point in mesh['vertices']:
                 if len(point)!=3 or any(not math.isfinite(x) for x in point): raise Rejected('invalid geometry coordinate')
+            for triangle in mesh['triangles']:
+                a,b,c=[mesh['vertices'][i] for i in triangle]
+                cross=geometry.cross(geometry.sub(b,a),geometry.sub(c,a))
+                if sum(v*v for v in cross)<=1e-24:raise Rejected('generated triangle collapses after coordinate rounding')
             generated.append(copy.deepcopy(mesh))
     result.setdefault('colours',{}).update(spec['tones'])
     result.setdefault('materials',{}).update(spec['materials'])
     result.setdefault('detailMeshes',[]).extend(generated)
     write_json(output,result)
-    receipt=dict(schema=1,kind='additive-detail-trial',baseline=asset(recipe_path),spec=asset(spec_path),candidate=asset(output),
+    receipt=dict(schema=1,kind='additive-detail-trial',**input_records,candidate=asset(output),
                  pose_evidence=pose_record,pose_check=pose_result,
                  features=len(spec['features']),added_triangles=sum(len(m['triangles']) for m in generated),
                  retained_meshes=len(recipe.get('detailMeshes',[])),
                  limitation='Metric dimensions and placement remain as specified in each feature evidence record.')
-    write_json(output.with_suffix('.receipt.json'),receipt)
+    write_json(receipt_path,receipt)
     return receipt
 
 

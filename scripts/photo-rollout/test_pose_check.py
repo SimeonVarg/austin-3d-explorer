@@ -5,7 +5,7 @@ from pose_check import app_view, check, angles_from_rotation
 
 class PoseTests(unittest.TestCase):
     def test_low_residual_does_not_pass_below_ground(self):
-        value=dict(camera=[32.8,115.4,-.114],ground_z=.16,mean_error_px=11,heldout_error_px=12.3,error_limit_px=15)
+        value=dict(camera=[1,2,-.1],ground_z=0,mean_error_px=.2,heldout_error_px=.3,error_limit_px=1)
         self.assertEqual(check(value)['status'],'REJECT')
 
     def test_model_ground_and_assumed_eye_height_stay_check(self):
@@ -14,6 +14,14 @@ class PoseTests(unittest.TestCase):
 
     def test_unknown_ground_cannot_pass(self):
         self.assertEqual(check(dict(camera=[1,2,3],ground_z=None))['status'],'CHECK')
+
+    def test_unknown_ground_still_enforces_residuals_and_validates_bounds(self):
+        value=dict(camera=[1,2,3],ground_z=None,mean_error_px=2,heldout_error_px=30,error_limit_px=5)
+        self.assertEqual(check(value)['status'],'REJECT')
+        value['height_range']=[3,1]
+        with self.assertRaises(Rejected):check(value)
+        value['height_range']=[1,3];value['heldout_error_px']=float('nan')
+        with self.assertRaises(Rejected):check(value)
 
     def test_observed_bounds_and_independent_ground_are_required(self):
         value=dict(camera=[1,2,1.76],ground_z=.16,ground_source='synthetic survey fixture',ground_support='independent',height_range=[1.5,1.7],height_support='observed',mean_error_px=2,heldout_error_px=3,error_limit_px=5)

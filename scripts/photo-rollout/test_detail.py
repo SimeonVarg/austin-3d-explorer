@@ -43,6 +43,36 @@ class DetailTests(unittest.TestCase):
                 edge=tuple(sorted((u,v)));edges[edge]=edges.get(edge,0)+1
         self.assertTrue(all(count==2 for count in edges.values()))
 
+    def test_outputs_cannot_overwrite_input_evidence(self):
+        self.spec.write_text(json.dumps(self.value))
+        originals={p:p.read_bytes() for p in (self.recipe,self.spec,self.pose)}
+        for output in (self.spec,self.pose,self.recipe):
+            with self.assertRaises(Rejected):detail.build(self.recipe,self.spec,output)
+        baseline=self.root/'candidate.receipt.json';baseline.write_bytes(self.recipe.read_bytes())
+        with self.assertRaises(Rejected):detail.build(baseline,self.spec,self.out)
+        for p,data in originals.items():self.assertEqual(p.read_bytes(),data)
+        self.assertEqual(baseline.read_bytes(),originals[self.recipe])
+
+    def test_diamond_projection_and_stroke_use_correct_axes(self):
+        f={'wall':[[0,0],[5,0]],'centre':[2,3],'tone':'trial',
+           'parameters':{'width':.4,'height':2,'stroke':.1,'projection':.02}}
+        detail.geometry.M.clear();detail.diamond(f)
+        vertices=next(iter(detail.geometry.M.values()))['vertices']
+        self.assertAlmostEqual(min(v[1] for v in vertices),-.02)
+        self.assertAlmostEqual(max(v[1] for v in vertices),0)
+        # Each end rectangle spans .10 along the wall plane, even for a steep edge.
+        a,b=vertices[0],vertices[3]
+        self.assertAlmostEqual(sum((a[i]-b[i])**2 for i in (0,2))**.5,.1,places=4)
+
+    def test_collinear_ground_is_simplified_and_rounding_collapse_rejected(self):
+        f={'id':'soil','kind':'ground_inset','tone':'trial','at':[0,0,0],'_src':{'type':'inference'},
+           'parameters':{'ring':[[0,0],[1,0],[2,0],[2,2],[0,2]],'thickness':.01}}
+        self.value['features']=[f];self.run_build()
+        mesh=json.loads(self.out.read_text())['detailMeshes'][1]
+        self.assertEqual(len(mesh['triangles']),12)
+        f['parameters']['thickness']=.0000001
+        with self.assertRaisesRegex(Rejected,'rounding'):self.run_build()
+
     def test_reject_existing_colour_or_material_change(self):
         self.value['tones']['old']='#000000'
         with self.assertRaises(Rejected):self.run_build()
