@@ -1460,19 +1460,34 @@
   // opening with its OWN reveal depth and tone: the back wall `d` behind the
   // plane, the sill (the floor), the head (the soffit) and the two jambs
   // in `tone`, or — with `glass` — a pane in that glass with the reveals in
-  // `tone` (the skin's frame tone otherwise), lit at night when `lit`. Any
+  // `tone` (the skin's frame tone otherwise), lit at night when `lit: true`.
+  // `lit: 'room'` opts residential glazing into the shared stable occupancy
+  // and night tones; omitted/false stays unlit. Any
   // window of the skin under the opening goes. An INSET BALCONY (a stack
   // with `inset: d`) is the same thing once per floor line, `h` tall
   // (the storey less the slab when omitted), with the rail drawn at the
   // face by balconyStack.
-  function openings(skin, band, len, z0, z1, spec, fl, P, sOff) {
+  function openings(skin, band, len, z0, z1, spec, fl, P, sOff, key) {
     if (!APTS.openings) return;
     const list = [];
+    // Original face coordinates, before clipping into wall/recess pieces.
+    // One room decision is carried through every resulting pane/cell.
+    const roomColumns = [...new Set((band.openings || []).filter(o => o.glass && o.lit === 'room')
+      .map(o => ((o.s0 || 0) + (o.s1 ?? ((o.s0 || 0) + (o.w || 3)))) / 2))].sort((a, b) => a - b);
     for (const o of band.openings || []) {
       const s0 = (o.s0 || 0) - sOff, s1 = (o.s1 != null ? o.s1 : (o.s0 || 0) + (o.w || 3.0)) - sOff;
       const oz0 = o.z0 != null ? o.z0 : z0, oz1 = o.z1 != null ? o.z1 : z1;
+      let night = { lit: !!(o.glass && o.lit), nightTone: o.nightTone };
+      if (o.glass && o.lit === 'room') {
+        let floor = 0;
+        for (let i = 0; i < spec.levels.floors.length; i++) if (spec.levels.floors[i] <= oz0) floor = i;
+        const bay = roomColumns.indexOf(((o.s0 || 0) + (o.s1 ?? ((o.s0 || 0) + (o.w || 3)))) / 2);
+        night = window.CityNight?.tune.on ? window.CityNight.room(key, floor, bay)
+          : { lit: h01(key, 'lit', floor, bay) < APTS.nightLit };
+        if (o.nightTone != null) night.nightTone = o.nightTone;
+      }
       list.push({ s0, s1, z0: Math.max(z0, oz0), z1: Math.min(z1, oz1), reveal: o.d != null ? o.d : APTS.openingD,
-                  tone: o.glass || o.tone || 'wall', revealTone: o.glass ? (o.tone || null) : null, lit: !!(o.glass && o.lit), arch: o.arch, mullion: o.mullion, opening: true });
+                  tone: o.glass || o.tone || 'wall', revealTone: o.glass ? (o.tone || null) : null, ...night, arch: o.arch, mullion: o.mullion, opening: true });
     }
     if (APTS.balconies) for (const bs of band.balconies || []) {
       if (!(bs.inset > 0)) continue;
@@ -1894,7 +1909,7 @@
       if (d > 0) { recess(B, sub, len, band, d, sk, spec, P, key, Object.assign({ cutAt, sOff }, opts), fl); continue; }
       const ctx = { len, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
       const skin = resolveSkin(sk, ctx, P, ctx.key);
-      openings(skin, band, len, z0, z1, spec, fl, P, sOff);
+      openings(skin, band, len, z0, z1, spec, fl, P, sOff, key);
       tileFace(B, { W: sub, len, z0, z1, cut: cutAt ? cutAt(0) : null }, skin, P);
     }
     // the fixtures — balconies and signs — positioned by `s` along THIS
@@ -1971,7 +1986,7 @@
       const subR = { at: (s, dd, z) => W.at(sLo + s, dd - d, z), T: W.T, N: W.N, L: sHi - sLo, a: W.a, b: W.b, dir: W.dir, n: W.n };
       const ctx = { len: sHi - sLo, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
       const skin = resolveSkin(sk, ctx, P, ctx.key);
-      openings(skin, band, sHi - sLo, z0, z1, spec, fl, P, (opts.sOff || 0) + sLo);
+      openings(skin, band, sHi - sLo, z0, z1, spec, fl, P, (opts.sOff || 0) + sLo, key);
       tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);
     }
     // the returns: a wall across the recess at either end, where nothing recessed meets it

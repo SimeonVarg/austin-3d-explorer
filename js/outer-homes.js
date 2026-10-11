@@ -49,9 +49,10 @@
     // Roof edge past the wall, metres. Footprints are roof outlines seen from
     // the air, so the wall is drawn inside by this much instead.
     overhang: 0.3,
-    // Above this pitch only houses near the camera are drawn (walking height):
+    // Above this pitch, at a low eye, only houses near the camera are drawn:
     // the far ones mass edge-on into one band, as the flat ring did.
     walkPitch: 80,
+    walkHeight: 15,          // metres above the scene ground, not rooftop flight
     walkRadius: 650,          // metres
     // Share of houses drawn, smallest dropped first. null = follow
     // GFX.outerDensity (the "City beyond campus" slider and the presets).
@@ -545,17 +546,25 @@
     return g;
   }
 
+  // Pitch alone also describes a rooftop panorama. Restrict walking culling to
+  // a low eye, and centre its unchanged radius on that eye rather than the
+  // ground look-at point (kilometres away when a high camera looks level).
+  function walkingEye(map, S, H) {
+    if (map.getPitch() <= H.walkPitch) return null;
+    try {
+      const transform = map.transform, ll = transform.getCameraLngLat();
+      // MapLibre exposes camera metres on the transform, not Mapbox's free camera.
+      const height = transform.getCameraAltitude() - (transform.elevation ?? 0);
+      const eye = S.toLocal(ll.lng, ll.lat, height);
+      return [eye.x, eye.y, eye.z].every(Number.isFinite) && eye.z >= 0 && eye.z <= H.walkHeight ? eye : null;
+    } catch (e) { return null; }
+  }
+
   /** Density and the walking-height radius: per chunk, no rebuild. */
   function update() {
     if (!_group || !_map) return;
     const dens = Math.max(0, Math.min(1, densityNow()));
-    const pitch = _map.getPitch ? _map.getPitch() : 0;
-    const walking = pitch > OUTER_HOMES.walkPitch;
-    let eye = null;
-    if (walking) {
-      const c = _map.getCenter();
-      eye = window.slopes.toLocal(c.lng, c.lat, 0);
-    }
+    const eye = walkingEye(_map, window.slopes, OUTER_HOMES);
     let drawn = 0, buildings = 0;
     for (const mesh of _group.children) {
       const total = mesh.userData.total;
@@ -757,7 +766,7 @@
     let lastWalk = null;
     const onMove = () => {
       if (_flat) { syncFlat(map); return; }
-      const walking = map.getPitch() > OUTER_HOMES.walkPitch;
+      const walking = !!walkingEye(map, window.slopes, OUTER_HOMES);
       if (walking || walking !== lastWalk || densityNow() !== _lastDensity) { lastWalk = walking; update(); }
     };
     map.on('move', onMove);

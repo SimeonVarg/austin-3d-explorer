@@ -21,6 +21,8 @@
     "apartment-roof-selection.mjs": {"est_s": 10},
     "apartment-window-rule.mjs": {"est_s": 10},
     "apartment-window-scene.mjs": {"est_s": 330},
+    "authored-night-windows.mjs": {"est_s": 900, "timeout_s": 1800},
+    "opening-room-night.mjs": {"est_s": 10},
     "arches-replacement.mjs": {"est_s": 10},
     "art-slopes.mjs": {"est_s": 670},
     "arts-check.mjs": {"est_s": 490},
