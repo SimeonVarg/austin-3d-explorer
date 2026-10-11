@@ -13,10 +13,13 @@
  * three colour triples as float32(byte / 255), the surface quad bits, the facet flag, and the whole index. Zero differences is the pass.
  * What this cannot see is the GPU reading the textures: packverts-pixels.mjs renders both and compares the pictures.
  *
- *   node scripts/verify/packverts-decode.mjs            exit 0 = every vertex decodes to exactly what the unpacked layout holds
+ *   node scripts/verify/packverts-decode.mjs            exit 0 = both packed layouts decode to exactly what the unpacked layout holds
  *   node scripts/verify/packverts-decode.mjs --break    flips one bit in one table entry after the build: must report MISMATCH and exit 1
+ *   node scripts/verify/packverts-decode.mjs --merge     the same for ?packmerge=1: the mesh is several meshes with 16-bit indices and identical vertices stored once; every
+ *                                                        TRIANGLE, corner by corner, must decode to the unpacked triangle's vertices, in order
  */
 import fs from 'node:fs'; import path from 'node:path'; import vm from 'node:vm';
+import {execFileSync} from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -27,11 +30,13 @@ const { loadStream } = await import(pathToFileURL(path.join(RM, 'js/stream.mjs')
 const { installStubs } = await import(pathToFileURL(path.join(RM, 'profile/app-patch.mjs')));
 const { THREE_STUB, toneObjects } = await import(pathToFileURL(path.join(RM, 'js/builder-app.mjs')));
 const { synthetic } = await import(pathToFileURL(path.join(RM, 'js/synthetic.mjs')));
+// The reduced Three fixture omits bounds; supply the sphere clone contract.
+THREE_STUB.BufferGeometry.prototype.computeBoundingSphere=function(){this.boundingSphere={clone:()=>({})};};
 
 // the real js/slopes.js, as the page loads it, with the switch on
 {
   const ctx = globalThis;
-  ctx.window = ctx; ctx.self = ctx; ctx.location = { search: '?slopes=0&packverts=1', href: 'http://x/' };
+  ctx.window = ctx; ctx.self = ctx; ctx.location = { search: '?slopes=0&packverts=1' + (process.argv.includes('--merge') ? '&packmerge=1' : ''), href: 'http://x/' };
   ctx.document = { getElementById: () => null, hidden: false, readyState: 'complete', createElement: () => ({ getContext: () => null, style: {} }), addEventListener() {}, body: {} };
   ctx.addEventListener = () => {}; ctx.devicePixelRatio = 1; ctx.LITE_PROFILE = undefined;
   if (!ctx.navigator) Object.defineProperty(ctx, 'navigator', { value: { userAgent: 'node' }, configurable: true });
@@ -75,7 +80,36 @@ function decode(g, tables, wiredBits = S.packInfo().toneBits) {
 const bits = a => new Uint32Array(a.buffer, a.byteOffset, a.length);
 const sameBits = (a, b) => { if (a.length !== b.length) return false; const x = bits(a), y = bits(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return false; return true; };
 
+function checkMerged(name, stream, records, tones) {
+  const tables = S.packTables();
+  const U = drive(S.build(), stream, records, tones);
+  const B = S.build(undefined, { pack: tables });
+  drive({ ...B, geometry: () => null }, stream, records, tones);   // emit the calls; the merged meshes come from geometries()
+  const geoms = B.geometries();
+  if (BREAK) tables.normals[Math.floor(tables.nNormals / 2) * 4 + 1] += 1e-3;
+  const ua = U.attributes, norm = a => { const o = new Float32Array(a.length); for (let i = 0; i < a.length; i++) o[i] = Math.fround(a[i] / 255); return o; };
+  const un = { normal: ua.normal.array, cDay: norm(ua.cDay.array), cGold: norm(ua.cGold.array), cNight: norm(ua.cNight.array), aFacet: Float32Array.from(ua.aFacet.array), aSurface: ua.aSurface.array };
+  const dec = geoms.map(g => decode(g, tables)), K = { normal: 3, cDay: 3, cGold: 3, cNight: 3, aFacet: 1, aSurface: 4 };
+  const upos = bits(ua.position.array); let t = 0, bad = 0, verts = 0, idxBytes = 0, vBytes = 0;
+  for (let gi = 0; gi < geoms.length; gi++) {
+    const g = geoms[gi], pos = bits(g.attributes.position.array), ix = g.index.array;
+    verts += g.attributes.position.count; idxBytes += ix.byteLength; vBytes += g.attributes.position.array.byteLength + g.attributes.aPack.array.byteLength;
+    if (!(ix instanceof Uint16Array)) bad++;
+    for (let k = 0; k < ix.length; k++) {
+      const corner = t * 3 + (k % 3), uv = U.index.array[corner], mv = ix[k];
+      if (k % 3 === 2) t++;
+      let ok = pos[mv * 3] === upos[uv * 3] && pos[mv * 3 + 1] === upos[uv * 3 + 1] && pos[mv * 3 + 2] === upos[uv * 3 + 2];
+      for (const n in K) { const a = bits(dec[gi][n]), b = bits(un[n]); for (let c = 0; c < K[n]; c++) if (a[mv * K[n] + c] !== b[uv * K[n] + c]) ok = false; }
+      if (!ok) bad++;
+    }
+  }
+  const nT = U.index.array.length / 3, V = ua.position.count;
+  const tableBytes=tables.nTones*64+tables.nNormals*16;
+  const bytesCurrent=V*16+U.index.array.byteLength+tableBytes, bytesP=vBytes+idxBytes+tableBytes;
+  say(t === nT && bad === 0, `${name}: ${nT} triangles in ${geoms.length} mesh(es), ${verts} vertices stored (${V} unmerged, ${(100 * verts / V).toFixed(1)}%), ${bad} corner(s) differ; ${(bytesCurrent / 1048576).toFixed(2)} MiB packed -> ${(bytesP / 1048576).toFixed(2)} MiB merged incl. tables`);
+}
 function check(name, stream, records, tones) {
+  if (process.argv.includes('--merge')) return checkMerged(name, stream, records, tones);
   const tables = S.packTables();
   const U = drive(S.build(), stream, records, tones);
   const Pk = drive(S.build(undefined, { pack: tables }), stream, records, tones);
@@ -105,6 +139,17 @@ check('Moontower (the real generator\'s calls)', fx.stream, fx.records, toneObje
 const syn = synthetic();
 check('synthetic (bent and degenerate quads, triN, facet runs, flipped winding)', syn.stream, syn.records, toneObjects(syn.palette));
 
+// Force several 16-bit chunks with distinct translated copies of the synthetic stream.
+if(process.argv.includes('--merge')) {
+ const copies=4, stream=new syn.stream.constructor(syn.stream.length*copies);
+ for(let k=0;k<copies;k++) {
+  const block=syn.stream.slice();
+  for(let r=0,o=0;r<syn.records;r++,o+=REC) if(block[o]!==3) for(const j of [6,9,12,15]) block[o+j]+=k*10000;
+  stream.set(block,k*block.length);
+ }
+ check('translated synthetic across 16-bit chunk boundaries',stream,syn.records*copies,toneObjects(syn.palette));
+}
+
 // the word itself: every field at its limits survives the round trip, and running out of either table is a packOverflow error, not wrong output
 {
   const T = S.packTables(); let ok = true;
@@ -123,4 +168,6 @@ check('synthetic (bent and degenerate quads, triN, facet runs, flipped winding)'
   say(!!(thrown && thrown.packOverflow), `more than ${NMAX} distinct normals throws a packOverflow error`);
 }
 console.log(failed ? `\nFAIL: ${failed} check(s) failed${BREAK ? ' (--break: this is the expected result)' : ''}` : '\nPASS: packed vertices decode to exactly the unpacked ones');
+// CI's default invocation covers the merged path too, in a fresh module realm.
+if(!failed&&!BREAK&&!process.argv.includes('--merge'))execFileSync(process.execPath,[fileURLToPath(import.meta.url),'--merge'],{stdio:'inherit'});
 process.exit(failed ? 1 : 0);
