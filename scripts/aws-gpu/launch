@@ -251,6 +251,19 @@ set +e
 OUT="$(launch_with "$INSTANCE_TYPE" 2>&1)"
 CODE=$?
 set -e
+# VcpuLimitExceeded right after another run: the account's G-family limit fits ONE machine (8 vCPU), and a machine that
+# is still "shutting-down" counts against it for some minutes (2026-10-11: two dispatches at 14:59 and 15:03 UTC died on
+# it after a cancelled run's machine had been terminated at 14:59:23). Wait and try the same type again; nothing else is
+# started, and when the limit is still hit at the end the launch fails as before.
+VCPU_TRIES="${AWS_GPU_VCPU_WAIT_TRIES:-12}"; VCPU_SLEEP="${AWS_GPU_VCPU_WAIT_SECONDS:-30}"; vt=0
+while [ $CODE -ne 0 ] && echo "$OUT" | grep -q "VcpuLimitExceeded" && [ $vt -lt "$VCPU_TRIES" ]; do
+  vt=$((vt+1)); echo "the account's vCPU limit is still held (a machine is shutting down?): wait ${VCPU_SLEEP} s, try ${vt} of ${VCPU_TRIES}"
+  sleep "$VCPU_SLEEP"
+  set +e
+  OUT="$(launch_with "$INSTANCE_TYPE" 2>&1)"
+  CODE=$?
+  set -e
+done
 if [ $CODE -ne 0 ] && echo "$OUT" | grep -q "InsufficientInstanceCapacity"; then
   echo "no ${INSTANCE_TYPE} capacity; falling back to ${FALLBACK_TYPE}"
   set +e

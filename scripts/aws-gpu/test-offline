@@ -108,6 +108,28 @@ then pass "ampersand, backslash, both quotes, dollar, star, pipe, semicolon, bac
 rm -rf "$RT_TMP"
 if "$HERE/launch" --print-user-data --ref 'main"; touch pwned; "' >/dev/null 2>&1; then fail "a ref with a quote and a semicolon was accepted"; else pass "a ref that the machine's shell could read is refused"; fi
 
+echo "== a vCPU limit held by a machine that is shutting down: wait and try again =="
+# A fake `aws` on the PATH: the image lookup answers, run-instances refuses twice with VcpuLimitExceeded, then starts.
+FA="$(mktemp -d)"
+cat > "$FA/aws" <<'FAKE'
+#!/usr/bin/env bash
+case "$*" in
+  *get-parameter*) echo "ami-0123456789abcdef0" ;;
+  *run-instances*)
+    n=$(cat "$FAKE_COUNT" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "$FAKE_COUNT"
+    if [ "$n" -le "${FAKE_REFUSE:-2}" ]; then echo "An error occurred (VcpuLimitExceeded) when calling the RunInstances operation: You have requested more vCPU capacity than your current vCPU limit of 8 allows" >&2; exit 254; fi
+    echo '{"Instances":[{"InstanceId":"i-0aaaabbbbccccdddd"}]}' ;;
+  *) exit 0 ;;
+esac
+FAKE
+chmod +x "$FA/aws"
+VO="$(FAKE_COUNT="$FA/count" FAKE_REFUSE=2 AWS_GPU_VCPU_WAIT_SECONDS=0 PATH="$FA:$PATH" "$HERE/launch" --check graphics.mjs 2>&1)"; VC=$?
+if [ $VC -eq 0 ] && [ "$(cat "$FA/count")" = "3" ] && echo "$VO" | grep -q '"InstanceId":"i-0aaaabbbbccccdddd"' && echo "$VO" | grep -q "try 2 of"; then pass "refused twice, started on the third try, exit 0"; else fail "vCPU wait: exit $VC, calls $(cat "$FA/count" 2>/dev/null): $(echo "$VO" | tail -2)"; fi
+rm -f "$FA/count"
+VO="$(FAKE_COUNT="$FA/count" FAKE_REFUSE=99 AWS_GPU_VCPU_WAIT_SECONDS=0 AWS_GPU_VCPU_WAIT_TRIES=3 PATH="$FA:$PATH" "$HERE/launch" --check graphics.mjs 2>&1)"; VC=$?
+if [ $VC -ne 0 ] && [ "$(cat "$FA/count")" = "4" ] && echo "$VO" | grep -q "VcpuLimitExceeded"; then pass "still refused after 3 waits: the launch fails and says why"; else fail "vCPU wait must give up: exit $VC, calls $(cat "$FA/count" 2>/dev/null)"; fi
+rm -rf "$FA"
+
 echo "== teardown --print assertions =="
 TOUT="$("$HERE/teardown" --print 2>&1)"
 echo "$TOUT" | grep -qF "Name=tag:project,Values=flyover" && pass "teardown targets only project=flyover" || fail "teardown not scoped to project=flyover"
