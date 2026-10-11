@@ -29,7 +29,7 @@ const PARAMS = {
   desktop: { width: 1440, height: 900, dpr: 1 },
   maxMovedPixels: 0,            // "on" may move no more pixels than the control moves
   noiseBand: 0.5,               // a view whose CONTROL moves (the two night views: the night page does not redraw identically, a fault on main with its
-                                // own fix in work) may move up to control x (1 + this). A single control shot is one sample of that noise: on
+                                // own fix in work) may move up to control x (1 + this) VISIBLE pixels (over 12/255). A single control shot is one sample of that noise: on
                                 // 2026-10-10 a pull request that touched no mesh went red at 1,696 moved against a control of 1,694. A view whose
                                 // control is 0 (every day view) stays EXACT: 0 x 1.5 = 0. Set this to 0 when the frozen night is deterministic.
   breakShiftP: 0.06,            // --break: the "on" shoot's time of day, later by this much of the day
@@ -132,8 +132,12 @@ for (const p of poses) {
   try {
     const f = side => path.join(OUT, `${side}-${p.name}.png`);
     const on = diff(f('off'), f('on')), ctl = diff(f('off'), f('again'));
-    const ok = on.moved <= Math.floor(ctl.moved * (1 + PARAMS.noiseBand)) + PARAMS.maxMovedPixels; if (!ok) bad++;
-    row = `${ok ? 'same   ' : 'MOVED  '}${p.name.padEnd(17)} ${String(on.moved).padStart(8)} (${(100 * on.moved / on.total).toFixed(4)}%)   ${String(ctl.moved).padStart(8)}               ${String(on.max).padStart(3)}              ${on.over12}`;
+    // Deterministic view (the control moves nothing): EXACT, any channel, any amount. A view whose control moves is judged on VISIBLE
+    // pixels (a channel off by more than 12/255, the pictures job's own threshold): the packed layout may not move more of those than
+    // the control does, within the noise band. Counting sub-threshold pixels against ONE control shot failed twice on 2026-10-10 on a
+    // pull request that touched no mesh (1,696 against 1,694; then 354 against 197 with a largest change of 7/255).
+    const ok = ctl.moved === 0 ? on.moved <= PARAMS.maxMovedPixels : on.over12 <= Math.floor(ctl.over12 * (1 + PARAMS.noiseBand)) + PARAMS.maxMovedPixels; if (!ok) bad++;
+    row = `${ok ? 'same   ' : 'MOVED  '}${p.name.padEnd(17)} ${String(on.moved).padStart(8)} (${(100 * on.moved / on.total).toFixed(4)}%)   ${String(ctl.moved).padStart(8)}               ${String(on.max).padStart(3)}              ${on.over12} (control ${ctl.over12})`;
   } catch (e) { bad++; row = `ERROR  ${p.name.padEnd(17)} ${e.message}`; }
   console.log(row);
 }
