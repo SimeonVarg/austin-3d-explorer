@@ -387,6 +387,9 @@
     normalHash0: 1 << 14, // the normal interner's first hash-table size (it doubles at half full)
   };
   const PACK_TONES = 2 ** PACK.toneBits, PACK_NLOW = 2 ** (15 - PACK.toneBits);
+
+  // The moire fix (docs/moire-fix.md): js/moire.js, loaded by js/city-lighting.js only where it is on. MF is its hook object, or undefined.
+  const MF = window.MoireFix;
   const RUST_INFO = { on: RUST.on, state: RUST.on ? 'loading' : 'off', compileMs: 0, builds: 0, error: null };
   // The Rust builder broke AFTER it loaded (a trap, an out-of-memory error, a bad instance). Stop using it for good: every
   // build() from here on is the JS builder, whatever the caller asked for. Safe to call twice.
@@ -492,8 +495,14 @@
     attribute vec2 aPack;
     uniform sampler2D u_packTones;
     uniform sampler2D u_packNormals;
+    #ifdef MOIRE_FACES
+    uniform highp sampler2D u_packFaces;   // the normal table again, at full precision: a lowp fetch loses a face number's low bits (docs/moire-fix.md)
+    #endif
     vec3 cDay; vec3 cGold; vec3 cNight; float aFacet; vec4 aSurface; vec3 packedNormal;
     #define normal packedNormal
+    #ifdef MOIRE_FACES
+    varying float v_faceRaw;   // the moire fix's wall face number (the normal table's fourth float)
+    #endif
     #else
     attribute vec3 cDay;
     attribute vec3 cGold;
@@ -522,7 +531,11 @@
         cGold = texelFetch(u_packTones, t0 + ivec2(1, 0), 0).rgb;
         cNight = texelFetch(u_packTones, t0 + ivec2(2, 0), 0).rgb;
         aSurface = texelFetch(u_packTones, t0 + ivec2(3, 0), 0);
-        packedNormal = texelFetch(u_packNormals, ivec2(int(mod(nid, PACK_TEXW)), int(floor(nid / PACK_TEXW))), 0).xyz;
+        ivec2 nAt = ivec2(int(mod(nid, PACK_TEXW)), int(floor(nid / PACK_TEXW)));
+        packedNormal = texelFetch(u_packNormals, nAt, 0).xyz;
+        #ifdef MOIRE_FACES
+        v_faceRaw = texelFetch(u_packFaces, nAt, 0).w;
+        #endif
       }
       #endif
       vec3 color = (u_materialP <= 0.5) ? mix(cDay, cGold, u_materialP * 2.0)
@@ -580,7 +593,7 @@
       v_albedo = cDay; v_night = cNight;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`;
-  const FRAG = `
+  const FRAG0 = `
     #ifdef FACADE_FILTER
     varying vec2 v_faceUV;
     #ifdef FACADE_FILTER_ARRAY
@@ -788,6 +801,7 @@ ${window.RoofTiles.apply}
       gl_FragColor=vec4(col,baseColor.a*faceMix);
     }`;
 
+  const FRAG = MF ? MF.patch(FRAG0) : FRAG0;   // the moire fix (js/moire.js) adds its chunk and one call; main's text otherwise
   // ── State ───────────────────────────────────────────────────────────────
   let _map = null, _gl = null;
   let scene = null, root = null, camera = null, renderer = null, dirLight = null;
@@ -1083,8 +1097,9 @@ ${window.RoofTiles.apply}
     };
     T.nbits = new Uint32Array(T.normals.buffer);
     const f32 = new Float32Array(3), u32 = new Uint32Array(f32.buffer);
-    const hashOf = (a, b, c) => {
-      let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35) ^ Math.imul(c ^ 0x165667b1, 0x27d4eb2f);
+    // `d`: the moire fix's wall face number (0 = none: the hash it always was)
+    const hashOf = (a, b, c, d) => {
+      let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35) ^ Math.imul(c ^ 0x165667b1, 0x27d4eb2f) ^ Math.imul(d, 0x2545f491);
       h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); return h ^ (h >>> 12);
     };
     const byte = h => { const f = hexToRgb01(h); return [Math.round(f[0] * 255), Math.round(f[1] * 255), Math.round(f[2] * 255)]; };
@@ -1109,33 +1124,34 @@ ${window.RoofTiles.apply}
       return id;
     };
     /** the normal index of (x, y, z), by the exact float32 bits (so -0 and +0 stay distinct and nothing is merged that was not equal) */
-    T.normal = (x, y, z) => {
+    T.normal = (x, y, z, face) => {
       f32[0] = x; f32[1] = y; f32[2] = z;
-      const a = u32[0], b = u32[1], c = u32[2];
-      const mask = T.hash.length - 1, nb = T.nbits;
-      let i = hashOf(a, b, c) & mask;
+      const a = u32[0], b = u32[1], c = u32[2], d = face | 0;
+      const mask = T.hash.length - 1, nb = T.nbits, nf = T.normals;
+      let i = hashOf(a, b, c, d) & mask;
       for (;;) {
         const id = T.hash[i];
         if (id < 0) break;
         const o = id * 4;
-        if (nb[o] === a && nb[o + 1] === b && nb[o + 2] === c) return id;
+        if (nb[o] === a && nb[o + 1] === b && nb[o + 2] === c && nf[o + 3] === d) return id;
         i = (i + 1) & mask;
       }
       if (T.nNormals >= 2 ** (31 - PACK.toneBits)) throw packOverflow('normals', 2 ** (31 - PACK.toneBits));
       const id = T.nNormals++;
       if (id * 4 + 4 > T.normals.length) { const g = new Float32Array(T.normals.length * 2); g.set(T.normals); T.normals = g; T.nbits = new Uint32Array(g.buffer); }
-      T.normals[id * 4] = x; T.normals[id * 4 + 1] = y; T.normals[id * 4 + 2] = z;
+      T.normals[id * 4] = x; T.normals[id * 4 + 1] = y; T.normals[id * 4 + 2] = z; T.normals[id * 4 + 3] = d;
       T.hash[i] = id;
       if (T.nNormals * 2 > T.hash.length) {            // keep the table at most half full
-        const nh = new Int32Array(T.hash.length * 2).fill(-1), m2 = nh.length - 1, nb2 = T.nbits;
+        const nh = new Int32Array(T.hash.length * 2).fill(-1), m2 = nh.length - 1, nb2 = T.nbits, nf2 = T.normals;
         for (let id2 = 0; id2 < T.nNormals; id2++) {
           const o = id2 * 4;
-          let j = hashOf(nb2[o], nb2[o + 1], nb2[o + 2]) & m2; while (nh[j] >= 0) j = (j + 1) & m2; nh[j] = id2;
+          let j = hashOf(nb2[o], nb2[o + 1], nb2[o + 2], nf2[o + 3]) & m2; while (nh[j] >= 0) j = (j + 1) & m2; nh[j] = id2;
         }
         T.hash = nh;
       }
       return id;
     };
+    if (MF && !(renderer && renderer.capabilities.maxVertexTextures < 3)) MF.tables(T, hexToRgb01, 2 ** (31 - PACK.toneBits));   // the fix reads the normal table a second time
     /** [lo, hi] of the 32-bit word for a vertex: tone id, facet flag (0/1) and normal id */
     T.wordLo = (tone, facet, nid) => (tone | (facet << PACK.toneBits) | ((nid % PACK_NLOW) << (PACK.toneBits + 1))) >>> 0;
     T.wordHi = nid => Math.floor(nid / PACK_NLOW);
@@ -1152,20 +1168,22 @@ ${window.RoofTiles.apply}
   /** the uniforms and defines of the packed-vertex program for these tables (the textures are made once and kept) */
   function packedMaterialParts(tables) {
     const T = window.THREE, W = PACK.texWidth;
+    const tex = (data, count, perRow) => {
+      const rows = Math.max(1, Math.ceil(count / perRow));
+      const a = new Float32Array(rows * W * 4); a.set(data.subarray(0, Math.min(data.length, a.length)));
+      const t = new T.DataTexture(a, W, rows, T.RGBAFormat, T.FloatType);
+      t.minFilter = t.magFilter = T.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
+      return t;
+    };
     if (!tables.tex) {
-      const tex = (data, count, perRow) => {
-        const rows = Math.max(1, Math.ceil(count / perRow));
-        const a = new Float32Array(rows * W * 4); a.set(data.subarray(0, Math.min(data.length, a.length)));
-        const t = new T.DataTexture(a, W, rows, T.RGBAFormat, T.FloatType);
-        t.minFilter = t.magFilter = T.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
-        return t;
-      };
       tables.tex = { tones: tex(tables.tones, tables.nTones * 4, W), normals: tex(tables.normals, tables.nNormals, W) };
     }
-    return {
+    const parts = {
       uniforms: { u_packTones: { value: tables.tex.tones }, u_packNormals: { value: tables.tex.normals } },
       defines: { PACKED_TONES: 1, PACK_TONES: PACK_TONES.toFixed(1), PACK_NLOW: PACK_NLOW.toFixed(1), PACK_TEXW: W.toFixed(1) },
     };
+    if (MF && tables.nFaces > 1 && tables.faces) MF.parts(tables, parts, T, tex, W);
+    return parts;
   }
 
   // ── Materials and geometry helpers ──────────────────────────────────────
@@ -1185,7 +1203,7 @@ ${window.RoofTiles.apply}
     });
     window.WallPatterns.attach(mat);
     window.RoofTiles?.sync(mat.uniforms);
-    if (packed) mat.addEventListener('dispose', () => { const t = o.pack.tex; o.pack.tex = null; if (t) { t.tones.dispose(); t.normals.dispose(); } });
+    if (packed) mat.addEventListener('dispose', () => { const t = o.pack.tex; o.pack.tex = null; if (t) { for (const k in t) t[k].dispose(); } });
     // Builder meshes have no wall gradient. A constant vertex attribute is
     // exactly the old all-zero buffer, without eight CPU/GPU bytes per vertex.
     // colour() still supplies an attribute for meshes that need a gradient.
@@ -1473,12 +1491,14 @@ ${window.RoofTiles.apply}
     // ?packverts=1: position and ONE word per vertex. The four corners of a quad share a normal, a tone and a facet flag, so the word is
     // worked out once per primitive (compared by value, not identity: a caller may reuse an array).
     let _ln0 = NaN, _ln1 = 0, _ln2 = 0, _lcol = null, _lfac = -1, _llo = 0, _lhi = 0;
+    // moire fix: face(id) gives the vertices pushed after it that wall face's number; face(0) ends the run
+    let _face = 0, _lface = 0;
     const pushPacked = (p, n, col) => {
       // Object.is, not ===: -0 and +0 are different float32 bits and a normal must come back exactly as the unpacked layout holds it
-      if (!Object.is(n[0], _ln0) || !Object.is(n[1], _ln1) || !Object.is(n[2], _ln2) || col !== _lcol || _facet !== _lfac) {
-        const nid = PK.normal(n[0], n[1], n[2]);          // tone and normal resolved before any buffer is touched, as in push()
+      if (!Object.is(n[0], _ln0) || !Object.is(n[1], _ln1) || !Object.is(n[2], _ln2) || col !== _lcol || _facet !== _lfac || _face !== _lface) {
+        const nid = PK.normal(n[0], n[1], n[2], _face);   // tone and normal resolved before any buffer is touched, as in push()
         _llo = PK.wordLo(PK.tone(col), _facet, nid); _lhi = PK.wordHi(nid);
-        _ln0 = n[0]; _ln1 = n[1]; _ln2 = n[2]; _lcol = col; _lfac = _facet;
+        _ln0 = n[0]; _ln1 = n[1]; _ln2 = n[2]; _lcol = col; _lfac = _facet; _lface = _face;
       }
       if (nV >= cap) grow();
       const i3 = nV * 3, i2 = nV * 2;
@@ -1581,7 +1601,8 @@ ${window.RoofTiles.apply}
       return g;
     }
     function facet(v) { _facet = v ? 1 : 0; }
-    return { tri, triN, quad, polygon, extrude, geometry, facet, get triangles() { return tris; } };
+    function face(id) { _face = PK ? id | 0 : 0; }
+    return { tri, triN, quad, polygon, extrude, geometry, facet, face, moire: PK && PK.faceOpen ? PK : null, get triangles() { return tris; } };
   }
 
   /**
@@ -1756,6 +1777,7 @@ ${window.RoofTiles.apply}
       U.u_shopCeiling.value.set(shop.sideShade,shop.ceilingShade,shop.lightWidth,shop.lightLength);
       for(const key of ['Wall','Floor','Merch','Light'])U['u_shop'+key].value.set(...hexToRgb01(shop[key.toLowerCase()]));
       U.u_materialP.value=window.CityNight?.materialP(U.u_p.value)??U.u_p.value;
+      if(MF)MF.frame(U,_gl);
       U.u_nightLamps.value=window.CityNight?.tune.on?window.CityNight.lamps(U.u_p.value):-1;
       U.u_nightWallAmbient.value=window.CityNight?.tune.wallAmbient??0;
       const hour=U.u_p.value,sa=hexToRgb01(surf.sky[hour<=.5?0:1]),sb=hexToRgb01(surf.sky[hour<=.5?1:2]),st=hour<=.5?hour*2:(hour-.5)*2;
@@ -1971,6 +1993,7 @@ ${window.RoofTiles.apply}
       u_weatherScale:{value:new T.Vector4()},u_weatherTone:{value:new T.Vector3()},
       u_shopClosedAmbient:{value:.06},u_shopShelfTop:{value:.55},u_shopRoom:{value:new T.Vector4()},u_shopStyle:{value:new T.Vector4()},u_shopCeiling:{value:new T.Vector4()},
       u_shopWall:{value:new T.Vector3()},u_shopFloor:{value:new T.Vector3()},u_shopMerch:{value:new T.Vector3()},u_shopLight:{value:new T.Vector3()},
+      ...(MF?MF.uniforms(T):{}),
       u_materialP:{value:.5},u_nightLamps:{value:-1},u_nightWallAmbient:{value:0},u_glassStrength:{value:1},u_sunlight:{value:new T.Vector4()},u_sunDirection:{value:new T.Vector3()},
       u_sunColour:{value:new T.Vector3()},u_shadeColour:{value:new T.Vector3()},
       u_skyZenith:{value:new T.Vector3()},u_skyHorizon:{value:new T.Vector3()},
@@ -2061,7 +2084,7 @@ ${window.RoofTiles.apply}
    */
   function buildChunked(maxTris, pack, opts) {
     const done = [];
-    let cur = build(undefined, opts), facetOn = false, before = 0;
+    let cur = build(undefined, opts), facetOn = false, faceOn = 0, before = 0;
     const finish = () => (pack ? packGeometry(cur.geometry()) : cur.geometry());
     const roll = () => {
       if (cur.triangles < maxTris) return;
@@ -2069,9 +2092,12 @@ ${window.RoofTiles.apply}
       done.push(finish());
       cur = build(undefined, opts);
       cur.facet(facetOn);
+      if (cur.face) cur.face(faceOn);
     };
     const api = {
       facet(v) { facetOn = !!v; return cur.facet(v); },
+      face(id) { faceOn = id | 0; if (cur.face) cur.face(faceOn); },
+      get moire() { return cur.moire || null; },
       geometries() {
         const out = done.splice(0);
         if (cur.triangles > 0 || !out.length) out.push(finish());

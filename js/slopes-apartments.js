@@ -744,6 +744,7 @@
    * resolved skin (rows, cols, tone(row, col, cell), windows). Emits one quad
    * per cell; a window cell is recessed by `reveal` with four reveal strips.
    */
+  const _held = [];   // MOIRE FIX: tileFace's cells, held until it knows whether the face has more than one tone (docs/moire-fix.md)
   function tileFace(B, face, skin, P, opts) {
     const { W, len, z0, z1, cut } = face;
     // Complex cut/arched openings keep their geometric representation. The
@@ -815,6 +816,20 @@
     const zs = [...zc].sort((a, b) => a - b);
     const glass = P[skin.glass || 'glass'];
     const revealCol = P[skin.revealTone || skin.frame || 'frame'] || P.frame || glass;
+    // MOIRE FIX: with js/moire.js loaded, the cells are held, then drawn in order and reported to it (a face under a cut is left alone)
+    const MF = !cut && B.moire && B.face ? B.moire : null;
+    let held = 0;
+    const paneOf = w => {   // what window `w`'s pane is drawn in
+      const pane = w.tone ? P[w.tone] || glass : glass;
+      const col = w.lit ? [pane[0], pane[1], w.nightTone || APTS.nightLitTone] : pane.slice();
+      // Explicit opening tones also describe garage mouths and masonry recesses. Only an actual window inherits the glass material.
+      if(pane.surface)col.surface=pane.surface;
+      else if(!w.tone&&P._surfaceGlass)col.surface=P._surfaceGlass;
+      // A closed room must not inherit a storefront's luminous night tone. Undefined occupancy and non-glass openings retain authored colours.
+      if(window.CityNight?.tune.on&&w.lit===false&&(col.surface?.[0]===4||col.surface?.[0]===6))col[2]=window.CityNight.tune.unlitGlass;
+      return col;
+    };
+    const cell = (sa, sb, za, zb, d, col, w) => MF ? (_held[held++] = [sa, sb, za, zb, d, col, w], true) : faceCell(B, W, sa, sb, za, zb, d, col, cut);
     for (let r = 0; r < zs.length - 1; r++) {
       const za = zs[r], zb = zs[r + 1];
       if (zb - za < 1e-4) continue;
@@ -835,26 +850,35 @@
         const win = inBand.find(w => sm > w.s0 && sm < w.s1);
         let drawn;
         if (win) {
-          const pane = win.tone ? P[win.tone] || glass : glass;
-          const col = win.lit ? [pane[0], pane[1], win.nightTone || APTS.nightLitTone] : pane.slice();
-          // Explicit opening tones also describe garage mouths and masonry
-          // recesses. Only an actual window inherits the glass material.
-          if(pane.surface)col.surface=pane.surface;
-          else if(!win.tone&&P._surfaceGlass)col.surface=P._surfaceGlass;
-          // A closed room must not inherit a storefront's luminous night tone.
-          // Undefined occupancy and non-glass openings retain authored colours.
-          if(window.CityNight?.tune.on&&win.lit===false&&(col.surface?.[0]===4||col.surface?.[0]===6))col[2]=window.CityNight.tune.unlitGlass;
-          drawn = faceCell(B, W, sa, sb, za, zb, -revealOf(win), col, cut);
+          const col = paneOf(win);
+          drawn = cell(sa, sb, za, zb, -revealOf(win), col, win);
           if(filterRects&&drawn)filterRects.push([sa,sb,za,zb,col]);
         } else {
           const fr = frBand.length ? frBand.find(f => sm > f.s0 && sm < f.s1) : null;
           const col=fr?fr.col:(skin.tone(zm,sm,r,c)||P.wall);
-          drawn = faceCell(B, W, sa, sb, za, zb, 0, col, cut);
+          drawn = cell(sa, sb, za, zb, 0, col);
           if(filterRects&&drawn)filterRects.push([sa,sb,za,zb,col]);
         }
         if (drawn) count.cells++;
       }
     }
+    let fid = 0;
+    if (MF) {
+      // where s = 0 is and which way s runs, read off the frame's own at() (and how high z0 really stands: a frame may lift its wall)
+      const p0 = W.at(0, 0, z0), p1 = W.at(len, 0, z0);
+      for (let i = 1; i < held && !fid; i++) if (_held[i][5] !== _held[0][5]) fid = MF.faceOpen(z0, z1, len, p0, [(p1[0] - p0[0]) / len, (p1[1] - p0[1]) / len, 0], W.N);   // a one-tone face takes no number
+      if (fid) B.face(fid);
+      for (let i = 0; i < held; i++) {
+        const [sa, sb, za, zb, d, col, w] = _held[i];
+        faceQuad(B, W, sa, sb, za, zb, d, col);
+        if (fid) MF.faceCell(sa, sb, za, zb, col, !!w && w.lit === true, w ? w.s1 - w.s0 : sb - sa, w ? w.z1 - w.z0 : zb - za, w ? -d : 0);
+        _held[i] = null;
+      }
+      B.face(0);
+    }
+    // a piece of wall or bar laid over a pane, in the wall's own plane: it joins the face, and the face's means move from glass to it
+    const over = (w, sa, sb, za, zb, col) => { if (!fid || !(zb > za) || !(sb > sa)) return; const pane = paneOf(w);
+      MF.faceCell(sa, sb, za, zb, col, false, 0, 0, 0); MF.faceCell(sa, sb, za, zb, pane, w.lit === true, 0, 0, 0, true); };
     if(filterRects&&filterRects.length>1) {
       const face={W,len,z0,z1,rects:filterRects};
       // Plan the selected facades together: early buildings must not consume
@@ -890,7 +914,9 @@
         const a = Math.PI * i / segments, b = Math.PI * (i + 1) / segments;
         const sa = cx - radius * Math.cos(a), sb = cx - radius * Math.cos(b);
         const za = spring + rise * Math.sin(a), zb = spring + rise * Math.sin(b);
+        if (fid) { B.face(fid); over(w, Math.min(sa, sb), Math.max(sa, sb), (za + zb) / 2, w.z1, col); }
         B.quad(at(sa,0,za),at(sb,0,zb),at(sb,0,w.z1),at(sa,0,w.z1),col,W.N);
+        if (fid) B.face(0);
         if (rv > 0) B.quad(at(sa,0,za),at(sa,-rv,za),at(sb,-rv,zb),at(sb,0,zb),col);
         const sw = w.arch.trim || 0;
         if (sw > 0) {
@@ -906,15 +932,20 @@
       const d = -revealOf(w) + (m.proud ?? APTS.mullion.proud), radius = (w.s1-w.s0)/2;
       const rise = w.arch ? Math.min(w.z1-w.z0,w.arch.rise || radius) : 0;
       const topAt = s => w.arch ? w.z1-rise+rise*Math.sqrt(Math.max(0,1-Math.pow((s-(w.s0+w.s1)/2)/radius,2))) : w.z1;
+      if (fid) B.face(fid);
       for (const f of m.cols || [.5]) {
         const x = w.s0 + f*(w.s1-w.s0), a = x-width/2, b=x+width/2;
         faceQuad(B,W,a,b,w.z0,Math.min(topAt(a),topAt(b)),d,col);
+        over(w, a, b, w.z0, Math.min(topAt(a),topAt(b)), col);
       }
       for (const f of m.rows || []) {
         const z = w.z0+f*(w.z1-w.z0), shrink = w.arch && z > w.z1-rise ? radius*(1-Math.sqrt(Math.max(0,1-Math.pow((z-(w.z1-rise))/rise,2)))) : 0;
         faceQuad(B,W,w.s0+shrink,w.s1-shrink,z-width/2,z+width/2,d,col);
+        over(w, w.s0 + shrink, w.s1 - shrink, z - width / 2, z + width / 2, col);
       }
+      if (fid) B.face(0);
     }
+    if (fid) MF.faceClose();
     // the blades standing proud of the wall: the skin's piers (on its bay
     // lines) and its fins (on their own pitch) — see blades()
     if (skin.piers) blades(B, W, skin.piers, len, z0, z1, P, cut);

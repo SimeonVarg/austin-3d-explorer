@@ -49,6 +49,11 @@
   // Compiled in only where it is on at load. Elsewhere the pattern shader is
   // MapLibre's own, exactly as before, so the integrated chip pays nothing,
   // not even the registers. A live `on` switch works only where it compiled.
+  // THE MOIRE FIX (docs/moire-fix.md): this file holds its MapLibre-wall half and loads js/moire.js (the authored-building half) only where it is on.
+  const query=new URLSearchParams(location.search), canLoad=typeof document!=='undefined'&&document.readyState==='loading'&&!!document.currentScript;
+  const MOIRE_DEFAULT_ON=window.GFX_MSAA===false, moireSwitch=query.get('moirefix');   // on where Smooth edges is not (js/graphics.js decides that before this file loads)
+  const moire={on:canLoad&&(moireSwitch==='1'||(moireSwitch!=='0'&&MOIRE_DEFAULT_ON)),walls:query.get('moirewalls')!=='0',nearM:0,fullM:60,mode:1,mainOn:patternFilter.on};
+  if(moire.on&&moire.walls)patternFilter.on=true;
   patternFilter.compiled=patternFilter.on;
   // Diffuse sky fill, in linear light. Upward-facing surfaces see more sky.
   // Shared by both building renderers; zeroes reproduce the previous balance.
@@ -90,6 +95,11 @@
     vec4 cityPatternTexel(sampler2D img,vec4 point,vec2 v,vec2 tl,vec2 br,vec2 texsize,float dist){
       vec2 dx=dFdx(v),dy=dFdy(v);
       if(u_cityPatternFilter.x<.5)return point;
+      ${moire.on?`if(u_cityPatternFilter.x>1.5){   // the meter's floor: the repeat's mean, 8 x 8 taps
+        vec4 all=vec4(0.0);
+        for(int i=0;i<8;i++)for(int j=0;j<8;j++)all+=textureLod(img,mix(tl,br,(vec2(float(i),float(j))+.5)/8.0),0.0);
+        return all/64.0;
+      }`:''}
       float fade=smoothstep(u_cityPatternFilter.y,u_cityPatternFilter.z,dist);
       if(fade<=0.0)return point;
       vec2 texels=(br-tl)*texsize;
@@ -227,11 +237,12 @@
       if(nearEdge>.02&&a.z>0.0&&a.z<1.0)return mix(distant,shadowSample(u_sunShadow0,a),smoothstep(.02,.07,nearEdge));
       return distant;
     }
+    ${moire.on?'float cityVisibility=-1.0,cityReuse=-1.0;':''}   // the moire fix's class shades reuse the cell's own shadow read
     vec3 cityShade(vec3 original,vec3 albedo,vec3 pos,vec3 normal,float glass) {
       if(u_sunlight.x<.5||u_sunPresence.x<=0.0)return original;
       vec3 n=normalize(normal),view=normalize(u_eye-pos);
       float facing=max(dot(n,u_sunDirection),0.0);
-      float visibility=sunlightVisibility(pos,n);
+      ${moire.on?'float visibility=cityReuse>=0.0?cityReuse:sunlightVisibility(pos,n);cityVisibility=visibility;':'float visibility=sunlightVisibility(pos,n);'}
       float skyFill=u_citySkyFill.x+u_citySkyFill.y*max(n.z,0.0);
       vec3 diffuse=linearColour(albedo)*(linearColour(u_shadeColour)*(u_sunlight.y+skyFill)+
         linearColour(u_sunColour)*facing*visibility*u_sunlight.z);
@@ -875,7 +886,7 @@
     const lost=()=>{map.off('remove',removed);cleanup();map.once('webglcontextrestored',()=>install(map));};
     map.once('webglcontextlost',lost);map.once('remove',removed);
   }
-  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,proxyHash,patternFilter,
+  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,proxyHash,patternFilter,moire,
     setBuildings(features){buildings=features;proxyDirty=true;},
     frame(U,inverse,textures){
       // Before either renderer draws. Materials retain this shared U object.
@@ -884,7 +895,10 @@
       U.u_cityPatternFilter??={value:new THREE.Vector4()};
       // The shader's loops were sized from maxTaps when it compiled; a live
       // change can lower the count, not raise it past that.
-      U.u_cityPatternFilter.value.set(patternFilter.on?1:0,patternFilter.nearM,patternFilter.fullM,Math.max(1,patternFilter.maxTaps));
+      // the fix's walls (MoireFix.set): mode 0 = main's own setting, 1 = the fix, 2 = flat walls
+      const mw=moire.on&&moire.walls?moire.mode:0,fix=mw>=1;
+      U.u_cityPatternFilter.value.set(mw===2?2:fix?1:((moire.on&&moire.walls?moire.mainOn:patternFilter.on)?1:0),
+        fix?moire.nearM:patternFilter.nearM,fix?moire.fullM:patternFilter.fullM,Math.max(1,patternFilter.maxTaps));
       U.u_cityPatternFilterB??={value:new THREE.Vector4()};
       U.u_cityPatternFilterB.value.set(patternFilter.maxSpacing,0,0,0);
       U.u_cityNight??={value:new THREE.Vector4()};
@@ -906,4 +920,5 @@
       frame={U,inverse,textures:textures||[fallbackShadow,fallbackShadow]};serial++;
     }
   };
+  if(moire.on)document.write('<script src="'+document.currentScript.src.replace('city-lighting.js','moire.js')+'"><\/script>');
 })();
