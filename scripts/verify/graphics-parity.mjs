@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright-core';
 import {BASE,launch,HW_ARGS} from './chrome.mjs';
@@ -17,6 +18,12 @@ const queryA=opt('--query-a','smooth=0'),queryB=opt('--query-b','smooth=0');
 if(!refA&&!refB&&queryA===queryB&&!args.includes('--break'))throw Error('Supply a source ref or different queries to compare');
 const resolved=ref=>ref?execFileSync('git',['rev-parse','--verify',ref+'^{commit}'],{cwd:repo,encoding:'utf8'}).trim():null;
 const refs={a:resolved(refA),b:resolved(refB)};
+const sha=x=>createHash('sha256').update(x).digest('hex');
+const local={head:resolved('HEAD'),status:execFileSync('git',['status','--porcelain'],{cwd:repo,encoding:'utf8'}).trim(),diffSha256:sha(execFileSync('git',['diff','HEAD'],{cwd:repo,maxBuffer:64<<20})),served:{}};
+for(const f of ['js/city-lighting.js','js/slopes.js','js/wall-patterns.js']) {
+ const response=await fetch(BASE+'/'+f);if(!response.ok)throw Error('Cannot fingerprint served '+f);
+ local.served[f]=sha(Buffer.from(await response.arrayBuffer()));
+}
 const cache=new Map();
 const poses=[
  {name:'campus-far',p:.2,center:[-97.7393,30.2874],zoom:16.85,pitch:74,bearing:197.4},
@@ -27,7 +34,7 @@ const wanted=opt('--views','campus-far,west-mid').split(',');
 if(wanted.some(n=>!poses.some(p=>p.name===n)))throw Error('Unknown view');
 const views=poses.filter(p=>wanted.includes(p.name));fs.mkdirSync(out,{recursive:true});
 const browser=await launch(chromium,{gl:'hardware',args:HW_ARGS,maxMs:1200000});
-const result={settings:{width:960,height:600,dpr:1,secondCaptures:true,refs,programs:'Unmodified production except explicit --break'},arms:[],comparisons:[]};
+const result={settings:{width:960,height:600,dpr:1,secondCaptures:true,refs,local,programs:'Unmodified production except explicit --break'},arms:[],comparisons:[]};
 const save=()=>fs.writeFileSync(path.join(out,'result.json'),JSON.stringify(result,null,2));
 function difference(a,b){const A=decodePNG(a),B=decodePNG(b);let moved=0,max=0,sum=0,over1=0,over12=0;for(let i=0;i<A.width*A.height;i++){let d=0;for(let c=0;c<3;c++){const x=Math.abs(A.data[i*A.bpp+c]-B.data[i*B.bpp+c]);d=Math.max(d,x);sum+=x;}moved+=d>0;over1+=d>1;over12+=d>12;max=Math.max(max,d);}return {moved,over1,over12,max,mae:sum/(A.width*A.height*3)};}
 try{
@@ -38,10 +45,10 @@ try{
   const row={arm,query,ref,errors:[],shots:{}};result.arms.push(row);save();
   try{
    const page=await ctx.newPage();page.on('pageerror',e=>row.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')row.errors.push(m.text().slice(0,200));});
-   if(ref)await page.route(url=>/^\/(js\/[^?]+\.js|[^/?]+\.html|[^/?]+\.css)$/.test(new URL(url).pathname),(route,req)=>{
+   if(ref)await page.route(url=>/^\/(js\/[^?]+\.(?:js|mjs)|[^/?]+\.html|[^/?]+\.css)$/.test(new URL(url).pathname),(route,req)=>{
     const f=new URL(req.url()).pathname.slice(1),key=ref+':'+f;
     if(!cache.has(key))cache.set(key,execFileSync('git',['show',key],{cwd:repo,maxBuffer:64<<20}));
-    return route.fulfill({status:200,contentType:f.endsWith('.js')?'application/javascript':f.endsWith('.css')?'text/css':'text/html',body:cache.get(key)});
+    return route.fulfill({status:200,contentType:/\.m?js$/.test(f)?'application/javascript':f.endsWith('.css')?'text/css':'text/html',body:cache.get(key)});
    });
    if(args.includes('--break')&&arm==='candidate')await page.route('**/js/city-lighting.js',r=>r.fulfill({contentType:'text/javascript',body:fs.readFileSync(new URL('../../js/city-lighting.js',import.meta.url),'utf8').replace('float visibility=facing>0.0?sunlightVisibility(pos,n):1.0;','float visibility=1.0;')}));
    await page.addInitScript(()=>{localStorage.setItem('austin3d.gfx.v1',JSON.stringify({autoDetected:true,autoExposure:false}));const t=setInterval(()=>{if(window.cancelGraphicsAutoDetect){window.cancelGraphicsAutoDetect();clearInterval(t);}},20);});
@@ -53,6 +60,8 @@ try{
    if((smooth==='0'&&row.hardware.samples!==0)||(smooth==='1'&&row.hardware.samples===0))throw Error('Requested MSAA state did not activate');
    if(/swiftshader|llvmpipe|software/i.test(row.hardware.renderer))throw Error('Hardware GL required');
    if(row.hardware.shaderFailures.length)throw Error('Shader compilation failures');
+   row.geometry=await page.evaluate(()=>{let triangles=0,vertices=0,bytes=0,packedMeshes=0,packedU16Meshes=0;window.slopesApartments.group.traverse(o=>{const g=o.geometry;if(!g?.index)return;triangles+=g.index.count/3;vertices+=g.attributes.position.count;if(g.userData.pack){packedMeshes++;if(g.index.array instanceof Uint16Array)packedU16Meshes++;}bytes+=g.index.array.byteLength;for(const a of Object.values(g.attributes))bytes+=a.array.byteLength;});return {triangles,vertices,bytes,packedMeshes,packedU16Meshes};});
+   if(new URLSearchParams(query).get('packmerge')==='1'&&(!row.geometry.packedMeshes||row.geometry.packedU16Meshes!==row.geometry.packedMeshes))throw Error('Packed merge did not activate');
    console.log('[graphics-parity] loaded '+arm+' '+JSON.stringify(row.hardware));save();
    for(const view of views){
     await page.evaluate(v=>{window.__map.stop();window.__map.jumpTo(v);window.applyTimeOfDay(window.__map,v.p,true);},view);
@@ -76,4 +85,4 @@ try{
  }
  for(const view of views){const [a,b,c]=result.arms;const change=difference(a.shots[view.name],b.shots[view.name]),control=difference(a.shots[view.name],c.shots[view.name]);const row={view:view.name,change,control,exact:change.moved===0&&control.moved===0};result.comparisons.push(row);console.log(JSON.stringify(row));}
  result.pass=result.comparisons.every(r=>r.exact)&&result.arms.every(r=>!r.errors.length);save();process.exitCode=result.pass?0:1;
-}finally{save();await browser.close();await browser.__done();}
+}catch(error){result.pass=false;result.error=String(error.stack||error);throw error;}finally{save();await browser.close();await browser.__done();}
