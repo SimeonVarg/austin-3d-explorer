@@ -104,3 +104,8 @@ jobs:
             results/
             launch.log
           if-no-files-found: warn
+      # LAST, after the teardown and the upload, so a red run still returns everything: a green run must mean the checks
+      # passed. Run 38124724400 (2026-10-11) was green with a check that had exit 1 in its own manifest.
+      - name: Fail the run when a check on the machine failed
+        if: always()
+        run: python3 scripts/aws-gpu/outcome.py results/
