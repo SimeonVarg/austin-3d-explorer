@@ -1,0 +1,17 @@
+{
+ "_what": "Recipes that used the 5x7 dot font for sign lettering on 2026-10-10. FROZEN: do not add a file here. A new or rebuilt recipe draws its signs as smooth outlines (scripts/sign_outlines.py). The number is how many dot signs the file may still hold; it may go down, never up.",
+ "legacy": {
+  "21-rio.json": 1,
+  "block-on-25th-west.json": 1,
+  "ion-austin.json": 1,
+  "moontower.json": 2,
+  "regents-west-at-24th.json": 1,
+  "signature-1909.json": 1,
+  "the-castilian.json": 16,
+  "the-mark-austin.json": 3,
+  "the-otis-hotel.json": 2,
+  "the-standard.json": 6,
+  "villas-on-rio.json": 1,
+  "welch-hall.json": 1
+ }
+}
