@@ -125,6 +125,23 @@ memory and is never written here, in any tracked file, or in a commit message.
     model or effort to do a better job holistically, not just the part i give
     comments on"*.)
 
+## No moire, in everything that is made
+
+15. **No moire is part of ALL generation. It is not a separate project.** (Owner, 2026-10-11: *"no moire should be a
+    part of all generation."*) Every building, wall pattern, roof, detail and render pass that a lane makes or changes
+    must be steady and SHARP in motion. It is a requirement of each piece of work, the same as "it must look like the
+    photograph".
+    - **Blur is not a fix.** A change that makes the picture calm by making it soft does not pass.
+    - **Acceptance is his eye on his Mac**, in the opening flight and in slow pans, in motion. A numeric gate that passes
+      is evidence, not acceptance. The gates of 2026-10-10 and 10-11 measured six fixed views and never the opening
+      flight; the roof filter (#488) and the optional temporal filter (#490) passed them and he did NOT accept the
+      result: the apartments in the opening flight still shimmer.
+    - **Check your own piece before you hand it over:** look at it from far, at a grazing angle, with the camera
+      moving. Detail thinner than a pixel at the distances it is seen from (window grids, fins, rails, tile rows) must
+      be made so that it does not flicker there.
+    - The order of work he gave the same day: whole views that match his rooftop photographs first, then the roof
+      decks, with this rule inside both.
+
 ## Disk
 
 12. **Screenshots are working artifacts, not deliverables. Keep the repo a
