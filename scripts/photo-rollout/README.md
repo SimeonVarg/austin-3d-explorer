@@ -325,3 +325,16 @@ The pose and projection CLIs reject output paths that alias any supplied input,
 including symbolic links and hard links. Pose receipts and app-view outputs must
 also be distinct. All destinations are checked before the first write; an
 unrelated prior output may still be replaced.
+
+The same guard protects capture begin/seal/accept inputs, including referenced
+capture snapshots and their recipes, cameras, settings, frames and masks. Sheet
+creation checks every image/receipt destination before saving any panel; catalog
+builds protect external indexes and linked source files as well as the source
+tree. Packet and overlap outputs must be empty directories. Runtime setup also
+rejects a receipt alias of its lock, interpreter or ownership marker. These
+checks preserve existing receipt schemas and hashes.
+
+Overlap keypoint de-duplication uses adjacent spatial buckets while preserving
+match order, the exact Euclidean three-pixel predicate, and the duplicate rule
+in either image. Synthetic equivalence tests cover shuffled/dense points,
+negative coordinates, cell boundaries and the strict distance threshold.

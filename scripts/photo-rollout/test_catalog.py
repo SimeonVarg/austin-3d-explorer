@@ -117,5 +117,31 @@ class CatalogTests(unittest.TestCase):
         (self.walk/'photos.jsonl').write_text('{wrong')
         with self.assertRaises(Rejected): self.run_build()
 
+    def test_external_metadata_and_source_aliases_are_preserved(self):
+        import os
+        index = self.index/'index.jsonl'; index.write_text('{"id":"a","hits":[]}\n')
+        targets = [index, self.index/'confirmed.json']
+        for source in (self.walk/'thumbs/a.jpg', self.walk/'photos.jsonl'):
+            target = self.base/(source.name+'.alias'); os.link(source, target); targets.append(target)
+        external = self.base/'external.jpg'
+        Image.new('RGB', (5,5), 'green').save(external)
+        (self.walk/'thumbs/external.jpg').symlink_to(external); targets.append(external)
+        for target in targets:
+            before = target.read_bytes()
+            with self.subTest(target=target.name), self.assertRaisesRegex(Rejected, 'must not overwrite'):
+                catalog.build(self.root, self.index, target)
+            self.assertEqual(target.read_bytes(), before)
+        self.out.write_text('unrelated previous output')
+        self.run_build()
+        self.assertEqual(json.loads(self.out.read_text())['kind'], 'private-photo-catalog')
+
+    def test_packet_nonempty_alias_destination_preserves_evidence(self):
+        self.run_build(); plan = self.plan(); output = self.base/'packet'; output.mkdir()
+        photo = self.walk/'thumbs/a.jpg'; before = photo.read_bytes()
+        (output/'build-01.jpg').symlink_to(photo)
+        with self.assertRaisesRegex(Rejected, 'must be empty'):
+            catalog.packet(self.out, plan, output)
+        self.assertEqual(photo.read_bytes(), before)
+
 
 if __name__ == '__main__': unittest.main()

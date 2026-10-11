@@ -65,6 +65,26 @@ def errors(H, p, q):
     except (cv2.error, np.linalg.LinAlgError): return np.full(len(p), np.inf)
 
 
+def unique_matches(matches, a, b):
+    # A point within 3px can only occupy the same or an adjacent 3px cell.
+    retained = []
+    grids = [{}, {}]
+    for i,j,r in matches:
+        points = [np.array(a['kp'][i].pt), np.array(b['kp'][j].pt)]
+        cells = [tuple(int(np.floor(v / 3)) for v in point) for point in points]
+        duplicate = any(
+            np.linalg.norm(point - previous) < 3
+            for point, cell, grid in zip(points, cells, grids)
+            for dx in (-1, 0, 1) for dy in (-1, 0, 1)
+            for previous in grid.get((cell[0] + dx, cell[1] + dy), ())
+        )
+        if duplicate: continue
+        retained.append((i,j,r,*points))
+        for point, cell, grid in zip(points, cells, grids):
+            grid.setdefault(cell, []).append(point)
+    return retained
+
+
 def analyze(a, b):
     knn = cv2.BFMatcher(cv2.NORM_L2)
     def good(x, y):
@@ -76,11 +96,7 @@ def analyze(a, b):
         ab, ba = good(a['des'],b['des']), good(b['des'],a['des'])
     matches = sorted([(i,j,max(r,ba[j][1])) for i,(j,r) in ab.items() if j in ba and ba[j][0] == i], key=lambda t:t[2])
     # SIFT can give multiple orientations at one location: count physical support once.
-    retained = []
-    for i,j,r in matches:
-        p,q = np.array(a['kp'][i].pt), np.array(b['kp'][j].pt)
-        if any(np.linalg.norm(p-x[3])<3 or np.linalg.norm(q-x[4])<3 for x in retained): continue
-        retained.append((i,j,r,p,q))
+    retained = unique_matches(matches, a, b)
     p = np.array([m[3] for m in retained],np.float32).reshape(-1,2)
     q = np.array([m[4] for m in retained],np.float32).reshape(-1,2)
     rec = dict(pair=[a['name'],b['name']], mutual_ratio_matches=len(matches), unique_matches=len(p))

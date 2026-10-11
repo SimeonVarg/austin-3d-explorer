@@ -97,6 +97,14 @@ class InputTests(unittest.TestCase):
         self.assertTrue((self.root/'result/results.json').exists())
         with self.assertRaises(Rejected): overlap.discover(self.plan,self.root/'result')
 
+    def test_nonempty_output_alias_preserves_source(self):
+        self.write_plan(); output=self.root/'result'; output.mkdir()
+        source=self.root/'first.png'; before=source.read_bytes()
+        (output/'match-sheet.jpg').symlink_to(source)
+        with self.assertRaisesRegex(Rejected,'must be empty'):
+            overlap.discover(self.plan,output)
+        self.assertEqual(source.read_bytes(),before)
+
     def test_large_empty_duplicate_and_invalid_plans(self):
         cases=[[],self.rows[:1],self.rows*7,
                [self.rows[0],dict(id='view-a',file='second.png')],

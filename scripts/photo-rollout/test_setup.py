@@ -74,6 +74,31 @@ class SetupTests(unittest.TestCase):
             self.assertIn("absent or failed checks", result.stderr)
             self.assertEqual(list(Path(folder).iterdir()), [])
 
+    def test_runtime_receipt_aliases_preserve_bootstrap_inputs(self):
+        import contextlib, hashlib, io, os, platform
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); lock = root/'requirements.txt'; lock.write_text('dummy==1\n')
+            name = '%s-py%d.%d-%s' % (hashlib.sha256(lock.read_bytes()).hexdigest()[:12],
+                sys.version_info.major, sys.version_info.minor, platform.machine())
+            runtime = root/name; runtime.mkdir()
+            marker = runtime/'.photo-rollout-runtime'; marker.write_text('known runtime')
+            python = runtime/('Scripts/python.exe' if os.name=='nt' else 'bin/python')
+            python.parent.mkdir(); python.write_text('synthetic interpreter')
+            receipt = runtime/'runtime.json'
+            for source in (lock, marker, python):
+                for hard in (False, True):
+                    before = source.read_bytes()
+                    if hard: os.link(source, receipt)
+                    else: receipt.symlink_to(source)
+                    with self.subTest(source=source.name, hard=hard), patch.object(setup, 'LOCK', lock), \
+                         patch.object(setup, 'probe') as probe, contextlib.redirect_stderr(io.StringIO()), \
+                         self.assertRaises(SystemExit):
+                        setup.main(['--runtime-root', str(root), '--check'])
+                    probe.assert_not_called()
+                    self.assertEqual(source.read_bytes(), before)
+                    receipt.unlink()
+
 
 if __name__ == "__main__":
     unittest.main()

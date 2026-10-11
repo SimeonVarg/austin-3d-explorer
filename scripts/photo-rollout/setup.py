@@ -90,6 +90,11 @@ def main(argv=None):
         runtime = root / name
         python = runtime / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
         marker = runtime / ".photo-rollout-runtime"
+        receipt = runtime / "runtime.json"
+        # Bootstrap runs before accept.py's image dependencies are installed.
+        for source in (LOCK, python, marker):
+            if receipt.resolve() == source.resolve() or (receipt.exists() and source.exists() and receipt.samefile(source)):
+                parser.error("runtime receipt must not overwrite setup inputs")
         if runtime.exists() and not marker.exists():
             parser.error("refusing to alter an unrecognized existing directory: %s" % runtime)
         try:
@@ -113,7 +118,7 @@ def main(argv=None):
             reused = False
         result.update(python_executable=str(python), reused=reused, requirements_sha256=lock_sha)
         # Receipt contains a local path; it stays beside the external runtime.
-        (runtime / "runtime.json").write_text(json.dumps(result, indent=2) + "\n")
+        receipt.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
     return 0
 

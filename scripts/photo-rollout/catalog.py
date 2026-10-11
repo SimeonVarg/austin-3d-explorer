@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import time
 
-from accept import Rejected, private_path, write_json
+from accept import Rejected, preserve_inputs, private_path, write_json
 
 IMAGE_SUFFIXES = {'.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.tif', '.tiff'}
 
@@ -35,6 +35,7 @@ def build(root, index_dir, output):
     for path in images:
         by_stem[path.stem].append(path)
     index_dir = Path(index_dir).expanduser()
+    read_paths = [*images, index_dir / 'index.jsonl', index_dir / 'confirmed.json']
     indexed = {}
     if (index_dir / 'index.jsonl').exists():
         indexed = {r['id']: r for r in read_lines(index_dir / 'index.jsonl')}
@@ -56,6 +57,7 @@ def build(root, index_dir, output):
             issues.append(dict(record=key, reason='declared image unavailable' if paths or kind=='walk' else 'non-image source record'))
 
     for manifest in sorted((root / '_walks').glob('*/photos.jsonl')):
+        read_paths.append(manifest)
         for n, row in enumerate(read_lines(manifest), 1):
             pid = row['photo_id']
             paths = [p for p in by_stem[pid] if manifest.parent in p.parents]
@@ -66,6 +68,7 @@ def build(root, index_dir, output):
                    original_digest=row.get('sha256'))
 
     for manifest in sorted(root.glob('*/sources.json')):
+        read_paths.append(manifest)
         rows = json.loads(manifest.read_text())
         rows = rows if isinstance(rows, list) else rows.get('sources', [])
         for n, row in enumerate(rows, 1):
@@ -75,6 +78,7 @@ def build(root, index_dir, output):
                    catalog_group=manifest.parent.name, location='unknown')
     manifest = root / 'manifest.json'
     if manifest.exists():
+        read_paths.append(manifest)
         for n, row in enumerate(json.loads(manifest.read_text()).get('images', []), 1):
             file = row.get('file')
             record('library-manifest', manifest, n, row,
@@ -98,6 +102,7 @@ def build(root, index_dir, output):
                    elapsed_seconds=round(time.monotonic()-started, 3))
     result = dict(schema=1, kind='private-photo-catalog', root=str(root),
                   summary=summary, records=records, images=list(images.values()), issues=issues)
+    preserve_inputs(read_paths, [output])
     write_json(output, result)
     return result
 
