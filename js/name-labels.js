@@ -649,7 +649,10 @@
       if (!labelsOn() || gl.isContextLost()) {if(hiddenMarkers.size)restoreMarkers();return;}
       try {
         if (!gpu) gpu = initGL(gl);
-        const M = args.defaultProjectionData?.mainMatrix; if (!M) return;
+        // A frame of the still-camera accumulation (js/frame-target.js) has the lens shifted by a fraction of a
+        // pixel. It is the same camera: lay the names out with the matrix they already have, so nothing is marked
+        // changed, no repaint is asked for, and the letters are not smeared by the average.
+        const M = window.FrameTarget?.shifted ? lastMatrix : args.defaultProjectionData?.mainMatrix; if (!M) return;
         const started = performance.now(), [W, H] = layout(M, started);
         gl.useProgram(gpu.program); gl.bindVertexArray(gpu.vao); gl.bindBuffer(gl.ARRAY_BUFFER, gpu.buffer);
         copyDepth(gl);

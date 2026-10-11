@@ -47,7 +47,7 @@
     grid: 4,
     order: [[0, 1], [3, 2], [1, 3], [2, 0], [1, 1], [2, 2], [0, 3], [3, 0], [0, 2], [3, 1], [1, 0], [2, 3], [1, 2], [2, 1], [0, 0], [3, 3]],
     count: +Q.get('restn') || 16,            // shifts averaged (a prefix of `order`)
-    slowMs: [70, 140],                       // frames slower than this take 8, slower than the second take 4
+    slowMs: [150, 300],                      // frames slower than this take 8, slower than the second take 4
     delayMs: 120,                            // quiet time before the first shifted frame
     maxBreaks: 5,                            // cycles broken in a row at one camera before giving up there
     softAlpha: 0.25,                         // weight of a soft frame once converged
@@ -107,6 +107,7 @@
   // FrameTarget.trace = true) counts the callers that asked for a frame
   const stats = { frames: 0, plain: 0, sample: 0, soft: 0, hold: 0, cycles: 0, done: 0, breaks: 0, sinceDone: 0, msaa: 0, frameMs: 0, why: {}, who: {} };
   const FT = G.FrameTarget = { SMOOTH, REST, makeRest, stats, smooth: false, attached: false,
+    shifted: false,                          // true while a lens-shifted frame is being painted: same camera, do not treat the matrix as a move
     own: () => SMOOTH.ownTarget && typeof WebGL2RenderingContext !== 'undefined',
     soft() { if (rule) rule.soft(); }, state: () => rule ? rule.S.phase : 'off', smoothOn: () => !!(FT.smooth && ms),
     setSmooth(on) { if (!FT.own()) return; on = !!on; if (on === FT.smooth) return; FT.smooth = on; if (!on) dropMs(); if (rule) rule.asked(); if (map && native) native.trigger.call(map); },
@@ -226,7 +227,7 @@
     if (j) {
       const r = map.getPixelRatio(), dx = 2 * j[0] / r, dy = 2 * j[1] / r;
       tr.setPadding({ left: base.left + Math.max(0, dx), right: base.right + Math.max(0, -dx), top: base.top + Math.max(0, dy), bottom: base.bottom + Math.max(0, -dy) });
-      shifted = true;
+      shifted = FT.shifted = true;
     }
     if (FT.smooth && !document.getElementById('veil') && ensureMs(W, H)) {
       useMs = true; redirect = ms.fbo; native.bind.call(gl, gl.FRAMEBUFFER, ms.fbo);
@@ -234,7 +235,7 @@
   }
   function end() {
     if (!gl || gl.isContextLost()) { redirect = null; return; }
-    if (shifted) map.transform.setPadding(base);
+    if (shifted) { map.transform.setPadding(base); FT.shifted = false; }
     redirect = null;
     const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight, on = restDefault() && !accBad;
     const a = rule.end(on), k = rule.S.kind;
