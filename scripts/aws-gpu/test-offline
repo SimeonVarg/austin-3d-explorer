@@ -58,6 +58,23 @@ grep -qi "swiftshader" "$UD" && pass "user-data gates on SwiftShader" || fail "u
 grep -q "VERIFY_GL=hardware" "$UD" && pass "user-data points harness at hardware GL" || fail "user-data missing VERIFY_GL=hardware"
 grep -q "serve.py" "$UD" && pass "user-data serves with scripts/serve.py" || fail "user-data does not use serve.py"
 
+echo "== check names are one flat, safe, unique folder each =="
+# Run 38122495368: `--out /opt/flyover/out/guard` put slashes in the name, the output nested, and the manifest
+# recorded a null exit for a check that had passed.
+CJ="$("$HERE/launch" --print-checks --check "guard.mjs --out /opt/flyover/out/guard" --check "guard.mjs --out /opt/flyover/out/guard" \
+      --check 'x.mjs --q a=1,b:2|c*?' --check "graphics.mjs" 2>&1)"
+if printf '%s' "$CJ" | python3 -c '
+import json, re, sys
+c = json.load(sys.stdin); names = [x["name"] for x in c]
+assert len(c) == 4, c
+assert all(re.fullmatch(r"[A-Za-z0-9._-]{1,80}", n) for n in names), names
+assert len(set(names)) == 4, names
+assert names[0] == "guard_out_opt_flyover_out_guard" and names[1] == names[0] + "-2", names
+assert names[3] == "graphics", names
+assert c[0]["cmd"] == "guard.mjs" and c[0]["args"] == ["--out", "/opt/flyover/out/guard"], c[0]
+assert c[2]["args"] == ["--q", "a=1,b:2|c*?"], c[2]
+'; then pass "four checks: flat names, no slash or odd character, the twin gets -2, arguments unchanged"; else fail "check names: $CJ"; fi
+
 echo "== teardown --print assertions =="
 TOUT="$("$HERE/teardown" --print 2>&1)"
 echo "$TOUT" | grep -qF "Name=tag:project,Values=flyover" && pass "teardown targets only project=flyover" || fail "teardown not scoped to project=flyover"
