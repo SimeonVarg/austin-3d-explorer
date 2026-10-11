@@ -1,0 +1,28 @@
+{
+ "version": 1,
+ "x0": -1452,
+ "y0": -3284,
+ "cell": 4,
+ "nx": 601,
+ "ny": 1141,
+ "unit": 1.25,
+ "origin": {
+  "lng": -97.73939,
+  "lat": 30.28601
+ },
+ "note": "u8 cells, row 0 = south, col 0 = west; metres = value * unit (rounded up). Baked by scripts/air/bake-heights.mjs.",
+ "sources": {
+  "snapshot": 2433,
+  "outer-ring": 13887,
+  "tower": 225,
+  "westcampus": 1144,
+  "heroes": 3896,
+  "stadium": 1448,
+  "capitol": 604,
+  "capitol-parts": 13,
+  "capitol-dome": 76,
+  "drag": 101,
+  "moody": 17,
+  "parts": 23
+ }
+}

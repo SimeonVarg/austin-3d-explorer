@@ -1,0 +1,255 @@
+{
+ "id": "skyline",
+ "version": 1,
+ "name": "Skyline",
+ "note": "Built by scripts/air/place-gates.mjs from the repo heights; do not edit by hand, edit COURSE there.",
+ "origin": {
+  "lng": -97.73939,
+  "lat": 30.28601
+ },
+ "start": {
+  "lng": -97.73939,
+  "lat": 30.28538,
+  "alt": 185,
+  "yaw": 0
+ },
+ "gates": [
+  {
+   "id": "g0",
+   "name": "UT Tower",
+   "lng": -97.73939,
+   "lat": 30.2861,
+   "alt": 150,
+   "r": 26,
+   "yaw": 358.3,
+   "kind": "start",
+   "note": "straight over the Tower (93 m)"
+  },
+  {
+   "id": "g1",
+   "name": "North campus",
+   "lng": -97.739546,
+   "lat": 30.288348,
+   "alt": 140,
+   "r": 24,
+   "yaw": 338.3,
+   "kind": "ring"
+  },
+  {
+   "id": "g2",
+   "name": "Hairpin",
+   "lng": -97.74064,
+   "lat": 30.289472,
+   "alt": 128,
+   "r": 24,
+   "yaw": 276,
+   "kind": "ring"
+  },
+  {
+   "id": "g3",
+   "name": "Drag, north",
+   "lng": -97.741837,
+   "lat": 30.288663,
+   "alt": 112,
+   "r": 24,
+   "yaw": 207.6,
+   "kind": "ring",
+   "note": "turning onto Guadalupe"
+  },
+  {
+   "id": "g4",
+   "name": "The Drag",
+   "lng": -97.741942,
+   "lat": 30.287044,
+   "alt": 95,
+   "r": 22,
+   "yaw": 184,
+   "kind": "ring",
+   "note": "down Guadalupe St"
+  },
+  {
+   "id": "g5",
+   "name": "Dobie | Ion",
+   "lng": -97.742259,
+   "lat": 30.283775,
+   "alt": 75,
+   "r": 24,
+   "yaw": 206.1,
+   "kind": "ring",
+   "note": "between two West Campus towers, down Guadalupe"
+  },
+  {
+   "id": "g6",
+   "name": "Rio Grande",
+   "lng": -97.744389,
+   "lat": 30.281154,
+   "alt": 75,
+   "r": 22,
+   "yaw": 201.2,
+   "kind": "ring"
+  },
+  {
+   "id": "g7",
+   "name": "Shoal Creek",
+   "lng": -97.745013,
+   "lat": 30.277017,
+   "alt": 92,
+   "r": 22,
+   "yaw": 176.5,
+   "kind": "ring"
+  },
+  {
+   "id": "g8",
+   "name": "Hyde Park",
+   "lng": -97.744076,
+   "lat": 30.273869,
+   "alt": 105,
+   "r": 24,
+   "yaw": 164.6,
+   "kind": "ring"
+  },
+  {
+   "id": "g9",
+   "name": "Pease",
+   "lng": -97.743035,
+   "lat": 30.270811,
+   "alt": 130,
+   "r": 24,
+   "yaw": 180.3,
+   "kind": "ring"
+  },
+  {
+   "id": "g10",
+   "name": "Indeed | One American",
+   "lng": -97.743656,
+   "lat": 30.268992,
+   "alt": 120,
+   "r": 16,
+   "yaw": 200.2,
+   "kind": "ring"
+  },
+  {
+   "id": "g11",
+   "name": "415 Colorado | Frost",
+   "lng": -97.743534,
+   "lat": 30.26672,
+   "alt": 130,
+   "r": 24,
+   "yaw": 199.4,
+   "kind": "ring"
+  },
+  {
+   "id": "g12",
+   "name": "Austonian | JW Marriott",
+   "lng": -97.743853,
+   "lat": 30.264615,
+   "alt": 125,
+   "r": 24,
+   "yaw": 197.6,
+   "kind": "ring"
+  },
+  {
+   "id": "g13",
+   "name": "Cesar Chavez",
+   "lng": -97.742982,
+   "lat": 30.263392,
+   "alt": 120,
+   "r": 24,
+   "yaw": 104.2,
+   "kind": "ring",
+   "note": "the turnaround"
+  },
+  {
+   "id": "g14",
+   "name": "Congress Ave bridge",
+   "lng": -97.741629,
+   "lat": 30.264067,
+   "alt": 120,
+   "r": 24,
+   "yaw": 33.4,
+   "kind": "ring"
+  },
+  {
+   "id": "g15",
+   "name": "Congress, south",
+   "lng": -97.74142,
+   "lat": 30.265595,
+   "alt": 125,
+   "r": 24,
+   "yaw": 3.1,
+   "kind": "ring"
+  },
+  {
+   "id": "g16",
+   "name": "Congress, mid",
+   "lng": -97.741473,
+   "lat": 30.269912,
+   "alt": 115,
+   "r": 24,
+   "yaw": 5.2,
+   "kind": "ring"
+  },
+  {
+   "id": "g17",
+   "name": "Capitol, south",
+   "lng": -97.740848,
+   "lat": 30.2727,
+   "alt": 100,
+   "r": 24,
+   "yaw": 353.2,
+   "kind": "ring"
+  },
+  {
+   "id": "g18",
+   "name": "Capitol, west",
+   "lng": -97.741889,
+   "lat": 30.27467,
+   "alt": 118,
+   "r": 26,
+   "yaw": 9.1,
+   "kind": "ring",
+   "note": "dome top 92 m"
+  },
+  {
+   "id": "g19",
+   "name": "Capitol, north",
+   "lng": -97.740338,
+   "lat": 30.276117,
+   "alt": 125,
+   "r": 26,
+   "yaw": 56.2,
+   "kind": "ring"
+  },
+  {
+   "id": "g20",
+   "name": "Capitol, east",
+   "lng": -97.737828,
+   "lat": 30.276927,
+   "alt": 120,
+   "r": 26,
+   "yaw": 51.8,
+   "kind": "ring"
+  },
+  {
+   "id": "g21",
+   "name": "East campus",
+   "lng": -97.735224,
+   "lat": 30.280254,
+   "alt": 110,
+   "r": 26,
+   "yaw": 33.3,
+   "kind": "ring"
+  },
+  {
+   "id": "g22",
+   "name": "Finish, DKR",
+   "lng": -97.732589,
+   "lat": 30.283807,
+   "alt": 125,
+   "r": 30,
+   "yaw": 32.6,
+   "kind": "finish",
+   "note": "over the stadium"
+  }
+ ]
+}
