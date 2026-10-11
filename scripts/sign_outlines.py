@@ -84,8 +84,12 @@ def regenerate(font_dir, add_only=False):
              'potbelly':('POTBELLY','BERNHC.TTF'),
              'sandwich-works':('SANDWICH WORKS','ARIALNB.TTF'),
              'wingstop':('WING\u00b7STOP','timesbd.ttf'),
-             'miss-behavin':('MISS BEHAVIN','ARIALNB.TTF')}
-    new_keys={'potbelly','sandwich-works','wingstop','miss-behavin'}
+             'miss-behavin':('MISS BEHAVIN','ARIALNB.TTF'),
+             # Raising Cane's (2026-10-10): a brush script for the two name words, a bold condensed sans for the strip.
+             # File names are the macOS ones (/System/Library/Fonts/Supplemental). Mixed case: the name is script, not capitals.
+             'raising':('Raising','Brush Script.ttf'), 'canes':("Cane's",'Brush Script.ttf'),
+             'chicken-fingers':('CHICKEN FINGERS','Arial Narrow Bold.ttf'), 'one-love':('ONE LOVE','Arial Narrow Bold.ttf')}
+    new_keys={'raising','canes','chicken-fingers','one-love'}
     result = json.loads(ASSET.read_text(encoding='utf-8'))['outlines'] if add_only else {}
     for key, (word, filename) in words.items():
         if add_only and key not in new_keys:continue
@@ -120,10 +124,11 @@ def regenerate(font_dir, add_only=False):
             else:pieces.extend(translate(p,xoff=cursor) for p in outer)
             cursor += font['hmtx'][name][0]
         shape=unary_union(pieces); x0,y0,x1,y1=shape.bounds
-        shape=scale(translate(shape,-x0,-y0),xfact=1/(x1-x0),yfact=1/(y1-y0),origin=(0,0)).simplify(.0002,preserve_topology=True)
+        shape=scale(translate(shape,-x0,-y0),xfact=1/(x1-x0),yfact=1/(y1-y0),origin=(0,0)).simplify(.004 if key in new_keys else .0002,preserve_topology=True)   # new words: 4 thousandths of the word box (about 2 mm on a 0.5 m word) keeps a shop's signs to a few hundred points
         polygons=list(shape.geoms) if shape.geom_type=='MultiPolygon' else [shape]
         coords=lambda r:[[round(x,6),round(y,6)] for x,y in list(r.coords)[:-1]]
         result[key]={'polygons':[{'outer':coords(p.exterior),'holes':[coords(r) for r in p.interiors]} for p in polygons]}
+        if key in new_keys:result[key]['aspect']=round((x1-x0)/(y1-y0),4)   # width / height of the word as drawn, so a sign is not stretched
     if not add_only:result.update(public_logo())
     ASSET.write_text(json.dumps({'version':1,'outlines':result},separators=(',',':'))+'\n',encoding='utf-8')
 
@@ -131,5 +136,5 @@ def regenerate(font_dir, add_only=False):
 if __name__=='__main__':
     import argparse
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--font-dir',required=True)
-    p.add_argument('--add-only',action='store_true',help='Add the four current storefront words without regenerating existing outlines.')
+    p.add_argument('--add-only',action='store_true',help='Add the newest words (new_keys) without regenerating existing outlines.')
     args=p.parse_args();regenerate(args.font_dir,args.add_only)

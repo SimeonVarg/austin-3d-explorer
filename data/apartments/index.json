@@ -50,6 +50,7 @@
     "norman-hackerman-building.json",
     "robert-b-rowling-hall.json",
     "dominos.json",
+    "jimmy-johns.json",
     "raising-canes.json"
   ],
   "replacedBuildingIds": [
@@ -104,6 +105,7 @@
     "f8a072d5-4751-4e9b-8939-49239919913a",
     "3e41820f-7a63-49d5-950a-b1b46767617e",
     "9f1e1dcd-9fc3-4771-b83e-e290483f80b7",
+    "12a8cbfc-5d0d-4131-b055-d3c0516929d8",
     "b32544f3-3221-480b-86bd-236b0eeb7be1"
   ],
   "replacedNames": [
@@ -156,6 +158,7 @@
     "Norman Hackerman Building",
     "Robert B. Rowling Hall",
     "Domino's",
+    "Jimmy John's",
     "Raising Cane's"
   ],
   "collections": [

@@ -117,6 +117,13 @@ needs a dark tone, not the shared glass tone.
 **9. Fixed things.** Pipes, signs, lights, rails, canopies. Count them. Say
 where each starts and ends (a pipe that runs to the ground must reach it).
 
+**9b. A sign's lettering is smooth, never the dot font.** Draw a name or a logo
+as outlines (`scripts/sign_outlines.py`, then `outline=load_sign(key)` in the
+recipe's writer), in the letter style of the photograph (script, serif, sans;
+capitals or mixed case). Zoom the render on every sign before you call a
+building done. `scripts/verify/sign-lettering.mjs` fails a recipe with new dot
+lettering.
+
 **10. Could not see it.** A part hidden by a tree or outside the frame is
 NOT KNOWN. Say so. Build it from the visible pattern and label it INFERRED. Do
 not skip the row.
@@ -191,3 +198,7 @@ made or sharpened.
   from one-wall camera fits, and the rebuilt arcade matched the front
   photograph while the side photograph showed its bays far too shallow.
   Check 5b.
+- 2026-10-10. "The canes logo is pixelated I thought that was never gonna happen
+  again": a new shop went live with its name in the 5x7 dot font, and the lead
+  looked at the whole picture and not at the sign. Check 9b, and
+  `sign-lettering.mjs` (the dot font is frozen to the 12 recipes that had it).
