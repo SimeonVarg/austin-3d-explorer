@@ -75,6 +75,39 @@ assert c[0]["cmd"] == "guard.mjs" and c[0]["args"] == ["--out", "/opt/flyover/ou
 assert c[2]["args"] == ["--q", "a=1,b:2|c*?"], c[2]
 '; then pass "four checks: flat names, no slash or odd character, the twin gets -2, arguments unchanged"; else fail "check names: $CJ"; fi
 
+echo "== the filled machine script carries every argument unchanged =="
+# Run 38129844212: `--query smooth=0&packmerge=1` reached the machine as `smooth=0@@CHECKS_JSON@@packmerge=1`.
+# This fills the real template, then runs the machine's OWN decode lines and its OWN args_of on the result.
+RT_A='x.mjs --query smooth=0&packmerge=1'
+RT_B='y.mjs --a back\slash --b "dq" --c it'"'"'s --d $HOME --e * --f a|b --g ;rm --h `id` --i @@REF@@'
+RUD="$("$HERE/launch" --print-user-data --check "$RT_A" --check "$RT_B" 2>&1)" || fail "launch --print-user-data exited non-zero: $(printf '%s' "$RUD" | tail -1)"
+RT_TMP="$(mktemp -d)"
+printf '%s\n' "$RUD" > "$RT_TMP/user-data"
+if python3 - "$RT_TMP" "$RT_A" "$RT_B" <<'PY'
+import json, re, subprocess, sys, os
+d, a, b = sys.argv[1], sys.argv[2], sys.argv[3]
+s = open(os.path.join(d, 'user-data')).read()
+head = s.split("CHECKS_JSON_B64='", 1)[0]
+assert not re.findall(r'@@[A-Z0-9_]+@@', head + s.split('\nCHECKS_JSON="$(', 1)[1]), 'a token was left unfilled'
+lines = [l for l in s.split('\n') if l.startswith('CHECKS_JSON_B64=') or l.startswith('CHECKS_JSON="$(')]
+assert len(lines) == 2, lines
+fn = re.search(r'^args_of\(\) \{\n.*?^\}\n', s, re.S | re.M).group(0)
+script = 'set -euo pipefail\n' + '\n'.join(lines) + '\n' + fn + 'printf "%s" "$CHECKS_JSON"; printf "\\1"; args_of 0; printf "\\1"; args_of 1\n'
+out = subprocess.run(['bash', '-c', script], capture_output=True, check=True, cwd=d).stdout
+js, a0, a1 = out.split(b'\x01')
+checks = json.loads(js)
+want0, want1 = a.split()[1:], b.split()[1:]
+got0 = [x.decode() for x in a0.split(b'\0')[:-1]]; got1 = [x.decode() for x in a1.split(b'\0')[:-1]]
+assert checks[0]['args'] == want0 and checks[1]['args'] == want1, checks
+assert got0 == want0, (got0, want0)
+assert got1 == want1, (got1, want1)
+assert got0 == ['--query', 'smooth=0&packmerge=1']
+assert not os.path.exists(os.path.join(d, 'pwned'))
+PY
+then pass "ampersand, backslash, both quotes, dollar, star, pipe, semicolon, backtick and a token look-alike all arrive unchanged"; else fail "the filled machine script changed an argument"; fi
+rm -rf "$RT_TMP"
+if "$HERE/launch" --print-user-data --ref 'main"; touch pwned; "' >/dev/null 2>&1; then fail "a ref with a quote and a semicolon was accepted"; else pass "a ref that the machine's shell could read is refused"; fi
+
 echo "== teardown --print assertions =="
 TOUT="$("$HERE/teardown" --print 2>&1)"
 echo "$TOUT" | grep -qF "Name=tag:project,Values=flyover" && pass "teardown targets only project=flyover" || fail "teardown not scoped to project=flyover"
