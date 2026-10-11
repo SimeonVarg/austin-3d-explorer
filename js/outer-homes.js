@@ -552,8 +552,10 @@
   function walkingEye(map, S, H) {
     if (map.getPitch() <= H.walkPitch) return null;
     try {
-      const p = map.getFreeCameraOptions().position, ll = p.toLngLat();
-      const eye = S.toLocal(ll.lng, ll.lat, p.toAltitude());
+      const transform = map.transform, ll = transform.getCameraLngLat();
+      // MapLibre exposes camera metres on the transform, not Mapbox's free camera.
+      const height = transform.getCameraAltitude() - (transform.elevation ?? 0);
+      const eye = S.toLocal(ll.lng, ll.lat, height);
       return [eye.x, eye.y, eye.z].every(Number.isFinite) && eye.z >= 0 && eye.z <= H.walkHeight ? eye : null;
     } catch (e) { return null; }
   }

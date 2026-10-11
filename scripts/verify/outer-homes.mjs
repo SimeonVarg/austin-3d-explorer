@@ -127,9 +127,25 @@ const walk = await page.evaluate(async () => {
   const m = window.__map; m.jumpTo({ center: [-97.7288, 30.3052], zoom: 19, pitch: 86, bearing: 0 });
   await new Promise(r => setTimeout(r, 400));
   window.applyOuterHomes(m);
-  return window.outerHomes.stats().drawn;
+  return {
+    drawn: window.outerHomes.stats().drawn,
+    height: m.transform.getCameraAltitude() - (m.transform.elevation ?? 0),
+    walkHeight: window.OUTER_HOMES.walkHeight,
+  };
 });
-check(walk > 50 && walk < 0.25 * st.rects, 'at walking height only the houses near the camera are drawn', walk);
+check(walk.height >= 0 && walk.height <= walk.walkHeight, 'walking pose really places the camera near the ground', walk.height);
+check(walk.drawn > 50 && walk.drawn < 0.25 * st.rects, 'at walking height only the houses near the camera are drawn', walk.drawn);
+const rooftop = await page.evaluate(async () => {
+  const m = window.__map, t = m.transform;
+  const height = t.getCameraAltitude() - (t.elevation ?? 0);
+  // Keep the same steep pitch: elevation, not pitch alone, selects the cull.
+  m.jumpTo({ zoom: m.getZoom() + Math.log2(height / 96), pitch: 86 });
+  await new Promise(r => setTimeout(r, 400));
+  window.applyOuterHomes(m);
+  return { drawn: window.outerHomes.stats().drawn, height: t.getCameraAltitude() - (t.elevation ?? 0) };
+});
+check(Math.abs(rooftop.height - 96) < 1, 'rooftop pose really places the camera 96 m above ground', rooftop.height);
+check(rooftop.drawn === drawnOn, 'steep rooftop view retains the full aerial house density', rooftop.drawn + ' of ' + drawnOn);
 const off = await page.evaluate(() => { window.SLOPES.on = false; const g = !!window.outerHomes.group; window.SLOPES.on = true; return { whileOff: g, back: !!window.outerHomes.group }; });
 check(!off.whileOff && off.back, 'they follow the slopes switch off and back on', JSON.stringify(off));
 check(shaderErrors.length === 0, 'no shader or module error was logged', shaderErrors.slice(0, 2).join(' | '));

@@ -20,10 +20,12 @@ for (const module of ['homes', 'trees']) {
   const H = {walkPitch: setting('walkPitch'), walkHeight: setting('walkHeight'), walkRadius: setting('walkRadius'), nearMetres: 900, farMetres: 3000, hysteresis: 120};
   assert.equal(H.walkRadius, 650, 'Walking range must not silently expand');
   assert.equal(H.walkHeight, 15);
-  const camera = {pitch: 88, x: 0, y: 0, z: 1.6};
+  const camera = {pitch: 88, x: 0, y: 0, z: 1.6, elevation: 0};
   const S = {toLocal: (x,y,z) => ({x,y,z})};
   const map = {getPitch: () => camera.pitch, getCenter: () => ({lng: 3000, lat: 0}),
-    getFreeCameraOptions: () => ({position: {toLngLat: () => ({lng: camera.x,lat: camera.y}), toAltitude: () => camera.z}})};
+    transform: {getCameraLngLat: () => ({lng: camera.x,lat: camera.y}),
+      getCameraAltitude: () => camera.z + camera.elevation, get elevation() { return camera.elevation; }}};
+  assert.equal(map.getFreeCameraOptions, undefined, 'MapLibre has no Mapbox free-camera API');
   const mesh = x => ({visible: true, geometry: {}, userData: {total: 10, firsts: Array.from({length:11},(_,i)=>i), centre:[x,0], radius:0, triangles: 1}});
   const chunks = [mesh(0), mesh(3000)];
   if (module === 'trees') for (const chunk of chunks) chunk.userData.set = {near:mesh(0),far:mesh(0),horizon:mesh(0)};
@@ -41,5 +43,11 @@ for (const module of ['homes', 'trees']) {
   camera.pitch=88;camera.x=H.walkRadius;update();assert.equal(drawn()[0],10,`${module}: inclusive radius boundary`);checks++;
   camera.x=H.walkRadius+.001;update();assert.equal(drawn()[0],0,`${module}: outside radius`);checks++;
   camera.x=0;camera.z=NaN;assert.equal(vm.runInContext('walkingEye(_map, window.slopes, OUTER_HOMES)',context),null,`${module}: invalid pose cannot hide chunks`);checks++;
+  camera.z=1.6;camera.elevation=180;update();assert.deepEqual(drawn(),[10,0],`${module}: walking height is above terrain, not absolute altitude`);checks++;
+  camera.elevation=NaN;assert.equal(vm.runInContext('walkingEye(_map, window.slopes, OUTER_HOMES)',context),null,`${module}: invalid terrain cannot hide chunks`);checks++;
+  camera.elevation=0;camera.x=NaN;assert.equal(vm.runInContext('walkingEye(_map, window.slopes, OUTER_HOMES)',context),null,`${module}: invalid geographic eye cannot hide chunks`);checks++;
+  camera.x=0;const altitude=map.transform.getCameraAltitude;delete map.transform.getCameraAltitude;
+  assert.equal(vm.runInContext('walkingEye(_map, window.slopes, OUTER_HOMES)',context),null,`${module}: unavailable transform API fails open`);checks++;map.transform.getCameraAltitude=altitude;
+
 }
 console.log(`PASS ${checks} real-function culling cases: street, rooftop, height, pitch, radius, invalid pose`);
