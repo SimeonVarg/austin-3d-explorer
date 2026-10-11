@@ -59,7 +59,7 @@ export const LOOK = {
   // picture caught a different part-painted city: a changed patch on a building the pull request could not touch,
   // in the first run of three pull requests in a row. The two switches make the app paint walls at once, the old way.
   // The pixels at rest are the same; only WHEN they are painted differs.
-  shotQuery: 'namelabels=0&facadepace=0&timeofdaypace=0',
+  shotQuery: 'namelabels=0&facadepace=0&timeofdaypace=0&skyfreeze=0',   // skyfreeze: held sky clock, so drifting clouds and twinkling stars are not read as a change
 };
 
 const argv = process.argv.slice(2);
