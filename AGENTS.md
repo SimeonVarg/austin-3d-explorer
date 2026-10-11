@@ -140,18 +140,6 @@ memory and is never written here, in any tracked file, or in a commit message.
     - If a doc cites a frame, commit that frame. 149 citations already point at
       files that were only ever in a deleted worktree and are gone for good.
 
-## Mac graphics while the owner is active — October 11, 2026
-
-The Mac shares one graphics chip between its display and browser tests. Monitor
-link drops have been reported during graphics work while the owner is using it.
-Before a local hardware-GL browser run, check `HIDIdleTime` with
-`ioreg -c IOHIDSystem`. Below 600 seconds, use software rendering or the Acer,
-Colab or AWS runner. Do not open an in-app browser, capture the desktop, or query
-display hardware while the owner is active. Local GPU timing runs may start
-after ten idle minutes and must stop when activity resumes. Software rendering
-is not evidence of Intel GPU performance. Read local image files normally;
-reading a saved screenshot does not require a live display capture.
-
 ## Taste
 
 11. **Parameterise every taste value** so Simeon can overrule any aesthetic call
