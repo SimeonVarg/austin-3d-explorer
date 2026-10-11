@@ -274,6 +274,8 @@
   },
   "_tools": "Not checks: no path to a non-zero exit (they photograph or print), or they need inputs only a human supplies (two checkouts, a PNG, a plan file). Running them proves nothing.",
   "tools": {
+    "moire-roof-fps.mjs": "Manual interleaved hardware roof cost comparison; requires an explicit candidate source and does not impose a generic CI timing gate.",
+    "moire-roof-study.mjs": "Manual hardware roof comparison; requires explicit output and matched visual review, not a default CI verdict.",
     "perf-frame-profile.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): scripts/perf wrapper for the AWS GPU runner; measures frame time, no verdict",
     "perf-aws-suite.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): runs the scripts/perf tools in sequence on the AWS GPU runner, no verdict",
     "perf-load-profile.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): scripts/perf wrapper for the AWS GPU runner; measures cold-load time, no verdict",
