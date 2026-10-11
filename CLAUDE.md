@@ -166,6 +166,16 @@ memory and is never written here, in any tracked file, or in a commit message.
     were two lanes queueing for the one browser slot.
     - **One browser-using lane at a time.** A second lane on the same laptop
       does not run in parallel. It waits in the gpu-run queue.
+    - **On the Mac, no graphics-card browser while the owner is at it.** The Mac
+      has ONE graphics chip for his screen and for our jobs. A hardware-GL
+      browser, an in-app browser pane, a desktop screenshot or a display query
+      started while he uses the Mac makes his monitor go black for seconds
+      (measured 2026-10-08, and again 2026-10-11 when a lane started browser
+      tooling as he moved the mouse). Check his idle time first
+      (`ioreg -c IOHIDSystem`, `HIDIdleTime` under 600 s = he is there). When he
+      is there: software drawing (not valid for frame-time numbers), or the
+      laptop lane, Colab or the AWS GPU machine. Timing runs on the Mac's chip
+      wait until he has been away 10 minutes, and stop when he comes back.
     - **Load once, test many.** For an A/B, load the city once and flip the
       setting inside the page between passes. Reload only when the change is
       about loading itself.
