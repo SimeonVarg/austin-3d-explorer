@@ -7,7 +7,7 @@
     savedBytes: 0, verticesBefore: 0, verticesAfter: 0, triangles: 0, meshes: [], failures: [] };
   let pending;
   const list = m => Array.isArray(m) ? m : [m];
-  const bytes = g => Object.values(g.attributes).reduce((n,a)=>n+a.array.byteLength,0)+(g.index?.array.byteLength||0);
+  const bytes = g => Object.values(g.attributes).reduce((n,a)=>n+(a.array?.byteLength||0),0)+(g.index?.array.byteLength||0);
   const bits = a => a.BYTES_PER_ELEMENT === 4 ? new Uint32Array(a.buffer,a.byteOffset,a.length)
     : a.BYTES_PER_ELEMENT === 2 ? new Uint16Array(a.buffer,a.byteOffset,a.length)
     : a.BYTES_PER_ELEMENT === 1 ? new Uint8Array(a.buffer,a.byteOffset,a.length) : null;

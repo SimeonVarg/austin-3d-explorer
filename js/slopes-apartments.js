@@ -712,6 +712,7 @@
   }
   /** a cell, clipped to the face's cut when it has one: a quad, a polygon, or nothing */
   function faceCell(B, W, sa, sb, za, zb, d, col, cut) {
+    if (B.calmActive) window.CalmFar.cell(B.calmActive, sa, sb, za, zb, col);
     if (!cut) { faceQuad(B, W, sa, sb, za, zb, d, col); return true; }
     const poly = clipRect(sa, sb, za, zb, cut);
     if (!poly) return false;
@@ -765,6 +766,19 @@
     return S;
   }
   function tileFace(B, face, skin, P, opts) {
+    if (B.calmFaces && window.CalmFar) {
+      const rec=window.CalmFar.begin(face,skin);rec.start=B.triangles*3;
+      B.calmActive=rec;
+      tileFaceFull(B,face,skin,P,opts);
+      B.calmActive=null;
+      if(rec.area>0) {
+        rec.farStart=B.triangles*3;
+        faceCell(B,face.W,0,face.len,face.z0,face.z1,0,window.CalmFar.mean(rec),face.cut);
+        rec.farEnd=B.triangles*3;
+        window.CalmFar.record(B,rec);
+      }
+      return;
+    }
     if(!cutClass('faces'))return tileFaceFull(B,face,skin,P,opts);
     const sink=detailSink('faces',face.W.N);
     tileFaceFull(sink,face,{...skin,piers:null,fins:null,facets:null},P,opts);
@@ -944,6 +958,7 @@
         faceQuad(B,W,w.s0+shrink,w.s1-shrink,z-width/2,z+width/2,d,col);
       }
     }
+    if(B.calmActive){B.calmActive.end=B.triangles*3;B.calmActive=null;}
     // the blades standing proud of the wall: the skin's piers (on its bay
     // lines) and its fins (on their own pitch) — see blades()
     if (skin.piers) blades(B, W, skin.piers, len, z0, z1, P, cut);
@@ -2624,11 +2639,16 @@
   function fullGroups(mesh) {
     const c = mesh.userData.cull, groups = mesh.geometry.groups;
     groups.length = 0;
+    if(c.farCount) {
+      const g=c.pool[0]||(c.pool[0]={materialIndex:0});
+      g.start=0;g.count=c.nearTotal;groups.push(g);
+      return;
+    }
     const g = c.pool[0] || (c.pool[0] = { start: 0, count: 0, materialIndex: 0 });
     g.start = 0; g.count = c.total; groups.push(g);
   }
   function shownInScene(o) { let top = o; for (; o; o = o.parent) { if (!o.visible) return false; top = o; } return top === _cullScene; }
-  function cullFor(camera) {
+  function cullFor(camera, renderer) {
     const on = APTS.cull.on && !_cullBroken;
     let planes = null;
     if (on) {
@@ -2649,10 +2669,12 @@
         let inside = true;
         for (let p = 0; p < 6; p++) { const P = planes[p], n = P.normal; if (n.x * wx + n.y * wy + n.z * wz + P.constant < r) { inside = false; break; } }
         if (!inside) { run = null; continue; }
-        drawnRanges++; drawn += c.count[i];
-        if (run && run.start + run.count === c.start[i]) { run.count += c.count[i]; continue; }
+        const far=c.farCount&&window.CalmFar.select(c,i,camera,mesh,renderer.domElement.width,renderer.domElement.height,_cullMatrix);
+        const rangeStart=far?c.farStart[i]:c.start[i],rangeCount=far?c.farCount[i]:c.count[i];
+        drawnRanges++; drawn += rangeCount;
+        if (run && run.start + run.count === rangeStart) { run.count += rangeCount; continue; }
         run = c.pool[used] || (c.pool[used] = { start: 0, count: 0, materialIndex: 0 });
-        run.start = c.start[i]; run.count = c.count[i]; groups.push(run); used++;
+        run.start = rangeStart; run.count = rangeCount; groups.push(run); used++;
       }
       ranges += c.n; total += c.total;
     }
@@ -2666,7 +2688,7 @@
       const prev = sc.onBeforeRender;
       sc.onBeforeRender = function (renderer, scene, camera) {
         if (_cullMeshes.size) {
-          try { cullFor(camera); }
+          try { cullFor(camera, renderer); }
           catch (e) {
             // Never leave a half-written group list: draw everything from now on.
             _cullBroken = true; console.error('[slopes-apartments] cull disabled', e);
@@ -2724,6 +2746,7 @@
     const B = chunkTris && S.buildChunked ? S.buildChunked(chunkTris, !!BUD.packVertices, buildOpts) : S.build(undefined, buildOpts);
     B.filtered=[];
     B.filterPending=[];
+    B.calmFaces=null;
     const built = area ? [] : (_built = []);
     const cancelled = () => area && area.gen !== gen;
     const discard = () => {
@@ -2752,6 +2775,7 @@
     // APTS.cull: where each building's triangles start in the index (the
     // builder writes three indices per triangle and nothing else).
     const cull = cullAvailable(area && APTS.areas.sliced && !BUD.geometryChunkTris && !BUD.packVertices ? {} : B, T, S) ? [] : null;
+    if(cull&&q.get('calm')==='1'&&!window.LITE_PROFILE?.on&&window.CalmFar)B.calmFaces=[];
     for (const spec of specs || _data.buildings) {
       // An area whose build was superseded (dropped, or the core rebuilding)
       // stops here and takes back what it had counted.
@@ -2802,21 +2826,39 @@
       const geometryRanges = [];
       let indexOffset = 0;
       for (const geometry of geom) {
+        const originalIndexCount=geometry.index?.count||0;
         let ranges = null;
         if (cull && geometry.index && geometry.attributes && geometry.attributes.position) {
           const index = geometry.index.array, positions = geometry.attributes.position.array;
           const bounds = [0, ...cull.filter(bound => bound > indexOffset && bound < indexOffset + index.length).map(bound => bound - indexOffset), index.length];
-          const start = [], counts = [], spheres = [];
+          const start = [], counts = [], spheres = [], farStart=[], farCount=[], period=[], merged=[], farMerged=[];
           for (let range = 0; range + 1 < bounds.length; range++) {
             const first = bounds[range], end = Math.min(bounds[range + 1], index.length);
             if (end <= first) continue;
-            start.push(first); counts.push(end - first); spheres.push(...rangeSphere(index, positions, first, end, APTS.cull.marginM));
+            spheres.push(...rangeSphere(index, positions, first, end, APTS.cull.marginM));
+            const lod=B.calmFaces&&window.CalmFar.indices(index,first,end,indexOffset,B.calmFaces);
+            if(B.calmFaces) {
+              start.push(merged.length);
+              if(lod)for(const v of lod.near)merged.push(v);else for(let k=first;k<end;k++)merged.push(index[k]);
+              counts.push(merged.length-start.at(-1));farStart.push(farMerged.length);
+              if(lod?.far)for(const v of lod.far)farMerged.push(v);
+              farCount.push(farMerged.length-farStart.at(-1));period.push(lod?.period||0);
+            } else {start.push(first);counts.push(end-first);}
             await pause();
           }
           ranges = { n: start.length, start, count: counts, sph: Float64Array.from(spheres), total: index.length, pool: [] };
+          if(B.calmFaces) {
+            // Keep every near building adjacent, as in main. Appending each
+            // far alternative inline prevents all-near culling ranges merging.
+            const nearTotal=merged.length, combined=new index.constructor(nearTotal+farMerged.length);
+            combined.set(merged);combined.set(farMerged,nearTotal);
+            for(let i=0;i<farStart.length;i++)farStart[i]+=nearTotal;
+            geometry.setIndex(new T.BufferAttribute(combined,1));
+            Object.assign(ranges,{farStart,farCount,period,isFar:[],nearTotal,total:combined.length});
+          }
         }
         geometryRanges.push(ranges);
-        indexOffset += geometry.index ? geometry.index.count : 0;
+        indexOffset += originalIndexCount;
         await pause();
       }
       mat = S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide, pack});

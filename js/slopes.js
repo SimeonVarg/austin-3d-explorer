@@ -172,7 +172,7 @@
   'use strict';
 
   const q = new URLSearchParams(window.location.search);
-  const SAMPLE_PCF=q.get('samplepcf')==='1';
+  const SAMPLE_PCF=q.get('samplepcf')==='1'||(new URLSearchParams(location.search).get('calm')==='1'&&!window.LITE_PROFILE?.on);
   const SAMPLE_BOUNDS=SAMPLE_PCF&&q.get('samplebounds')==='1';
   if(SAMPLE_BOUNDS&&!window.ShadowBounds){
     const script=document.createElement('script'),url=document.currentScript?.src;
@@ -687,12 +687,15 @@ ${window.RoofTiles.apply}
       bool shop=kind>5.5&&kind<6.5;
       float glazing=((kind>3.5&&kind<4.5)||shop)?1.0:0.0;
       float glassResponse=glazing*(shop?1.0:clamp(surface.w,0.0,1.0));
+      ${q.get('calm')==='1'&&!window.LITE_PROFILE?.on?`bool farMean=kind>7.5&&kind<8.5;
+      if(farMean){glazing=surface.y;glassResponse=surface.z;}`:''}
       #ifdef FACADE_FILTER
       glazing=gold.a;
       glassResponse=day.a;
       #endif
       col=cityShade(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse)*baseColor.a;
       float opaqueWall=(kind<3.5||kind>6.5)?1.0:0.0;
+      ${q.get('calm')==='1'&&!window.LITE_PROFILE?.on?'if(farMean)opaqueWall=1.0-glazing;':''}
       #ifdef FACADE_FILTER
       opaqueWall=1.0-glazing;
       #endif
@@ -702,9 +705,9 @@ ${window.RoofTiles.apply}
       #ifdef FACADE_FILTER
       col=cityEmission(col,night,glazing);
       #else
-      col=cityEmission(col,night,((kind>3.5&&kind<5.5)||shop)?1.0:0.0);
+      col=cityEmission(col,night,${q.get('calm')==='1'&&!window.LITE_PROFILE?.on?'farMean?surface.w:':''}(((kind>3.5&&kind<5.5)||shop)?1.0:0.0));
       #endif
-      if(kind>.5 && u_surfaceRange.x>.5) {
+      if(kind>.5 && u_surfaceRange.x>.5 ${q.get('calm')==='1'&&!window.LITE_PROFILE?.on?'&& (kind>3.5&&kind<6.5 || distance(u_eye,v_pos)<u_surfaceRange.z || (kind>1.5&&kind<2.5&&u_brickMottle.x>0.0&&distance(u_eye,v_pos)<u_brickMottle.w))':''}) {
         vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);
         float strength=surface.w;
         float nearDetail=1.0-smoothstep(u_surfaceRange.y,u_surfaceRange.z,distance(u_eye,v_pos));

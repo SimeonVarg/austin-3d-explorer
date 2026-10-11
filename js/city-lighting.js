@@ -9,7 +9,7 @@
   const stats = {vertexShaders:0, fragmentShaders:0, programs:0, draws:0, poolPrograms:0, poolDraws:0, solidGlassDraws:0, solidLightDraws:0, failures:[], glassImages:0};
   // Experimental, cold-page only. The same nine compare results combined in
   // four hardware bilinear reads; depth precision parity still needs GPU A/B.
-  const SAMPLE_PCF=new URLSearchParams(location.search).get('samplepcf')==='1';
+  const SAMPLE_PCF=new URLSearchParams(location.search).get('samplepcf')==='1'||(new URLSearchParams(location.search).get('calm')==='1'&&!window.LITE_PROFILE?.on);
   const SAMPLE_BOUNDS=SAMPLE_PCF&&new URLSearchParams(location.search).get('samplebounds')==='1';
   let frame=null, serial=0, fallbackShadow=null, fallbackBounds=null;
   // Pattern texels below this alpha are translucent overlays, not glass-coded
@@ -251,7 +251,7 @@
       if(u_sunlight.x<.5||u_sunPresence.x<=0.0)return original;
       vec3 n=normalize(normal),view=normalize(u_eye-pos);
       float facing=max(dot(n,u_sunDirection),0.0);
-      float visibility=sunlightVisibility(pos,n);
+      float visibility=${new URLSearchParams(location.search).get('calm')==='1'&&!window.LITE_PROFILE?.on?'facing>0.0?sunlightVisibility(pos,n):1.0':'sunlightVisibility(pos,n)'};
       float skyFill=u_citySkyFill.x+u_citySkyFill.y*max(n.z,0.0);
       vec3 diffuse=linearColour(albedo)*(linearColour(u_shadeColour)*(u_sunlight.y+skyFill)+
         linearColour(u_sunColour)*facing*visibility*u_sunlight.z);

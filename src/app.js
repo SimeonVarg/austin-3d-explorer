@@ -566,6 +566,14 @@
     });
     } catch (e) { if (window.loaderWebglFailed && /WebGL/i.test(String((e && e.message) || e))) window.loaderWebglFailed(); throw e; }
     window.__map = map;
+    // Cold opt-in. Normal URLs load no calm modules or frame hooks.
+    if (new URLSearchParams(location.search).get('calm') === '1' && !window.LITE_PROFILE?.on) {
+      await new Promise((resolve,reject)=>{
+        const script=document.createElement('script');script.src='js/calm-runtime.js';
+        script.onload=resolve;script.onerror=reject;document.head.appendChild(script);
+      });
+      await window.Calm.bootReady;
+    }
     // Private sampler experiment; the off path loads no module and installs no hooks.
     if (new URLSearchParams(location.search).get('samplelattice') === '1') {
       await new Promise((resolve, reject) => {
