@@ -241,3 +241,44 @@ emitted view hashes to the preflight receipt. It refuses implicit frames; use th
 existing camera fitter to resolve those rather than guessing another bounding box.
 A rejected pose emits no application view. This guards the quarter-turn error from
 recomputing an already-authored frame from the footprint's longer side.
+
+Before using an existing photo-camera renderer, run its frustum helper through:
+
+```sh
+node scripts/photo-rollout/check-frustum.mjs /private/renderer/camera.mjs
+```
+
+The check samples the full image across ten upward/downward/rolled camera cases.
+A helper must either contain the image or declare clipping. It catches the older
+symmetric-frame calculation that used only the upper extent and silently lost
+lower ground/furniture pixels for downward views. Correct both existing JavaScript
+and Python twins to use the maximum absolute vertical extent; the checker does
+not patch another tool. A clipped view remains unsuitable for a complete comparison.
+
+When the pose contains an OpenCV world-to-camera `R` matrix, the adapter derives
+yaw, pitch and roll from that matrix and uses only `hfov` from `local_angles`.
+This is explicit in the emitted `angle_source`. OpenCV rows are right/down/forward;
+the photo renderer's roll is **minus** `atan2(right.z, up.z)`. Copying the older
+fitter's reported roll reverses that rotation. A proper rotation is required;
+a reflection, non-orthonormal matrix or vertical optical axis is rejected.
+
+## Find candidate overlap before reserving a holdout
+
+`overlap.py` checks a bounded explicit set of 2–12 images on one CPU thread:
+
+```sh
+"$PHOTO_PYTHON" scripts/photo-rollout/overlap.py \
+  --plan /private/run/overlap-plan.json --out /private/run/new-overlap-output
+```
+
+The plan is `{"views":[{"id":"front","file":"/private/front.jpg"},
+{"id":"side","file":"/private/side.jpg"}]}`. Relative paths are relative to
+that plan. Existing building groups can supply these small sets; missing GPS and
+assignment remain unknown. The matcher normalizes orientation, rejects duplicate
+bytes/pixels, checks mutual feature matches, two-way planar errors, spatial spread
+and repeated half-fits. Results and a correspondence sheet stay private, bound to
+the input hashes. Inspect recognizable physical landmarks in every proposed pair.
+Repeated windows can support a coherent wrong plane even when every numerical
+check passes. A shortlist is not proof of object identity, calibration, metric
+scale or withheld-view accuracy. The half-fits withhold selected correspondences,
+not independent photographs. The tool never marks a packet visually reviewed.

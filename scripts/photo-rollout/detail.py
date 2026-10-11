@@ -40,14 +40,18 @@ def clipped_rectangle(x,y,width,depth,clip):
 def picnic_table(feature):
     x,y,z=feature['at'];p=feature['parameters'];tone=feature['tone']
     for key in ['width','depth','clip','topHeight','topThickness','seatHeight','seatThickness',
-                'seatLength','seatWidth','seatOffset','tubeRadius','bendRadius','postRadius']:
+                'seatLength','seatWidth','seatOffset','tubeRadius','bendRadius','postRadius','postSpacing']:
         positive(p[key],key)
     if p['seatHeight']+p['seatThickness'] >= p['topHeight'] or p['seatOffset']-p['seatWidth']/2 <= max(p['width'],p['depth'])/2:
         raise Rejected('table seats must clear the tabletop and sit below it')
     if p['bendRadius'] >= min(p['seatOffset'],p['seatHeight']-p['tubeRadius']):
         raise Rejected('support bend must fit under the seat')
+    if p['postSpacing']+p['postRadius'] >= min(p['width'],p['depth'])/2:
+        raise Rejected('table posts must fit under the tabletop')
     prism(tone,clipped_rectangle(x,y,p['width'],p['depth'],p['clip']),z+p['topHeight'],p['topThickness'])
-    geometry.rod(tone,[x,y,z],[x,y,z+p['topHeight']],p['postRadius'],8)
+    for dx in (-p['postSpacing'],p['postSpacing']):
+        for dy in (-p['postSpacing'],p['postSpacing']):
+            geometry.rod(tone,[x+dx,y+dy,z+p['tubeRadius']],[x+dx,y+dy,z+p['topHeight']],p['postRadius'],8)
     segments=p['bendSegments']
     if type(segments) is not int or segments < 2 or segments > 16:
         raise Rejected('bendSegments must be an integer from 2 to 16')

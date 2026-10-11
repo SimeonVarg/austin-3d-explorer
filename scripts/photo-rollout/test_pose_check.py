@@ -1,6 +1,6 @@
 import unittest
 from accept import Rejected
-from pose_check import app_view, check
+from pose_check import app_view, check, angles_from_rotation
 
 
 class PoseTests(unittest.TestCase):
@@ -20,6 +20,19 @@ class PoseTests(unittest.TestCase):
         self.assertEqual(check(value)['status'],'SUPPORTED')
         value['heldout_error_px']=6
         self.assertEqual(check(value)['status'],'REJECT')
+
+    def test_opencv_rotation_roll_sign_and_authoritative_matrix(self):
+        import math
+        c=math.cos(math.pi/6);s=math.sin(math.pi/6)
+        rotation=[[c,0,-s],[-s,0,-c],[0,1,0]]
+        angles=angles_from_rotation(rotation,60)
+        self.assertAlmostEqual(angles['roll'],30)
+        self.assertEqual(angles['yaw'],0)
+        self.assertEqual(angles['pitch'],0)
+        recipe={'frame':{'obb':{'o':[0,0],'ax':1,'ay':0,'mx':100,'my':100}}}
+        view=app_view(recipe,[1,2,3],dict(yaw=0,pitch=0,roll=-30,hfov=60),rotation)
+        self.assertAlmostEqual(view['pose']['roll'],30)
+        with self.assertRaises(Rejected):angles_from_rotation([[1,0,0],[0,1,0],[0,0,-1]],60)
 
     def test_bad_number_rejected(self):
         with self.assertRaises(Rejected):check(dict(camera=[1,2,float('nan')],ground_z=0))

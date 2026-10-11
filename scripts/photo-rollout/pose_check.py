@@ -7,8 +7,24 @@ from pathlib import Path
 from accept import Rejected, asset, write_json
 
 
-def app_view(recipe, camera, local_angles):
+def angles_from_rotation(rotation, hfov):
+    """OpenCV world-to-camera rows are right, down, forward; photo roll has the opposite sign."""
+    import numpy as np
+    r=np.asarray(rotation,dtype=float)
+    if r.shape!=(3,3) or not np.isfinite(r).all() or not np.allclose(r@r.T,np.eye(3),atol=1e-7) or not np.isclose(np.linalg.det(r),1,atol=1e-7):
+        raise Rejected('R must be a proper orthonormal world-to-camera rotation')
+    right,down,fwd=r;up=-down
+    if abs(fwd[2])>1-1e-8:raise Rejected('vertical optical axis has undefined yaw/roll')
+    if type(hfov) not in (int,float) or not math.isfinite(hfov) or not 0<hfov<180:
+        raise Rejected('hfov must lie between 0 and 180 degrees')
+    return dict(yaw=math.degrees(math.atan2(fwd[0],fwd[1])),
+                pitch=math.degrees(math.asin(max(-1,min(1,fwd[2])))),
+                roll=-math.degrees(math.atan2(right[2],up[2])),hfov=hfov)
+
+
+def app_view(recipe, camera, local_angles, rotation=None):
     """Honor a stored recipe frame; recomputing its OBB can rotate the camera 90 degrees."""
+    if rotation is not None:local_angles=angles_from_rotation(rotation,local_angles['hfov'])
     frame=recipe.get('frame')
     if not isinstance(frame,dict) or not isinstance(frame.get('obb'),dict):
         raise Rejected('an explicit recipe frame is required; resolve implicit frames with the existing fitter')
@@ -71,8 +87,8 @@ if __name__=='__main__':
     if a.view_out:
         if not a.recipe:p.error('--view-out requires --recipe')
         if result['status']!='REJECT':
-            view=app_view(json.loads(Path(a.recipe).read_text()),value['camera'],value['local_angles'])
-            view['status']=result['status'];write_json(a.view_out,view)
+            view=app_view(json.loads(Path(a.recipe).read_text()),value['camera'],value['local_angles'],value.get('R'))
+            view['status']=result['status'];view['angle_source']='world-to-camera R' if 'R' in value else 'supplied local_angles';write_json(a.view_out,view)
             result.update(recipe=asset(a.recipe),app_view=asset(a.view_out))
     write_json(a.out,result)
     print(json.dumps(result,indent=2));raise SystemExit(1 if result['status']=='REJECT' else 0)

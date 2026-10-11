@@ -20,7 +20,7 @@ class DetailTests(unittest.TestCase):
             {'id':'table','kind':'picnic_table','at':[0,0,.16],'tone':'trial','_src':{'type':'inference'},
              'parameters':{'width':1.25,'depth':1.25,'clip':.1,'topHeight':.76,'topThickness':.05,
                            'seatHeight':.44,'seatThickness':.045,'seatLength':1.12,'seatWidth':.27,
-                           'seatOffset':1.0,'tubeRadius':.03,'bendRadius':.15,'postRadius':.055,'bendSegments':4}}]}
+                           'seatOffset':1.0,'tubeRadius':.03,'bendRadius':.15,'postRadius':.03,'postSpacing':.3136,'bendSegments':4}}]}
 
     def run_build(self):
         self.spec.write_text(json.dumps(self.value));return detail.build(self.recipe,self.spec,self.out)
