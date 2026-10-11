@@ -163,6 +163,7 @@
   },
   "_quarantine": "Checks that do NOT run in CI, each with the reason. Broken on main itself, or cannot work without a GPU. Fix the check (or main), then delete its line here.",
   "quarantine": {
+    "frozen-redraw.mjs": "needs a GPU, run by hand (Colab or the laptop lane): draws one frozen night page 8 times at the two night cameras and asserts 0 pixels over 12/255 between any two. --break must exit 1; --explain and --arms say where a difference comes from. Software drawing is too slow to settle the page and does not reproduce the GPU's drawing.",
     "slopes-switch-console.mjs": "five real-page loads (the phone profile with the default, ?rustbuilder=0, =1, ?packverts=0, and a desktop default), each to the end of the apartment build; about 3 minutes a load on software rendering. Run it on the render lanes (Colab: scripts/colab/run.py, or the laptop lane): no ReferenceError in the console, the switches do what the URL says, the .wasm is requested only with ?rustbuilder=1",
     "pack-overflow-fallback.mjs": "needs three.js r159 outside the repo (THREE_JS=...); prints SKIP without it. Run it by hand: a packed build whose tone or normal table overflows is rebuilt unpacked, same triangles and position bytes, one console line",
     "finder-busmap-phone.mjs": "needs a GPU and the live bus feed: the finder's bus parts inside the bottom sheet of a touch screen (390 x 844), run by hand on a cloud lane",
