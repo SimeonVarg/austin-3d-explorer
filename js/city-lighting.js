@@ -231,7 +231,7 @@
       if(u_sunlight.x<.5||u_sunPresence.x<=0.0)return original;
       vec3 n=normalize(normal),view=normalize(u_eye-pos);
       float facing=max(dot(n,u_sunDirection),0.0);
-      float visibility=sunlightVisibility(pos,n);
+      float visibility=facing>0.0?sunlightVisibility(pos,n):1.0;
       float skyFill=u_citySkyFill.x+u_citySkyFill.y*max(n.z,0.0);
       vec3 diffuse=linearColour(albedo)*(linearColour(u_shadeColour)*(u_sunlight.y+skyFill)+
         linearColour(u_sunColour)*facing*visibility*u_sunlight.z);
