@@ -741,27 +741,48 @@ const cross = await page.evaluate(async ([b, pairs]) => {
   if (typeof window.wayfindRoute !== 'function') return { ran: false };
   const wg = await import(b + '/js/walkgraph.js');
   const probe = await wg.walkProbe();
+  // The app's router loads its own copy of the graph. A router that is not ready
+  // yet answers nothing, and this loop used to swallow that: on 2026-10-10 the
+  // check failed once with "0 pairs" and no reason, and passed on a re-run of
+  // the same commit. So: wait for the first pair to route (up to 30 s), and keep
+  // the reason when one does not.
+  const say = (v) => { try { return (typeof v === 'string' ? v : JSON.stringify(v)).slice(0, 160); } catch (e) { return String(v).slice(0, 160); } };
+  let ready = false, waitedMs = 0, lastWhy = '';
+  for (let i = 0; i < 60 && !ready; i++) {
+    try {
+      const t = await window.wayfindRoute(pairs[0][0], pairs[0][1], { fit: false });
+      ready = !!(t && t.ok);
+      if (!ready) lastWhy = 'answer: ' + say(t);
+    } catch (e) { lastWhy = 'threw: ' + say(String(e && e.message || e)); }
+    if (!ready) { await new Promise((r) => setTimeout(r, 500)); waitedMs += 500; }
+  }
   const rows = [];
   for (const p of pairs) {
     const mine = probe.route(p[0], p[1]);
-    let theirs = null;
-    try { theirs = await window.wayfindRoute(p[0], p[1], { fit: false }); } catch (e) {}
+    let theirs = null, why = '';
+    try {
+      theirs = await window.wayfindRoute(p[0], p[1], { fit: false });
+      if (!(theirs && theirs.ok)) why = 'answer: ' + say(theirs);
+    } catch (e) { why = 'threw: ' + say(String(e && e.message || e)); }
     rows.push({
+      why,
       pair: p.join(' -> '),
       mineLo: mine ? mine.lo : null, mineM: mine ? mine.metres : null,
       theirLo: theirs && theirs.ok ? theirs.lo : null,
       theirM: theirs && theirs.ok ? Math.round(theirs.distM) : null,
     });
   }
-  return { ran: true, rows };
+  return { ran: true, rows, ready, waitedMs, lastWhy };
 }, [BASE, [['MEZ', 'WEL'], ['NEZ', 'WEL'], ['GDC', 'RLP'], ['PAI', 'BUR'],
   ['JES', 'CMA'], ['MEZ', 'NEZ'], ['WEL', 'GDC'], ['TSC', 'TSG']]]);
 if (!cross.ran) {
   note('window.wayfindRoute is not on this page — cross-check skipped, not failed');
 } else {
+  note('the app\'s router answered the first pair after ' + cross.waitedMs + ' ms of waiting' +
+    (cross.ready ? '' : ' — it NEVER did: ' + cross.lastWhy));
   let compared = 0, over = 0, worst = 0;
   for (const r of cross.rows) {
-    if (r.mineLo == null || r.theirLo == null) { note('   ' + r.pair + '  (one end not routable both ways)'); continue; }
+    if (r.mineLo == null || r.theirLo == null) { note('   ' + r.pair + '  (one end not routable both ways)' + (r.why ? '  router ' + r.why : '')); continue; }
     compared++;
     const d = r.mineLo - r.theirLo;
     if (d > 0) over++;
@@ -771,7 +792,7 @@ if (!cross.ran) {
       ' min / ' + String(r.theirM).padStart(4) + ' m     diff ' + (d >= 0 ? '+' : '') + d);
   }
   ok(compared >= 5, 'the two were compared on real pairs, not asserted equal',
-    compared + ' pairs');
+    compared + ' pairs' + (cross.ready ? '' : '; the router never answered: ' + cross.lastWhy));
   ok(over === 0,
     'the probe never says a walk is LONGER than the app\'s own route card does',
     over + ' pairs over, worst gap ' + worst + ' min');
