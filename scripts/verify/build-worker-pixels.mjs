@@ -35,7 +35,7 @@ const PARAMS = {
 };
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
-const OUT = path.resolve(opt('--out', 'build-worker-pixels-out'));
+const OUT = path.resolve(opt('--out', path.join(process.env.VERIFY_OUT || '.', 'build-worker-pixels-out')));   // VERIFY_OUT: the Colab and AWS runners send back what is under it
 const poses = JSON.parse(fs.readFileSync(path.resolve(opt('--poses', path.join(HERE, 'ci/poses.json'))), 'utf8'));
 const PHONE = argv.includes('--phone'), BREAK = argv.includes('--break');
 const VP = PHONE ? PARAMS.phone : PARAMS.desktop;
@@ -104,6 +104,22 @@ async function shootAll(side, shiftP = 0) {
   }
   console.log(`shot ${side}: ${poses.length} views`);
 }
+import zlib from 'node:zlib';
+const crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc = b => { let c = 0xffffffff; for (let i = 0; i < b.length; i++) c = crcT[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+const writePNG = (file, w, h, rgba) => {   // 8-bit RGBA, filter 0
+  const raw = Buffer.alloc((w * 4 + 1) * h); for (let y = 0; y < h; y++) { raw[y * (w * 4 + 1)] = 0; Buffer.from(rgba.buffer, rgba.byteOffset + y * w * 4, w * 4).copy(raw, y * (w * 4 + 1) + 1); }
+  const chunk = (type, data) => { const b = Buffer.alloc(12 + data.length); b.writeUInt32BE(data.length, 0); b.write(type, 4); data.copy(b, 8); b.writeUInt32BE(crc(b.subarray(4, 8 + data.length)), 8 + data.length); return b; };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 6;
+  fs.writeFileSync(file, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]));
+};
+// a picture of WHERE two shots differ: the first shot dimmed, every differing pixel red (brighter for a bigger difference)
+const heat = (fa, fb, out) => {
+  const A = decodePNG(fa), B = decodePNG(fb), n = A.width * A.height, o = new Uint8ClampedArray(n * 4);
+  for (let i = 0; i < n; i++) { let d = 0; for (let c = 0; c < 3; c++) d = Math.max(d, Math.abs(A.data[i * A.bpp + c] - B.data[i * B.bpp + c])); const g = (A.data[i * A.bpp] + A.data[i * A.bpp + 1] + A.data[i * A.bpp + 2]) / 3 * 0.35;
+    if (d > 0) { o[i * 4] = Math.min(255, 120 + d * 4); o[i * 4 + 1] = 0; o[i * 4 + 2] = 0; } else { o[i * 4] = o[i * 4 + 1] = o[i * 4 + 2] = g; } o[i * 4 + 3] = 255; }
+  writePNG(out, A.width, A.height, o);
+};
 const diff = (a, b) => {
   const A = decodePNG(a), B = decodePNG(b); if (A.width !== B.width || A.height !== B.height) throw new Error('size mismatch');
   const n = A.width * A.height; let moved = 0, max = 0, over12 = 0;
@@ -126,6 +142,7 @@ for (const p of poses) {
   try {
     const f = side => path.join(OUT, `${side}-${p.name}.png`);
     const on = diff(f('off'), f('on')), ctl = diff(f('off'), f('again'));
+    if (on.moved) heat(f('off'), f('on'), path.join(OUT, `heat-worker-${p.name}.png`)); if (ctl.moved) heat(f('off'), f('again'), path.join(OUT, `heat-control-${p.name}.png`));
     const ok = on.moved <= ctl.moved + PARAMS.maxMovedPixels; if (!ok) bad++;
     row = `${ok ? 'same   ' : 'MOVED  '}${p.name.padEnd(17)} ${String(on.moved).padStart(8)} (${(100 * on.moved / on.total).toFixed(4)}%)   ${String(ctl.moved).padStart(8)}               ${String(on.max).padStart(3)}              ${on.over12}`;
   } catch (e) { bad++; row = `ERROR  ${p.name.padEnd(17)} ${e.message}`; }
