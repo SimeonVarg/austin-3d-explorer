@@ -157,6 +157,10 @@ capitals or mixed case). Zoom the render on every sign before you call a
 building done. `scripts/verify/sign-lettering.mjs` fails a recipe with new dot
 lettering.
 
+*Checks 9c, 9d and 9e are generalisations from one review, not laws (owner, the same day: "I don't want those to be
+hard rules but more so generalizations that it has the freedom to ignore if it thinks what's shown is different").
+The photograph wins: when what is shown is different, build what is shown and say so.*
+
 **9c. A thing on a roof or a deck is built as what it is.** Name every distinct
 thing you can see up there: cars, a ball court, a pool, a pergola, cooling
 units, a stair head. Build each as that thing, simple but recognisable: a car
