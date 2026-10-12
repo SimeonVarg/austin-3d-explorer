@@ -428,6 +428,7 @@
     const t0 = performance.now();
     _parsed = await Promise.all(GLTF.buildings.map(async row => {
       if (GLTF.look && GLTF.look.on && row.look) return null;   // drawn by js/gltf-look.js under the app's light, not here
+      if (!row.file) return null;                               // a build that exists only with its materials
       try {
         const buf = await fetchGlb(row.file);
         info.bytes += buf.byteLength;

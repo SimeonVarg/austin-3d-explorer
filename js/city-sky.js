@@ -36,8 +36,9 @@
   const num = (k, d) => { const v = parseFloat(q.get(k)); return Number.isFinite(v) ? v : d; };
 
   // ══════════════════════════════════════════════════════════════════════
-  //  TASTE BLOCK — CLAUDE.md rule 11. The day sky, the gain, the ground and the sun's strength are the Blender scene's own
-  //  numbers (proto/blender-look.html has the same ones); dusk, night and the moon are choices of this file.
+  //  TASTE BLOCK — CLAUDE.md rule 11. The day sky, the gain and the ground are the first Blender scene's own numbers
+  //  (proto/blender-look.html has the same ones); the sun's strength is measured on site photographs (below); dusk, night and the
+  //  moon are choices of this file. scripts/blender_light_rig.py carries these numbers into Blender (node scripts/city-sky-rig.mjs).
   // ══════════════════════════════════════════════════════════════════════
   const TUNE = {
     // the sky by the sine of the height above the level line, sRGB 0..255: far land up to `landTop`, the horizon colour just above it, then the stops
@@ -54,7 +55,12 @@
     groundEdge: -0.01,                           // below this sine a ray sees the ground; above it, the far land
     tree: { amp: 0.014, lift: -0.01, scale: 90 },// the far tree line as lights and mirrors see it: a little above level, ragged
     mirrorSoft: 0.004,                           // how far (in sine) a mirror's picture of the level line is spread: glass is not a perfect mirror
-    sunStrength: [1.5653356029720626, 1.5273819360186915, 0.9085198081828816],   // the sun high in the sky (linear; 1 = a white wall facing it returns 1 / pi)
+    // The sun high in the sky (linear; 1 = a white wall facing it returns 1 / pi). MEASURED on three site photographs taken in full sun
+    // (measured 2026-10-12): the one strength per channel at which each wall material's sunlit pixels and shaded pixels give the same colour under
+    // the sky above, pooled over 14 materials of three buildings (single photographs gave 8 to 34). The first value here, 1.57 / 1.53 /
+    // 0.91, was one Blender scene's own sun, set for a photograph of walls in shade: under it a sunlit wall was only 1.6 times a shaded
+    // one, where the photographs show 4 to 7 times. `?skysun=` scales it.
+    sunStrength: [23.65, 21.64, 18.95].map(v => v * num('skysun', 1)),
     sunWarmBelow: 25, sunGoneAt: -1, sunFullAt: 5,   // degrees: the sun warms below this height; it fades out between the last two
     sunWarm: [0, 0.35, 0.65],                    // how much green and blue the low sun loses
     nightLift: 3.0,                              // a city sky at night is not black: its light is multiplied by this at full night

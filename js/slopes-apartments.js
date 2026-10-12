@@ -3281,8 +3281,9 @@
     /** every character the dot font can set */
     get glyphs() { return Object.keys(FONT); },
     /** a built building's frame: (u, v) metres to [lng, lat], and back */
-    uvToLngLat(name, u, v) { const b = _built.find(x => x.name === name); return b ? b.frame.ll(u, v) : null; },
-    lngLatToUV(name, lng, lat) { const b = _built.find(x => x.name === name); return b ? b.frame.toUV([lng, lat]) : null; },
+    // (a building a glTF model replaces is in the list with no frame: js/gltf-layer.js, GLTF.stub)
+    uvToLngLat(name, u, v) { const b = _built.find(x => x.name === name); return b && b.frame ? b.frame.ll(u, v) : null; },
+    lngLatToUV(name, lng, lat) { const b = _built.find(x => x.name === name); return b && b.frame ? b.frame.toUV([lng, lat]) : null; },
     obbOf, h01, floorsBetween, offsetRing, hideGeometry,
     /** the on-demand areas (APTS.areas) */
     areas: {

@@ -150,7 +150,47 @@ One rule for the people (or models) who build in Blender: **an albedo only means
 like its Blender render because this light is that scene's light. A building lit differently in Blender (a stronger sun, a flatter sky) arrives with
 the same materials but not the same picture. Build under the same light rig, and it will.
 
-Tried on a second building the same day: The Venue's Blender file went through the same export, not edited for it, and was drawn by the same code.
-Its shape, its text object, its panes painted by a colour attribute and its night rooms all arrive. Its Blender scene has a hard white sun and a dim
-flat sky, so under this light its sunlit white comes out about 14 % dark and blue, and its shaded walls about 80 % bright. Its row therefore names
-no `look` file yet. What is missing is not code. It is one light rig for every Blender build, set from the numbers in `js/city-sky.js`.
+## One light for every Blender build (2026-10-12, later the same day)
+
+The Venue's Blender file went through the same export, not edited for it, and came out with the right shape and the wrong wall colours: its
+builder had lit its scene with a hard sun and a dim sky, the tower's builder with a bright sky and a weak sun. Three things followed.
+
+**1. The sun is now measured, not taken from one scene.** For each wall material that a site photograph shows both in the sun and in shade,
+there is one sun strength at which the sunlit pixels and the shaded pixels give the same surface colour under the app's sky. Pooled over 14
+materials of three buildings photographed in full sun it is 23.65 / 21.64 / 18.95 (red, green, blue; single photographs gave 8 to 34). The first
+value, 1.57 / 1.53 / 0.91, made a sunlit wall 1.6 times a shaded one; the photographs show 4 to 7 times. It is `TUNE.sunStrength` in
+`js/city-sky.js`; `?skysun=` scales it (0.07 is about the first light). The sky was not changed.
+
+**2. Blender gets the same light from one file.** `scripts/blender_light_rig.py` puts the app's sky, sun, ground and view transform into a
+Blender scene (`apply()`), turns the sun to where it stood in a photograph (`sun_from_photo()`), and says whether a scene is still under it
+(`check()`). Its numbers are written from `js/city-sky.js` by `node scripts/city-sky-rig.mjs`, and `scripts/verify/gltf-layer.mjs` fails when
+the two differ. It also holds the rule for colours as code: `base_colour()` divides a photograph's pixel by the light that fell there,
+`gate()` compares a render with the photograph at the same places (8 %, as light, worst channel).
+
+**3. A base colour is the surface's own colour: the photograph's pixel divided by the light.** Under this light the numbers are small (a white
+wall is near 0.17, because a sunlit wall gets about 4.5 units of light), and they are right. The builds that existed were carried through
+without touching their shapes: for each, the light on every pixel of the photograph's camera was rendered in Blender three ways (the builder's
+own lamps, the standard sky alone, a sun of strength 1 alone), and each material's colour became the median, over its clean pixels, of the
+photograph divided by the standard light (its sunlit pixels and its shaded pixels each counted by their number). A material the photograph does not show clean (and all glass) kept what its builder's render showed:
+its colour times its own light over the standard light. The tower was converted that second way, so its picture holds under the stronger sun.
+
+Rows: The Venue (its look file), 26 West and Yugo Austin Nueces (look files only: `file` is absent, so with `?gltflook=0` they are not drawn
+and their recipes stay). A row may name more recipes it takes over (`alsoReplaces`: 26 West is four buildings on the map). Their frame is the
+surveyed outline's own (x east, y north, origin at the mean of the outline's points).
+
+What this does not solve, measured:
+
+- **A phone photograph is not light.** It holds its whites back and lifts or crushes its shadows, differently per picture. With one colour per
+  material, sunlit places come out within a few per cent and shaded places miss by 10 to 40 %, in both directions. No single light passes
+  8 % in sun and shade on all three buildings.
+- **The app's sun shadow shades lit walls by a fifth** when it is read on the face (the app's own note in `js/city-lighting.js`). The look
+  shader reads it 0.6 m in front (`GLTF.look.shadowLiftM`, `?gltflift=`).
+- **Glass made as a plain Principled material** (the two newest builds) is drawn as a dark pane with no mirror yet. The tower's glass, a
+  node graph with its own mirror colour, keeps its mirror.
+- **26 West is 76,396 triangles and a 6.8 MB file (1.1 MB gzipped).** It is in the branch so that the row draws; it needs a smaller file
+  (indexed, quantised, or a far version) before it is merged or sent to a phone.
+- **The tower's photograph was taken under cloud.** Its colours carry that picture's brighter exposure, so under one light with the others its
+  shaded white is about twice as bright as theirs. One exposure for the whole view (the app's auto exposure, or a film curve) is the answer,
+  and that is the decision about the canvas grade that the recipes need too.
+- **Blender's default gloss.** A build whose wall materials keep Specular IOR Level 0.5 renders up to a tenth brighter in Blender than here on a
+  white wall, and twice as bright on a dark one. The app draws walls matt; `light_rig.check()` lists such materials.

@@ -72,6 +72,9 @@
       { name: 'The Venue on Guadalupe', file: 'data/gltf/venue.glb',
         lng: -97.7419657, lat: 30.2939211, groundM: 0, headingDeg: 6.834, topM: 22.91,
         replaces: '5d3a4e03-f525-4037-917c-4c4b56584fc4',
+        // The same build WITH its materials, its colours re-derived under the standard light (docs/gltf-layer.md, "One light for every
+        // Blender build"). In that file the panes are one painted material (`glass`) and the lettering is `sign`.
+        look: 'data/gltf/venue-look.glb', lookOrigin: [0, 0, 0],
         photoHour: 0.28, storeyM: 3.3, storeyOffsetM: 0, glassStrength: 0.22,
         windowGapM: 0.3,       // the panes of one window (2 to 4, a few cm apart) are one room at night
         materials: (() => {
@@ -85,7 +88,8 @@
             frame:    { fix: 'dark',  night: '#242b30' },
             bulkhead: { fix: 'roof',  night: '#3a3d3d' },
             unit:     { fix: 'roof',  night: '#3a3d3d' },
-            sign:     { fix: 'dark',  surface: 'glass', strength: 0, night: '#fff0d4' },
+            sign:     { fix: 'dark',  surface: 'glass', strength: 0, night: '#fff0d4', sign: true },
+            glass:    { fix: 'glass', surface: 'glass', lit: true },      // the look file's panes
           };
           for (let i = 0; i < 16; i++) m['glass_' + i] = { fix: 'glass', surface: 'glass', lit: true };
           return m;
@@ -94,6 +98,19 @@
           shade: { white: [0.78, 0.77, 0.80], grey: [0.52, 0.56, 0.58], blue: [0.04, 0.24, 0.37], band: [1, 1, 1], roof: [1, 1, 1], dark: [1, 1, 1], glass: [1, 1, 1] },
           sun:   { white: [0.99, 0.97, 0.97], grey: [0.93, 0.94, 0.90], blue: [0.79, 0.81, 0.82], band: [0.91, 0.88, 0.90], roof: [0.98, 0.98, 0.96], dark: [1, 1, 1], glass: [1, 1, 1] },
         } },
+      // Builds that exist only WITH their materials (a `look` file and no flat-colour file): drawn under the app's light or not at all.
+      // Their frame is the surveyed outline's own: x east, y north, the origin at the mean of the outline's points (so headingDeg 0).
+      // `alsoReplaces`: more recipes whose drawing the one model takes over (a complex the map holds as several buildings).
+      { name: '26 West', look: 'data/gltf/26-west-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7436263, lat: 30.2913934, groundM: 0, headingDeg: 0, topM: 28.2,
+        replaces: '9363b194-9c98-4d84-a3a5-2e8cce340bba',
+        alsoReplaces: ['38b2cf1c-830d-4b39-8225-b6aead30f538', '23994eaf-1258-43d1-9648-fdff8c14acc1', '529724dc-ce98-4052-a23c-ca3c8e776217'],
+        storeyM: 3.3, storeyOffsetM: -0.6,      // measured by its builder: floors at 3.9, 7.15, 10.42, 13.76 m
+        materials: { glass_window: { lit: true }, sign_white: { sign: true } } },
+      { name: 'Yugo Austin Nueces', look: 'data/gltf/yugo-nueces-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.743395, lat: 30.2895842, groundM: 0, headingDeg: 0, topM: 28.6,
+        replaces: '5453ffd2-7119-4e67-ba04-603bde7f10b4',
+        materials: { glass_window: { lit: true } } },
     ],
 
     // ── How each Blender material is drawn ────────────────────────────────
@@ -178,7 +195,8 @@
     // ── The app's light (round 5): a row with a `look` file is drawn by js/gltf-look.js under js/city-sky.js ─────────────────────────────
     // ?gltflook=0 draws every row the old way (flat colours with light gains, wall maps). `skyMapStrength`: 1 = recesses get as little
     // sky light as the map baked in Blender says, 0 = the map is ignored.
-    look: { on: q.get('gltflook') !== '0', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1,
+    // `shadowLiftM`: the sun's shadow map is read this far in front of a face (see the shader's note; 0 = on the face).
+    look: { on: q.get('gltflook') !== '0', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1, shadowLiftM: q.has('gltflift') ? +q.get('gltflift') : 0.6,
       // Smooth edges of its own (js/gltf-look.js "SMOOTH EDGES OF ITS OWN"). Smoothing the whole canvas costs an integrated chip about 140 ms a
       // frame at a laptop's full density with the city drawn (measured), so each look building is drawn alone into a small target with `samples`
       // samples a pixel, covering only the part of the screen it stands on, and that picture is laid onto the canvas where the building is in
@@ -195,7 +213,7 @@
   window.GLTF_LAYER = GLTF;
 
   // ── what js/slopes-apartments.js asks ───────────────────────────────────
-  const rowFor = spec => spec && GLTF.buildings.find(b => b.replaces && b.replaces === spec.id);
+  const rowFor = spec => spec && GLTF.buildings.find(b => b.replaces && (b.replaces === spec.id || (b.alsoReplaces || []).includes(spec.id)) && (b.file || (GLTF.look.on && b.look)));
   /** true when a model replaces this recipe: the apartments builder then does not draw it */
   GLTF.hides = spec => GLTF.on && !!rowFor(spec);
   /** what the apartments' `built` list holds for a recipe that is not drawn there (ids are read by campus-landscape, places, arches) */

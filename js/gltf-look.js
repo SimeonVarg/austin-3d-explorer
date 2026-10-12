@@ -63,7 +63,7 @@
     #include <packing>
     ${window.CityLighting.glsl}
     ${window.CitySky.glsl}
-    uniform sampler2D u_skyMap; uniform float u_skyMapStrength, u_nightWallAmbient, u_lookPass, u_lookThrough; uniform vec3 u_lookTransmit;
+    uniform sampler2D u_skyMap; uniform float u_skyMapStrength, u_nightWallAmbient, u_lookPass, u_lookThrough, u_lookShadowLift; uniform vec3 u_lookTransmit;
     varying vec3 v_pos, v_normal, v_base, v_mirror, v_night; varying vec2 v_uv; varying float v_glass;
     void main() {
       // see-through glass is drawn twice: first it dims what is behind it by its colour (this pass multiplies the picture), then it adds its own light
@@ -72,7 +72,9 @@
       vec3 view = normalize(u_eye - v_pos);
       float open = mix(1.0, texture2D(u_skyMap, v_uv).r, u_skyMapStrength);               // how much of the sky this spot sees (baked in Blender)
       float facing = max(dot(n, u_csSunDir), 0.0);
-      float sunSeen = facing > 0.0 ? sunlightVisibility(v_pos, n) : 1.0;                   // the app's own two shadow maps
+      // the app's own two shadow maps. They are read a little in front of the face: read on the face, a lit wall that stands at an
+      // angle to the sun shadows itself by a fifth (the app's own note: js/city-lighting.js), and under a strong sun that is a fifth of its light
+      float sunSeen = facing > 0.0 ? sunlightVisibility(v_pos + n * u_lookShadowLift, n) : 1.0;
       vec3 light = csSkyLight(n) * open + u_csSun * facing * sunSeen;
       vec3 lit = v_base * light * 0.31830989;
       if (v_glass > 0.5) {
@@ -95,7 +97,7 @@
   function material(S, skyMap, pass, through, transmit) {
     const T = window.THREE, U = S.uniforms();
     const mat = new T.ShaderMaterial({
-      uniforms: Object.assign({}, U, window.CitySky.uniforms(), { u_skyMap: { value: skyMap }, u_skyMapStrength: { value: skyMap ? GLTF.look.skyMapStrength : 0 },
+      uniforms: Object.assign({}, U, window.CitySky.uniforms(), { u_skyMap: { value: skyMap }, u_skyMapStrength: { value: skyMap ? GLTF.look.skyMapStrength : 0 }, u_lookShadowLift: { value: GLTF.look.shadowLiftM },
         u_lookPass: { value: pass }, u_lookThrough: { value: through || 0 }, u_lookTransmit: { value: new T.Vector3(...(transmit || [1, 1, 1])) } }),
       vertexShader: VERT, fragmentShader: FRAG(), side: T.DoubleSide, depthTest: true, depthWrite: pass === 0, transparent: pass > 0, blending: pass === 0 ? T.NoBlending : T.CustomBlending,
     });

@@ -37,6 +37,22 @@ for o in list(bpy.context.scene.objects):
 for o in bpy.context.scene.objects:
     if o.data.users > 1: o.data = o.data.copy()
     o.data.transform(o.matrix_world); o.matrix_world.identity()
+# One mesh per material, whatever the scene has (a builder may make every window pane its own object, or give one object several
+# materials): everything is joined, then cut apart by material.
+allm = [o for o in bpy.context.scene.objects if o.type == 'MESH' and len(o.data.polygons) and o.data.materials]
+if any(len([m for m in o.data.materials if m]) != 1 for o in allm) or len(allm) != len({o.data.materials[0].name for o in allm}):
+    for o in list(bpy.context.scene.objects):
+        if o not in allm: bpy.data.objects.remove(o, do_unlink=True)
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in allm: o.select_set(True)
+    bpy.context.view_layer.objects.active = allm[0]; bpy.ops.object.join()
+    bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT'); bpy.ops.mesh.separate(type='MATERIAL'); bpy.ops.object.mode_set(mode='OBJECT')
+    for o in bpy.context.scene.objects:
+        if o.type != 'MESH' or not len(o.data.polygons): continue
+        used = o.data.materials[o.data.polygons[0].material_index]
+        if len(o.data.materials) != 1:
+            for p_ in o.data.polygons: p_.material_index = 0
+            o.data.materials.clear(); o.data.materials.append(used)
 keep = [o for o in bpy.context.scene.objects if o.type == 'MESH' and len(o.data.polygons) and o.data.materials]
 painted = False
 for o in keep:

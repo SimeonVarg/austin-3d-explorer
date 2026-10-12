@@ -1,0 +1,279 @@
+"""THE STANDARD LIGHT for every building made in Blender for Austin 3D Explorer.
+
+The app lights every building with one light: the sky and the sun that `js/city-sky.js` makes for the hour. A colour chosen in
+Blender only means something under that same light. This file puts that light into a Blender scene, so that what you see in your
+render is what the app will draw. Run it BEFORE you choose any colour.
+
+THE THREE CALLS A BUILDER NEEDS (inside Blender; `sys.path.insert(0, os.path.expanduser('~/Projects/flyover-blender/scripts'))`):
+
+    import light_rig
+    light_rig.apply()                                   # 1. the sky, the sun, the ground and the view transform of the app at noon
+    light_rig.sun_from_photo(azimuth_deg, elevation_deg) # 2. turn the sun to where it stood in YOUR photograph (compass bearing the
+                                                        #    light comes FROM, and its height); the sky does not change
+    light_rig.check()                                   # 3. before every final render: returns [] when the scene is under the rig,
+                                                        #    else the list of what is not (another light, another world, a look, ...)
+
+For colours (plain Python, works without Blender too; MATERIALS.md says how to use them):
+
+    light_rig.light_on(normal, sun_to, in_sun)          # the light that reaches a face under the rig (red, green, blue)
+    light_rig.base_colour(samples)                      # a material's own colour from sun and shade samples of the photograph
+    light_rig.gate(pairs)                               # photograph against render at the same places: worst channel, pass under 8 %
+
+What `apply()` sets, and nothing else: the world (the sky by height above the level line; it LIGHTS with the app's gain and shows to
+the camera and to mirrors without it), one sun (any other light is switched off for rendering), the ground (every object with
+"ground" in its name gets the ground colour; a plane is made when there is none), and the view transform (Standard, no look,
+exposure 0, gamma 1). It does not touch your model, your camera or your render size.
+
+The numbers in RIG are written by `scripts/city-sky-rig.mjs` from `js/city-sky.js` and checked by `scripts/verify/gltf-layer.mjs`.
+Do not edit them here: change the app's light, then run that script.
+"""
+import math
+
+# RIG-BEGIN (generated: node scripts/city-sky-rig.mjs)
+RIG = {'version':'2026-10-12','noon':{'p':0.315,'sunAzEl':[181.35,51],'sunDir':[-0.01486,-0.62914,0.77715],'sunStrength':[23.65,21.64,18.95],'pts':[[-0.02,[0.14996,0.21586,0.25415]],[0.004,[0.14996,0.21586,0.25415]],[0.006,[0.51492,0.64448,0.76052]],[0.045,[0.46208,0.5972,0.73046]],[0.153,[0.18447,0.40198,0.7454]],[0.26,[0.09759,0.25818,0.59062]],[0.6,[0.0382,0.12744,0.45641]]],'gain':[6.22638,4.00238,2.44917],'ground':[0.62027,0.74983,0.412],'groundColour':[0.1,0.125,0.07],'groundEdge':-0.01,'treeShift':-0.003,'light':[[1.94903,2.3559,1.29459],[2.17025,2.5579,1.55159],[2.26124,2.66742,1.77159],[2.3077,2.73785,1.97226],[2.32658,2.78321,2.16023],[2.32517,2.80995,2.33871],[2.30714,2.82141,2.50939],[2.27451,2.81942,2.67322],[2.22918,2.80627,2.8323],[2.1682,2.77746,2.98136],[2.09452,2.73749,3.12566],[2.00624,2.68407,3.26312],[1.90134,2.61537,3.39278],[1.77615,2.52806,3.51296],[1.62337,2.41567,3.62042],[1.42607,2.26419,3.70857],[1.09854,2.02023,3.7597]]},'morning':{'p':0.05,'sunAzEl':[108.4,56],'sunDir':[0.5306,-0.17651,0.82904],'sunStrength':[23.65,21.64,18.95],'pts':[[-0.02,[0.14996,0.21586,0.25415]],[0.004,[0.14996,0.21586,0.25415]],[0.006,[0.51492,0.64448,0.76052]],[0.045,[0.46208,0.5972,0.73046]],[0.153,[0.18447,0.40198,0.7454]],[0.26,[0.09759,0.25818,0.59062]],[0.6,[0.0382,0.12744,0.45641]]],'gain':[6.22638,4.00238,2.44917],'ground':[0.65933,0.79452,0.43391],'groundColour':[0.1,0.125,0.07],'groundEdge':-0.01,'treeShift':-0.003,'light':[[2.07172,2.49624,1.36341],[2.28463,2.68873,1.61575],[2.36771,2.7892,1.83131],[2.40634,2.85067,2.02759],[2.41744,2.88712,2.21119],[2.40827,2.905,2.38532],[2.38252,2.90762,2.55166],[2.34218,2.89683,2.71118],[2.28922,2.87495,2.86598],[2.22054,2.83733,3.01071],[2.13923,2.78862,3.15074],[2.04333,2.7265,3.28393],[1.93085,2.64912,3.40933],[1.7981,2.55317,3.52527],[1.63782,2.4322,3.62852],[1.4331,2.27222,3.71251],[1.09854,2.02023,3.7597]]},'afternoon':{'p':0.4,'sunAzEl':[222.35,34],'sunDir':[-0.55852,-0.61267,0.55919],'sunStrength':[23.65,21.64,18.95],'pts':[[-0.02,[0.14996,0.21586,0.25415]],[0.004,[0.14996,0.21586,0.25415]],[0.006,[0.51492,0.64448,0.76052]],[0.045,[0.46208,0.5972,0.73046]],[0.153,[0.18447,0.40198,0.7454]],[0.26,[0.09759,0.25818,0.59062]],[0.6,[0.0382,0.12744,0.45641]]],'gain':[6.22638,4.00238,2.44917],'ground':[0.45619,0.56217,0.31997],'groundColour':[0.1,0.125,0.07],'groundEdge':-0.01,'treeShift':-0.003,'light':[[1.4337,1.76649,1.00555],[1.68983,2.00842,1.28213],[1.81405,2.15594,1.52076],[1.8934,2.26399,1.73989],[1.94498,2.34675,1.94619],[1.97613,2.41073,2.14293],[1.99055,2.45929,2.33181],[1.99025,2.4943,2.51378],[1.97699,2.51784,2.69085],[1.94836,2.52602,2.85805],[1.90676,2.52273,3.02035],[1.85044,2.50588,3.17574],[1.7774,2.47362,3.32327],[1.68393,2.42258,3.46123],[1.56268,2.34625,3.58638],[1.39657,2.23044,3.69202],[1.09854,2.02023,3.7597]]},'golden':{'p':0.49,'sunAzEl':[253,9],'sunDir':[-0.94453,-0.28877,0.15643],'sunStrength':[23.65,15.86933,9.56524],'pts':[[-0.02,[0.11725,0.10944,0.12806]],[0.004,[0.11725,0.10944,0.12806]],[0.006,[0.8845,0.48423,0.29988]],[0.045,[0.79928,0.44846,0.31702]],[0.153,[0.35019,0.32808,0.48375]],[0.26,[0.11236,0.18492,0.43896]],[0.6,[0.02829,0.0694,0.27313]]],'gain':[6.22638,4.00238,2.44917],'ground':[0.15508,0.14853,0.08572],'groundColour':[0.1,0.125,0.07],'groundEdge':-0.01,'treeShift':-0.003,'light':[[0.48776,0.46691,0.26953],[1.04432,0.70761,0.4473],[1.35295,0.86989,0.6203],[1.57833,0.99817,0.78182],[1.7527,1.10459,0.93496],[1.88965,1.19477,1.08168],[1.99611,1.27162,1.22302],[2.07568,1.33674,1.35968],[2.13049,1.39139,1.49279],[2.15936,1.43384,1.61949],[2.16348,1.46582,1.74266],[2.1407,1.48607,1.86113],[2.08743,1.49299,1.97423],[1.99675,1.48367,2.0809],[1.85505,1.45249,2.1792],[1.6301,1.38731,2.26602],[1.15723,1.24371,2.34807]]},'night':{'p':0.9,'sunAzEl':[295.75,-31],'sunDir':[0.88356,-0.33664,0.32557],'sunStrength':[0.035,0.045,0.07],'pts':[[-0.02,[0.00304,0.00402,0.007]],[0.004,[0.00304,0.00402,0.007]],[0.006,[0.00605,0.00913,0.02122]],[0.045,[0.00478,0.007,0.01764]],[0.153,[0.00304,0.00439,0.01161]],[0.26,[0.00212,0.00304,0.00802]],[0.6,[0.00121,0.00182,0.00439]]],'gain':[18.67915,12.00713,7.3475],'ground':[0.00307,0.0038,0.00325],'groundColour':[0.1,0.125,0.07],'groundEdge':-0.01,'treeShift':-0.003,'light':[[0.0097,0.01199,0.01024],[0.02315,0.02436,0.02961],[0.03266,0.03305,0.04361],[0.04071,0.0404,0.05551],[0.04784,0.0469,0.06607],[0.05428,0.05279,0.07563],[0.06017,0.05816,0.08437],[0.06556,0.06309,0.0924],[0.07052,0.06762,0.09979],[0.07496,0.07168,0.10642],[0.07896,0.07534,0.11242],[0.08247,0.07856,0.11771],[0.08542,0.08126,0.12217],[0.08769,0.08335,0.12564],[0.08903,0.08459,0.12777],[0.08892,0.0845,0.12779],[0.08487,0.08072,0.12245]]}}
+# RIG-END
+
+SUN_DISK_RAD = 0.00925          # the sun's angular size (0.53 degrees)
+GROUND_SIZE_M = 6000.0          # the ground plane made when a scene has none
+GATE = 0.08                     # a place passes when its worst channel is within 8 % of the photograph
+PAINT_MAX = 0.35                # under this rig a white wall comes out near 0.15 to 0.20; nothing photographed in sunlight comes out above this
+
+
+# ───────────────────────────── colours and light (no Blender needed) ─────────────────────────────
+def srgb_to_linear(c):
+    """sRGB 0..255 -> linear 0..1"""
+    out = []
+    for v in c[:3]:
+        v = v / 255.0
+        out.append(v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4)
+    return out
+
+
+def linear_to_srgb(c):
+    """linear 0..1 -> sRGB 0..255 (what the Standard view transform shows)"""
+    out = []
+    for v in c[:3]:
+        v = max(0.0, min(1.0, v))
+        out.append(round(255 * (12.92 * v if v <= 0.0031308 else 1.055 * v ** (1 / 2.4) - 0.055), 1))
+    return out
+
+
+def sun_dir(azimuth_deg, elevation_deg):
+    """the direction TO the sun (east, north, up) from a compass bearing and a height in degrees"""
+    a, e = math.radians(azimuth_deg), math.radians(elevation_deg)
+    return [math.sin(a) * math.cos(e), math.cos(a) * math.cos(e), math.sin(e)]
+
+
+def wall_normal(facing_deg):
+    """the outward normal of an upright wall that looks toward compass bearing `facing_deg`"""
+    a = math.radians(facing_deg)
+    return [math.sin(a), math.cos(a), 0.0]
+
+
+def sky_light(normal, hour='noon'):
+    """light from the whole sky and the ground's bounce on a face with this normal (irradiance; red, green, blue)"""
+    L = RIG[hour]['light']
+    n = math.sqrt(sum(v * v for v in normal)) or 1.0
+    t = (max(-1.0, min(1.0, normal[2] / n)) + 1) / 2 * (len(L) - 1)
+    i = min(len(L) - 2, int(t)); f = t - i
+    return [L[i][k] + (L[i + 1][k] - L[i][k]) * f for k in range(3)]
+
+
+def light_on(normal, sun_to=None, in_sun=True, sky_open=1.0, hour='noon', sun_scale=1.0):
+    """The light a face returns per unit of its own colour, under the rig: (sky + sun) / pi, red green blue.
+    normal    the face's outward normal (east, north, up); `wall_normal(bearing)` for a wall, [0, 0, 1] for a flat roof
+    sun_to    the direction to the sun (`sun_dir(azimuth, elevation)`); None = the rig's own sun for that hour
+    in_sun    True when the sun reaches the place, False in shadow (or a share 0..1)
+    sky_open  the share of its sky the place sees (1 on an open wall, less in a recess or under a balcony)
+    sun_scale how strong the sun was against the rig's sun (a property of the photograph's day, see base_colour)"""
+    R = RIG[hour]; s = sun_to or R['sunDir']
+    n = math.sqrt(sum(v * v for v in normal)) or 1.0
+    cos = max(0.0, sum(a * b for a, b in zip(normal, s)) / n) * float(in_sun) * sun_scale
+    sky = sky_light(normal, hour)
+    return [(sky[k] * sky_open + R['sunStrength'][k] * cos) / math.pi for k in range(3)]
+
+
+def base_colour(samples, sun_to=None, hour='noon', sun_scale=1.0, exposure=1.0):
+    """A material's OWN colour from samples of the photograph.
+
+    samples   a list of dicts, each one place: {'material': name, 'pixel': (r, g, b) median of the photograph there, sRGB 0..255,
+              'normal': (east, north, up), 'in_sun': True / False, 'sky_open': 1.0}
+    sun_to    where the sun stood in the photograph (`sun_dir(azimuth, elevation)`)
+    sun_scale how strong that day's sun was against the rig's: 1.0 for a clear day (the rig's sun is measured on clear-day photographs).
+              None = found from the samples: the one value that makes each material's sun samples and shade samples give the same
+              colour (needs one material sampled in both). It belongs to the photograph, not to the building: use the same value
+              for the check render (`sun_from_photo(..., strength=sun_scale)`).
+    exposure  the photograph's exposure against the rig's (1 unless the result says otherwise)
+
+    A material's colour is taken from its sun samples when it has any; its shade samples are then the check (`spread`).
+    Returns {'sun_scale', 'materials': {name: {'linear': [r, g, b], 'srgb': [r, g, b], 'spread': worst disagreement between its samples}},
+    'warnings': [...]}. The linear value is what goes into the Principled BSDF's Base Color."""
+    def colours(scale):
+        out = {}
+        for s in samples:
+            L = light_on(s['normal'], sun_to, s.get('in_sun', True), s.get('sky_open', 1.0), hour, scale)
+            p = srgb_to_linear(s['pixel'])
+            out.setdefault(s['material'], []).append(([math.log(max(p[k], 1e-4) / exposure / max(L[k], 1e-6)) for k in range(3)], bool(s.get('in_sun', True))))
+        return out
+
+    def cost(scale):
+        c = 0.0; n = 0
+        for rows in colours(scale).values():
+            sun = [r for r, lit in rows if lit]; shade = [r for r, lit in rows if not lit]
+            if sun and shade:
+                for k in range(3):
+                    c += (sum(r[k] for r in sun) / len(sun) - sum(r[k] for r in shade) / len(shade)) ** 2
+                n += 1
+        return c, n
+    warnings = []
+    if sun_scale is None:
+        if cost(1.0)[1] == 0:
+            sun_scale = 1.0; warnings.append('no material has both a sun and a shade sample: the sun strength of that day cannot be found, 1.0 used')
+        else:
+            best = min((cost(0.2 * 1.04 ** i)[0], 0.2 * 1.04 ** i) for i in range(120))
+            sun_scale = round(best[1], 3)
+    mats = {}
+    for name, rows in colours(sun_scale).items():
+        # the colour comes from the sun samples when there are any (a phone lifts its shadows: the sunlit pixel is the truer one);
+        # the shade samples then only say how far the photograph's shade is from the rig's (`spread`)
+        use = [r for r, lit in rows if lit] or [r for r, _ in rows]
+        mean = [math.exp(sum(r[k] for r in use) / len(use)) for k in range(3)]
+        spread = max(abs(math.exp(r[k]) / mean[k] - 1) for r, _ in rows for k in range(3))
+        if max(mean) > PAINT_MAX:
+            warnings.append('%s comes out at %.2f, lighter than a white wall under this rig: the photograph is exposed for shade (or the place is not where you think); a white wall should come out near 0.19' % (name, max(mean)))
+        mats[name] = {'linear': [round(v, 4) for v in mean], 'srgb': linear_to_srgb(mean), 'spread': round(spread, 3), 'samples': len(rows)}
+    return {'sun_scale': sun_scale, 'exposure': exposure, 'materials': mats, 'warnings': warnings}
+
+
+def gate(pairs, limit=GATE):
+    """pairs: [(place name, photograph (r, g, b), render (r, g, b))], sRGB 0..255, the same places in both pictures.
+    Compared as light (linear), worst channel per place. Returns (passed, rows)."""
+    rows = []
+    for name, photo, render in pairs:
+        a, b = srgb_to_linear(photo), srgb_to_linear(render)
+        worst = max(abs(b[k] - a[k]) / max(a[k], 0.02) for k in range(3))
+        rows.append({'place': name, 'photo': list(photo), 'render': list(render), 'worst': round(worst, 3), 'pass': worst <= limit})
+    return all(r['pass'] for r in rows), rows
+
+
+# ───────────────────────────── the rig in a Blender scene ─────────────────────────────
+def _signature(hour):
+    R = RIG[hour]
+    return 'light_rig %s %s' % (RIG.get('version', '?'), hour)
+
+
+def _world(scene, hour):
+    import bpy
+    R = RIG[hour]
+    w = bpy.data.worlds.new('light_rig_world'); w.use_nodes = True
+    nt = w.node_tree; nt.nodes.clear()
+    N = lambda t, x, y: (lambda n: (setattr(n, 'location', (x, y)), n)[1])(nt.nodes.new(t))
+    link = nt.links.new
+    tex = N('ShaderNodeTexCoord', -1400, 0); sep = N('ShaderNodeSeparateXYZ', -1200, 0); link(tex.outputs['Generated'], sep.inputs[0])
+    pts = R['pts']; z0, z1 = pts[0][0], pts[-1][0]
+    shift = N('ShaderNodeMath', -1000, 0); shift.operation = 'SUBTRACT'; link(sep.outputs['Z'], shift.inputs[0]); shift.inputs[1].default_value = R['treeShift']
+    mr = N('ShaderNodeMapRange', -800, 0); link(shift.outputs[0], mr.inputs['Value'])
+    mr.inputs['From Min'].default_value = z0; mr.inputs['From Max'].default_value = z1; mr.inputs['To Min'].default_value = 0; mr.inputs['To Max'].default_value = 1; mr.clamp = True
+    ramp = N('ShaderNodeValToRGB', -600, 0); cr = ramp.color_ramp; cr.interpolation = 'LINEAR'; cr.color_mode = 'RGB'
+    while len(cr.elements) > 1: cr.elements.remove(cr.elements[-1])
+    for i, (z, c) in enumerate(pts):
+        e = cr.elements[0] if i == 0 else cr.elements.new((z - z0) / (z1 - z0))
+        e.position = (z - z0) / (z1 - z0); e.color = (c[0], c[1], c[2], 1)
+    link(mr.outputs['Result'], ramp.inputs['Fac'])
+    # the sky lights with the gain; the camera and mirrors see it without
+    lp = N('ShaderNodeLightPath', -600, -300); seen = N('ShaderNodeMath', -400, -300); seen.operation = 'MAXIMUM'
+    link(lp.outputs['Is Camera Ray'], seen.inputs[0]); link(lp.outputs['Is Glossy Ray'], seen.inputs[1])
+    gain = N('ShaderNodeMixRGB', -200, -300); gain.blend_type = 'MIX'; link(seen.outputs[0], gain.inputs['Fac'])
+    gain.inputs['Color1'].default_value = (R['gain'][0], R['gain'][1], R['gain'][2], 1); gain.inputs['Color2'].default_value = (1, 1, 1, 1)
+    mul = N('ShaderNodeVectorMath', 0, 0); mul.operation = 'MULTIPLY'; link(ramp.outputs['Color'], mul.inputs[0]); link(gain.outputs['Color'], mul.inputs[1])
+    # below the level line a ray sees the lit ground (only matters where the scene's ground plane ends)
+    low = N('ShaderNodeMath', -400, 250); low.operation = 'LESS_THAN'; link(sep.outputs['Z'], low.inputs[0]); low.inputs[1].default_value = R['groundEdge']
+    mix = N('ShaderNodeMixRGB', 200, 0); mix.blend_type = 'MIX'; link(low.outputs[0], mix.inputs['Fac']); link(mul.outputs[0], mix.inputs['Color1'])
+    mix.inputs['Color2'].default_value = (R['ground'][0], R['ground'][1], R['ground'][2], 1)
+    bg = N('ShaderNodeBackground', 400, 0); link(mix.outputs['Color'], bg.inputs['Color']); bg.inputs['Strength'].default_value = 1.0
+    out = N('ShaderNodeOutputWorld', 600, 0); link(bg.outputs[0], out.inputs['Surface'])
+    w['light_rig'] = _signature(hour)
+    scene.world = w
+    return w
+
+
+def _sun_object(scene):
+    import bpy
+    suns = [o for o in scene.objects if o.type == 'LIGHT' and o.data.type == 'SUN']
+    sun = next((o for o in suns if o.get('light_rig')), suns[0] if suns else None)
+    if sun is None:
+        sun = bpy.data.objects.new('rig_sun', bpy.data.lights.new('rig_sun', 'SUN')); scene.collection.objects.link(sun)
+    for o in scene.objects:
+        if o.type == 'LIGHT' and o is not sun: o.hide_render = True
+    sun.hide_render = False; sun['light_rig'] = 1
+    return sun
+
+
+def _aim(sun, to_sun, strength_rgb):
+    from mathutils import Vector
+    sun.rotation_mode = 'XYZ'; sun.rotation_euler = Vector(to_sun).to_track_quat('Z', 'Y').to_euler()
+    m = max(max(strength_rgb), 1e-9)
+    sun.data.energy = m; sun.data.color = [v / m for v in strength_rgb]; sun.data.angle = SUN_DISK_RAD
+
+
+def apply(scene=None, hour='noon'):
+    """1. Put the scene under the app's light for a named hour ('noon' unless you render a time of day): world, sun, ground, view."""
+    import bpy
+    scene = scene or bpy.context.scene; R = RIG[hour]
+    _world(scene, hour)
+    sun = _sun_object(scene); _aim(sun, R['sunDir'], R['sunStrength'])
+    scene['light_rig_hour'] = hour; scene['light_rig_sun'] = list(R['sunDir']) + [1.0]
+    # the ground
+    grounds = [o for o in scene.objects if o.type == 'MESH' and 'ground' in o.name.lower()]
+    if not grounds:
+        me = bpy.data.meshes.new('rig_ground'); h = GROUND_SIZE_M / 2
+        me.from_pydata([(-h, -h, 0), (h, -h, 0), (h, h, 0), (-h, h, 0)], [], [(0, 1, 2, 3)])
+        g = bpy.data.objects.new('rig_ground', me); scene.collection.objects.link(g); grounds = [g]
+    mat = bpy.data.materials.get('rig_ground') or bpy.data.materials.new('rig_ground')
+    mat.use_nodes = True
+    p = next(n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeBsdfPrincipled')
+    p.inputs['Base Color'].default_value = (R['groundColour'][0], R['groundColour'][1], R['groundColour'][2], 1); p.inputs['Roughness'].default_value = 1.0
+    if 'Specular IOR Level' in p.inputs: p.inputs['Specular IOR Level'].default_value = 0.0
+    for g in grounds:
+        g.data.materials.clear(); g.data.materials.append(mat)
+    # the view: what the app's screen does (plain sRGB)
+    vs = scene.view_settings; vs.view_transform = 'Standard'; vs.look = 'None'; vs.exposure = 0.0; vs.gamma = 1.0
+    scene.display_settings.display_device = 'sRGB'; scene.render.film_transparent = False
+    return _signature(hour)
+
+
+def sun_from_photo(azimuth_deg, elevation_deg, strength=1.0, scene=None):
+    """2. Turn the rig's sun to where it stood in the photograph. azimuth = compass bearing the light comes FROM (180 = from the south),
+    elevation = degrees above level. `strength` multiplies the rig's sun (leave 1 unless `base_colour` found another value for that day)."""
+    import bpy
+    scene = scene or bpy.context.scene; hour = scene.get('light_rig_hour', 'noon')
+    d = sun_dir(azimuth_deg, elevation_deg)
+    _aim(_sun_object(scene), d, [v * strength for v in RIG[hour]['sunStrength']])
+    scene['light_rig_sun'] = d + [float(strength)]
+    return d
+
+
+def check(scene=None):
+    """3. Returns [] when the scene is under the rig; else what is not. Call it before every final render and write the result down."""
+    import bpy
+    scene = scene or bpy.context.scene; bad = []
+    hour = scene.get('light_rig_hour')
+    if not hour or hour not in RIG: return ['light_rig.apply() was never run on this scene']
+    R = RIG[hour]
+    if not scene.world or scene.world.get('light_rig') != _signature(hour): bad.append('the world is not the rig\'s (run light_rig.apply() again)')
+    lights = [o for o in scene.objects if o.type == 'LIGHT' and not o.hide_render]
+    if len(lights) != 1 or lights[0].data.type != 'SUN': bad.append('lights that render: %s (the rig has one sun)' % [o.name for o in lights])
+    else:
+        s = scene.get('light_rig_sun'); k = s[3] if s else 1.0; L = lights[0].data; m = max(R['sunStrength'])
+        if abs(L.energy - m * k) > 1e-3 * m or any(abs(L.color[i] - R['sunStrength'][i] / m) > 1e-3 for i in range(3)): bad.append('the sun\'s strength or colour was changed by hand (%.3f, %s)' % (L.energy, [round(v, 3) for v in L.color]))
+    vs = scene.view_settings
+    if (vs.view_transform, vs.look, round(vs.exposure, 4), round(vs.gamma, 4)) != ('Standard', 'None', 0.0, 1.0): bad.append('view transform %s, look %s, exposure %s, gamma %s (the rig: Standard, None, 0, 1)' % (vs.view_transform, vs.look, vs.exposure, vs.gamma))
+    for m in bpy.data.materials:
+        if not (m.users and m.use_nodes): continue
+        if any(n.bl_idname == 'ShaderNodeTexImage' for n in m.node_tree.nodes): bad.append('material %s uses an image' % m.name)
+        p = next((n for n in m.node_tree.nodes if n.bl_idname == 'ShaderNodeBsdfPrincipled'), None)
+        # the app draws walls and roofs without gloss; under this sun Blender's default gloss adds up to a tenth on a white wall and doubles a dark one
+        if p and 'Specular IOR Level' in p.inputs and p.inputs['Specular IOR Level'].default_value > 0.01 and p.inputs['Metallic'].default_value < 0.5 \
+                and not m.name.lower().startswith('glass') and 'ground' not in m.name.lower():
+            bad.append('material %s has gloss (Specular IOR Level %.2f): set it to 0, the app draws it matt' % (m.name, p.inputs['Specular IOR Level'].default_value))
+    return bad
