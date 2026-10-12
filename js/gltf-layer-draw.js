@@ -9,6 +9,8 @@
   const GLTF = window.GLTF_LAYER, info = GLTF.info;
   GLTF.parse = parseGlb;   // for scripts/verify/gltf-layer.mjs
   const q3 = v => Math.round(v * 1000);
+  /** a taste value for this building: its row's own when it has one, else the layer's */
+  const cf = (row, k) => (row && row[k] !== undefined ? row[k] : GLTF[k]);
 
   // ══════════════════════════════════════════════════════════════════════
   //  THE .glb LOADER — exactly what a flat-coloured Blender export contains, and a loud error for anything else
@@ -63,13 +65,14 @@
   const clamp255 = v => Math.max(0, Math.min(255, v));
   const tripleCache = new Map();
   /** the [day, golden, night] colours of a material on a face the sun does (`side` 'sun') or does not ('shade') reach at the photograph's hour */
-  function tripleFor(mesh, side, variant) {
-    const key = mesh.material + '|' + (side || '') + '|' + (variant || '');
+  function tripleFor(mesh, side, variant, row) {
+    const key = (row ? row.name : '') + '|' + mesh.material + '|' + (side || '') + '|' + (variant || '');
     let col = tripleCache.get(key);
     if (col) return col;
-    const cfg = variant === 'crown' ? Object.assign({}, GLTF.materials[mesh.material] || {}, GLTF.crownGlass) : (GLTF.materials[mesh.material] || {});
+    const mats = cf(row, 'materials'), lf = cf(row, 'litFix');
+    const cfg = variant === 'crown' ? Object.assign({}, mats[mesh.material] || {}, cf(row, 'crownGlass')) : (mats[mesh.material] || {});
     let d = cfg.day ? fromHex(cfg.day) : mesh.linear.map(srgb255);
-    const gain = side && cfg.fix && GLTF.litFix[side] && GLTF.litFix[side][cfg.fix];
+    const gain = side && cfg.fix && lf[side] && lf[side][cfg.fix];
     let boost = [1, 1, 1];
     if (gain) {
       const raw = d.map((v, i) => Math.max(0, v * gain[i]));
@@ -85,27 +88,27 @@
     if (cfg.surface && Array.isArray(kinds[cfg.surface])) {
       col.surface = kinds[cfg.surface].slice();
       if (cfg.strength != null) col.surface[3] = cfg.strength;
-      if (cfg.surface === 'glass' && GLTF.glassStrength != null && cfg.strength == null) col.surface[3] = GLTF.glassStrength;
+      if (cfg.surface === 'glass' && cf(row, 'glassStrength') != null && cfg.strength == null) col.surface[3] = cf(row, 'glassStrength');
     }
     tripleCache.set(key, col);
     return col;
   }
   /** does the sun reach a face with this normal (the model's frame, unit length) at the photograph's hour? The model turned by its heading, the app's own sun */
-  function sunLit(n, headingDeg) {
-    const sun = window.skyBodies ? window.skyBodies(GLTF.photoHour).sun : { az: 181, elev: 51 };
+  function sunLit(n, headingDeg, row) {
+    const sun = window.skyBodies ? window.skyBodies(cf(row, 'photoHour')).sun : { az: 181, elev: 51 };
     const az = sun.az * Math.PI / 180, el = sun.elev * Math.PI / 180, L = [Math.sin(az) * Math.cos(el), Math.cos(az) * Math.cos(el), Math.sin(el)];   // east, north, up
     const h = headingDeg * Math.PI / 180, c = Math.cos(h), s = Math.sin(h);
     const w = [n[0] * c + n[1] * s, -n[0] * s + n[1] * c, n[2]];                                                          // the same turn as world()
-    return w[0] * L[0] + w[1] * L[1] + w[2] * L[2] > GLTF.sunThreshold;
+    return w[0] * L[0] + w[1] * L[1] + w[2] * L[2] > cf(row, 'sunThreshold');
   }
   /** per triangle: 1 when the sun reaches its face */
-  function sunSides(P, I, headingDeg) {
+  function sunSides(P, I, headingDeg, row) {
     const T = I.length / 3, out = new Uint8Array(T);
     for (let t = 0; t < T; t++) {
       const v = [0, 1, 2].map(j => { const i = I[t * 3 + j] * 3; return [P[i], -P[i + 2], P[i + 1]]; });
       const e1 = [v[1][0] - v[0][0], v[1][1] - v[0][1], v[1][2] - v[0][2]], e2 = [v[2][0] - v[0][0], v[2][1] - v[0][1], v[2][2] - v[0][2]];
       const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]], len = Math.hypot(n[0], n[1], n[2]) || 1;
-      out[t] = sunLit([n[0] / len, n[1] / len, n[2] / len], headingDeg) ? 1 : 0;
+      out[t] = sunLit([n[0] / len, n[1] / len, n[2] / len], headingDeg, row) ? 1 : 0;
     }
     return out;
   }
@@ -136,8 +139,18 @@
     }
     return out;
   }
+  /** the frame of a vertical wall from its horizontal outward normal (model frame): the unit normal (snapped to an axis within 0.5 degrees), the
+   *  tangent s along the wall (its larger component positive, so an axis wall reads +x or +y as it always did), phi in degrees, and for an axis
+   *  wall `ax` (0 = its normal is along X, 1 = along Y) and `sgn` */
+  function wallFrame(nx, ny) {
+    const L = Math.hypot(nx, ny) || 1; let ux = nx / L, uy = ny / L, ax = -1;
+    if (Math.abs(uy) < 0.00873) { ux = Math.sign(ux) || 1; uy = 0; ax = 0; }
+    else if (Math.abs(ux) < 0.00873) { uy = Math.sign(uy) || 1; ux = 0; ax = 1; }
+    let tx = -uy, ty = ux; if (tx < -1e-9 || (Math.abs(tx) < 1e-9 && ty < 0)) { tx = -tx; ty = -ty; }
+    return { nx: ux, ny: uy, tx, ty, phi: Math.atan2(uy, ux) * 180 / Math.PI, ax, isAxis: ax >= 0, sgn: ax === 0 ? Math.sign(ux) : ax === 1 ? Math.sign(uy) : 0 };
+  }
   /** where each pane is, for the city's night rules (CityNight.room): its wall, its floor (from its height) and its column (its place in its row on that wall) */
-  function paneAddress(P, I) {
+  function paneAddress(P, I, row) {
     const panes = paneOf(P, I), T = panes.length, floor = new Int16Array(T), col = new Int16Array(T), wall = new Array(T), wide = new Uint8Array(T);
     const rows = new Map(), info = new Array(T);
     for (let t = 0; t < T; t++) {
@@ -146,13 +159,16 @@
       const a = [0, 1, 2].map(j => { const i = I[t * 3 + j] * 3; return [P[i], -P[i + 2], P[i + 1]]; });        // model frame
       const e1 = a[1].map((v, i) => v - a[0][i]), e2 = a[2].map((v, i) => v - a[0][i]);
       const nn = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
-      const ax = Math.abs(nn[0]) > Math.abs(nn[1]) ? 0 : 1, sgn = Math.sign(nn[ax]) || 1, c = centreOf(P, I, ids), cm = [c[0], -c[2], c[1]];
-      const fl = Math.floor((cm[2] + GLTF.storeyOffsetM) / GLTF.storeyM), key = ax + '' + (sgn > 0 ? 'p' : 'm') + '|' + Math.round(sgn * cm[ax] * 2) + '|' + fl;
-      let s0 = Infinity, s1 = -Infinity; for (const u of ids) for (let c2 = 0; c2 < 3; c2++) { const sv = P[I[u * 3 + c2] * 3 + (ax === 0 ? 2 : 0)] * (ax === 0 ? -1 : 1); s0 = Math.min(s0, sv); s1 = Math.max(s1, sv); }   // extent along the wall
-      const rec = { t, ax, sgn, fl, s: cm[1 - ax], wide: s1 - s0 > GLTF.maxRoomWidthM, wallKey: ax + (sgn > 0 ? 'p' : 'm') + Math.round(sgn * cm[ax] * 2), key };
+      const c = centreOf(P, I, ids), cm = [c[0], -c[2], c[1]], w = wallFrame(nn[0], nn[1]);
+      const sM = cf(row, 'storeyM'), sO = cf(row, 'storeyOffsetM');
+      const fl = Math.floor((cm[2] + sO) / sM), d = w.nx * cm[0] + w.ny * cm[1], wallKey = w.isAxis ? w.ax + (w.sgn > 0 ? 'p' : 'm') + Math.round(d * 2) : 'g' + Math.round(w.phi * 10) + '|' + Math.round(d * 2), key = wallKey + '|' + fl;
+      let s0 = Infinity, s1 = -Infinity; for (const u of ids) for (let c2 = 0; c2 < 3; c2++) { const k = I[u * 3 + c2] * 3, sv = w.tx * P[k] + w.ty * (-P[k + 2]); s0 = Math.min(s0, sv); s1 = Math.max(s1, sv); }   // extent along the wall
+      const rec = { t, fl, s: w.tx * cm[0] + w.ty * cm[1], e0: s0, e1: s1, wide: s1 - s0 > cf(row, 'maxRoomWidthM'), wallKey, key };
       info[t] = rec; (rows.get(key) || rows.set(key, []).get(key)).push(rec);
     }
-    for (const list of rows.values()) { list.sort((x, y) => x.s - y.s); list.forEach((r, i) => { r.col = i; }); }
+    // a column is a window, not a pane: panes of one window (their edges closer than `windowGapM`) share a column, so a room is lit or dark as a whole
+    const gap = cf(row, 'windowGapM') || 0;
+    for (const list of rows.values()) { list.sort((x, y) => x.s - y.s); let c = -1, edge = -Infinity; list.forEach(r => { if (c < 0 || r.e0 - edge > gap) c++; edge = Math.max(edge, r.e1); r.col = c; }); }
     for (let t = 0; t < T; t++) { const r = info[t]; floor[t] = r.fl; col[t] = r.col; wall[t] = r.wallKey; wide[t] = r.wide ? 1 : 0; }
     return { floor, col, wall, wide };
   }
@@ -162,7 +178,7 @@
   // ══════════════════════════════════════════════════════════════════════
   // A recipe knows its wall as cells that partition it. This model knows it as quads in front of quads (panes on a wall), so the quads
   // are painted back to front into a fine grid and the grid is averaged down to the wall map's texels: the exact area average of what
-  // the eye would see. Only faces with an axis-aligned normal take part (every wall of this model); roofs and slanted faces stay geometry.
+  // the eye would see. Every vertical wall takes part, whatever its direction (the Venue's two street walls meet at an angle that is not a right angle); roofs and slanted faces stay geometry.
   const tol = 0.002;
   const inBox = (a, b) => a[0] >= b[0] - tol && a[1] <= b[1] + tol && a[2] >= b[2] - tol && a[3] <= b[3] + tol;
   function wallTris(meshes) {
@@ -174,17 +190,15 @@
         const e1 = [v[1][0] - v[0][0], v[1][1] - v[0][1], v[1][2] - v[0][2]], e2 = [v[2][0] - v[0][0], v[2][1] - v[0][1], v[2][2] - v[0][2]];
         const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]], L = Math.hypot(n[0], n[1], n[2]);
         if (L < 1e-9) continue;
-        let ax = -1;
-        for (const a of [0, 1]) if (Math.abs(n[a]) / L > 0.999) ax = a;
-        if (ax < 0) continue;                                   // a roof, or slanted
-        const sgn = Math.sign(n[ax]), oth = 1 - ax, pts = v.map(p => [p[oth], p[2]]);
+        if (Math.abs(n[2]) / L > 0.001) continue;                // a roof, or slanted: stays geometry
+        const w = wallFrame(n[0], n[1]), pts = v.map(p => [w.tx * p[0] + w.ty * p[1], p[2]]);
         const bb = [Math.min(...pts.map(p => p[0])), Math.max(...pts.map(p => p[0])), Math.min(...pts.map(p => p[1])), Math.max(...pts.map(p => p[1]))];
-        out.push({ mi, ax, sgn, oth, dir: ax * 2 + (sgn > 0 ? 1 : 0), d: sgn * v[0][ax], pts, bb, area: L / 2 });
+        out.push({ mi, w, dir: w.isAxis ? w.ax * 2 + (w.sgn > 0 ? 1 : 0) : 100 + Math.round(w.phi * 10), d: w.nx * v[0][0] + w.ny * v[0][1], pts, bb, area: L / 2 });
       }
     });
     return out;
   }
-  /** The wall faces that get an overlay: [{ ax, sgn, oth, d, s0, s1, z0, z1, tris, details }] — d is the overlay's offset along the normal */
+  /** The wall faces that get an overlay: [{ w, d, s0, s1, z0, z1, tris, details }] — w is the wall's frame (normal and tangent), d the overlay's offset along the normal */
   function facePlan(meshes) {
     const F = GLTF.facade, T = wallTris(meshes), groups = new Map(), rects = [];
     for (const t of T) { const k = t.dir + '|' + t.mi + '|' + q3(t.d) + '|' + t.bb.map(q3).join(','); (groups.get(k) || groups.set(k, []).get(k)).push(t); }
@@ -193,7 +207,7 @@
       if (ts.length === 2 && Math.abs(ts[0].area + ts[1].area - box) <= 0.01 * box) { ts[0].rect = true; ts[1].skip = true; rects.push({ dir: t.dir, d: t.d, bb: t.bb, area: box, t }); }
     }
     const plan = [];
-    for (let dir = 0; dir < 4; dir++) {
+    for (const dir of [...new Set(T.map(t => t.dir))]) {
       const R = rects.filter(r => r.dir === dir).sort((a, b) => b.area - a.area), bases = [];
       for (const r of R) if (!bases.some(q => q.area >= r.area && inBox(r.bb, q.bb) && r.d - q.d >= -F.behind && r.d - q.d <= F.front)) bases.push(r);
       for (const b of bases) {
@@ -202,16 +216,16 @@
         const details = tris.length - 2;
         if (details < F.minDetails) continue;
         const t0 = b.t;
-        plan.push({ ax: t0.ax, sgn: t0.sgn, oth: t0.oth, d: Math.max(...tris.map(t => t.d)) + F.lift, s0: b.bb[0], s1: b.bb[1], z0: b.bb[2], z1: b.bb[3],
+        plan.push({ w: t0.w, d: Math.max(...tris.map(t => t.d)) + F.lift, s0: b.bb[0], s1: b.bb[1], z0: b.bb[2], z1: b.bb[3],
           baseMi: t0.mi, tris: tris.sort((a, c) => a.d - c.d || a.mi - c.mi), details });
       }
     }
     return plan;
   }
   /** one row per material: day rgb, golden rgb, night rgb, glass response, glass flag (the facade filter's own channels) */
-  function paletteOf(meshes, side) {
+  function paletteOf(meshes, side, row) {
     return meshes.map(m => {
-      const c = tripleFor(m, side), kind = c.surface && c.surface[0], glass = kind === 4 || kind === 6 ? 1 : 0;
+      const c = tripleFor(m, side, undefined, row), kind = c.surface && c.surface[0], glass = kind === 4 || kind === 6 ? 1 : 0;
       const response = kind === 6 ? 1 : kind === 4 ? Math.max(0, Math.min(1, c.surface[3] == null ? 1 : c.surface[3])) : 0;
       const d = fromHex(c[0]), g = fromHex(c[1]);
       return Float32Array.from([...d.map((v, i) => v * c.boost[i]), ...g.map((v, i) => v * c.boost[i]), ...fromHex(c[2]), response * 255, glass * 255]);   // the boost is put back: the face carries it as one number
@@ -271,7 +285,7 @@
     }
     return { width, height, day, gold, night, boost };
   }
-  GLTF.faces = { plan: facePlan, paint: paintFace, palette: m => paletteOf(m, 'shade') };
+  GLTF.faces = { plan: facePlan, paint: paintFace, palette: (m, row) => paletteOf(m, 'shade', row) };
      // for scripts/verify/gltf-layer.mjs
 
   /** the overlay quad of one painted face, in the city's own scene, drawn by the city's own facade-filter material */
@@ -285,9 +299,9 @@
       t.needsUpdate = true; textures[name] = t;
     }
     const face = { textures, len: f.s1 - f.s0, z0: f.z0, z1: f.z1 };
-    const at = (s, z) => { const v = [0, 0, z]; v[f.oth] = s; v[f.ax] = f.sgn * f.d; return world(v[0], v[1], v[2]); };
-    const o0 = world(0, 0, 0), nv = [0, 0, 0]; nv[f.ax] = f.sgn;
-    const want = (() => { const w = world(nv[0], nv[1], nv[2]); return [w[0] - o0[0], w[1] - o0[1], w[2] - o0[2]]; })();
+    const W = f.w, at = (s, z) => world(W.nx * f.d + W.tx * s, W.ny * f.d + W.ty * s, z);
+    const o0 = world(0, 0, 0);
+    const want = (() => { const w = world(W.nx, W.ny, 0); return [w[0] - o0[0], w[1] - o0[1], w[2] - o0[2]]; })();
     const fb = S.build(4), col = ['#808080', '#808080', '#808080'];
     fb.quad(at(f.s0, f.z0), at(f.s1, f.z0), at(f.s1, f.z1), at(f.s0, f.z1), col, want);
     const geom = fb.geometry();
@@ -304,14 +318,14 @@
     const F = GLTF.facade;
     if (!F.on || !window.THREE) return;
     const t0 = performance.now();
-    const plan = facePlan(meshes), palette = { shade: paletteOf(meshes, 'shade'), sun: paletteOf(meshes, 'sun') };
+    const plan = facePlan(meshes), palette = { shade: paletteOf(meshes, 'shade', row), sun: paletteOf(meshes, 'sun', row) };
     info.faces = 0; info.faceBytes = 0; info.faceWorkMs = 0;
     for (const f of plan) {
       await tick();
       if (!GLTF.group) return;                                  // the layer was switched off meanwhile
       try {
-        const w0 = performance.now(), nrm = [0, 0, 0]; nrm[f.ax] = f.sgn;
-        const m = faceMesh(S, f, paintFace(f, palette[sunLit(nrm, row.headingDeg) ? 'sun' : 'shade']), world);
+        const w0 = performance.now(), nrm = [f.w.nx, f.w.ny, 0];
+        const m = faceMesh(S, f, paintFace(f, palette[sunLit(nrm, row.headingDeg, row) ? 'sun' : 'shade']), world);
         group.add(m.mesh); info.faces++; info.faceBytes += m.bytes; info.faceWorkMs = +(info.faceWorkMs + performance.now() - w0).toFixed(1);
       } catch (e) { info.errors.push('face: ' + e.message); console.error('[gltf-layer] face', e); }
     }
@@ -359,11 +373,11 @@
     const toneTriples = new Map();                               // one triple per (material, night tone): the builder caches by triple
     const withTone = (m, col, tone, side, crown) => { const k = m.material + '|' + tone + '|' + side + '|' + (crown ? 'c' : ''); let c = toneTriples.get(k); if (!c) { c = [col[0], col[1], tone]; if (col.surface) c.surface = col.surface; c.boost = col.boost; toneTriples.set(k, c); } return c; };
     for (const m of meshes) {
-      const P = m.pos, I = m.idx, sides = sunSides(P, I, row.headingDeg), colS = tripleFor(m, 'shade'), colL = tripleFor(m, 'sun'), col = colS, pt = i => world(P[i * 3], -P[i * 3 + 2], P[i * 3 + 1]);
-      const cfg = GLTF.materials[m.material] || {};
+      const P = m.pos, I = m.idx, sides = sunSides(P, I, row.headingDeg, row), colS = tripleFor(m, 'shade', undefined, row), colL = tripleFor(m, 'sun', undefined, row), col = colS, pt = i => world(P[i * 3], -P[i * 3 + 2], P[i * 3 + 1]);
+      const cfg = cf(row, 'materials')[m.material] || {};
       let addr = null, lit = null, hash = null;
-      if (cfg.lit) addr = paneAddress(P, I);
-      const crownS = cfg.lit ? tripleFor(m, 'shade', 'crown') : null, crownL = cfg.lit ? tripleFor(m, 'sun', 'crown') : null;
+      if (cfg.lit) addr = paneAddress(P, I, row);
+      const crownS = cfg.lit ? tripleFor(m, 'shade', 'crown', row) : null, crownL = cfg.lit ? tripleFor(m, 'sun', 'crown', row) : null;
       if (cfg.lit && rules) { /* rooms below */ }
       else if (cfg.lit && GLTF.nightLit > 0) { lit = col.slice(); lit[2] = GLTF.litTone; lit.surface = col.surface; hash = paneHash(P, I); }
       verts += P.length / 3;

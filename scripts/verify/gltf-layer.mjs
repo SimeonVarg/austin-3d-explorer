@@ -47,10 +47,14 @@ check(G.on === true, 'GLTF_LAYER.on is true with ?gltf=1');
 const idx = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/apartments/index.json'), 'utf8'));
 const recipeIds = new Map();
 for (const f of idx.buildings) { try { const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/apartments', f), 'utf8')); if (j.id) recipeIds.set(j.id, f); } catch (e) {} }
+// a building can also be an entry of one of the collections the index lists (the apartments builder draws those the same way)
+for (const f of idx.collections || []) { try { const j = JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')); for (const b of j.buildings || []) if (b.id && !recipeIds.has(b.id)) recipeIds.set(b.id, f); } catch (e) {} }
+// ... or of a collection an area lists
+for (const a of Object.values(idx.areas || {})) for (const f of (a && a.collections) || []) { try { const j = JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')); for (const b of j.buildings || []) if (b.id && !recipeIds.has(b.id)) recipeIds.set(b.id, f); } catch (e) {} }
 const rows = G.buildings.map(b => process.argv.includes('--break') ? { ...b, replaces: b.replaces.replace(/^./, 'x') } : b);
 for (const row of rows) {
   console.log('  row: ' + row.name);
-  check(recipeIds.has(row.replaces), 'its `replaces` id is a recipe in data/apartments/index.json', recipeIds.get(row.replaces) || '');
+  check(recipeIds.has(row.replaces), 'its `replaces` id is a recipe or a collection entry the apartments builder draws (data/apartments/index.json)', recipeIds.get(row.replaces) || '');
   check(G.hides({ id: row.replaces }) && !G.hides({ id: 'not-a-recipe' }) && !G.hides({}), 'hides() is true for that recipe and no other');
   check(G.stub({ id: row.replaces, name: row.name }).top === row.topM && row.topM > 20, 'the stub in the apartments built list carries the model height (flight collision)', 'topM ' + row.topM);
   const glb = fs.readFileSync(path.join(ROOT, row.file));
@@ -88,16 +92,16 @@ for (const row of rows) {
   check(!refuses(j => { j.asset.generator = 'x'; }), 'a harmless edit of the JSON chunk still parses (the refusals above are real)');
   // the code that runs in the page with this file: faces, panes, sun sides, colours, the whole building loop (a fake builder counts what it is given)
   {
-    const I = G.internals, F = G.faces;
-    const plan = F.plan(meshes); check(plan.length >= 10 && plan.every(f => f.details >= G.facade.minDetails && f.s1 > f.s0 && f.z1 > f.z0), 'wall faces are planned (each with enough quads on it)', plan.length + ' faces');
-    const pal = F.palette(meshes), painted = plan.map(f => F.paint(f, pal));
+    const I = G.internals, F = G.faces, total = meshes.reduce((n, m) => n + m.idx.length / 3, 0);
+    const plan = F.plan(meshes); check(plan.length >= 3 && plan.every(f => f.details >= G.facade.minDetails && f.s1 > f.s0 && f.z1 > f.z0), 'wall faces are planned (each with enough quads on it)', plan.length + ' faces');
+    const pal = F.palette(meshes, row), painted = plan.map(f => F.paint(f, pal));
     check(painted.every(x => x.width * x.height * 4 === x.day.length && x.day.every(v => v >= 0 && v <= 255)), 'every wall map is painted, texel by texel', painted.reduce((n, x) => n + x.width * x.height, 0) + ' texels');
-    const glass = meshes.find(m => m.material === 'glass'), addr = I.paneAddress(glass.pos, glass.idx);
-    check(addr.wide.some(v => v === 1) && addr.wide.some(v => v === 0), 'the long strips of glazing (the crown) are told apart from room windows', addr.wide.filter(v => v).length + ' triangles in strips');
-    check(Math.max(...addr.floor) > 20 && Math.max(...addr.col) > 3 && addr.wall.every(w => typeof w === 'string'), 'every glass pane gets a wall, a floor and a column for the night rules', 'floors 0 to ' + Math.max(...addr.floor) + ', up to ' + (Math.max(...addr.col) + 1) + ' columns');
-    const white = meshes.find(m => m.material === 'white'), sides = I.sunSides(white.pos, white.idx, row.headingDeg);
-    check(sides.some(v => v === 1) && sides.some(v => v === 0), 'the sun reaches some faces of the tower and not others at the photograph\'s hour');
-    for (const m of meshes) for (const side of ['shade', 'sun']) { const c = I.tripleFor(m, side); if (!(c.length === 3 && c.every(h => /^#[0-9a-f]{6}$/.test(h)))) check(false, 'colour triple of ' + m.material); }
+    const glass = meshes.filter(m => /^glass/.test(m.material) && (row.materials || G.materials)[m.material] && (row.materials || G.materials)[m.material].lit).sort((a, b) => b.idx.length - a.idx.length)[0], addr = I.paneAddress(glass.pos, glass.idx, row);
+    check(addr.wide.some(v => v === 0) && (row.name !== 'Yugo Austin Waterloo' || addr.wide.some(v => v === 1)), 'room windows are told apart from long strips of glazing (the tower has a crown of them)', addr.wide.filter(v => v).length + ' triangles in strips');
+    check(Math.max(...addr.floor) >= 3 && Math.max(...addr.col) >= 3 && addr.wall.every(w => typeof w === 'string'), 'every glass pane gets a wall, a floor and a column for the night rules', 'floors 0 to ' + Math.max(...addr.floor) + ', up to ' + (Math.max(...addr.col) + 1) + ' columns');
+    const white = meshes.find(m => m.material === 'white'), sides = I.sunSides(white.pos, white.idx, row.headingDeg, row);
+    check(sides.some(v => v === 1) && sides.some(v => v === 0), 'the sun reaches some faces of the building and not others at the photograph\'s hour');
+    for (const m of meshes) for (const side of ['shade', 'sun']) { const c = I.tripleFor(m, side, undefined, row); if (!(c.length === 3 && c.every(h => /^#[0-9a-f]{6}$/.test(h)))) check(false, 'colour triple of ' + m.material); }
     check(true, 'every material has a valid [day, golden, night] triple on both sides');
     let tris = 0, bad = 0, groups = 0;
     const T = { Group: class { constructor() { this.children = []; this.userData = {}; } add(o) { this.children.push(o); groups++; } }, Mesh: class { constructor(g, m) { this.geometry = g; this.material = m; this.userData = {}; } }, DoubleSide: 2, FrontSide: 0, BufferAttribute: class { constructor(a, n) { this.array = a; this.itemSize = n; } }, Vector3: class { constructor(x, y, z) { this.x = x; this.y = y; this.z = z; } } };
@@ -105,11 +109,11 @@ for (const row of rows) {
       build: () => ({ tri(a, b, c, col) { tris++; if (![a, b, c].every(p => p.length === 3 && p.every(Number.isFinite)) || !(col && col.length === 3 && col.every(h => /^#[0-9a-f]{6}$/.test(h)))) bad++; }, geometry: () => ({ attributes: { position: { count: tris * 3 } }, setAttribute() {} }), get triangles() { return tris; } }) };
     for (const withNight of [false, true]) {
       tris = 0; bad = 0;
-      const rooms = []; win.CityNight = withNight ? { tune: { on: true, unlitGlass: '#101823' }, register() {}, registerFixtures(spec, frame) { rooms.push(frame.at(...spec.night.fixtures[0].position)); }, room: (key, floor, col) => ({ lit: (floor * 7 + col * 3) % 4 === 0, nightTone: '#eadfc8' }) } : undefined;
+      const rooms = []; win.CityNight = withNight ? { tune: { on: true, unlitGlass: '#101823' }, register() {}, registerFixtures(spec, frame) { if (spec.night && spec.night.fixtures) rooms.push(frame.at(...spec.night.fixtures[0].position)); }, room: (key, floor, col) => ({ lit: (floor * 7 + col * 3) % 4 === 0, nightTone: '#eadfc8' }) } : undefined;
       win.THREE = T;
       const b = I.buildBuilding(S, row, meshes);
-      check(tris === 4200 && bad === 0 && b.triangles === 4200, 'the building loop draws all 4,200 triangles with valid vertices and colours' + (withNight ? ' (with the city\'s night rules)' : ' (without them)'), tris + ' triangles, ' + bad + ' bad, ' + b.litTriangles + ' lit');
-      if (withNight) check(rooms.length === 1 && rooms[0].every(Number.isFinite), 'the building\'s lamps are handed to the city\'s night rules in the world frame');
+      check(tris === total && bad === 0 && b.triangles === total, 'the building loop draws every triangle (' + total + ') with valid vertices and colours' + (withNight ? ' (with the city\'s night rules)' : ' (without them)'), tris + ' triangles, ' + bad + ' bad, ' + b.litTriangles + ' lit');
+      if (withNight && row.night && row.night.fixtures) check(rooms.length === 1 && rooms[0].every(Number.isFinite), 'the building\'s lamps are handed to the city\'s night rules in the world frame');
     }
     win.THREE = undefined; win.CityNight = undefined;
   }

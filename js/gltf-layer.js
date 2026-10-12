@@ -60,6 +60,36 @@
           { position: [10.7, 9.7, 92.64], colour: '#ffe6b8', radius: 5, power: 0.25 },
           { position: [10.7, 22.7, 92.64], colour: '#ffe6b8', radius: 5, power: 0.25 },
           { position: [13.7, 29.0, 4.7], colour: '#ffdb9e', radius: 5, power: 0.4 } ] } },
+      // The Venue on Guadalupe: the app has no hand-made recipe for it, its drawing is the neighbourhood collection's entry
+      // (data/neighborhood_apartments.json, id below), which this row replaces like any recipe. Origin = the blue triangle's corner at the ground,
+      // X along the long sign face, Y into the building. Placed by fitting its two measured street walls to the surveyed outline (see
+      // docs/gltf-layer.md); its own values below override the layer's: the materials (each window group is a measured pane colour), the
+      // light gains, the hour whose sun matches the site photograph (the sign face lit, the Guadalupe face in shade), storeys of 3.3 m.
+      { name: 'The Venue on Guadalupe', file: 'data/gltf/venue.glb',
+        lng: -97.7419657, lat: 30.2939211, groundM: 0, headingDeg: 6.834, topM: 22.91,
+        replaces: '5d3a4e03-f525-4037-917c-4c4b56584fc4',
+        photoHour: 0.28, storeyM: 3.3, storeyOffsetM: 0, glassStrength: 0.22,
+        windowGapM: 0.3,       // the panes of one window (2 to 4, a few cm apart) are one room at night
+        materials: (() => {
+          const m = {
+            white:    { fix: 'white', surface: 'concrete', strength: 0.04 },
+            grey:     { fix: 'grey',  surface: 'concrete', strength: 0.04 },
+            blue:     { fix: 'blue',  surface: 'concrete', strength: 0.04 },
+            band:     { fix: 'band',  surface: 'concrete', strength: 0.04 },
+            roof:     { fix: 'roof',  surface: 'concrete', strength: 0.04 },
+            slab:     { fix: 'dark',  night: '#1c252d' },
+            frame:    { fix: 'dark',  night: '#242b30' },
+            bulkhead: { fix: 'roof',  night: '#3a3d3d' },
+            unit:     { fix: 'roof',  night: '#3a3d3d' },
+            sign:     { fix: 'dark',  surface: 'glass', strength: 0, night: '#fff0d4' },
+          };
+          for (let i = 0; i < 16; i++) m['glass_' + i] = { fix: 'glass', surface: 'glass', lit: true };
+          return m;
+        })(),
+        litFix: {
+          shade: { white: [0.78, 0.77, 0.80], grey: [0.52, 0.56, 0.58], blue: [0.04, 0.24, 0.37], band: [1, 1, 1], roof: [1, 1, 1], dark: [1, 1, 1], glass: [1, 1, 1] },
+          sun:   { white: [0.99, 0.97, 0.97], grey: [0.93, 0.94, 0.90], blue: [0.79, 0.81, 0.82], band: [0.91, 0.88, 0.90], roof: [0.98, 0.98, 0.96], dark: [1, 1, 1], glass: [1, 1, 1] },
+        } },
     ],
 
     // ── How each Blender material is drawn ────────────────────────────────
