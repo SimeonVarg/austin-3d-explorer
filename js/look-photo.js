@@ -33,7 +33,7 @@
   const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   // One leaf tone at three hours: the day tone as measured, the same leaf in a low warm sun, and the night tone,
   // which is today's (js/campus-landscape.js leaf table: dark and a touch green, so it neither glows nor goes black).
-  const NIGHT_LEAF = ['#10201a', '#13221a', '#101d18', '#17251c'];
+  const NIGHT_LEAF = ['#2a4a32', '#2e5036', '#264630', '#35563c'];   // round 2 used today's (#10201a ...) and the crowns went black at night: these are the top ring, the lower rings take 0.28 to 1 of it
   const LEAF_GAIN = 0.84;   // all day leaf tones below x this: round 1 rendered canopy median (103,117,61) against the photograph's (57,65,38)
   const leaf = (day, i) => {
     const c = rgb(day).map(v => v * LEAF_GAIN);
@@ -58,13 +58,6 @@
         ground: '#8f8466', park: '#7d8a50',
         road: '#5e5a58', roadCasing: '#48433f',
       },
-    },
-
-    // ── js/timeofday.js ROUTES: the day-side horizon (keys p 0 and 0.25) ──
-    // The sky near the horizon                       photo (170,195,212) to (174,204,228)   app (203,223,236)
-    routes: {
-      horizon: ['#b4cadb', '#b9ccdc'],
-      fog: ['#b4cadb', '#b9ccdc'],
     },
 
     // ── js/ground.js SURF (day and golden only) ─────────────────────────
@@ -94,7 +87,7 @@
       species: ['other', 'liveoak', 'oak', 'elm', 'pecan', 'crape', 'magnolia', 'cedar', 'cypress', 'pine', 'palm'],   // the order of scripts/bake_look_trees.py SPECIES
       speciesGroup: { other: 'mid', liveoak: 'dark', oak: 'dark', elm: 'mid', pecan: 'mid', crape: 'light', magnolia: 'dark', cedar: 'dark', cypress: 'dark', pine: 'dark', palm: 'light' },
       // Widest tier of the old stack -> the crown's radius, by species.
-      spread: { other: 1.2, liveoak: 1.3, oak: 1.25, elm: 1.18, pecan: 1.2, crape: 1.1, magnolia: 1.15, cedar: 1.0, cypress: 0.9, pine: 0.9, palm: 0.85 },   // denser: crowns meet, as in the photographs
+      spread: { other: 1.1, liveoak: 1.15, oak: 1.12, elm: 1.08, pecan: 1.1, crape: 1.0, magnolia: 1.05, cedar: 0.95, cypress: 0.9, pine: 0.9, palm: 0.85 },   // a little wider than the old stack (round 2 at 1.2 to 1.3 read as hedges)
       radiusJitter: 0.08,       // each crown this much wider or narrower
       valueJitter: 0.10,        // each crown this much lighter or darker
       minCrownShare: 0.45,      // a crown takes at least this share of the tree's height
