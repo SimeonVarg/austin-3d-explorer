@@ -492,3 +492,33 @@ options for material aesthetic choices; agents own ordinary omissions and
 engineering decisions. The immediate request is photo access, coordination with
 the main lane, and a staged plan; this record does not claim photos were obtained
 or a building pass completed.
+
+## Whole-photo pipeline correction — October 11, 2026
+
+Direct GPT visual-building passes are stopped at the owner's request. The next
+work is a low-cost Haiku/Sonnet photo implementation pipeline and a different
+critique system. GPT may support the main lane when delegated. Do not interpret
+the merged rooftop pass as acceptance of the requested whole-scene result.
+
+Every imported photo must remain accounted for. Inventory the entire image,
+including background and missing apartments, campus buildings, ground levels,
+paths, vegetation, entrances, roof structures, furniture and decorations.
+A main-subject-only photo record is a search lead, not completed coverage. Never
+exclude ground, planting or other scene components from a whole-scene critique.
+Prefer multiple useful angles and close references; record each image's actual
+contribution, redundancy or unresolved content instead of silently choosing a
+few. Unknown identity or occluded geometry remains explicit work.
+
+The critic receives source images and candidate renders without the builder's
+self-score or success narrative. Freeze the object/feature list, compare each
+region, and independently search for omissions from that list. Show complete
+before/after views and close details. An improved foreground building cannot
+cancel an omitted campus or distant skyline. Cataloged, observed, linked,
+built, rendered and visually accepted are distinct states.
+
+Reuse the existing photo library and tools. Test readers on a small blind
+answer key before bulk spending. Meter actual token usage and all preparation,
+building and review costs; distinguish API credit from subscription allowance.
+Keep an explicit run cap and stop after repeated no-gain attempts. Preserve
+successful changes, retain unresolved work, and never relabel a budget stop as
+completion. Unrelated repairs must not consume the photo job's budget.
