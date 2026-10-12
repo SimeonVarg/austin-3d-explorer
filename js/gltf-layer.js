@@ -56,7 +56,8 @@
     // `surface` is one of the city's own material classes (APARTMENTS.materials: stone, brick, concrete, glass, ...).
     // `strength` overrides that class's strength (the 4th number). `day` / `night` replace the colour read from the
     // file (hex); without them the day colour is the file's own and the night colour comes from the ramp below.
-    // A material not listed is drawn as a plain flat colour from the file.
+    // A material not listed is drawn as a plain flat colour from the file. The glass keeps the file's own dark colour: the city's glass
+    // class mirrors the city's sky over it (the colour under it hardly shows: a lighter stand-in changed the picture by 1 grey level).
     materials: {
       white:        { surface: 'concrete', strength: 0.04 },
       white_joint:  { surface: 'concrete', strength: 0.04 },
@@ -65,11 +66,11 @@
       south_greige: { surface: 'concrete', strength: 0.04 },
       podium_panel: { surface: 'concrete', strength: 0.04 },
       brick:        { surface: 'brick', strength: 0.35 },
-      glass:        { surface: 'glass', day: '#2c4c57', night: '#101823', lit: true },
-      glass_b:      { surface: 'glass', day: '#23424d', night: '#101823', lit: true },
-      glass_rail:   { surface: 'glass', day: '#2c4c57', night: '#101823' },
-      glass_rail_c: { surface: 'glass', day: '#2c4c57', night: '#101823' },
-      glass_south:  { surface: 'glass', day: '#2b4a55', night: '#101823' },
+      glass:        { surface: 'glass', night: '#101823', lit: true },
+      glass_b:      { surface: 'glass', night: '#101823', lit: true },
+      glass_rail:   { surface: 'glass', night: '#101823' },
+      glass_rail_c: { surface: 'glass', night: '#101823' },
+      glass_south:  { surface: 'glass', night: '#101823' },
     },
     // ── Night windows ─────────────────────────────────────────────────────
     // A recipe lights rooms pane by pane (its `night.occupancy`). A Blender model has no rooms, so a material marked

@@ -139,8 +139,8 @@
     } finally { clearTimeout(timer); }
   }
 
-  let _root = null, _loading = null, _parsed = null;
-  async function load(S) {
+  let _loading = null, _parsed = null;
+  async function load() {
     if (_parsed) return _parsed;
     const t0 = performance.now();
     _parsed = await Promise.all(GLTF.buildings.map(async row => {
@@ -157,7 +157,7 @@
     const want = !!(window.SLOPES && window.SLOPES.on && GLTF.on);
     if (want && !GLTF.group && _parsed) {
       const g = new window.THREE.Group(); g.name = 'gltf-layer';
-      info.triangles = info.vertices = info.drawCalls = info.litTriangles = 0; info.loaded = [];
+      info.triangles = info.vertices = info.drawCalls = info.litTriangles = info.buildMs = 0; info.loaded = [];
       for (const p of _parsed) {
         if (!p) continue;
         try {
@@ -168,7 +168,7 @@
       // The group of groups carries no tier of its own: each building's group has its own userData.lod / minzoom.
       GLTF.group = g; S.add(g);
       console.log('[gltf-layer]', info.loaded.join(', ') || 'nothing', '—', info.triangles, 'triangles,', info.drawCalls, 'draw call(s),', info.bytes, 'bytes,', info.ms, 'ms to fetch');
-    } else if (!want && GLTF.group) { S.remove(GLTF.group); GLTF.group = null; }
+    } else if (!want && GLTF.group) { S.remove(GLTF.group); GLTF.group.traverse(o => { if (o.geometry) o.geometry.dispose(); }); GLTF.group = null; }
     GLTF.ready = !!GLTF.group;
   }
 
@@ -176,7 +176,7 @@
     const map = window.__map, S = window.slopes;
     if (!map || !S || !S.root || !window.THREE || !S.material || !S.build) return false;
     if (!_loading) {
-      _loading = load(S).then(() => {
+      _loading = load().then(() => {
         S.onSwitch(() => attach(S));
         attach(S);
         if (map.triggerRepaint) map.triggerRepaint();
