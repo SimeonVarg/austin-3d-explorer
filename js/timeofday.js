@@ -103,6 +103,12 @@
     },
   };
 
+  // ?look=photo (js/look-photo.js): the day and golden palettes' canopy, ground, park and road toward the
+  // photographs. Night is left as it is. Every value is in that file, with the measurement beside it.
+  if (window.LOOK_PHOTO && window.LOOK_PHOTO.on) {
+    for (const k of ['day', 'golden']) Object.assign(PRESETS[k], window.LOOK_PHOTO.presets[k] || {});
+  }
+
   // ── Colour lerp helpers ───────────────────────────────────────────
   function hexToRgb(hex) {
     const h = hex.replace('#', '');
@@ -157,6 +163,11 @@
     ],
     skyBlend: [[0.00, 0.72], [0.40, 0.80], [0.50, 0.86], [0.72, 0.70], [1.00, 0.60]],
   };
+  // ?look=photo: the day-side horizon colours (the first two keys of the horizon and fog routes), js/look-photo.js `routes`.
+  if (window.LOOK_PHOTO && window.LOOK_PHOTO.on && window.LOOK_PHOTO.routes) {
+    const R = window.LOOK_PHOTO.routes;
+    for (const k of Object.keys(R)) R[k].forEach((c, i) => { ROUTES[k][i][1] = c; });
+  }
   function duskAt(keys, p) {
     if (p <= keys[0][0]) return keys[0][1];
     for (let i = 1; i < keys.length; i++) {

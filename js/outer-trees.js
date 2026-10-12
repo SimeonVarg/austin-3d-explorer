@@ -106,6 +106,12 @@
     fetchAfterMs: 90000,
   };
   window.OUTER_TREES = OUTER_TREES;
+  // ?look=photo (js/look-photo.js): the crown's colours and shape toward the photographs. Nothing here changes without it.
+  const LOOK = window.LOOK_PHOTO || { on: false };
+  if (LOOK.on) {
+    Object.assign(OUTER_TREES.campus, LOOK.outerTrees.campus);
+    Object.assign(OUTER_TREES, LOOK.outerTrees.top);
+  }
   (function phoneGate() {
     const L = window.LITE_PROFILE;
     if (!L || !L.on) return;
@@ -115,7 +121,7 @@
   })();
 
   const count = { done: false, trees: 0, built: 0, chunks: 0, near: 0, far: 0, horizon: 0, drawn: 0, triangles: 0, bytes: 0, gpuBytes: 0, ms: 0, error: null };
-  let _map = null, _data = null, _group = null, _mat = null, _lastKey = null;
+  let _map = null, _data = null, _look = null, _group = null, _mat = null, _lastKey = null;
 
   // ── the file ────────────────────────────────────────────────────────────
   //
@@ -148,6 +154,20 @@
     d.cells = new Uint8Array(buf, 68);
     if (d.cells.length * 2 !== d.rows * d.cols) throw new Error('outer_trees.bin: ' + d.cells.length + ' bytes for ' + d.rows + ' x ' + d.cols + ' cells');
     return d;
+  }
+  // data/look_trees.bin (scripts/bake_look_trees.py has the layout): one record a street or park tree.
+  function decodeLook(buf) {
+    const dv = new DataView(buf);
+    if (String.fromCharCode(dv.getUint8(0), dv.getUint8(1), dv.getUint8(2), dv.getUint8(3)) !== 'LKT1') throw new Error('look_trees.bin: bad magic');
+    const n = dv.getUint32(4, true), lon0 = dv.getInt32(8, true) / 1e6, lat0 = dv.getInt32(12, true) / 1e6, Q = 1e5;
+    const r = { n, lon: new Float64Array(n), lat: new Float64Array(n), radius: new Float32Array(n), base: new Float32Array(n), top: new Float32Array(n),
+      species: new Uint8Array(n), j: new Float32Array(n), d: new Float32Array(n) };
+    for (let i = 0, o = 16; i < n; i++, o += 10) {
+      r.lon[i] = lon0 + dv.getUint16(o, true) / Q; r.lat[i] = lat0 + dv.getUint16(o + 2, true) / Q;
+      r.radius[i] = dv.getUint8(o + 4) / 10; r.base[i] = dv.getUint8(o + 5) / 4; r.top[i] = dv.getUint8(o + 6) / 4;
+      r.species[i] = dv.getUint8(o + 7); r.j[i] = dv.getUint8(o + 8) / 255; r.d[i] = dv.getUint8(o + 9) / 255;
+    }
+    return r;
   }
   const level = (d, i) => (i & 1) ? (d.cells[i >> 1] & 15) : (d.cells[i >> 1] >> 4);
 
@@ -385,6 +405,37 @@
     // the order inside a chunk: the horizon trees, then the rest of the far trees, then all the others; each a
     // stable shuffle. So every template draws a PREFIX of one buffer, and so does a density below 1.
     const tier = i => { const h = hash(i, 1); return h < H.horizonShare ? 0 : h < H.farShare ? 1 : 2; };
+    // One chunk's meshes from its instance buffers (the grid's trees and, with ?look=photo, the recorded ones).
+    const emit = (inst, sd, cd, cg, cn, m, nFar, nHor, nearOK, sx, sy, top) => {
+      const cx = sx / m, cy = sy / m;
+      let rad = 0;
+      for (let j = 0; j < m; j++) rad = Math.max(rad, Math.hypot(inst[j * 4] - cx, inst[j * 4 + 1] - cy) + inst[j * 4 + 2] * H.horizonScale * 1.3);
+      const iA = new T.InstancedBufferAttribute(inst, 4), iS = new T.InstancedBufferAttribute(sd, 2);
+      const iD = new T.InstancedBufferAttribute(cd, 3, true), iG = new T.InstancedBufferAttribute(cg, 3, true), iN = new T.InstancedBufferAttribute(cn, 3, true);
+      gpu += inst.byteLength + sd.byteLength + cd.byteLength * 3; built += m;
+      const sphere = new T.Sphere(new T.Vector3(cx, cy, top / 2), Math.hypot(rad, top / 2));
+      const mk = (which, n) => {
+        const geom = new T.InstancedBufferGeometry();
+        geom.setAttribute('position', A[which].position);
+        geom.setAttribute('uv', A[which].uv);
+        geom.setAttribute('normal', A[which].normal);
+        geom.setAttribute('aFacet', A[which].nz);
+        geom.setIndex(A[which].index);
+        geom.setAttribute('aSurface', iA); geom.setAttribute('aGrad', iS);
+        geom.setAttribute('cDay', iD); geom.setAttribute('cGold', iG); geom.setAttribute('cNight', iN);
+        geom.instanceCount = n;
+        geom.boundingSphere = sphere;
+        const mesh = new T.Mesh(geom, _mat);
+        mesh.name = 'trees-' + which;
+        mesh.userData = { total: n, centre: [cx, cy], radius: rad, which, triangles: A[which].triangles };
+        mesh.layers.set(1);            // not in the sun-shadow pass: js/outer-homes.js has the reason
+        mesh.visible = false;
+        g.add(mesh);
+        return mesh;
+      };
+      const set = { near: nearOK ? mk('near', m) : null, far: mk('far', nFar), horizon: mk('horizon', nHor) };
+      set.far.userData.set = set;       // the far mesh is the chunk's handle
+    };
     for (const list of chunks.values()) {
       list.sort((a, b) => tier(a) - tier(b) || hash(a, 2) - hash(b, 2));
       let nHor = 0, nFar = 0;
@@ -420,38 +471,53 @@
         for (let ch = 0; ch < 3; ch++) { cd[j * 3 + ch] = cols[0][ch]; cg[j * 3 + ch] = cols[1][ch]; cn[j * 3 + ch] = cols[2][ch]; }
         sx += p[0]; sy += p[1]; top = Math.max(top, Ht);
       }
-      const cx = sx / m, cy = sy / m;
-      let rad = 0;
-      for (let j = 0; j < m; j++) rad = Math.max(rad, Math.hypot(inst[j * 4] - cx, inst[j * 4 + 1] - cy) + inst[j * 4 + 2] * H.horizonScale * 1.3);
-      const iA = new T.InstancedBufferAttribute(inst, 4), iS = new T.InstancedBufferAttribute(sd, 2);
-      const iD = new T.InstancedBufferAttribute(cd, 3, true), iG = new T.InstancedBufferAttribute(cg, 3, true), iN = new T.InstancedBufferAttribute(cn, 3, true);
-      gpu += inst.byteLength + sd.byteLength + cd.byteLength * 3; built += m;
-      const sphere = new T.Sphere(new T.Vector3(cx, cy, top / 2), Math.hypot(rad, top / 2));
-      const mk = (which, n) => {
-        const geom = new T.InstancedBufferGeometry();
-        geom.setAttribute('position', A[which].position);
-        geom.setAttribute('uv', A[which].uv);
-        geom.setAttribute('normal', A[which].normal);
-        geom.setAttribute('aFacet', A[which].nz);
-        geom.setIndex(A[which].index);
-        geom.setAttribute('aSurface', iA); geom.setAttribute('aGrad', iS);
-        geom.setAttribute('cDay', iD); geom.setAttribute('cGold', iG); geom.setAttribute('cNight', iN);
-        geom.instanceCount = n;
-        geom.boundingSphere = sphere;
-        const mesh = new T.Mesh(geom, _mat);
-        mesh.name = 'trees-' + which;
-        mesh.userData = { total: n, centre: [cx, cy], radius: rad, which, triangles: A[which].triangles };
-        mesh.layers.set(1);            // not in the sun-shadow pass: js/outer-homes.js has the reason
-        mesh.visible = false;
-        g.add(mesh);
-        return mesh;
-      };
-      const set = { near: nearOK ? mk('near', m) : null, far: mk('far', nFar), horizon: mk('horizon', nHor) };
-      set.far.userData.set = set;       // the far mesh is the chunk's handle
+      emit(inst, sd, cd, cg, cn, m, nFar, nHor, nearOK, sx, sy, top);
+    }
+    // ?look=photo: the street and park trees, one recorded crown each (data/look_trees.bin, scripts/bake_look_trees.py).
+    // They stand where the stacked octagons of data/trees.geojson stand, and take their height, width and base from them.
+    let recorded = 0, recordedChunks = 0;
+    if (_look && LOOK.on) {
+      const L = LOOK.trees, rec = _look, by = new Map();
+      const px = new Float32Array(rec.n), py = new Float32Array(rec.n);
+      for (let i = 0; i < rec.n; i++) {
+        const p = S.toLocal(rec.lon[i], rec.lat[i], 0);
+        px[i] = p.x; py[i] = p.y;
+        const key = Math.floor(p.x / H.chunk) * 4096 + Math.floor(p.y / H.chunk) + 8192 * 4096;
+        let list = by.get(key);
+        if (!list) by.set(key, list = []);
+        list.push(i);
+      }
+      const groups = L.groups, groupOf = sp => L.speciesGroup[sp] || L.speciesGroup.other;
+      const tones = {};
+      for (const k in groups) tones[k] = groups[k].map(t => t.map(hex3));
+      for (const list of by.values()) {
+        // the smallest keep-order first, as GFX.treeDensity keeps trees: the first sixteenth are the horizon trees, the first
+        // quarter the far ones, and a density below 1 draws a prefix of the rest
+        list.sort((a, b) => rec.d[a] - rec.d[b] || a - b);
+        const m = H.phoneShare == null ? list.length : Math.max(1, Math.min(list.length, Math.ceil(list.length * H.phoneShare)));
+        const nearOK = H.phoneShare == null || H.phoneShare > H.farShare;
+        const nHor = Math.max(1, Math.min(m, Math.ceil(m * H.horizonShare))), nFar = Math.max(1, Math.min(m, Math.ceil(m * H.farShare)));
+        const inst = new Float32Array(m * 4), sd = new Float32Array(m * 2), cd = new Uint8Array(m * 3), cg = new Uint8Array(m * 3), cn = new Uint8Array(m * 3);
+        let sx = 0, sy = 0, top = 0;
+        for (let j = 0; j < m; j++) {
+          const i = list[j], sp = L.species[rec.species[i]] || 'other', Ht = Math.max(2, rec.top[i]);
+          const span = Math.max(1, Ht - rec.base[i]);
+          const R = Math.max(0.8, rec.radius[i] * (L.spread[sp] || L.spread.other) * (1 + (hash(i, 15) - 0.5) * 2 * L.radiusJitter));
+          const tone = tones[groupOf(sp)], pick = tone[Math.min(tone.length - 1, Math.floor(rec.j[i] * tone.length))];
+          // a small lean lighter or darker, by the tree's own number (the crown's rings carry the sun-to-shade ramp)
+          const lean = 1 + (hash(i, 16) - 0.5) * 2 * L.valueJitter;
+          inst[j * 4] = px[i]; inst[j * 4 + 1] = py[i]; inst[j * 4 + 2] = R; inst[j * 4 + 3] = Ht;
+          sd[j * 2] = hash(i, 8) * Math.PI * 2; sd[j * 2 + 1] = Math.max(L.minCrownShare, Math.min(0.97, span / Ht));
+          for (let ch = 0; ch < 3; ch++) { cd[j * 3 + ch] = Math.min(255, pick[0][ch] * lean); cg[j * 3 + ch] = Math.min(255, pick[1][ch] * lean); cn[j * 3 + ch] = pick[2][ch]; }
+          sx += px[i]; sy += py[i]; top = Math.max(top, Ht);
+        }
+        emit(inst, sd, cd, cg, cn, m, nFar, nHor, nearOK, sx, sy, top);
+        recorded += m; recordedChunks++;
+      }
     }
     count.gpuBytes = gpu; count.built = built;
     if (S.camera && S.camera.layers) S.camera.layers.enable(1);
-    count.trees = trees; count.chunks = chunks.size; count.ms = +(performance.now() - t0).toFixed(1);
+    count.trees = trees; count.recorded = recorded; count.chunks = chunks.size + recordedChunks; count.ms = +(performance.now() - t0).toFixed(1);
     count.nearTriangles = tpl.near.triangles; count.farTriangles = tpl.far.triangles;
     return g;
   }
@@ -522,9 +588,23 @@
       OUTER_TREES.on = false;
       return;
     }
+    hideTiles(map, !!(_group && count.recorded));
     update(true);
     map.triggerRepaint();
   };
+
+  // ?look=photo: while the recorded crowns are drawn, the stacked octagons of the same trees are not (kind filter
+  // in js/app.js treeFilter, which js/campus-landscape.js also wraps; both keep working).
+  let _tilesHidden = false, _baseFilter = null;
+  function hideTiles(map, hide) {
+    if (hide === _tilesHidden || !window.treeFilter) return;
+    if (hide && !_baseFilter) {
+      _baseFilter = window.treeFilter;
+      window.treeFilter = function (kind) { return _tilesHidden ? ['==', ['get', 'kind'], 'recorded-crowns-drawn-instead'] : _baseFilter(kind); };
+    }
+    _tilesHidden = hide;
+    if (typeof window.applyTreeDensity === 'function') window.applyTreeDensity(map);
+  }
 
   window.outerTrees = {
     stats() { return { ...count, group: !!_group }; },
@@ -551,6 +631,10 @@
       console.warn('[outer-trees]', count.error, '- trees not drawn');
       count.done = true;
       return true;
+    }
+    if (LOOK.on && LOOK.trees.crowns && !OUTER_TREES.phoneShare) {
+      try { const lb = await fetchBin(LOOK.trees.url); count.lookBytes = lb.byteLength; _look = decodeLook(lb); }
+      catch (e) { console.warn('[outer-trees] look crowns:', String(e && e.message || e), '- the stacked trees stay'); }
     }
     S.onSwitch(() => window.applyOuterTrees(map));
     const orig = window.applySlopesSettings;
