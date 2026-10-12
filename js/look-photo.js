@@ -49,7 +49,7 @@
     presets: {
       day: {
         canopy: '#3e4a2c', canopyLo: '#5f6a42', canopyHi: '#2a3320',
-        ground: '#8f9279',      // beige haze ground between trees and at the horizon   photo ~(110,118,100)  app (178,168,152)
+        ground: '#7c7f66',      // beige haze ground between trees and at the horizon   photo ~(110,118,100)  app (178,168,152)
         park: '#7f9a5c',        // lawn
         road: '#5a5e66', roadCasing: '#44474e',
       },
@@ -91,10 +91,10 @@
       // SIZE. A live oak crown here is 8 to 14 m across; the old stack's widest tier reached 20 m, which drew as slabs filling a
       // quarter of a near frame. A crown wider than capRadius is split into a cluster of 2 to clusterMax smaller crowns that
       // keep its area (n x r^2 ~ R^2 x clusterOverlap^2), stood on a ring and a little lower, so there are lit tops and dark gaps.
-      capRadius: 6.0,           // metres, 12 m across
-      clusterMax: 4, clusterFill: 1.3, clusterOverlap: 1.12, clusterRing: 0.75, clusterDrop: 0.18,
+      capRadius: 6.5,           // metres, 13 m across
+      clusterMax: 5, clusterFill: 1.0, clusterOverlap: 1.22, clusterRing: 0.75, clusterDrop: 0.18,
       chunk: 160,               // metres; the finer crown is chosen per chunk
-      closeMetres: 220,         // chunks nearer than this draw the finer crown (outerTrees.campus.closeSegments x closeRings)
+      closeMetres: 350,         // chunks nearer than this draw the finer crown (outerTrees.campus.closeSegments x closeRings)
       radiusJitter: 0.08,       // each crown this much wider or narrower
       valueJitter: 0.10,        // each crown this much lighter or darker
       minCrownShare: 0.45,      // a crown takes at least this share of the tree's height
