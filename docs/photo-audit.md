@@ -157,9 +157,27 @@ capitals or mixed case). Zoom the render on every sign before you call a
 building done. `scripts/verify/sign-lettering.mjs` fails a recipe with new dot
 lettering.
 
+**9c. A thing on a roof or a deck is built as what it is.** Name every distinct
+thing you can see up there: cars, a ball court, a pool, a pergola, cooling
+units, a stair head. Build each as that thing, simple but recognisable: a car
+has a body, a cabin and wheels, never a plain box; a ball court has its lines,
+its cage and its hoops. Count them, and say which you could not name.
+
+**9d. Repeated parts keep their own measured size.** Measure each kind of
+repeated part through the camera (a window, a balcony, a bay): width, height,
+and the gap to the next one, as ratios of the bay. Do not give every balcony one
+standard length. A window never touches the window above it unless the
+photograph shows that. A closed window is dark glass or a blind, never a blank
+patch of the wall's own white.
+
+**9e. Upright things are upright.** Towers, piers and stair cores are vertical
+and parallel to each other in the model unless the photograph proves a lean.
+Two towers that splay apart are a camera or placement error, not a design.
+
 **10. Could not see it.** A part hidden by a tree or outside the frame is
 NOT KNOWN. Say so. Build it from the visible pattern and label it INFERRED. Do
-not skip the row.
+not skip the row. Leave it plain and say so: do not invent a ground storey, an entrance or a
+planting bed that no photograph shows.
 
 ## After the table
 
@@ -242,3 +260,18 @@ made or sharpened.
   did not prove that it showed the same table, nor the one ornament, and a
   corrected outline still left out most of its inner pattern: the whole-picture
   audit stays required.
+- 2026-10-12. The owner compared three models' builds of one five-part
+  apartment complex, each made in Blender from the same site photograph, in a
+  spoken review. What he marked, by class: one build drew roof cars as plain
+  boxes and a ball court as "a little deck-looking thing" while another drew
+  the court with its hoops ("I really wish it would do a better job at
+  inferencing stuff like the basketball court and cars looking like cars
+  instead of blocks"): check 9c. Balconies "too long" in one and "just right"
+  in another, windows that "touch the other windows up and down completely",
+  and windows "completely covered by the wall ... a white shouldn't be what's
+  represented with a closed window": check 9d. "Two vertical towers that kind
+  of go off in different angles": check 9e. One build invented what stood at
+  the hidden bottom and one "did a better job of just leaving what's at the
+  bottom": the sharper end of check 10. He also named the look he wants: clean
+  and a little minimal, "the diorama feature", with true detail welcome where
+  it is accurate.
