@@ -1,8 +1,8 @@
 # Blender-built buildings in the city (`js/gltf-layer.js`)
 
 **Status: a trial, OFF by default.** `?gltf=1` turns it on. With the switch off the page loads one small file,
-`js/gltf-layer.js` (3.4 KB gzipped: the table, the taste values and two functions), and nothing else changes. With it on the
-page also fetches `js/gltf-layer-draw.js` (4.3 KB gzipped: the loader and the mesh code) and the `.glb`.
+`js/gltf-layer.js` (5.8 KB gzipped: the table, the taste values and two functions), and nothing else changes. With it on the
+page also fetches `js/gltf-layer-draw.js` (11.3 KB gzipped: the loader, the wall maps, the night rooms and the mesh code) and the `.glb` (41 KB gzipped).
 
 ## What it is
 

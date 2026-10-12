@@ -105,9 +105,9 @@
     // The colours in the file are what a lit photograph shows, and the app lights them again with its own sun and grade. So each class
     // of material (its `fix` above) gets a gain per colour channel, one for faces the sun reaches at the photograph's hour and one for
     // faces it does not, found by rendering the app from the photograph's camera and dividing the photograph's colour by the app's
-    // (js/look-photo.js does the same for trees and roads). Measured numbers are in the pull request and RESULT-R2.md. The gain is
+    // (js/look-photo.js does the same for trees and roads). Measured numbers are in the pull request. The gain is
     // applied to the day colour and to the golden colour made from it; night colours are the table's own.
-    photoHour: 0.315,                // the app's time of day (0..1) whose sun has the photograph's height (51 degrees)
+    photoHour: 0.315,                // the app's time of day (0..1) whose sun matches the site photograph's light
     sunThreshold: 0.15,              // a face is sunlit when its normal dotted with the sun's direction is above this
     litFix: {
       shade: { slab: [1.22, 1.30, 1.36], panel: [1.08, 1.20, 1.38], wall: [1, 1, 1], dark: [1.31, 1.51, 1.58], brick: [1, 1, 1], glass: [1, 1, 1] },
