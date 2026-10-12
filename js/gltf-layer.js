@@ -38,7 +38,9 @@
 
     // ── THE TABLE: one row per building ───────────────────────────────────
     //   file       the .glb, metres, local origin at the ground, X along the street face, Y into the building
-    //   lng, lat   where that origin stands (the middle of the slab's lettering, on the slab's street face)
+    //   lng, lat   where that origin stands (the middle of the slab's lettering, on the slab's street face). Fitted to the surveyed
+    //              footprint (the map outline, which the 2021 laser scan agrees with): the model's podium is centred on the outline's
+    //              extent along the street face. The recipe's slab would put it 6.35 m south of that (lng -97.7442748, lat 30.2881180).
     //   groundM    height of the origin above the city's ground plane (the recipes all stand on 0). 1.74 is a CHOICE: the
     //              model's own ground level is inferred and its height scale is good to about 5 % (4.7 m on this tower).
     //              Set 0 for the model's own inferred ground (docs/gltf-layer.md, "Placement").
@@ -48,8 +50,16 @@
     //   replaces   the id of the recipe whose drawing this takes over (data/apartments/yugo-austin-waterloo.json)
     buildings: [
       { name: 'Yugo Austin Waterloo', file: 'data/gltf/waterloo.glb',
-        lng: -97.7442748, lat: 30.2881180, groundM: 1.74, headingDeg: 95, topM: 104.02,
-        replaces: '57d4d01d-0a57-4b46-b2a8-02fcaf77f81a' },
+        lng: -97.7442690, lat: 30.2881748, groundM: 1.74, headingDeg: 95, topM: 104.02,
+        replaces: '57d4d01d-0a57-4b46-b2a8-02fcaf77f81a',
+        // The night profile the city's night rules read for this building (the recipe's own `night`): the share of rooms lit and the
+        // lamps. Lamp positions are in the MODEL frame (x along the street face, y into the building, z up from the model's ground), the
+        // recipe's four downlights moved onto this model's terrace, sign and entry: sign wash, two terrace lamps, entry canopy.
+        night: { occupancy: 0.23, unitBays: 1, fixtures: [
+          { position: [0, -0.45, 100.85], colour: '#ffe6bd', radius: 5, power: 0.45 },
+          { position: [10.7, 9.7, 92.64], colour: '#ffe6b8', radius: 5, power: 0.25 },
+          { position: [10.7, 22.7, 92.64], colour: '#ffe6b8', radius: 5, power: 0.25 },
+          { position: [13.7, 29.0, 4.7], colour: '#ffdb9e', radius: 5, power: 0.4 } ] } },
     ],
 
     // ── How each Blender material is drawn ────────────────────────────────
@@ -59,30 +69,73 @@
     // A material not listed is drawn as a plain flat colour from the file. The glass keeps the file's own dark colour: the city's glass
     // class mirrors the city's sky over it (the colour under it hardly shows: a lighter stand-in changed the picture by 1 grey level).
     materials: {
-      white:        { surface: 'concrete', strength: 0.04 },
-      white_joint:  { surface: 'concrete', strength: 0.04 },
-      white_panel:  { surface: 'concrete', strength: 0.04 },
-      south_white:  { surface: 'concrete', strength: 0.04 },
-      south_greige: { surface: 'concrete', strength: 0.04 },
-      podium_panel: { surface: 'concrete', strength: 0.04 },
-      brick:        { surface: 'brick', strength: 0.35 },
-      glass:        { surface: 'glass', night: '#101823', lit: true },
-      glass_b:      { surface: 'glass', night: '#101823', lit: true },
-      glass_rail:   { surface: 'glass', night: '#101823' },
-      glass_rail_c: { surface: 'glass', night: '#101823' },
-      glass_south:  { surface: 'glass', night: '#101823' },
+      white:        { fix: 'slab', surface: 'concrete', strength: 0.04, night: '#85847c' },   // the blade: the recipe's `cream` night tone
+      white_joint:  { fix: 'slab', surface: 'concrete', strength: 0.04, night: '#6f6e68' },
+      white_panel:  { fix: 'panel', surface: 'concrete', strength: 0.04, night: '#62696c' },   // the recipe's `charPanel`
+      south_white:  { fix: 'wall', surface: 'concrete', strength: 0.04, night: '#85847c' },
+      south_greige: { fix: 'wall', surface: 'concrete', strength: 0.04, night: '#61676b' },   // `greige`
+      podium_panel: { fix: 'panel', surface: 'concrete', strength: 0.04, night: '#737777' },   // `brickLight`
+      brick:        { fix: 'brick', surface: 'brick', strength: 0.35, night: '#272830' },      // `brick`
+      charcoal:     { fix: 'dark', night: '#2a3138' },                                        // `charcoal`
+      black:        { fix: 'dark', night: '#1c252d' },                                        // `frameDark`
+      midgrey:      { fix: 'dark', night: '#363a3a' },                                        // the blade's slots: `slot`
+      duct:         { fix: 'dark', night: '#323d47' },                                        // `metal`
+      penthouse:    { fix: 'dark', night: '#323d47' },
+      // The sign: the recipe's lit lettering. A glass surface of strength 0 is how the recipe's `signFace` is drawn: no mirror, and the
+      // city's night rules light it with its night tone.
+      letters:      { fix: 'dark', surface: 'glass', strength: 0, night: '#fff0d4' },
+      // Windows are lit room by room (below). The tone of a dark pane is the city's own (CityNight.tune.unlitGlass); the crown and rails
+      // use the recipe's `crownGlass` night tone.
+      glass:        { fix: 'glass', surface: 'glass', lit: true, day: '#123c7d' },
+      glass_b:      { fix: 'glass', surface: 'glass', lit: true },
+      glass_rail:   { fix: 'glass', surface: 'glass', night: '#122a31' },
+      glass_rail_c: { fix: 'glass', surface: 'glass', night: '#122a31' },
+      glass_south:  { fix: 'glass', surface: 'glass', night: '#122a31' },
     },
     // ── Night windows ─────────────────────────────────────────────────────
-    // A recipe lights rooms pane by pane (its `night.occupancy`). A Blender model has no rooms, so a material marked
-    // `lit: true` above has its panes lit AT RANDOM, the same pane every time (a hash of where the pane is), this
-    // fraction of them, with the recipes' own lit-window tone. 0 = every pane dark at night, as the file says.
-    // ?gltflit=0.4 tries another fraction on any page. Windows are a guess here, not a reading of the building.
+    // A material marked `lit: true` above has its panes lit by the CITY'S OWN night rules, CityNight.room(building, floor, column): the
+    // profile above (occupancy 0.23), the city's tones and brightness, and its dark-pane tone for the rest. The floor comes from the
+    // pane's height (3.05 m storeys from the ground) and the column from its place in its row on its wall. `nightLit` is only the
+    // fallback when the city's night rules are off (?citynight=0): that fraction of panes, by a hash of where the pane is.
+    storeyM: 3.05, storeyOffsetM: 0.25,   // the model's floors: floor = floor((height above its ground + offset) / storey)
     nightLit: (() => { const v = parseFloat(q.get('gltflit')); return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.23; })(),
     litTone: '#eadfc8',      // the recipes' APTS.nightLitTone
+    // ── Day colour under the app's light ──────────────────────────────────────────────────────────────────────
+    // The colours in the file are what a lit photograph shows, and the app lights them again with its own sun and grade. So each class
+    // of material (its `fix` above) gets a gain per colour channel, one for faces the sun reaches at the photograph's hour and one for
+    // faces it does not, found by rendering the app from the photograph's camera and dividing the photograph's colour by the app's
+    // (js/look-photo.js does the same for trees and roads). Measured numbers are in the pull request and RESULT-R2.md. The gain is
+    // applied to the day colour and to the golden colour made from it; night colours are the table's own.
+    photoHour: 0.315,                // the app's time of day (0..1) whose sun has the photograph's height (51 degrees)
+    sunThreshold: 0.15,              // a face is sunlit when its normal dotted with the sun's direction is above this
+    litFix: {
+      shade: { slab: [1.22, 1.30, 1.36], panel: [1.08, 1.20, 1.38], wall: [1, 1, 1], dark: [1.31, 1.51, 1.58], brick: [1, 1, 1], glass: [1, 1, 1] },
+      sun:   { slab: [0.81, 0.84, 0.84], panel: [0.81, 0.84, 0.84], wall: [0.81, 0.84, 0.84], dark: [1, 1, 1], brick: [1, 1, 1], glass: [1, 1, 1] },
+    },
+    glassStrength: 0.38,             // how much sky the glass mirrors (0..1; the city's glass class is 1, the recipe tower's own glass 0.55); null = the city's
     // The day colour's golden-hour and night colours when a material gives none: the same ramp the recipes use
     // (js/slopes-apartments.js ramp(), which copies js/westcampus.js).
     goldMix: 0.16, goldTo: [255, 190, 130],
     nightGain: 0.19, nightTint: [18, 22, 40], nightToward: 0.42,
+
+    // ── Far away: the windows must be steady (CLAUDE.md rule 15) ──────────────────────────────────────────
+    // Panes thinner than a pixel crawl when they are drawn as geometry. The city's cure for its recipe buildings is a texture of each
+    // wall's AREA-AVERAGED colours, minified by the GPU's mip chain, drawn over the wall once a pixel covers more than about 0.3 m
+    // (js/facade-filter.js, js/slopes.js facadeMaterial). This layer builds the same overlay from the model's own quads, painted back
+    // to front: near = the hard panes of the geometry, far = their true area average, in between a fade that never pops. Nothing is
+    // blurred: the texture is only ever sampled where a texel is smaller than a pixel. ?gltffilter=0 turns it off for an A/B.
+    facade: {
+      on: q.get('gltffilter') !== '0',
+      fadeStart: 0.25, fadeEnd: 0.5,           // metres a pixel covers: the overlay starts here and is complete there (the recipes use 0.3 and 0.8; the
+                                               // model's panes are thinner and more of them, so the geometry beneath must be gone by 250 m)
+      nightFadeStart: 0.4, nightFadeEnd: 0.5,  // the hour (0..1) it gives way to the lit-window geometry at night (the recipes' values)
+      texelMetres: 0.25, maxDimension: 256,    // one texel of the wall map, and its largest side in texels
+      supersample: 3,                          // painting resolution: this many cells a texel side
+      anisotropy: 4,
+      minArea: 40, minDetails: 12,             // a wall face gets an overlay if it is this big (m2) and has this many quads on it
+      behind: 0.02, front: 0.4,                // quads this far behind / in front of the face (m) belong to it
+      lift: 0.1,                               // the overlay stands this far (m) in front of the frontmost quad (more than the depth buffer can mix up with it at 1 km)
+    },
 
     // The layer's place in the scene, as the apartments' group has it (js/slopes-apartments.js APTS.lod / minzoom).
     lod: null, minzoom: 14,

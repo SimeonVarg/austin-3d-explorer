@@ -31,7 +31,7 @@ function boot(search) {
   vm.runInContext(src, ctx);
   // the page would now fetch the drawing file named by the table: run it, the way the browser does, but only if it was asked for
   if (scripts.length) { check(scripts.length === 1 && scripts[0] === win.GLTF_LAYER.drawScript && fs.existsSync(path.join(ROOT, scripts[0])), 'the one script it asks for is the drawing file, and it exists', scripts[0]); vm.runInContext(drawSrc, ctx); }
-  return { G: win.GLTF_LAYER, fetched, scripts };
+  return { G: win.GLTF_LAYER, fetched, scripts, win };
 }
 
 console.log('gltf-layer: switch OFF');
@@ -42,7 +42,7 @@ check(typeof off.G.parse === 'undefined', 'no parser, no loader state when off')
 check(off.fetched.length === 0 && off.scripts.length === 0, 'nothing fetched and no script asked for when off');
 
 console.log('gltf-layer: switch ON');
-const on = boot('?gltf=1'); const G = on.G;
+const on = boot('?gltf=1'); const G = on.G, win = on.win;
 check(G.on === true, 'GLTF_LAYER.on is true with ?gltf=1');
 const idx = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/apartments/index.json'), 'utf8'));
 const recipeIds = new Map();
@@ -86,6 +86,32 @@ for (const row of rows) {
   check(refuses(j => { j.nodes[0].translation = [1, 2, 3]; }), 'a file with a node transform is refused');
   check(refuses(j => { j.meshes[0].primitives[0].mode = 1; }), 'a file with a non-triangle primitive is refused');
   check(!refuses(j => { j.asset.generator = 'x'; }), 'a harmless edit of the JSON chunk still parses (the refusals above are real)');
+  // the code that runs in the page with this file: faces, panes, sun sides, colours, the whole building loop (a fake builder counts what it is given)
+  {
+    const I = G.internals, F = G.faces;
+    const plan = F.plan(meshes); check(plan.length >= 10 && plan.every(f => f.details >= G.facade.minDetails && f.s1 > f.s0 && f.z1 > f.z0), 'wall faces are planned (each with enough quads on it)', plan.length + ' faces');
+    const pal = F.palette(meshes), painted = plan.map(f => F.paint(f, pal));
+    check(painted.every(x => x.width * x.height * 4 === x.day.length && x.day.every(v => v >= 0 && v <= 255)), 'every wall map is painted, texel by texel', painted.reduce((n, x) => n + x.width * x.height, 0) + ' texels');
+    const glass = meshes.find(m => m.material === 'glass'), addr = I.paneAddress(glass.pos, glass.idx);
+    check(Math.max(...addr.floor) > 20 && Math.max(...addr.col) > 3 && addr.wall.every(w => typeof w === 'string'), 'every glass pane gets a wall, a floor and a column for the night rules', 'floors 0 to ' + Math.max(...addr.floor) + ', up to ' + (Math.max(...addr.col) + 1) + ' columns');
+    const white = meshes.find(m => m.material === 'white'), sides = I.sunSides(white.pos, white.idx, row.headingDeg);
+    check(sides.some(v => v === 1) && sides.some(v => v === 0), 'the sun reaches some faces of the tower and not others at the photograph\'s hour');
+    for (const m of meshes) for (const side of ['shade', 'sun']) { const c = I.tripleFor(m, side); if (!(c.length === 3 && c.every(h => /^#[0-9a-f]{6}$/.test(h)))) check(false, 'colour triple of ' + m.material); }
+    check(true, 'every material has a valid [day, golden, night] triple on both sides');
+    let tris = 0, bad = 0, groups = 0;
+    const T = { Group: class { constructor() { this.children = []; this.userData = {}; } add(o) { this.children.push(o); groups++; } }, Mesh: class { constructor(g, m) { this.geometry = g; this.material = m; this.userData = {}; } }, DoubleSide: 2, FrontSide: 0, BufferAttribute: class { constructor(a, n) { this.array = a; this.itemSize = n; } }, Vector3: class { constructor(x, y, z) { this.x = x; this.y = y; this.z = z; } } };
+    const S = { toLocal: (lng, lat, z) => ({ x: 0, y: 0, z }), material: () => ({ vertexShader: 'attribute vec2 aGrad;\n v_albedo = cDay;', defaultAttributeValues: {} }),
+      build: () => ({ tri(a, b, c, col) { tris++; if (![a, b, c].every(p => p.length === 3 && p.every(Number.isFinite)) || !(col && col.length === 3 && col.every(h => /^#[0-9a-f]{6}$/.test(h)))) bad++; }, geometry: () => ({ attributes: { position: { count: tris * 3 } }, setAttribute() {} }), get triangles() { return tris; } }) };
+    for (const withNight of [false, true]) {
+      tris = 0; bad = 0;
+      const rooms = []; win.CityNight = withNight ? { tune: { on: true, unlitGlass: '#101823' }, register() {}, registerFixtures(spec, frame) { rooms.push(frame.at(...spec.night.fixtures[0].position)); }, room: (key, floor, col) => ({ lit: (floor * 7 + col * 3) % 4 === 0, nightTone: '#eadfc8' }) } : undefined;
+      win.THREE = T;
+      const b = I.buildBuilding(S, row, meshes);
+      check(tris === 4200 && bad === 0 && b.triangles === 4200, 'the building loop draws all 4,200 triangles with valid vertices and colours' + (withNight ? ' (with the city\'s night rules)' : ' (without them)'), tris + ' triangles, ' + bad + ' bad, ' + b.litTriangles + ' lit');
+      if (withNight) check(rooms.length === 1 && rooms[0].every(Number.isFinite), 'the building\'s lamps are handed to the city\'s night rules in the world frame');
+    }
+    win.THREE = undefined; win.CityNight = undefined;
+  }
   // nothing in the JSON that names a person, a folder or a photograph
   const text = JSON.stringify(json);
   check(!/photo|\.jpg|\.png|users|home|[a-z]:\\|\/[a-z]+\//i.test(text), 'the .glb names no folder, file or photograph');
