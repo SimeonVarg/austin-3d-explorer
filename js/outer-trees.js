@@ -410,7 +410,7 @@
     // stable shuffle. So every template draws a PREFIX of one buffer, and so does a density below 1.
     const tier = i => { const h = hash(i, 1); return h < H.horizonShare ? 0 : h < H.farShare ? 1 : 2; };
     // One chunk's meshes from its instance buffers (the grid's trees and, with ?look=photo, the recorded ones).
-    const emit = (inst, sd, cd, cg, cn, m, nFar, nHor, nearOK, sx, sy, top, fine) => {
+    const emit = (inst, sd, cd, cg, cn, m, nFar, nHor, nearOK, sx, sy, top, fine, nearM) => {
       const cx = sx / m, cy = sy / m;
       let rad = 0;
       for (let j = 0; j < m; j++) rad = Math.max(rad, Math.hypot(inst[j * 4] - cx, inst[j * 4 + 1] - cy) + inst[j * 4 + 2] * H.horizonScale * 1.3);
@@ -440,6 +440,7 @@
       const set = { near: nearOK ? mk('near', m) : null, far: mk('far', nFar), horizon: mk('horizon', nHor) };
       if (A.close && nearOK && fine) set.close = mk('close', m);
       set.far.userData.set = set;       // the far mesh is the chunk's handle
+      if (nearM) set.far.userData.nearM = nearM;   // ?look=photo: recorded crowns go to the far template sooner (the triangle budget)
     };
     for (const list of chunks.values()) {
       list.sort((a, b) => tier(a) - tier(b) || hash(a, 2) - hash(b, 2));
@@ -530,7 +531,7 @@
           for (let ch = 0; ch < 3; ch++) { cd[j * 3 + ch] = Math.min(255, pick[0][ch] * lean); cg[j * 3 + ch] = Math.min(255, pick[1][ch] * lean); cn[j * 3 + ch] = pick[2][ch]; }
           sx += x; sy += y; top = Math.max(top, Ht);
         }
-        emit(inst, sd, cd, cg, cn, m, nFar, nHor, nearOK, sx, sy, top, true);
+        emit(inst, sd, cd, cg, cn, m, nFar, nHor, nearOK, sx, sy, top, true, L.nearMetres);
         recorded += m; recordedChunks++;
       }
     }
@@ -577,7 +578,7 @@
       const dist = Math.hypot(Math.max(0, flat), eye.z);
       const was = set.close && set.close.visible ? 'close' : set.near && set.near.visible ? 'near' : set.horizon.visible ? 'horizon' : 'far';
       let pick = set.close && dist < LOOK.trees.closeMetres + (was === 'close' ? H.hysteresis : 0) ? 'close'
-               : dist < H.nearMetres + (was === 'near' || was === 'close' ? H.hysteresis : 0) ? 'near'
+               : dist < (u.nearM || H.nearMetres) + (was === 'near' || was === 'close' ? H.hysteresis : 0) ? 'near'
                : dist < H.farMetres + (was !== 'horizon' ? H.hysteresis : 0) ? 'far' : 'horizon';
       if (pick === 'near' && !set.near) pick = 'far';
       if (walking && Math.hypot(u.centre[0] - walkEye.x, u.centre[1] - walkEye.y) - u.radius > H.walkRadius) pick = null;

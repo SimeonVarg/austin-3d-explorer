@@ -106,7 +106,8 @@
       capRadius: 6.5,           // metres, 13 m across
       clusterMax: 5, clusterFill: 1.0, clusterOverlap: 1.22, clusterRing: 0.75, clusterDrop: 0.18,
       chunk: 320,               // metres; the finer crown is chosen per chunk (160 gave 936 chunks, above the check's 400)
-      closeMetres: 350,         // chunks nearer than this draw the finer crown (outerTrees.campus.closeSegments x closeRings)
+      nearMetres: 400,          // beyond this a chunk of recorded crowns draws every 4th tree, twice as wide (the grid trees keep 900): the triangle budget
+      closeMetres: 250,         // chunks nearer than this draw the finer crown (outerTrees.campus.closeSegments x closeRings)
       radiusJitter: 0.08,       // each crown this much wider or narrower
       valueJitter: 0.10,        // each crown this much lighter or darker
       minCrownShare: 0.45,      // a crown takes at least this share of the tree's height
