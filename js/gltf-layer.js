@@ -32,6 +32,7 @@
   // ══════════════════════════════════════════════════════════════════════
   //  TASTE BLOCK — CLAUDE.md rule 11. Every value here is a choice, not a measurement, unless it says so.
   // ══════════════════════════════════════════════════════════════════════
+  const OWN_DEFAULT = q.get('gltfaa') !== '0';
   const GLTF = {
     // ?gltf=1 turns it on. Anything else, or nothing: the layer is not there.
     on: q.get('gltf') === '1',
@@ -177,7 +178,13 @@
     // ── The app's light (round 5): a row with a `look` file is drawn by js/gltf-look.js under js/city-sky.js ─────────────────────────────
     // ?gltflook=0 draws every row the old way (flat colours with light gains, wall maps). `skyMapStrength`: 1 = recesses get as little
     // sky light as the map baked in Blender says, 0 = the map is ignored.
-    look: { on: q.get('gltflook') !== '0', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1 },
+    look: { on: q.get('gltflook') !== '0', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1,
+      // Smooth edges of its own (js/gltf-look.js "SMOOTH EDGES OF ITS OWN"). Smoothing the whole canvas costs an integrated chip about 140 ms a
+      // frame at a laptop's full density with the city drawn (measured), so each look building is drawn alone into a small target with `samples`
+      // samples a pixel, covering only the part of the screen it stands on, and that picture is laid onto the canvas where the building is in
+      // front. Used only when the canvas itself is not smoothed. `bigPixels`: a building that covers more pixels than this takes `bigSamples`
+      // (its target would otherwise hold 36 bytes for each of them). ?gltfaa=0 turns it off (hard edges, thin lines break up).
+      own: { on: OWN_DEFAULT, samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2 } },
     // The layer's place in the scene, as the apartments' group has it (js/slopes-apartments.js APTS.lod / minzoom).
     lod: null, minzoom: 14,
     // Draw both sides of every face, as the apartments do (APTS.twoSided): a model with one mis-wound face must not show a hole.

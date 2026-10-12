@@ -118,7 +118,7 @@ def bake_sky_light():
                     got += (1.0 if d.z >= 0 else AO_GROUND) if hit[0] is None else AO_BOUNCE * tri_alb[hit[2]]
                 v = max(0.0, min(1.0, got / open_sum)); lo = min(lo, v)
                 px[(y0 + j) * AO_WIDTH + x0 + k] = v
-        me = o.data; uv = me.uv_layers.get('sky') or me.uv_layers.new(name='sky')
+        me = o.data; uv = me.uv_layers.get('sky') or me.uv_layers.new(name='sky')     # (a mesh made from text keeps its own UV set first: the page reads the last set)
         poly = me.polygons[pi]
         for li, vi in zip(poly.loop_indices, range(len(poly.vertices))):
             cu, cv = ((0, 0), (1, 0), (1, 1), (0, 1))[vi] if quad else (0.5, 0.5)

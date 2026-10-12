@@ -41,10 +41,10 @@
       for (const p of json.meshes[node.mesh].primitives) {
         const m = json.materials[p.material] || {}, pbr = m.pbrMetallicRoughness || {}, ex = m.extras || {};
         if (p.attributes.NORMAL == null || p.attributes.TEXCOORD_0 == null) throw new Error('normals and a UV set are needed');
-        out.push({ material: (m.name || 'default').replace(/\.\d+$/, ''), base: (pbr.baseColorFactor || [0.5, 0.5, 0.5, 1]).slice(0, 3), glass: ex.look_kind === 'glass',
+        out.push({ material: (m.name || 'default').replace(/\.\d+$/, ''), base: (pbr.baseColorFactor || [1, 1, 1, 1]).slice(0, 3), glass: ex.look_kind === 'glass',
           mirror: ex.look_kind === 'glass' ? ex.look_glossy : [0, 0, 0], seeThrough: ex.look_transparent || 0, transmit: ex.look_transmit || [1, 1, 1],
           paint: p.attributes.COLOR_0 != null && ex.look_painted ? colours(p.attributes.COLOR_0) : null,
-          pos: f32(p.attributes.POSITION, 3), nrm: f32(p.attributes.NORMAL, 3), uv: f32(p.attributes.TEXCOORD_0, 2), idx: ints(p.indices) });
+          pos: f32(p.attributes.POSITION, 3), nrm: f32(p.attributes.NORMAL, 3), uv: f32(p.attributes.TEXCOORD_1 != null ? p.attributes.TEXCOORD_1 : p.attributes.TEXCOORD_0, 2), idx: ints(p.indices) });   // the sky-light set is the mesh's last UV set (a mesh made from text brings one of its own first)
       }
     }
     return out;
@@ -104,6 +104,88 @@
     return mat;
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  //  SMOOTH EDGES OF ITS OWN (GLTF.look.own)
+  // ══════════════════════════════════════════════════════════════════════
+  // The model's thin lines (joint lines 4 cm wide, mullions 7 cm) and its edges need several samples a pixel. Giving the whole canvas four
+  // samples costs an integrated chip about 140 ms a frame at a laptop's full density with the city drawn. So, after the city is drawn:
+  //   1. the building alone is drawn into a target of its own, four samples a pixel, covering only the part of the screen it stands on;
+  //   2. its depth is written into the canvas (the city in front still hides it; the fog and the labels see it);
+  //   3. the smoothed picture is laid onto the canvas wherever the building is the front-most thing; then its see-through glass.
+  // In the city's own scene the building is a mesh that draws nothing: it is there to cast its shadow into the app's shadow maps.
+  const OWN = { list: [], hooked: false, frames: 0, bytes: 0, pixels: 0, ms: 0 };
+  const ownWanted = S => { const O = GLTF.look.own; if (!O || !O.on || !S.renderer || !S.renderer.capabilities.isWebGL2) return false; const gl = S.renderer.getContext(); return !(gl.getParameter(gl.SAMPLES) > 0); };
+  function ownParts() {
+    const T = window.THREE;
+    const nothing = new T.MeshBasicMaterial({ colorWrite: false, depthWrite: false, depthTest: false, side: T.DoubleSide });
+    // the depth pass and the lay pass share one vertex program text, so the two give the same depth at every pixel
+    const VS = 'void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; }';
+    const depthOnly = new T.ShaderMaterial({ colorWrite: false, depthWrite: true, depthTest: true, side: T.DoubleSide, vertexShader: VS, fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }' });
+    const lay = new T.ShaderMaterial({ side: T.DoubleSide, depthTest: true, depthWrite: false, depthFunc: T.LessEqualDepth, transparent: true, blending: T.CustomBlending, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2,
+      blendEquation: T.AddEquation, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor, blendSrcAlpha: T.OneFactor, blendDstAlpha: T.OneMinusSrcAlphaFactor,
+      uniforms: { u_picture: { value: null }, u_at: { value: new T.Vector4(0, 0, 1, 1) } },
+      vertexShader: VS,
+      // the smoothed picture at this very pixel (its colours are already times how much of the pixel the building covers)
+      fragmentShader: 'uniform sampler2D u_picture; uniform vec4 u_at; void main(){ gl_FragColor = texture2D(u_picture, (gl_FragCoord.xy - u_at.xy) / u_at.zw); }' });
+    return { picture: new T.Scene(), depth: new T.Scene(), fill: new T.Scene(), glass: new T.Scene(), nothing, depthOnly, lay, box: new T.Box3(), target: null, cam: new T.Camera(), group: null };
+  }
+  function ownFrame(S, renderer, camera) {
+    const T = window.THREE, O = GLTF.look.own, gl = renderer.getContext(), t0 = performance.now();
+    // Back on the canvas the view is the whole drawing buffer with no scissor: that is what MapLibre draws a custom layer with. (Asking the
+    // context for its viewport instead is a round trip to the GPU process that stalls the frame: 42 ms a frame here when I measured it.)
+    const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight;
+    const v = new T.Vector4(), restore = () => { renderer.setRenderTarget(null); renderer.setViewport(0, 0, W, H); renderer.setScissor(0, 0, W, H); renderer.setScissorTest(false); };
+    OWN.pixels = 0; OWN.bytes = 0;
+    for (const b of OWN.list) {
+      if (!b.group || !b.group.visible || (b.group.parent && !b.group.parent.visible) || b.box.isEmpty()) continue;   // the app hides the layer's group by zoom and tier
+      // the part of the screen the building stands on: its box's corners through the camera
+      let x0 = 1, y0 = 1, x1 = -1, y1 = -1, behind = false;
+      for (let i = 0; i < 8; i++) {
+        v.set(i & 1 ? b.box.max.x : b.box.min.x, i & 2 ? b.box.max.y : b.box.min.y, i & 4 ? b.box.max.z : b.box.min.z, 1).applyMatrix4(camera.projectionMatrix);
+        if (v.w <= 1e-6) { behind = true; break; }
+        x0 = Math.min(x0, v.x / v.w); x1 = Math.max(x1, v.x / v.w); y0 = Math.min(y0, v.y / v.w); y1 = Math.max(y1, v.y / v.w);
+      }
+      if (behind) { x0 = y0 = -1; x1 = y1 = 1; }
+      let px0 = Math.max(0, Math.floor((x0 * 0.5 + 0.5) * W) - O.pad), px1 = Math.min(W, Math.ceil((x1 * 0.5 + 0.5) * W) + O.pad), py0 = Math.max(0, Math.floor((y0 * 0.5 + 0.5) * H) - O.pad), py1 = Math.min(H, Math.ceil((y1 * 0.5 + 0.5) * H) + O.pad);
+      const w = px1 - px0, h = py1 - py0; if (w < 2 || h < 2) continue;
+      const samples = w * h > O.bigPixels ? O.bigSamples : O.samples;
+      if (!b.target || b.target.width < w || b.target.height < h || b.target.samples !== samples) {
+        const tw = Math.min(W, Math.ceil(w / O.growBy) * O.growBy), th = Math.min(H, Math.ceil(h / O.growBy) * O.growBy);
+        if (b.target) b.target.dispose();
+        b.target = new T.WebGLRenderTarget(Math.max(tw, b.target ? b.target.width : 0), Math.max(th, b.target ? b.target.height : 0), { samples, depthBuffer: true, stencilBuffer: false, magFilter: T.NearestFilter, minFilter: T.NearestFilter, generateMipmaps: false });
+        if ('colorSpace' in b.target.texture && T.NoColorSpace !== undefined) b.target.texture.colorSpace = T.NoColorSpace;
+      }
+      // the same camera, looking only at that part of the screen
+      const nx0 = px0 / W * 2 - 1, nx1 = px1 / W * 2 - 1, ny0 = py0 / H * 2 - 1, ny1 = py1 / H * 2 - 1, sx = 2 / (nx1 - nx0), sy = 2 / (ny1 - ny0);
+      b.cam.projectionMatrix.set(sx, 0, 0, -sx * (nx0 + nx1) / 2, 0, sy, 0, -sy * (ny0 + ny1) / 2, 0, 0, 1, 0, 0, 0, 0, 1).multiply(camera.projectionMatrix);
+      b.cam.projectionMatrixInverse.copy(b.cam.projectionMatrix).invert();
+      b.target.viewport.set(0, 0, w, h); b.target.scissor.set(0, 0, w, h); b.target.scissorTest = true;
+      const clear = renderer.getClearColor(new T.Color()), alpha = renderer.getClearAlpha();
+      try {
+        renderer.setRenderTarget(b.target); renderer.setClearColor(0x000000, 0); renderer.clear(true, true, false);
+        renderer.render(b.picture, b.cam);                         // 1. the building alone, four samples a pixel
+        restore();
+        renderer.render(b.depth, camera);                          // 2. its depth into the canvas
+        b.lay.uniforms.u_picture.value = b.target.texture; b.lay.uniforms.u_at.value.set(px0, py0, b.target.width, b.target.height);
+        renderer.render(b.fill, camera);                           // 3. the smoothed picture, where the building is in front
+        if (b.glass.children.length) renderer.render(b.glass, camera);
+      } finally { restore(); renderer.setClearColor(clear, alpha); }
+      OWN.pixels += w * h; OWN.bytes += b.target.width * b.target.height * (4 + 8 * samples);
+    }
+    OWN.frames++; OWN.ms = +(performance.now() - t0).toFixed(2);
+  }
+  function ownHook(S) {
+    if (OWN.hooked || !S.scene) return; OWN.hooked = true;
+    const prev = S.scene.onAfterRender;
+    S.scene.onAfterRender = function (renderer, scene, camera) {
+      if (prev) prev.apply(this, arguments);
+      // only after the city's own picture (not after a shadow map, not inside another target)
+      if (!OWN.list.length || camera !== S.camera || scene.overrideMaterial || renderer.getRenderTarget()) return;
+      try { ownFrame(S, renderer, camera); } catch (e) { if (!OWN.failed) { OWN.failed = String(e && e.message || e); L.errors.push('own edges: ' + OWN.failed); console.error('[gltf-look] own edges', e); } }
+    };
+  }
+  GLTF.lookOwn = OWN;
+
   // ── one building ────────────────────────────────────────────────────────
   function build(S, row, prims, skyMap) {
     const T = window.THREE, h = row.headingDeg * Math.PI / 180, c = Math.cos(h), s = Math.sin(h), O = S.toLocal(row.lng, row.lat, row.groundM || 0), og = row.lookOrigin || [0, 0, 0];
@@ -138,6 +220,7 @@
       for (const v of p.idx) A.idx.push(base + v); tris += p.idx.length / 3;
     }
     const g = new T.Group(); g.name = 'gltf-look-' + row.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'); g.userData.lod = GLTF.lod; g.userData.minzoom = GLTF.minzoom;
+    const own = ownWanted(S) && row.own !== false ? ownParts() : null;
     let bytes = 0;
     for (const [name, A] of Object.entries(parts)) {
       if (!A) continue;
@@ -150,10 +233,21 @@
         mesh.name = g.name + '-' + name + (pass ? pass : ''); mesh.renderOrder = pass; if (pass) mesh.layers.set(1);   // see-through glass casts no shadow (the shadow cameras see layer 0 only)
         // the light for the hour, once per frame: the sky and sun from js/city-sky.js at the app's own clock
         mesh.onBeforeRender = () => { const U = S.uniforms(); window.CitySky.sync(mat.uniforms, U.u_p ? U.u_p.value : 0.3); };
-        g.add(mesh);
+        if (!own) { g.add(mesh); continue; }
+        // smooth edges of its own: the real mesh is drawn by ownFrame(); the city's scene keeps a mesh that draws nothing and casts the shadow
+        mesh.frustumCulled = false; mesh.layers.set(0);
+        if (pass) own.glass.add(mesh);
+        else {
+          own.picture.add(mesh);
+          const caster = new T.Mesh(geom, own.nothing); caster.name = mesh.name + '-shadow'; g.add(caster);
+          const dm = new T.Mesh(geom, own.depthOnly); dm.frustumCulled = false; own.depth.add(dm);
+          const fm = new T.Mesh(geom, own.lay); fm.frustumCulled = false; own.fill.add(fm);
+          geom.computeBoundingBox(); own.box.union(geom.boundingBox);
+        }
       }
       bytes += A.pos.length / 3 * 60 + A.idx.length * 4;
     }
+    if (own) { own.group = g; OWN.list.push(own); }
     return { group: g, triangles: tris, lit, bytes };
   }
 
@@ -184,8 +278,9 @@
         catch (e) { L.errors.push(p.row.name + ': ' + e.message); console.error('[gltf-look]', p.row.name, e); }
       }
       _group = g; S.add(g); if (S.camera && S.camera.layers) S.camera.layers.enable(1);
+      if (OWN.list.length) ownHook(S);
       console.log('[gltf-look]', L.loaded.join(', ') || 'nothing', '—', L.triangles, 'triangles,', L.drawCalls, 'draw call(s),', L.bytes, 'bytes');
-    } else if (!want && _group) { S.remove(_group); _group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); _group = null; }
+    } else if (!want && _group) { for (const b of OWN.list) if (b.target) b.target.dispose(); OWN.list.length = 0; S.remove(_group); _group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); _group = null; }
     GLTF.lookReady = !!_group;
     if (window.__map && window.__map.triggerRepaint) window.__map.triggerRepaint();
   }

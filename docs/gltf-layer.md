@@ -125,10 +125,21 @@ Switches (all off unless the page asks):
 | In the address | What it does |
 |---|---|
 | `?gltf=1` | the layer, as before; rows with a `look` file are drawn under the app's light |
-| `?gltf=1&smooth=1` | the same with the app's own "Smooth edges" (four samples a pixel on the whole canvas). **The thin lines of a Blender model (joint lines 4 cm wide, mullions 7 cm wide) need it**: without it they break up and edges are stair-stepped |
+| `?gltfaa=0` | no smoothing of the building's own (see below): hard edges, and its thin lines break up |
+| `?gltf=1&smooth=1` | the app's own "Smooth edges" for the whole canvas instead; the building's own smoothing then stands down |
 | `?gltflook=0` | every row the old way (flat colours with light gains, wall maps) |
 | `?skygrade=1` | leave the app's canvas tone table on the new light's pixels (to see what it does to them) |
 | `?skyambient=0.8` | scale all sky light |
+
+**Smooth edges of its own.** A Blender model has lines far thinner than a pixel from across the street (joint lines 4 cm wide, mullions 7 cm
+wide). They need several samples a pixel, or they break up and every edge is stair-stepped. Giving the WHOLE canvas four samples a pixel is the
+app's "Smooth edges" setting, and on an integrated chip at a laptop's full density it is far too dear with the city drawn (measured: 89 ms a frame
+becomes 228). So `js/gltf-look.js` smooths the building by itself, after the city is drawn: (1) the building alone is drawn into a small target of
+its own with four samples a pixel, covering only the part of the screen it stands on; (2) its depth is written into the canvas, so the city in
+front still hides it and the fog and labels see it; (3) the smoothed picture is laid onto the canvas wherever the building is the front-most
+thing; (4) its see-through glass is drawn over that. In the city's own scene the building is a mesh that draws nothing: it is there to cast its
+shadow. Values: `GLTF.look.own` in `js/gltf-layer.js`. One limit: the outermost pixel of the building's outline against the city is smoothed on
+its inner side only.
 
 What a `look` file must be (the loader refuses anything else): glTF 2.0 binary, positions, normals and one UV set as float32, no node transforms,
 no images; per material a base colour; for glass the `extras` the export writes (`look_kind`, `look_glossy`, and for see-through glass
