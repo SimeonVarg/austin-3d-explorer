@@ -2740,6 +2740,8 @@
       // stops here and takes back what it had counted.
       if (cancelled()) { discard(); return null; }
       if (cull) cull.push(B.triangles * 3);
+      // ?gltf=1 (js/gltf-layer.js): a recipe that a Blender model replaces is not drawn here; it keeps its place in `built`.
+      if (window.GLTF_LAYER && window.GLTF_LAYER.hides(spec)) { built.push(window.GLTF_LAYER.stub(spec)); continue; }
       const pendingStart=B.filterPending.length;
       B.allowFilter=APTS.facadeFilter.on&&APTS.facadeFilter.buildings.includes(spec.name)&&!!window.FacadeFilter;
       try {
