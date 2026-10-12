@@ -32,7 +32,7 @@ that fails its quality check stays a rejected trial.
 
 **0. Is it the right building?** Confirm the photograph shows this building
 and which wall, before anything else. A bearing and distance from an
-approximate camera is a lead, never a name: a rooftop camera whose yaw is off by
+approximate camera is a lead, never a name: a camera whose yaw is off by
 5 degrees moved a tower from one building to its neighbour, and a white tower
 that the arithmetic called Dobie Twenty21 is a blue-green glass building in the
 map. Confirm by a sign, or by a shape you can match on the reference

@@ -4,7 +4,7 @@
 Writes only data/apartments/peter-t-flawn-academic-center.json (or --out PATH). The campus entry of data/campus_buildings.json
 supplies the footprint and frame; this recipe supersedes it (an own file replaces a collection entry by id).
 
-What the photograph shows (long lens, from the north-west; every number is a ratio of pixels on one wall):
+What the site photograph shows (every number is a ratio of pixels on one wall):
   * the north face is a plain limestone wall with SEVEN tall pierced lattice panels at an even pitch (face 64.2 m, so 9.2 m
     bays), each panel 0.37 of a bay wide and 2.6 times as tall as wide; none of the small ordinary window grid the old
     hand model drew (1.1 x 3.5 m windows every 2.8 m).

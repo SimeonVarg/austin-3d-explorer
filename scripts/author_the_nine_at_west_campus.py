@@ -4,13 +4,13 @@
 Writes only data/apartments/the-nine-at-west-campus.json (or --out PATH). The generic neighbourhood entry supplies the
 footprint, frame, levels and the lobby face; this script replaces its palette, window module and wall rule.
 
-From the photographs (long lens, the south-east facade, five storeys; numbers are pixel ratios):
+From the site photographs (the south-east facade, five storeys; numbers are pixel ratios):
   * the wall is a rhythm of wide bright-red blocks and narrower blue-tile patchwork runs, not one cream wall: three
     red blocks, two blue runs and a grey end block across the visible facade; roof parapets are white.
   * a red block is about 2.5 storeys' width... windows on the red are small and paired (about 1.15 x 1.55 m on a
     3.6 m bay, 0.38 of the storey high), blue runs carry glazed balcony doors and a teal slab edge per storey.
   * roof: white membrane with rows of condensers along the parapet (not drawn here).
-INFERRED: all faces not in the photographs wear the same rule; the grey end block, the rooftop condenser rows and the
+INFERRED: all faces not in the photographs wear the same rule; the grey end block, the roof condenser rows and the
 balcony niches in the blue runs are NOT drawn yet. The wall rule is vertical stripes of 2 red bays then 2 blue bays (three blues).
 """
 import copy, json, sys
@@ -61,7 +61,7 @@ def main():
     blk['faces'] = {'83': face}
     d['blocks'] = [blk]
     d['_open'] = ['Only one facade is photographed; the red / blue order along it, window positions and the ground floor are inferred.',
-                  'The grey end block, balcony niches in the blue runs and the rooftop condenser rows are not drawn.',
+                  'The grey end block, balcony niches in the blue runs and the roof condenser rows are not drawn.',
                   'Height 17 m (five storeys) comes from the generic entry and the storey count in the photographs; the 2021 scan reads 17.4 to 21.7 m (sloping site).']
     OUT.write_text(json.dumps(d, separators=(',', ':'), ensure_ascii=False))
     print('wrote', OUT)
