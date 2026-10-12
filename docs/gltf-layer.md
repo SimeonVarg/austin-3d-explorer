@@ -141,7 +141,7 @@ thing; (4) its see-through glass is drawn over that. In the city's own scene the
 shadow. Values: `GLTF.look.own` in `js/gltf-layer.js`. One limit: the outermost pixel of the building's outline against the city is smoothed on
 its inner side only.
 
-What a `look` file must be (the loader refuses anything else): glTF 2.0 binary, positions, normals and one UV set as float32, no node transforms,
+What a `look` file must be (the loader refuses anything else): glTF 2.0 binary, positions, normals and a UV set for the sky-light map as float32 (the second set, when the file has two), no node transforms,
 no images; per material a base colour; for glass the `extras` the export writes (`look_kind`, `look_glossy`, and for see-through glass
 `look_transparent` and `look_transmit`); a colour per vertex where the Blender material paints its base colour per face. The export script turns
 text objects into meshes, puts every object's place and turn into its points, and leaves out cameras, lights and any object named `...ground`.
@@ -149,3 +149,8 @@ text objects into meshes, puts every object's place and turn into its points, an
 One rule for the people (or models) who build in Blender: **an albedo only means something under a known light.** The tower's file arrives looking
 like its Blender render because this light is that scene's light. A building lit differently in Blender (a stronger sun, a flatter sky) arrives with
 the same materials but not the same picture. Build under the same light rig, and it will.
+
+Tried on a second building the same day: The Venue's Blender file went through the same export, not edited for it, and was drawn by the same code.
+Its shape, its text object, its panes painted by a colour attribute and its night rooms all arrive. Its Blender scene has a hard white sun and a dim
+flat sky, so under this light its sunlit white comes out about 14 % dark and blue, and its shaded walls about 80 % bright. Its row therefore names
+no `look` file yet. What is missing is not code. It is one light rig for every Blender build, set from the numbers in `js/city-sky.js`.
