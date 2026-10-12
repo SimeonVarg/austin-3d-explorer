@@ -50,9 +50,9 @@ PALETTE={'paver':'#c6c6b9','paverAlt':'#adb4b3','paverJoint':'#929a99',
  'lime':'#91b943','palm':'#527e45','palmLight':'#6c914f','trunk':'#8c8065',
  'rope':'#c8cfbf','rail':'#323d42','bulb':'#cac5a6',
  # added 2026-10-11 from the hall, entrance, lounge and courtyard photographs (hex = median of the lit material, rounded)
- 'steel':'#5c7080','steelDark':'#3f4d58','slatShade':'#566a76','counter':'#a7a9a3','wall':'#c8c9c2','wallDark':'#5d6265','gate':'#dcdcd6',
+ 'steel':'#6d8498','steelDark':'#516272','slatShade':'#4a5d6a','counter':'#a7a9a3','wall':'#c8c9c2','wallDark':'#5d6265','gate':'#dcdcd6',
  'glassFrame':'#bfc3c1','binBlack':'#2b2e30','binBlue':'#2a559a','timber':'#52281b','slab':'#c9c8c0','wicker':'#a99882','cushionBlue':'#1f5f80',
- 'courtTable':'#a5a49c','chairTeal':'#1f808a','courtPaver':'#d3d3cc','courtPaverEdge':'#aeb2b0','fire':'#2b3033','doorDark':'#2d3338','cone':'#d9602b'}
+ 'courtTable':'#a5a49c','chairTeal':'#1f808a','courtPaver':'#bbbcb6','courtPaverEdge':'#9ea3a1','fire':'#2b3033','doorDark':'#2d3338','cone':'#d9602b'}
 
 
 def main():
@@ -310,7 +310,7 @@ def main():
   box('lime',(px,px+pw,py,py+pd),0,.72);flat('soil',(px+.06,px+pw-.06,py+.06,py+pd-.06),.74)
   for k in range(7):
    t=(k+.5)/7;gx=px+.2+t*(pw-.4) if pw>pd else px+pw/2;gy=py+pd/2 if pw>pd else py+.2+t*(pd-.4)
-   for sg in [-1,1]:triangle('palm',[(gx,gy,.74),(gx+.06*sg,gy+.1,1.25),(gx+.2*sg,gy+.15,.9)])
+   for sg in [-1,1]:triangle('palm',[(gx,gy,.74),(gx+.06*sg,gy+.1,1.12),(gx+.2*sg,gy+.15,.88)])
  # Open rail with posts and two horizontal rails; panels intentionally remain
  # clear/open, not the old opaque full-height box.
  for i in range(25):
@@ -323,7 +323,7 @@ def main():
   box('lime',(x,x+1.5,10.25,10.95),.0,.9);flat('soil',(x+.08,x+1.42,10.33,10.87),.92)
   for k in range(4):
    xx=x+.25+k*.34
-   for sign in [-1,1]:triangle('palm',[(xx,10.6,.93),(xx+.15,10.6,1.45),(xx+sign*.34,10.75,1.12)])
+   for sign in [-1,1]:triangle('palm',[(xx,10.6,.93),(xx+.12,10.6,1.28),(xx+sign*.3,10.72,1.05)])
  # Overhead reference supersedes the old giant freestanding screen wall. The
  # small screen is attached to the existing tower face above the planters.
  d['deck']={'z':Z,'items':[dict(id='screen',tone='screen',**SCREEN,
