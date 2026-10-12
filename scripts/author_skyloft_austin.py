@@ -37,11 +37,16 @@ PARAMS = dict(
     podium='#6c7076',           # grey base and accent panels (~ #6A6E74)
     metal='#52585f',            # ribbed metal wall of the core: reads dark charcoal in the daylight photographs
     concrete='#c9c4ba',         # board-marked concrete pier
-    crown='#3c4249',            # crown box
+    crown='#4a5058',            # thin dark crown slab (photograph: about 0.45 of the white wall's value)
+    mech='#c9cbcb',             # the lighter mechanical level above it (photograph: as bright as the white wall)
+    edge='#656b73',             # terrace roof edges and guards: a thin mid grey, not black
     stairGlass=['#46535d', '#5b6770', '#d9e6ee'],
     slot_w=0.26, slot_h=1.5,    # slim slots in the metal wall
     window_frame='#7f858a',
-    crown_h=4.6, crown_overhang=2.0,
+    crown_h=1.0, crown_overhang=1.0, core_rise=1.8, mech_h=2.6, mech_plan=(33.4, 41.9, 24.0, 33.0),
+    step_parapet=0.45,         # terrace roof edge height (was 1.05 m of black guard)
+    lounge_h=3.01,             # one storey of dark glazed lounge under each terrace edge
+    night_occupancy=0.5,       # share of rooms lit at night; the engine's default range is .24-.54 (art direction)
     stripe_u=(7.0, 22.4),       # centres of the two grey pinstripe columns along the long axis
 )
 U_CORE = (31.4, 43.7)       # core spine along the long axis
@@ -66,7 +71,7 @@ def main():
     def z_of(k): return round(fl[k], 3) if k < len(fl) else ROOF
     # colours
     col = d['colours']
-    for k, hx in dict(panel=P['panel'], panelGrey=P['podium'], podium=P['podium'], concrete=P['concrete'], metalWall=P['metal'], crown=P['crown'], frame=P['window_frame']).items():
+    for k, hx in dict(panel=P['panel'], panelGrey=P['podium'], podium=P['podium'], concrete=P['concrete'], metalWall=P['metal'], crown=P['crown'], mechLevel=P['mech'], edge=P['edge'], frame=P['window_frame']).items():
         col[k] = {'hex': hx, '_src': 'site photograph and architect notes: body colour estimated, lighting removed; see author_skyloft_austin.py PARAMS'}
     col['stairGlass'] = P['stairGlass']
     col['capBlue'] = {'hex': P['crown'], '_src': 'unused; kept so older readers do not fail'}
@@ -82,6 +87,10 @@ def main():
     sk['slotB'] = copy.deepcopy(sk['slot']); sk['slotB']['window']['sill'] = 1.4
     sk['metal'] = {'kind': 'flat', 'field': 'metalWall'}
     sk['crown'] = {'kind': 'flat', 'field': 'crown'}
+    sk['mechLevel'] = {'kind': 'flat', 'field': 'mechLevel'}
+    # glazed lounges and the stair read lit at night: nightOccupancy is the storefront skin's own lighting rule
+    sk['lounge'].update({'nightOccupancy': 0.9})
+    sk['stair'].update({'nightOccupancy': 1.0})
     sk['stair'].update({'mullion': 1.7, 'mullionW': 0.12, 'transom': 0.55, 'fasciaTone': 'concrete', 'glass': 'stairGlass'})
 
     def bands(top, base='storefront', podium_skin='fieldGrey', k0=None):
@@ -119,7 +128,7 @@ def main():
                 tag = {0.0: 'slab', 31.4: 'core', 39.05: 'coreN', 43.7: 'n15', 49.58: 'n10', 55.5: 'n9', 57.8: 'n6'}[a]
                 if len(segs) == 2: tag += 'E' if v0 == V_E else 'W'
                 blk = {'id': tag, 'plan': [a, b, v0, v1], 'z0': 0.0, 'z1': top, 'roofTone': 'roof' if top >= ROOF - 0.1 else 'terrace',
-                       'parapet': 1.05, 'parapetTone': 'coping' if top >= ROOF - 0.1 else 'rail',
+                       'parapet': 1.05 if top >= ROOF - 0.1 else P['step_parapet'], 'parapetTone': 'coping' if top >= ROOF - 0.1 else 'edge',
                        'parapetSides': PARAPET_SIDES.get(tag, ['v0', 'v1', 'u1']),
                        'bands': bands(top), 'faces': face_set(top)}
                 if a == 0.0 and not slab_holes == []:
@@ -149,7 +158,10 @@ def main():
             ta, tb = a['z1'], b['z1']
             if False: pass
             elif tb >= ta - 1e-6: a['faces'][f] = None
-            else: a['faces'][f] = {'z0': tb, 'bands': [x for x in bands(ta, 'garage') if x['z1'] > tb]}
+            else:
+                # the wall of the taller piece above the lower one's roof: one glazed lounge storey under the terrace edge, then the field
+                lh = P['lounge_h']
+                a['faces'][f] = {'z0': tb, 'bands': [{'z0': tb, 'z1': round(min(tb + lh, ta), 3), 'skin': 'lounge'}] + ([{'z0': round(tb + lh, 3), 'z1': ta, 'skin': 'field'}] if tb + lh < ta - 1e-6 else [])}
     # light well B (u 39.05-49.58, v 14.6-20.7): its walls are the faces of the pieces around it
     for b in blocks:
         full = lambda top: {'bands': [{'z0': 0.0, 'z1': top, 'skin': 'court'}]}
@@ -192,8 +204,6 @@ def main():
             b['roofItems'] = [{'plan': [9.5, 14.5, 12.3, 19.3], 'grid': [3, 4], 'size': [1.2, 1.9], 'h': 1.0, 'tone': 'mech', '_src': 'nadir roof plan: condenser rows'},
                               {'plan': [9.0, 14.0, 1.8, 6.8], 'grid': [3, 3], 'size': [1.2, 1.9], 'h': 1.0, 'tone': 'mech', '_src': 'nadir roof plan'},
                               {'plan': [20.5, 27.0, 21.3, 29.3], 'grid': [3, 5], 'size': [1.2, 1.9], 'h': 1.0, 'tone': 'mech', '_src': 'nadir roof plan'}]
-        if b['id'] == 'core':
-            b['roofItems'] = [{'plan': [34.5, 39.0, 22.0, 34.0], 'h': 3.0, 'tone': 'mech', '_src': 'nadir roof plan: raised plant, height derived'}]
     # ---- two grey pinstripe columns on the slab's west face, each with a wider two-light window (square-on elevation) --------
     sk['stripe'] = {'kind': 'bays', 'bay': 1.4, 'field': 'panelGrey', 'windowRule': 'all', 'window': {'w': 1.15, 'h': P['win_h'], 'sill': P['win_sill'], 'mullion': {'cols': [0.5], 'rows': [], 'w': 0.05, 'tone': 'frame'}},
                     'glass': 'glass', 'frame': 'frame', '_src': 'square-on west elevation: two full-height grey columns one bay wide at u 7.0 and 22.4, windows wider than the field windows, two lights'}
@@ -202,9 +212,25 @@ def main():
                        'bands': [{'z0': PODIUM, 'z1': ROOF, 'skin': 'stripe'}], 'faces': {'v0': None, 'u0': None, 'u1': None, 'v1': {'bands': [{'z0': PODIUM, 'z1': ROOF, 'skin': 'stripe'}]}},
                        '_src': 'square-on west elevation (INFERRED to stand 0.2 m proud of the slab)'})
     # ---- crown: the dark box on the core, overhanging north ---------------------------------------------------
-    blocks.append({'id': 'crown', 'plan': [U_CORE[0], U_CORE[1] + P['crown_overhang'], 21.5, V_W + 0.4], 'z0': ROOF, 'z1': round(ROOF + P['crown_h'], 3),
-                   'bands': [{'z0': ROOF, 'z1': round(ROOF + P['crown_h'], 3), 'skin': 'crown'}], 'roofTone': 'crown', 'parapet': 0.0,
-                   '_src': 'site photograph: dark crown box on the core, about 4.6 m above the slab roof; overhang to the north about 2 m (INFERRED depth)'})
+    # the core stands 2.9 m above the slab roof in the elevation, capped by a thin dark slab that overhangs north
+    top_core = round(ROOF + P['core_rise'], 3); top_crown = round(top_core + P['crown_h'], 3)
+    blocks.append({'id': 'coreTop', 'plan': [U_CORE[0], U_CORE[1], 21.5, V_W], 'z0': ROOF, 'z1': top_core, 'roofTone': 'crown', 'parapet': 0.0,
+                   'bands': [{'z0': ROOF, 'z1': top_core, 'skin': 'metal'}],
+                   'faces': {'v0': None, 'u0': None, 'u1': {'bands': [{'z0': ROOF, 'z1': top_core, 'skin': 'metal'}]}, 'v1': {'bands': [{'z0': ROOF, 'z1': top_core, 'skin': 'metal'}]}},
+                   'overrides': [{'region': [38.3, 40.7, V_W, V_W], 'bands': [{'z0': ROOF, 'z1': top_core, 'skin': 'stair'}]},
+                                 {'region': [40.7, 43.7, V_W, V_W], 'bands': [{'z0': ROOF, 'z1': top_core, 'skin': 'concrete'}]}],
+                   '_src': 'square-on west elevation: the core rises about 2.9 m above the slab roof (v extent INFERRED)'})
+    blocks.append({'id': 'crown', 'plan': [U_CORE[0], U_CORE[1] + P['crown_overhang'], 21.5, V_W + 0.4], 'z0': top_core, 'z1': top_crown,
+                   'bands': [{'z0': top_core, 'z1': top_crown, 'skin': 'crown'}], 'roofTone': 'crown', 'parapet': 0.0,
+                   '_src': 'site photographs: thin dark crown slab on the core, about 1.8 m; overhang to the north about 1 m (INFERRED depth)'})
+    top_mech = round(top_crown + P['mech_h'], 3); mp = P['mech_plan']
+    blocks.append({'id': 'mechLevel', 'plan': list(mp), 'z0': top_crown, 'z1': top_mech, 'roofTone': 'mechLevel', 'parapet': 0.0,
+                   'bands': [{'z0': top_crown, 'z1': top_mech, 'skin': 'mechLevel'}],
+                   '_src': 'site photograph: a lighter mechanical level with ducts, set back from the crown; plan INFERRED'})
+    for i, (du0, du1, dv0, dv1) in enumerate([(mp[0] + 0.8, mp[0] + 3.4, mp[2] + 1.0, mp[2] + 4.2), (mp[1] - 3.0, mp[1] - 0.8, mp[3] - 4.5, mp[3] - 1.2)]):
+        blocks.append({'id': 'duct%d' % i, 'plan': [round(du0, 3), round(du1, 3), round(dv0, 3), round(dv1, 3)], 'z0': top_mech, 'z1': round(top_mech + 1.0, 3), 'roofTone': 'mechLevel', 'parapet': 0.0,
+                       'bands': [{'z0': top_mech, 'z1': round(top_mech + 1.0, 3), 'skin': 'metal'}], '_src': 'site photograph: duct boxes on the mechanical level; plan INFERRED'})
+    d['night'] = {'occupancy': P['night_occupancy'], '_src': 'art direction: the top of the engine default range (.24-.54) to offset panes that are 2.8 x smaller than the generic ones; the blue-hour elevation shows about 40 percent of the podium lit and about 10 percent of the slab'}
     d['blocks'] = blocks
     note = ' Re-massed from a square-on west elevation and an elevated oblique (see scripts/author_skyloft_austin.py).'
     if note not in d['_readme']: d['_readme'] += note
