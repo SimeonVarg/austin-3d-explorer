@@ -206,7 +206,8 @@ def main():
                    'bands': [{'z0': ROOF, 'z1': round(ROOF + P['crown_h'], 3), 'skin': 'crown'}], 'roofTone': 'crown', 'parapet': 0.0,
                    '_src': 'site photograph: dark crown box on the core, about 4.6 m above the slab roof; overhang to the north about 2 m (INFERRED depth)'})
     d['blocks'] = blocks
-    d['_readme'] = d['_readme'] + ' Re-massed from a square-on west elevation and an elevated oblique (see scripts/author_skyloft_austin.py).'
+    note = ' Re-massed from a square-on west elevation and an elevated oblique (see scripts/author_skyloft_austin.py).'
+    if note not in d['_readme']: d['_readme'] += note
     d['open'] = [
         'East, south and north faces and the v extent of the stepped blocks are INFERRED from the west elevation.',
         'The two grey pinstripe columns with two-light windows on the slab are not drawn.',
