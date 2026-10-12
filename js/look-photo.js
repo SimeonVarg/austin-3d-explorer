@@ -110,8 +110,8 @@
       // keep its area (n x r^2 ~ R^2 x clusterOverlap^2), stood on a ring and a little lower, so there are lit tops and dark gaps.
       capRadius: 6.5,           // metres, 13 m across
       clusterMax: 5, clusterFill: 1.0, clusterOverlap: 1.22, clusterRing: 0.75, clusterDrop: 0.18,
-      chunk: 400,               // metres; the finer crown is chosen per chunk (160 m gave 936 chunks and 320 m 464, above the check's 400 with the grid's 144)
-      nearMetres: 260,          // beyond this a chunk of recorded crowns draws every 4th tree, twice as wide (the grid trees keep 900): the triangle budget
+      chunk: 160,               // metres; the near / far crown is chosen per chunk, so they are small (js/outer-trees.js: 936 chunks, scripts/verify/outer-trees.mjs allows 1200)
+      nearMetres: 300,          // beyond this a chunk of recorded crowns draws every 4th tree, twice as wide (the grid trees keep 900): the triangle budget
       maxMetres: 1200,          // beyond this recorded crowns are not drawn at all: the outer city's grid trees (all the way out) carry the far canopy
       closeMetres: 100,         // chunks nearer than this draw the finer crown (outerTrees.campus.closeSegments x closeRings)
       radiusJitter: 0.08,       // each crown this much wider or narrower

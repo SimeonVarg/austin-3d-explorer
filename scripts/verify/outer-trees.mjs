@@ -58,7 +58,8 @@ const st = await page.evaluate(() => window.outerTrees.stats());
 log('loaded', JSON.stringify(st));
 check(!st.error, 'the file loaded and decoded', st.error || st.bytes + ' bytes');
 check(st.trees > 100000 && st.trees < 400000, 'a city of trees, not a park of them', st.trees);
-check(st.group && st.chunks > 20 && st.chunks < 400, 'a few dozen to a few hundred chunks', st.chunks);
+// ?look=photo adds one chunk set of 160 m for the recorded crowns (the near / far choice is per chunk, so they must be small): 144 + ~800
+check(st.group && st.chunks > 20 && st.chunks < 1200, 'a few dozen to a thousand chunks', st.chunks);
 
 const pose = async (s) => {
   await page.evaluate((s) => {
