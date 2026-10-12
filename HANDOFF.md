@@ -99,6 +99,9 @@ building of scenes by the large GPT model is STOPPED. The rooftop pass (#492) is
 Next is a minimal-spend pipeline with small models that covers every imported photograph and every visible region of a
 scene, with several views as reference and an independent critic that looks only for what is missing. First the lane
 delivers the saved before / after evidence.
+State of that pipeline at the end of 2026-10-11: a private pilot only (one photograph read tile by tile, 185 fragments;
+the critic not yet run in full; no building made through it; NOT validated end to end). Instructions: `AGENTS.md`.
+Root causes it answers: the old audit tool skips ground, planting and sky; the old photo records hold only the main subject.
 
 3. **Moire is NOT accepted, and it stays a requirement inside that work, not a separate project on the photo budget.**
    On his Mac the apartments in the opening flight still shimmer severely. #488 (roofs) and the optional #490 did not
