@@ -129,7 +129,7 @@
         closeSegments: 10, closeRings: 5,   // the nearest crowns: 10 x 5 = 90 triangles with trunk; beyond closeMetres 8 x 4 = 58   // rounder, less polygonal outline (round 1: 0.20 / 0.05 read as faceted blobs)
         segments: 8, rings: 4,  // near crown: 48 triangles, 22 fewer than today's outer crown (10 x 4) and about today's stack
       },
-      top: { nearMetres: 650 },   // the grid trees' near crowns out to 650 m (900 today): the triangle budget
+      top: { nearMetres: 550 },   // the grid trees' near crowns out to 550 m (900 today): the triangle budget
     },
 
     // ── js/campus-landscape.js ──────────────────────────────────────────
