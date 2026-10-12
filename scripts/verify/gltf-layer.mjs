@@ -30,7 +30,13 @@ function boot(search) {
     setInterval: () => 0, clearInterval() {}, fetch: win.fetch, AbortController, setTimeout: () => 0, clearTimeout() {}, performance, location: win.location });
   vm.runInContext(src, ctx);
   // the page would now fetch the drawing file named by the table: run it, the way the browser does, but only if it was asked for
-  if (scripts.length) { check(scripts.length === 1 && scripts[0] === win.GLTF_LAYER.drawScript && fs.existsSync(path.join(ROOT, scripts[0])), 'the one script it asks for is the drawing file, and it exists', scripts[0]); vm.runInContext(drawSrc, ctx); }
+  if (scripts.length) {
+    // the drawing file first; then, only when a row names a `look` file, the app's light and the code that draws with it: nothing else
+    const G0 = win.GLTF_LAYER, extra = G0.look && G0.look.on && G0.buildings.some(b => b.look) ? G0.look.scripts : [];
+    check(scripts.length === 1 + extra.length && scripts[0] === G0.drawScript && extra.every((x, i) => scripts[i + 1] === x) && scripts.every(x => fs.existsSync(path.join(ROOT, x))),
+      'the scripts it asks for are the drawing file and the ' + extra.length + ' file(s) of the app\'s light, and they exist', scripts.join(', '));
+    vm.runInContext(drawSrc, ctx);
+  }
   return { G: win.GLTF_LAYER, fetched, scripts, win };
 }
 
@@ -117,9 +123,37 @@ for (const row of rows) {
     }
     win.THREE = undefined; win.CityNight = undefined;
   }
+  if (row.look) {
+    const lb = fs.readFileSync(path.join(ROOT, row.look)), ljl = lb.readUInt32LE(12), lj = JSON.parse(lb.slice(20, 20 + ljl).toString());
+    const prims = lj.meshes.flatMap(m => m.primitives);
+    check(prims.length > 0 && prims.every(p => p.attributes.NORMAL != null && p.attributes.TEXCOORD_0 != null && p.indices != null), 'its look file has normals, a UV set and indices on every mesh', prims.length + ' meshes');
+    check(fs.existsSync(path.join(ROOT, row.look.replace(/\.glb$/, '-sky.png'))), 'the sky-light map of its look file is beside it');
+    check(!lj.images && !lj.cameras && !/photo|\.jpg|users|home|[a-z]:\\|\/[a-z]+\//i.test(JSON.stringify(lj)), 'its look file carries no image, no camera, and names no folder, file or photograph');
+    check(lj.materials.some(m => m.extras && m.extras.look_kind === 'glass' && Array.isArray(m.extras.look_glossy)) && lj.materials.every(m => m.pbrMetallicRoughness && m.pbrMetallicRoughness.baseColorFactor), 'its materials carry a base colour, and its glass the mirror colour the Blender material has');
+  }
   // nothing in the JSON that names a person, a folder or a photograph
   const text = JSON.stringify(json);
   check(!/photo|\.jpg|\.png|users|home|[a-z]:\\|\/[a-z]+\//i.test(text), 'the .glb names no folder, file or photograph');
+}
+// ── the app's light (js/city-sky.js): the sky and the sun for an hour, as numbers ─────────────────────────
+console.log('city-sky: the light for an hour');
+{
+  const sky = fs.readFileSync(path.join(ROOT, 'js/city-sky.js'), 'utf8');
+  const w = { location: { search: '' } }; w.window = w;
+  // the app's own sun track, cut down to what this needs: high sun, low sun, night
+  w.skyBodies = p => p < 0.4 ? { sun: { az: 180, elev: 55 }, moon: { az: 90, elev: -20 } } : p < 0.55 ? { sun: { az: 255, elev: 8 }, moon: { az: 90, elev: -5 } } : { sun: { az: 300, elev: -30 }, moon: { az: 120, elev: 22 } };
+  vm.runInContext(sky, vm.createContext({ window: w, document: { querySelector: () => null, getElementById: () => null }, URLSearchParams, Float32Array, Uint8Array, console }));
+  const C = w.CitySky, day = C.at(0.3), gold = C.at(0.5), night = C.at(0.9), lum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  check(day.light.length === 17 && day.light.every(c => c.length === 3 && c.every(v => Number.isFinite(v) && v >= 0)), 'the sky light is 17 finite colours, by how far a surface tilts up');
+  // (not simply "more the more it tilts up": this sky is brightest near the level line, so a surface leaning a little back can get more than a flat roof)
+  const top = Math.max(...day.light.map(lum));
+  check(lum(day.light[16]) >= lum(day.light[8]) && lum(day.light[8]) > 3 * lum(day.light[0]) && day.light.every((c, i) => i === 0 || Math.abs(lum(c) - lum(day.light[i - 1])) < 0.35 * top), 'a roof gets at least what a wall gets, a wall several times what a face looking down gets, and the light changes smoothly between', 'down ' + lum(day.light[0]).toFixed(2) + ', wall ' + lum(day.light[8]).toFixed(2) + ', up ' + lum(day.light[16]).toFixed(2));
+  check(lum(day.light[0]) > 0 && lum(day.light[0]) < 0.35 * lum(day.light[16]), 'a face that looks at the ground gets the ground\'s bounce, a small share of what a roof gets');
+  check(Math.abs(Math.hypot(...day.sunDir) - 1) < 1e-6 && day.sunDir[2] > 0.7 && lum(day.sunStrength) > 1, 'by day the sun is up and strong', 'strength ' + day.sunStrength.map(v => v.toFixed(2)).join(', '));
+  check(gold.sunStrength[0] / gold.sunStrength[2] > 1.5 * day.sunStrength[0] / day.sunStrength[2] && gold.pts[2][1][0] > gold.pts[2][1][2], 'a low sun is warmer, and so is the sky at the level line');
+  check(lum(night.light[8]) < 0.1 * lum(day.light[8]) && lum(night.sunStrength) < 0.1 && night.sunDir[2] > 0, 'at night the sky light is a small share of the day\'s and the one light with a direction is the moon');
+  check(day.pts.length === 7 && day.pts.every((q, i) => i === 0 || q[0] > day.pts[i - 1][0]), 'the sky is seven stops by height, in order');
+  check(typeof C.glsl === 'string' && ['csSkyLight', 'csMirror', 'csDisplay'].every(n => C.glsl.includes('vec3 ' + n + '(')), 'the shader code has the three functions a surface needs');
 }
 console.log(failed ? '\nFAILED: ' + failed : '\nall passed');
 process.exit(failed ? 1 : 0);

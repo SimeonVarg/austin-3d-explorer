@@ -100,3 +100,41 @@ share a night room (`windowGapM`), so a window is lit or dark as a whole.
 Colour: the row's gains were found at the hour whose sun lights the sign face and leaves the other street face in shade (`photoHour` 0.28), through the
 site photograph's camera, hundreds of metres from the building, so they include the app's distance haze there: from 170 m the sun-lit blue reads about 40,59,79 where the photograph has 49,71,95 (from 340 m, 46,65,85).
 
+## The app's light (2026-10-12): a row with a `look` file
+
+A table row may name a second file, `look`: the same model exported WITH its Blender materials (`scripts/blender_export_look.py`), and beside it
+`<name>-sky.png`, a small map of how much sky each part of each face sees, baked in Blender by casting rays. A row with a `look` file is not drawn
+by the flat-colour code above. It is drawn by `js/gltf-look.js` under `js/city-sky.js`, **the app's light**: one place that makes the sky and the
+sun for the hour and holds the shader code that lights a surface with them.
+
+What that light is, in plain words:
+
+- **Light from the whole sky.** A wall in shade is lit by the sky's own colours from every direction it can see, and by the ground's bounce from
+  below. The exact sum is made once per hour as 17 colours (by how far a surface tilts up); there is no texture.
+- **The sun**, through the app's own two shadow maps.
+- **Materials, not painted colours.** A wall has a colour. Glass is a dark pane plus a mirror of the same sky, in the mirror colour its Blender
+  material has. No light gains per building: nothing in `js/gltf-look.js` or `js/city-sky.js` knows which building it draws.
+- **Recesses** get less sky light, by the baked map.
+- **Night** is the city's own: rooms by `CityNight.room(building, floor, column)`, the row's lamps, the sign lit.
+- **The screen curve** is plain sRGB (Blender's "Standard" view transform). The app lays a tone table over the whole canvas (`js/graphics.js`),
+  tuned for painted colours; this light cancels that table for its own pixels (`CitySky.tune.undoGrade`), so what reaches the screen is the picture
+  the standalone test page `proto/blender-look.html` shows.
+
+Switches (all off unless the page asks):
+
+| In the address | What it does |
+|---|---|
+| `?gltf=1` | the layer, as before; rows with a `look` file are drawn under the app's light |
+| `?gltf=1&smooth=1` | the same with the app's own "Smooth edges" (four samples a pixel on the whole canvas). **The thin lines of a Blender model (joint lines 4 cm wide, mullions 7 cm wide) need it**: without it they break up and edges are stair-stepped |
+| `?gltflook=0` | every row the old way (flat colours with light gains, wall maps) |
+| `?skygrade=1` | leave the app's canvas tone table on the new light's pixels (to see what it does to them) |
+| `?skyambient=0.8` | scale all sky light |
+
+What a `look` file must be (the loader refuses anything else): glTF 2.0 binary, positions, normals and one UV set as float32, no node transforms,
+no images; per material a base colour; for glass the `extras` the export writes (`look_kind`, `look_glossy`, and for see-through glass
+`look_transparent` and `look_transmit`); a colour per vertex where the Blender material paints its base colour per face. The export script turns
+text objects into meshes, puts every object's place and turn into its points, and leaves out cameras, lights and any object named `...ground`.
+
+One rule for the people (or models) who build in Blender: **an albedo only means something under a known light.** The tower's file arrives looking
+like its Blender render because this light is that scene's light. A building lit differently in Blender (a stronger sun, a flatter sky) arrives with
+the same materials but not the same picture. Build under the same light rig, and it will.

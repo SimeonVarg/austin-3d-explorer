@@ -5,14 +5,15 @@
 # A plain material (one Principled BSDF) is exported as it is: base colour, roughness, metal, and "no mirror part" where the scene says so.
 # A glass material here is a node graph (a dark diffuse part plus a mirror part of a set colour, sometimes mixed with a see-through
 # part), which glTF has no words for. It is exported as a plain dark material that carries the graph's own numbers as `extras`:
-#   look_kind "glass", look_glossy [r, g, b] (the mirror part's colour, linear), look_rough, look_transparent (0..1)
+#   look_kind "glass", look_glossy [r, g, b] (the mirror part's colour, linear), look_rough, look_transparent (0..1: the share of
+#   see-through), look_transmit [r, g, b] (the colour what is behind is seen through)
 # The page builds its glass from those. What stays out: the ground plane, cameras, lights, images, anything that names a file or folder.
 import bpy, sys, os, json, struct, math, random
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 # ── PARAMETERS ──────────────────────────────────────────────────────────
-SKIP_OBJECTS = ('wl_ground',)          # the page lays its own ground
+SKIP_OBJECTS = ('wl_ground',)          # the page lays its own ground (any object whose name ends in `ground` is left out too)
 # Sky-light map ("ambient occlusion"): how much of the sky each part of each face sees, found by casting rays in this scene. Every face
 # gets its own small patch of one image; the page multiplies the SKY light by it (not the sun: the page's own shadow map does the sun).
 AO_TEXEL_M = 1.0       # one sample of the map, metres along a face
@@ -27,21 +28,36 @@ AO_SEED = 7
 args = sys.argv[sys.argv.index('--') + 1:]
 out = args[0]; ao_out = args[1] if len(args) > 1 else None
 for o in list(bpy.context.scene.objects):
-    if o.type != 'MESH' or o.name in SKIP_OBJECTS: bpy.data.objects.remove(o, do_unlink=True)
-keep = [o for o in bpy.context.scene.objects if o.type == 'MESH']
+    if o.type not in ('MESH', 'FONT', 'CURVE') or o.name in SKIP_OBJECTS or o.name.endswith('ground'): bpy.data.objects.remove(o, do_unlink=True)
+# lettering made as a text object becomes a mesh; every object's place, turn and size go into its points (the page reads plain meshes)
+for o in list(bpy.context.scene.objects):
+    if o.type != 'MESH':
+        bpy.ops.object.select_all(action='DESELECT'); o.select_set(True); bpy.context.view_layer.objects.active = o
+        bpy.ops.object.convert(target='MESH')
+for o in bpy.context.scene.objects:
+    if o.data.users > 1: o.data = o.data.copy()
+    o.data.transform(o.matrix_world); o.matrix_world.identity()
+keep = [o for o in bpy.context.scene.objects if o.type == 'MESH' and len(o.data.polygons) and o.data.materials]
+painted = False
 for o in keep:
     m = o.data.materials[0]; nt = m.node_tree; name = m.name
+    # a material whose base colour is painted per face (a colour attribute wired into Base Color): the colours go into the file as vertex colours
+    pb0 = nt.nodes.get('Principled BSDF')
+    if pb0 is not None and pb0.inputs['Base Color'].is_linked and o.data.color_attributes:
+        pb0.inputs['Base Color'].default_value = (1.0, 1.0, 1.0, 1.0); o.data.color_attributes.render_color_index = 0; o.data.color_attributes.active_color_index = 0
+        m['look_painted'] = 1; painted = True
     if nt.nodes.get('Principled BSDF') is None:
         d = next(n for n in nt.nodes if n.type == 'BSDF_DIFFUSE'); g = next(n for n in nt.nodes if n.type == 'BSDF_GLOSSY')
         diffuse = list(d.inputs['Color'].default_value[:3]); glossy = [float(v) for v in g.inputs['Color'].default_value[:3]]
         rough = float(g.inputs['Roughness'].default_value)
         mix = [n for n in nt.nodes if n.type == 'MIX_SHADER']; see = [n for n in nt.nodes if n.type == 'BSDF_TRANSPARENT']
         transparent = float(mix[0].inputs[0].default_value) if mix and see else 0.0
+        transmit = [float(v) for v in see[0].inputs['Color'].default_value[:3]] if mix and see else [1.0, 1.0, 1.0]
         o.data.materials.clear(); bpy.data.materials.remove(m)
         m = bpy.data.materials.new(name); m.use_nodes = True
         p = m.node_tree.nodes['Principled BSDF']
         p.inputs['Base Color'].default_value = (*diffuse, 1.0); p.inputs['Roughness'].default_value = rough; p.inputs['Metallic'].default_value = 0.0
-        m['look_kind'] = 'glass'; m['look_glossy'] = glossy; m['look_rough'] = rough; m['look_transparent'] = transparent
+        m['look_kind'] = 'glass'; m['look_glossy'] = glossy; m['look_rough'] = rough; m['look_transparent'] = transparent; m['look_transmit'] = transmit
         o.data.materials.append(m)
     else:
         p = nt.nodes['Principled BSDF']; spec = p.inputs['Specular IOR Level'].default_value if 'Specular IOR Level' in p.inputs else 0.5
@@ -119,7 +135,8 @@ bpy.ops.object.select_all(action='DESELECT')
 for o in keep: o.select_set(True)
 props = bpy.ops.export_scene.gltf.get_rna_type().properties.keys()
 kw = dict(filepath=out, export_format='GLB', use_selection=True)
-for k, v in (('export_apply', True), ('export_yup', True), ('export_normals', True), ('export_texcoords', bool(ao_out)), ('export_vertex_color', 'NONE'),
+for k, v in (('export_apply', True), ('export_yup', True), ('export_normals', True), ('export_texcoords', bool(ao_out)), ('export_vertex_color', 'ACTIVE' if painted else 'NONE'),
+             ('export_active_vertex_color_when_no_material', True), ('export_all_vertex_colors', False),
              ('export_cameras', False), ('export_lights', False), ('export_image_format', 'NONE'), ('export_materials', 'EXPORT'),
              ('export_extras', True), ('export_attributes', False), ('export_tangents', False), ('export_animations', False), ('export_skins', False),
              ('export_morph', False), ('use_active_scene', True), ('export_draco_mesh_compression_enable', False)):

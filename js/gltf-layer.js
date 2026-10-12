@@ -52,6 +52,9 @@
       { name: 'Yugo Austin Waterloo', file: 'data/gltf/waterloo.glb',
         lng: -97.7442690, lat: 30.2881748, groundM: 1.74, headingDeg: 95, topM: 104.02,
         replaces: '57d4d01d-0a57-4b46-b2a8-02fcaf77f81a',
+        // The same model WITH its Blender materials, drawn by js/gltf-look.js under the app's light (js/city-sky.js) instead of the flat colours
+        // above. `lookOrigin`: the point of that file (its own X, Y, Z) that stands on this row's lng / lat.
+        look: 'data/gltf/waterloo-look.glb', lookOrigin: [7.78, 0, 0],
         // The night profile the city's night rules read for this building (the recipe's own `night`): the share of rooms lit and the
         // lamps. Lamp positions are in the MODEL frame (x along the street face, y into the building, z up from the model's ground), the
         // recipe's four downlights moved onto this model's terrace, sign and entry: sign wash, two terrace lamps, entry canopy.
@@ -113,7 +116,7 @@
       penthouse:    { fix: 'dark', night: '#323d47' },
       // The sign: the recipe's lit lettering. A glass surface of strength 0 is how the recipe's `signFace` is drawn: no mirror, and the
       // city's night rules light it with its night tone.
-      letters:      { fix: 'dark', surface: 'glass', strength: 0, night: '#fff0d4' },
+      letters:      { fix: 'dark', surface: 'glass', strength: 0, night: '#fff0d4', sign: true },
       // Windows are lit room by room (below). The tone of a dark pane is the city's own (CityNight.tune.unlitGlass); the crown and rails
       // use the recipe's `crownGlass` night tone.
       glass:        { fix: 'glass', surface: 'glass', lit: true },
@@ -171,6 +174,10 @@
       lift: 0.1,                               // the overlay stands this far (m) in front of the frontmost quad (more than the depth buffer can mix up with it at 1 km)
     },
 
+    // ── The app's light (round 5): a row with a `look` file is drawn by js/gltf-look.js under js/city-sky.js ─────────────────────────────
+    // ?gltflook=0 draws every row the old way (flat colours with light gains, wall maps). `skyMapStrength`: 1 = recesses get as little
+    // sky light as the map baked in Blender says, 0 = the map is ignored.
+    look: { on: q.get('gltflook') !== '0', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1 },
     // The layer's place in the scene, as the apartments' group has it (js/slopes-apartments.js APTS.lod / minzoom).
     lod: null, minzoom: 14,
     // Draw both sides of every face, as the apartments do (APTS.twoSided): a model with one mis-wound face must not show a hole.
@@ -197,4 +204,6 @@
   const tag = document.createElement('script');
   tag.src = GLTF.drawScript;
   document.head.appendChild(tag);
+  // ... and, when a row has a `look` file, the app's light and the code that draws with it
+  if (GLTF.look.on && GLTF.buildings.some(b => b.look)) for (const src of GLTF.look.scripts) { const t = document.createElement('script'); t.src = src; t.async = false; document.head.appendChild(t); }
 })();
