@@ -105,7 +105,7 @@
       // keep its area (n x r^2 ~ R^2 x clusterOverlap^2), stood on a ring and a little lower, so there are lit tops and dark gaps.
       capRadius: 6.5,           // metres, 13 m across
       clusterMax: 5, clusterFill: 1.0, clusterOverlap: 1.22, clusterRing: 0.75, clusterDrop: 0.18,
-      chunk: 160,               // metres; the finer crown is chosen per chunk
+      chunk: 320,               // metres; the finer crown is chosen per chunk (160 gave 936 chunks, above the check's 400)
       closeMetres: 350,         // chunks nearer than this draw the finer crown (outerTrees.campus.closeSegments x closeRings)
       radiusJitter: 0.08,       // each crown this much wider or narrower
       valueJitter: 0.10,        // each crown this much lighter or darker
