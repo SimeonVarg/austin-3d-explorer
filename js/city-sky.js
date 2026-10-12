@@ -59,7 +59,7 @@
     // (measured 2026-10-12): the one strength per channel at which each wall material's sunlit pixels and shaded pixels give the same colour under
     // the sky above, pooled over 14 materials of three buildings (single photographs gave 8 to 34). The first value here, 1.57 / 1.53 /
     // 0.91, was one Blender scene's own sun, set for a photograph of walls in shade: under it a sunlit wall was only 1.6 times a shaded
-    // one, where the photographs show 4 to 7 times. `?skysun=` scales it.
+    // one, where the photographs show 3 to 10 times (most between 4 and 7). `?skysun=` scales it.
     sunStrength: [23.65, 21.64, 18.95].map(v => v * num('skysun', 1)),
     sunWarmBelow: 25, sunGoneAt: -1, sunFullAt: 5,   // degrees: the sun warms below this height; it fades out between the last two
     sunWarm: [0, 0.35, 0.65],                    // how much green and blue the low sun loses

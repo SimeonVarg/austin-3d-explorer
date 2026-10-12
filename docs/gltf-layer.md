@@ -158,7 +158,7 @@ builder had lit its scene with a hard sun and a dim sky, the tower's builder wit
 **1. The sun is now measured, not taken from one scene.** For each wall material that a site photograph shows both in the sun and in shade,
 there is one sun strength at which the sunlit pixels and the shaded pixels give the same surface colour under the app's sky. Pooled over 14
 materials of three buildings photographed in full sun it is 23.65 / 21.64 / 18.95 (red, green, blue; single photographs gave 8 to 34). The first
-value, 1.57 / 1.53 / 0.91, made a sunlit wall 1.6 times a shaded one; the photographs show 4 to 7 times. It is `TUNE.sunStrength` in
+value, 1.57 / 1.53 / 0.91, made a sunlit wall 1.6 times a shaded one; the photographs show 3 to 10 times (most between 4 and 7). It is `TUNE.sunStrength` in
 `js/city-sky.js`; `?skysun=` scales it (0.07 is about the first light). The sky was not changed.
 
 **2. Blender gets the same light from one file.** `scripts/blender_light_rig.py` puts the app's sky, sun, ground and view transform into a
@@ -189,8 +189,8 @@ What this does not solve, measured:
   node graph with its own mirror colour, keeps its mirror.
 - **26 West is 76,396 triangles and a 6.8 MB file (1.1 MB gzipped).** It is in the branch so that the row draws; it needs a smaller file
   (indexed, quantised, or a far version) before it is merged or sent to a phone.
-- **The tower's photograph was taken under cloud.** Its colours carry that picture's brighter exposure, so under one light with the others its
-  shaded white is about twice as bright as theirs. One exposure for the whole view (the app's auto exposure, or a film curve) is the answer,
+- **The tower's site photograph shows almost no difference between its sunlit and its shaded white walls** (thin cloud, most likely). Its colours
+  carry that picture's brighter exposure, so under one light with the others its shaded white is about twice as bright as theirs. One exposure for the whole view (the app's auto exposure, or a film curve) is the answer,
   and that is the decision about the canvas grade that the recipes need too.
 - **Blender's default gloss.** A build whose wall materials keep Specular IOR Level 0.5 renders up to a tenth brighter in Blender than here on a
   white wall, and twice as bright on a dark one. The app draws walls matt; `light_rig.check()` lists such materials.
