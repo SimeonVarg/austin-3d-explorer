@@ -667,6 +667,9 @@
       window.applySlopesSettings = wrapped;
     }
     map.on('move', () => update(false));
+    // ?look=photo: the camera uniform the picks read is written by the frame, so a pick made on 'move' uses the frame BEFORE (a jump left
+    // every chunk judged from the old place, and the recorded crowns near the new camera were drawn as far ones). Pick again after each frame.
+    if (LOOK.on) map.on('render', () => update(false));
     window.applyOuterTrees(map);
     count.done = true;
     console.log('[outer-trees]', count.trees, 'trees in', count.chunks, 'chunks,', count.ms, 'ms');
