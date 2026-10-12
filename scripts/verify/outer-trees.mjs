@@ -72,8 +72,12 @@ const pose = async (s) => {
   await page.evaluate(() => { window.applyOuterTrees(window.__map); window.__map.triggerRepaint(); });
   await page.waitForTimeout(1200);
 };
+// "Off" means NO tree cover at all: the outer layer is removed and the stacked-octagon tile layers are hidden too. With
+// ?look=photo the tile trees are what the crowns replace, and removing the crowns alone would bring them back.
 const setTrees = on => page.evaluate(async (on) => {
-  window.OUTER_TREES.on = on; window.applyOuterTrees(window.__map); window.__map.triggerRepaint();
+  window.OUTER_TREES.on = on; window.applyOuterTrees(window.__map);
+  for (const id of ['trees-canopy', 'trees-trunk']) { try { window.__map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch (e) {} }
+  window.__map.triggerRepaint();
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 }, on);
 const shot = async (file) => { await page.screenshot({ path: file, timeout: 180000 }); await page.waitForTimeout(600); await page.screenshot({ path: file, timeout: 180000 }); };
@@ -95,7 +99,9 @@ await pose({ center: [-97.7760, 30.2990], zoom: 16.6, pitch: 35, bearing: 0, p: 
 const s1 = await page.evaluate(() => window.outerTrees.stats());
 const A = await grab(); await setTrees(false); const B = await grab(); await setTrees(true); const C = await grab();
 check(s1.near > 0, 'close to the ground the near template draws', 'near ' + s1.near + ', far ' + s1.far);
-check(greener(A, B) > 0.15, 'over Tarrytown at least 15 % of the frame turns green', (greener(A, B) * 100).toFixed(1) + ' %');
+// The check means "the tree cover is drawn", so it counts pixels that CHANGE when the cover is taken away (any colour: the
+// ?look=photo crowns are dark olive and an earlier version, which counted pixels turning greener, read 14.4 % there).
+check(diff(A, B) > 0.15, 'over Tarrytown at least 15 % of the frame changes when the tree cover is taken away', (diff(A, B) * 100).toFixed(1) + ' %  (greener: ' + (greener(A, B) * 100).toFixed(1) + ' %)');
 check(diff(A, C) < 0.02, 'switching them back on gives the same frame', (diff(A, C) * 100).toFixed(2) + ' %');
 // 2. far template from high up, and never both templates of a chunk
 await pose({ center: [-97.7760, 30.2990], zoom: 14.4, pitch: 50, bearing: 0, p: 0.25 });
@@ -104,7 +110,7 @@ check(s2.far > 0 && s2.horizon > 0 && s2.near === 0 && s2.both === 0, 'from high
 // 3. somewhere else entirely
 await pose({ center: [-97.7400, 30.2470], zoom: 16.6, pitch: 35, bearing: 0, p: 0.25 });
 const D = await grab(); await setTrees(false); const E = await grab(); await setTrees(true);
-check(greener(D, E) > 0.10, 'and over Travis Heights, 7 km away, as well', (greener(D, E) * 100).toFixed(1) + ' %');
+check(diff(D, E) > 0.10, 'and over Travis Heights, 7 km away, as well', (diff(D, E) * 100).toFixed(1) + ' %  (greener: ' + (greener(D, E) * 100).toFixed(1) + ' %)');
 // 4. none where another lane owns the trees
 const core = await page.evaluate(() => {
   const d = window.outerTrees.data, lv = window.outerTrees.level; let n = 0;

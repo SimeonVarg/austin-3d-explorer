@@ -64,8 +64,8 @@
     ground: {
       day: {
         asphalt: '#484c53',     // road surface          photo (66,69,80) to (91,95,101)   app (106,106,108) to (132,126,117)
-        concrete: '#928f86',    // sidewalks and lots    photo (123..170)                  app (244,235,209)
-        paving: '#9a968a',
+        concrete: '#7e7c76',    // sidewalks and lots    photo (123 shade .. 175 sun)      app (244,235,209) -> (175,169,152) -> aimed at the middle
+        paving: '#86837b',
       },
       golden: {
         asphalt: '#4d4a4a',
@@ -88,6 +88,13 @@
       speciesGroup: { other: 'mid', liveoak: 'dark', oak: 'dark', elm: 'mid', pecan: 'mid', crape: 'light', magnolia: 'dark', cedar: 'dark', cypress: 'dark', pine: 'dark', palm: 'light' },
       // Widest tier of the old stack -> the crown's radius, by species.
       spread: { other: 1.1, liveoak: 1.15, oak: 1.12, elm: 1.08, pecan: 1.1, crape: 1.0, magnolia: 1.05, cedar: 0.95, cypress: 0.9, pine: 0.9, palm: 0.85 },   // a little wider than the old stack (round 2 at 1.2 to 1.3 read as hedges)
+      // SIZE. A live oak crown here is 8 to 14 m across; the old stack's widest tier reached 20 m, which drew as slabs filling a
+      // quarter of a near frame. A crown wider than capRadius is split into a cluster of 2 to clusterMax smaller crowns that
+      // keep its area (n x r^2 ~ R^2 x clusterOverlap^2), stood on a ring and a little lower, so there are lit tops and dark gaps.
+      capRadius: 6.0,           // metres, 12 m across
+      clusterMax: 4, clusterFill: 1.3, clusterOverlap: 1.12, clusterRing: 0.75, clusterDrop: 0.18,
+      chunk: 160,               // metres; the finer crown is chosen per chunk
+      closeMetres: 220,         // chunks nearer than this draw the finer crown (outerTrees.campus.closeSegments x closeRings)
       radiusJitter: 0.08,       // each crown this much wider or narrower
       valueJitter: 0.10,        // each crown this much lighter or darker
       minCrownShare: 0.45,      // a crown takes at least this share of the tree's height
@@ -98,7 +105,9 @@
       campus: {
         leaf: ['#46522e', '#4b5830', '#424e2d', '#505b32'].map(leaf),
         shade: 0.28,            // the lowest ring of a crown at this share of the top ring's tone
-        lobeDepth: 0.30, wave: 0.08,   // rounder, less polygonal outline (round 1: 0.20 / 0.05 read as faceted blobs)
+        lobeDepth: 0.30, wave: 0.08,
+        lobeTone: 0.45,         // a lobe's crest this much lighter and its hollow darker (sun and shade on the crown's own bumps)
+        closeSegments: 12, closeRings: 6,   // the nearest crowns: 12 x 6 = 130 triangles with trunk; beyond closeMetres 8 x 4 = 58   // rounder, less polygonal outline (round 1: 0.20 / 0.05 read as faceted blobs)
         segments: 8, rings: 4,  // near crown: 48 triangles, 22 fewer than today's outer crown (10 x 4) and about today's stack
       },
       top: {},
@@ -107,7 +116,9 @@
     // ── js/campus-landscape.js ──────────────────────────────────────────
     campusLandscape: {
       leaf: ['#46522e', '#4b5830', '#424e2d', '#505b32'].map(leaf),
-      shade: 0.45,
+      shade: 0.30,
+      capRadius: 6.0,           // metres: a campus crown is capped like the recorded ones (its limbs' clusters are already separate crowns)
+      facetTone: 0.22,          // each quad of a crown this much lighter or darker, by position: no crown reads as one colour
     },
   };
   window.LOOK_PHOTO = LOOK;
