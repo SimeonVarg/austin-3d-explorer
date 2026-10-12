@@ -93,6 +93,7 @@ for (const row of rows) {
     const pal = F.palette(meshes), painted = plan.map(f => F.paint(f, pal));
     check(painted.every(x => x.width * x.height * 4 === x.day.length && x.day.every(v => v >= 0 && v <= 255)), 'every wall map is painted, texel by texel', painted.reduce((n, x) => n + x.width * x.height, 0) + ' texels');
     const glass = meshes.find(m => m.material === 'glass'), addr = I.paneAddress(glass.pos, glass.idx);
+    check(addr.wide.some(v => v === 1) && addr.wide.some(v => v === 0), 'the long strips of glazing (the crown) are told apart from room windows', addr.wide.filter(v => v).length + ' triangles in strips');
     check(Math.max(...addr.floor) > 20 && Math.max(...addr.col) > 3 && addr.wall.every(w => typeof w === 'string'), 'every glass pane gets a wall, a floor and a column for the night rules', 'floors 0 to ' + Math.max(...addr.floor) + ', up to ' + (Math.max(...addr.col) + 1) + ' columns');
     const white = meshes.find(m => m.material === 'white'), sides = I.sunSides(white.pos, white.idx, row.headingDeg);
     check(sides.some(v => v === 1) && sides.some(v => v === 0), 'the sun reaches some faces of the tower and not others at the photograph\'s hour');

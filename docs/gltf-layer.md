@@ -14,7 +14,8 @@ every other mesh. One building today: the Yugo Austin Waterloo tower (`data/gltf
 ## The table (top of `js/gltf-layer.js`)
 
 One row per building: the `.glb`, where its origin stands (`lng`, `lat`, `groundM`), the compass `headingDeg` of its +Y
-axis, `topM` (its height, read by the flight collision), and `replaces`, the id of the recipe whose drawing it takes over.
+axis, `topM` (its height, read by the flight collision), `replaces` (the id of the recipe whose drawing it takes over) and `night` (the
+profile and lamps the city's night rules read).
 While the layer is on, `js/slopes-apartments.js` leaves that recipe out of the build (one hook, `GLTF_LAYER.hides`) and
 keeps its entry in `built` (so ids, collision heights, places and arches see it). The generic block under the recipe stays
 hidden through the recipe's own `replacedBuildingIds`. Replace, never overlap.
@@ -31,16 +32,42 @@ drawing it wrong. Model frame in Blender (Z up): X along the street face, Y into
 `node scripts/verify/gltf-layer.mjs` checks the layer's contract with no browser (the table's ids, the file's contents,
 the refusals, the winding).
 
+## Far away: steady windows (CLAUDE.md rule 15)
+
+Panes thinner than a pixel crawl when they are drawn as geometry. The city's own cure for its recipe buildings is a texture of each wall's
+area-averaged colours, drawn over the wall once a pixel covers more than a quarter metre (`js/facade-filter.js`, `facadeMaterial` in
+`js/slopes.js`). This layer builds the same overlay from the model's own quads: every wall face with enough quads on it is painted back to
+front into a fine grid and averaged down to a small map (about 0.25 m a texel, 22 faces, 8 MB of textures for the tower), and the
+overlay is drawn by the city's own facade-filter material. Near, the hard panes of the geometry show; far, their true area average; in
+between a fade (`GLTF.facade.fadeStart` / `fadeEnd`) that never pops. Nothing is blurred: the map is only sampled where a texel is smaller
+than a pixel. `?gltffilter=0` turns it off for an A/B. `scripts/verify/gltf-layer.mjs` plans and paints the faces of the real model.
+
+## Night
+
+Windows are lit room by room by the city's own night rules (`CityNight.room(building, floor, column)`, the profile in the table row: the
+recipe's occupancy 0.23), the floor from the pane's height and the column from its place in its row on its wall. Wall and slab night tones
+are the recipe tower's own authored tones for the same roles (blade, panels, charcoal, frames); the sign is lit like the recipe's sign; the
+recipe's four downlights are carried over, moved onto this model's terrace, sign and entry.
+
+## Day colour under the app's light
+
+The colours in the `.glb` are what a lit photograph shows, and the app lights them again. Each material class has a gain per colour
+channel, for faces the sun reaches at the photograph's hour and for faces it does not (`GLTF.litFix`), found by rendering the app from the
+photograph's camera and dividing the photograph's colour by the app's, as `js/look-photo.js` does for trees and roads. A colour above white
+(the lit slab is brighter than the city's light can make white) is kept as a per-vertex multiplier of the albedo (`aBoost`), applied by this
+layer's own copy of the city's shader; nothing else in the city changes.
+
 ## What it does not carry from a recipe building
 
-Night downlights, windows lit by the city's night rules (here: a random pane pattern), the packed vertex format, the
-facade filter that keeps thin window detail steady at distance, and per-block reveals. The cost of each is in the pull
-request that added this file.
+The packed vertex format (88 bytes a vertex instead of 16), the recipe's per-block reveals (window recesses), and the golden-hour and night
+colour corrections of the lit-colour gains (they are calibrated for the photograph's hour only). The facade overlay is off at night, as the
+recipes' are.
 
 ## Placement
 
-The model's origin is the middle of the slab's lettering on its street face. The table's `lng`/`lat` come from the recipe's own
-slab (`data/apartments/yugo-austin-waterloo.json`, block `blade`: face plane u = 0.3, lettering centre v = 13.5) and the heading
-from its frame (95 degrees). `groundM` is 1.74 m: the model's own ground level is inferred and its height scale is only good
-to about 5 % (4.7 m on this tower), so the offset is a choice, written down in the table. Set it to 0 for the model's own
+The model's origin is the middle of the slab's lettering on its street face, and its podium is centred on the surveyed footprint (the map
+outline, which the 2021 laser scan of the site agrees with) along the street face. The recipe's own slab would put it 6.35 m south of that
+(`lng -97.7442748, lat 30.2881180`); the outline is surveyed and the recipe's slab is authored from exterior references, so the table uses the
+outline. The heading comes from the recipe's frame (95 degrees). `groundM` is 1.74 m: the model's own ground level is inferred and its height
+scale is only good to about 5 % (4.7 m on this tower), so the offset is a choice, written down in the table. Set it to 0 for the model's own
 inferred ground. `scripts/verify/gltf-layer.mjs` checks `topM` against the file's height plus `groundM`.

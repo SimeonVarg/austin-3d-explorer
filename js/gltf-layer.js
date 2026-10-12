@@ -86,7 +86,7 @@
       letters:      { fix: 'dark', surface: 'glass', strength: 0, night: '#fff0d4' },
       // Windows are lit room by room (below). The tone of a dark pane is the city's own (CityNight.tune.unlitGlass); the crown and rails
       // use the recipe's `crownGlass` night tone.
-      glass:        { fix: 'glass', surface: 'glass', lit: true, day: '#123c7d' },
+      glass:        { fix: 'glass', surface: 'glass', lit: true },
       glass_b:      { fix: 'glass', surface: 'glass', lit: true },
       glass_rail:   { fix: 'glass', surface: 'glass', night: '#122a31' },
       glass_rail_c: { fix: 'glass', surface: 'glass', night: '#122a31' },
@@ -97,6 +97,7 @@
     // profile above (occupancy 0.23), the city's tones and brightness, and its dark-pane tone for the rest. The floor comes from the
     // pane's height (3.05 m storeys from the ground) and the column from its place in its row on its wall. `nightLit` is only the
     // fallback when the city's night rules are off (?citynight=0): that fraction of panes, by a hash of where the pane is.
+    maxRoomWidthM: 3.0,   // a glass pane wider than this is a strip of glazing (the crown), not a room: never lit, like the recipe's subdued crown glazing
     storeyM: 3.05, storeyOffsetM: 0.25,   // the model's floors: floor = floor((height above its ground + offset) / storey)
     nightLit: (() => { const v = parseFloat(q.get('gltflit')); return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.23; })(),
     litTone: '#eadfc8',      // the recipes' APTS.nightLitTone
@@ -112,7 +113,10 @@
       shade: { slab: [1.22, 1.30, 1.36], panel: [1.08, 1.20, 1.38], wall: [1, 1, 1], dark: [1.31, 1.51, 1.58], brick: [1, 1, 1], glass: [1, 1, 1] },
       sun:   { slab: [0.81, 0.84, 0.84], panel: [0.81, 0.84, 0.84], wall: [0.81, 0.84, 0.84], dark: [1, 1, 1], brick: [1, 1, 1], glass: [1, 1, 1] },
     },
-    glassStrength: 0.38,             // how much sky the glass mirrors (0..1; the city's glass class is 1, the recipe tower's own glass 0.55); null = the city's
+    glassStrength: 0.5,              // how much sky the glass mirrors (0..1; the city's glass class is 1, the recipe tower's own glass 0.55); null = the city's
+    // The long strips of glazing (the crown) mirror the sky differently from room windows in the photograph: bluer and darker than the
+    // city's sky mirror makes the file's near-black glass. Only panes wider than `maxRoomWidthM` take these; windows keep the file's glass.
+    crownGlass: { day: '#1870b8', strength: 0.22 },
     // The day colour's golden-hour and night colours when a material gives none: the same ramp the recipes use
     // (js/slopes-apartments.js ramp(), which copies js/westcampus.js).
     goldMix: 0.16, goldTo: [255, 190, 130],

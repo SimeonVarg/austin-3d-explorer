@@ -63,11 +63,11 @@
   const clamp255 = v => Math.max(0, Math.min(255, v));
   const tripleCache = new Map();
   /** the [day, golden, night] colours of a material on a face the sun does (`side` 'sun') or does not ('shade') reach at the photograph's hour */
-  function tripleFor(mesh, side) {
-    const key = mesh.material + '|' + (side || '');
+  function tripleFor(mesh, side, variant) {
+    const key = mesh.material + '|' + (side || '') + '|' + (variant || '');
     let col = tripleCache.get(key);
     if (col) return col;
-    const cfg = GLTF.materials[mesh.material] || {};
+    const cfg = variant === 'crown' ? Object.assign({}, GLTF.materials[mesh.material] || {}, GLTF.crownGlass) : (GLTF.materials[mesh.material] || {});
     let d = cfg.day ? fromHex(cfg.day) : mesh.linear.map(srgb255);
     const gain = side && cfg.fix && GLTF.litFix[side] && GLTF.litFix[side][cfg.fix];
     let boost = [1, 1, 1];
@@ -138,7 +138,7 @@
   }
   /** where each pane is, for the city's night rules (CityNight.room): its wall, its floor (from its height) and its column (its place in its row on that wall) */
   function paneAddress(P, I) {
-    const panes = paneOf(P, I), T = panes.length, floor = new Int16Array(T), col = new Int16Array(T), wall = new Array(T);
+    const panes = paneOf(P, I), T = panes.length, floor = new Int16Array(T), col = new Int16Array(T), wall = new Array(T), wide = new Uint8Array(T);
     const rows = new Map(), info = new Array(T);
     for (let t = 0; t < T; t++) {
       const ids = panes[t];
@@ -148,12 +148,13 @@
       const nn = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
       const ax = Math.abs(nn[0]) > Math.abs(nn[1]) ? 0 : 1, sgn = Math.sign(nn[ax]) || 1, c = centreOf(P, I, ids), cm = [c[0], -c[2], c[1]];
       const fl = Math.floor((cm[2] + GLTF.storeyOffsetM) / GLTF.storeyM), key = ax + '' + (sgn > 0 ? 'p' : 'm') + '|' + Math.round(sgn * cm[ax] * 2) + '|' + fl;
-      const rec = { t, ax, sgn, fl, s: cm[1 - ax], wallKey: ax + (sgn > 0 ? 'p' : 'm') + Math.round(sgn * cm[ax] * 2), key };
+      let s0 = Infinity, s1 = -Infinity; for (const u of ids) for (let c2 = 0; c2 < 3; c2++) { const sv = P[I[u * 3 + c2] * 3 + (ax === 0 ? 2 : 0)] * (ax === 0 ? -1 : 1); s0 = Math.min(s0, sv); s1 = Math.max(s1, sv); }   // extent along the wall
+      const rec = { t, ax, sgn, fl, s: cm[1 - ax], wide: s1 - s0 > GLTF.maxRoomWidthM, wallKey: ax + (sgn > 0 ? 'p' : 'm') + Math.round(sgn * cm[ax] * 2), key };
       info[t] = rec; (rows.get(key) || rows.set(key, []).get(key)).push(rec);
     }
     for (const list of rows.values()) { list.sort((x, y) => x.s - y.s); list.forEach((r, i) => { r.col = i; }); }
-    for (let t = 0; t < T; t++) { const r = info[t]; floor[t] = r.fl; col[t] = r.col; wall[t] = r.wallKey; }
-    return { floor, col, wall };
+    for (let t = 0; t < T; t++) { const r = info[t]; floor[t] = r.fl; col[t] = r.col; wall[t] = r.wallKey; wide[t] = r.wide ? 1 : 0; }
+    return { floor, col, wall, wide };
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -356,20 +357,22 @@
     }
     const boosts = [];                                           // per vertex: the albedo multiplier above white (see tripleFor)
     const toneTriples = new Map();                               // one triple per (material, night tone): the builder caches by triple
-    const withTone = (m, col, tone, side) => { const k = m.material + '|' + tone + '|' + side; let c = toneTriples.get(k); if (!c) { c = [col[0], col[1], tone]; if (col.surface) c.surface = col.surface; c.boost = col.boost; toneTriples.set(k, c); } return c; };
+    const withTone = (m, col, tone, side, crown) => { const k = m.material + '|' + tone + '|' + side + '|' + (crown ? 'c' : ''); let c = toneTriples.get(k); if (!c) { c = [col[0], col[1], tone]; if (col.surface) c.surface = col.surface; c.boost = col.boost; toneTriples.set(k, c); } return c; };
     for (const m of meshes) {
       const P = m.pos, I = m.idx, sides = sunSides(P, I, row.headingDeg), colS = tripleFor(m, 'shade'), colL = tripleFor(m, 'sun'), col = colS, pt = i => world(P[i * 3], -P[i * 3 + 2], P[i * 3 + 1]);
       const cfg = GLTF.materials[m.material] || {};
       let addr = null, lit = null, hash = null;
-      if (cfg.lit && rules) addr = paneAddress(P, I);
+      if (cfg.lit) addr = paneAddress(P, I);
+      const crownS = cfg.lit ? tripleFor(m, 'shade', 'crown') : null, crownL = cfg.lit ? tripleFor(m, 'sun', 'crown') : null;
+      if (cfg.lit && rules) { /* rooms below */ }
       else if (cfg.lit && GLTF.nightLit > 0) { lit = col.slice(); lit[2] = GLTF.litTone; lit.surface = col.surface; hash = paneHash(P, I); }
       verts += P.length / 3;
       for (let k = 0; k + 2 < I.length; k += 3) {
-        const t = k / 3, base = sides[t] ? colL : colS;
+        const t = k / 3, crown = addr && addr.wide[t], base = crown ? (sides[t] ? crownL : crownS) : (sides[t] ? colL : colS);
         let c = base;
-        if (addr) {
-          const room = CN.room(row.replaces + '|' + addr.wall[t], addr.floor[t], addr.col[t], 0);
-          c = withTone(m, base, room.lit ? room.nightTone : CN.tune.unlitGlass, sides[t]);
+        if (addr && rules) {
+          const room = addr.wide[t] ? { lit: false } : CN.room(row.replaces + '|' + addr.wall[t], addr.floor[t], addr.col[t], 0);
+          c = withTone(m, base, room.lit ? room.nightTone : CN.tune.unlitGlass, sides[t], crown);
           if (room.lit) litPanes++;
         } else if (lit && hash[t] < GLTF.nightLit) { c = lit; litPanes++; }
         const A = pt(I[k]), Bv = pt(I[k + 1]), Cv = pt(I[k + 2]);
