@@ -94,6 +94,12 @@ the publishing lane directly, so the order is "as reported"):**
    apartments and distant buildings that are missing. First pass merged as #492 (eight sections, three decks); the
    whole views do not match the photographs yet.
 2. **Then exact roof decks** on three West Campus towers.
+**Newest, 2026-10-11 evening, as reported by the photo lane (not yet confirmed to the publishing lane):** direct
+building of scenes by the large GPT model is STOPPED. The rooftop pass (#492) is live but NOT accepted as the result.
+Next is a minimal-spend pipeline with small models that covers every imported photograph and every visible region of a
+scene, with several views as reference and an independent critic that looks only for what is missing. First the lane
+delivers the saved before / after evidence.
+
 3. **Moire is NOT accepted, and it stays a requirement inside that work, not a separate project on the photo budget.**
    On his Mac the apartments in the opening flight still shimmer severely. #488 (roofs) and the optional #490 did not
    meet his bar, and blur can not stand in for a sharp, steady picture in motion. Acceptance is his eye on the real Mac
