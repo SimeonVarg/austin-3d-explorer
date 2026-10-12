@@ -106,7 +106,7 @@
         leaf: ['#46522e', '#4b5830', '#424e2d', '#505b32'].map(leaf),
         shade: 0.28,            // the lowest ring of a crown at this share of the top ring's tone
         lobeDepth: 0.30, wave: 0.08,
-        lobeTone: 0.45,         // a lobe's crest this much lighter and its hollow darker (sun and shade on the crown's own bumps)
+        lobeTone: 0.35,         // a lobe's crest this much lighter and its hollow darker (sun and shade on the crown's own bumps)
         closeSegments: 12, closeRings: 6,   // the nearest crowns: 12 x 6 = 130 triangles with trunk; beyond closeMetres 8 x 4 = 58   // rounder, less polygonal outline (round 1: 0.20 / 0.05 read as faceted blobs)
         segments: 8, rings: 4,  // near crown: 48 triangles, 22 fewer than today's outer crown (10 x 4) and about today's stack
       },
