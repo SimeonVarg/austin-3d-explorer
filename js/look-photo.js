@@ -1,7 +1,12 @@
 /**
  * look-photo.js — ?look=photo: the look of everything BETWEEN the buildings, moved toward site photographs.
  *
- * DEFAULT OFF. Nothing here runs, and no data file is fetched, without `?look=photo` in the address.
+ * TWO SWITCHES, both OFF by default (CLAUDE.md rule 5):
+ *   ?trees=photo   the rounded crowns, their tones and the data/look_trees.bin file (?trees=stacked is the old stacked octagons,
+ *                  once TREES_DEFAULT below is flipped); phones keep the stacked trees (outer trees are off there) in the new tones
+ *   ?roads=photo   asphalt, sidewalk, ground and park tones
+ *   ?look=photo    both, for comparison sheets
+ * Nothing here runs, and no data file is fetched, without one of them in the address.
  *
  * WHY. Side by side with site photographs, the biggest mismatch is not a building: it is
  * the trees, the road and the walls. Photographs show a dark, dense live-oak canopy of rounded crowns, dark
