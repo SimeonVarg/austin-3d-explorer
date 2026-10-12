@@ -111,9 +111,9 @@
       capRadius: 6.5,           // metres, 13 m across
       clusterMax: 5, clusterFill: 1.0, clusterOverlap: 1.22, clusterRing: 0.75, clusterDrop: 0.18,
       chunk: 400,               // metres; the finer crown is chosen per chunk (160 m gave 936 chunks and 320 m 464, above the check's 400 with the grid's 144)
-      nearMetres: 320,          // beyond this a chunk of recorded crowns draws every 4th tree, twice as wide (the grid trees keep 900): the triangle budget
+      nearMetres: 260,          // beyond this a chunk of recorded crowns draws every 4th tree, twice as wide (the grid trees keep 900): the triangle budget
       maxMetres: 1200,          // beyond this recorded crowns are not drawn at all: the outer city's grid trees (all the way out) carry the far canopy
-      closeMetres: 120,         // chunks nearer than this draw the finer crown (outerTrees.campus.closeSegments x closeRings)
+      closeMetres: 100,         // chunks nearer than this draw the finer crown (outerTrees.campus.closeSegments x closeRings)
       radiusJitter: 0.08,       // each crown this much wider or narrower
       valueJitter: 0.10,        // each crown this much lighter or darker
       minCrownShare: 0.45,      // a crown takes at least this share of the tree's height
@@ -129,7 +129,7 @@
         closeSegments: 10, closeRings: 5,   // the nearest crowns: 10 x 5 = 90 triangles with trunk; beyond closeMetres 8 x 4 = 58   // rounder, less polygonal outline (round 1: 0.20 / 0.05 read as faceted blobs)
         segments: 8, rings: 4,  // near crown: 48 triangles, 22 fewer than today's outer crown (10 x 4) and about today's stack
       },
-      top: {},
+      top: { nearMetres: 650 },   // the grid trees' near crowns out to 650 m (900 today): the triangle budget
     },
 
     // ── js/campus-landscape.js ──────────────────────────────────────────
