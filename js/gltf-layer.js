@@ -56,6 +56,10 @@
         // The same model WITH its Blender materials, drawn by js/gltf-look.js under the app's light (js/city-sky.js) instead of the flat colours
         // above. `lookOrigin`: the point of that file (its own X, Y, Z) that stands on this row's lng / lat.
         look: 'data/gltf/waterloo-look.glb', lookOrigin: [7.78, 0, 0],
+        // The same file with every colour as it is on a CLEAR day (?skyview=1, see `look.oneWeather` below): this tower's site photograph
+        // shows a veiled sun and a cloud-bright sky, and its Blender colours were chosen under that. Divided by 4.4, its white wall is
+        // the same white as the other buildings' (0.17 under this light).
+        lookClearDay: 'data/gltf/waterloo-look-clear.glb',
         // The night profile the city's night rules read for this building (the recipe's own `night`): the share of rooms lit and the
         // lamps. Lamp positions are in the MODEL frame (x along the street face, y into the building, z up from the model's ground), the
         // recipe's four downlights moved onto this model's terrace, sign and entry: sign wash, two terrace lamps, entry canopy.
@@ -196,7 +200,9 @@
     // ?gltflook=0 draws every row the old way (flat colours with light gains, wall maps). `skyMapStrength`: 1 = recesses get as little
     // sky light as the map baked in Blender says, 0 = the map is ignored.
     // `shadowLiftM`: the sun's shadow map is read this far in front of a face (see the shader's note; 0 = on the face).
-    look: { on: q.get('gltflook') !== '0', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1, shadowLiftM: q.has('gltflift') ? +q.get('gltflift') : 0.6,
+    // `oneWeather` (?skyview=1): every building is drawn with the colours it has on a clear day (a row's `lookClearDay` file when it has one),
+    // so that one light and one exposure serve the whole view. Off: the tower keeps colours that hold its own photograph's picture.
+    look: { on: q.get('gltflook') !== '0', oneWeather: q.get('skyview') === '1', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1, shadowLiftM: q.has('gltflift') ? +q.get('gltflift') : 0.6,
       // Smooth edges of its own (js/gltf-look.js "SMOOTH EDGES OF ITS OWN"). Smoothing the whole canvas costs an integrated chip about 140 ms a
       // frame at a laptop's full density with the city drawn (measured), so each look building is drawn alone into a small target with `samples`
       // samples a pixel, covering only the part of the screen it stands on, and that picture is laid onto the canvas where the building is in

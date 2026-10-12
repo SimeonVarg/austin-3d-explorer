@@ -134,6 +134,7 @@ for (const row of rows) {
     const prims = lj.meshes.flatMap(m => m.primitives);
     check(prims.length > 0 && prims.every(p => p.attributes.NORMAL != null && p.attributes.TEXCOORD_0 != null && p.indices != null), 'its look file has normals, a UV set and indices on every mesh', prims.length + ' meshes');
     check(fs.existsSync(path.join(ROOT, row.look.replace(/\.glb$/, '-sky.png'))), 'the sky-light map of its look file is beside it');
+    if (row.lookClearDay) check(fs.existsSync(path.join(ROOT, row.lookClearDay)) && fs.existsSync(path.join(ROOT, row.lookClearDay.replace(/\.glb$/, '-sky.png'))), 'its clear-day file (?skyview=1) and that file\'s sky-light map exist');
     check(!lj.images && !lj.cameras && !/photo|\.jpg|users|home|[a-z]:\\|\/[a-z]+\//i.test(JSON.stringify(lj)), 'its look file carries no image, no camera, and names no folder, file or photograph');
     check(lj.materials.every(m => m.pbrMetallicRoughness && m.extras && m.extras.look_kind) && (row.name !== 'Yugo Austin Waterloo' || lj.materials.some(m => m.extras.look_kind === 'glass' && Array.isArray(m.extras.look_glossy))), 'its materials say what they are (plain or glass), and the tower\'s glass carries its mirror colour');
     check(lb.length < 8e6, 'its look file is under 8 MB', (lb.length / 1e6).toFixed(2) + ' MB');
@@ -159,6 +160,7 @@ console.log('city-sky: the light for an hour');
   check(gold.sunStrength[0] / gold.sunStrength[2] > 1.5 * day.sunStrength[0] / day.sunStrength[2] && gold.pts[2][1][0] > gold.pts[2][1][2], 'a low sun is warmer, and so is the sky at the level line');
   check(lum(night.light[8]) < 0.1 * lum(day.light[8]) && lum(night.sunStrength) < 0.1 && night.sunDir[2] > 0, 'at night the sky light is a small share of the day\'s and the one light with a direction is the moon');
   check(day.pts.length === 7 && day.pts.every((q, i) => i === 0 || q[0] > day.pts[i - 1][0]), 'the sky is seven stops by height, in order');
+  check(day.exposure === 1 && night.exposure === 1, 'the view\'s exposure is 1 unless the page asks (?skyexp=)');
   check(typeof C.glsl === 'string' && ['csSkyLight', 'csMirror', 'csDisplay'].every(n => C.glsl.includes('vec3 ' + n + '(')), 'the shader code has the three functions a surface needs');
 }
 // ── the Blender rig (scripts/blender_light_rig.py) carries the same numbers as the app's light ─────────────

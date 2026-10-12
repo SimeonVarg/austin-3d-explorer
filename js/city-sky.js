@@ -21,7 +21,7 @@
  * and GLSL (CitySky.glsl) with three functions for a fragment shader:
  *   csSkyLight(n)   light from the sky and ground on a surface with normal n (irradiance; times albedo / pi = what the eye gets)
  *   csMirror(d)     what a mirror shows in direction d
- *   csDisplay(c)    linear light to the screen: the sRGB curve, nothing else (Blender's "Standard" view transform)
+ *   csDisplay(c)    linear light to the screen: the view's exposure (1 unless asked), then the sRGB curve, nothing else (Blender's "Standard")
  * No texture: 17 colours and 7 stops per hour. Nothing here costs memory, and a new hour costs a millisecond of arithmetic.
  *
  * THE GRADE. The app lays one tone table over the whole canvas (js/graphics.js: brightness, contrast, a film curve), tuned for
@@ -65,6 +65,10 @@
     sunWarm: [0, 0.35, 0.65],                    // how much green and blue the low sun loses
     nightLift: 3.0,                              // a city sky at night is not black: its light is multiplied by this at full night
     moon: [0.035, 0.045, 0.07],                  // the moon's strength at full night (linear)
+    // The view's exposure for surfaces under this light: what the camera does, not what any building is. 1 = a photograph taken in full
+    // sun. A test harness may hand in another for one picture (window.CITY_SKY_REF.exposure): the tower's site photograph was taken
+    // under a veiled sun and a cloud-bright sky, and reads 4.4 on this scale (docs/gltf-layer.md).
+    exposure: num('skyexp', 1),
     undoGrade: q.get('skygrade') !== '1',        // cancel the app's canvas tone table for surfaces under this light (see the header)
   };
 
@@ -123,7 +127,7 @@
       light.push(E);
     }
     _key = key;
-    _state = { p, elev, nightness, sunDir, sunStrength, pts, gain, ground, light };
+    _state = { p, elev, nightness, sunDir, sunStrength, pts, gain, ground, light, exposure: (ref && ref.exposure) || TUNE.exposure };
     return _state;
   }
 
@@ -158,7 +162,7 @@
     uniform vec3 u_csC[7];
     uniform vec3 u_csGain, u_csGround, u_csSun, u_csSunDir;
     uniform vec4 u_csTree;          // amp, lift, scale, ground edge
-    uniform float u_csSoft, u_csUndoOn;
+    uniform float u_csSoft, u_csUndoOn, u_csExposure;
     uniform sampler2D u_csUndo;
     // light from the whole sky and the ground on a surface with normal n (east, north, up)
     vec3 csSkyLight(vec3 n) {
@@ -183,7 +187,7 @@
     }
     // linear light to the screen: the sRGB curve (and, when asked, the value the canvas tone table will turn into it)
     vec3 csDisplay(vec3 c) {
-      c = clamp(c, 0.0, 1.0);
+      c = clamp(c * u_csExposure, 0.0, 1.0);
       vec3 s = mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(vec3(0.0031308), c));
       if (u_csUndoOn > 0.5) { vec3 k = s * (255.0 / 256.0) + 0.5 / 256.0; s = vec3(texture2D(u_csUndo, vec2(k.r, 0.5)).r, texture2D(u_csUndo, vec2(k.g, 0.5)).r, texture2D(u_csUndo, vec2(k.b, 0.5)).r); }
       return s;
@@ -194,12 +198,12 @@
     const T = window.THREE, V = () => new T.Vector3();
     return { u_csLight: { value: Array.from({ length: 17 }, V) }, u_csZ: { value: new Float32Array(7) }, u_csC: { value: Array.from({ length: 7 }, V) },
       u_csGain: { value: V() }, u_csGround: { value: V() }, u_csSun: { value: V() }, u_csSunDir: { value: new T.Vector3(0, 0, 1) }, u_csTree: { value: new T.Vector4() },
-      u_csSoft: { value: TUNE.mirrorSoft }, u_csUndoOn: { value: 0 }, u_csUndo: { value: null }, _csKey: { value: '' } };
+      u_csSoft: { value: TUNE.mirrorSoft }, u_csExposure: { value: 1 }, u_csUndoOn: { value: 0 }, u_csUndo: { value: null }, _csKey: { value: '' } };
   }
   /** fill a material's uniforms for hour p (cheap when nothing changed) */
   function sync(u, p) {
     const s = at(p), tex = undoTexture();
-    u.u_csUndo.value = tex; u.u_csUndoOn.value = _undoOn;
+    u.u_csUndo.value = tex; u.u_csUndoOn.value = _undoOn; u.u_csExposure.value = s.exposure;
     const key = _key + '|' + TUNE.ambient;
     if (u._csKey.value === key) return s;
     u._csKey.value = key;

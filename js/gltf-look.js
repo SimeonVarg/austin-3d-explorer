@@ -263,7 +263,8 @@
     const t0 = performance.now(), rows = GLTF.buildings.filter(b => b.look);
     _loaded = await Promise.all(rows.map(async row => {
       try {
-        const buf = await fetchBuf(row.look), map = await loadMap(row.look.replace(/\.glb$/, '-sky.png'));
+        const file = (GLTF.look.oneWeather && row.lookClearDay) || row.look;      // see GLTF.look.oneWeather (js/gltf-layer.js)
+        const buf = await fetchBuf(file), map = await loadMap(file.replace(/\.glb$/, '-sky.png'));
         L.bytes += buf.byteLength; if (map && map.image) L.mapBytes += map.image.width * map.image.height * 4; else L.errors.push(row.name + ': no sky-light map');
         return { row, prims: parseLook(buf), map };
       } catch (e) { L.errors.push(row.look + ': ' + e.message); console.error('[gltf-look]', row.look, e); return null; }

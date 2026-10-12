@@ -194,3 +194,29 @@ What this does not solve, measured:
   and that is the decision about the canvas grade that the recipes need too.
 - **Blender's default gloss.** A build whose wall materials keep Specular IOR Level 0.5 renders up to a tenth brighter in Blender than here on a
   white wall, and twice as bright on a dark one. The app draws walls matt; `light_rig.check()` lists such materials.
+
+## What a tone curve cannot do, and one weather for the whole view (2026-10-12, evening)
+
+Sunlit walls land on the site photographs; shaded ones miss by 15 to 83 %. The plain remedy would be one exposure and one response curve for
+the whole view, so it was tested before anything was built. For each of the 14 wall materials that a site photograph shows both in the sun and
+in shade, the colour was taken from the sunlit pixels through a candidate curve and the shaded pixels were predicted through the same curve
+(exposure cancels out of that test). Within 8 %, of 14: plain sRGB 0, the app's own grade 1, the best of 4,788 curves and sun strengths 2, each
+photograph with its own best curve and sun 3, a tint of shade light per building 1. The misses go both ways inside one photograph (a white wall
+too dark, the grey beside it too light) and are coloured differently at each site (warm at one, yellow at another): they are the light each
+shaded wall gets from its own surroundings, which this light does not have (it has an open sky and a flat ground). **No curve was added.**
+
+What was added, all behind `?gltf=1`:
+
+- **Colours from the sunlit pixels alone** for the three builds (the rule builders are given). Shade is then a check, not an input.
+- **`CitySky.tune.exposure`** (`?skyexp=`): the view's exposure for surfaces under the app's light. 1 is a photograph taken in full sun.
+- **`?skyview=1`, one weather for the whole view.** A row may name a `lookClearDay` file, drawn instead of its `look` file. The tower has
+  one. Measured on its site photograph: the sun that fits is a tenth as strong as on the other three, its shaded white is one and a half to
+  three times brighter than their shaded whites, and the city around it is as bright as in theirs. So the camera's exposure was the
+  same and the weather was not: a veiled sun under a cloud-bright sky. Its Blender colours were chosen for that. `lookClearDay` is the same
+  file with every colour divided by 4.4 (`scripts/gltf_scale_colours.py`), which makes its white the same white as the other buildings'.
+  Drawn in its photograph's own light (that veiled sun and an exposure of 4.4, handed to the page by the test), it is 4.82 from its Blender
+  render (4.81 before the sun was measured). Drawn on the clear day it is a tower on a clear day: its sunlit side white, its shaded side as
+  dark as any other shaded white wall. Without `?skyview=1` the tower keeps the colours that hold its photograph's picture under the clear
+  sun (9.98 from that render, and brighter in shade than its neighbours).
+
+Nothing here reaches the recipes, the ground, the trees or the sky: they are drawn as before, switch on or off.
