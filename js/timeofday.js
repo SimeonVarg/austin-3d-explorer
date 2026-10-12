@@ -106,7 +106,8 @@
   // ?look=photo (js/look-photo.js): the day and golden palettes' canopy, ground, park and road toward the
   // photographs. Night is left as it is. Every value is in that file, with the measurement beside it.
   if (window.LOOK_PHOTO && window.LOOK_PHOTO.on) {
-    for (const k of ['day', 'golden']) Object.assign(PRESETS[k], window.LOOK_PHOTO.presets[k] || {});
+    const LP = window.LOOK_PHOTO;
+    for (const k of ['day', 'golden']) Object.assign(PRESETS[k], LP.treesOn ? LP.presets.trees[k] : {}, LP.roadsOn ? LP.presets.roads[k] : {});
   }
 
   // ── Colour lerp helpers ───────────────────────────────────────────

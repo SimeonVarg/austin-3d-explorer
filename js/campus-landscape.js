@@ -20,7 +20,7 @@
   livingWall:{bottom:.45,spacing:.65,radius:.4},fountain:{stem:.16,bowl:.55,height:1.45},shrubQuality:1.3,
  };
  // ?look=photo (js/look-photo.js): the campus crowns' leaf tones and ring shading toward the photographs.
- if(window.LOOK_PHOTO&&window.LOOK_PHOTO.on&&window.LOOK_PHOTO.campusLandscape){const L=window.LOOK_PHOTO.campusLandscape;if(L.leaf)C.leaf=L.leaf;if(L.shade)C.crown.shade=L.shade;if(L.capRadius)C.capRadius=L.capRadius;if(L.facetTone)C.facetTone=L.facetTone}
+ if(window.LOOK_PHOTO&&window.LOOK_PHOTO.treesOn&&window.LOOK_PHOTO.campusLandscape){const L=window.LOOK_PHOTO.campusLandscape;if(L.leaf)C.leaf=L.leaf;if(L.shade)C.crown.shade=L.shade;if(L.capRadius)C.capRadius=L.capRadius;if(L.facetTone)C.facetTone=L.facetTone}
  let data=null,map=null,group=null,structuralGroup=null,originalFilter=null,lastDensity=-1,lastDetail=-1;
  const count={done:false,trees:0,triangles:0,gardens:0,railings:0,structuralTriangles:0};
  // Explicit ground-only geometry is indexed once on load. Overhead court

@@ -698,7 +698,7 @@
     },
   };
   // ?look=photo (js/look-photo.js): the surface tones the photographs measure. Night is left as it is.
-  if (window.LOOK_PHOTO && window.LOOK_PHOTO.on) {
+  if (window.LOOK_PHOTO && window.LOOK_PHOTO.roadsOn) {
     for (const k of ['day', 'golden']) Object.assign(SURF[k], (window.LOOK_PHOTO.ground || {})[k] || {});
   }
   // Material classes are reviewed; these day/golden/night colours are inferred

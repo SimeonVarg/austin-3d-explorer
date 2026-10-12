@@ -107,7 +107,7 @@
   };
   window.OUTER_TREES = OUTER_TREES;
   // ?look=photo (js/look-photo.js): the crown's colours and shape toward the photographs. Nothing here changes without it.
-  const LOOK = window.LOOK_PHOTO || { on: false };
+  const LOOK = window.LOOK_PHOTO ? Object.assign({}, window.LOOK_PHOTO, { on: !!window.LOOK_PHOTO.treesOn }) : { on: false };   // the TREES switch
   if (LOOK.on) {
     Object.assign(OUTER_TREES.campus, LOOK.outerTrees.campus);
     Object.assign(OUTER_TREES, LOOK.outerTrees.top);

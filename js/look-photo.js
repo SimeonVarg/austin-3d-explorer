@@ -27,7 +27,15 @@
 (function () {
   'use strict';
   const q = new URLSearchParams(window.location.search);
-  const on = q.get('look') === 'photo';
+  // TWO DECISIONS, two switches (owner, 2026-10-11: he likes the new trees and has no solid reference for roads yet).
+  //   TREES  the rounded crowns and their tones. ?trees=photo | ?trees=stacked (the old stacked octagons). ?look=photo means both
+  //          switches on, for the comparison sheets. THE ONE LINE THAT MAKES THE NEW TREES THE DEFAULT: TREES_DEFAULT below.
+  //   ROADS  asphalt, sidewalk, ground and park tones. ?roads=photo only; ?look=photo includes it. Off by default.
+  const TREES_DEFAULT = false;        // true = the new trees for everyone; ?trees=stacked then brings the old ones back
+  const lookAll = q.get('look') === 'photo';
+  const treesOn = q.get('trees') === 'stacked' ? false : (lookAll || q.get('trees') === 'photo' || TREES_DEFAULT);
+  const roadsOn = lookAll || q.get('roads') === 'photo';
+  const on = treesOn || roadsOn;
 
   const hex = c => '#' + c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
   const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -41,22 +49,26 @@
   };
 
   const LOOK = {
-    on,
+    on, treesOn, roadsOn,
 
     // ── js/timeofday.js PRESETS (day and golden only) ───────────────────
     // Base colours; the picture shows them lit (the app's sun and grade lift them about 1.1x), so each value is
     // the MEASURED photograph colour divided by that. The measured pairs are in REPORT.md.
     presets: {
+      trees: {
+        day: { canopy: '#3e4a2c', canopyLo: '#5f6a42', canopyHi: '#2a3320' },
+        golden: { canopy: '#4a4f2e', canopyLo: '#6b6e3c', canopyHi: '#343b22' },
+      },
+      roads: {
       day: {
-        canopy: '#3e4a2c', canopyLo: '#5f6a42', canopyHi: '#2a3320',
         ground: '#7c7f66',      // beige haze ground between trees and at the horizon   photo ~(110,118,100)  app (178,168,152)
         park: '#7f9a5c',        // lawn
         road: '#5a5e66', roadCasing: '#44474e',
       },
       golden: {
-        canopy: '#4a4f2e', canopyLo: '#6b6e3c', canopyHi: '#343b22',
         ground: '#8f8466', park: '#7d8a50',
         road: '#5e5a58', roadCasing: '#48433f',
+      },
       },
     },
 
