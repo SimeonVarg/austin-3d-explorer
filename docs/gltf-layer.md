@@ -417,3 +417,48 @@ within 2,500 m): 185 MB of vertex and index data, 33 MB of sky-light maps, and 4
    app's light. The same nine and all of the first fourteen were made before the glass and wall-pattern functions.
 4. Four of the new builds stand on a sloping site and reach 0.6 to 4.5 m below the city's flat ground on one side; one stands 1 m low.
 5. `wall_patterns` (brick courses, boards, panel joints, measured by the builders) are not drawn yet.
+
+## A far copy for every building, packed files, one white (2026-10-13, later)
+
+**1. Every row has a far copy.** `scripts/gltf_far.py` makes it from the row's own look file, by rule, right after the export
+(`data/gltf/<name>-look-far.json`, 5 to 28 kB of plain numbers, 152 to 1,066 triangles; all 59 together 39,000 triangles against 1,070,000).
+How: every face is sampled every 25 cm; the highest sample in each cell of a 50 cm grid is the building's height there. The grid is turned
+to the building's own main wall direction and shifted so that its lines lie on the main walls. What sticks up and is narrower than 2.5 m
+(rails, parapet lines, masts, balcony slabs) is taken off; the cells are grouped into levels 2.5 m apart, and a level's connected cells are
+a part (a tower, a set-back, a wing round a court); a part under 30 m2 joins a neighbour. A roof part has the area-weighted mean colour of
+what is seen from above on it. A wall has the area-weighted mean of what is seen from in front of it (the front-most face in each half
+metre), in rows of half a metre; neighbouring rows of nearly one colour are merged into bands, so a storey's window strip is one darker,
+glassier band and the spandrel under it a paler one. Windows are not drawn one by one. A band carries its share of glass and the mean of
+its glass's mirror colour, so it mirrors as much sky as its windows do together, and the mean of the look file's sky-light map over its
+faces. A building with slanted or curved walls is drawn as small steps (five builds take a 1 m grid to stay near 900 triangles), each
+step lit by the wall's true direction.
+
+**2. Which one is drawn goes by pixel size, not by a fixed distance** (`GLTF.look.copy` in `js/gltf-layer.js`, the code in
+`js/gltf-look.js` "THE FAR COPY"). `pxM` = the metres of the building that one CSS pixel covers (its distance from the camera's eye times
+the angle of a CSS pixel). The full building is drawn while `pxM` is under 0.84; the far copy alone from 0.99; between the two both are
+drawn, the full building laid over its far copy in a growing share, so the change is a dissolve over a stretch of the approach and never a
+pop. On a 1440 x 900 window those are 680 and 800 m. A full file is fetched under 1.04 (845 m) and let go above 1.10 (895 m); a file
+that arrives late dissolves in over half a second. All far copies are fetched at the start and the ones shown are ONE mesh (one draw call,
+and one in each shadow map), so **a building whose full file is not loaded is never missing**. A band of a far copy that is under 4 pixels
+high gives way to its wall's mean colour and is the mean under 2 (rule 15: a band a pixel high would flicker). `?gltfcopy=0`: no far
+copies, every full file by distance as before. **What this costs the picture:** at the change a 1.5 m window is still 1.8 CSS pixels
+wide (3.6 pixels of a dense laptop screen), so from 800 m a Blender building is a banded block with no windows, plainer than the full
+model and plainer than the recipe drawing it replaces. The two numbers are the dial: 1.2 and 1.4 would keep full buildings to 970 m and
+cost about what holding 23 rows costs (83 MB of vertex data in the views below).
+
+**3. What it costs now** (an integrated chip, a 2880 x 1800 canvas, all 58 rows on, the camera 950 m from the middle of West Campus and of
+campus; the minimum of interleaved readings, one page): a frame takes 91.1 and 91.0 ms with the far copies against 136.1 and 137.0 ms
+with every full file drawn, and 87.2 and 89.3 ms with the layer off (so +3.9 and +1.7 ms). The layer holds 102 and 98 MB on the graphics card (16 and 15 full
+files, the shared smoothing targets, 8.5 MB of far copies) against 267 and 257 MB.
+
+**4. Look files are kept packed.** `data/gltf/<name>-look.glb.gz` is the export, gzip-packed (a fifth to a sixth of its bytes, nothing
+lost); the page unpacks it with the browser's own `DecompressionStream`, so there is no decoder file. `data/gltf/` went from 92 MB to
+20 MB. Where a browser has no `DecompressionStream` the plain `.glb` is asked for, and where that is missing the far copy stands.
+`?gltfpacked=0` asks for the plain file first. (Whole numbers for positions and normals were tried: half the raw bytes, but only a sixth
+less after packing, and positions move by up to 1.5 mm, so it was not used.)
+
+**5. One white.** A build made before the standard light has its colours on its builder's own scale and came out pale to white.
+`scripts/blender_export_look.py ... white=0.17` divides every base colour and every glass mirror colour by one number, so that the
+build's white paint is the standard light's white: the white is the material named `*white*` with the largest surface that is not glass,
+not a sign and not a roof. Eight builds were exported again that way (factors 1.26 to 4.94). GrandMarc Austin has no material named
+white and is unchanged.

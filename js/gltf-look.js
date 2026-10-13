@@ -434,7 +434,10 @@
   // What is NOT there yet: a stand-in for a row that is OUT. Its old drawing is hidden for the whole session, so beyond `outM` the
   // building is missing from the picture (docs/gltf-layer.md).
   let _group = null, _tick = null;
-  const ROWS = [], L = info.look = { loaded: [], triangles: 0, litTriangles: 0, drawCalls: 0, bytes: 0, mapBytes: 0, ms: 0, errors: [], thin: {}, rows: ROWS, loads: 0, unloads: 0 };
+  const ROWS = [], L = info.look = { loaded: [], triangles: 0, litTriangles: 0, drawCalls: 0, bytes: 0, mapBytes: 0, ms: 0, errors: [], thin: {}, loads: 0, unloads: 0 };
+  // the rows themselves (meshes, vertex arrays) are reachable for tests but are not part of what stats() hands out: a script that asks the page
+  // for the layer's numbers would otherwise be sent every vertex of every building
+  Object.defineProperty(L, 'rows', { value: ROWS, enumerable: false });
   async function loadRow(S, e) {
     e.state = 1; const row = e.row, t0 = performance.now();
     try {

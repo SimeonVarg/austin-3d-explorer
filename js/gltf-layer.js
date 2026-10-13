@@ -250,13 +250,13 @@
       // THE FAR COPY (js/gltf-look.js "THE FAR COPY", scripts/gltf_far.py): every row has one, a few hundred triangles. Which is drawn goes by
       // how many METRES OF THE BUILDING ONE CSS PIXEL COVERS: the full building under `fullM` (a 1.5 m window is then 1.8 CSS pixels wide or
       // more: 3.6 pixels of a laptop's dense screen), the far copy alone from `farM`, a dissolve between the two in between. The full file is fetched under `loadM` and let go
-      // above `unloadM`. On a 1440 x 900 window (the app's lens is 58 degrees) these are 680, 800, 880 and 1,000 metres from the camera's eye; a larger window sees
+      // above `unloadM`. On a 1440 x 900 window (the app's lens is 58 degrees) these are 680, 800, 845 and 895 metres from the camera's eye; a larger window sees
       // the full building from farther, a phone from nearer, as the eye does. `fadeS`: a full file that arrives late dissolves in over
       // this many seconds. `pushM`: while both are drawn the far copy stands this far behind in depth. `bandPx`: a wall band of the far
       // copy starts giving way to the wall's mean colour when it is this many canvas pixels high, and is the mean at the second number
       // (rule 15: a band a pixel or two high would flicker). `nightShare`: the share of a far copy's glass that is lit at night, times the
       // row's own occupancy. ?gltfcopy=0: no far copies (every full file by distance, as before).
-      copy: { on: q.get('gltfcopy') !== '0', fullM: q.has('gltffull') ? +q.get('gltffull') : 0.84, farM: q.has('gltffarm') ? +q.get('gltffarm') : 0.99, loadM: 1.08, unloadM: 1.23, fadeS: 0.5, pushM: 3, bandPx: [4, 2], nightShare: 1 },
+      copy: { on: q.get('gltfcopy') !== '0', fullM: q.has('gltffull') ? +q.get('gltffull') : 0.84, farM: q.has('gltffarm') ? +q.get('gltffarm') : 0.99, loadM: 1.04, unloadM: 1.10, fadeS: 0.5, pushM: 3, bandPx: [4, 2], nightShare: 1 },
       load: { on: q.get('gltfload') !== '0', inM: q.has('gltfin') ? +q.get('gltfin') : 2500, outM: q.has('gltfout') ? +q.get('gltfout') : 3000, atOnce: 3, everyMs: 250 } },
     // The layer's place in the scene, as the apartments' group has it (js/slopes-apartments.js APTS.lod / minzoom).
     lod: null, minzoom: 14,
