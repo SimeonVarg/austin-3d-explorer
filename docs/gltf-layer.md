@@ -540,8 +540,8 @@ dark street.
 **4. What it costs.** Frame time on an integrated chip at a 2880 x 1800 canvas with all 58 on, the two views from 950 m of the section
 above, the light flipped inside one page, the minimum of seven to eight interleaved readings over three page loads: `soft` 90.1 and
 93.0 ms, `noon` 92.1 and 93.6 ms (noon with the patterns and the standard glass switched off, in the same pages: 91.9 and 97.4; the
-last was only read in the slower pages). Inside one page the patterns and the glass add 0.2 to 1.0 ms to `noon`, and `soft` is 1.5 to
-3 ms under `noon` (no shadow map is read). The machine was not quiet (a system job at a third of a core, load 3 to 12): the third page
+last was only read in the slower pages). Inside one page the patterns and the glass cost less than this machine's noise of about 3 ms (the three clean pairs read
++0.2, +0.4 and +1.0 ms on `noon`), and `soft` is 0.6 to 2.5 ms under `noon` (no shadow map is read). The machine was not quiet (a system job at a third of a core, load 3 to 12): the third page
 read 4 to 5 ms higher in every arm. Memory: 8 bytes a vertex more (the pattern's number and the glass share). **Found on the way, not
 caused by this:** from 330 m over West Campus 42 buildings are in as full models and a frame takes 152 to 165 ms under either light
 (the sections above measured from 950 m only); the layer off was not read at that view.
