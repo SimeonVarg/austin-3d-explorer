@@ -225,6 +225,28 @@
     // `oneWeather` (?skyview=1): every building is drawn with the colours it has on a clear day (a row's `lookClearDay` file when it has one),
     // so that one light and one exposure serve the whole view. Off: the tower keeps colours that hold its own photograph's picture.
     look: { on: q.get('gltflook') !== '0', packed: q.get('gltfpacked') !== '0', oneWeather: q.get('skyview') === '1', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1, shadowLiftM: q.has('gltflift') ? +q.get('gltflift') : 0.6,
+      // THE LIGHT the Blender buildings stand under, a NAMED choice (&gltflight=soft|noon). `noon`: the hour's own light of js/city-sky.js, a clear
+      // sun with hard shade (what this layer drew before). `soft`: the builders' NO-SUN light (CitySky.tune.soft: their rig's grey sky and ground,
+      // no sun and so no sun shadow, the rig's one exposure number), by day; toward night it gives way to the hour's own light. Most builds were
+      // made from photographs with no sun and scored in renders under that light. Only this layer changes: the rest of the city keeps its noon sun,
+      // so under `soft` a Blender building has no dark side while the recipe building next to it has one, and it still casts its sun shadow on the street.
+      light: (v => (v === 'soft' || v === 'noon' ? v : 'noon'))(q.get('gltflight')),
+      // WALL PATTERNS (js/gltf-look.js patColour): a wall material made with the builders' wall maker carries its measured numbers in the look file
+      // (running bond, stack bond, panel grid, boards; unit sizes in metres; the joint's colour; how far single units differ). The shader draws
+      // them in the model's own metres, with no image. Rule 15: a course that is `coursePx[0]` canvas pixels high or more is drawn in full; from
+      // there the pattern gives way to the wall's mean colour and IS the mean, the flat colour drawn before, at `coursePx[1]` pixels and beyond
+      // (joints are never sampled: each pixel takes the exact share of joint that lies in it). `tint`: how strongly single units differ (1 = as
+      // measured). `max`: patterns a building may carry (more are drawn flat). &gltfwalls=0: every wall flat, as before.
+      walls: { on: q.get('gltfwalls') !== '0', max: 8, coursePx: [3, 1.5], tint: 1 },
+      // THE STANDARD GLASS (the builders' rig: one mirror strength for every build). A pane made with it mirrors `mirror` of what it faces at a
+      // straight view and more at a slant (`power`: 0.25 and 4.1 give the rig's 25 %, 30 % at 60 degrees, 37 % at 70). What it faces: the sky as
+      // a camera sees it above the street opposite, the street below. `oppositeDeg`: how high the street opposite stands when a row does not
+      // say (the builders' median; a row's own `oppositeDeg` is its builder's number), `stepDeg`: that edge is soft by this much to each side.
+      // `recess`, `straight`: a pane set back between fins, in a deep reveal or under an arcade mirrors ONE ray. Seen straight on, that ray leaves the
+      // building; seen at a slant it runs into what stands beside the pane. So the sky-light map dims this mirror only as the view slants: not at all
+      // when the cosine of the view's angle to the pane is `straight[1]` or more, in full at `straight[0]` and less (`recess` scales the whole rule;
+      // 0 = a recess never dims). &gltfglass=0: such panes are drawn as before (a dark pane with no mirror). Glass made the older way keeps its own mirror colour.
+      glass: { on: q.get('gltfglass') !== '0', mirror: 0.25, power: 4.1, oppositeDeg: 24, stepDeg: 2.5, recess: 1, straight: [0.5, 0.9] },
       // Smooth edges of its own (js/gltf-look.js "SMOOTH EDGES OF ITS OWN"). Smoothing the whole canvas costs an integrated chip about 140 ms a
       // frame at a laptop's full density with the city drawn (measured), so each look building is drawn alone into a small target with `samples`
       // samples a pixel, covering only the part of the screen it stands on, and that picture is laid onto the canvas where the building is in
@@ -269,7 +291,7 @@
   // More rows, from js/gltf-rows.js: builds that have only a look file, each standing on the origin of its surveyed map outline (heading 0).
   // (?gltfrows=0 leaves them out: the table above alone, for a test against an earlier measurement.)
   for (const r of (q.get('gltfrows') === '0' ? [] : window.GLTF_ROWS || [])) GLTF.buildings.push({ name: r.name, look: 'data/gltf/' + r.slug + '-look.glb', lookOrigin: [0, 0, 0],
-    lng: r.lng, lat: r.lat, groundM: 0, headingDeg: 0, topM: r.topM, replaces: r.replaces, alsoReplaces: r.alsoReplaces, rings: r.rings });
+    lng: r.lng, lat: r.lat, groundM: 0, headingDeg: 0, topM: r.topM, replaces: r.replaces, alsoReplaces: r.alsoReplaces, rings: r.rings, oppositeDeg: r.opp });
 
   // ── what js/slopes-apartments.js asks ───────────────────────────────────
   const rowFor = spec => spec && GLTF.buildings.find(b => b.replaces && (b.replaces === spec.id || (b.alsoReplaces || []).includes(spec.id)) && (b.file || (GLTF.look.on && b.look)));

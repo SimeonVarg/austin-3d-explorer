@@ -41,7 +41,16 @@
       for (const p of json.meshes[node.mesh].primitives) {
         const m = json.materials[p.material] || {}, pbr = m.pbrMetallicRoughness || {}, ex = m.extras || {};
         if (p.attributes.NORMAL == null || p.attributes.TEXCOORD_0 == null) throw new Error('normals and a UV set are needed');
-        out.push({ material: (m.name || 'default').replace(/\.\d+$/, ''), base: (pbr.baseColorFactor || [1, 1, 1, 1]).slice(0, 3), glass: ex.look_kind === 'glass',
+        const name = (m.name || 'default').replace(/\.\d+$/, ''), base = (pbr.baseColorFactor || [1, 1, 1, 1]).slice(0, 3);
+        // a wall made with the builders' wall maker carries its measured pattern (see patColour); the joint's colour is kept as a share of the
+        // wall's own colour, so a file whose colours were all divided by one number (the export's white=) keeps its pattern
+        const pattern = ex.wall_pattern && ex.wall_unit_h > 0 && ex.wall_colour ? { kind: ex.wall_pattern, w: ex.wall_pattern === 'boards' ? 0 : (ex.wall_unit_w || 0), h: ex.wall_unit_h, joint: ex.wall_joint || 0,
+          jointShare: [0, 1, 2].map(i => (ex.wall_joint_colour ? ex.wall_joint_colour[i] : 0.6 * ex.wall_colour[i]) / Math.max(ex.wall_colour[i], 1e-5)), vary: ex.wall_vary || [0, 0, 0],
+          upright: ex.wall_direction === 'vertical', origin: ex.wall_origin || [0, 0], seed: ex.wall_seed || 0 } : null;
+        if (pattern && pattern.kind !== 'boards' && !(pattern.w > 0)) pattern.kind = 'boards';
+        // the builders' standard glass: a plain dark material named glass_* that the rig marked (its mirror is the same for every build)
+        const std = ex.look_kind !== 'glass' && ex.light_rig_glass && /^glass/i.test(name) ? 1 : 0;
+        out.push({ material: name, base, glass: ex.look_kind === 'glass' || !!std, std, pattern,
           mirror: ex.look_kind === 'glass' ? ex.look_glossy : [0, 0, 0], seeThrough: ex.look_transparent || 0, transmit: ex.look_transmit || [1, 1, 1],
           paint: p.attributes.COLOR_0 != null && ex.look_painted ? colours(p.attributes.COLOR_0) : null,
           pos: f32(p.attributes.POSITION, 3), nrm: f32(p.attributes.NORMAL, 3), uv: f32(p.attributes.TEXCOORD_1 != null ? p.attributes.TEXCOORD_1 : p.attributes.TEXCOORD_0, 2), idx: ints(p.indices) });   // the sky-light set is the mesh's last UV set (a mesh made from text brings one of its own first)
@@ -52,11 +61,14 @@
 
   // ── the shader ──────────────────────────────────────────────────────────
   const VERT = `
-    attribute vec3 aBase; attribute vec3 aMirror; attribute vec3 aNight; attribute float aGlass; attribute vec4 aThin; attribute vec4 aFarA; attribute vec4 aFarB;
-    uniform vec3 u_eye; uniform float u_lookFar, u_lookPx, u_lookPass, u_lookCopy, u_lookPush; uniform vec2 u_lookBand;
-    varying vec3 v_pos, v_normal, v_base, v_mirror, v_night; varying vec2 v_uv; varying float v_glass, v_cover;
+    attribute vec3 aBase; attribute vec3 aMirror; attribute vec3 aNight; attribute float aGlass; attribute vec2 aPat; attribute vec4 aThin; attribute vec4 aFarA; attribute vec4 aFarB;
+    uniform vec3 u_eye, u_patAt; uniform float u_lookFar, u_lookPx, u_lookPass, u_lookCopy, u_lookPush; uniform vec2 u_lookBand, u_patTurn;
+    varying vec3 v_pos, v_normal, v_base, v_mirror, v_night, v_ppos; varying vec2 v_uv, v_pat; varying float v_glass, v_cover;
     void main() {
       vec3 pos = position; v_cover = 1.0;
+      // WALL PATTERNS: the place in the MODEL'S OWN metres (its origin on the row's, its x and y turned back from the row's heading): small numbers,
+      // so a course line keeps its place to a fraction of a millimetre however far the building stands from the city's origin
+      vec2 pd = position.xy - u_patAt.xy; v_ppos = vec3(pd.x * u_patTurn.x - pd.y * u_patTurn.y, pd.x * u_patTurn.y + pd.y * u_patTurn.x, position.z - u_patAt.z); v_pat = aPat;
       // FAR (GLTF.look.far): a part thinner than a pixel is drawn one pixel wide and counts for the share of that pixel it really
       // covers. aThin = the vertex's offset from its part's middle line (or middle point), and the part's width in metres (negative
       // for a part that is small in every direction). Nearer than the distance at which it is a pixel wide, nothing changes.
@@ -72,7 +84,7 @@
       // share of a band's height one pixel covers at which the giving way starts and is complete. Its sky light is a number (uv), not a map.
       if (u_lookCopy > 0.5) {
         float t = aFarA.w > 0.0 ? smoothstep(u_lookBand.x, u_lookBand.y, distance(u_eye, position) * u_lookPx / aFarA.w) : 0.0;
-        v_base = mix(aBase, aFarA.rgb, t); v_mirror = mix(aMirror, aFarB.rgb, t); v_glass = mix(aGlass, aFarB.a, t); v_uv = vec2(mix(uv.x, uv.y, t), 0.0);
+        v_base = mix(aBase, aFarA.rgb, t); v_mirror = mix(aMirror, aFarB.rgb, t); v_glass = mix(aGlass, aFarB.a, t); v_uv = vec2(mix(uv.x, uv.y, t), 0.0); v_pat = vec2(0.0, mix(aPat.y, aPat.x, t));
       }
       gl_Position = v_cover < 0.0 ? vec4(2.0, 2.0, 2.0, 1.0) : projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
       // a far copy that stands UNDER its full building while the two change places is drawn at the depth of a point u_lookPush metres
@@ -85,7 +97,56 @@
     ${window.CityLighting.glsl}
     ${window.CitySky.glsl}
     uniform sampler2D u_skyMap; uniform float u_skyMapStrength, u_nightWallAmbient, u_lookPass, u_lookThrough, u_lookShadowLift, u_lookCopy, u_lookFade; uniform vec3 u_lookTransmit;
-    varying vec3 v_pos, v_normal, v_base, v_mirror, v_night; varying vec2 v_uv; varying float v_glass, v_cover;
+    uniform vec4 u_patA[PATN], u_patB[PATN], u_patC[PATN], u_patD[PATN]; uniform vec3 u_patPx; uniform vec2 u_patTurn; uniform vec4 u_lookGlass; uniform vec2 u_lookStd, u_lookStraight;
+    varying vec3 v_pos, v_normal, v_base, v_mirror, v_night, v_ppos; varying vec2 v_uv, v_pat; varying float v_glass, v_cover;
+    // ── WALL PATTERNS (GLTF.look.walls) ──
+    // A wall's pattern is arithmetic on the place in the model's own metres: courses Ph high, units Pw long, joints j wide centred on every
+    // multiple, every second course moved by half a unit in a running bond. No image.
+    // u_patA = (unit length, 0 for boards; course height; joint width; the share of a unit every second course is moved by)
+    // u_patB = (the joint's colour as a share of the wall's mean colour; -)   u_patC = (how far single units differ, red green blue; 1 = the courses run up the wall)
+    // u_patD = (a joint crossing: along the wall, height; the seed; -)        u_patPx = (1 / course pixels at which the fade starts and ends; unit tint strength; x < 0 = off)
+    float patHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+    // the share of the stretch w wide round x that is joint (joints j wide, centred on every multiple of P): the exact mean, never a sample
+    float patCover(float x, float w, float P, float j) {
+      float a = (x - 0.5 * w) / P + 0.5, b = (x + 0.5 * w) / P + 0.5, ka = floor(a), kb = floor(b);
+      return ((kb - ka) * j + clamp((b - kb - 0.5) * P + 0.5 * j, 0.0, j) - clamp((a - ka - 0.5) * P + 0.5 * j, 0.0, j)) / w;
+    }
+    vec3 patColour(vec3 base, vec3 n) {
+      int id = int(v_pat.x + 0.5); if (id < 1 || u_patPx.x < 0.0) return base;
+      vec4 A = vec4(0.0), B = vec4(1.0), C = vec4(0.0), D = vec4(0.0);
+      for (int i = 0; i < PATN; i++) if (i == id - 1) { A = u_patA[i]; B = u_patB[i]; C = u_patC[i]; D = u_patD[i]; }
+      if (A.y <= 0.0) return base;
+      // metres along the wall and up it, whichever way the wall faces; a level face (a sill, paving) takes the pattern in plan
+      vec2 nm = vec2(n.x * u_patTurn.x - n.y * u_patTurn.y, n.x * u_patTurn.y + n.y * u_patTurn.x);
+      float along = (v_ppos.y * nm.x - v_ppos.x * nm.y) / max(length(nm), 1e-4);
+      bool level = abs(n.z) > 0.7, boards = A.x <= 0.0;
+      float u = (level ? v_ppos.x : along) - D.x, v = (level ? v_ppos.y : v_ppos.z) - D.y;
+      if (C.w > 0.5) { float t = u; u = v; v = t; }
+      float Pw = boards ? 1.0 : A.x, Ph = A.y, j = A.z;
+      // how many metres of the wall one pixel covers, along the courses and across them
+      float fu = max(length(vec2(dFdx(u), dFdy(u))), 1e-6), fv = max(length(vec2(dFdx(v), dFdy(v))), 1e-6);
+      // RULE 15: as a course (or a unit's length) gets down to a pixel and a half, the pattern gives way to the wall's mean colour, and beyond
+      // that the wall is exactly the flat colour. In a running bond the upright joints depend on the course, so they go with the courses.
+      float fH = smoothstep(u_patPx.x, u_patPx.y, fv / Ph), fU = boards ? 1.0 : smoothstep(u_patPx.x, u_patPx.y, fu / Pw), fV = A.w > 0.0 ? max(fU, fH) : fU;
+      if (fH >= 1.0 && fV >= 1.0) return base;
+      float sH = j / Ph, sV = boards ? 0.0 : j / Pw, row = floor(v / Ph), uo = u + (mod(row, 2.0) < 0.5 ? A.w * Pw : 0.0);
+      float cH = patCover(v, fv, Ph, j), cV = 0.0;
+      if (!boards) {
+        // the upright joints, by the share of the pixel that lies in moved courses and in unmoved ones
+        if (A.w > 0.0) cV = mix(patCover(u, fu, Pw, j), patCover(u + A.w * Pw, fu, Pw, j), patCover(v - 0.5 * Ph, fv, 2.0 * Ph, Ph));
+        else cV = patCover(u, fu, Pw, j);
+      }
+      // each unit is a little lighter or darker than the mean unit (steady: by which unit it is). Within a pixel of a unit's edge the
+      // difference goes to nothing, so a pixel that lies on two units never jumps from one to the other
+      float tint = patHash(vec2(boards ? 0.0 : floor(uo / Pw), row) + D.z * 17.0);
+      float du = boards ? 1.0e6 : abs(fract(uo / Pw + 0.5) - 0.5) * Pw, dv = abs(fract(v / Ph + 0.5) - 0.5) * Ph;
+      float amp = (1.0 - max(fH, boards ? 0.0 : fU)) * clamp(2.0 * du / fu, 0.0, 1.0) * clamp(2.0 * dv / fv, 0.0, 1.0) * u_patPx.z;
+      cH = mix(cH, sH, fH); cV = mix(cV, sV, fV);
+      float joint = 1.0 - (1.0 - cH) * (1.0 - cV), share = 1.0 - (1.0 - sH) * (1.0 - sV);
+      // the unit's colour is what makes the mean of units and joints the wall's own colour (the builders' rule)
+      vec3 unit = max((vec3(1.0) - share * B.rgb) / max(1.0 - share, 1e-4), vec3(0.0));
+      return base * mix(unit * (1.0 + clamp(C.rgb, 0.0, 1.0) * (2.0 * tint - 1.0) * amp), B.rgb, joint);
+    }
     void main() {
       // nothing under the city's ground plane is drawn. The ground is a flat picture with no depth, so the part of a model that reaches
       // below it (a builder who modelled a sloping street) would be painted OVER the ground instead of being hidden by it
@@ -95,20 +156,30 @@
       vec3 n = normalize(v_normal); if (!gl_FrontFacing) n = -n;
       vec3 view = normalize(u_eye - v_pos);
       float open = u_lookCopy > 0.5 ? mix(1.0, v_uv.x, u_skyMapStrength) : mix(1.0, texture2D(u_skyMap, v_uv).r, u_skyMapStrength);               // how much of the sky this spot sees (baked in Blender)
+      vec3 base = u_lookCopy > 0.5 ? v_base : patColour(v_base, n);
       float facing = max(dot(n, u_csSunDir), 0.0);
       // the app's own two shadow maps. They are read a little in front of the face: read on the face, a lit wall that stands at an
       // angle to the sun shadows itself by a fifth (the app's own note: js/city-lighting.js), and under a strong sun that is a fifth of its light
-      float sunSeen = facing > 0.0 ? sunlightVisibility(v_pos + n * u_lookShadowLift, n) : 1.0;
+      float sunSeen = facing > 0.0 && u_csSun.r + u_csSun.g + u_csSun.b > 0.0 ? sunlightVisibility(v_pos + n * u_lookShadowLift, n) : 1.0;   // (no sun, as under the soft light: no shadow map is read)
       vec3 light = csSkyLight(n) * open + u_csSun * facing * sunSeen;
-      vec3 lit = v_base * light * 0.31830989;
+      vec3 lit = base * light * 0.31830989;
       if (v_glass > 0.002) {                                        // (a far copy's band is glass in part: its mirror colour is already times that share)
         // a mirror of the same sky; a recess mirrors less of it (the rule three.js uses for a smooth surface)
         float nv = clamp(dot(n, view), 0.0, 1.0), seen = clamp(pow(nv + open, 0.36) - 1.0 + open, 0.0, 1.0);
-        lit += v_mirror * csMirror(reflect(-view, n)) * seen;
+        // THE STANDARD GLASS (v_pat.y = the share of this spot that is such glass: 1 on a pane, a band's share on a far copy): one mirror strength
+        // for every build (u_lookStd.x at a straight view), more at a slant; it mirrors the sky as a camera sees it above the street opposite and
+        // the street below (u_lookGlass = the slant's power, the street's top edge from and to, on)
+        // A RECESS AND THE MIRROR. A pane set back between fins, in a deep reveal or under an arcade sees little of the sky as a WALL does; what it
+        // MIRRORS is one ray. Seen straight on, that ray leaves the building and the pane is as bright as any other; seen at a slant, the ray runs
+        // into the fin or the reveal beside it and the pane goes dark (the builders' renders show both, on one wall). So the recess dims the mirror
+        // by the sky-light map only as the view slants: not at all from u_lookStraight.y (the cosine of the view's angle to the pane), in full
+        // below u_lookStraight.x. u_lookStd.y scales the whole rule (0: a recess never dims).
+        if (v_pat.y > 0.0 && u_lookGlass.w > 0.5) lit += v_pat.y * (u_lookStd.x + (1.0 - u_lookStd.x) * pow(1.0 - nv, u_lookGlass.x)) * csMirrorStd(reflect(-view, n), u_lookGlass.yz) * mix(1.0, seen, u_lookStd.y * (1.0 - smoothstep(u_lookStraight.x, u_lookStraight.y, nv)));
+        else lit += v_mirror * csMirror(reflect(-view, n)) * seen;
       }
       vec3 col = csDisplay(lit);
       // night, by the city's own rules: a floor of light on walls, the building's lamps, lit rooms and the sign as light sources
-      vec3 flat_ = pow(clamp(v_base, 0.0, 1.0), vec3(1.0 / 2.2));
+      vec3 flat_ = pow(clamp(base, 0.0, 1.0), vec3(1.0 / 2.2));
       col = mix(col, max(col, flat_ * u_nightWallAmbient), u_cityNight.x * (1.0 - v_glass));
       col = cityLocalLight(col, flat_, v_pos, n, v_glass);
       col = cityEmission(col, v_night, step(0.004, max(v_night.r, max(v_night.g, v_night.b))));
@@ -185,9 +256,11 @@
 
   /** pass 0: an ordinary surface. pass 1 and 2: see-through glass (multiply what is behind, then add its own light). pass 3: thin parts (laid over by the share they cover) */
   function material(S, skyMap, pass, through, transmit) {
-    const T = window.THREE, U = S.uniforms();
+    const T = window.THREE, U = S.uniforms(), PN = Math.max(1, GLTF.look.walls.max | 0), v4 = () => Array.from({ length: PN }, () => new T.Vector4());
     const mat = new T.ShaderMaterial({
-      uniforms: Object.assign({}, U, window.CitySky.uniforms(), { u_skyMap: { value: skyMap }, u_skyMapStrength: { value: skyMap ? GLTF.look.skyMapStrength : 0 }, u_lookShadowLift: { value: GLTF.look.shadowLiftM }, u_lookFar: { value: 0 }, u_lookPx: { value: 0 }, u_lookCopy: { value: 0 }, u_lookPush: { value: 0 }, u_lookFade: { value: 1 }, u_lookBand: { value: new T.Vector2(1, 2) },
+      defines: { PATN: PN }, extensions: { derivatives: true },
+      uniforms: Object.assign({}, U, window.CitySky.uniforms(), { u_patA: { value: v4() }, u_patB: { value: v4() }, u_patC: { value: v4() }, u_patD: { value: v4() }, u_patAt: { value: new T.Vector3() }, u_patTurn: { value: new T.Vector2(1, 0) },
+        u_patPx: { value: new T.Vector3(-1, 1, 1) }, u_lookGlass: { value: new T.Vector4(4, 0, 0.05, 0) }, u_lookStd: { value: new T.Vector2(0.25, 1) }, u_lookStraight: { value: new T.Vector2(0.5, 0.9) }, u_skyMap: { value: skyMap }, u_skyMapStrength: { value: skyMap ? GLTF.look.skyMapStrength : 0 }, u_lookShadowLift: { value: GLTF.look.shadowLiftM }, u_lookFar: { value: 0 }, u_lookPx: { value: 0 }, u_lookCopy: { value: 0 }, u_lookPush: { value: 0 }, u_lookFade: { value: 1 }, u_lookBand: { value: new T.Vector2(1, 2) },
         u_lookPass: { value: pass }, u_lookThrough: { value: through || 0 }, u_lookTransmit: { value: new T.Vector3(...(transmit || [1, 1, 1])) } }),
       vertexShader: VERT, fragmentShader: FRAG(), side: T.DoubleSide, depthTest: true, depthWrite: pass === 0 || pass === 3, transparent: pass > 0, blending: pass === 0 ? T.NoBlending : T.CustomBlending,
     });
@@ -292,6 +365,7 @@
       const clear = renderer.getClearColor(new T.Color()), alpha = renderer.getClearAlpha();
       try {
         renderer.setRenderTarget(b.target); renderer.setClearColor(0x000000, 0); renderer.clear(true, true, false);
+        b.ssNow = ss;                                              // (the wall patterns fade by canvas pixels: see the mesh's onBeforeRender)
         renderer.render(b.picture, b.cam);                         // 1. the building alone, four samples a pixel
         restore();
         renderer.render(b.depth, camera);                          // 2. its depth into the canvas
@@ -334,9 +408,13 @@
     const CN = window.CityNight, rules = !!(CN && CN.tune.on && row.replaces), mats = cf(row, 'materials') || {};
     if (rules && !row._night) { row._night = true; CN.register({ id: row.replaces, name: row.name, category: 'apartment', night: row.night }); if (row.night && row.night.fixtures) CN.registerFixtures({ id: row.replaces, night: row.night }, { at: world }); }   // once: a building comes and goes with distance
     const I = GLTF.internals, parts = { solid: null, glass: null, thin: null }, FAR = GLTF.look.far;
-    const acc = () => ({ pos: [], nrm: [], uv: [], base: [], mirror: [], night: [], glass: [], thin: [], idx: [] });
+    const acc = () => ({ pos: [], nrm: [], uv: [], base: [], mirror: [], night: [], glass: [], pat: [], thin: [], idx: [] });
     let lit = 0, tris = 0, thinTris = 0;
+    const WL = GLTF.look.walls, GS = GLTF.look.glass, pats = [], patOf = {}; let patLeft = 0, stdPanes = 0;
     for (const p of prims) {
+      // this material's pattern number in the building (1..max; 0 = a plain wall), and 1 when it is the standard glass
+      let pid = 0; if (p.pattern) { pid = patOf[p.material] || 0; if (!pid && pats.length < WL.max) { pats.push(p.pattern); pid = patOf[p.material] = pats.length; } if (!pid) patLeft++; }
+      const f0 = p.std ? 1 : 0; if (p.std) stdPanes += p.idx.length / 3;
       // a material the row does not list is known by its name (the builders' rule: glass is named glass_*, signs sign_*)
       const cfg = mats[p.material] || (/^glass/i.test(p.material) ? { lit: true } : /^sign/i.test(p.material) ? { sign: true } : {}), A = p.seeThrough > 0 ? (parts.glass = parts.glass || Object.assign(acc(), { through: p.seeThrough, transmit: p.transmit })) : (parts.solid = parts.solid || acc());
       const nv = p.pos.length / 3, night = new Float32Array(nv * 3);
@@ -361,7 +439,7 @@
         map[i] = B.pos.length / 3;
         B.pos.push(w[0], w[1], w[2]); B.nrm.push(n[0], n[1], n[2]); B.uv.push(p.uv[i * 2], p.uv[i * 2 + 1]);
         if (p.paint) B.base.push(p.base[0] * p.paint[i * 3], p.base[1] * p.paint[i * 3 + 1], p.base[2] * p.paint[i * 3 + 2]); else B.base.push(p.base[0], p.base[1], p.base[2]);
-        B.mirror.push(p.mirror[0], p.mirror[1], p.mirror[2]); B.glass.push(p.glass ? 1 : 0);
+        B.mirror.push(p.mirror[0], p.mirror[1], p.mirror[2]); B.glass.push(p.glass ? 1 : 0); B.pat.push(B === parts.thin ? 0 : pid, f0);
         B.night.push(night[i * 3], night[i * 3 + 1], night[i * 3 + 2]);
         if (B === parts.thin) { const r = turn(thin[i * 4], -thin[i * 4 + 2], thin[i * 4 + 1]); B.thin.push(r[0], r[1], r[2], thin[i * 4 + 3]); }
         return map[i];
@@ -379,15 +457,24 @@
       if (!A) continue;
       const geom = new T.BufferGeometry(), F = (a, n) => new T.BufferAttribute(Float32Array.from(a), n);
       geom.setAttribute('position', F(A.pos, 3)); geom.setAttribute('normal', F(A.nrm, 3)); geom.setAttribute('uv', F(A.uv, 2));
-      geom.setAttribute('aBase', F(A.base, 3)); geom.setAttribute('aMirror', F(A.mirror, 3)); geom.setAttribute('aNight', F(A.night, 3)); geom.setAttribute('aGlass', F(A.glass, 1));
+      geom.setAttribute('aBase', F(A.base, 3)); geom.setAttribute('aMirror', F(A.mirror, 3)); geom.setAttribute('aNight', F(A.night, 3)); geom.setAttribute('aGlass', F(A.glass, 1)); geom.setAttribute('aPat', F(A.pat, 2));
       if (name === 'thin') geom.setAttribute('aThin', F(A.thin, 4));
       geom.setIndex(new T.BufferAttribute(Uint32Array.from(A.idx), 1)); geom.computeBoundingSphere();
       for (const pass of (A.through ? [1, 2] : name === 'thin' ? [3] : [0])) {
-        const mat = material(S, skyMap, pass, A.through, A.transmit), mesh = new T.Mesh(geom, mat);
+        const mat = material(S, skyMap, pass, A.through, A.transmit), mesh = new T.Mesh(geom, mat), MU = mat.uniforms;
+        // the building's wall patterns, and its own frame for them (the row's origin and heading)
+        pats.forEach((q, i) => { MU.u_patA.value[i].set(q.kind === 'boards' ? 0 : q.w, q.h, Math.min(q.joint, 0.9 * q.h), q.kind === 'running_bond' ? 0.5 : 0); MU.u_patB.value[i].set(q.jointShare[0], q.jointShare[1], q.jointShare[2], 0);
+          MU.u_patC.value[i].set(q.vary[0], q.vary[1], q.vary[2], q.upright ? 1 : 0); MU.u_patD.value[i].set(q.origin[0], q.origin[1], q.seed, 0); });
+        MU.u_patAt.value.set(O.x, O.y, O.z); MU.u_patTurn.value.set(c, s);
         mesh.name = g.name + '-' + name + (pass ? pass : ''); mesh.renderOrder = pass; if (pass === 1 || pass === 2) mesh.layers.set(1);   // see-through glass casts no shadow (the shadow cameras see layer 0 only)
         // the light for the hour, once per frame: the sky and sun from js/city-sky.js at the app's own clock
         mesh.onBeforeRender = renderer => {
-          const U = S.uniforms(); window.CitySky.sync(mat.uniforms, U.u_p ? U.u_p.value : 0.3);
+          const U = S.uniforms(); window.CitySky.sync(mat.uniforms, U.u_p ? U.u_p.value : 0.3, GLTF.look.light);
+          // the light's name, the wall patterns and the glass, each frame (all three may be flipped while the page runs). A building that is drawn
+          // at more than the canvas's pixels (own.ssNow, see ownFrame) fades its patterns by CANVAS pixels, not by its own finer ones.
+          const ssNow = (own && own.ssNow) || 1, od = (row.oppositeDeg !== undefined && row.oppositeDeg !== null ? row.oppositeDeg : GS.oppositeDeg) * Math.PI / 180, st = GS.stepDeg * Math.PI / 180, lo = Math.sin(Math.max(od - st, 0));
+          MU.u_patPx.value.set(WL.on && pats.length ? 1 / (WL.coursePx[0] * ssNow) : -1, 1 / (WL.coursePx[1] * ssNow), WL.tint);
+          MU.u_lookGlass.value.set(GS.power, lo, Math.max(Math.sin(Math.min(od + st, Math.PI / 2)), lo + 1e-4), GS.on ? 1 : 0); MU.u_lookStd.value.set(GS.mirror, GS.recess); MU.u_lookStraight.value.set(GS.straight[0], GS.straight[1]);
           // FAR, each frame: on / off (GLTF.look.far.on may be flipped while the page runs), and how wide a pixel is
           if (pass === 3) { mat.uniforms.u_lookFar.value = FAR.on ? (FAR.hide ? -1 : 1) : 0; mat.uniforms.u_lookPx.value = pxAngle(S, renderer, geom.boundingSphere.center) * FAR.minPx; }
         };
@@ -403,10 +490,10 @@
           geom.computeBoundingBox(); own.box.union(geom.boundingBox);
         }
       }
-      bytes += A.pos.length / 3 * 60 + A.idx.length * 4;
+      bytes += A.pos.length / 3 * 68 + A.idx.length * 4;
     }
     if (own) { own.group = g; OWN.list.push(own); }
-    return { group: g, own, triangles: tris, thinTriangles: thinTris, lit, bytes };
+    return { group: g, own, triangles: tris, thinTriangles: thinTris, lit, bytes, patterns: pats.length, patternsLeft: patLeft, stdPanes };
   }
 
   // ── boot ────────────────────────────────────────────────────────────────
@@ -434,7 +521,7 @@
   // What is NOT there yet: a stand-in for a row that is OUT. Its old drawing is hidden for the whole session, so beyond `outM` the
   // building is missing from the picture (docs/gltf-layer.md).
   let _group = null, _tick = null;
-  const ROWS = [], L = info.look = { loaded: [], triangles: 0, litTriangles: 0, drawCalls: 0, bytes: 0, mapBytes: 0, ms: 0, errors: [], thin: {}, loads: 0, unloads: 0 };
+  const ROWS = [], L = info.look = { loaded: [], triangles: 0, litTriangles: 0, drawCalls: 0, bytes: 0, mapBytes: 0, ms: 0, errors: [], thin: {}, walls: {}, loads: 0, unloads: 0 };
   // the rows themselves (meshes, vertex arrays) are reachable for tests but are not part of what stats() hands out: a script that asks the page
   // for the layer's numbers would otherwise be sent every vertex of every building
   Object.defineProperty(L, 'rows', { value: ROWS, enumerable: false });
@@ -449,7 +536,7 @@
       if (b.own) b.own.fade = e.far && GLTF.look.copy.on ? 0 : 1; b.shown = b.group.visible = !(e.far && GLTF.look.copy.on);   // with a far copy the full building dissolves in (copyFrame)
       e.built = b; e.map = map; e.fileBytes = buf.byteLength; e.mapBytes = map && map.image ? map.image.width * map.image.height * 4 : 0; e.state = 2;
       _group.add(b.group); if (OWN.list.length) ownHook(S);
-      L.triangles += b.triangles; L.litTriangles += b.lit; L.drawCalls += b.group.children.length; L.bytes += e.fileBytes; L.mapBytes += e.mapBytes; L.loaded.push(row.name); L.thin[row.name] = [b.thinTriangles, b.triangles]; L.loads++;
+      L.triangles += b.triangles; L.litTriangles += b.lit; L.drawCalls += b.group.children.length; L.bytes += e.fileBytes; L.mapBytes += e.mapBytes; L.loaded.push(row.name); L.thin[row.name] = [b.thinTriangles, b.triangles]; L.walls[row.name] = [b.patterns, b.patternsLeft, b.stdPanes]; L.loads++;
     } catch (err) { e.state = 3; L.errors.push(row.look + ': ' + (err && err.message || err)); console.error('[gltf-look]', row.look, err); }   // 3: failed, not tried again
     L.ms += performance.now() - t0;
     if (window.__map && window.__map.triggerRepaint) window.__map.triggerRepaint();
@@ -461,7 +548,7 @@
     const seen = new Set(), drop = o => { if (o.geometry && !seen.has(o.geometry)) { seen.add(o.geometry); o.geometry.dispose(); } if (o.material && !seen.has(o.material)) { seen.add(o.material); o.material.dispose(); } };
     b.group.traverse(drop); if (b.own) for (const sc of [b.own.picture, b.own.depth, b.own.fill, b.own.glass]) sc.traverse(drop);
     if (e.map) e.map.dispose();
-    L.triangles -= b.triangles; L.litTriangles -= b.lit; L.drawCalls -= b.group.children.length; L.bytes -= e.fileBytes; L.mapBytes -= e.mapBytes; L.loaded = L.loaded.filter(n => n !== e.row.name); delete L.thin[e.row.name]; L.unloads++;
+    L.triangles -= b.triangles; L.litTriangles -= b.lit; L.drawCalls -= b.group.children.length; L.bytes -= e.fileBytes; L.mapBytes -= e.mapBytes; L.loaded = L.loaded.filter(n => n !== e.row.name); delete L.thin[e.row.name]; delete L.walls[e.row.name]; L.unloads++;
     e.built = e.map = null; e.state = 0;
   }
 
@@ -488,7 +575,7 @@
     const h = row.headingDeg * Math.PI / 180, c = Math.cos(h), s = Math.sin(h), O = S.toLocal(row.lng, row.lat, row.groundM || 0), og = row.lookOrigin || [0, 0, 0];
     const th = F.turnDeg * Math.PI / 180, tc = Math.cos(th), ts = Math.sin(th), C = F.colours, NQ = F.roofs.length / 6 + F.walls.length / 10;
     const A = { pos: new Float32Array(NQ * 12), nrm: new Float32Array(NQ * 12), uv: new Float32Array(NQ * 8), base: new Float32Array(NQ * 12), mirror: new Float32Array(NQ * 12), night: new Float32Array(NQ * 12), glass: new Float32Array(NQ * 4),
-      farA: new Float32Array(NQ * 16), farB: new Float32Array(NQ * 16), idx: new Uint32Array(NQ * 6), nv: NQ * 4, triangles: NQ * 2 };
+      farA: new Float32Array(NQ * 16), farB: new Float32Array(NQ * 16), pat: new Float32Array(NQ * 8), idx: new Uint32Array(NQ * 6), nv: NQ * 4, triangles: NQ * 2 };
     const tone = hex3(GLTF.litTone), occ = (row.night && row.night.occupancy !== undefined ? row.night.occupancy : GLTF.nightLit) * GLTF.look.copy.nightShare;
     let q = 0;
     // (u, v, z) of the far file -> the model's x, y (the file's grid is turned to the building's main walls) -> the row's place and heading
@@ -498,6 +585,7 @@
       const nx = n[0] * tc - n[1] * ts, ny = n[0] * ts + n[1] * tc; A.nrm[i * 3] = nx * c + ny * s; A.nrm[i * 3 + 1] = -nx * s + ny * c; A.nrm[i * 3 + 2] = n[2];
       for (let j = 0; j < 3; j++) { A.base[i * 3 + j] = C[ci * 8 + j] / 1e4; A.mirror[i * 3 + j] = C[ci * 8 + 3 + j] / 1e4; A.farA[i * 4 + j] = C[mi * 8 + j] / 1e4; A.farB[i * 4 + j] = C[mi * 8 + 3 + j] / 1e4; A.night[i * 3 + j] = tone[j] * occ * C[ci * 8 + 6] / 1e3; }
       A.glass[i] = C[ci * 8 + 6] / 1e3; A.farA[i * 4 + 3] = bandM; A.farB[i * 4 + 3] = C[mi * 8 + 6] / 1e3; A.uv[i * 2] = C[ci * 8 + 7] / 1e3; A.uv[i * 2 + 1] = C[mi * 8 + 7] / 1e3;
+      if (F.std) { A.pat[i * 2] = F.std[mi] / 1e3; A.pat[i * 2 + 1] = F.std[ci] / 1e3; }   // the share of the wall, and of this band, that is the builders' standard glass
     };
     const quad = (P4, n, ci, mi, bandM) => {
       // the corners are put in the order that makes the face's front the side its normal points to (the shader turns a back face's normal round)
@@ -516,12 +604,12 @@
       A.idx.set([q * 4, q * 4 + 1, q * 4 + 2, q * 4, q * 4 + 2, q * 4 + 3], q * 6); q++; }
     return A;
   }
-  const COPY_ATTRS = [['position', 'pos', 3], ['normal', 'nrm', 3], ['uv', 'uv', 2], ['aBase', 'base', 3], ['aMirror', 'mirror', 3], ['aNight', 'night', 3], ['aGlass', 'glass', 1], ['aFarA', 'farA', 4], ['aFarB', 'farB', 4]];
+  const COPY_ATTRS = [['position', 'pos', 3], ['normal', 'nrm', 3], ['uv', 'uv', 2], ['aBase', 'base', 3], ['aMirror', 'mirror', 3], ['aNight', 'night', 3], ['aGlass', 'glass', 1], ['aFarA', 'farA', 4], ['aFarB', 'farB', 4], ['aPat', 'pat', 2]];
   function copyGeometry(list) {
     const T = window.THREE, geom = new T.BufferGeometry(); let nv = 0, ni = 0; for (const A of list) { nv += A.nv; ni += A.idx.length; }
     for (const [name, key, n] of COPY_ATTRS) { const a = new Float32Array(nv * n); let o = 0; for (const A of list) { a.set(A[key], o); o += A[key].length; } geom.setAttribute(name, new T.BufferAttribute(a, n)); }
     const idx = new Uint32Array(ni); let o = 0, base = 0; for (const A of list) { for (let i = 0; i < A.idx.length; i++) idx[o + i] = A.idx[i] + base; o += A.idx.length; base += A.nv; }
-    geom.setIndex(new T.BufferAttribute(idx, 1)); geom.computeBoundingSphere(); geom.userData.bytes = nv * 112 + ni * 4;
+    geom.setIndex(new T.BufferAttribute(idx, 1)); geom.computeBoundingSphere(); geom.userData.bytes = nv * 120 + ni * 4;
     return geom;
   }
   function copyMaterial(S, push) {
@@ -530,8 +618,11 @@
   }
   function copyMesh(S, geom, mat, name) {
     const mesh = new window.THREE.Mesh(geom, mat); mesh.name = name; mesh.frustumCulled = false;
-    mesh.onBeforeRender = () => { const U = S.uniforms(), C = GLTF.look.copy, cv = window.__map && window.__map.getCanvas(); window.CitySky.sync(mat.uniforms, U.u_p ? U.u_p.value : 0.3);
-      mat.uniforms.u_lookPx.value = cssAngle() / (cv && cv.clientWidth ? cv.width / cv.clientWidth : 1); mat.uniforms.u_lookBand.value.set(1 / C.bandPx[0], 1 / C.bandPx[1]); };
+    mesh.onBeforeRender = () => { const U = S.uniforms(), C = GLTF.look.copy, cv = window.__map && window.__map.getCanvas(); window.CitySky.sync(mat.uniforms, U.u_p ? U.u_p.value : 0.3, GLTF.look.light);
+      mat.uniforms.u_lookPx.value = cssAngle() / (cv && cv.clientWidth ? cv.width / cv.clientWidth : 1); mat.uniforms.u_lookBand.value.set(1 / C.bandPx[0], 1 / C.bandPx[1]);
+      // the standard glass of the far copies (the street's top edge is the layer's default here: one mesh holds every building)
+      const GS = GLTF.look.glass, od = GS.oppositeDeg * Math.PI / 180, st = GS.stepDeg * Math.PI / 180, lo = Math.sin(Math.max(od - st, 0));
+      mat.uniforms.u_lookGlass.value.set(GS.power, lo, Math.max(Math.sin(Math.min(od + st, Math.PI / 2)), lo + 1e-4), GS.on ? 1 : 0); mat.uniforms.u_lookStd.value.set(GS.mirror, GS.recess); mat.uniforms.u_lookStraight.value.set(GS.straight[0], GS.straight[1]); };
     return mesh;
   }
   /** the one mesh of the far copies that stand alone, and a mesh each for those under a full building that is changing places with it */

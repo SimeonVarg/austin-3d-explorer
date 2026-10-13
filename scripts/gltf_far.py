@@ -19,7 +19,8 @@ WHAT IT KEEPS
                                     darker, glassier band and the spandrel under it a paler one. Windows are not drawn one by one.
                                     Each band also carries its wall's mean, which the page shows where a band is thinner than a
                                     pixel or two (a band that thin would flicker).
-  glass                             a band's mirror colour is the mean of (glass ? mirror colour : 0) and its glass share is the
+  glass                             (the builders' standard glass counts as glass; its share of a band is kept apart, `std`, because the layer
+                                    gives it the layer's own mirror.)  a band's mirror colour is the mean of (glass ? mirror colour : 0) and its glass share is the
                                     share of glass in it, so the far copy mirrors as much sky as its windows do together.
   sky light in recesses             the mean of the look file's sky-light map over the same faces (one number a band).
 WHAT IT DROPS   everything under a part (an arcade is filled, in the colour of what is seen in it), every single window, every
@@ -95,8 +96,10 @@ def read_look(path):
             base = np.array((m.get('pbrMetallicRoughness', {}).get('baseColorFactor') or [1, 1, 1, 1])[:3], float)
             paint = accessor(js, bin_, at['COLOR_0'])[:, :3] if ('COLOR_0' in at and ex.get('look_painted')) else None
             glass = ex.get('look_kind') == 'glass'
+            # the builders' standard glass (a plain dark material named glass_* that their rig marked): glass too; its mirror is the layer's own, not a colour of the file
+            std = (not glass) and bool(ex.get('light_rig_glass')) and m.get('name', '').lower().startswith('glass')
             out.append(dict(name=m.get('name', ''), pos=np.stack([pos[:, 0], -pos[:, 2], pos[:, 1]], 1), nrm=np.stack([nrm[:, 0], -nrm[:, 2], nrm[:, 1]], 1), uv=uv, idx=idx, base=base, paint=paint,
-                            glass=glass, mirror=np.array(ex.get('look_glossy') or [0, 0, 0], float) if glass else np.zeros(3)))
+                            glass=glass or std, std=std, mirror=np.array(ex.get('look_glossy') or [0, 0, 0], float) if glass else np.zeros(3)))
     return out
 
 
@@ -129,16 +132,16 @@ def far_copy(path, tol_scale=1.0, cell=CELL_M):
         if os.path.exists(sp): sky = np.asarray(Image.open(sp).convert('L'), np.float64) / 255.0
     except Exception: sky = None
     # every triangle: corners, colour, mirror colour (0 for a wall), glass or not, the sky-light map's place of each corner
-    T, TB, TM, TG, TUV = [], [], [], [], []
+    T, TB, TM, TG, TS, TUV = [], [], [], [], [], []
     for p in prims:
         if not len(p['idx']): continue
         tri = p['pos'][p['idx']]; T.append(tri); n = len(tri)
         TB.append(p['base'][None, :] * (p['paint'][p['idx']].mean(1) if p['paint'] is not None else np.ones((n, 3))))
-        TM.append(np.tile(p['mirror'], (n, 1))); TG.append(np.full(n, 1.0 if p['glass'] else 0.0))
+        TM.append(np.tile(p['mirror'], (n, 1))); TG.append(np.full(n, 1.0 if p['glass'] else 0.0)); TS.append(np.full(n, 1.0 if p['std'] else 0.0))
         TUV.append(p['uv'][p['idx']] if p['uv'] is not None else np.zeros((n, 3, 2)))
-    T = np.concatenate(T); TB = np.concatenate(TB); TM = np.concatenate(TM); TG = np.concatenate(TG); TUV = np.concatenate(TUV)
+    T = np.concatenate(T); TB = np.concatenate(TB); TM = np.concatenate(TM); TG = np.concatenate(TG); TS = np.concatenate(TS); TUV = np.concatenate(TUV)
     cr = np.cross(T[:, 1] - T[:, 0], T[:, 2] - T[:, 0]); area = 0.5 * np.linalg.norm(cr, axis=1); ok = area > 1e-8
-    T, TB, TM, TG, TUV, cr, area = T[ok], TB[ok], TM[ok], TG[ok], TUV[ok], cr[ok], area[ok]
+    T, TB, TM, TG, TS, TUV, cr, area = T[ok], TB[ok], TM[ok], TG[ok], TS[ok], TUV[ok], cr[ok], area[ok]
     N = cr / (2 * area[:, None])
     # the building's own main wall direction (walls only; the angle is taken four times round, so that all four sides agree)
     wall = np.abs(N[:, 2]) < 0.3; ph = np.arctan2(N[wall, 1], N[wall, 0])
@@ -201,8 +204,8 @@ def far_copy(path, tol_scale=1.0, cell=CELL_M):
     # a part's height, and its roof colour (what is seen from above on its cells)
     height = {0: 0.0}; roofc = {}; colours = []; cidx = {}
 
-    def colour(base, mirror, glass, open_):
-        key = tuple(int(round(max(0.0, min(1.0, v)) * 10000)) for v in list(base) + list(mirror)) + (int(round(glass * 1000)), int(round(open_ * 1000)))
+    def colour(base, mirror, glass, open_, std=0.0):
+        key = tuple(int(round(max(0.0, min(1.0, v)) * 10000)) for v in list(base) + list(mirror)) + (int(round(glass * 1000)), int(round(open_ * 1000)), int(round(std * 1000)))
         if key not in cidx: cidx[key] = len(colours); colours.append(key)
         return cidx[key]
 
@@ -211,7 +214,7 @@ def far_copy(path, tol_scale=1.0, cell=CELL_M):
         base = (tb * w[:, None]).sum(0) / ws; mirror = (TM[ti[sel]] * (tg * w)[:, None]).sum(0) / ws; glass = float((tg * w).sum() / ws)
         # the sky light a recess gets, as ONE number that gives the same brightness as the faces' own numbers do: weighted by brightness
         open_ = float((OPEN[sel] * lum * w).sum() / max(1e-9, (lum * w).sum()))
-        return base, mirror, glass, open_
+        return base, mirror, glass, open_, float((TS[ti[sel]] * w).sum() / ws)       # (the last: the share that is the builders' standard glass)
 
     for r in ids:
         m = lab == r; hop = float(np.median(Hop[m])); height[r] = round(min(float(np.percentile(H[m], TOP_PERCENTILE)), hop + TOP_OVER_M), 2)
@@ -301,7 +304,7 @@ def far_copy(path, tol_scale=1.0, cell=CELL_M):
            'note': 'roofs: u0 u1 v0 v1 z colour (cm). walls: dir(0 +u, 1 -u, 2 +v, 3 -v) plane a0 a1 z0 z1 (cm) band-colour wall-colour nx ny (x1000). colours: base rgb, mirror rgb (x10000), glass share, sky light (x1000). u, v = x, y turned by -turnDeg.',
            'roofs': [x for r in roofs for x in (cm(r[0]), cm(r[1]), cm(r[2]), cm(r[3]), cm(r[4]), r[5])],
            'walls': [x for w_ in walls for x in (w_[0], cm(w_[1]), cm(w_[2]), cm(w_[3]), cm(w_[4]), cm(w_[5]), w_[6], w_[7], int(round(w_[8] * 1000)), int(round(w_[9] * 1000)))],
-           'colours': [x for c_ in colours for x in c_]}
+           'colours': [x for c_ in colours for x in c_[:8]], 'std': [c_[8] for c_ in colours]}     # std: per colour, the share that is the builders' standard glass (x1000)
     return out, dict(triangles=tris, roofs=len(roofs), walls=len(walls), parts=len(ids), colours=len(colours), top=max(height.values()), turn=round(math.degrees(th), 2), source_triangles=int(len(T)), samples=int(len(ti)), tol=tol_scale, cell=cell, sky=sky is not None)
 
 

@@ -25,7 +25,7 @@ const lookExists = f => fs.existsSync(f + '.gz') || fs.existsSync(f);
 const readLook = f => fs.existsSync(f + '.gz') ? zlib.gunzipSync(fs.readFileSync(f + '.gz')) : fs.readFileSync(f);
 // the far copy beside a look file (scripts/gltf_far.py): plain numbers, a few hundred triangles, no name of a file or folder
 const farBad = f => { const p = f.replace(/\.glb$/, '-far.json'); if (!fs.existsSync(p)) return 'no far copy'; const t = fs.readFileSync(p, 'utf8'), j = JSON.parse(t);
-  return j.v !== 1 ? 'far copy: unknown version' : !(j.triangles >= 12 && j.triangles <= 1200 && j.triangles === 2 * (j.roofs.length / 6 + j.walls.length / 10)) ? 'far copy: ' + j.triangles + ' triangles' : j.colours.length % 8 || !j.colours.every(Number.isInteger) ? 'far copy: colours' : /photo|\.jpg|\.png|users|home|[a-z]:\\|\/[a-z]+\//i.test(t.replace(j.note, '')) ? 'far copy names a file or folder' : null; };
+  return j.v !== 1 ? 'far copy: unknown version' : !(j.triangles >= 12 && j.triangles <= 1200 && j.triangles === 2 * (j.roofs.length / 6 + j.walls.length / 10)) ? 'far copy: ' + j.triangles + ' triangles' : j.colours.length % 8 || !j.colours.every(Number.isInteger) ? 'far copy: colours' : j.std && (j.std.length * 8 !== j.colours.length || !j.std.every(v => Number.isInteger(v) && v >= 0 && v <= 1000)) ? 'far copy: the standard glass shares' : /photo|\.jpg|\.png|users|home|[a-z]:\\|\/[a-z]+\//i.test(t.replace(j.note, '')) ? 'far copy names a file or folder' : null; };
 const check = (ok, what, extra = '') => { console.log((ok ? '  PASS  ' : '  FAIL  ') + what + (extra ? '  ' + extra : '')); if (!ok) failed++; };
 
 function boot(search) {
@@ -164,6 +164,13 @@ console.log('city-sky: the light for an hour');
   const top = Math.max(...day.light.map(lum)), roofAll = lum(day.light[16]) + lum(day.sunStrength) * day.sunDir[2];
   check(roofAll > 2 * lum(day.light[8]) && roofAll > 2 * lum(day.light[0]) && day.light.every((c, i) => i === 0 || Math.abs(lum(c) - lum(day.light[i - 1])) < 0.35 * top), 'a sunlit roof gets more than twice what the sky and ground give a wall or a face looking down, and the light changes smoothly between', 'down ' + lum(day.light[0]).toFixed(2) + ', wall ' + lum(day.light[8]).toFixed(2) + ', roof with the sun ' + roofAll.toFixed(2));
   check(Math.abs(lum(day.light[0]) / (Math.PI * lum(day.ground)) - 1) < 0.05, 'a face that looks at the ground gets the ground\'s bounce and nothing else (pi times the lit ground)', (lum(day.light[0]) / (Math.PI * lum(day.ground))).toFixed(3));
+  // the SOFT light (the builders' no-sun light): no sun by day, a level roof gets `exposure` units of light / pi, an open wall 0.45 of that,
+  // the standard white paint on an open wall is shown where the doc says, and at night it is the hour's own light
+  const soft = C.atMode(0.3, 'soft'), k = C.tune.soft.exposure, softNight = C.atMode(0.9, 'soft');
+  check(soft.mode === 'soft' && soft.sunStrength.every(v => v === 0) && Math.abs(soft.light[16][0] / Math.PI / k - 1) < 0.01 && Math.abs(soft.light[8][0] / Math.PI / k - 0.45) < 0.01 && soft.light.every(c => Math.abs(c[0] - c[1]) < 1e-9 && Math.abs(c[1] - c[2]) < 1e-9),
+    'the soft light by day: no sun, a grey sky, a level roof gets the exposure, an open wall 0.45 of it', 'white paint on an open wall shows at ' + (0.17 * soft.light[8][0] / Math.PI).toFixed(3) + ' as light');
+  check(softNight.light.every((c, i) => c.every((v, j) => Math.abs(v - night.light[i][j]) < 1e-9)) && softNight.sunStrength.every((v, j) => v === night.sunStrength[j]), 'the soft light at night is the hour\'s own light');
+  check(C.at(0.3).light.every((c, i) => c.every((v, j) => v === day.light[i][j])) && C.at(0.3).sunStrength.every((v, j) => v === day.sunStrength[j]) && day.street.length === 3 && day.groundStd.length === 3 && /csMirrorStd/.test(C.glsl), 'the hour\'s own light is untouched by the soft one, and carries what the standard glass mirrors');
   check(Math.abs(Math.hypot(...day.sunDir) - 1) < 1e-6 && day.sunDir[2] > 0.7 && lum(day.sunStrength) > 1, 'by day the sun is up and strong', 'strength ' + day.sunStrength.map(v => v.toFixed(2)).join(', '));
   check(gold.sunStrength[0] / gold.sunStrength[2] > 1.5 * day.sunStrength[0] / day.sunStrength[2] && gold.pts[2][1][0] > gold.pts[2][1][2], 'a low sun is warmer, and so is the sky at the level line');
   check(lum(night.light[8]) < 0.1 * lum(day.light[8]) && lum(night.sunStrength) < 0.1 && night.sunDir[2] > 0, 'at night the sky light is a small share of the day\'s and the one light with a direction is the moon');

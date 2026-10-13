@@ -469,3 +469,86 @@ less after packing, and positions move by up to 1.5 mm, so it was not used.)
 build's white paint is the standard light's white: the white is the material named `*white*` with the largest surface that is not glass,
 not a sign and not a roof. Eight builds were exported again that way (factors 1.26 to 4.94). GrandMarc Austin has no material named
 white and is unchanged.
+
+## The look from the street: a soft light, wall patterns, the standard glass (2026-10-13, afternoon)
+
+Drawn by the layer, a Blender building kept its shape and lost its look. Three causes, and what the code does about each now. All of it is
+behind `?gltf=1`; with the switch off nothing changed.
+
+**1. The light is a named choice: `&gltflight=soft|noon`** (`GLTF.look.light` in `js/gltf-layer.js`; `noon` when nothing is asked).
+- `noon` is the hour's own light of `js/city-sky.js`: a clear sun and hard shade. It is what the layer drew before.
+- `soft` is the builders' NO-SUN light (`CitySky.tune.soft`): their rig's grey sky, three times as bright overhead as at the level line, and
+  its ground (a level roof gets 1 unit of light / pi, an open wall 0.45); no sun, so no sun shadow, and no shadow map is read; and the rig's
+  one exposure number. That number is 9.86, the median of what the builders found for their own no-sun photographs (30 builds, 5.4 to 21.8):
+  under it an open wall of the standard white paint (0.17) is shown at 0.755 as light, 225 of 255 (a sunlit white wall at noon is 243). Most
+  builds were made from photographs with no sun in them and looked at in renders under exactly this light.
+- The exposure is folded into the light's own numbers (`CitySky.atMode(p, 'soft')`), so the view's exposure stays the hour's. Toward dusk the
+  soft light gives way to the hour's own (between 25 and 4 degrees of sun height), so night is unchanged.
+- **Only this layer changes; the rest of the city keeps its noon sun.** Under `soft` a Blender building has no dark side while the recipe
+  building next to it has one, and it still casts its noon shadow on the street and on its neighbours (the shadow maps are the city's).
+- **What the soft light does from above.** Under a no-sun sky a level roof gets 2.2 times the light of a wall, and the exposure is set for
+  walls. A pale roof comes out white, and a cream one loses its blue first. A photograph of a grey day exposed for the walls does the same,
+  but the app is mostly seen from above. It is one number: `soft.exposure`, `&skysoftexp=`.
+
+**2. Wall patterns** (`GLTF.look.walls`; `&gltfwalls=0` = flat walls, as before). A wall material made with the builders' wall maker carries
+its measured numbers in the look file as the material's `extras` (the glTF export already wrote them; no file was exported again): the
+pattern (running bond, stack bond, panel grid, boards), the unit's length and the course's height in metres, the joint's width and colour,
+how far single units differ, which way the courses run, a joint crossing, a seed. `parseLook` reads them. The joint's colour is kept as a
+share of the wall's own colour, so a file whose colours were all divided by one number (the export's `white=`) keeps its pattern. A
+building may carry 8 patterns (`max`); more are drawn flat, and `info.look.walls` counts them.
+- **Drawn by arithmetic in the fragment shader** (`patColour` in `js/gltf-look.js`), in the MODEL'S OWN metres: the vertex program takes the
+  row's origin and heading off the position, so the numbers are small and a course keeps its place however far the building stands from
+  the city's origin. Metres along the wall whichever way it faces, courses level, a level face in plan: as the builders' maker does it, and
+  the joints are where the maker puts them. Which unit is the lighter and which the darker is NOT the maker's (another hash); how far they
+  differ is.
+- **No image, and no joint is ever sampled.** Each pixel takes the exact share of joint that lies in it (the mean of a row of joints over
+  a stretch has a closed form): the level joints, the upright ones, and in a running bond the upright joints by the share of the pixel that
+  lies in moved and in unmoved courses. A unit's own lighter or darker tone goes to nothing within a pixel of the unit's edge, so a pixel
+  that lies on two units never jumps from one to the other.
+- **Rule 15.** A course that is `coursePx[0]` = 3 canvas pixels high or more is drawn in full. From there the pattern gives way to the
+  wall's mean colour, and at `coursePx[1]` = 1.5 pixels and beyond the shader returns the flat colour itself, the one drawn before: nothing
+  changes far away. The same along the course for a unit's length; in a running bond the upright joints go with the courses. A building
+  that the far treatment draws at more than the canvas's pixels fades by CANVAS pixels, not by its own finer ones.
+- **Measured**, on the brick and limestone wall of one campus building under the soft light, at ten distances from the wall (from where a
+  brick course is a third of a pixel to where it is five), by the far-view method of the sections above: twelve frames of a slow pan
+  against the same frames drawn at twice the pixels and averaged 2 x 2, a pixel flickering when its change from frame to frame is on
+  average more than 6 grey levels above the truth's; the patterns on and off in the same page. With the patterns 5,789 flickering pixels of
+  3.03 million, without them 5,820; at no distance do the patterns add any (the pixels that flicker are the building's own edges: window
+  bars, a drain pipe, and they are there with flat walls too). Where a brick course is under a pixel and a half the picture is the flat
+  wall's to 1 grey level, and the wall's mean brightness does not move as the pattern comes in. 34 of the 58 look files carry patterns
+  (93 materials: 45 running bond, 26 boards, 14 panel grids, 8 stack bond; 6 at most in one build).
+
+**3. The standard glass** (`GLTF.look.glass`; `&gltfglass=0` = as before). The builders' rig makes every pane the same glass: a dark pane
+with one mirror strength. The export writes it as a plain dark material, and the layer drew it with no mirror: near-black panes, the
+largest difference from the builders' renders. Now a material named `glass_*` that the rig marked is drawn with the rig's mirror: 25 % at
+a straight view and more at a slant (`mirror` 0.25, `power` 4.1: the rig's 30 % at 60 degrees and 37 % at 70). It mirrors the sky as a
+camera sees it (no light gain) above the street opposite and the street below it (`csMirrorStd` in `js/city-sky.js`), with the rig's soft
+edge of 2.5 degrees. How high the street opposite stands is each build's own number, read from its scene into `js/gltf-rows.js` (`opp`,
+35 rows; the layer's default is their median, 24 degrees). Under the soft light the mirror sees the rig's even blue-grey sky and its
+dark street.
+- **A recess and the mirror** (`recess` 1, `straight` [0.5, 0.9]). A pane set back between fins, in a deep reveal or under an arcade sees
+  little of the sky as a WALL does, but what it mirrors is ONE ray. Seen straight on, that ray leaves the building and the pane is as bright
+  as any other; seen at a slant, the ray runs into the fin or the reveal beside it and the pane goes dark. The builders' renders show both
+  on one wall. So the sky-light map dims this mirror only as the view slants: not at all when the cosine of the view's angle to the pane is
+  0.9 or more, in full at 0.5 and less. It is a rule of thumb from one number a pane (how much sky it sees), not a traced ray: a pane in a
+  shallow reveal seen at a slant comes out darker than its render (measured: about half), one between deep fins seen straight on is right.
+- Glass made the older way (a mirror colour of its own in the file) is drawn as before.
+- **The far copies carry it.** `scripts/gltf_far.py` counts the standard glass as glass and writes each band's share of it (`std`, a new
+  list beside `colours`; the 24 builds without such glass have the roofs, walls and colours they had). A far copy then mirrors the same sky
+  as its building, and at night its windows glow like the other far copies' (before, the far copy of such a build had no glass at all).
+
+**4. What it costs.** Frame time on an integrated chip at a 2880 x 1800 canvas with all 58 on, the two views from 950 m of the section
+above, the light flipped inside one page, the minimum of seven to eight interleaved readings over three page loads: `soft` 90.1 and
+93.0 ms, `noon` 92.1 and 93.6 ms (noon with the patterns and the standard glass switched off, in the same pages: 91.9 and 97.4; the
+last was only read in the slower pages). Inside one page the patterns and the glass add 0.2 to 1.0 ms to `noon`, and `soft` is 1.5 to
+3 ms under `noon` (no shadow map is read). The machine was not quiet (a system job at a third of a core, load 3 to 12): the third page
+read 4 to 5 ms higher in every arm. Memory: 8 bytes a vertex more (the pattern's number and the glass share). **Found on the way, not
+caused by this:** from 330 m over West Campus 42 buildings are in as full models and a frame takes 152 to 165 ms under either light
+(the sections above measured from 950 m only); the layer off was not read at that view.
+
+**5. Open.** The sky-light map has one sample a metre: under the soft light, where the sky is the only light, its squares show round windows
+and ornaments on a large wall seen close. Under `soft` pale roofs burn out from above (point 1). A soft-lit Blender building beside
+noon-lit recipe buildings is two lights in one picture; the recipes' shader could take the same named light (`js/city-sky.js` knows
+nothing about any building). A wall's pattern has one spread of tones; a real brick wall has a few very dark and very light bricks and
+blotches inside a brick. Joints are colour only, no depth. A far copy's glass uses the layer's default street height, not its row's. The
+phone was not run with this; the opening flight was not watched; night under `soft` was not looked at (by its rule it is the hour's own).
