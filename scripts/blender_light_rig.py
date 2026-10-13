@@ -13,6 +13,17 @@ THE THREE CALLS A BUILDER NEEDS (inside Blender; `sys.path.insert(0, os.path.exp
     light_rig.check()                                   # 3. before every final render: returns [] when the scene is under the rig,
                                                         #    else the list of what is not (another light, another world, a look, ...)
 
+WHEN THE PHOTOGRAPH HAS NO SUN IN IT (overcast, dawn, dusk: no cast shadow anywhere), there is nothing to turn the sun to. Then:
+
+    k = light_rig.exposure_from(pixel, normal, surface='white_paint')   # 1. how far the camera lifted that grey day, from ONE surface whose
+                                                                         #    colour is known (white paint, bare concrete; see REFERENCE)
+    light_rig.apply(weather='overcast', exposure=k)                      # 2. a grey sky with no sun, and the view exposed like the photograph
+    result = light_rig.base_colour(samples, weather='overcast', exposure=k)   # 3. every colour = pixel / (that grey light x k)
+    ok, rows = light_rig.gate(pairs, by_material=True)                   # 4. the gate for a no-sun photograph: each MATERIAL's places, pooled
+
+The base colours come out on the same scale as from a sunlit photograph (that is what the known surface is for), so the app lights
+both buildings alike. Never call sun_from_photo() for such a photograph, and never put a sun where you would like one.
+
 For colours (plain Python, works without Blender too; MATERIALS.md says how to use them):
 
     light_rig.light_on(normal, sun_to, in_sun)          # the light that reaches a face under the rig (red, green, blue)
@@ -37,6 +48,13 @@ SUN_DISK_RAD = 0.00925          # the sun's angular size (0.53 degrees)
 GROUND_SIZE_M = 6000.0          # the ground plane made when a scene has none
 GATE = 0.08                     # a place passes when its worst channel is within 8 % of the photograph
 PAINT_MAX = 0.35                # under this rig a white wall comes out near 0.15 to 0.20; nothing photographed in sunlight comes out above this
+# A photograph with no sun in it (weather='overcast'): the CIE overcast sky, grey, three times as bright overhead as at the level line.
+# Its level is set so that a level roof gets exactly 1 unit (light / pi); an open wall then gets 0.45 with the ground's bounce.
+NOSUN_ZENITH = 9.0 / 7.0
+NOSUN_GROUND = 0.108            # the ground under it: the rig's own ground colour, made grey
+# Surfaces whose own colour is about the same everywhere, in this rig's numbers (linear, the mean of red, green, blue). Measured on the
+# buildings photographed in full sun: white wall paint 0.16 to 0.19, bare concrete 0.07. They set the exposure of a no-sun photograph.
+REFERENCE = {'white_paint': 0.17, 'concrete': 0.07}
 
 
 # ───────────────────────────── colours and light (no Blender needed) ─────────────────────────────
@@ -79,13 +97,51 @@ def sky_light(normal, hour='noon'):
     return [L[i][k] + (L[i + 1][k] - L[i][k]) * f for k in range(3)]
 
 
-def light_on(normal, sun_to=None, in_sun=True, sky_open=1.0, hour='noon', sun_scale=1.0):
+def _nosun_table():
+    """light / pi on a face under the no-sun sky, by the up part of its normal (17 steps, -1 .. 1): the sum over the sky and the ground"""
+    out = []; RINGS, SEG = 90, 48
+    for k in range(17):
+        nz = -1 + 2 * k / 16.0; nx = math.sqrt(max(0.0, 1 - nz * nz)); e = 0.0
+        for r in range(RINGS):
+            th = (r + 0.5) / RINGS * math.pi; z = math.cos(th); sx = math.sin(th)
+            L = NOSUN_ZENITH * (1 + 2 * z) / 3 if z >= 0 else NOSUN_GROUND
+            c = sum(max(0.0, nx * sx * math.cos((q + 0.5) / SEG * 2 * math.pi) + nz * z) for q in range(SEG))
+            e += L * c * sx * (math.pi / RINGS) * (2 * math.pi / SEG)
+        out.append(e / math.pi)
+    return out
+
+
+NOSUN_LIGHT = _nosun_table()
+
+
+def nosun_light(normal, sky_open=1.0):
+    """light / pi on a face under the no-sun sky (one number: that sky is grey)"""
+    n = math.sqrt(sum(v * v for v in normal)) or 1.0
+    t = (max(-1.0, min(1.0, normal[2] / n)) + 1) / 2 * 16; i = min(15, int(t)); f = t - i
+    return (NOSUN_LIGHT[i] + (NOSUN_LIGHT[i + 1] - NOSUN_LIGHT[i]) * f) * sky_open
+
+
+def exposure_from(pixel, normal, surface='white_paint', value=None, sky_open=1.0):
+    """For a photograph with NO SUN: the camera's exposure against this rig, from one surface whose own colour is known.
+    pixel    the median of that surface in the photograph (r, g, b), sRGB 0..255
+    normal   which way it faces (east, north, up); wall_normal(bearing) for a wall, (0, 0, 1) for paving
+    surface  'white_paint' or 'concrete' (REFERENCE), or give `value` (its base colour in this rig's numbers) yourself and say why
+    Use the result in apply(weather='overcast', exposure=k) and base_colour(..., weather='overcast', exposure=k)."""
+    ref = float(value) if value is not None else REFERENCE[surface]
+    p = srgb_to_linear(pixel)
+    return round(sum(p) / 3 / (ref * nosun_light(normal, sky_open)), 3)
+
+
+def light_on(normal, sun_to=None, in_sun=True, sky_open=1.0, hour='noon', sun_scale=1.0, weather='clear'):
     """The light a face returns per unit of its own colour, under the rig: (sky + sun) / pi, red green blue.
+    weather='overcast': the no-sun sky instead (grey; `sun_to`, `in_sun` and `sun_scale` are ignored).
     normal    the face's outward normal (east, north, up); `wall_normal(bearing)` for a wall, [0, 0, 1] for a flat roof
     sun_to    the direction to the sun (`sun_dir(azimuth, elevation)`); None = the rig's own sun for that hour
     in_sun    True when the sun reaches the place, False in shadow (or a share 0..1)
     sky_open  the share of its sky the place sees (1 on an open wall, less in a recess or under a balcony)
     sun_scale how strong the sun was against the rig's sun (a property of the photograph's day, see base_colour)"""
+    if weather == 'overcast':
+        v = nosun_light(normal, sky_open); return [v, v, v]
     R = RIG[hour]; s = sun_to or R['sunDir']
     n = math.sqrt(sum(v * v for v in normal)) or 1.0
     cos = max(0.0, sum(a * b for a, b in zip(normal, s)) / n) * float(in_sun) * sun_scale
@@ -93,7 +149,7 @@ def light_on(normal, sun_to=None, in_sun=True, sky_open=1.0, hour='noon', sun_sc
     return [(sky[k] * sky_open + R['sunStrength'][k] * cos) / math.pi for k in range(3)]
 
 
-def base_colour(samples, sun_to=None, hour='noon', sun_scale=1.0, exposure=1.0):
+def base_colour(samples, sun_to=None, hour='noon', sun_scale=1.0, exposure=1.0, weather='clear'):
     """A material's OWN colour from samples of the photograph.
 
     samples   a list of dicts, each one place: {'material': name, 'pixel': (r, g, b) median of the photograph there, sRGB 0..255,
@@ -103,15 +159,20 @@ def base_colour(samples, sun_to=None, hour='noon', sun_scale=1.0, exposure=1.0):
               None = found from the samples: the one value that makes each material's sun samples and shade samples give the same
               colour (needs one material sampled in both). It belongs to the photograph, not to the building: use the same value
               for the check render (`sun_from_photo(..., strength=sun_scale)`).
-    exposure  the photograph's exposure against the rig's (1 unless the result says otherwise)
+    exposure  the photograph's exposure against the rig's (1 for a photograph in full sun)
+    weather   'overcast' for a photograph with no sun in it: every sample is divided by the grey no-sun light times `exposure`
+              (get that from exposure_from(), with one surface whose colour is known). `in_sun`, `sun_to` and `sun_scale` are ignored.
 
     A material's colour is taken from its sun samples when it has any; its shade samples are then the check (`spread`).
     Returns {'sun_scale', 'materials': {name: {'linear': [r, g, b], 'srgb': [r, g, b], 'spread': worst disagreement between its samples}},
     'warnings': [...]}. The linear value is what goes into the Principled BSDF's Base Color."""
+    if weather == 'overcast':
+        samples = [dict(s, in_sun=False) for s in samples]; sun_scale = 1.0
+
     def colours(scale):
         out = {}
         for s in samples:
-            L = light_on(s['normal'], sun_to, s.get('in_sun', True), s.get('sky_open', 1.0), hour, scale)
+            L = light_on(s['normal'], sun_to, s.get('in_sun', True), s.get('sky_open', 1.0), hour, scale, weather)
             p = srgb_to_linear(s['pixel'])
             out.setdefault(s['material'], []).append(([math.log(max(p[k], 1e-4) / exposure / max(L[k], 1e-6)) for k in range(3)], bool(s.get('in_sun', True))))
         return out
@@ -145,11 +206,28 @@ def base_colour(samples, sun_to=None, hour='noon', sun_scale=1.0, exposure=1.0):
     return {'sun_scale': sun_scale, 'exposure': exposure, 'materials': mats, 'warnings': warnings}
 
 
-def gate(pairs, limit=GATE):
+def gate(pairs, limit=GATE, by_material=False):
     """pairs: [(place name, photograph (r, g, b), render (r, g, b))], sRGB 0..255, the same places in both pictures.
-    Compared as light (linear), worst channel per place. Returns (passed, rows)."""
+    Compared as light (linear), worst channel per place. Returns (passed, rows).
+
+    by_material=True is the gate for a photograph with NO SUN: give a fourth item per pair, the material's name. Without a sun every place
+    is lit by what stands around it (a wall is darker low in a street than high above it), which is not the material's doing. So the
+    places of one material are pooled: the MEDIAN of render / photograph over them, per channel, must be within the limit. Each row also
+    carries `spread`, how far single places lie from that median: report it, it is the street, not the colour."""
     rows = []
-    for name, photo, render in pairs:
+    if by_material:
+        groups = {}
+        for p in pairs: groups.setdefault(p[3], []).append(p)
+        for mat, ps in groups.items():
+            ratios = []
+            for name, photo, render, _ in ps:
+                a, b = srgb_to_linear(photo), srgb_to_linear(render); ratios.append([b[k] / max(a[k], 0.004) for k in range(3)])
+            med = [sorted(r[k] for r in ratios)[len(ratios) // 2] if len(ratios) % 2 else sum(sorted(r[k] for r in ratios)[len(ratios) // 2 - 1:len(ratios) // 2 + 1]) / 2 for k in range(3)]
+            worst = max(abs(m - 1) for m in med); spread = max(abs(r[k] / med[k] - 1) for r in ratios for k in range(3))
+            rows.append({'material': mat, 'places': len(ps), 'render_over_photo': [round(m, 3) for m in med], 'worst': round(worst, 3), 'spread': round(spread, 3), 'pass': worst <= limit})
+        return all(r['pass'] for r in rows), rows
+    for p in pairs:
+        name, photo, render = p[0], p[1], p[2]
         a, b = srgb_to_linear(photo), srgb_to_linear(render)
         worst = max(abs(b[k] - a[k]) / max(a[k], 0.02) for k in range(3))
         rows.append({'place': name, 'photo': list(photo), 'render': list(render), 'worst': round(worst, 3), 'pass': worst <= limit})
@@ -216,13 +294,37 @@ def _aim(sun, to_sun, strength_rgb):
     sun.data.energy = m; sun.data.color = [v / m for v in strength_rgb]; sun.data.angle = SUN_DISK_RAD
 
 
-def apply(scene=None, hour='noon'):
-    """1. Put the scene under the app's light for a named hour ('noon' unless you render a time of day): world, sun, ground, view."""
+def _world_nosun(scene):
+    """the grey no-sun sky (CIE overcast), and the lit ground below the level line where the scene's ground plane ends"""
+    import bpy
+    w = bpy.data.worlds.new('light_rig_world_nosun'); w.use_nodes = True
+    nt = w.node_tree; nt.nodes.clear(); link = nt.links.new
+    tex = nt.nodes.new('ShaderNodeTexCoord'); sep = nt.nodes.new('ShaderNodeSeparateXYZ'); link(tex.outputs['Generated'], sep.inputs[0])
+    up = nt.nodes.new('ShaderNodeMath'); up.operation = 'MULTIPLY_ADD'; link(sep.outputs['Z'], up.inputs[0])
+    up.inputs[1].default_value = 2 * NOSUN_ZENITH / 3; up.inputs[2].default_value = NOSUN_ZENITH / 3             # zenith x (1 + 2 sin h) / 3
+    low = nt.nodes.new('ShaderNodeMath'); low.operation = 'LESS_THAN'; link(sep.outputs['Z'], low.inputs[0]); low.inputs[1].default_value = 0.0
+    mix = nt.nodes.new('ShaderNodeMixRGB'); mix.blend_type = 'MIX'; link(low.outputs[0], mix.inputs['Fac']); link(up.outputs[0], mix.inputs['Color1'])
+    mix.inputs['Color2'].default_value = (NOSUN_GROUND, NOSUN_GROUND, NOSUN_GROUND, 1)
+    bg = nt.nodes.new('ShaderNodeBackground'); link(mix.outputs['Color'], bg.inputs['Color']); bg.inputs['Strength'].default_value = 1.0
+    out = nt.nodes.new('ShaderNodeOutputWorld'); link(bg.outputs[0], out.inputs['Surface'])
+    w['light_rig'] = 'light_rig %s overcast' % RIG.get('version', '?')
+    scene.world = w
+    return w
+
+
+def apply(scene=None, hour='noon', weather='clear', exposure=1.0):
+    """1. Put the scene under the app's light for a named hour ('noon' unless you render a time of day): world, sun, ground, view.
+    weather='overcast' is for a photograph with NO SUN in it: a grey sky, no sun at all, and the view exposed `exposure` times
+    (from exposure_from()), so that your render can be laid beside that photograph."""
     import bpy
     scene = scene or bpy.context.scene; R = RIG[hour]
-    _world(scene, hour)
+    overcast = weather == 'overcast'
+    if overcast: _world_nosun(scene)
+    else: _world(scene, hour)
     sun = _sun_object(scene); _aim(sun, R['sunDir'], R['sunStrength'])
+    if overcast: sun.hide_render = True
     scene['light_rig_hour'] = hour; scene['light_rig_sun'] = list(R['sunDir']) + [1.0]
+    scene['light_rig_weather'] = 'overcast' if overcast else 'clear'; scene['light_rig_exposure'] = float(exposure)
     # the ground
     grounds = [o for o in scene.objects if o.type == 'MESH' and 'ground' in o.name.lower()]
     if not grounds:
@@ -232,14 +334,15 @@ def apply(scene=None, hour='noon'):
     mat = bpy.data.materials.get('rig_ground') or bpy.data.materials.new('rig_ground')
     mat.use_nodes = True
     p = next(n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeBsdfPrincipled')
-    p.inputs['Base Color'].default_value = (R['groundColour'][0], R['groundColour'][1], R['groundColour'][2], 1); p.inputs['Roughness'].default_value = 1.0
+    gc = (NOSUN_GROUND, NOSUN_GROUND, NOSUN_GROUND) if overcast else R['groundColour']
+    p.inputs['Base Color'].default_value = (gc[0], gc[1], gc[2], 1); p.inputs['Roughness'].default_value = 1.0
     if 'Specular IOR Level' in p.inputs: p.inputs['Specular IOR Level'].default_value = 0.0
     for g in grounds:
         g.data.materials.clear(); g.data.materials.append(mat)
     # the view: what the app's screen does (plain sRGB)
-    vs = scene.view_settings; vs.view_transform = 'Standard'; vs.look = 'None'; vs.exposure = 0.0; vs.gamma = 1.0
+    vs = scene.view_settings; vs.view_transform = 'Standard'; vs.look = 'None'; vs.exposure = math.log(max(float(exposure), 1e-6), 2); vs.gamma = 1.0
     scene.display_settings.display_device = 'sRGB'; scene.render.film_transparent = False
-    return _signature(hour)
+    return scene.world['light_rig']
 
 
 def sun_from_photo(azimuth_deg, elevation_deg, strength=1.0, scene=None):
@@ -247,6 +350,7 @@ def sun_from_photo(azimuth_deg, elevation_deg, strength=1.0, scene=None):
     elevation = degrees above level. `strength` multiplies the rig's sun (leave 1 unless `base_colour` found another value for that day)."""
     import bpy
     scene = scene or bpy.context.scene; hour = scene.get('light_rig_hour', 'noon')
+    if scene.get('light_rig_weather') == 'overcast': raise ValueError('this scene is under the no-sun light: a photograph with no sun has no sun to turn')
     d = sun_dir(azimuth_deg, elevation_deg)
     _aim(_sun_object(scene), d, [v * strength for v in RIG[hour]['sunStrength']])
     scene['light_rig_sun'] = d + [float(strength)]
@@ -260,14 +364,17 @@ def check(scene=None):
     hour = scene.get('light_rig_hour')
     if not hour or hour not in RIG: return ['light_rig.apply() was never run on this scene']
     R = RIG[hour]
-    if not scene.world or scene.world.get('light_rig') != _signature(hour): bad.append('the world is not the rig\'s (run light_rig.apply() again)')
+    overcast = scene.get('light_rig_weather') == 'overcast'; want = ('light_rig %s overcast' % RIG.get('version', '?')) if overcast else _signature(hour)
+    if not scene.world or scene.world.get('light_rig') != want: bad.append('the world is not the rig\'s (run light_rig.apply() again)')
     lights = [o for o in scene.objects if o.type == 'LIGHT' and not o.hide_render]
-    if len(lights) != 1 or lights[0].data.type != 'SUN': bad.append('lights that render: %s (the rig has one sun)' % [o.name for o in lights])
+    if overcast:
+        if lights: bad.append('lights that render: %s (the no-sun light has none)' % [o.name for o in lights])
+    elif len(lights) != 1 or lights[0].data.type != 'SUN': bad.append('lights that render: %s (the rig has one sun)' % [o.name for o in lights])
     else:
         s = scene.get('light_rig_sun'); k = s[3] if s else 1.0; L = lights[0].data; m = max(R['sunStrength'])
         if abs(L.energy - m * k) > 1e-3 * m or any(abs(L.color[i] - R['sunStrength'][i] / m) > 1e-3 for i in range(3)): bad.append('the sun\'s strength or colour was changed by hand (%.3f, %s)' % (L.energy, [round(v, 3) for v in L.color]))
-    vs = scene.view_settings
-    if (vs.view_transform, vs.look, round(vs.exposure, 4), round(vs.gamma, 4)) != ('Standard', 'None', 0.0, 1.0): bad.append('view transform %s, look %s, exposure %s, gamma %s (the rig: Standard, None, 0, 1)' % (vs.view_transform, vs.look, vs.exposure, vs.gamma))
+    vs = scene.view_settings; ex = math.log(max(float(scene.get('light_rig_exposure', 1.0)), 1e-6), 2)
+    if (vs.view_transform, vs.look, round(vs.gamma, 4)) != ('Standard', 'None', 1.0) or abs(vs.exposure - ex) > 1e-3: bad.append('view transform %s, look %s, exposure %s, gamma %s (the rig: Standard, None, %.3f, 1)' % (vs.view_transform, vs.look, vs.exposure, vs.gamma, ex))
     for m in bpy.data.materials:
         if not (m.users and m.use_nodes): continue
         if any(n.bl_idname == 'ShaderNodeTexImage' for n in m.node_tree.nodes): bad.append('material %s uses an image' % m.name)

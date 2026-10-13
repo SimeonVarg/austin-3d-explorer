@@ -220,3 +220,23 @@ What was added, all behind `?gltf=1`:
   sun (9.98 from that render, and brighter in shade than its neighbours).
 
 Nothing here reaches the recipes, the ground, the trees or the sky: they are drawn as before, switch on or off.
+
+## A site photograph with no sun in it (2026-10-12, evening)
+
+Most street-level photographs have no sunlit wall (overcast, dawn, dusk). The clear-day rig cannot be turned to a sun that is not there: one
+builder invented a sun, another divided by a grey of its own, and both renders missed their photographs (one five times too dark and blue).
+`scripts/blender_light_rig.py` now has the light for that case, on the Blender side only (the app still lights every building with its
+clear day; that is the point):
+
+- `apply(weather='overcast', exposure=k)`: the CIE overcast sky, grey, no sun, and the view exposed k times. A level roof gets 1 unit of
+  light, an open wall 0.45 (a sunlit wall on the clear day gets 4.5).
+- `exposure_from(pixel, normal, surface='white_paint')`: k, read from ONE surface whose own colour is known: white paint is 0.17 and bare
+  concrete 0.07 in this light's numbers, both measured on the builds photographed in full sun. That anchor is what puts a building made
+  from a no-sun photograph on the same scale as one made from a sunlit photograph.
+- `base_colour(samples, weather='overcast', exposure=k)`: pixel divided by that grey light times k.
+- `gate(pairs, by_material=True)`: without a sun every place is lit by what stands round it (a wall is darker low in a street than high
+  above it), so the places of one material are pooled and their median must be within 8 %; the spread is reported beside it.
+
+Tried, read-only, on the two builds that had such photographs: `check()` is empty under the new light on both; the dawn build's white wall
+renders within 4 % of its photograph where the clear rig had it five times too dark, and the overcast build's brick and limestone show the
+fault of having been divided by the clear light's colours (right in red and green, 13 and 28 % too blue), which the new division removes.
