@@ -282,8 +282,8 @@ What moves for a building already made: a colour taken from SUNLIT pixels moves 
 -8 / -4 / -11 % on a wall the sun grazes; a colour taken from SHADED pixels under the clear light moves by -20 / -10 / -22 %. Colours taken
 under the no-sun light do not move (it has its own grey ground).
 
-What it does not settle: two rooftop photographs show shade two to three times brighter and bluer than this light gives on white panels,
-and about right on brick, in the same frame. No ground colour can do that, and the street-level photographs say the opposite. A phone
+What it does not settle: two other site photographs show shade two to three times brighter and bluer than this light gives on white panels,
+and about right on brick, in the same frame. No ground colour can do that, and the first three photographs say the opposite. A phone
 lifts shade; how much depends on the picture.
 
 **A trap found on the way.** The rig paints every object with "ground" in its name as the ground. One builder named a building's lowest
