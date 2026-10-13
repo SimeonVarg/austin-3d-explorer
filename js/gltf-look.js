@@ -52,8 +52,8 @@
 
   // ── the shader ──────────────────────────────────────────────────────────
   const VERT = `
-    attribute vec3 aBase; attribute vec3 aMirror; attribute vec3 aNight; attribute float aGlass; attribute vec4 aThin;
-    uniform vec3 u_eye; uniform float u_lookFar, u_lookPx, u_lookPass;
+    attribute vec3 aBase; attribute vec3 aMirror; attribute vec3 aNight; attribute float aGlass; attribute vec4 aThin; attribute vec4 aFarA; attribute vec4 aFarB;
+    uniform vec3 u_eye; uniform float u_lookFar, u_lookPx, u_lookPass, u_lookCopy, u_lookPush; uniform vec2 u_lookBand;
     varying vec3 v_pos, v_normal, v_base, v_mirror, v_night; varying vec2 v_uv; varying float v_glass, v_cover;
     void main() {
       vec3 pos = position; v_cover = 1.0;
@@ -67,31 +67,41 @@
         if (u_lookFar < 0.0) v_cover = -1.0;                       // a test switch: thin parts not drawn at all
       }
       v_pos = pos; v_normal = normal; v_base = aBase; v_mirror = aMirror; v_night = aNight; v_uv = uv; v_glass = aGlass;
+      // THE FAR COPY (GLTF.look.copy): a wall is drawn in bands (a storey's window strip, the spandrel under it). A band that is only a
+      // few pixels high would flicker, so it gives way to its wall's mean colour (aFarA, aFarB) as it gets that thin: u_lookBand = the
+      // share of a band's height one pixel covers at which the giving way starts and is complete. Its sky light is a number (uv), not a map.
+      if (u_lookCopy > 0.5) {
+        float t = aFarA.w > 0.0 ? smoothstep(u_lookBand.x, u_lookBand.y, distance(u_eye, position) * u_lookPx / aFarA.w) : 0.0;
+        v_base = mix(aBase, aFarA.rgb, t); v_mirror = mix(aMirror, aFarB.rgb, t); v_glass = mix(aGlass, aFarB.a, t); v_uv = vec2(mix(uv.x, uv.y, t), 0.0);
+      }
       gl_Position = v_cover < 0.0 ? vec4(2.0, 2.0, 2.0, 1.0) : projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+      // a far copy that stands UNDER its full building while the two change places is drawn at the depth of a point u_lookPush metres
+      // farther along the line of sight, so the full building's own faces (a recessed window, a wall behind a balcony) are in front of it
+      if (u_lookPush > 0.0) { vec4 q = projectionMatrix * modelViewMatrix * vec4(pos + normalize(pos - u_eye) * u_lookPush, 1.0); gl_Position.z = q.z / q.w * gl_Position.w; }
     }`;
   const FRAG = () => `
     ${window.CityLighting.uniforms}
     #include <packing>
     ${window.CityLighting.glsl}
     ${window.CitySky.glsl}
-    uniform sampler2D u_skyMap; uniform float u_skyMapStrength, u_nightWallAmbient, u_lookPass, u_lookThrough, u_lookShadowLift; uniform vec3 u_lookTransmit;
+    uniform sampler2D u_skyMap; uniform float u_skyMapStrength, u_nightWallAmbient, u_lookPass, u_lookThrough, u_lookShadowLift, u_lookCopy, u_lookFade; uniform vec3 u_lookTransmit;
     varying vec3 v_pos, v_normal, v_base, v_mirror, v_night; varying vec2 v_uv; varying float v_glass, v_cover;
     void main() {
       // nothing under the city's ground plane is drawn. The ground is a flat picture with no depth, so the part of a model that reaches
       // below it (a builder who modelled a sloping street) would be painted OVER the ground instead of being hidden by it
       if (v_pos.z < -0.02) discard;
       // see-through glass is drawn twice: first it dims what is behind it by its colour (this pass multiplies the picture), then it adds its own light
-      if (u_lookPass > 0.5 && u_lookPass < 1.5) { gl_FragColor = vec4(pow(u_lookThrough * u_lookTransmit, vec3(1.0 / 2.2)), 1.0); return; }
+      if (u_lookPass > 0.5 && u_lookPass < 1.5) { gl_FragColor = vec4(mix(vec3(1.0), pow(u_lookThrough * u_lookTransmit, vec3(1.0 / 2.2)), u_lookFade), 1.0); return; }   // (u_lookFade: the building is changing places with its far copy)
       vec3 n = normalize(v_normal); if (!gl_FrontFacing) n = -n;
       vec3 view = normalize(u_eye - v_pos);
-      float open = mix(1.0, texture2D(u_skyMap, v_uv).r, u_skyMapStrength);               // how much of the sky this spot sees (baked in Blender)
+      float open = u_lookCopy > 0.5 ? mix(1.0, v_uv.x, u_skyMapStrength) : mix(1.0, texture2D(u_skyMap, v_uv).r, u_skyMapStrength);               // how much of the sky this spot sees (baked in Blender)
       float facing = max(dot(n, u_csSunDir), 0.0);
       // the app's own two shadow maps. They are read a little in front of the face: read on the face, a lit wall that stands at an
       // angle to the sun shadows itself by a fifth (the app's own note: js/city-lighting.js), and under a strong sun that is a fifth of its light
       float sunSeen = facing > 0.0 ? sunlightVisibility(v_pos + n * u_lookShadowLift, n) : 1.0;
       vec3 light = csSkyLight(n) * open + u_csSun * facing * sunSeen;
       vec3 lit = v_base * light * 0.31830989;
-      if (v_glass > 0.5) {
+      if (v_glass > 0.002) {                                        // (a far copy's band is glass in part: its mirror colour is already times that share)
         // a mirror of the same sky; a recess mirrors less of it (the rule three.js uses for a smooth surface)
         float nv = clamp(dot(n, view), 0.0, 1.0), seen = clamp(pow(nv + open, 0.36) - 1.0 + open, 0.0, 1.0);
         lit += v_mirror * csMirror(reflect(-view, n)) * seen;
@@ -103,7 +113,7 @@
       col = cityLocalLight(col, flat_, v_pos, n, v_glass);
       col = cityEmission(col, v_night, step(0.004, max(v_night.r, max(v_night.g, v_night.b))));
       // the second pass of see-through glass adds the pane's own picture in the share the first pass took away (screen values, as the first pass multiplied)
-      if (u_lookPass > 1.5) col *= vec3(1.0) - pow(u_lookThrough * u_lookTransmit, vec3(1.0 / 2.2));
+      if (u_lookPass > 1.5) col *= (vec3(1.0) - pow(u_lookThrough * u_lookTransmit, vec3(1.0 / 2.2))) * u_lookFade;
       // a thin part far away: its colour times the share of the pixel it covers (pass 3 lays it over what is behind in that share)
       gl_FragColor = u_lookPass > 2.5 ? vec4(col * v_cover, v_cover) : vec4(col, 1.0);
     }`;
@@ -177,7 +187,7 @@
   function material(S, skyMap, pass, through, transmit) {
     const T = window.THREE, U = S.uniforms();
     const mat = new T.ShaderMaterial({
-      uniforms: Object.assign({}, U, window.CitySky.uniforms(), { u_skyMap: { value: skyMap }, u_skyMapStrength: { value: skyMap ? GLTF.look.skyMapStrength : 0 }, u_lookShadowLift: { value: GLTF.look.shadowLiftM }, u_lookFar: { value: 0 }, u_lookPx: { value: 0 },
+      uniforms: Object.assign({}, U, window.CitySky.uniforms(), { u_skyMap: { value: skyMap }, u_skyMapStrength: { value: skyMap ? GLTF.look.skyMapStrength : 0 }, u_lookShadowLift: { value: GLTF.look.shadowLiftM }, u_lookFar: { value: 0 }, u_lookPx: { value: 0 }, u_lookCopy: { value: 0 }, u_lookPush: { value: 0 }, u_lookFade: { value: 1 }, u_lookBand: { value: new T.Vector2(1, 2) },
         u_lookPass: { value: pass }, u_lookThrough: { value: through || 0 }, u_lookTransmit: { value: new T.Vector3(...(transmit || [1, 1, 1])) } }),
       vertexShader: VERT, fragmentShader: FRAG(), side: T.DoubleSide, depthTest: true, depthWrite: pass === 0 || pass === 3, transparent: pass > 0, blending: pass === 0 ? T.NoBlending : T.CustomBlending,
     });
@@ -198,7 +208,7 @@
   // In the city's own scene the building is a mesh that draws nothing: it is there to cast its shadow into the app's shadow maps.
   // `pool`: the smoothing targets are SHARED by all buildings (one per sample count): the buildings are drawn one after another, so one
   // target the size of the biggest box does for all of them. (A target per building held 411 MB with fourteen buildings.)
-  const OWN = { list: [], hooked: false, frames: 0, bytes: 0, pixels: 0, ms: 0, pool: {}, need: {}, slack: {} };
+  const OWN = { list: [], hooked: false, frames: 0, bytes: 0, pixels: 0, ms: 0, pool: {}, need: {}, slack: {}, idle: 0 };
   const ownWanted = S => { const O = GLTF.look.own; if (!O || !O.on || !S.renderer || !S.renderer.capabilities.isWebGL2) return false; const gl = S.renderer.getContext(); return !(gl.getParameter(gl.SAMPLES) > 0); };
   function ownParts() {
     const T = window.THREE;
@@ -208,16 +218,16 @@
     const depthOnly = new T.ShaderMaterial({ colorWrite: false, depthWrite: true, depthTest: true, side: T.DoubleSide, vertexShader: VS, fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }' });
     const lay = new T.ShaderMaterial({ side: T.DoubleSide, depthTest: true, depthWrite: false, depthFunc: T.LessEqualDepth, transparent: true, blending: T.CustomBlending, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2,
       blendEquation: T.AddEquation, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor, blendSrcAlpha: T.OneFactor, blendDstAlpha: T.OneMinusSrcAlphaFactor,
-      uniforms: { u_picture: { value: null }, u_at: { value: new T.Vector4(0, 0, 1, 1) }, u_ss: { value: 1 } },
+      uniforms: { u_picture: { value: null }, u_at: { value: new T.Vector4(0, 0, 1, 1) }, u_ss: { value: 1 }, u_fade: { value: 1 } },
       vertexShader: VS,
       // the smoothed picture at this very pixel (its colours are already times how much of the pixel the building covers).
       // A picture drawn at u_ss times the pixels (1, 1.5 or 2): this canvas pixel takes the mean of ITS OWN block of it, each texel by the
       // share of it that lies in the block, and nothing from a neighbouring pixel. The block starts on a texel edge and spans two texels
       // a side at most, so ONE read with linear filtering is that mean exactly: the read is placed between the two texels' middles at the
       // second one's share (1: the texel itself; 2: a quarter each of four; 1.5: two thirds and one third, turn about). 3 and 4 times: a loop.
-      fragmentShader: 'uniform sampler2D u_picture; uniform vec4 u_at; uniform float u_ss; void main(){ vec2 i = floor(gl_FragCoord.xy - u_at.xy); '
-        + 'if (u_ss < 2.5) { vec2 a = i * u_ss, j = floor(a + 0.001), w1 = (a + u_ss - j - 1.0) / u_ss; gl_FragColor = texture2D(u_picture, (j + 0.5 + w1) / u_at.zw); return; } '
-        + 'vec2 b = i * u_ss; vec4 s = vec4(0.0); for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) { if (float(x) < u_ss && float(y) < u_ss) s += texture2D(u_picture, (b + vec2(float(x), float(y)) + 0.5) / u_at.zw); } gl_FragColor = s / (u_ss * u_ss); }' });
+      fragmentShader: 'uniform sampler2D u_picture; uniform vec4 u_at; uniform float u_ss, u_fade; void main(){ vec2 i = floor(gl_FragCoord.xy - u_at.xy); '
+        + 'if (u_ss < 2.5) { vec2 a = i * u_ss, j = floor(a + 0.001), w1 = (a + u_ss - j - 1.0) / u_ss; gl_FragColor = texture2D(u_picture, (j + 0.5 + w1) / u_at.zw) * u_fade; return; } '
+        + 'vec2 b = i * u_ss; vec4 s = vec4(0.0); for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) { if (float(x) < u_ss && float(y) < u_ss) s += texture2D(u_picture, (b + vec2(float(x), float(y)) + 0.5) / u_at.zw); } gl_FragColor = s / (u_ss * u_ss) * u_fade; }' });   // u_fade: the share of the full building while it changes places with its far copy
     return { picture: new T.Scene(), depth: new T.Scene(), fill: new T.Scene(), glass: new T.Scene(), nothing, depthOnly, lay, box: new T.Box3(), target: null, cam: new T.Camera(), group: null };
   }
   function ownFrame(S, renderer, camera) {
@@ -285,9 +295,9 @@
         renderer.render(b.picture, b.cam);                         // 1. the building alone, four samples a pixel
         restore();
         renderer.render(b.depth, camera);                          // 2. its depth into the canvas
-        b.lay.uniforms.u_picture.value = b.target.texture; b.lay.uniforms.u_at.value.set(px0, py0, b.target.width, b.target.height); b.lay.uniforms.u_ss.value = ss;
+        b.lay.uniforms.u_picture.value = b.target.texture; b.lay.uniforms.u_at.value.set(px0, py0, b.target.width, b.target.height); b.lay.uniforms.u_ss.value = ss; b.lay.uniforms.u_fade.value = b.fade === undefined ? 1 : b.fade;
         renderer.render(b.fill, camera);                           // 3. the smoothed picture, where the building is in front
-        if (b.glass.children.length) renderer.render(b.glass, camera);
+        if (b.glass.children.length) { for (const gm of b.glass.children) gm.material.uniforms.u_lookFade.value = b.fade === undefined ? 1 : b.fade; renderer.render(b.glass, camera); }
       } finally { restore(); renderer.setClearColor(clear, alpha); }
       if (rep === 0) OWN.pixels += tw0 * th0; b.samples = samples; b.scale = ss;
     }
@@ -307,7 +317,10 @@
     S.scene.onAfterRender = function (renderer, scene, camera) {
       if (prev) prev.apply(this, arguments);
       // only after the city's own picture (not after a shadow map, not inside another target)
-      if (!OWN.list.length || camera !== S.camera || scene.overrideMaterial || renderer.getRenderTarget()) return;
+      if (camera !== S.camera || scene.overrideMaterial || renderer.getRenderTarget()) return;
+      // no full building is drawn (every one is its far copy, or out): the shared smoothing targets are let go (181 MB were left once)
+      if (!OWN.list.some(b => b.group && b.group.visible)) { if (++OWN.idle > GLTF.look.own.slackFrames) { for (const k of Object.keys(OWN.pool)) { if (OWN.pool[k]) OWN.pool[k].dispose(); OWN.pool[k] = null; } OWN.bytes = 0; OWN.idle = 0; } return; }
+      OWN.idle = 0;
       try { ownFrame(S, renderer, camera); } catch (e) { if (!OWN.failed) { OWN.failed = String(e && e.message || e); L.errors.push('own edges: ' + OWN.failed); console.error('[gltf-look] own edges', e); } }
     };
   }
@@ -398,6 +411,16 @@
 
   // ── boot ────────────────────────────────────────────────────────────────
   async function fetchBuf(url) { const r = await fetch(url); if (!r.ok) throw new Error(url + ': HTTP ' + r.status); return r.arrayBuffer(); }
+  // A look file is kept in the repo PACKED (`<name>.glb.gz`, gzip: a fifth to a sixth of its bytes, nothing lost) and unpacked by the browser's
+  // own DecompressionStream: no decoder file. A server that already unpacked it on the way (Content-Encoding) hands over a plain file: both are
+  // told apart by the first two bytes. Where the packed file is missing, or the browser cannot unpack, the plain `<name>.glb` is asked for.
+  async function fetchLook(url) {
+    if (GLTF.look.packed && typeof DecompressionStream === 'function') {
+      try { const r = await fetch(url + '.gz'); if (r.ok) { const b = await r.arrayBuffer(), h = new Uint8Array(b, 0, 2);
+        return h[0] === 0x1f && h[1] === 0x8b ? await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer() : b; } } catch (e) { /* the plain file */ }
+    }
+    return fetchBuf(url);
+  }
   const loadMap = url => new Promise(res => new window.THREE.TextureLoader().load(url, t => {
     const T = window.THREE; t.flipY = false; t.magFilter = t.minFilter = T.LinearFilter; t.generateMipmaps = false; if ('colorSpace' in t && T.NoColorSpace !== undefined) t.colorSpace = T.NoColorSpace; res(t); }, undefined, () => res(null)));
   // ══════════════════════════════════════════════════════════════════════
@@ -416,10 +439,11 @@
     e.state = 1; const row = e.row, t0 = performance.now();
     try {
       const file = (GLTF.look.oneWeather && row.lookClearDay) || row.look;      // see GLTF.look.oneWeather (js/gltf-layer.js)
-      const buf = await fetchBuf(file), map = await loadMap(file.replace(/\.glb$/, '-sky.png'));
+      const buf = await fetchLook(file), map = await loadMap(file.replace(/\.glb$/, '-sky.png'));
       if (!map || !map.image) L.errors.push(row.name + ': no sky-light map');
       if (!_group || e.state !== 1) { if (map) map.dispose(); if (e.state === 1) e.state = 0; return; }   // the layer was switched off while the file came
       const b = build(S, row, parseLook(buf), map);
+      if (b.own) b.own.fade = e.far && GLTF.look.copy.on ? 0 : 1; b.shown = b.group.visible = !(e.far && GLTF.look.copy.on);   // with a far copy the full building dissolves in (copyFrame)
       e.built = b; e.map = map; e.fileBytes = buf.byteLength; e.mapBytes = map && map.image ? map.image.width * map.image.height * 4 : 0; e.state = 2;
       _group.add(b.group); if (OWN.list.length) ownHook(S);
       L.triangles += b.triangles; L.litTriangles += b.lit; L.drawCalls += b.group.children.length; L.bytes += e.fileBytes; L.mapBytes += e.mapBytes; L.loaded.push(row.name); L.thin[row.name] = [b.thinTriangles, b.triangles]; L.loads++;
@@ -437,33 +461,157 @@
     L.triangles -= b.triangles; L.litTriangles -= b.lit; L.drawCalls -= b.group.children.length; L.bytes -= e.fileBytes; L.mapBytes -= e.mapBytes; L.loaded = L.loaded.filter(n => n !== e.row.name); delete L.thin[e.row.name]; L.unloads++;
     e.built = e.map = null; e.state = 0;
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  THE FAR COPY (GLTF.look.copy): a few hundred triangles for every building, always there
+  // ══════════════════════════════════════════════════════════════════════
+  // A full building is 3,000 to 48,000 triangles, drawn five times a frame (two shadow maps, its picture, its depth, the lay pass).
+  // With fifty-eight of them in view that was 49 ms a frame on an integrated chip, and a building whose file was not loaded was a
+  // hole (its old drawing is hidden for the session). So every row has a FAR COPY, made by scripts/gltf_far.py from the row's own
+  // look file: its outline and roof levels, its walls in bands of their area-weighted mean colour, its mirror share, its sky light.
+  //   - All far copies are fetched at the start (a few kB each). Those shown are ONE mesh in the city's scene: one draw call, and
+  //     one more in each shadow map. It is rebuilt when the set changes.
+  //   - WHICH ONE IS DRAWN goes by how many metres of the building one CSS pixel covers (`pxM` = its distance times the angle of a
+  //     CSS pixel), not by a fixed distance: the full building while that is under `fullM`, the far copy alone from `farM`, and in
+  //     between both, the full building laid over its far copy in a growing share (the lay pass's u_fade). So the change is a
+  //     dissolve over a stretch of the approach, never a pop. A full file that arrives late dissolves in over `fadeS` seconds.
+  //   - The full file is fetched when `pxM` falls under `loadM` and let go above `unloadM`; the far copy stands in meanwhile.
+  //   - A row whose far file is missing is drawn as before (its full file by distance).
+  const COPY = { group: null, mesh: null, mat: null, fadeMat: null, fades: new Map(), pending: 0, rows: 0, triangles: 0, shown: 0, bytes: 0, rebuilds: 0, dirty: false, t: 0, hooked: false, failed: null };
+  GLTF.lookCopy = COPY;
+  const cssAngle = () => { const m = window.__map, cv = m && m.getCanvas && m.getCanvas(); if (!cv) return 0; const fov = (m.getVerticalFieldOfView ? m.getVerticalFieldOfView() : 36.87) * Math.PI / 180; return 2 * Math.tan(fov / 2) / (cv.clientHeight || 900); };
+  /** one row's far copy as vertex arrays in the city's own frame (four vertices a rectangle) */
+  function copyArrays(S, row, F) {
+    const h = row.headingDeg * Math.PI / 180, c = Math.cos(h), s = Math.sin(h), O = S.toLocal(row.lng, row.lat, row.groundM || 0), og = row.lookOrigin || [0, 0, 0];
+    const th = F.turnDeg * Math.PI / 180, tc = Math.cos(th), ts = Math.sin(th), C = F.colours, NQ = F.roofs.length / 6 + F.walls.length / 10;
+    const A = { pos: new Float32Array(NQ * 12), nrm: new Float32Array(NQ * 12), uv: new Float32Array(NQ * 8), base: new Float32Array(NQ * 12), mirror: new Float32Array(NQ * 12), night: new Float32Array(NQ * 12), glass: new Float32Array(NQ * 4),
+      farA: new Float32Array(NQ * 16), farB: new Float32Array(NQ * 16), idx: new Uint32Array(NQ * 6), nv: NQ * 4, triangles: NQ * 2 };
+    const tone = hex3(GLTF.litTone), occ = (row.night && row.night.occupancy !== undefined ? row.night.occupancy : GLTF.nightLit) * GLTF.look.copy.nightShare;
+    let q = 0;
+    // (u, v, z) of the far file -> the model's x, y (the file's grid is turned to the building's main walls) -> the row's place and heading
+    const put = (k, u, v, z, n, ci, mi, bandM) => {
+      const x = u * tc - v * ts - og[0], y = u * ts + v * tc - og[1], zz = z - og[2], i = q * 4 + k;
+      A.pos[i * 3] = O.x + x * c + y * s; A.pos[i * 3 + 1] = O.y - x * s + y * c; A.pos[i * 3 + 2] = O.z + zz;
+      const nx = n[0] * tc - n[1] * ts, ny = n[0] * ts + n[1] * tc; A.nrm[i * 3] = nx * c + ny * s; A.nrm[i * 3 + 1] = -nx * s + ny * c; A.nrm[i * 3 + 2] = n[2];
+      for (let j = 0; j < 3; j++) { A.base[i * 3 + j] = C[ci * 8 + j] / 1e4; A.mirror[i * 3 + j] = C[ci * 8 + 3 + j] / 1e4; A.farA[i * 4 + j] = C[mi * 8 + j] / 1e4; A.farB[i * 4 + j] = C[mi * 8 + 3 + j] / 1e4; A.night[i * 3 + j] = tone[j] * occ * C[ci * 8 + 6] / 1e3; }
+      A.glass[i] = C[ci * 8 + 6] / 1e3; A.farA[i * 4 + 3] = bandM; A.farB[i * 4 + 3] = C[mi * 8 + 6] / 1e3; A.uv[i * 2] = C[ci * 8 + 7] / 1e3; A.uv[i * 2 + 1] = C[mi * 8 + 7] / 1e3;
+    };
+    const quad = (P4, n, ci, mi, bandM) => {
+      // the corners are put in the order that makes the face's front the side its normal points to (the shader turns a back face's normal round)
+      const e1 = [P4[1][0] - P4[0][0], P4[1][1] - P4[0][1], P4[1][2] - P4[0][2]], e2 = [P4[3][0] - P4[0][0], P4[3][1] - P4[0][1], P4[3][2] - P4[0][2]];
+      const gn = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]], flip = gn[0] * n[0] + gn[1] * n[1] + gn[2] * n[2] < 0;
+      for (let k = 0; k < 4; k++) { const p = P4[flip ? (4 - k) % 4 : k]; put(k, p[0], p[1], p[2], n, ci, mi, bandM); }
+      A.idx.set([q * 4, q * 4 + 1, q * 4 + 2, q * 4, q * 4 + 2, q * 4 + 3], q * 6); q++;
+    };
+    for (let r = 0; r < F.roofs.length; r += 6) { const u0 = F.roofs[r] / 100, u1 = F.roofs[r + 1] / 100, v0 = F.roofs[r + 2] / 100, v1 = F.roofs[r + 3] / 100, z = F.roofs[r + 4] / 100, ci = F.roofs[r + 5];
+      quad([[u0, v0, z], [u1, v0, z], [u1, v1, z], [u0, v1, z]], [0, 0, 1], ci, ci, 0); }
+    for (let w = 0; w < F.walls.length; w += 10) { const d = F.walls[w], p = F.walls[w + 1] / 100, a0 = F.walls[w + 2] / 100, a1 = F.walls[w + 3] / 100, z0 = F.walls[w + 4] / 100, z1 = F.walls[w + 5] / 100, ci = F.walls[w + 6], mi = F.walls[w + 7];
+      const P4 = d < 2 ? [[p, a0, z0], [p, a1, z0], [p, a1, z1], [p, a0, z1]] : [[a0, p, z0], [a1, p, z0], [a1, p, z1], [a0, p, z1]], face = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0]][d];
+      // the corners' order goes by the grid face's own direction; the light goes by the wall's true direction (a slanted wall is drawn as small steps)
+      const n = [F.walls[w + 8] / 1000, F.walls[w + 9] / 1000, 0], e1 = [P4[1][0] - P4[0][0], P4[1][1] - P4[0][1], 0], gn = [e1[1] * (z1 - z0), -e1[0] * (z1 - z0), 0], flip = gn[0] * face[0] + gn[1] * face[1] < 0;
+      for (let k = 0; k < 4; k++) { const c4 = P4[flip ? (4 - k) % 4 : k]; put(k, c4[0], c4[1], c4[2], n, ci, mi, ci === mi ? 0 : z1 - z0); }
+      A.idx.set([q * 4, q * 4 + 1, q * 4 + 2, q * 4, q * 4 + 2, q * 4 + 3], q * 6); q++; }
+    return A;
+  }
+  const COPY_ATTRS = [['position', 'pos', 3], ['normal', 'nrm', 3], ['uv', 'uv', 2], ['aBase', 'base', 3], ['aMirror', 'mirror', 3], ['aNight', 'night', 3], ['aGlass', 'glass', 1], ['aFarA', 'farA', 4], ['aFarB', 'farB', 4]];
+  function copyGeometry(list) {
+    const T = window.THREE, geom = new T.BufferGeometry(); let nv = 0, ni = 0; for (const A of list) { nv += A.nv; ni += A.idx.length; }
+    for (const [name, key, n] of COPY_ATTRS) { const a = new Float32Array(nv * n); let o = 0; for (const A of list) { a.set(A[key], o); o += A[key].length; } geom.setAttribute(name, new T.BufferAttribute(a, n)); }
+    const idx = new Uint32Array(ni); let o = 0, base = 0; for (const A of list) { for (let i = 0; i < A.idx.length; i++) idx[o + i] = A.idx[i] + base; o += A.idx.length; base += A.nv; }
+    geom.setIndex(new T.BufferAttribute(idx, 1)); geom.computeBoundingSphere(); geom.userData.bytes = nv * 112 + ni * 4;
+    return geom;
+  }
+  function copyMaterial(S, push) {
+    const mat = material(S, null, 0); mat.uniforms.u_lookCopy.value = 1; mat.uniforms.u_lookPush.value = push; mat.uniforms.u_skyMapStrength.value = GLTF.look.skyMapStrength;
+    return mat;
+  }
+  function copyMesh(S, geom, mat, name) {
+    const mesh = new window.THREE.Mesh(geom, mat); mesh.name = name; mesh.frustumCulled = false;
+    mesh.onBeforeRender = () => { const U = S.uniforms(), C = GLTF.look.copy, cv = window.__map && window.__map.getCanvas(); window.CitySky.sync(mat.uniforms, U.u_p ? U.u_p.value : 0.3);
+      mat.uniforms.u_lookPx.value = cssAngle() / (cv && cv.clientWidth ? cv.width / cv.clientWidth : 1); mat.uniforms.u_lookBand.value.set(1 / C.bandPx[0], 1 / C.bandPx[1]); };
+    return mesh;
+  }
+  /** the one mesh of the far copies that stand alone, and a mesh each for those under a full building that is changing places with it */
+  function copyRebuild(S) {
+    COPY.dirty = false; if (!COPY.group) return;
+    if (COPY.mesh) { COPY.group.remove(COPY.mesh); COPY.mesh.geometry.dispose(); COPY.mesh = null; }
+    const alone = ROWS.filter(e => e.far && e.farMode === 1);
+    if (alone.length) { COPY.mesh = copyMesh(S, copyGeometry(alone.map(e => e.far)), COPY.mat, 'gltf-look-far'); COPY.group.add(COPY.mesh); }
+    for (const [e, mesh] of COPY.fades) if (e.farMode !== 2) { COPY.group.remove(mesh); mesh.geometry.dispose(); COPY.fades.delete(e); }
+    for (const e of ROWS) if (e.far && e.farMode === 2 && !COPY.fades.has(e)) { const mesh = copyMesh(S, copyGeometry([e.far]), COPY.fadeMat, 'gltf-look-far-under'); mesh.layers.set(1); COPY.fades.set(e, mesh); COPY.group.add(mesh); }   // layer 1: it casts no shadow (the full building does)
+    COPY.shown = alone.length; COPY.triangles = alone.reduce((a, e) => a + e.far.triangles, 0); COPY.bytes = (COPY.mesh ? COPY.mesh.geometry.userData.bytes : 0); for (const m of COPY.fades.values()) COPY.bytes += m.geometry.userData.bytes;
+    COPY.rebuilds++;
+  }
+  /** metres of this row one CSS pixel covers, from where the camera's eye is */
+  function rowPx(S, e) { const U = S.uniforms(), E = U && U.u_eye && U.u_eye.value; if (!E) return 0; e.dist = Math.hypot(E.x - e.at.x, E.y - e.at.y, E.z - e.at.z); return (e.pxM = e.dist * cssAngle()); }
+  /** every frame, before the city is drawn: each row's share of full building (`fade`: 0 = the far copy alone, 1 = the full building alone) */
+  // the full building's group is shown or hidden only when that CHANGES (a test that hides a group itself is then left alone)
+  const show = (e, on) => { if (e.built.shown !== on) { e.built.shown = on; e.built.group.visible = on; } };
+  function copyFrame(S) {
+    const C = GLTF.look.copy, now = performance.now(), dt = Math.min(0.25, Math.max(0, (now - (COPY.t || now)) / 1000)); COPY.t = now;
+    for (const e of ROWS) {
+      const full = e.state === 2 && e.built, has = !!e.far && C.on;
+      if (!has) { if (e.farMode) { e.farMode = 0; COPY.dirty = true; } if (full) { show(e, true); if (e.built.own) e.built.own.fade = 1; } e.fade = full ? 1 : 0; continue; }
+      const px = rowPx(S, e), want = px <= C.fullM ? 1 : px >= C.farM ? 0 : (C.farM - px) / (C.farM - C.fullM), step = C.fadeS > 0 ? dt / C.fadeS : 1;
+      if (!full) e.fade = 0; else e.fade = e.fade < want ? Math.min(want, e.fade + step) : Math.max(want, e.fade - step);
+      // without smooth edges of its own (a canvas that is smoothed as a whole) there is no lay pass to dissolve with: the two change places at the half
+      const blend = !!(full && e.built.own), f = blend ? e.fade : e.fade >= 0.5 ? 1 : 0, mode = f <= 0 ? 1 : f < 1 ? 2 : 0;
+      if (mode !== e.farMode) { e.farMode = mode; COPY.dirty = true; }
+      if (full) { show(e, f > 0); if (e.built.own) e.built.own.fade = f; }
+    }
+    if (COPY.dirty) copyRebuild(S);
+  }
+  function copyHook(S) {
+    if (COPY.hooked || !S.scene) return; COPY.hooked = true;
+    const prev = S.scene.onBeforeRender;
+    S.scene.onBeforeRender = function (renderer, scene, camera) {
+      if (prev) prev.apply(this, arguments);
+      if (!_group || camera !== S.camera || scene.overrideMaterial || renderer.getRenderTarget()) return;
+      try { copyFrame(S); } catch (err) { if (!COPY.failed) { COPY.failed = String(err && err.message || err); L.errors.push('far copy: ' + COPY.failed); console.error('[gltf-look] far copy', err); } }
+    };
+  }
+  async function copyLoad(S, e) {
+    const file = ((GLTF.look.oneWeather && e.row.lookClearDay) || e.row.look).replace(/\.glb$/, '-far.json');
+    COPY.pending++; e.farState = 0;
+    try { const r = await fetch(file); if (!r.ok) throw new Error('HTTP ' + r.status); const F = await r.json(); if (F.v !== 1) throw new Error('unknown far file version');
+      if (_group && ROWS.includes(e)) { e.far = copyArrays(S, e.row, F); e.farState = 1; e.farMode = -1; COPY.rows++; COPY.dirty = true; } }
+    catch (err) { e.farState = 2; L.errors.push(file + ': ' + (err && err.message || err)); }
+    COPY.pending--; if (window.__map && window.__map.triggerRepaint) window.__map.triggerRepaint();
+  }
   /** one look at the distances. GLTF.lookReady: every row that should be in at this camera is in (the test scripts wait on it) */
   function tick(S) {
     if (!_group) return;
     const LD = GLTF.look.load, U = S.uniforms(), E = U && U.u_eye && U.u_eye.value, todo = [];
     let loading = 0, waiting = 0;
+    const C = GLTF.look.copy;
     for (const e of ROWS) {
       e.dist = LD.on && E ? Math.hypot(E.x - e.at.x, E.y - e.at.y, E.z - e.at.z) : 0;
+      // a row with a far copy (or one still on its way): the full file by how large the building is on the screen. Without: by distance, as before
+      const copy = C.on && LD.on && E && e.farState !== 2, px = copy ? rowPx(S, e) : 0;
       if (e.state === 1) loading++;
-      else if (e.state === 0 && e.dist <= LD.inM) todo.push(e);
-      else if (e.state === 2 && e.dist > LD.outM) unloadRow(e);
+      else if (e.state === 0 && e.dist <= LD.inM && (!copy || px < C.loadM)) todo.push(e);
+      else if (e.state === 2 && (e.dist > LD.outM || (copy && e.far && px > C.unloadM))) unloadRow(e);
     }
     todo.sort((a, b) => a.dist - b.dist); waiting = todo.length;
     for (const e of todo) { if (loading >= LD.atOnce) break; loading++; loadRow(S, e); }
-    GLTF.lookReady = loading === 0 && waiting === 0;
+    GLTF.lookReady = loading === 0 && waiting === 0 && COPY.pending === 0;
+    if (window.__map && window.__map.triggerRepaint && (loading || COPY.dirty)) window.__map.triggerRepaint();
   }
   GLTF.lookTick = () => { const S = window.slopes; if (S) tick(S); return GLTF.lookReady; };
   function attach(S) {
     const want = !!(window.SLOPES && window.SLOPES.on && GLTF.on && GLTF.look.on);
     if (want && !_group) {
       const g = new window.THREE.Group(); g.name = 'gltf-look';
-      ROWS.length = 0; for (const row of GLTF.buildings) if (row.look) { const O = S.toLocal(row.lng, row.lat, row.groundM || 0); ROWS.push({ row, state: 0, at: { x: O.x, y: O.y, z: O.z + (row.topM || 0) / 2 }, dist: 0, built: null, map: null }); }
+      ROWS.length = 0; for (const row of GLTF.buildings) if (row.look) { const O = S.toLocal(row.lng, row.lat, row.groundM || 0); ROWS.push({ row, state: 0, at: { x: O.x, y: O.y, z: O.z + (row.topM || 0) / 2 }, dist: 0, built: null, map: null, far: null, farState: 2, farMode: 0, fade: 0, pxM: 0 }); }
       _group = g; S.add(g); if (S.camera && S.camera.layers) S.camera.layers.enable(1);
+      if (GLTF.look.copy.on) { COPY.group = new window.THREE.Group(); COPY.group.name = 'gltf-look-far-copies'; COPY.group.userData.lod = GLTF.lod; COPY.group.userData.minzoom = GLTF.minzoom; g.add(COPY.group);
+        COPY.mat = copyMaterial(S, 0); COPY.fadeMat = copyMaterial(S, GLTF.look.copy.pushM); COPY.rows = 0; for (const e of ROWS) copyLoad(S, e); copyHook(S); }
       GLTF.lookReady = false; tick(S); _tick = setInterval(() => tick(S), GLTF.look.load.everyMs);
       console.log('[gltf-look]', ROWS.length, 'rows; loaded by distance:', GLTF.look.load.on);
     } else if (!want && _group) {
       clearInterval(_tick); _tick = null;
       for (const e of ROWS) unloadRow(e);
+      if (COPY.mesh) COPY.mesh.geometry.dispose(); for (const m of COPY.fades.values()) m.geometry.dispose(); COPY.fades.clear(); if (COPY.mat) COPY.mat.dispose(); if (COPY.fadeMat) COPY.fadeMat.dispose(); COPY.mesh = COPY.mat = COPY.fadeMat = COPY.group = null; COPY.pending = 0;
       for (const k of Object.keys(OWN.pool)) { if (OWN.pool[k]) OWN.pool[k].dispose(); OWN.pool[k] = null; } OWN.list.length = 0; S.remove(_group); _group = null; GLTF.lookReady = false;
     }
     if (window.__map && window.__map.triggerRepaint) window.__map.triggerRepaint();

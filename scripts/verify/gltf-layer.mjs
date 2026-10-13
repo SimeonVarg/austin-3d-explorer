@@ -14,11 +14,18 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const src = fs.readFileSync(path.join(ROOT, 'js/gltf-layer.js'), 'utf8');
 const drawSrc = fs.readFileSync(path.join(ROOT, 'js/gltf-layer-draw.js'), 'utf8');
 let failed = 0;
+// a look file is kept packed (`<name>.glb.gz`); the plain file is read where there is no packed one
+const lookExists = f => fs.existsSync(f + '.gz') || fs.existsSync(f);
+const readLook = f => fs.existsSync(f + '.gz') ? zlib.gunzipSync(fs.readFileSync(f + '.gz')) : fs.readFileSync(f);
+// the far copy beside a look file (scripts/gltf_far.py): plain numbers, a few hundred triangles, no name of a file or folder
+const farBad = f => { const p = f.replace(/\.glb$/, '-far.json'); if (!fs.existsSync(p)) return 'no far copy'; const t = fs.readFileSync(p, 'utf8'), j = JSON.parse(t);
+  return j.v !== 1 ? 'far copy: unknown version' : !(j.triangles >= 12 && j.triangles <= 1200 && j.triangles === 2 * (j.roofs.length / 6 + j.walls.length / 10)) ? 'far copy: ' + j.triangles + ' triangles' : j.colours.length % 8 || !j.colours.every(Number.isInteger) ? 'far copy: colours' : /photo|\.jpg|\.png|users|home|[a-z]:\\|\/[a-z]+\//i.test(t.replace(j.note, '')) ? 'far copy names a file or folder' : null; };
 const check = (ok, what, extra = '') => { console.log((ok ? '  PASS  ' : '  FAIL  ') + what + (extra ? '  ' + extra : '')); if (!ok) failed++; };
 
 function boot(search) {
@@ -130,14 +137,15 @@ for (const row of rows) {
   check(!/photo|\.jpg|\.png|users|home|[a-z]:\\|\/[a-z]+\//i.test(JSON.stringify(json)), 'the .glb names no folder, file or photograph');
   }
   if (row.look) {
-    const lb = fs.readFileSync(path.join(ROOT, row.look)), ljl = lb.readUInt32LE(12), lj = JSON.parse(lb.slice(20, 20 + ljl).toString());
+    const lb = readLook(path.join(ROOT, row.look)), ljl = lb.readUInt32LE(12), lj = JSON.parse(lb.slice(20, 20 + ljl).toString());
     const prims = lj.meshes.flatMap(m => m.primitives);
     check(prims.length > 0 && prims.every(p => p.attributes.NORMAL != null && p.attributes.TEXCOORD_0 != null && p.indices != null), 'its look file has normals, a UV set and indices on every mesh', prims.length + ' meshes');
     check(fs.existsSync(path.join(ROOT, row.look.replace(/\.glb$/, '-sky.png'))), 'the sky-light map of its look file is beside it');
-    if (row.lookClearDay) check(fs.existsSync(path.join(ROOT, row.lookClearDay)) && fs.existsSync(path.join(ROOT, row.lookClearDay.replace(/\.glb$/, '-sky.png'))), 'its clear-day file (?skyview=1) and that file\'s sky-light map exist');
+    if (row.lookClearDay) check(lookExists(path.join(ROOT, row.lookClearDay)) && !farBad(path.join(ROOT, row.lookClearDay)) && fs.existsSync(path.join(ROOT, row.lookClearDay.replace(/\.glb$/, '-sky.png'))), 'its clear-day file (?skyview=1) and that file\'s sky-light map exist');
     check(!lj.images && !lj.cameras && !/photo|\.jpg|users|home|[a-z]:\\|\/[a-z]+\//i.test(JSON.stringify(lj)), 'its look file carries no image, no camera, and names no folder, file or photograph');
     check(lj.materials.every(m => m.pbrMetallicRoughness && m.extras && m.extras.look_kind) && (row.name !== 'Yugo Austin Waterloo' || lj.materials.some(m => m.extras.look_kind === 'glass' && Array.isArray(m.extras.look_glossy))), 'its materials say what they are (plain or glass), and the tower\'s glass carries its mirror colour');
     check(lb.length < 8e6, 'its look file is under 8 MB', (lb.length / 1e6).toFixed(2) + ' MB');
+    check(!farBad(path.join(ROOT, row.look)), 'its far copy is beside it: plain numbers, 12 to 1,200 triangles', farBad(path.join(ROOT, row.look)) || '');
   }
 }
 // ── the app's light (js/city-sky.js): the sky and the sun for an hour, as numbers ─────────────────────────
@@ -178,8 +186,9 @@ console.log('the rows of js/gltf-rows.js');
   const rows = w.GLTF_ROWS || [], bad = [], ids = new Set(); let tris = 0, bytes = 0;
   for (const r of rows) {
     const f = path.join(ROOT, 'data/gltf', r.slug + '-look.glb');
-    if (!fs.existsSync(f) || !fs.existsSync(f.replace(/\.glb$/, '-sky.png'))) { bad.push(r.slug + ': file or sky-light map missing'); continue; }
-    const buf = fs.readFileSync(f), jl = buf.readUInt32LE(12), j = JSON.parse(buf.slice(20, 20 + jl).toString('utf8')); bytes += buf.length;
+    if (!lookExists(f) || !fs.existsSync(f.replace(/\.glb$/, '-sky.png'))) { bad.push(r.slug + ': file or sky-light map missing'); continue; }
+    if (farBad(f)) bad.push(r.slug + ': ' + farBad(f));
+    const buf = readLook(f), jl = buf.readUInt32LE(12), j = JSON.parse(buf.slice(20, 20 + jl).toString('utf8')); bytes += buf.length;
     if (j.images && j.images.length) bad.push(r.slug + ': carries an image');
     let top = -1e9; for (const m of j.meshes) for (const p of m.primitives) { tris += j.accessors[p.indices].count / 3; top = Math.max(top, j.accessors[p.attributes.POSITION].max[1]); if (p.attributes.NORMAL == null || p.attributes.TEXCOORD_0 == null) bad.push(r.slug + ': no normals or no UV set'); }
     if (Math.abs(top - r.topM) > 0.06) bad.push(r.slug + ': topM ' + r.topM + ' is not the file\'s ' + top.toFixed(2));
@@ -187,7 +196,7 @@ console.log('the rows of js/gltf-rows.js');
     for (const id of [r.replaces, ...(r.alsoReplaces || [])]) { if (!/^[0-9a-f-]{36}$/.test(id) || ids.has(id)) bad.push(r.slug + ': id missing or used twice'); ids.add(id); }
     if (r.rings && !r.rings.every(g => g.length >= 4 && g[0][0] === g[g.length - 1][0] && g[0][1] === g[g.length - 1][1])) bad.push(r.slug + ': an outline is not a closed ring');
   }
-  check(rows.length > 0 && !bad.length, rows.length + ' rows: each has its look file and sky-light map, no image inside, its height is the file\'s, its ids are its own', bad.slice(0, 4).join('; ') || (tris + ' triangles, ' + (bytes / 1e6).toFixed(1) + ' MB'));
+  check(rows.length > 0 && !bad.length, rows.length + ' rows: each has its look file, sky-light map and far copy, no image inside, its height is the file\'s, its ids are its own', bad.slice(0, 4).join('; ') || (tris + ' triangles, ' + (bytes / 1e6).toFixed(1) + ' MB'));
 }
 console.log(failed ? '\nFAILED: ' + failed : '\nall passed');
 process.exit(failed ? 1 : 0);

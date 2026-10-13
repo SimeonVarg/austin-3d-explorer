@@ -28,6 +28,8 @@ AO_SEED = 7
 args = sys.argv[sys.argv.index('--') + 1:]
 # options after the two file names:  skip=objA,objB  (objects left out by name)   drop=matA,matB  (a LEAN file: every face of these
 # materials is left out)   dissolve=2  (a LEAN file: flat neighbouring faces of one material are merged, within this many degrees)
+# white=0.17  (a build made BEFORE the standard light, whose colours are on its builder's own scale: every colour is divided by one
+# number, so that the build's white paint is this value, the standard light's white. See WHITE below.)
 OPT = dict(a.split('=', 1) for a in args if '=' in a); args = [a for a in args if '=' not in a]
 out = args[0]; ao_out = args[1] if len(args) > 1 else None
 for o in list(bpy.context.scene.objects):
@@ -93,6 +95,27 @@ for o in keep:
         p = nt.nodes['Principled BSDF']; spec = p.inputs['Specular IOR Level'].default_value if 'Specular IOR Level' in p.inputs else 0.5
         m['look_kind'] = 'plain'; m['look_specular'] = float(spec)
     o.data.name = 'm_' + name; o.name = 'n_' + name
+
+# WHITE (option white=0.17): one rule, no number per building. The build's white is the material named `*white*` with the largest
+# surface that is not glass, not painted per face, not a sign and not a roof (WHITE_NOT). The factor is that material's brightness over the
+# wanted white; every base colour and every glass mirror colour is divided by it (what glass lets through is a share, and stays).
+# A build with no such material is NOT changed: the export says so and writes the file as it is.
+WHITE_NOT = ('sign', 'letter', 'roof')
+lum3 = lambda c: 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+if OPT.get('white'):
+    cand = []
+    for o in keep:
+        m = o.data.materials[0]; nm = m.name.lower()
+        if m.get('look_kind') == 'glass' or m.get('look_painted') or 'white' not in nm or any(w in nm for w in WHITE_NOT): continue
+        cand.append((sum(p_.area for p_ in o.data.polygons), lum3(m.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value), m.name))
+    if not cand: print('WHITE none: no material named *white* to anchor on; colours unchanged')
+    else:
+        area_, lum_, name_ = max(cand); k_ = lum_ / float(OPT['white'])
+        for o in keep:
+            m = o.data.materials[0]; pb = m.node_tree.nodes['Principled BSDF']; c_ = pb.inputs['Base Color'].default_value
+            pb.inputs['Base Color'].default_value = (c_[0] / k_, c_[1] / k_, c_[2] / k_, c_[3])
+            if m.get('look_kind') == 'glass': m['look_glossy'] = [v / k_ for v in m['look_glossy']]
+        print('WHITE anchor %s brightness %.4f area %.0f m2 -> every colour divided by %.3f (candidates: %s)' % (name_, lum_, area_, k_, ', '.join('%s %.3f %.0fm2' % (n, l, a) for a, l, n in sorted(cand, reverse=True))))
 
 def bake_sky_light():
     """per face a patch of samples in one image; per face corner its place in that image (a UV map named 'sky')"""

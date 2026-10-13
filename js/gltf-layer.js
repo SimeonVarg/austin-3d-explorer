@@ -224,7 +224,7 @@
     // `shadowLiftM`: the sun's shadow map is read this far in front of a face (see the shader's note; 0 = on the face).
     // `oneWeather` (?skyview=1): every building is drawn with the colours it has on a clear day (a row's `lookClearDay` file when it has one),
     // so that one light and one exposure serve the whole view. Off: the tower keeps colours that hold its own photograph's picture.
-    look: { on: q.get('gltflook') !== '0', oneWeather: q.get('skyview') === '1', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1, shadowLiftM: q.has('gltflift') ? +q.get('gltflift') : 0.6,
+    look: { on: q.get('gltflook') !== '0', packed: q.get('gltfpacked') !== '0', oneWeather: q.get('skyview') === '1', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1, shadowLiftM: q.has('gltflift') ? +q.get('gltflift') : 0.6,
       // Smooth edges of its own (js/gltf-look.js "SMOOTH EDGES OF ITS OWN"). Smoothing the whole canvas costs an integrated chip about 140 ms a
       // frame at a laptop's full density with the city drawn (measured), so each look building is drawn alone into a small target with `samples`
       // samples a pixel, covering only the part of the screen it stands on, and that picture is laid onto the canvas where the building is in
@@ -247,6 +247,16 @@
         tinyPixels: 70000, tinySamples: 8, tinyScale: 2, smallPixels: 160000, smallSamples: 4, smallScale: 2, midPixels: 600000, midSamples: 4, midScale: 1.5 },
       // BY DISTANCE (js/gltf-look.js): a building's file is fetched and built when the camera's eye is within `inM` metres of it and let go
       // beyond `outM`; `atOnce` files at a time, looked at every `everyMs`. ?gltfload=0 loads every row at the start and keeps it.
+      // THE FAR COPY (js/gltf-look.js "THE FAR COPY", scripts/gltf_far.py): every row has one, a few hundred triangles. Which is drawn goes by
+      // how many METRES OF THE BUILDING ONE CSS PIXEL COVERS: the full building under `fullM` (a 1.5 m window is then 1.8 CSS pixels wide or
+      // more: 3.6 pixels of a laptop's dense screen), the far copy alone from `farM`, a dissolve between the two in between. The full file is fetched under `loadM` and let go
+      // above `unloadM`. On a 1440 x 900 window (the app's lens is 58 degrees) these are 680, 800, 880 and 1,000 metres from the camera's eye; a larger window sees
+      // the full building from farther, a phone from nearer, as the eye does. `fadeS`: a full file that arrives late dissolves in over
+      // this many seconds. `pushM`: while both are drawn the far copy stands this far behind in depth. `bandPx`: a wall band of the far
+      // copy starts giving way to the wall's mean colour when it is this many canvas pixels high, and is the mean at the second number
+      // (rule 15: a band a pixel or two high would flicker). `nightShare`: the share of a far copy's glass that is lit at night, times the
+      // row's own occupancy. ?gltfcopy=0: no far copies (every full file by distance, as before).
+      copy: { on: q.get('gltfcopy') !== '0', fullM: q.has('gltffull') ? +q.get('gltffull') : 0.84, farM: q.has('gltffarm') ? +q.get('gltffarm') : 0.99, loadM: 1.08, unloadM: 1.23, fadeS: 0.5, pushM: 3, bandPx: [4, 2], nightShare: 1 },
       load: { on: q.get('gltfload') !== '0', inM: q.has('gltfin') ? +q.get('gltfin') : 2500, outM: q.has('gltfout') ? +q.get('gltfout') : 3000, atOnce: 3, everyMs: 250 } },
     // The layer's place in the scene, as the apartments' group has it (js/slopes-apartments.js APTS.lod / minzoom).
     lod: null, minzoom: 14,
