@@ -15,7 +15,7 @@
  *   sunStrength its strength, linear red / green / blue (0 when neither is up)
  *   stops       the sky's colour by the sine of the height above the level line (linear), before the gain
  *   gain        what the sky is multiplied by when it LIGHTS something (see TUNE.skyGain)
- *   ground      what a ray below the level line sees: the lit ground
+ *   ground      what a LIGHT sees below the level line: the lit ground (a mirror sees groundMirror there)
  *   light[17]   the light the whole sky and ground throw on a surface, by how far the surface tilts up (its normal's up part,
  *               -1 .. 1 in 17 steps): the exact sum over the sky, made again only when the hour changes
  * and GLSL (CitySky.glsl) with three functions for a fragment shader:
@@ -36,8 +36,8 @@
   const num = (k, d) => { const v = parseFloat(q.get(k)); return Number.isFinite(v) ? v : d; };
 
   // ══════════════════════════════════════════════════════════════════════
-  //  TASTE BLOCK — CLAUDE.md rule 11. The day sky, the gain and the ground are the first Blender scene's own numbers
-  //  (proto/blender-look.html has the same ones); the sun's strength is measured on site photographs (below); dusk, night and the
+  //  TASTE BLOCK — CLAUDE.md rule 11. The day sky and the gain are the first Blender scene's own numbers (proto/blender-look.html has
+  //  the same ones); the sun's strength and the ground's colour are measured on site photographs (below); dusk, night and the
   //  moon are choices of this file. scripts/blender_light_rig.py carries these numbers into Blender (node scripts/city-sky-rig.mjs).
   // ══════════════════════════════════════════════════════════════════════
   const TUNE = {
@@ -51,7 +51,13 @@
     // mirror shows the sky without it (the glass's mirror colour in the model is already divided by it).
     skyGain: [6.226384530578516, 4.0023751489194686, 2.449166880354],
     ambient: num('skyambient', 1),               // scales all sky light (1 = as the scene)
-    ground: [0.1, 0.125, 0.07],                  // the ground's colour (linear) for the bounce and for mirrors
+    // The ground's colour (linear) for the light it throws back up at walls. It stands for everything below the level line that lights a
+    // wall in shade: pavement, and the sunlit walls across the street. NEUTRAL, and MEASURED (2026-10-12 night) on the five pale walls that
+    // three site photographs show both in sun and in shade: with this grey their shaded pixels come out at 1.01 / 1.03 / 1.04 (red, green,
+    // blue) of the photographs'. The value before, 0.1 / 0.125 / 0.07, was one Blender scene's lawn: it left the same walls at 0.83 / 0.95 /
+    // 0.85, which is a green cast of about 13 % on every wall in shade (and plain green on a recessed wall with no sun at all).
+    ground: [0.16, 0.16, 0.16],
+    groundMirror: [0.1, 0.125, 0.07],            // what a MIRROR ray sees below the level line (glass seen from above): not changed with the bounce
     groundEdge: -0.01,                           // below this sine a ray sees the ground; above it, the far land
     tree: { amp: 0.014, lift: -0.01, scale: 90 },// the far tree line as lights and mirrors see it: a little above level, ragged
     mirrorSoft: 0.004,                           // how far (in sine) a mirror's picture of the level line is spread: glass is not a perfect mirror
@@ -108,7 +114,8 @@
     // the lit ground: what the sky alone and the sun put on it, times its colour
     let skyOnGround = [0, 0, 0], wsum = 0;
     for (let k = 0; k < 64; k++) { const z = (k + 0.5) / 64, c = rampAt(pts, z); for (let i = 0; i < 3; i++) skyOnGround[i] += c[i] * gain[i] * z; wsum += z; }
-    const ground = TUNE.ground.map((a, i) => a * (skyOnGround[i] / wsum + sunStrength[i] * Math.max(0, sunDir[2]) / Math.PI));
+    const onGround = [0, 1, 2].map(i => skyOnGround[i] / wsum + sunStrength[i] * Math.max(0, sunDir[2]) / Math.PI);
+    const ground = TUNE.ground.map((a, i) => a * onGround[i]), groundMirror = TUNE.groundMirror.map((a, i) => a * onGround[i]);
     // what a light sees in a direction of sine z (the tree line at its mean height)
     const shift = 0.5 * TUNE.tree.amp + TUNE.tree.lift;
     const seen = z => { if (z < TUNE.groundEdge) return ground; const c = rampAt(pts, z - shift); return [c[0] * gain[0], c[1] * gain[1], c[2] * gain[2]]; };
@@ -127,7 +134,7 @@
       light.push(E);
     }
     _key = key;
-    _state = { p, elev, nightness, sunDir, sunStrength, pts, gain, ground, light, exposure: (ref && ref.exposure) || TUNE.exposure };
+    _state = { p, elev, nightness, sunDir, sunStrength, pts, gain, ground, groundMirror, light, exposure: (ref && ref.exposure) || TUNE.exposure };
     return _state;
   }
 
@@ -212,7 +219,7 @@
     // a mirror's ray sees what every ray but the camera's sees: the sky WITH the light gain. (A model's mirror colour is divided by the
     // gain where it was made, so mirror colour times this is the plain sky times the glass's own tint.)
     u.u_csGain.value.set(s.gain[0], s.gain[1], s.gain[2]);
-    u.u_csGround.value.set(s.ground[0], s.ground[1], s.ground[2]);
+    u.u_csGround.value.set(s.groundMirror[0], s.groundMirror[1], s.groundMirror[2]);
     u.u_csSun.value.set(s.sunStrength[0], s.sunStrength[1], s.sunStrength[2]);
     u.u_csSunDir.value.set(s.sunDir[0], s.sunDir[1], s.sunDir[2]);
     u.u_csTree.value.set(TUNE.tree.amp, TUNE.tree.lift, TUNE.tree.scale, TUNE.groundEdge);
