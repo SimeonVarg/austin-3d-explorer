@@ -325,3 +325,95 @@ and 1 after.
 What it does not do, and what is not known: a window frame made as one ring is not a bar by its shape and is not treated as thin (the
 extra samples carry it); the building's outline against what stands behind it is laid at one sample a pixel; one more draw call per
 building; and what it costs in frame time has not been measured.
+
+## Far away, part three: what it cost, what was cut, and every finished build (2026-10-13)
+
+**What part two cost.** Timed on a quiet machine (an integrated laptop chip, fourteen buildings in view from 640 m, a 2880 x 1800 canvas),
+part two's far treatment added 19.5 ms to a frame of 86 ms. The cost was then split inside one page load, settings flipped while the page
+ran. A whole-city frame time swings by 10 ms from one reading to the next, so the layer's smoothing work was also done three times a frame
+(`GLTF_LAYER.lookOwn.repeat = 3`): its own cost is then (T3 - T1) / 2, well clear of the noise.
+
+| setting for a small building | the smoothing's own cost a frame |
+|---|---|
+| far treatment off (4 samples a pixel, the canvas's pixels) | 10.2 ms |
+| thin parts only | 10.3 ms |
+| 4 samples, twice the pixels each way | 20.3 ms |
+| 8 samples, twice the pixels each way (part two) | 30.9 ms |
+
+So the 8-sample target was half of the cost and the doubled pixels the other half. The thin parts' extra draw call costs nothing that can
+be measured. Neither does the size of the shared smoothing target (the copy out of it is already cut to the building's box), nor the lay
+pass's sixteen reads. The sun's shadow lookup (nine reads a pixel) is a third to a half of the doubled pixels' share.
+
+**What was cut** (`GLTF.look.far`; nothing is blurred, every canvas pixel still takes the mean of its own block and nothing else):
+
+- **4 samples a pixel in every tier but the smallest.** Only a box of `tinyPixels` (70,000) canvas pixels or fewer takes 8: it costs
+  little because it is small, and the smallest buildings are the ones that need it (a count of flickering pixels on the six worst
+  buildings from 450 m: 8 samples alone leave 846, 4 samples at twice the pixels leave 133, both leave 49). With the tier at 40,000
+  the fourteen left 120, 59 of them on one tower just over that size; at 70,000 it is in.
+- **The picture's fineness goes by the screen, not by the canvas.** A small building is drawn at `density` (3) picture pixels to one CSS
+  pixel along a side, and at most twice the canvas's. A canvas with two pixels to a CSS pixel is drawn at 1.5 times, one with 1.5 at
+  twice, a phone's with three at once. Part two doubled every canvas, so the densest screens paid most for the least gain.
+- **One and a half times is exact.** The box is made an even number of pixels, so each canvas pixel's block starts on a texel edge and
+  spans two texels a side: one whole and one half. One read with linear filtering, placed a third of the way between the two texels'
+  middles, is the area-weighted mean of that block. The same single read serves once and twice the pixels.
+- The middle tier (a box up to 600,000 pixels) took 8 samples and now takes 4 at up to 1.5 times: the same cost a pixel, steadier.
+- A smoothing target left over from a closer view (the size of the canvas: 187 MB at a laptop's density) is let go after 60 frames at
+  twice the size needed. It was four times and 120 frames.
+
+**The result**, same harness, same fourteen buildings, the far treatment flipped rep by rep inside one page load, the minimum of four
+readings a load (two loads at pixel ratio 2, one at 1):
+
+| pixel ratio | camera | far treatment costs, part two | now |
+|---|---|---|---|
+| 2 | 640 m | +19.5 ms | **+6.9 ms** |
+| 2 | 1,150 m | +7.7 ms | +4.2 ms |
+| 1 | 640 m | +5.4 ms | +6.0 ms |
+| 1 | 1,150 m | +2.4 ms | +1.0 ms |
+
+At pixel ratio 1 nothing changed: there every box is in the smallest tier and keeps part two's 8 samples at twice the pixels.
+A second instrument, the smoothing work done three times a frame (two rounds), puts the cost at pixel ratio 2 from 640 m at 4.7 ms
+(16.7 against 12.0 ms): the two agree on "a third to a quarter of what it was", not on the last millisecond.
+`tinyPixels` trades cost for steadiness, but less than it seems: at 40,000 (six of the fourteen in the 8-sample tier, not eleven) one
+session of the harness read +1.2 ms, with a far-off arm 4 ms slower than in the later sessions, and the second instrument read 5.3 ms,
+the same as 70,000 within its noise; the flicker test below left 120 at 40,000 and the count below at 70,000. A shared 8-sample target
+forced to five times its size cost 2.2 ms more, so a target of its own for each size class would save about half a millisecond.
+Flicker in a slow pan from 450 m, all fourteen on their own pixels (1280 x 680 at pixel ratio 1.5, against the same frames at twice
+the pixels drawn with part two's settings): **91 flickering pixels of 213,407**; part two left 55, no far treatment 2,464.
+A single building's count moves by tens from one page load to the next with the same settings (one tower read 1 in the morning and 36 in
+the afternoon under part two's settings, another 27 and 1), so the two totals say "under a hundred of two hundred thousand", not which
+is steadier. Read side by side in one page load, part two's settings and these give the same count on three of four buildings; on the
+fourth, a wide block that is now in the 4-sample tier, 1 against 24. These are counts in a test window. Whether it is steady is decided
+by eye, in motion (CLAUDE.md rule 15).
+
+**Forty-four more builds: fifty-eight in all.** `js/gltf-rows.js` holds one generated line a build: its name, the origin of its surveyed
+map outline, its height, the map building it replaces. `js/gltf-layer.js` appends them to its table (`?gltfrows=0` leaves them out). Each
+file is one export command, as before; a street, a site plane or a helper object that a builder left in the scene is skipped by name
+(`skip=`), never a part of the building. One of the new files is lean (flat neighbouring faces merged), as two of the first fourteen are. `scripts/verify/gltf-layer.mjs` checks
+every row against its file. The 44 files add 64 MB to `data/gltf/` (88 MB in all): a file carries float normals that could be worked
+out from its triangles, and float positions that could be 16-bit; that is the next cut before this goes anywhere near the live site.
+
+**A model can replace a building that has no recipe.** Thirteen campus buildings are drawn by the app's generic layers: a block, a
+roof, storey lines, a street front. With the switch on, `GLTF_LAYER.replacedIds()` names every map building a model stands on and
+`js/slopes-apartments.js` adds them to the ids it hides (block, storey lines, street front, campus roof); `GLTF_LAYER.masks()` gives
+the outlines of those thirteen (`rings` in their rows), which join the footprints that hide the roof deck, the tiled-roof bands and the
+building parts by outline.
+
+**Rows by distance** (`GLTF.look.load`, `js/gltf-look.js` "BY DISTANCE"). Every 250 ms the distance from the camera's eye to each row is
+taken. A row within `inM` (2,500 m) is fetched and built, nearest first, three at a time; a row beyond `outM` (3,000 m) has its meshes,
+materials and sky-light map disposed and its file forgotten. `?gltfload=0` loads all at the start; `?gltfin=` and `?gltfout=` set the
+distances. What the layer holds on the graphics card with all fifty-eight in (a camera over West Campus or over campus has them all
+within 2,500 m): 185 MB of vertex and index data, 33 MB of sky-light maps, and 49 and 39 MB of smoothing targets at a
+2880 x 1800 canvas. Rows within 1,000 m of the same cameras are 23 rows and 83 MB over West Campus, 24 rows and 81 MB over campus.
+
+**What is not right yet.**
+
+1. **A row that is out has no stand-in.** Its old drawing is hidden for the whole session, so beyond `outM` the building is missing from
+   the picture. That is why the distances are long, and why near campus the rule holds everything. A far stand-in (the model's largest
+   faces in one small file for all rows) would let `inM` come down to about 1,000 m.
+2. **Fifty-eight detailed models are slow to draw.** With all of them in view from 950 m at a 2880 x 1800 canvas a frame took 136.4 ms over West Campus and 137.3 ms over campus, against 87.9 and 89.8 ms with the layer off (one reading each). Every model is drawn in full
+   detail at every distance, five times a frame (its picture, its depth, the lay pass, and twice for the sun's shadow maps). The far
+   treatment is no longer the cost; the triangles are. The same far stand-in is the cure.
+3. Nine of the new builds were made before the standard light and keep their own colour scale: they come out pale to white under the
+   app's light. The same nine and all of the first fourteen were made before the glass and wall-pattern functions.
+4. Four of the new builds stand on a sloping site and reach 0.6 to 4.5 m below the city's flat ground on one side; one stands 1 m low.
+5. `wall_patterns` (brick courses, boards, panel joints, measured by the builders) are not drawn yet.

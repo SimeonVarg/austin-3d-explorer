@@ -244,7 +244,7 @@
       // Why these numbers (measured, docs/gltf-layer.md "Far away, part three"): 8 samples and twice the pixels each cost about 10 ms a frame
       // on an integrated chip at a laptop's full density with fourteen buildings in view; 4 samples cost next to nothing.
       far: { build: true, on: q.get('gltffar') !== '0', thinM: 0.3, long: 3, minPx: 1, hide: false, density: 3,
-        tinyPixels: 40000, tinySamples: 8, tinyScale: 2, smallPixels: 160000, smallSamples: 4, smallScale: 2, midPixels: 600000, midSamples: 4, midScale: 1.5 },
+        tinyPixels: 70000, tinySamples: 8, tinyScale: 2, smallPixels: 160000, smallSamples: 4, smallScale: 2, midPixels: 600000, midSamples: 4, midScale: 1.5 },
       // BY DISTANCE (js/gltf-look.js): a building's file is fetched and built when the camera's eye is within `inM` metres of it and let go
       // beyond `outM`; `atOnce` files at a time, looked at every `everyMs`. ?gltfload=0 loads every row at the start and keeps it.
       load: { on: q.get('gltfload') !== '0', inM: q.has('gltfin') ? +q.get('gltfin') : 2500, outM: q.has('gltfout') ? +q.get('gltfout') : 3000, atOnce: 3, everyMs: 250 } },
