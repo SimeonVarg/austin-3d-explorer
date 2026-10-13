@@ -453,7 +453,9 @@ campus; the minimum of interleaved readings, one page): a frame takes 91.1 and 9
 with every full file drawn, and 87.2 and 89.3 ms with the layer off (so +3.9 and +1.7 ms). The layer holds 102 and 98 MB on the graphics card (16 and 15 full
 files, the shared smoothing targets, 8.5 MB of far copies) against 267 and 257 MB. In the slow-pan flicker test at 450 m the fourteen
 buildings of the earlier test read 75 flickering pixels of 213,398 (91 of 213,407 before): at that distance each is drawn in full, eleven
-read exactly their earlier count, and two have counts that swing by tens between page loads. The far copies' own flicker (their
+read exactly their earlier count, one swings by tens between page loads, and one tower depends on the ORDER the buildings are built in
+(1 flickering pixel when rows are loaded nearest first, 22 to 24 when every row is loaded at the start, with the far copies on or off:
+the order in which the buildings' smoothed pictures are laid onto the canvas shows at their edges; open). The far copies' own flicker (their
 unsmoothed edges and bands, from 800 m) was not measured, and nobody has judged the dissolve or the far view in motion by eye.
 
 **4. Look files are kept packed.** `data/gltf/<name>-look.glb.gz` is the export, gzip-packed (a fifth to a sixth of its bytes, nothing
