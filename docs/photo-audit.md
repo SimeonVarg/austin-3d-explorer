@@ -157,7 +157,7 @@ capitals or mixed case). Zoom the render on every sign before you call a
 building done. `scripts/verify/sign-lettering.mjs` fails a recipe with new dot
 lettering.
 
-*Checks 9c, 9d and 9e are generalisations from one review, not laws (owner, the same day: "I don't want those to be
+*Checks 9c, 9d, 9e and 9f are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
 hard rules but more so generalizations that it has the freedom to ignore if it thinks what's shown is different").
 The photograph wins: when what is shown is different, build what is shown and say so.*
 
@@ -177,6 +177,18 @@ patch of the wall's own white.
 **9e. Upright things are upright.** Towers, piers and stair cores are vertical
 and parallel to each other in the model unless the photograph proves a lean.
 Two towers that splay apart are a camera or placement error, not a design.
+
+**9f. A wall has its surface, not one flat colour.** Look at each wall in the
+photograph before you paint it. What repeats on its surface is part of the
+building: brick courses and their bond, stone blocks, panel or stucco joints,
+siding boards, ribs, bands, the darker ring of an arch. Measure it through the
+camera (the height and length of one unit, the joint, the two or three
+colours) and build it: as its own faces where it is big, as a pattern in the
+wall's material where it is fine (a generated pattern, never a piece of a
+photograph). Keep the wall's average colour equal to the measured colour. This
+is general wall detail, not a rule about brick: the photograph decides how
+much. Rule 15 still holds: a pattern that is thinner than a pixel from where
+it is seen must not flicker there.
 
 **10. Could not see it.** A part hidden by a tree or outside the frame is
 NOT KNOWN. Say so. Build it from the visible pattern and label it INFERRED. Do
@@ -279,3 +291,11 @@ made or sharpened.
   bottom": the sharper end of check 10. He also named the look he wants: clean
   and a little minimal, "the diorama feature", with true detail welcome where
   it is accurate.
+- **2026-10-12, later the same day.** A brick gymnasium came back from Blender
+  with its double stair, rails, arches and windows right and its walls one flat
+  colour. His words: "I want the brick pattern ... if there's brick from now on
+  I'd like the brick pattern to be there (even 26 west missed some bricks) don't
+  write a rule for bricks make it general for wall detail": check 9f. On the
+  same building the lower arch "should start a bit higher": it sprang from the
+  ground, so it cut the top of the door under it. That is check 9d again (an
+  arch keeps its own measured springing height, as a window keeps its sill).
