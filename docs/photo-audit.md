@@ -157,6 +157,16 @@ capitals or mixed case). Zoom the render on every sign before you call a
 building done. `scripts/verify/sign-lettering.mjs` fails a recipe with new dot
 lettering.
 
+**9b2. A sign is read before it is drawn.** For every sign and every lettered
+or carved name: zoom the photographs, open the reference pictures, and write
+down the exact words, the case of the letters, the layout (a line under the
+name, a small year at its end, a mark beside it) and the letter style. Then
+build real letter shapes in that layout. Bars, blocks or strokes that stand
+for letters are a miss, however small the sign is in the picture. A sign that
+truly cannot be read is said so, with what the reference pictures say it is.
+This holds for every way of building (a recipe, a Blender build) and every
+model.
+
 *Checks 9c, 9d, 9e and 9f are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
 hard rules but more so generalizations that it has the freedom to ignore if it thinks what's shown is different").
 The photograph wins: when what is shown is different, build what is shown and say so.*
@@ -291,6 +301,11 @@ made or sharpened.
   bottom": the sharper end of check 10. He also named the look he wants: clean
   and a little minimal, "the diorama feature", with true detail welcome where
   it is accurate.
+- **2026-10-12, at night.** A tower built in Blender came back with bars
+  where its name sign is. His words: "there's like weird lines but it should
+  say signature with a line under and then 1909 at the end of that line-
+  better text recognition from now on": check 9b2. The reference pictures of
+  that building held a clear picture of the sign; the builder had not read it.
 - **2026-10-12, later the same day.** A brick gymnasium came back from Blender
   with its double stair, rails, arches and windows right and its walls one flat
   colour. His words: "I want the brick pattern ... if there's brick from now on
