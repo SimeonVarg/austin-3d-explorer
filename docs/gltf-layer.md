@@ -263,3 +263,65 @@ y north, heading 0), and takes the place of what stood there. Four things were n
 
 A material whose name starts with `glass` is treated as glass and one that starts with `sign` as a sign when the row gives no material
 table, so a model that follows the builders' naming rule needs no entry of its own.
+
+## The ground's colour: neutral, and measured (2026-10-12, late)
+
+A wall in shade is lit by the sky and by what lies below the level line. That second part was `[0.1, 0.125, 0.07]`, one Blender scene's lawn,
+and it put a green cast on every wall in shade: on the five pale walls that three site photographs show both in sun and in shade, the light
+gave the shaded pixels 0.83 / 0.95 / 0.85 (red, green, blue) of the photographs', so green stood 13 % above red and blue. It is now
+`[0.16, 0.16, 0.16]` (`TUNE.ground` in `js/city-sky.js`, and the same number in the rig through `node scripts/city-sky-rig.mjs`): with it the
+same walls come out at 1.01 / 1.03 / 1.04. Two things to know about that number:
+
+- **It is a bounce, not a look.** A wall's own colour is on the rig's scale (white paint is 0.17), but how much light the ground throws
+  back depends on its true reflectance, and 0.16 is what pavement and the sunlit walls across a street really return. So the ground plane
+  of a Blender render is now nearly white on camera. That is the scale, not a fault; a darker plane for camera rays only would be a change
+  to the rig's code.
+- **What a mirror sees below the level line did not change** (`TUNE.groundMirror`, the old value): glass seen from above looks as before.
+
+What moves for a building already made: a colour taken from SUNLIT pixels moves by -3 / -2 / -5 % on a wall that faces the sun and by up to
+-8 / -4 / -11 % on a wall the sun grazes; a colour taken from SHADED pixels under the clear light moves by -20 / -10 / -22 %. Colours taken
+under the no-sun light do not move (it has its own grey ground).
+
+What it does not settle: two rooftop photographs show shade two to three times brighter and bluer than this light gives on white panels,
+and about right on brick, in the same frame. No ground colour can do that, and the street-level photographs say the opposite. A phone
+lifts shade; how much depends on the picture.
+
+**A trap found on the way.** The rig paints every object with "ground" in its name as the ground. One builder named a building's lowest
+storey `ground_storey`; its walls were painted as ground and came into the app green. A building part must not carry that word.
+
+## Far away, part two: thin parts and small buildings (2026-10-12, late; rule 15)
+
+Counted on each building's own pixels in a slow pan, none of the fourteen was steady from far. Two causes, by class, found by switching
+parts off in one page:
+
+1. **Parts thinner than a pixel** (rails, posts, mullions, bolts): half to three quarters of the flickering pixels. A rail 4 cm wide is a
+   fifth of a pixel at 300 m: it is there in one frame and gone in the next.
+2. **Edges of windows a few pixels wide, at four samples a pixel**: nearly all of the rest. A dark pane's edge on a pale wall steps by a
+   quarter of that contrast as the camera moves.
+
+Not a cause: the sky-light map (with thin parts treated, switching it off does not lower the count). Seen and not treated: a shadow edge
+jumps when the app's shadow map shifts with the camera.
+
+The treatment is in the layer, works from the model's own shape, and needs no second file, no switch distance and no hand work
+(`GLTF.look.far`; `?gltffar=0` = off):
+
+- **Thin parts** (`js/gltf-look.js`, "FAR: THIN PARTS"). At load, the pieces of each material that hang together are measured along their
+  own three directions. A bar (second size under `thinM` = 0.3 m, and `long` = 3 times as long) or a piece under `thinM` in every direction
+  is THIN and goes to a mesh of its own. The shader never draws it narrower than `minPx` = 1 pixel, and gives it the share of the pixel it
+  truly covers. Nearer than the distance at which it is a pixel wide, nothing changes, so nothing pops.
+- **More samples for a building that is small on the screen.** One that covers `midPixels` = 600,000 pixels or fewer is smoothed with
+  `midSamples` = 8 samples a pixel instead of 4; one that covers `smallPixels` = 160,000 or fewer with `smallSamples` = 16 (the graphics
+  chip's limit caps both) and is also drawn at `smallScale` = 2 times the pixels, each pixel of the canvas taking the mean of its own
+  block. No building's picture is then larger than a middle-distance building's, so none costs more than one of those.
+
+**Nothing is blurred.** The block mean takes nothing from a neighbouring pixel, and a thin part is never drawn wider than one pixel. Measured: the building's edges (the strongest tenth of steps
+between neighbouring pixels) are as strong after as in the same frame drawn at twice the pixels and averaged, and never weaker; before,
+they were harder than that, because a stair-stepped edge is harder than a true one. The building's mean brightness stays on the truth's.
+
+Measured in a 1280 x 680 window at pixel ratio 1.5, a slow pan of 14 frames, flickering pixels on the building's own pixels: one
+five-storey block 1,049 of 26,372 at 300 m before and 5 after; 474 of 10,851 at 450 m before and 4 after; 48 of 4,285 at 700 m before
+and 1 after.
+
+What it does not do, and what is not known: a window frame made as one ring is not a bar by its shape and is not treated as thin (the
+extra samples carry it); the building's outline against what stands behind it is laid at one sample a pixel; one more draw call per
+building; and what it costs in frame time has not been measured.

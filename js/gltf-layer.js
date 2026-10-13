@@ -230,7 +230,14 @@
       // samples a pixel, covering only the part of the screen it stands on, and that picture is laid onto the canvas where the building is in
       // front. Used only when the canvas itself is not smoothed. `bigPixels`: a building that covers more pixels than this takes `bigSamples`
       // (its target would otherwise hold 36 bytes for each of them). ?gltfaa=0 turns it off (hard edges, thin lines break up).
-      own: { on: OWN_DEFAULT, samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2 } },
+      own: { on: OWN_DEFAULT, samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2 },
+      // FAR, rule 15 (js/gltf-look.js "FAR: THIN PARTS"): a piece of the model that is thin by its own shape (a bar whose second size is
+      // under `thinM` metres and that is `long` times as long, or a piece under `thinM` in every direction) is never drawn narrower than
+      // `minPx` pixels, and counts for the share of the pixel it truly covers. ?gltffar=0 draws thin parts as they are (they flicker from far).
+      // And a building that covers `smallPixels` of the screen or fewer is smoothed with `smallSamples` samples a pixel, one up to `midPixels`
+      // with `midSamples` (the graphics chip's own limit caps both): the edges of windows a few pixels wide then step finely as the camera moves.
+      // The small ones are also drawn at `smallScale` times the pixels, each canvas pixel taking the mean of its own block.
+      far: { build: true, on: q.get('gltffar') !== '0', thinM: 0.3, long: 3, minPx: 1, hide: false, smallPixels: 160000, smallSamples: 16, smallScale: 2, midPixels: 600000, midSamples: 8 } },
     // The layer's place in the scene, as the apartments' group has it (js/slopes-apartments.js APTS.lod / minzoom).
     lod: null, minzoom: 14,
     // Draw both sides of every face, as the apartments do (APTS.twoSided): a model with one mis-wound face must not show a hole.
