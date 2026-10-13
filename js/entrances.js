@@ -1081,6 +1081,15 @@
       gj.features = gj.features.filter(f=>!rejected.has(String(f.properties.eid)));
       for(const key of Object.keys(gj.arches||{})) if(rejected.has(String(key))) delete gj.arches[key];
     }
+    // A Blender-built model (js/gltf-layer.js, ?gltf=1 only) brings its own doors: the door assembly this file holds for a building that
+    // model replaces goes with the old walls, or it stands in front of the model's own entrance. Off (the default), nothing is removed.
+    if (window.GLTF_LAYER && window.GLTF_LAYER.on) {
+      const gone = new Set(gj.features.filter(f => f.properties.bid && window.GLTF_LAYER.hides({ id: f.properties.bid })).map(f => String(f.properties.eid)));
+      if (gone.size) {
+        gj.features = gj.features.filter(f => !gone.has(String(f.properties.eid)));
+        for (const key of Object.keys(gj.arches || {})) if (gone.has(String(key))) delete gj.arches[key];
+      }
+    }
     publishGeoJSON(gj);
     // Read the band tones off the real file (see portalColor).
     for (const f of gj.features) {

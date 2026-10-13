@@ -66,6 +66,9 @@
     uniform sampler2D u_skyMap; uniform float u_skyMapStrength, u_nightWallAmbient, u_lookPass, u_lookThrough, u_lookShadowLift; uniform vec3 u_lookTransmit;
     varying vec3 v_pos, v_normal, v_base, v_mirror, v_night; varying vec2 v_uv; varying float v_glass;
     void main() {
+      // nothing under the city's ground plane is drawn. The ground is a flat picture with no depth, so the part of a model that reaches
+      // below it (a builder who modelled a sloping street) would be painted OVER the ground instead of being hidden by it
+      if (v_pos.z < -0.02) discard;
       // see-through glass is drawn twice: first it dims what is behind it by its colour (this pass multiplies the picture), then it adds its own light
       if (u_lookPass > 0.5 && u_lookPass < 1.5) { gl_FragColor = vec4(pow(u_lookThrough * u_lookTransmit, vec3(1.0 / 2.2)), 1.0); return; }
       vec3 n = normalize(v_normal); if (!gl_FrontFacing) n = -n;

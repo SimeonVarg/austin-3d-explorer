@@ -2940,6 +2940,8 @@
    * roofs) and is written into HANDOFF.md for the roofs lane.
    */
   const _rigStash = {};
+  // ?gltf=1: a building that a Blender model replaces brings its own roof, so the campus roof kept by its recipe (`preserveRoof`) goes too
+  const gltfReplacedIds = () => (window.GLTF_LAYER && window.GLTF_LAYER.on && _data) ? _data.buildings.filter(b => b.id && window.GLTF_LAYER.hides(b)).map(b => b.id) : [];
   const excludedRoofKeys = () => new Set(okBuildings().flatMap(b => b.excludeRoofIds || []));
   function stashRigs(on) {
     const R = window.slopesRoofs;
@@ -2948,6 +2950,7 @@
     let n = 0;
     if (on) {
       const ids = new Set((_data.replacedBuildingIds || []).filter(id => !_data.buildings.some(b => b.id === id && b.preserveRoof)));
+      for (const id of gltfReplacedIds()) ids.add(id);
       const exact = excludedRoofKeys();
       // Restore a selective roof if its replacement failed during a rebuild.
       for (const k of Object.keys(_rigStash)) if (!ids.has(k.split('/')[0]) && !exact.has(k)) { roofs[k] = _rigStash[k]; delete _rigStash[k]; n++; }
@@ -2973,6 +2976,7 @@
     const R = window.slopesRoofs, roofs = R && R.data && R.data.roofs;
     if (!roofs || !_data) return [];
     const ids = new Set((_data.replacedBuildingIds || []).filter(id => !_data.buildings.some(b => b.id === id && b.preserveRoof)));
+    for (const id of gltfReplacedIds()) ids.add(id);
     const exact = excludedRoofKeys();
     return Object.keys(roofs).filter(k => ids.has(k.split('/')[0]) || exact.has(k));
   }

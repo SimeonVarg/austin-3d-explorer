@@ -240,3 +240,26 @@ clear day; that is the point):
 Tried, read-only, on the two builds that had such photographs: `check()` is empty under the new light on both; the dawn build's white wall
 renders within 4 % of its photograph where the clear rig had it five times too dark, and the overcast build's brick and limestone show the
 fault of having been divided by the clear light's colours (right in red and green, 13 and 28 % too blue), which the new division removes.
+
+## Ten more builds in the layer, and what a model replaces (2026-10-12, night)
+
+Ten buildings made under the standard light stand in the table with the first four: fourteen rows with a `look` file. Each is one export
+command from its builder's file (`scripts/blender_export_look.py`), stands with its own origin on the origin of its surveyed outline (x east,
+y north, heading 0), and takes the place of what stood there. Four things were needed that the first four did not show:
+
+- **A lean file for a heavy model.** `blender_export_look.py OUT.glb SKY.png [skip=objA,objB] [drop=matA,matB] [dissolve=2]`:
+  `skip=` leaves named objects out (a ground slab the builder drew under the building), `drop=` leaves whole materials out, and `dissolve=`
+  merges flat neighbouring faces of one material (the angle in degrees). The merged faces are kept whole, so the sky-light bake still gives
+  each its own patch. A model over about 40,000 triangles is exported this way for the layer and the full file is kept outside the repo.
+  Thin metal window frames are the first thing to leave out: on one tower they were 40,112 of 109,098 triangles.
+- **Everything the old drawing owned goes with it.** A row's `replaces` now also takes out the building's kept roof
+  (`js/slopes-apartments.js`: a campus building that kept its tile roof when its walls were handed over) and its door assembly
+  (`js/entrances.js`: a model brings its own doors). Both only when the switch is on.
+- **Nothing under the ground plane is drawn.** The city's ground is a flat picture with no depth. A builder who models a sloping street
+  makes walls that reach below the origin's height; the shader discards them (`js/gltf-look.js`), or they are painted over the ground.
+  The building then stands on the flat ground with its downhill storey partly buried, which is what every recipe building does today.
+- **The smoothing targets are shared.** One target per sample count, sized for the largest building in view, instead of one per building:
+  fourteen buildings held about 410 MB of targets before and about 125 MB after, at the same picture.
+
+A material whose name starts with `glass` is treated as glass and one that starts with `sign` as a sign when the row gives no material
+table, so a model that follows the builders' naming rule needs no entry of its own.
