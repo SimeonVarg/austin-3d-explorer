@@ -62,7 +62,7 @@ for (const row of rows) {
   console.log('  row: ' + row.name);
   check(recipeIds.has(row.replaces), 'its `replaces` id is a recipe or a collection entry the apartments builder draws (data/apartments/index.json)', recipeIds.get(row.replaces) || '');
   check(G.hides({ id: row.replaces }) && !G.hides({ id: 'not-a-recipe' }) && !G.hides({}), 'hides() is true for that recipe and no other');
-  check(G.stub({ id: row.replaces, name: row.name }).top === row.topM && row.topM > 20, 'the stub in the apartments built list carries the model height (flight collision)', 'topM ' + row.topM);
+  check(G.stub({ id: row.replaces, name: row.name }).top === row.topM && row.topM > 5, 'the stub in the apartments built list carries the model height (flight collision)', 'topM ' + row.topM);
   for (const id of row.alsoReplaces || []) check(recipeIds.has(id) && G.hides({ id }), 'a further recipe it replaces is one the apartments builder draws, and is hidden', recipeIds.get(id) || id);
   if (!row.file) check(!!row.look, 'a row with no flat-colour file has a look file (it is drawn under the app\'s light or not at all)');
   flat: if (row.file) {

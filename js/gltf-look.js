@@ -115,7 +115,9 @@
   //   2. its depth is written into the canvas (the city in front still hides it; the fog and the labels see it);
   //   3. the smoothed picture is laid onto the canvas wherever the building is the front-most thing; then its see-through glass.
   // In the city's own scene the building is a mesh that draws nothing: it is there to cast its shadow into the app's shadow maps.
-  const OWN = { list: [], hooked: false, frames: 0, bytes: 0, pixels: 0, ms: 0 };
+  // `pool`: the smoothing targets are SHARED by all buildings (one per sample count): the buildings are drawn one after another, so one
+  // target the size of the biggest box does for all of them. (A target per building held 411 MB with fourteen buildings.)
+  const OWN = { list: [], hooked: false, frames: 0, bytes: 0, pixels: 0, ms: 0, pool: {}, need: {}, slack: {} };
   const ownWanted = S => { const O = GLTF.look.own; if (!O || !O.on || !S.renderer || !S.renderer.capabilities.isWebGL2) return false; const gl = S.renderer.getContext(); return !(gl.getParameter(gl.SAMPLES) > 0); };
   function ownParts() {
     const T = window.THREE;
@@ -137,24 +139,28 @@
     // context for its viewport instead is a round trip to the GPU process that stalls the frame: 42 ms a frame here when I measured it.)
     const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight;
     const v = new T.Vector4(), restore = () => { renderer.setRenderTarget(null); renderer.setViewport(0, 0, W, H); renderer.setScissor(0, 0, W, H); renderer.setScissorTest(false); };
-    OWN.pixels = 0; OWN.bytes = 0;
+    OWN.pixels = 0; OWN.bytes = 0; OWN.need = {};
     for (const b of OWN.list) {
       if (!b.group || !b.group.visible || (b.group.parent && !b.group.parent.visible) || b.box.isEmpty()) continue;   // the app hides the layer's group by zoom and tier
       // the part of the screen the building stands on: its box's corners through the camera
-      let x0 = 1, y0 = 1, x1 = -1, y1 = -1, behind = false;
+      let x0 = 1, y0 = 1, x1 = -1, y1 = -1, behind = 0;
       for (let i = 0; i < 8; i++) {
         v.set(i & 1 ? b.box.max.x : b.box.min.x, i & 2 ? b.box.max.y : b.box.min.y, i & 4 ? b.box.max.z : b.box.min.z, 1).applyMatrix4(camera.projectionMatrix);
-        if (v.w <= 1e-6) { behind = true; break; }
+        if (v.w <= 1e-6) { behind++; continue; }
         x0 = Math.min(x0, v.x / v.w); x1 = Math.max(x1, v.x / v.w); y0 = Math.min(y0, v.y / v.w); y1 = Math.max(y1, v.y / v.w);
       }
-      if (behind) { x0 = y0 = -1; x1 = y1 = 1; }
+      if (behind === 8) continue;                                  // the whole building is behind the camera
+      if (behind) { x0 = y0 = -1; x1 = y1 = 1; }                   // the camera stands inside its box: the whole screen
       let px0 = Math.max(0, Math.floor((x0 * 0.5 + 0.5) * W) - O.pad), px1 = Math.min(W, Math.ceil((x1 * 0.5 + 0.5) * W) + O.pad), py0 = Math.max(0, Math.floor((y0 * 0.5 + 0.5) * H) - O.pad), py1 = Math.min(H, Math.ceil((y1 * 0.5 + 0.5) * H) + O.pad);
       const w = px1 - px0, h = py1 - py0; if (w < 2 || h < 2) continue;
       const samples = w * h > O.bigPixels ? O.bigSamples : O.samples;
-      if (!b.target || b.target.width < w || b.target.height < h || b.target.samples !== samples) {
+      const need = OWN.need[samples] || (OWN.need[samples] = [0, 0]); need[0] = Math.max(need[0], w); need[1] = Math.max(need[1], h);
+      b.target = OWN.pool[samples];
+      if (!b.target || b.target.width < w || b.target.height < h) {
         const tw = Math.min(W, Math.ceil(w / O.growBy) * O.growBy), th = Math.min(H, Math.ceil(h / O.growBy) * O.growBy);
+        const ow = b.target ? b.target.width : 0, oh = b.target ? b.target.height : 0;
         if (b.target) b.target.dispose();
-        b.target = new T.WebGLRenderTarget(Math.max(tw, b.target ? b.target.width : 0), Math.max(th, b.target ? b.target.height : 0), { samples, depthBuffer: true, stencilBuffer: false, magFilter: T.NearestFilter, minFilter: T.NearestFilter, generateMipmaps: false });
+        b.target = OWN.pool[samples] = new T.WebGLRenderTarget(Math.max(tw, ow), Math.max(th, oh), { samples, depthBuffer: true, stencilBuffer: false, magFilter: T.NearestFilter, minFilter: T.NearestFilter, generateMipmaps: false });
         if ('colorSpace' in b.target.texture && T.NoColorSpace !== undefined) b.target.texture.colorSpace = T.NoColorSpace;
       }
       // the same camera, looking only at that part of the screen
@@ -172,7 +178,14 @@
         renderer.render(b.fill, camera);                           // 3. the smoothed picture, where the building is in front
         if (b.glass.children.length) renderer.render(b.glass, camera);
       } finally { restore(); renderer.setClearColor(clear, alpha); }
-      OWN.pixels += w * h; OWN.bytes += b.target.width * b.target.height * (4 + 8 * samples);
+      OWN.pixels += w * h;
+    }
+    // what the shared targets hold; one that has been four times too big for two seconds of frames is let go (it is made again at the size needed)
+    for (const k of Object.keys(OWN.pool)) {
+      const t = OWN.pool[k], n = OWN.need[k]; if (!t) continue;
+      OWN.slack[k] = (!n || n[0] * n[1] * 4 < t.width * t.height) ? (OWN.slack[k] || 0) + 1 : 0;
+      if (OWN.slack[k] > 120) { t.dispose(); OWN.pool[k] = null; OWN.slack[k] = 0; continue; }
+      OWN.bytes += t.width * t.height * (4 + 8 * Number(k));
     }
     OWN.frames++; OWN.ms = +(performance.now() - t0).toFixed(2);
   }
@@ -199,7 +212,8 @@
     const acc = () => ({ pos: [], nrm: [], uv: [], base: [], mirror: [], night: [], glass: [], idx: [] });
     let lit = 0, tris = 0;
     for (const p of prims) {
-      const cfg = mats[p.material] || {}, A = p.seeThrough > 0 ? (parts.glass = parts.glass || Object.assign(acc(), { through: p.seeThrough, transmit: p.transmit })) : (parts.solid = parts.solid || acc());
+      // a material the row does not list is known by its name (the builders' rule: glass is named glass_*, signs sign_*)
+      const cfg = mats[p.material] || (/^glass/i.test(p.material) ? { lit: true } : /^sign/i.test(p.material) ? { sign: true } : {}), A = p.seeThrough > 0 ? (parts.glass = parts.glass || Object.assign(acc(), { through: p.seeThrough, transmit: p.transmit })) : (parts.solid = parts.solid || acc());
       const base = A.pos.length / 3, nv = p.pos.length / 3, night = new Float32Array(nv * 3);
       // model-frame positions for the pane rules (the same code the flat-colour path uses): shift the file's origin onto the row's
       const P = Float32Array.from(p.pos); for (let i = 0; i < nv; i++) { P[i * 3] -= og[0]; P[i * 3 + 1] -= og[2]; P[i * 3 + 2] += og[1]; }
@@ -283,7 +297,7 @@
       _group = g; S.add(g); if (S.camera && S.camera.layers) S.camera.layers.enable(1);
       if (OWN.list.length) ownHook(S);
       console.log('[gltf-look]', L.loaded.join(', ') || 'nothing', '—', L.triangles, 'triangles,', L.drawCalls, 'draw call(s),', L.bytes, 'bytes');
-    } else if (!want && _group) { for (const b of OWN.list) if (b.target) b.target.dispose(); OWN.list.length = 0; S.remove(_group); _group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); _group = null; }
+    } else if (!want && _group) { for (const k of Object.keys(OWN.pool)) { if (OWN.pool[k]) OWN.pool[k].dispose(); OWN.pool[k] = null; } OWN.list.length = 0; S.remove(_group); _group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); _group = null; }
     GLTF.lookReady = !!_group;
     if (window.__map && window.__map.triggerRepaint) window.__map.triggerRepaint();
   }

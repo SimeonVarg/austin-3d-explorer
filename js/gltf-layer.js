@@ -115,6 +115,28 @@
         lng: -97.743395, lat: 30.2895842, groundM: 0, headingDeg: 0, topM: 28.6,
         replaces: '5453ffd2-7119-4e67-ba04-603bde7f10b4',
         materials: { glass_window: { lit: true } } },
+      // Ten more Blender builds made under the standard light (2026-10-12 night), each on the origin of its surveyed outline. Glass and
+      // signs are known by their material names (glass_*, sign_*). Two are lean files: their full models are too heavy for the page.
+      { name: 'Norman Hackerman Building', look: 'data/gltf/norman-hackerman-building-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.737827, lat: 30.2876315, groundM: 0, headingDeg: 0, topM: 32.5, replaces: 'f8a072d5-4751-4e9b-8939-49239919913a' },
+      { name: 'T. S. Painter Hall', look: 'data/gltf/t-s-painter-hall-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7387578, lat: 30.2870211, groundM: 0, headingDeg: 0, topM: 28.8, replaces: '82bcddc0-ec33-4a0a-a9f2-f380a838a40f' },
+      { name: 'Anna Hiss Gymnasium', look: 'data/gltf/anna-hiss-gymnasium-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7377165, lat: 30.2885432, groundM: 0, headingDeg: 0, topM: 14.4, replaces: 'b4909598-6273-4a6a-9b3c-28c777205a08' },
+      { name: 'Ion Austin', look: 'data/gltf/ion-austin-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7432782, lat: 30.2843874, groundM: 0, headingDeg: 0, topM: 58.4, replaces: 'dd38bf46-46cc-4ea9-b1ac-138fc2a56019' },
+      { name: 'Villas on 24th', look: 'data/gltf/villas-on-24th-look.glb', lookOrigin: [0, 0, 0],   // the lean file (see docs)
+        lng: -97.7443431, lat: 30.2876477, groundM: 0, headingDeg: 0, topM: 97.1, replaces: '4e5f2b29-dd92-4232-82c9-fa8ef81c6e77' },
+      { name: 'The Castilian', look: 'data/gltf/the-castilian-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.742365, lat: 30.2873797, groundM: 0, headingDeg: 0, topM: 56.0, replaces: '307878e3-63d2-471c-83d1-6b405de9e7b7' },
+      { name: 'Pointe on Rio', look: 'data/gltf/pointe-on-rio-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7447345, lat: 30.2832218, groundM: 0, headingDeg: 0, topM: 21.1, replaces: '176b7e6b-f1d0-432c-a185-130948f9a3e1' },
+      { name: 'The Standard', look: 'data/gltf/the-standard-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7457076, lat: 30.2869975, groundM: 0, headingDeg: 0, topM: 59.4, replaces: '36365d18-2eb6-43c5-b042-6197e7767e17' },
+      { name: 'Noble 2500', look: 'data/gltf/noble-2500-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7480199, lat: 30.28965, groundM: 0, headingDeg: 0, topM: 23.0, replaces: 'ffb87957-520e-4340-bdd2-e331c2c51046' },
+      { name: 'Union on 24th', look: 'data/gltf/union-on-24th-look.glb', lookOrigin: [0, 0, 0],   // the lean file (see docs)
+        lng: -97.7451624, lat: 30.2876793, groundM: 0, headingDeg: 0, topM: 95.5, replaces: '0a6d10a2-a664-4049-9ea2-83ce692103ef' },
     ],
 
     // ── How each Blender material is drawn ────────────────────────────────

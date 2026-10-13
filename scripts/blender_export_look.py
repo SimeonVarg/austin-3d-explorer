@@ -26,7 +26,12 @@ AO_WIDTH = 1024        # width of the image, pixels (its height is what the patc
 AO_SEED = 7
 
 args = sys.argv[sys.argv.index('--') + 1:]
+# options after the two file names:  skip=objA,objB  (objects left out by name)   drop=matA,matB  (a LEAN file: every face of these
+# materials is left out)   dissolve=2  (a LEAN file: flat neighbouring faces of one material are merged, within this many degrees)
+OPT = dict(a.split('=', 1) for a in args if '=' in a); args = [a for a in args if '=' not in a]
 out = args[0]; ao_out = args[1] if len(args) > 1 else None
+for o in list(bpy.context.scene.objects):
+    if o.name in OPT.get('skip', '').split(','): bpy.data.objects.remove(o, do_unlink=True)
 for o in list(bpy.context.scene.objects):
     if o.type not in ('MESH', 'FONT', 'CURVE') or o.name in SKIP_OBJECTS or o.name.endswith('ground'): bpy.data.objects.remove(o, do_unlink=True)
 # lettering made as a text object becomes a mesh; every object's place, turn and size go into its points (the page reads plain meshes)
@@ -54,6 +59,15 @@ if any(len([m for m in o.data.materials if m]) != 1 for o in allm) or len(allm) 
             for p_ in o.data.polygons: p_.material_index = 0
             o.data.materials.clear(); o.data.materials.append(used)
 keep = [o for o in bpy.context.scene.objects if o.type == 'MESH' and len(o.data.polygons) and o.data.materials]
+if OPT.get('drop'):
+    for o in list(keep):
+        if o.data.materials[0].name in OPT['drop'].split(','): keep.remove(o); bpy.data.objects.remove(o, do_unlink=True)
+if OPT.get('dissolve'):
+    import bmesh
+    for o in keep:
+        bm = bmesh.new(); bm.from_mesh(o.data); bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0005)
+        bmesh.ops.dissolve_limit(bm, angle_limit=math.radians(float(OPT['dissolve'])), verts=bm.verts, edges=bm.edges, delimit={'MATERIAL'})
+        bm.to_mesh(o.data); bm.free()                 # the merged faces stay whole: the sky-light bake gives each face its own patch of samples
 painted = False
 for o in keep:
     m = o.data.materials[0]; nt = m.node_tree; name = m.name
