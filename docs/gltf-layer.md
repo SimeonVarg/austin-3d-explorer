@@ -418,6 +418,8 @@ within 2,500 m): 185 MB of vertex and index data, 33 MB of sky-light maps, and 4
 4. Four of the new builds stand on a sloping site and reach 0.6 to 4.5 m below the city's flat ground on one side; one stands 1 m low.
 5. `wall_patterns` (brick courses, boards, panel joints, measured by the builders) are not drawn yet.
 
+(Items 1 and 2, and eight of the nine builds of item 3, are answered by the next section.)
+
 ## A far copy for every building, packed files, one white (2026-10-13, later)
 
 **1. Every row has a far copy.** `scripts/gltf_far.py` makes it from the row's own look file, by rule, right after the export
@@ -443,13 +445,16 @@ and one in each shadow map), so **a building whose full file is not loaded is ne
 high gives way to its wall's mean colour and is the mean under 2 (rule 15: a band a pixel high would flicker). `?gltfcopy=0`: no far
 copies, every full file by distance as before. **What this costs the picture:** at the change a 1.5 m window is still 1.8 CSS pixels
 wide (3.6 pixels of a dense laptop screen), so from 800 m a Blender building is a banded block with no windows, plainer than the full
-model and plainer than the recipe drawing it replaces. The two numbers are the dial: 1.2 and 1.4 would keep full buildings to 970 m and
-cost about what holding 23 rows costs (83 MB of vertex data in the views below).
+model and plainer than the recipe drawing it replaces. The two numbers are the dial: 1.2 and 1.4 would keep full buildings to 970 m, hold
+about 23 full files in the views below (83 MB of their own data against 55 MB now) and draw about twice as many in full (not timed).
 
 **3. What it costs now** (an integrated chip, a 2880 x 1800 canvas, all 58 rows on, the camera 950 m from the middle of West Campus and of
 campus; the minimum of interleaved readings, one page): a frame takes 91.1 and 91.0 ms with the far copies against 136.1 and 137.0 ms
 with every full file drawn, and 87.2 and 89.3 ms with the layer off (so +3.9 and +1.7 ms). The layer holds 102 and 98 MB on the graphics card (16 and 15 full
-files, the shared smoothing targets, 8.5 MB of far copies) against 267 and 257 MB.
+files, the shared smoothing targets, 8.5 MB of far copies) against 267 and 257 MB. In the slow-pan flicker test at 450 m the fourteen
+buildings of the earlier test read 75 flickering pixels of 213,398 (91 of 213,407 before): at that distance each is drawn in full, eleven
+read exactly their earlier count, and two have counts that swing by tens between page loads. The far copies' own flicker (their
+unsmoothed edges and bands, from 800 m) was not measured, and nobody has judged the dissolve or the far view in motion by eye.
 
 **4. Look files are kept packed.** `data/gltf/<name>-look.glb.gz` is the export, gzip-packed (a fifth to a sixth of its bytes, nothing
 lost); the page unpacks it with the browser's own `DecompressionStream`, so there is no decoder file. `data/gltf/` went from 92 MB to
