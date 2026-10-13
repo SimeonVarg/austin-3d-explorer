@@ -23,7 +23,7 @@
  * TWO FILES. This one holds the table, every taste value and the two functions js/slopes-apartments.js calls. The drawing code
  * (the .glb loader, colours, the mesh) is js/gltf-layer-draw.js, fetched only when the switch is on.
  *
- * Public: window.GLTF_LAYER = { on, buildings, hides(spec), stub(spec), stats(), group, ready } (+ parse(), for scripts/verify).
+ * Public: window.GLTF_LAYER = { on, buildings, hides(spec), stub(spec), replacedIds(), masks(), stats(), group, ready } (+ parse(), for scripts/verify).
  */
 (function () {
   'use strict';
@@ -230,14 +230,24 @@
       // samples a pixel, covering only the part of the screen it stands on, and that picture is laid onto the canvas where the building is in
       // front. Used only when the canvas itself is not smoothed. `bigPixels`: a building that covers more pixels than this takes `bigSamples`
       // (its target would otherwise hold 36 bytes for each of them). ?gltfaa=0 turns it off (hard edges, thin lines break up).
-      own: { on: OWN_DEFAULT, samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2 },
+      own: { on: OWN_DEFAULT, samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2, slackTimes: 2, slackFrames: 60 },
       // FAR, rule 15 (js/gltf-look.js "FAR: THIN PARTS"): a piece of the model that is thin by its own shape (a bar whose second size is
       // under `thinM` metres and that is `long` times as long, or a piece under `thinM` in every direction) is never drawn narrower than
       // `minPx` pixels, and counts for the share of the pixel it truly covers. ?gltffar=0 draws thin parts as they are (they flicker from far).
       // And a building that covers `smallPixels` of the screen or fewer is smoothed with `smallSamples` samples a pixel, one up to `midPixels`
       // with `midSamples` (the graphics chip's own limit caps both): the edges of windows a few pixels wide then step finely as the camera moves.
       // The small ones are also drawn at `smallScale` times the pixels, each canvas pixel taking the mean of its own block.
-      far: { build: true, on: q.get('gltffar') !== '0', thinM: 0.3, long: 3, minPx: 1, hide: false, smallPixels: 160000, smallSamples: 16, smallScale: 2, midPixels: 600000, midSamples: 8 } },
+      // The tiers go by how many canvas pixels the building's box covers: up to `tinyPixels`, `smallPixels`, `midPixels`. Each has its samples
+      // a pixel (the graphics chip's own limit caps them) and the most it is drawn at beyond the canvas's pixels (`Scale`: 1, 1.5 or 2; each
+      // canvas pixel then takes the mean of its own block). `density`: the scale aimed at is this many picture pixels to one CSS pixel
+      // along a side, so a screen with two pixels to a CSS pixel draws at 1.5 times and one with three at once (0: always the tier's Scale).
+      // Why these numbers (measured, docs/gltf-layer.md "Far away, part three"): 8 samples and twice the pixels each cost about 10 ms a frame
+      // on an integrated chip at a laptop's full density with fourteen buildings in view; 4 samples cost next to nothing.
+      far: { build: true, on: q.get('gltffar') !== '0', thinM: 0.3, long: 3, minPx: 1, hide: false, density: 3,
+        tinyPixels: 40000, tinySamples: 8, tinyScale: 2, smallPixels: 160000, smallSamples: 4, smallScale: 2, midPixels: 600000, midSamples: 4, midScale: 1.5 },
+      // BY DISTANCE (js/gltf-look.js): a building's file is fetched and built when the camera's eye is within `inM` metres of it and let go
+      // beyond `outM`; `atOnce` files at a time, looked at every `everyMs`. ?gltfload=0 loads every row at the start and keeps it.
+      load: { on: q.get('gltfload') !== '0', inM: q.has('gltfin') ? +q.get('gltfin') : 2500, outM: q.has('gltfout') ? +q.get('gltfout') : 3000, atOnce: 3, everyMs: 250 } },
     // The layer's place in the scene, as the apartments' group has it (js/slopes-apartments.js APTS.lod / minzoom).
     lod: null, minzoom: 14,
     // Draw both sides of every face, as the apartments do (APTS.twoSided): a model with one mis-wound face must not show a hole.
@@ -246,6 +256,10 @@
     drawScript: 'js/gltf-layer-draw.js',
   };
   window.GLTF_LAYER = GLTF;
+  // More rows, from js/gltf-rows.js: builds that have only a look file, each standing on the origin of its surveyed map outline (heading 0).
+  // (?gltfrows=0 leaves them out: the table above alone, for a test against an earlier measurement.)
+  for (const r of (q.get('gltfrows') === '0' ? [] : window.GLTF_ROWS || [])) GLTF.buildings.push({ name: r.name, look: 'data/gltf/' + r.slug + '-look.glb', lookOrigin: [0, 0, 0],
+    lng: r.lng, lat: r.lat, groundM: 0, headingDeg: 0, topM: r.topM, replaces: r.replaces, alsoReplaces: r.alsoReplaces, rings: r.rings });
 
   // ── what js/slopes-apartments.js asks ───────────────────────────────────
   const rowFor = spec => spec && GLTF.buildings.find(b => b.replaces && (b.replaces === spec.id || (b.alsoReplaces || []).includes(spec.id)) && (b.file || (GLTF.look.on && b.look)));
@@ -253,6 +267,11 @@
   GLTF.hides = spec => GLTF.on && !!rowFor(spec);
   /** what the apartments' `built` list holds for a recipe that is not drawn there (ids are read by campus-landscape, places, arches) */
   GLTF.stub = spec => ({ name: spec.name, id: spec.id || null, top: (rowFor(spec) || {}).topM || 0, frame: null, roofs: [], rakes: [], signs: 0, insets: 0, replacedBy: 'gltf' });
+  // A model may replace a building that has NO recipe (the app draws it from its generic campus layers: a block, a roof, storey lines).
+  // js/slopes-apartments.js hides those by id and by outline: every id a drawn row replaces, and the outlines (`rings`) of such rows.
+  const drawn = b => b.replaces && (b.file || (GLTF.look.on && b.look));
+  GLTF.replacedIds = () => GLTF.on ? GLTF.buildings.filter(drawn).flatMap(b => [b.replaces, ...(b.alsoReplaces || [])]) : [];
+  GLTF.masks = () => GLTF.on ? GLTF.buildings.filter(b => drawn(b) && b.rings).flatMap(b => b.rings.map((ring, i) => ({ name: 'gltf|' + b.name + '|' + i, footprint: { ring } }))) : [];
   GLTF.group = null;
   GLTF.ready = false;
   const info = { loaded: [], triangles: 0, vertices: 0, drawCalls: 0, litTriangles: 0, bytes: 0, ms: 0, buildMs: 0, errors: [] };

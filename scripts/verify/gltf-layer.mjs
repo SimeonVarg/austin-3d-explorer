@@ -171,5 +171,23 @@ console.log('the standard light for Blender builders');
   check(!!m && m[1] === rigText(), 'scripts/blender_light_rig.py holds the numbers js/city-sky.js gives today (else: node scripts/city-sky-rig.mjs)', Object.keys(HOURS).join(', '));
   check(['def apply(', 'def sun_from_photo(', 'def check(', 'def base_colour(', 'def gate('].every(t => py.includes(t)), 'it has the three calls a builder needs, and the colour function and the gate');
 }
+// ── the generated rows (js/gltf-rows.js): each has its look file and sky-light map, no image inside, and its height is the file's ──────
+console.log('the rows of js/gltf-rows.js');
+{
+  const w = {}; vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/gltf-rows.js'), 'utf8'), vm.createContext({ window: w }));
+  const rows = w.GLTF_ROWS || [], bad = [], ids = new Set(); let tris = 0, bytes = 0;
+  for (const r of rows) {
+    const f = path.join(ROOT, 'data/gltf', r.slug + '-look.glb');
+    if (!fs.existsSync(f) || !fs.existsSync(f.replace(/\.glb$/, '-sky.png'))) { bad.push(r.slug + ': file or sky-light map missing'); continue; }
+    const buf = fs.readFileSync(f), jl = buf.readUInt32LE(12), j = JSON.parse(buf.slice(20, 20 + jl).toString('utf8')); bytes += buf.length;
+    if (j.images && j.images.length) bad.push(r.slug + ': carries an image');
+    let top = -1e9; for (const m of j.meshes) for (const p of m.primitives) { tris += j.accessors[p.indices].count / 3; top = Math.max(top, j.accessors[p.attributes.POSITION].max[1]); if (p.attributes.NORMAL == null || p.attributes.TEXCOORD_0 == null) bad.push(r.slug + ': no normals or no UV set'); }
+    if (Math.abs(top - r.topM) > 0.06) bad.push(r.slug + ': topM ' + r.topM + ' is not the file\'s ' + top.toFixed(2));
+    if (!(Math.abs(r.lng + 97.74) < 0.03 && Math.abs(r.lat - 30.287) < 0.02)) bad.push(r.slug + ': not near campus');
+    for (const id of [r.replaces, ...(r.alsoReplaces || [])]) { if (!/^[0-9a-f-]{36}$/.test(id) || ids.has(id)) bad.push(r.slug + ': id missing or used twice'); ids.add(id); }
+    if (r.rings && !r.rings.every(g => g.length >= 4 && g[0][0] === g[g.length - 1][0] && g[0][1] === g[g.length - 1][1])) bad.push(r.slug + ': an outline is not a closed ring');
+  }
+  check(rows.length > 0 && !bad.length, rows.length + ' rows: each has its look file and sky-light map, no image inside, its height is the file\'s, its ids are its own', bad.slice(0, 4).join('; ') || (tris + ' triangles, ' + (bytes / 1e6).toFixed(1) + ' MB'));
+}
 console.log(failed ? '\nFAILED: ' + failed : '\nall passed');
 process.exit(failed ? 1 : 0);

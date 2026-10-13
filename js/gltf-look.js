@@ -210,10 +210,14 @@
       blendEquation: T.AddEquation, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor, blendSrcAlpha: T.OneFactor, blendDstAlpha: T.OneMinusSrcAlphaFactor,
       uniforms: { u_picture: { value: null }, u_at: { value: new T.Vector4(0, 0, 1, 1) }, u_ss: { value: 1 } },
       vertexShader: VS,
-      // the smoothed picture at this very pixel (its colours are already times how much of the pixel the building covers)
-      // (a picture drawn at u_ss times the pixels: the mean of this pixel's own block of it)
-      fragmentShader: 'uniform sampler2D u_picture; uniform vec4 u_at; uniform float u_ss; void main(){ vec2 b = (gl_FragCoord.xy - u_at.xy - 0.5) * u_ss; vec4 s = vec4(0.0); '
-        + 'for (int j = 0; j < 4; j++) for (int i = 0; i < 4; i++) { if (float(i) < u_ss && float(j) < u_ss) s += texture2D(u_picture, (b + vec2(float(i), float(j)) + 0.5) / u_at.zw); } gl_FragColor = s / (u_ss * u_ss); }' });
+      // the smoothed picture at this very pixel (its colours are already times how much of the pixel the building covers).
+      // A picture drawn at u_ss times the pixels (1, 1.5 or 2): this canvas pixel takes the mean of ITS OWN block of it, each texel by the
+      // share of it that lies in the block, and nothing from a neighbouring pixel. The block starts on a texel edge and spans two texels
+      // a side at most, so ONE read with linear filtering is that mean exactly: the read is placed between the two texels' middles at the
+      // second one's share (1: the texel itself; 2: a quarter each of four; 1.5: two thirds and one third, turn about). 3 and 4 times: a loop.
+      fragmentShader: 'uniform sampler2D u_picture; uniform vec4 u_at; uniform float u_ss; void main(){ vec2 i = floor(gl_FragCoord.xy - u_at.xy); '
+        + 'if (u_ss < 2.5) { vec2 a = i * u_ss, j = floor(a + 0.001), w1 = (a + u_ss - j - 1.0) / u_ss; gl_FragColor = texture2D(u_picture, (j + 0.5 + w1) / u_at.zw); return; } '
+        + 'vec2 b = i * u_ss; vec4 s = vec4(0.0); for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) { if (float(x) < u_ss && float(y) < u_ss) s += texture2D(u_picture, (b + vec2(float(x), float(y)) + 0.5) / u_at.zw); } gl_FragColor = s / (u_ss * u_ss); }' });
     return { picture: new T.Scene(), depth: new T.Scene(), fill: new T.Scene(), glass: new T.Scene(), nothing, depthOnly, lay, box: new T.Box3(), target: null, cam: new T.Camera(), group: null };
   }
   function ownFrame(S, renderer, camera) {
@@ -223,7 +227,11 @@
     const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight;
     const v = new T.Vector4(), restore = () => { renderer.setRenderTarget(null); renderer.setViewport(0, 0, W, H); renderer.setScissor(0, 0, W, H); renderer.setScissorTest(false); };
     OWN.pixels = 0; OWN.bytes = 0; OWN.need = {};
-    for (const b of OWN.list) {
+    const cssPx = W / ((renderer.domElement && renderer.domElement.clientWidth) || W / (window.devicePixelRatio || 1));   // canvas pixels to one CSS pixel, along a side
+    // (a measuring switch: GLTF_LAYER.lookOwn.repeat = 3 does all of this three times a frame; the smoothing's own cost is then (T3 - T1) / 2,
+    //  far above the noise of a whole-city frame time)
+    for (let rep = 0, reps = Math.max(1, OWN.repeat | 0); rep < reps; rep++) for (const b of OWN.list) {
+      if (rep === 0) b.samples = b.scale = 0;
       if (!b.group || !b.group.visible || (b.group.parent && !b.group.parent.visible) || b.box.isEmpty()) continue;   // the app hides the layer's group by zoom and tier
       // the part of the screen the building stands on: its box's corners through the camera
       let x0 = 1, y0 = 1, x1 = -1, y1 = -1, behind = 0;
@@ -235,24 +243,35 @@
       if (behind === 8) continue;                                  // the whole building is behind the camera
       if (behind) { x0 = y0 = -1; x1 = y1 = 1; }                   // the camera stands inside its box: the whole screen
       let px0 = Math.max(0, Math.floor((x0 * 0.5 + 0.5) * W) - O.pad), px1 = Math.min(W, Math.ceil((x1 * 0.5 + 0.5) * W) + O.pad), py0 = Math.max(0, Math.floor((y0 * 0.5 + 0.5) * H) - O.pad), py1 = Math.min(H, Math.ceil((y1 * 0.5 + 0.5) * H) + O.pad);
-      const w = px1 - px0, h = py1 - py0; if (w < 2 || h < 2) continue;
-      // FAR: a building that is small on the screen takes more samples a pixel. Its windows are then a few pixels wide, and with four
-      // samples a dark pane's edge on a pale wall steps by a quarter of that contrast as the camera moves; sixteen samples step by a
-      // sixteenth. The target is small when the building is small, so the extra samples cost little memory.
+      let w = px1 - px0, h = py1 - py0; if (w < 2 || h < 2) continue;
+      // FAR: a building that is small on the screen is drawn finer. Its windows are then a few pixels wide, and with four samples a
+      // pixel a dark pane's edge on a pale wall steps by a quarter of that contrast as the camera moves. WHAT IT COSTS decided the
+      // settings (measured on an integrated chip, 14 buildings, a laptop's full density): four samples a pixel are nearly free, eight
+      // cost as much again as the whole smoothing does (10 ms a frame), and so does drawing at twice the pixels. So:
+      //   - every tier takes 4 samples a pixel, except the smallest boxes (`tinyPixels`), whose cost is small because they are small;
+      //   - a small building is drawn at more than the canvas's pixels, each canvas pixel taking the mean of its own block (that is
+      //     more samples, not a blur): `density` picture pixels to one CSS pixel along a side, at most the tier's `Scale`. A canvas
+      //     that already has two pixels to a CSS pixel is drawn at 1.5 times, one with 1.5 at twice, a phone's with three at once: the
+      //     same fineness on every screen as the eye sees it, and the dense screens do not pay for more.
       const FARS = GLTF.look.far, cap = renderer.capabilities.maxSamples || 4;
-      let samples = w * h > O.bigPixels ? O.bigSamples : O.samples;
-      // ... and the smallest are drawn at `smallScale` times the pixels as well, each pixel of the canvas then taking the mean of its own
-      // block (that is more samples, not a blur: nothing is taken from a neighbouring pixel). Its picture is never larger than a
-      // middle-sized building's, so no building costs more than one at middle distance does.
-      let ss = 1;
-      if (FARS && FARS.on) { if (w * h <= FARS.smallPixels) { samples = Math.min(cap, FARS.smallSamples); ss = Math.max(1, Math.min(4, Math.round(FARS.smallScale))); } else if (w * h <= FARS.midPixels) samples = Math.min(cap, FARS.midSamples); }
+      let samples = w * h > O.bigPixels ? O.bigSamples : O.samples, ss = 1;
+      if (FARS && FARS.on) {
+        const tier = w * h <= FARS.tinyPixels ? 'tiny' : w * h <= FARS.smallPixels ? 'small' : w * h <= FARS.midPixels ? 'mid' : null;
+        if (tier) {
+          samples = Math.min(cap, FARS[tier + 'Samples']);
+          const most = FARS[tier + 'Scale'], want = FARS.density > 0 ? Math.min(most, FARS.density / cssPx) : most;
+          ss = want > 2.5 ? Math.min(4, Math.round(want)) : want >= 1.75 ? 2 : want >= 1.25 ? 1.5 : 1;
+          // one and a half times: the box takes an even number of pixels each way, so that its picture is a whole number of texels
+          if (ss === 1.5) { if ((px1 - px0) & 1) { if (px1 < W) px1++; else if (px0 > 0) px0--; else ss = 2; } if ((py1 - py0) & 1) { if (py1 < H) py1++; else if (py0 > 0) py0--; else ss = 2; } w = px1 - px0; h = py1 - py0; }
+        }
+      }
       const tw0 = w * ss, th0 = h * ss, need = OWN.need[samples] || (OWN.need[samples] = [0, 0]); need[0] = Math.max(need[0], tw0); need[1] = Math.max(need[1], th0);
       b.target = OWN.pool[samples];
       if (!b.target || b.target.width < tw0 || b.target.height < th0) {
         const tw = Math.min(Math.max(W, tw0), Math.ceil(tw0 / O.growBy) * O.growBy), th = Math.min(Math.max(H, th0), Math.ceil(th0 / O.growBy) * O.growBy);
         const ow = b.target ? b.target.width : 0, oh = b.target ? b.target.height : 0;
         if (b.target) b.target.dispose();
-        b.target = OWN.pool[samples] = new T.WebGLRenderTarget(Math.max(tw, ow), Math.max(th, oh), { samples, depthBuffer: true, stencilBuffer: false, magFilter: T.NearestFilter, minFilter: T.NearestFilter, generateMipmaps: false });
+        b.target = OWN.pool[samples] = new T.WebGLRenderTarget(Math.max(tw, ow), Math.max(th, oh), { samples, depthBuffer: true, stencilBuffer: false, magFilter: T.LinearFilter, minFilter: T.LinearFilter, generateMipmaps: false });   // linear: see the lay pass
         if ('colorSpace' in b.target.texture && T.NoColorSpace !== undefined) b.target.texture.colorSpace = T.NoColorSpace;
       }
       // the same camera, looking only at that part of the screen
@@ -270,13 +289,14 @@
         renderer.render(b.fill, camera);                           // 3. the smoothed picture, where the building is in front
         if (b.glass.children.length) renderer.render(b.glass, camera);
       } finally { restore(); renderer.setClearColor(clear, alpha); }
-      OWN.pixels += tw0 * th0; b.samples = samples; b.scale = ss;
+      if (rep === 0) OWN.pixels += tw0 * th0; b.samples = samples; b.scale = ss;
     }
-    // what the shared targets hold; one that has been four times too big for two seconds of frames is let go (it is made again at the size needed)
+    // what the shared targets hold; one that has been `slackTimes` too big for `slackFrames` frames is let go (it is made again at the size
+    // needed). A target made for a close view of one building is the size of the canvas: 187 MB at a laptop's full density.
     for (const k of Object.keys(OWN.pool)) {
       const t = OWN.pool[k], n = OWN.need[k]; if (!t) continue;
-      OWN.slack[k] = (!n || n[0] * n[1] * 4 < t.width * t.height) ? (OWN.slack[k] || 0) + 1 : 0;
-      if (OWN.slack[k] > 120) { t.dispose(); OWN.pool[k] = null; OWN.slack[k] = 0; continue; }
+      OWN.slack[k] = (!n || n[0] * n[1] * O.slackTimes < t.width * t.height) ? (OWN.slack[k] || 0) + 1 : 0;
+      if (OWN.slack[k] > O.slackFrames) { t.dispose(); OWN.pool[k] = null; OWN.slack[k] = 0; continue; }
       OWN.bytes += t.width * t.height * (4 + 8 * Number(k));
     }
     OWN.frames++; OWN.ms = +(performance.now() - t0).toFixed(2);
@@ -299,7 +319,7 @@
     // glTF (x, y, z) is the model's (x, -z, y): X along the street face, Y into the building, Z up. Then the compass heading of +Y.
     const world = (x, y, z) => [O.x + x * c + y * s, O.y - x * s + y * c, O.z + z], turn = (x, y, z) => [x * c + y * s, -x * s + y * c, z];
     const CN = window.CityNight, rules = !!(CN && CN.tune.on && row.replaces), mats = cf(row, 'materials') || {};
-    if (rules) { CN.register({ id: row.replaces, name: row.name, category: 'apartment', night: row.night }); if (row.night && row.night.fixtures) CN.registerFixtures({ id: row.replaces, night: row.night }, { at: world }); }
+    if (rules && !row._night) { row._night = true; CN.register({ id: row.replaces, name: row.name, category: 'apartment', night: row.night }); if (row.night && row.night.fixtures) CN.registerFixtures({ id: row.replaces, night: row.night }, { at: world }); }   // once: a building comes and goes with distance
     const I = GLTF.internals, parts = { solid: null, glass: null, thin: null }, FAR = GLTF.look.far;
     const acc = () => ({ pos: [], nrm: [], uv: [], base: [], mirror: [], night: [], glass: [], thin: [], idx: [] });
     let lit = 0, tris = 0, thinTris = 0;
@@ -373,41 +393,79 @@
       bytes += A.pos.length / 3 * 60 + A.idx.length * 4;
     }
     if (own) { own.group = g; OWN.list.push(own); }
-    return { group: g, triangles: tris, thinTriangles: thinTris, lit, bytes };
+    return { group: g, own, triangles: tris, thinTriangles: thinTris, lit, bytes };
   }
 
   // ── boot ────────────────────────────────────────────────────────────────
   async function fetchBuf(url) { const r = await fetch(url); if (!r.ok) throw new Error(url + ': HTTP ' + r.status); return r.arrayBuffer(); }
   const loadMap = url => new Promise(res => new window.THREE.TextureLoader().load(url, t => {
     const T = window.THREE; t.flipY = false; t.magFilter = t.minFilter = T.LinearFilter; t.generateMipmaps = false; if ('colorSpace' in t && T.NoColorSpace !== undefined) t.colorSpace = T.NoColorSpace; res(t); }, undefined, () => res(null)));
-  let _loaded = null, _group = null;
-  const L = info.look = { loaded: [], triangles: 0, litTriangles: 0, drawCalls: 0, bytes: 0, mapBytes: 0, ms: 0, errors: [] };
-  async function load() {
-    const t0 = performance.now(), rows = GLTF.buildings.filter(b => b.look);
-    _loaded = await Promise.all(rows.map(async row => {
-      try {
-        const file = (GLTF.look.oneWeather && row.lookClearDay) || row.look;      // see GLTF.look.oneWeather (js/gltf-layer.js)
-        const buf = await fetchBuf(file), map = await loadMap(file.replace(/\.glb$/, '-sky.png'));
-        L.bytes += buf.byteLength; if (map && map.image) L.mapBytes += map.image.width * map.image.height * 4; else L.errors.push(row.name + ': no sky-light map');
-        return { row, prims: parseLook(buf), map };
-      } catch (e) { L.errors.push(row.look + ': ' + e.message); console.error('[gltf-look]', row.look, e); return null; }
-    }));
-    L.ms = +(performance.now() - t0).toFixed(1);
+  // ══════════════════════════════════════════════════════════════════════
+  //  BY DISTANCE (GLTF.look.load): a building's file is fetched and built when the camera comes near, and let go when it is far
+  // ══════════════════════════════════════════════════════════════════════
+  // With fifty-eight buildings the page must not hold them all: each is one to four megabytes of file and about as much again on the
+  // graphics card. Each row is OUT (nothing held), LOADING, or IN. Every `everyMs` the distance from the camera's eye to each row's
+  // origin is taken: within `inM` an OUT row is fetched (nearest first, `atOnce` at a time); beyond `outM` an IN row's meshes, materials
+  // and sky-light map are disposed and its file is forgotten (it comes back from the browser's cache). `outM` is larger than `inM` so a
+  // camera that hovers at the edge does not load and unload in turn. ?gltfload=0: every row is loaded at the start and kept.
+  // What is NOT there yet: a stand-in for a row that is OUT. Its old drawing is hidden for the whole session, so beyond `outM` the
+  // building is missing from the picture (docs/gltf-layer.md).
+  let _group = null, _tick = null;
+  const ROWS = [], L = info.look = { loaded: [], triangles: 0, litTriangles: 0, drawCalls: 0, bytes: 0, mapBytes: 0, ms: 0, errors: [], thin: {}, rows: ROWS, loads: 0, unloads: 0 };
+  async function loadRow(S, e) {
+    e.state = 1; const row = e.row, t0 = performance.now();
+    try {
+      const file = (GLTF.look.oneWeather && row.lookClearDay) || row.look;      // see GLTF.look.oneWeather (js/gltf-layer.js)
+      const buf = await fetchBuf(file), map = await loadMap(file.replace(/\.glb$/, '-sky.png'));
+      if (!map || !map.image) L.errors.push(row.name + ': no sky-light map');
+      if (!_group || e.state !== 1) { if (map) map.dispose(); if (e.state === 1) e.state = 0; return; }   // the layer was switched off while the file came
+      const b = build(S, row, parseLook(buf), map);
+      e.built = b; e.map = map; e.fileBytes = buf.byteLength; e.mapBytes = map && map.image ? map.image.width * map.image.height * 4 : 0; e.state = 2;
+      _group.add(b.group); if (OWN.list.length) ownHook(S);
+      L.triangles += b.triangles; L.litTriangles += b.lit; L.drawCalls += b.group.children.length; L.bytes += e.fileBytes; L.mapBytes += e.mapBytes; L.loaded.push(row.name); L.thin[row.name] = [b.thinTriangles, b.triangles]; L.loads++;
+    } catch (err) { e.state = 3; L.errors.push(row.look + ': ' + (err && err.message || err)); console.error('[gltf-look]', row.look, err); }   // 3: failed, not tried again
+    L.ms += performance.now() - t0;
+    if (window.__map && window.__map.triggerRepaint) window.__map.triggerRepaint();
   }
+  function unloadRow(e) {
+    const b = e.built; if (!b) { if (e.state === 1) e.state = 0; return; }
+    if (_group) _group.remove(b.group);
+    const i = OWN.list.indexOf(b.own); if (i >= 0) OWN.list.splice(i, 1);
+    const seen = new Set(), drop = o => { if (o.geometry && !seen.has(o.geometry)) { seen.add(o.geometry); o.geometry.dispose(); } if (o.material && !seen.has(o.material)) { seen.add(o.material); o.material.dispose(); } };
+    b.group.traverse(drop); if (b.own) for (const sc of [b.own.picture, b.own.depth, b.own.fill, b.own.glass]) sc.traverse(drop);
+    if (e.map) e.map.dispose();
+    L.triangles -= b.triangles; L.litTriangles -= b.lit; L.drawCalls -= b.group.children.length; L.bytes -= e.fileBytes; L.mapBytes -= e.mapBytes; L.loaded = L.loaded.filter(n => n !== e.row.name); delete L.thin[e.row.name]; L.unloads++;
+    e.built = e.map = null; e.state = 0;
+  }
+  /** one look at the distances. GLTF.lookReady: every row that should be in at this camera is in (the test scripts wait on it) */
+  function tick(S) {
+    if (!_group) return;
+    const LD = GLTF.look.load, U = S.uniforms(), E = U && U.u_eye && U.u_eye.value, todo = [];
+    let loading = 0, waiting = 0;
+    for (const e of ROWS) {
+      e.dist = LD.on && E ? Math.hypot(E.x - e.at.x, E.y - e.at.y, E.z - e.at.z) : 0;
+      if (e.state === 1) loading++;
+      else if (e.state === 0 && e.dist <= LD.inM) todo.push(e);
+      else if (e.state === 2 && e.dist > LD.outM) unloadRow(e);
+    }
+    todo.sort((a, b) => a.dist - b.dist); waiting = todo.length;
+    for (const e of todo) { if (loading >= LD.atOnce) break; loading++; loadRow(S, e); }
+    GLTF.lookReady = loading === 0 && waiting === 0;
+  }
+  GLTF.lookTick = () => { const S = window.slopes; if (S) tick(S); return GLTF.lookReady; };
   function attach(S) {
     const want = !!(window.SLOPES && window.SLOPES.on && GLTF.on && GLTF.look.on);
-    if (want && !_group && _loaded) {
-      const g = new window.THREE.Group(); g.name = 'gltf-look'; L.triangles = L.litTriangles = L.drawCalls = 0; L.loaded = [];
-      for (const p of _loaded) {
-        if (!p) continue;
-        try { const b = build(S, p.row, p.prims, p.map); g.add(b.group); L.triangles += b.triangles; L.litTriangles += b.lit; L.drawCalls += b.group.children.length; L.loaded.push(p.row.name); (L.thin = L.thin || {})[p.row.name] = [b.thinTriangles, b.triangles]; }
-        catch (e) { L.errors.push(p.row.name + ': ' + e.message); console.error('[gltf-look]', p.row.name, e); }
-      }
+    if (want && !_group) {
+      const g = new window.THREE.Group(); g.name = 'gltf-look';
+      ROWS.length = 0; for (const row of GLTF.buildings) if (row.look) { const O = S.toLocal(row.lng, row.lat, row.groundM || 0); ROWS.push({ row, state: 0, at: { x: O.x, y: O.y, z: O.z + (row.topM || 0) / 2 }, dist: 0, built: null, map: null }); }
       _group = g; S.add(g); if (S.camera && S.camera.layers) S.camera.layers.enable(1);
-      if (OWN.list.length) ownHook(S);
-      console.log('[gltf-look]', L.loaded.join(', ') || 'nothing', '—', L.triangles, 'triangles,', L.drawCalls, 'draw call(s),', L.bytes, 'bytes');
-    } else if (!want && _group) { for (const k of Object.keys(OWN.pool)) { if (OWN.pool[k]) OWN.pool[k].dispose(); OWN.pool[k] = null; } OWN.list.length = 0; S.remove(_group); _group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); _group = null; }
-    GLTF.lookReady = !!_group;
+      GLTF.lookReady = false; tick(S); _tick = setInterval(() => tick(S), GLTF.look.load.everyMs);
+      console.log('[gltf-look]', ROWS.length, 'rows; loaded by distance:', GLTF.look.load.on);
+    } else if (!want && _group) {
+      clearInterval(_tick); _tick = null;
+      for (const e of ROWS) unloadRow(e);
+      for (const k of Object.keys(OWN.pool)) { if (OWN.pool[k]) OWN.pool[k].dispose(); OWN.pool[k] = null; } OWN.list.length = 0; S.remove(_group); _group = null; GLTF.lookReady = false;
+    }
     if (window.__map && window.__map.triggerRepaint) window.__map.triggerRepaint();
   }
   let n = 0, busy = false;
@@ -417,7 +475,7 @@
       const S = window.slopes;
       if (S && S.root && window.THREE && S.uniforms && S.uniforms() && window.CitySky && window.CityLighting && GLTF.internals) {
         clearInterval(timer);
-        await load(); S.onSwitch(() => attach(S)); attach(S);
+        S.onSwitch(() => attach(S)); attach(S);
       } else if (++n > 900) clearInterval(timer);
     } catch (e) { L.errors.push(String(e && e.message || e)); console.error('[gltf-look]', e); clearInterval(timer); }
     busy = false;

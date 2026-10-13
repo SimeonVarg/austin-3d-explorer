@@ -2852,7 +2852,9 @@
   function* hideGeometrySteps(inset, roofscapeOnly = false, frontageOnly = false, outerOnly = false) {
     // cached per inset and list of buildings: a building added at runtime (a builder's console, the gate) gets its clause on the next apply
     inset = inset == null ? APTS.roofscapeInset : inset;
-    const buildings = okBuildings().filter(b => (!roofscapeOnly || !b.preserveRoofscape) && (!frontageOnly || b.replaceFrontage) && (!outerOnly || b.replaceOuter));
+    const buildings = okBuildings().filter(b => (!roofscapeOnly || !b.preserveRoofscape) && (!frontageOnly || b.replaceFrontage) && (!outerOnly || b.replaceOuter))
+      // ?gltf=1: the outline of a building a Blender model replaces and no recipe draws (its roof deck, tiled-roof bands and parts go by outline)
+      .concat(!frontageOnly && !outerOnly && window.GLTF_LAYER && window.GLTF_LAYER.masks ? window.GLTF_LAYER.masks() : []);
     const key = inset + '|' + frontageOnly + '|' + outerOnly + '|' + buildings.map(b => b.name).join('|');
     if (_hideGeo[key] !== undefined) return _hideGeo[key];
     const polys = [];
@@ -2941,7 +2943,8 @@
    */
   const _rigStash = {};
   // ?gltf=1: a building that a Blender model replaces brings its own roof, so the campus roof kept by its recipe (`preserveRoof`) goes too
-  const gltfReplacedIds = () => (window.GLTF_LAYER && window.GLTF_LAYER.on && _data) ? _data.buildings.filter(b => b.id && window.GLTF_LAYER.hides(b)).map(b => b.id) : [];
+  // (and a model may replace a building that has no recipe at all: GLTF_LAYER.replacedIds() names every map building a model stands on)
+  const gltfReplacedIds = () => (window.GLTF_LAYER && window.GLTF_LAYER.on && _data) ? [...new Set(_data.buildings.filter(b => b.id && window.GLTF_LAYER.hides(b)).map(b => b.id).concat(window.GLTF_LAYER.replacedIds ? window.GLTF_LAYER.replacedIds() : []))] : [];
   const excludedRoofKeys = () => new Set(okBuildings().flatMap(b => b.excludeRoofIds || []));
   function stashRigs(on) {
     const R = window.slopesRoofs;
@@ -2985,6 +2988,7 @@
     const badIds = new Set(bad.map(b => b.id).filter(Boolean));
     const badNames = new Set(bad.flatMap(b => [b.name, ...(b.aliases || [])]));
     const gone = (_data.replacedBuildingIds || []).filter(id => !badIds.has(id));
+    for (const id of gltfReplacedIds()) if (!gone.includes(id)) gone.push(id);   // ?gltf=1: the generic block, storey lines and street front of a building a Blender model replaces
     const names = (_data.replacedNames || []).filter(n => !badNames.has(n));
     const plan = [];
     if (gone.length) for (const id of HIDE_LAYERS.prism) plan.push([id, ['!', ['in', ['get', 'id'], ['literal', gone]]]]);
