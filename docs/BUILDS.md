@@ -6,13 +6,13 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 101 builds of 78 buildings; 34 buildings flagged to retarget.
+Right now: 102 builds of 78 buildings; 33 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
 | Building | Model | Date | Triangles | Minutes / cost | Owner score | Retarget |
 |---|---|---|---|---|---|---|
-| 1836 San Jacinto | Sol 6.1 | 2026-10-13 | 18,320 | 66 min, $2.92 |  | yes |
+| 1836 San Jacinto | Opus 5.5 | 2026-10-14 | 17,434 | 33 min, 335k plan tokens |  |  |
 | 21 Rio | Sonnet 5.5 | 2026-10-13 | 16,181 | 26 min, 313k plan tokens | "Good" | yes |
 | 2400 Nueces | Opus 5.5 | 2026-10-12 | 36,710 | 71 min |  |  |
 | 26 West | Opus 5.5 | 2026-10-12 | 76,396 | 72 min | 8.5 |  |
@@ -107,7 +107,6 @@ Right now: 101 builds of 78 buildings; 34 buildings flagged to retarget.
 
 In the 2026-10-13 blind trials the owner picked the models correctly every time and ranked Opus above Sonnet above Haiku; he said decorated buildings are too hard for Sol. A better model should redo these at the same triangle budget.
 
-- **1836 San Jacinto** (Sol 6.1): Sol build; owner ordered an Opus redo (started 2026-10-14, not finished when this row was written); glass flat grey
 - **21 Rio** (Sonnet 5.5, fix round): Sonnet detail pass on the Opus build (Opus base: 50 min, 423k plan tokens); glazed bay moved to the right face; 3.4 m recess left from the scale error
 - **Kappa Delta house** (Sol 6.1, redo): Sol redo of the Haiku build at the same triangle budget; cheaper model, cream wall where photo is white
 - **Pi Beta Phi house** (Sol 6.1, redo): Sol redo: real portico, but sits smaller and a little turned
@@ -156,6 +155,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 
 | Building | Model | Method | Date | Triangles | Minutes / cost | Owner score | Status | Note |
 |---|---|---|---|---|---|---|---|---|
+| 1836 San Jacinto | Sol 6.1 | lean | 2026-10-13 | 18,320 | 66 min, $2.92 |  | superseded | Sol build; owner ordered an Opus redo (started 2026-10-14, not finished when this row was written); glass flat grey |
 | 21 Pearl West Campus | Sol 6.1 | lean | 2026-10-13 |  | 3 min, $0.22 |  | failed | stopped by the lead after 3 min (decorated, so Opus); no build yet |
 | 21 Rio | Opus 5.5 | trial | 2026-10-13 | 16,225 | 50 min, 423k plan tokens | "build A clears in every other dimension" | superseded | blind A/B vs Sonnet: owner picked Opus; scale and plan good to about 10%; glazed bay on the wrong face |
 | 21 Rio | Sonnet 5.5 | trial | 2026-10-13 | 12,102 | 69 min, 571k plan tokens | "Rio Mart was done pretty poorly by both" | trial | owner picked Opus over it; walls darker than photograph; scale 1.44x |
