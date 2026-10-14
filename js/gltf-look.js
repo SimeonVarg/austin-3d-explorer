@@ -515,6 +515,10 @@
       }
       bytes += A.pos.length / 3 * 68 + A.idx.length * 4;
     }
+    // MEMORY: the vertex lists above are plain JS arrays (about 160 bytes a vertex). A closure made in this function (put) reaches `parts`, so every
+    // closure made here, the meshes' onBeforeRender among them, kept them alive for as long as the building was drawn: 440 MB of the page's
+    // heap with sixty-two buildings in. They are let go here; the geometry has its own typed copies.
+    parts.solid = parts.glass = parts.thin = null;
     if (own) { own.group = g; OWN.list.push(own); }
     return { group: g, own, triangles: tris, thinTriangles: thinTris, lit, bytes, patterns: pats.length, patternsLeft: patLeft, stdPanes };
   }
