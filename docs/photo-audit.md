@@ -167,7 +167,7 @@ truly cannot be read is said so, with what the reference pictures say it is.
 This holds for every way of building (a recipe, a Blender build) and every
 model.
 
-*Checks 9c, 9d, 9e, 9f, 9g, 9h, 9i and 9j are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
+*Checks 9c, 9d, 9e, 9f, 9g, 9h, 9i, 9j and 9k are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
 hard rules but more so generalizations that it has the freedom to ignore if it thinks what's shown is different").
 The photograph wins: when what is shown is different, build what is shown and say so.*
 
@@ -233,6 +233,12 @@ covered panes only as data (pane names in the build's notes), so the app can
 choose covered, lit and dark panes at night by how often each happens. A
 coloured light (for example a red room light) may appear at a realistic rate
 in apartment buildings only; campus buildings never show coloured lights.
+
+**9k. The building's own ground comes with it.** What stands on the building's
+plaza, court or forecourt in the photograph belongs to the build: raised
+planters and their walls, benches, tables and chairs, steps, low walls, bike
+racks, lamp posts. Build each as what it is, simple and lean, on the measured
+ground. People and moving vehicles stay out.
 
 **10. Could not see it.** A part hidden by a tree or outside the frame is
 NOT KNOWN. Say so. Build it from the visible pattern and label it INFERRED. Do
@@ -372,3 +378,8 @@ made or sharpened.
   are covered ... we can lean into that direction by like having it random based
   on how many times it appears in real life ... in general there shouldn't be
   colored lights on campus": checks 9i and 9j.
+
+- **2026-10-14, afternoon.** A two-storey concrete building came back with its
+  frame, glass and lettering right and its courtyard empty. His words: "Building
+  is good. It should have added the structure on the side with the plant, and
+  the table + chair ... for next time": check 9k.
