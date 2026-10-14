@@ -198,7 +198,10 @@ wall's material where it is fine (a generated pattern, never a piece of a
 photograph). Keep the wall's average colour equal to the measured colour. This
 is general wall detail, not a rule about brick: the photograph decides how
 much. Rule 15 still holds: a pattern that is thinner than a pixel from where
-it is seen must not flicker there.
+it is seen must not flicker there. This holds for concrete, render and stucco as much as for brick: panel
+joints, score lines, bands, tone variation and grain are read on the photograph
+at full size and measured, and a smooth wall is smooth only when the photograph
+shows it smooth.
 
 **9g. Repeated slanted or stepped parts are measured one by one.** Roof plates,
 canopies, crowns, bracket rows and stepped parapets that repeat along a
@@ -328,3 +331,7 @@ made or sharpened.
   properly and angles are slightly off"; on the second: "make it slant the left
   tower roof like the OG": check 9g. The rebuild measured seven crowns and seven
   canopies into a table and the overlaps were gone.
+- **2026-10-13 evening, same building.** A five-storey block came back with the
+  rendered stone of its corner tower drawn as one flat colour. His words: "add
+  the smooth stone detail / texture on the left tower that is flat right now":
+  check 9f sharpened (concrete, render and stucco too, not only brick).
