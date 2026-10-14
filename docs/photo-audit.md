@@ -167,7 +167,7 @@ truly cannot be read is said so, with what the reference pictures say it is.
 This holds for every way of building (a recipe, a Blender build) and every
 model.
 
-*Checks 9c, 9d, 9e, 9f and 9g are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
+*Checks 9c, 9d, 9e, 9f, 9g and 9h are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
 hard rules but more so generalizations that it has the freedom to ignore if it thinks what's shown is different").
 The photograph wins: when what is shown is different, build what is shown and say so.*
 
@@ -210,6 +210,14 @@ bay, both ends), its width and depth, its low and high edge heights (so the
 slope's direction and angle), its overhang and the gap to the next one. Write
 the table and build from it. A level plate where the photograph shows a slant,
 two plates that cut through each other, or plates spaced by eye are faults.
+
+**9h. Use every angle, not one photograph.** Before building, gather every
+photograph of the place (other spots on the same walk, other days, public
+pictures) and say which part each one shows best. Solve the camera on the
+best one and check depth, heights and hidden parts on the others: what one
+view cannot show (the underside and the sky gaps of a tree crown, the far side
+of a terrace, a step count) is read from another view, not guessed. Building a
+whole scene from one view is a fault when other views exist.
 
 **10. Could not see it.** A part hidden by a tree or outside the frame is
 NOT KNOWN. Say so. Build it from the visible pattern and label it INFERRED. Do
@@ -335,3 +343,8 @@ made or sharpened.
   rendered stone of its corner tower drawn as one flat colour. His words: "add
   the smooth stone detail / texture on the left tower that is flat right now":
   check 9f sharpened (concrete, render and stucco too, not only brick).
+- **2026-10-14, night.** A street (the campus mall) came back from Blender with
+  its paving, centre strip and lamp posts measured well from one photograph,
+  and its tree crowns closed into one dark mass overhead. His words: "The top
+  looks super weird. Like a gray ceiling ... we need to get better at using
+  various angles for stuff like this instead of hyper focusing on one": check 9h.
