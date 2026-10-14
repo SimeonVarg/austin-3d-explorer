@@ -163,6 +163,14 @@ memory and is never written here, in any tracked file, or in a commit message.
       layer behind `?gltf=1` (draft #496, off by default) is where it enters the app. The live site changes only when
       he has scored the result in the app.
     - **This work runs on the plan, with no paid API** (his words: *"I don't see why we need to spend any API at all"*).
+    - **Which builder for which building (owner, 2026-10-13).** Blind trials on the same packages: he named every
+      model right on sight both times, Opus > Sonnet > Haiku (*"Yeah, Haiku sucks"*). So: Opus builds every
+      decorated or well-known building; Sonnet prepares packages, runs checks and makes named fixes; Haiku builds
+      nothing. A paid builder (Sol) runs ONLY because he asked for it, and only on really plain, simple buildings
+      (*"The decorated ones are too hard with sol"*); that ask is the exception to "no paid API" above.
+    - **One triangle number per building, the same for every model** (his words: *"if I had opus redo the haiku runs,
+      it would use the same amount of triangles or give a take a few percent"*). The number, give or take 5 %, is
+      written into the building's package, so any builder of that building gets it, and a model comparison is fair.
     - **The gates do not change:** his eye decides; rule 15 (nothing shimmers, blur is not a fix) holds for every
       Blender building; the phone must still run the city; a picture of the app for him is drawn at his screen's
       density and never smaller than the picture it stands beside.
