@@ -167,7 +167,7 @@ truly cannot be read is said so, with what the reference pictures say it is.
 This holds for every way of building (a recipe, a Blender build) and every
 model.
 
-*Checks 9c, 9d, 9e and 9f are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
+*Checks 9c, 9d, 9e, 9f and 9g are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
 hard rules but more so generalizations that it has the freedom to ignore if it thinks what's shown is different").
 The photograph wins: when what is shown is different, build what is shown and say so.*
 
@@ -199,6 +199,14 @@ photograph). Keep the wall's average colour equal to the measured colour. This
 is general wall detail, not a rule about brick: the photograph decides how
 much. Rule 15 still holds: a pattern that is thinner than a pixel from where
 it is seen must not flicker there.
+
+**9g. Repeated slanted or stepped parts are measured one by one.** Roof plates,
+canopies, crowns, bracket rows and stepped parapets that repeat along a
+building: list each one, then measure through the camera where it sits (which
+bay, both ends), its width and depth, its low and high edge heights (so the
+slope's direction and angle), its overhang and the gap to the next one. Write
+the table and build from it. A level plate where the photograph shows a slant,
+two plates that cut through each other, or plates spaced by eye are faults.
 
 **10. Could not see it.** A part hidden by a tree or outside the frame is
 NOT KNOWN. Say so. Build it from the visible pattern and label it INFERRED. Do
@@ -314,3 +322,9 @@ made or sharpened.
   same building the lower arch "should start a bit higher": it sprang from the
   ground, so it cut the top of the door under it. That is check 9d again (an
   arch keeps its own measured springing height, as a window keeps its sill).
+- **2026-10-13 evening.** Two mid-rise apartment blocks came back from a paid
+  builder with their slanted roof plates set by eye. His words on the first:
+  "Fix the slanted roofs, rn they are overlapping weirdly and aren't spaced
+  properly and angles are slightly off"; on the second: "make it slant the left
+  tower roof like the OG": check 9g. The rebuild measured seven crowns and seven
+  canopies into a table and the overlaps were gone.
