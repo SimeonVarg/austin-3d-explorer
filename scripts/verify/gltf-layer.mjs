@@ -23,9 +23,10 @@ let failed = 0;
 // a look file is kept packed (`<name>.glb.gz`); the plain file is read where there is no packed one
 const lookExists = f => fs.existsSync(f + '.gz') || fs.existsSync(f);
 const readLook = f => fs.existsSync(f + '.gz') ? zlib.gunzipSync(fs.readFileSync(f + '.gz')) : fs.readFileSync(f);
-// the far copy beside a look file (scripts/gltf_far.py): plain numbers, a few hundred triangles, no name of a file or folder
+// the far copy beside a look file (scripts/gltf_far.py): plain numbers, a few hundred triangles, no name of a file or folder (its `from`,
+// the look file's own name, is not searched: a building called Homer would otherwise read as a home folder)
 const farBad = f => { const p = f.replace(/\.glb$/, '-far.json'); if (!fs.existsSync(p)) return 'no far copy'; const t = fs.readFileSync(p, 'utf8'), j = JSON.parse(t);
-  return j.v !== 1 ? 'far copy: unknown version' : !(j.triangles >= 12 && j.triangles <= 1200 && j.triangles === 2 * (j.roofs.length / 6 + j.walls.length / 10)) ? 'far copy: ' + j.triangles + ' triangles' : j.colours.length % 8 || !j.colours.every(Number.isInteger) ? 'far copy: colours' : j.std && (j.std.length * 8 !== j.colours.length || !j.std.every(v => Number.isInteger(v) && v >= 0 && v <= 1000)) ? 'far copy: the standard glass shares' : /photo|\.jpg|\.png|users|home|[a-z]:\\|\/[a-z]+\//i.test(t.replace(j.note, '')) ? 'far copy names a file or folder' : null; };
+  return j.v !== 1 ? 'far copy: unknown version' : !(j.triangles >= 12 && j.triangles <= 1200 && j.triangles === 2 * (j.roofs.length / 6 + j.walls.length / 10)) ? 'far copy: ' + j.triangles + ' triangles' : j.colours.length % 8 || !j.colours.every(Number.isInteger) ? 'far copy: colours' : j.std && (j.std.length * 8 !== j.colours.length || !j.std.every(v => Number.isInteger(v) && v >= 0 && v <= 1000)) ? 'far copy: the standard glass shares' : /photo|\.jpg|\.png|users|home|[a-z]:\\|\/[a-z]+\//i.test(t.replace(j.note, '').replace(JSON.stringify(j.from === path.basename(f) ? j.from : '\u0000'), '""')) ? 'far copy names a file or folder' : null; };
 const check = (ok, what, extra = '') => { console.log((ok ? '  PASS  ' : '  FAIL  ') + what + (extra ? '  ' + extra : '')); if (!ok) failed++; };
 
 function boot(search) {
