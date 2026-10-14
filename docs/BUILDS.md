@@ -6,12 +6,13 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 128 builds of 102 buildings; 41 buildings flagged to retarget.
+Right now: 129 builds of 103 buildings; 42 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
 | Building | Model | Date | Triangles | Minutes / cost | Owner score | Retarget |
 |---|---|---|---|---|---|---|
+| 1609 Shoal Creek office | Sol 6.1 | 2026-10-14 | 11,776 | 64 min, $2.61 |  | yes |
 | 1836 San Jacinto | Opus 5.5 | 2026-10-14 | 17,434 | 33 min, 335k plan tokens |  |  |
 | 1883 at Montgomery House | Opus 5.5 | 2026-10-14 | 17,974 | 38 min, 343k plan tokens |  |  |
 | 1883 Cameron House | Opus 5.5 | 2026-10-14 | 16,336 | 37 min, 340k plan tokens |  |  |
@@ -133,6 +134,7 @@ Right now: 128 builds of 102 buildings; 41 buildings flagged to retarget.
 
 In the 2026-10-13 blind trials the owner picked the models correctly every time and ranked Opus above Sonnet above Haiku; he said decorated buildings are too hard for Sol. A better model should redo these at the same triangle budget.
 
+- **1609 Shoal Creek office** (Sol 6.1): soffit too dark; roof +13 % vs scan (sloped lot)
 - **21 Rio** (Sonnet 5.5, fix round): Sonnet detail pass on the Opus build (Opus base: 50 min, 423k plan tokens); glazed bay moved to the right face; 3.4 m recess left from the scale error
 - **Kappa Delta house** (Sol 6.1, redo): Sol redo of the Haiku build at the same triangle budget; cheaper model, cream wall where photo is white
 - **Pi Beta Phi house** (Sol 6.1, redo): Sol redo: real portico, but sits smaller and a little turned
