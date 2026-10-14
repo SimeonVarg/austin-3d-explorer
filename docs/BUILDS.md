@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 110 builds of 86 buildings; 36 buildings flagged to retarget.
+Right now: 111 builds of 87 buildings; 36 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -78,6 +78,7 @@ Right now: 110 builds of 86 buildings; 36 buildings flagged to retarget.
 | Hogg Memorial Auditorium | Opus 5.5 | 2026-10-13 | 17,813 | 52 min, 458k plan tokens |  |  |
 | Homer Rainey Hall | Opus 5.5 | 2026-10-14 | 15,891 | 39 min, 394k plan tokens |  |  |
 | J. T. Patterson Laboratories | Opus 5.5 | 2026-10-13 | 10,542 | 55 min, 482k plan tokens |  | yes |
+| Jackson Geological Sciences Building | Opus 5.5 | 2026-10-14 | 20,412 | 45 min, 371k plan tokens |  |  |
 | Littlefield House | Opus 5.5 | 2026-10-14 | 23,294 | 42 min, 413k plan tokens |  | yes |
 | Mary E. Gearing Hall | Opus 5.5 | 2026-10-13 | 26,811 | 62 min, 464k plan tokens |  |  |
 | McCombs School of Business | Opus 5.5 | 2026-10-13 | 25,031 | 52 min, 452k plan tokens |  |  |
