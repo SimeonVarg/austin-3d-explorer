@@ -167,7 +167,7 @@ truly cannot be read is said so, with what the reference pictures say it is.
 This holds for every way of building (a recipe, a Blender build) and every
 model.
 
-*Checks 9c, 9d, 9e, 9f, 9g, 9h, 9i, 9j and 9k are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
+*Checks 9c, 9d, 9e, 9f, 9g, 9h, 9i, 9j, 9k and 9l are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
 hard rules but more so generalizations that it has the freedom to ignore if it thinks what's shown is different").
 The photograph wins: when what is shown is different, build what is shown and say so.*
 
@@ -239,6 +239,13 @@ plaza, court or forecourt in the photograph belongs to the build: raised
 planters and their walls, benches, tables and chairs, steps, low walls, bike
 racks, lamp posts. Build each as what it is, simple and lean, on the measured
 ground. People and moving vehicles stay out.
+
+**9l. The ground storey and where the building meets the ground are checked
+like the roof.** Read the base on the photograph at full size: where walls,
+columns and openings stand, how deep each recess or parking level goes, where
+the grade steps. No hole, open bay or undercut that the photograph does not
+show; no recess deeper or set further in than measured. A base hidden by
+plants or cars is built plain and closed, and said to be inferred.
 
 **10. Could not see it.** A part hidden by a tree or outside the frame is
 NOT KNOWN. Say so. Build it from the visible pattern and label it INFERRED. Do
@@ -382,3 +389,9 @@ made or sharpened.
   frame, glass and lettering right and its courtyard empty. His words: "Building
   is good. It should have added the structure on the side with the plant, and
   the table + chair ... for next time": check 9k.
+- **2026-10-14, afternoon.** A plain office block on a parking level came back
+  from a paid builder close to its photograph, with an open hole at a corner of
+  the parking level and the lower left cut set too far in. His words: "In
+  addition to the roof check, add a ground / lower check. In this example
+  there's a hole near the corner that prob shouldn't be there, And the cutoff on
+  the left bottom side is a bit too far in": check 9l.
