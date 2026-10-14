@@ -157,9 +157,72 @@ capitals or mixed case). Zoom the render on every sign before you call a
 building done. `scripts/verify/sign-lettering.mjs` fails a recipe with new dot
 lettering.
 
+**9b2. A sign is read before it is drawn.** For every sign and every lettered
+or carved name: zoom the photographs, open the reference pictures, and write
+down the exact words, the case of the letters, the layout (a line under the
+name, a small year at its end, a mark beside it) and the letter style. Then
+build real letter shapes in that layout. Bars, blocks or strokes that stand
+for letters are a miss, however small the sign is in the picture. A sign that
+truly cannot be read is said so, with what the reference pictures say it is.
+This holds for every way of building (a recipe, a Blender build) and every
+model.
+
+*Checks 9c, 9d, 9e, 9f, 9g and 9h are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
+hard rules but more so generalizations that it has the freedom to ignore if it thinks what's shown is different").
+The photograph wins: when what is shown is different, build what is shown and say so.*
+
+**9c. A thing on a roof or a deck is built as what it is.** Name every distinct
+thing you can see up there: cars, a ball court, a pool, a pergola, cooling
+units, a stair head. Build each as that thing, simple but recognisable: a car
+has a body, a cabin and wheels, never a plain box; a ball court has its lines,
+its cage and its hoops. Count them, and say which you could not name.
+
+**9d. Repeated parts keep their own measured size.** Measure each kind of
+repeated part through the camera (a window, a balcony, a bay): width, height,
+and the gap to the next one, as ratios of the bay. Do not give every balcony one
+standard length. A window never touches the window above it unless the
+photograph shows that. A closed window is dark glass or a blind, never a blank
+patch of the wall's own white.
+
+**9e. Upright things are upright.** Towers, piers and stair cores are vertical
+and parallel to each other in the model unless the photograph proves a lean.
+Two towers that splay apart are a camera or placement error, not a design.
+
+**9f. A wall has its surface, not one flat colour.** Look at each wall in the
+photograph before you paint it. What repeats on its surface is part of the
+building: brick courses and their bond, stone blocks, panel or stucco joints,
+siding boards, ribs, bands, the darker ring of an arch. Measure it through the
+camera (the height and length of one unit, the joint, the two or three
+colours) and build it: as its own faces where it is big, as a pattern in the
+wall's material where it is fine (a generated pattern, never a piece of a
+photograph). Keep the wall's average colour equal to the measured colour. This
+is general wall detail, not a rule about brick: the photograph decides how
+much. Rule 15 still holds: a pattern that is thinner than a pixel from where
+it is seen must not flicker there. This holds for concrete, render and stucco as much as for brick: panel
+joints, score lines, bands, tone variation and grain are read on the photograph
+at full size and measured, and a smooth wall is smooth only when the photograph
+shows it smooth.
+
+**9g. Repeated slanted or stepped parts are measured one by one.** Roof plates,
+canopies, crowns, bracket rows and stepped parapets that repeat along a
+building: list each one, then measure through the camera where it sits (which
+bay, both ends), its width and depth, its low and high edge heights (so the
+slope's direction and angle), its overhang and the gap to the next one. Write
+the table and build from it. A level plate where the photograph shows a slant,
+two plates that cut through each other, or plates spaced by eye are faults.
+
+**9h. Use every angle, not one photograph.** Before building, gather every
+photograph of the place (other spots on the same walk, other days, public
+pictures) and say which part each one shows best. Solve the camera on the
+best one and check depth, heights and hidden parts on the others: what one
+view cannot show (the underside and the sky gaps of a tree crown, the far side
+of a terrace, a step count) is read from another view, not guessed. Building a
+whole scene from one view is a fault when other views exist.
+
 **10. Could not see it.** A part hidden by a tree or outside the frame is
 NOT KNOWN. Say so. Build it from the visible pattern and label it INFERRED. Do
-not skip the row.
+not skip the row. Leave it plain and say so: do not invent a ground storey, an entrance or a
+planting bed that no photograph shows.
 
 ## After the table
 
@@ -242,3 +305,46 @@ made or sharpened.
   did not prove that it showed the same table, nor the one ornament, and a
   corrected outline still left out most of its inner pattern: the whole-picture
   audit stays required.
+- 2026-10-12. The owner compared three models' builds of one five-part
+  apartment complex, each made in Blender from the same site photograph, in a
+  spoken review. What he marked, by class: one build drew roof cars as plain
+  boxes and a ball court as "a little deck-looking thing" while another drew
+  the court with its hoops ("I really wish it would do a better job at
+  inferencing stuff like the basketball court and cars looking like cars
+  instead of blocks"): check 9c. Balconies "too long" in one and "just right"
+  in another, windows that "touch the other windows up and down completely",
+  and windows "completely covered by the wall ... a white shouldn't be what's
+  represented with a closed window": check 9d. "Two vertical towers that kind
+  of go off in different angles": check 9e. One build invented what stood at
+  the hidden bottom and one "did a better job of just leaving what's at the
+  bottom": the sharper end of check 10. He also named the look he wants: clean
+  and a little minimal, "the diorama feature", with true detail welcome where
+  it is accurate.
+- **2026-10-12, at night.** A tower built in Blender came back with bars
+  where its name sign is. His words: "there's like weird lines but it should
+  say signature with a line under and then 1909 at the end of that line-
+  better text recognition from now on": check 9b2. The reference pictures of
+  that building held a clear picture of the sign; the builder had not read it.
+- **2026-10-12, later the same day.** A brick gymnasium came back from Blender
+  with its double stair, rails, arches and windows right and its walls one flat
+  colour. His words: "I want the brick pattern ... if there's brick from now on
+  I'd like the brick pattern to be there (even 26 west missed some bricks) don't
+  write a rule for bricks make it general for wall detail": check 9f. On the
+  same building the lower arch "should start a bit higher": it sprang from the
+  ground, so it cut the top of the door under it. That is check 9d again (an
+  arch keeps its own measured springing height, as a window keeps its sill).
+- **2026-10-13 evening.** Two mid-rise apartment blocks came back from a paid
+  builder with their slanted roof plates set by eye. His words on the first:
+  "Fix the slanted roofs, rn they are overlapping weirdly and aren't spaced
+  properly and angles are slightly off"; on the second: "make it slant the left
+  tower roof like the OG": check 9g. The rebuild measured seven crowns and seven
+  canopies into a table and the overlaps were gone.
+- **2026-10-13 evening, same building.** A five-storey block came back with the
+  rendered stone of its corner tower drawn as one flat colour. His words: "add
+  the smooth stone detail / texture on the left tower that is flat right now":
+  check 9f sharpened (concrete, render and stucco too, not only brick).
+- **2026-10-14, night.** A street (the campus mall) came back from Blender with
+  its paving, centre strip and lamp posts measured well from one photograph,
+  and its tree crowns closed into one dark mass overhead. His words: "The top
+  looks super weird. Like a gray ceiling ... we need to get better at using
+  various angles for stuff like this instead of hyper focusing on one": check 9h.

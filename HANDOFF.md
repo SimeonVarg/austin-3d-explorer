@@ -88,8 +88,23 @@ Full rules: `CLAUDE.md` (same text in `AGENTS.md`). The short version:
 
 ## What is next
 
-**The owner's direction of 2026-10-11, in the order the photo lane reports it (lane mail; he has not yet said it to
-the publishing lane directly, so the order is "as reported"):**
+**NEWEST, 2026-10-12, said by the owner to the publishing lane: the project is reframed around Blender** (`CLAUDE.md`
+rule 16 has his words and what it means for every lane). State at 15:15 that day:
+- **Buildings:** six Blender builds from one site photograph each exist privately (a 30-storey tower he scored 9 of
+  10; a painted mid-rise and a brick campus building he put "between 8s and 9s"; three more not scored yet). None is
+  live. More are being built, apartments first. The brick campus building has no proven name or outline yet.
+- **In the app:** draft #496 (`mac/gltf-layer`, `?gltf=1`, off by default) draws the tower and one more building from
+  model files; with the app's present shader he scored the tower 7.5. Its one failed check was `tile-heal.mjs`
+  ("the instrument is steady"), which also failed on another branch before: flaky, not weakened, not fixed.
+- **Renderer:** `mac/blender-look` holds a test page that draws the tower live with the Blender look. The step now
+  being built puts that light inside the app and measures the frame time WITH the whole city, which is not known yet.
+  After that: the phone. No full rebuild has been ordered; the route is "new light for Blender buildings in today's
+  app first, then the rest of the city in steps".
+- Not merged, not live: everything above.
+
+**Still true from 2026-10-11:**
+
+The owner's direction of 2026-10-11, in the order the photo lane reported it (now behind the Blender decision above):
 1. **Photo-matched whole views first:** campus, east and north Austin as seen in his rooftop photographs, with the
    apartments and distant buildings that are missing. First pass merged as #492 (eight sections, three decks); the
    whole views do not match the photographs yet.
