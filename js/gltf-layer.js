@@ -224,7 +224,7 @@
     // `shadowLiftM`: the sun's shadow map is read this far in front of a face (see the shader's note; 0 = on the face).
     // `oneWeather` (?skyview=1): every building is drawn with the colours it has on a clear day (a row's `lookClearDay` file when it has one),
     // so that one light and one exposure serve the whole view. Off: the tower keeps colours that hold its own photograph's picture.
-    look: { on: q.get('gltflook') !== '0', packed: q.get('gltfpacked') !== '0', oneWeather: q.get('skyview') === '1', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1, shadowLiftM: q.has('gltflift') ? +q.get('gltflift') : 0.6,
+    look: { on: q.get('gltflook') !== '0', packed: q.get('gltfpacked') !== '0', release: q.get('gltfkeep') !== '1', oneWeather: q.get('skyview') === '1', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1, shadowLiftM: q.has('gltflift') ? +q.get('gltflift') : 0.6,
       // THE LIGHT the Blender buildings stand under, a NAMED choice (&gltflight=soft|noon). `noon`: the hour's own light of js/city-sky.js, a clear
       // sun with hard shade (what this layer drew before). `soft`: the builders' NO-SUN light (CitySky.tune.soft: their rig's grey sky and ground,
       // no sun and so no sun shadow, the rig's one exposure number), by day; toward night it gives way to the hour's own light. Most builds were
@@ -252,7 +252,7 @@
       // samples a pixel, covering only the part of the screen it stands on, and that picture is laid onto the canvas where the building is in
       // front. Used only when the canvas itself is not smoothed. `bigPixels`: a building that covers more pixels than this takes `bigSamples`
       // (its target would otherwise hold 36 bytes for each of them). ?gltfaa=0 turns it off (hard edges, thin lines break up).
-      own: { on: OWN_DEFAULT, samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2, slackTimes: 2, slackFrames: 60 },
+      own: { on: OWN_DEFAULT, tight: q.get('gltftight') !== '0', samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2, slackTimes: 2, slackFrames: 60 },
       // FAR, rule 15 (js/gltf-look.js "FAR: THIN PARTS"): a piece of the model that is thin by its own shape (a bar whose second size is
       // under `thinM` metres and that is `long` times as long, or a piece under `thinM` in every direction) is never drawn narrower than
       // `minPx` pixels, and counts for the share of the pixel it truly covers. ?gltffar=0 draws thin parts as they are (they flicker from far).

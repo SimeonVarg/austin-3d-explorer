@@ -317,16 +317,27 @@
       if (rep === 0) b.samples = b.scale = 0;
       if (!b.group || !b.group.visible || (b.group.parent && !b.group.parent.visible) || b.box.isEmpty()) continue;   // the app hides the layer's group by zoom and tier
       // the part of the screen the building stands on: its box's corners through the camera
+      // A box that crosses the camera's near plane is cut by it (its edges are cut where they cross), not taken as the whole screen: a
+      // building beside the street the camera stands in has corners behind the eye, and a whole-screen target for each such building
+      // was most of the pixels the smoothing drew.
       let x0 = 1, y0 = 1, x1 = -1, y1 = -1, behind = 0;
+      const C8 = OWN.c8 || (OWN.c8 = Array.from({ length: 8 }, () => new T.Vector4()));
       for (let i = 0; i < 8; i++) {
-        v.set(i & 1 ? b.box.max.x : b.box.min.x, i & 2 ? b.box.max.y : b.box.min.y, i & 4 ? b.box.max.z : b.box.min.z, 1).applyMatrix4(camera.projectionMatrix);
-        if (v.w <= 1e-6) { behind++; continue; }
-        x0 = Math.min(x0, v.x / v.w); x1 = Math.max(x1, v.x / v.w); y0 = Math.min(y0, v.y / v.w); y1 = Math.max(y1, v.y / v.w);
+        const c = C8[i].set(i & 1 ? b.box.max.x : b.box.min.x, i & 2 ? b.box.max.y : b.box.min.y, i & 4 ? b.box.max.z : b.box.min.z, 1).applyMatrix4(camera.projectionMatrix);
+        if (c.z + c.w < 0) { behind++; continue; }                 // in front of the near plane is z >= -w
+        x0 = Math.min(x0, c.x / c.w); x1 = Math.max(x1, c.x / c.w); y0 = Math.min(y0, c.y / c.w); y1 = Math.max(y1, c.y / c.w);
       }
       if (behind === 8) continue;                                  // the whole building is behind the camera
-      if (behind) { x0 = y0 = -1; x1 = y1 = 1; }                   // the camera stands inside its box: the whole screen
+      if (behind) for (let i = 0; i < 8; i++) for (const bit of [1, 2, 4]) {   // each edge that crosses the near plane, cut where it crosses
+        const j = i | bit; if (j === i) continue;
+        const a = C8[i], c = C8[j], da = a.z + a.w, dc = c.z + c.w; if ((da < 0) === (dc < 0)) continue;
+        const t = da / (da - dc), w = a.w + (c.w - a.w) * t; if (w <= 1e-6) { x0 = y0 = -1; x1 = y1 = 1; continue; }
+        const x = (a.x + (c.x - a.x) * t) / w, y = (a.y + (c.y - a.y) * t) / w;
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      }
       let px0 = Math.max(0, Math.floor((x0 * 0.5 + 0.5) * W) - O.pad), px1 = Math.min(W, Math.ceil((x1 * 0.5 + 0.5) * W) + O.pad), py0 = Math.max(0, Math.floor((y0 * 0.5 + 0.5) * H) - O.pad), py1 = Math.min(H, Math.ceil((y1 * 0.5 + 0.5) * H) + O.pad);
       let w = px1 - px0, h = py1 - py0; if (w < 2 || h < 2) continue;
+      if (OWN.shrink) { px1 = px0 + Math.max(2, Math.round(w * OWN.shrink)); py1 = py0 + Math.max(2, Math.round(h * OWN.shrink)); w = px1 - px0; h = py1 - py0; }   // a measuring switch: the same draws into tiny boxes (no pixels to fill)
       // FAR: a building that is small on the screen is drawn finer. Its windows are then a few pixels wide, and with four samples a
       // pixel a dark pane's edge on a pale wall steps by a quarter of that contrast as the camera moves. WHAT IT COSTS decided the
       // settings (measured on an integrated chip, 14 buildings, a laptop's full density): four samples a pixel are nearly free, eight
@@ -366,14 +377,22 @@
       try {
         renderer.setRenderTarget(b.target); renderer.setClearColor(0x000000, 0); renderer.clear(true, true, false);
         b.ssNow = ss;                                              // (the wall patterns fade by canvas pixels: see the mesh's onBeforeRender)
-        renderer.render(b.picture, b.cam);                         // 1. the building alone, four samples a pixel
+        // 1. the building alone, four samples a pixel. TIGHT (GLTF.look.own.tight): three.js resolves a smoothed target by copying ALL of it, colour
+        // AND depth, after every render, and the shared target is the size of the biggest box (often the whole canvas). With thirty buildings
+        // in view that was thirty full-size copies a frame, 180 ms on an integrated chip. Only the corner the building was drawn into is
+        // copied, and the depth (never read: step 2 draws the building again) is not copied at all. The picture is the same to the bit.
+        if (O.tight !== false) {
+          renderer.properties.get(b.target).__ignoreDepthValues = true;
+          const fw = b.target.width, fh = b.target.height; b.target.width = tw0; b.target.height = th0;
+          try { renderer.render(b.picture, b.cam); } finally { b.target.width = fw; b.target.height = fh; }
+        } else { renderer.properties.get(b.target).__ignoreDepthValues = false; renderer.render(b.picture, b.cam); }
         restore();
         renderer.render(b.depth, camera);                          // 2. its depth into the canvas
         b.lay.uniforms.u_picture.value = b.target.texture; b.lay.uniforms.u_at.value.set(px0, py0, b.target.width, b.target.height); b.lay.uniforms.u_ss.value = ss; b.lay.uniforms.u_fade.value = b.fade === undefined ? 1 : b.fade;
         renderer.render(b.fill, camera);                           // 3. the smoothed picture, where the building is in front
         if (b.glass.children.length) { for (const gm of b.glass.children) gm.material.uniforms.u_lookFade.value = b.fade === undefined ? 1 : b.fade; renderer.render(b.glass, camera); }
       } finally { restore(); renderer.setClearColor(clear, alpha); }
-      if (rep === 0) OWN.pixels += tw0 * th0; b.samples = samples; b.scale = ss;
+      if (rep === 0) OWN.pixels += tw0 * th0; b.samples = samples; b.scale = ss; b.px = tw0 * th0; b.whole = !!behind;
     }
     // what the shared targets hold; one that has been `slackTimes` too big for `slackFrames` frames is let go (it is made again at the size
     // needed). A target made for a close view of one building is the size of the canvas: 187 MB at a laptop's full density.
@@ -400,6 +419,7 @@
   }
   GLTF.lookOwn = OWN;
 
+  function releaseArray() { this.array = null; }
   // ── one building ────────────────────────────────────────────────────────
   function build(S, row, prims, skyMap) {
     const T = window.THREE, h = row.headingDeg * Math.PI / 180, c = Math.cos(h), s = Math.sin(h), O = S.toLocal(row.lng, row.lat, row.groundM || 0), og = row.lookOrigin || [0, 0, 0];
@@ -459,7 +479,10 @@
       geom.setAttribute('position', F(A.pos, 3)); geom.setAttribute('normal', F(A.nrm, 3)); geom.setAttribute('uv', F(A.uv, 2));
       geom.setAttribute('aBase', F(A.base, 3)); geom.setAttribute('aMirror', F(A.mirror, 3)); geom.setAttribute('aNight', F(A.night, 3)); geom.setAttribute('aGlass', F(A.glass, 1)); geom.setAttribute('aPat', F(A.pat, 2));
       if (name === 'thin') geom.setAttribute('aThin', F(A.thin, 4));
-      geom.setIndex(new T.BufferAttribute(Uint32Array.from(A.idx), 1)); geom.computeBoundingSphere();
+      geom.setIndex(new T.BufferAttribute(Uint32Array.from(A.idx), 1)); geom.computeBoundingSphere(); geom.computeBoundingBox();
+      // MEMORY (GLTF.look.release): once a building's arrays are on the graphics card the page's own copy is let go (three.js's own way,
+      // onUpload). Nothing reads them after that: the bounds are taken above, and a building that comes back is built again from its file.
+      if (GLTF.look.release) for (const a of [...Object.values(geom.attributes), geom.index]) a.onUpload(releaseArray);
       for (const pass of (A.through ? [1, 2] : name === 'thin' ? [3] : [0])) {
         const mat = material(S, skyMap, pass, A.through, A.transmit), mesh = new T.Mesh(geom, mat), MU = mat.uniforms;
         // the building's wall patterns, and its own frame for them (the row's origin and heading)
@@ -487,11 +510,15 @@
           const caster = new T.Mesh(geom, own.nothing); caster.name = mesh.name + '-shadow'; g.add(caster);
           const dm = new T.Mesh(geom, own.depthOnly); dm.frustumCulled = false; own.depth.add(dm);
           const fm = new T.Mesh(geom, own.lay); fm.frustumCulled = false; own.fill.add(fm);
-          geom.computeBoundingBox(); own.box.union(geom.boundingBox);
+          own.box.union(geom.boundingBox);
         }
       }
       bytes += A.pos.length / 3 * 68 + A.idx.length * 4;
     }
+    // MEMORY: the vertex lists above are plain JS arrays (about 160 bytes a vertex). A closure made in this function (put) reaches `parts`, so every
+    // closure made here, the meshes' onBeforeRender among them, kept them alive for as long as the building was drawn: 440 MB of the page's
+    // heap with sixty-two buildings in. They are let go here; the geometry has its own typed copies.
+    parts.solid = parts.glass = parts.thin = null;
     if (own) { own.group = g; OWN.list.push(own); }
     return { group: g, own, triangles: tris, thinTriangles: thinTris, lit, bytes, patterns: pats.length, patternsLeft: patLeft, stdPanes };
   }
@@ -701,6 +728,9 @@
       if (GLTF.look.copy.on) { COPY.group = new window.THREE.Group(); COPY.group.name = 'gltf-look-far-copies'; COPY.group.userData.lod = GLTF.lod; COPY.group.userData.minzoom = GLTF.minzoom; g.add(COPY.group);
         COPY.mat = copyMaterial(S, 0); COPY.fadeMat = copyMaterial(S, GLTF.look.copy.pushM); COPY.rows = 0; for (const e of ROWS) copyLoad(S, e); copyHook(S); }
       GLTF.lookReady = false; tick(S); _tick = setInterval(() => tick(S), GLTF.look.load.everyMs);
+      // the page lets go of its own copy of each building's arrays (GLTF.look.release), so a lost graphics context could not upload them again:
+      // every full building is let go then, and comes back from its file by distance once the context is back
+      if (GLTF.look.release && S.renderer && S.renderer.domElement && !attach.lossHooked) { attach.lossHooked = true; S.renderer.domElement.addEventListener('webglcontextlost', () => { for (const e of ROWS) unloadRow(e); }); }
       console.log('[gltf-look]', ROWS.length, 'rows; loaded by distance:', GLTF.look.load.on);
     } else if (!want && _group) {
       clearInterval(_tick); _tick = null;
