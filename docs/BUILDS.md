@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 125 builds of 99 buildings; 40 buildings flagged to retarget.
+Right now: 126 builds of 100 buildings; 41 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -40,6 +40,7 @@ Right now: 125 builds of 99 buildings; 40 buildings flagged to retarget.
 | The Callaway House | Opus 5.5 | 2026-10-13 | 4,116 | 46 min, 397k plan tokens |  | yes |
 | The Castilian | Opus 5.5 | 2026-10-12 | 12,501 | 52 min |  | yes |
 | The Mark Austin | Opus 5.5 | 2026-10-12 | 42,036 | 84 min |  |  |
+| The Nine at Rio | Sol 6.1 | 2026-10-14 | 14,180 | 61 min, $2.27 |  | yes |
 | The Nine at West Campus | Opus 5.5 | 2026-10-13 | 14,814 | 43 min, 381k plan tokens |  |  |
 | The Otis Hotel | Opus 5.5 | 2026-10-13 | 12,467 | 44 min, 387k plan tokens |  |  |
 | The Quarters Grayson House | Opus 5.5 | 2026-10-14 | 17,678 | 57 min, 429k plan tokens |  |  |
@@ -135,6 +136,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Pi Beta Phi house** (Sol 6.1, redo): Sol redo: real portico, but sits smaller and a little turned
 - **Texan Pearl** (Sol 6.1, fix round): fix 1: every roof plate and canopy re-measured; shaded left wing still too dark; cheaper model (base Sol build: 70 min, $3.10)
 - **Texas Alpha Phi house** (Sol 6.1, redo): Sol redo; thin iron may flicker in the app; wall under decks too dark
+- **The Nine at Rio** (Sol 6.1): glass dark; base storey inferred (hidden by a hedge)
 - **The Texan Shoal Creek** (Sol 6.1, fix round): fix 1 on the owner note (stone detail, slanted tower roof); tower windows still black holes; cheaper model (base Sol build: 65 min, $3.15, 9.1M tokens)
 - **University Avenue Church of Christ** (Sol 6.1, redo): Sol redo; it chose its own camera limit (24 px) to pass; stone too even
 
