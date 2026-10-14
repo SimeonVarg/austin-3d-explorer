@@ -6,13 +6,14 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 104 builds of 80 buildings; 33 buildings flagged to retarget.
+Right now: 105 builds of 81 buildings; 33 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
 | Building | Model | Date | Triangles | Minutes / cost | Owner score | Retarget |
 |---|---|---|---|---|---|---|
 | 1836 San Jacinto | Opus 5.5 | 2026-10-14 | 17,434 | 33 min, 335k plan tokens |  |  |
+| 1883 at Montgomery House | Opus 5.5 | 2026-10-14 | 17,974 | 38 min, 343k plan tokens |  |  |
 | 21 Rio | Sonnet 5.5 | 2026-10-13 | 16,181 | 26 min, 313k plan tokens | "Good" | yes |
 | 2400 Nueces | Opus 5.5 | 2026-10-12 | 36,710 | 71 min |  |  |
 | 26 West | Opus 5.5 | 2026-10-12 | 76,396 | 72 min | 8.5 |  |
