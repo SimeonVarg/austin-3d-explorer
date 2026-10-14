@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 113 builds of 89 buildings; 37 buildings flagged to retarget.
+Right now: 114 builds of 90 buildings; 38 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -94,6 +94,7 @@ Right now: 113 builds of 89 buildings; 37 buildings flagged to retarget.
 | Rowling Hall | Opus 5.5 | 2026-10-12 | 13,189 | 70 min |  | yes |
 | Seay Building | Opus 5.5 | 2026-10-13 | 15,404 | 52 min, 437k plan tokens |  |  |
 | T. S. Painter Hall | Opus 5.5 | 2026-10-12 | 16,751 | 53 min |  |  |
+| University Presbyterian Church | Opus 5.5 | 2026-10-14 | 14,435 | 56 min, 401k plan tokens |  | yes |
 | Waggener Hall | Opus 5.5 | 2026-10-14 | 20,433 | 51 min, 436k plan tokens |  |  |
 | Will C. Hogg Building | Opus 5.5 | 2026-10-13 | 24,386 | 55 min, 420k plan tokens |  |  |
 
@@ -149,6 +150,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **The Standard**: owner said it needs work; tower glass near black; outline 4-6 m short on the south
 - **Union on 24th**: 109k triangles is too many for the phone; north court guessed; needs a lean copy
 - **Union on San Antonio**: tower too pale and plainer than the photograph; tower height 92.7 m vs notes 101 m (older app version scored 8.3)
+- **University Presbyterian Church**: camera unproven (lines disagree); door surround spiky; wings plain boxes
 - **Villas on 24th**: dawn photograph: all 28 colour places miss, render 5x too dark; 58k triangles; not replaced
 - **Villas on Guadalupe**: weak build; worst wall stretch 7.3 m off the outline; roofs wrong
 - **Villas on Nueces**: owner: pretty good; camera unproven (a corner 1.8 m off); street face 1.8 m inside the outline; base storeys and Nueces face have no openings
