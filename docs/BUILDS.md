@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 119 builds of 95 buildings; 40 buildings flagged to retarget.
+Right now: 121 builds of 95 buildings; 38 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -15,6 +15,7 @@ Right now: 119 builds of 95 buildings; 40 buildings flagged to retarget.
 | 1836 San Jacinto | Opus 5.5 | 2026-10-14 | 17,434 | 33 min, 335k plan tokens |  |  |
 | 1883 at Montgomery House | Opus 5.5 | 2026-10-14 | 17,974 | 38 min, 343k plan tokens |  |  |
 | 1883 Cameron House | Opus 5.5 | 2026-10-14 | 16,336 | 37 min, 340k plan tokens |  |  |
+| 21 Pearl | Opus 5.5 | 2026-10-14 | 14,432 | 44 min, 353k plan tokens |  |  |
 | 21 Rio | Sonnet 5.5 | 2026-10-13 | 16,181 | 26 min, 313k plan tokens | "Good" | yes |
 | 2400 Nueces | Opus 5.5 | 2026-10-12 | 36,710 | 71 min |  |  |
 | 26 West | Opus 5.5 | 2026-10-12 | 76,396 | 72 min | 8.5 |  |
@@ -38,6 +39,7 @@ Right now: 119 builds of 95 buildings; 40 buildings flagged to retarget.
 | The Mark Austin | Opus 5.5 | 2026-10-12 | 42,036 | 84 min |  |  |
 | The Nine at West Campus | Opus 5.5 | 2026-10-13 | 14,814 | 43 min, 381k plan tokens |  |  |
 | The Otis Hotel | Opus 5.5 | 2026-10-13 | 12,467 | 44 min, 387k plan tokens |  |  |
+| The Quarters Grayson House | Opus 5.5 | 2026-10-14 | 17,678 | 57 min, 429k plan tokens |  |  |
 | The Quarters Nueces House | Opus 5.5 | 2026-10-12 | 11,476 | 49 min |  |  |
 | The Rise at West Campus | Opus 5.5 | 2026-10-12 | 20,140 | 69 min |  |  |
 | The Standard | Opus 5.5 | 2026-10-12 | 17,168 | 47 min | "Standard needs work" | yes |
@@ -165,8 +167,6 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### No finished build yet
 
-- **The Quarters Grayson House**: stopped by the lead after 14 min (decorated, so Opus); no build yet
-- **21 Pearl West Campus**: stopped by the lead after 3 min (decorated, so Opus); no build yet
 - **George H. W. Bush State Office Building**: stopped by the owner (about 51 min in); partial files only, no hand-back
 - **Neural Molecular Science Building**: stopped by the owner (about 45 min in); partial files only, no hand-back
 - **Harry Ransom Center**: stopped by the owner (about 21 min in); model file only, no render
