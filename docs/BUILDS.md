@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 116 builds of 92 buildings; 39 buildings flagged to retarget.
+Right now: 117 builds of 93 buildings; 40 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -63,6 +63,7 @@ Right now: 116 builds of 92 buildings; 39 buildings flagged to retarget.
 | Anna Hiss Gymnasium | Opus 5.5 | 2026-10-12 | 32,898 | 46 min | "I want the brick pattern" | yes |
 | AT&T Executive Education and Conference Center | Opus 5.5 | 2026-10-13 | 16,126 | 53 min, 454k plan tokens |  | yes |
 | Bass Concert Hall | Opus 5.5 | 2026-10-14 | 23,880 | 49 min, 431k plan tokens |  | yes |
+| Biomedical Engineering Building | Opus 5.5 | 2026-10-14 | 24,046 | 47 min, 407k plan tokens |  | yes |
 | Brick campus building (name unconfirmed) | Opus 5.5 | 2026-10-12 | 2,420 | 59 min | "between 8s and 9s" | yes |
 | Bullock Texas State History Museum | Opus 5.5 | 2026-10-13 | 29,058 | 61 min, 515k plan tokens |  |  |
 | Carothers Dormitory | Opus 5.5 | 2026-10-14 | 20,879 | 44 min, 389k plan tokens |  | yes |
@@ -134,6 +135,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Anna Hiss Gymnasium**: owner asked for the brick pattern; lower arch springs from the ground and cuts the door top
 - **AT&T Executive Education and Conference Center**: base bare (street rises 4 m); terrace, fence and sign not built; west arcade inferred
 - **Bass Concert Hall**: camera unproven (one held-out 7.45 px; a corner moved after a miss); glass dark
+- **Biomedical Engineering Building**: one held-out height corrected after a miss; 400 px main photo; glass colour off; base grey
 - **Brick campus building (name unconfirmed)**: name never confirmed (matches no reference picture), not placed on the map
 - **Carothers Dormitory**: held-out points re-picked twice (weak proof); stone grey; east side inferred
 - **Engineering Teaching Center II**: coping 11% under the scan height; ground level not proven; glass too bright
