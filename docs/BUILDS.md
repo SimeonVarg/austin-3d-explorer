@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 124 builds of 98 buildings; 39 buildings flagged to retarget.
+Right now: 125 builds of 99 buildings; 40 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -65,6 +65,7 @@ Right now: 124 builds of 98 buildings; 39 buildings flagged to retarget.
 | Building | Model | Date | Triangles | Minutes / cost | Owner score | Retarget |
 |---|---|---|---|---|---|---|
 | Almetris Duren Hall | Opus 5.5 | 2026-10-14 | 19,358 | 38 min, 321k plan tokens |  |  |
+| Andrews Dormitory | Opus 5.5 | 2026-10-14 | 17,861 | 41 min, 400k plan tokens |  | yes |
 | Anna Hiss Gymnasium | Opus 5.5 | 2026-10-12 | 32,898 | 46 min | "I want the brick pattern" | yes |
 | AT&T Executive Education and Conference Center | Opus 5.5 | 2026-10-13 | 16,126 | 53 min, 454k plan tokens |  | yes |
 | Bass Concert Hall | Opus 5.5 | 2026-10-14 | 23,880 | 49 min, 431k plan tokens |  | yes |
@@ -139,6 +140,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### The best build is Opus but has a known open fault
 
+- **Andrews Dormitory**: weak camera proof; west wing hidden by an oak; east section inferred; roof pitches fitted to the scan
 - **Anna Hiss Gymnasium**: owner asked for the brick pattern; lower arch springs from the ground and cuts the door top
 - **AT&T Executive Education and Conference Center**: base bare (street rises 4 m); terrace, fence and sign not built; west arcade inferred
 - **Bass Concert Hall**: camera unproven (one held-out 7.45 px; a corner moved after a miss); glass dark
