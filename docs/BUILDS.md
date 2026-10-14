@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 115 builds of 91 buildings; 39 buildings flagged to retarget.
+Right now: 116 builds of 92 buildings; 39 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -90,6 +90,7 @@ Right now: 115 builds of 91 buildings; 39 buildings flagged to retarget.
 | PCL Library | Opus 5.5 | 2026-10-13 | 3,148 | 48 min, 397k plan tokens |  |  |
 | Peter T. Flawn Academic Center | Opus 5.5 | 2026-10-13 | 32,445 | 55 min, 426k plan tokens |  |  |
 | Physics, Math and Astronomy | Opus 5.5 | 2026-10-13 | 7,180 | 45 min, 383k plan tokens |  |  |
+| Powers Student Activity Center | Opus 5.5 | 2026-10-14 | 22,905 | 40 min, 399k plan tokens |  |  |
 | Robert A. Welch Hall | Opus 5.5 | 2026-10-13 | 32,296 | 54 min, 473k plan tokens |  |  |
 | Roberts Hall | Opus 5.5 | 2026-10-14 | 17,954 | 44 min, 382k plan tokens |  | yes |
 | Rowling Hall | Opus 5.5 | 2026-10-12 | 13,189 | 70 min |  | yes |
