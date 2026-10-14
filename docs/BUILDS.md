@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 123 builds of 97 buildings; 38 buildings flagged to retarget.
+Right now: 124 builds of 98 buildings; 39 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -32,6 +32,7 @@ Right now: 123 builds of 97 buildings; 38 buildings flagged to retarget.
 | Noble 2500 | Opus 5.5 | 2026-10-12 | 19,802 | 47 min |  |  |
 | Pointe on Rio | Opus 5.5 | 2026-10-12 | 19,021 | 40 min |  |  |
 | Rambler | Opus 5.5 | 2026-10-12 | 17,742 | 61 min |  |  |
+| Regents West at 26th | Opus 5.5 | 2026-10-14 | 15,887 | 52 min, 454k plan tokens |  | yes |
 | Signature 1909 | Opus 5.5 | 2026-10-12 | 6,953 | 76 min | "weird lines ... better text recognition" |  |
 | Skyloft Austin | Opus 5.5 | 2026-10-12 | 6,016 | 72 min | 8.6 |  |
 | Texan Pearl | Sol 6.1 | 2026-10-13 | 15,685 | 37 min, $1.71 | "Fix the slanted roofs" | yes |
@@ -152,6 +153,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **J. T. Patterson Laboratories**: stair tower position inferred, up to 7.3 m off; glass too light
 - **Littlefield House**: camera unproven on an old small public photo; work render only; heights maybe 5-10 % high
 - **Norman Hackerman Building**: overcast photo: colour gate failed 2 of 10, sun set by hand; wall 3.5 m off the outline
+- **Regents West at 26th**: camera unproven (stair bay vs survey); stucco too dark; east wing thin
 - **Roberts Hall**: camera passed after post-hoc held-out fixes; brick and stone a bit dark; other wings from an aerial
 - **Rowling Hall**: fins miss the colour gate by 65%; south wing and street sides inferred
 - **Speedway (campus road), first 178 m**: trees bad (thick black trunks, grey ceiling), west terrace, stairs and rails missing; round 2 cancelled by the owner
