@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 111 builds of 87 buildings; 36 buildings flagged to retarget.
+Right now: 112 builds of 88 buildings; 37 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -89,6 +89,7 @@ Right now: 111 builds of 87 buildings; 36 buildings flagged to retarget.
 | Peter T. Flawn Academic Center | Opus 5.5 | 2026-10-13 | 32,445 | 55 min, 426k plan tokens |  |  |
 | Physics, Math and Astronomy | Opus 5.5 | 2026-10-13 | 7,180 | 45 min, 383k plan tokens |  |  |
 | Robert A. Welch Hall | Opus 5.5 | 2026-10-13 | 32,296 | 54 min, 473k plan tokens |  |  |
+| Roberts Hall | Opus 5.5 | 2026-10-14 | 17,954 | 44 min, 382k plan tokens |  | yes |
 | Rowling Hall | Opus 5.5 | 2026-10-12 | 13,189 | 70 min |  | yes |
 | Seay Building | Opus 5.5 | 2026-10-13 | 15,404 | 52 min, 437k plan tokens |  |  |
 | T. S. Painter Hall | Opus 5.5 | 2026-10-12 | 16,751 | 53 min |  |  |
@@ -138,6 +139,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **J. T. Patterson Laboratories**: stair tower position inferred, up to 7.3 m off; glass too light
 - **Littlefield House**: camera unproven on an old small public photo; work render only; heights maybe 5-10 % high
 - **Norman Hackerman Building**: overcast photo: colour gate failed 2 of 10, sun set by hand; wall 3.5 m off the outline
+- **Roberts Hall**: camera passed after post-hoc held-out fixes; brick and stone a bit dark; other wings from an aerial
 - **Rowling Hall**: fins miss the colour gate by 65%; south wing and street sides inferred
 - **Speedway (campus road), first 178 m**: trees bad (thick black trunks, grey ceiling), west terrace, stairs and rails missing; round 2 cancelled by the owner
 - **Texan Tower**: name not confirmed (no readable sign); heights 6-9% under the scan
