@@ -2740,6 +2740,8 @@
       // stops here and takes back what it had counted.
       if (cancelled()) { discard(); return null; }
       if (cull) cull.push(B.triangles * 3);
+      // ?gltf=1 (js/gltf-layer.js): a recipe that a Blender model replaces is not drawn here; it keeps its place in `built`.
+      if (window.GLTF_LAYER && window.GLTF_LAYER.hides(spec)) { built.push(window.GLTF_LAYER.stub(spec)); continue; }
       const pendingStart=B.filterPending.length;
       B.allowFilter=APTS.facadeFilter.on&&APTS.facadeFilter.buildings.includes(spec.name)&&!!window.FacadeFilter;
       try {
@@ -2850,7 +2852,9 @@
   function* hideGeometrySteps(inset, roofscapeOnly = false, frontageOnly = false, outerOnly = false) {
     // cached per inset and list of buildings: a building added at runtime (a builder's console, the gate) gets its clause on the next apply
     inset = inset == null ? APTS.roofscapeInset : inset;
-    const buildings = okBuildings().filter(b => (!roofscapeOnly || !b.preserveRoofscape) && (!frontageOnly || b.replaceFrontage) && (!outerOnly || b.replaceOuter));
+    const buildings = okBuildings().filter(b => (!roofscapeOnly || !b.preserveRoofscape) && (!frontageOnly || b.replaceFrontage) && (!outerOnly || b.replaceOuter))
+      // ?gltf=1: the outline of a building a Blender model replaces and no recipe draws (its roof deck, tiled-roof bands and parts go by outline)
+      .concat(!frontageOnly && !outerOnly && window.GLTF_LAYER && window.GLTF_LAYER.masks ? window.GLTF_LAYER.masks() : []);
     const key = inset + '|' + frontageOnly + '|' + outerOnly + '|' + buildings.map(b => b.name).join('|');
     if (_hideGeo[key] !== undefined) return _hideGeo[key];
     const polys = [];
@@ -2938,6 +2942,9 @@
    * roofs) and is written into HANDOFF.md for the roofs lane.
    */
   const _rigStash = {};
+  // ?gltf=1: a building that a Blender model replaces brings its own roof, so the campus roof kept by its recipe (`preserveRoof`) goes too
+  // (and a model may replace a building that has no recipe at all: GLTF_LAYER.replacedIds() names every map building a model stands on)
+  const gltfReplacedIds = () => (window.GLTF_LAYER && window.GLTF_LAYER.on && _data) ? [...new Set(_data.buildings.filter(b => b.id && window.GLTF_LAYER.hides(b)).map(b => b.id).concat(window.GLTF_LAYER.replacedIds ? window.GLTF_LAYER.replacedIds() : []))] : [];
   const excludedRoofKeys = () => new Set(okBuildings().flatMap(b => b.excludeRoofIds || []));
   function stashRigs(on) {
     const R = window.slopesRoofs;
@@ -2946,6 +2953,7 @@
     let n = 0;
     if (on) {
       const ids = new Set((_data.replacedBuildingIds || []).filter(id => !_data.buildings.some(b => b.id === id && b.preserveRoof)));
+      for (const id of gltfReplacedIds()) ids.add(id);
       const exact = excludedRoofKeys();
       // Restore a selective roof if its replacement failed during a rebuild.
       for (const k of Object.keys(_rigStash)) if (!ids.has(k.split('/')[0]) && !exact.has(k)) { roofs[k] = _rigStash[k]; delete _rigStash[k]; n++; }
@@ -2971,6 +2979,7 @@
     const R = window.slopesRoofs, roofs = R && R.data && R.data.roofs;
     if (!roofs || !_data) return [];
     const ids = new Set((_data.replacedBuildingIds || []).filter(id => !_data.buildings.some(b => b.id === id && b.preserveRoof)));
+    for (const id of gltfReplacedIds()) ids.add(id);
     const exact = excludedRoofKeys();
     return Object.keys(roofs).filter(k => ids.has(k.split('/')[0]) || exact.has(k));
   }
@@ -2979,6 +2988,7 @@
     const badIds = new Set(bad.map(b => b.id).filter(Boolean));
     const badNames = new Set(bad.flatMap(b => [b.name, ...(b.aliases || [])]));
     const gone = (_data.replacedBuildingIds || []).filter(id => !badIds.has(id));
+    for (const id of gltfReplacedIds()) if (!gone.includes(id)) gone.push(id);   // ?gltf=1: the generic block, storey lines and street front of a building a Blender model replaces
     const names = (_data.replacedNames || []).filter(n => !badNames.has(n));
     const plan = [];
     if (gone.length) for (const id of HIDE_LAYERS.prism) plan.push([id, ['!', ['in', ['get', 'id'], ['literal', gone]]]]);
@@ -3279,8 +3289,9 @@
     /** every character the dot font can set */
     get glyphs() { return Object.keys(FONT); },
     /** a built building's frame: (u, v) metres to [lng, lat], and back */
-    uvToLngLat(name, u, v) { const b = _built.find(x => x.name === name); return b ? b.frame.ll(u, v) : null; },
-    lngLatToUV(name, lng, lat) { const b = _built.find(x => x.name === name); return b ? b.frame.toUV([lng, lat]) : null; },
+    // (a building a glTF model replaces is in the list with no frame: js/gltf-layer.js, GLTF.stub)
+    uvToLngLat(name, u, v) { const b = _built.find(x => x.name === name); return b && b.frame ? b.frame.ll(u, v) : null; },
+    lngLatToUV(name, lng, lat) { const b = _built.find(x => x.name === name); return b && b.frame ? b.frame.toUV([lng, lat]) : null; },
     obbOf, h01, floorsBetween, offsetRing, hideGeometry,
     /** the on-demand areas (APTS.areas) */
     areas: {

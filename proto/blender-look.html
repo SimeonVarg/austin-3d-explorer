@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blender look: one tower, the new renderer (prototype)</title>
+<!--
+  proto/blender-look.html — ONE Blender-built building drawn in the browser with the look of its Blender render.
+
+  WHY. The app draws buildings with its own small shader (js/slopes.js): flat colours, one light rule, no sky light, no soft shadows,
+  no edge smoothing on a laptop. A building made in Blender and rendered there looks far better than the same model in the app. This
+  page asks one question: can the browser draw that model with the Blender look? It is a standalone test, not wired into the app.
+
+  WHAT IT DOES, the same way the Blender scene is set up (scripts/blender_export_look.py writes the model):
+    materials   as Blender has them: base colour, roughness, no mirror part on the walls; glass = a dark diffuse part plus a mirror part
+                of the scene's own colour (the glTF carries the numbers as `extras`)
+    sky light   the scene's sky (a gradient of colours) lights every surface from every direction (image-based lighting), with the
+                ground's own bounce in the lower half; recesses and inside corners get less of it (a small map baked in Blender, ?ao=0 = off)
+    sun         one directional light of the scene's strength, with a soft shadow map
+    glass       mirrors that sky: light above the horizon, the far land at it, the ground below
+    view        Blender's "Standard" view transform is plain sRGB: no tone curve. ?tone=agx or ?tone=neutral tries the others.
+    edges       multisampling (4 samples a pixel) at the screen's own pixel ratio. ?aa=0 turns it off, ?aa=ss draws 2 x the pixels instead.
+    time of day ?hour=6..24 moves the sun and the sky (the page's own model); rooms light up at night.
+
+  The library is three.js (the release named in the import map below), loaded at run time from the CDN the app already uses.
+
+  A "reference" camera and sun (the ones a render is compared against) are NOT in this file: a test harness hands them in as
+  window.BLENDER_LOOK_REF = { camera: { matrix: [16 numbers, column by column], vfov }, sun: { dir: [x, y, z], strength: [r, g, b] } }.
+  Without it the page shows the tower from a plain three-quarter view under its own noon sun.
+
+  Hooks for a harness: window.LOOK = { ready, error, setHour(h), setCamera(c), orbit(distance, turnDeg, pitchDeg), render(), bench(n), info() }.
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #10141a; overflow: hidden; font: 13px/1.4 system-ui, sans-serif; color: #e8eef5; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #hud { position: fixed; left: 12px; bottom: 10px; padding: 6px 10px; background: rgba(10, 16, 24, .72); border-radius: 8px; max-width: 70vw; }
+  #hud:empty { display: none; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.186.1/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.186.1/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="hud"></div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const q = new URLSearchParams(location.search);
+const num = (k, d) => { const v = parseFloat(q.get(k)); return Number.isFinite(v) ? v : d; };
+
+// ══════════════════════════════════════════════════════════════════════
+//  TASTE BLOCK — every value that is a choice. The first group is the Blender scene's own setup, copied, not chosen here.
+// ══════════════════════════════════════════════════════════════════════
+const LOOK_SET = {
+  model: q.get('model') || 'waterloo-look.glb',
+  headingDeg: 95,                       // compass bearing of the model's +Y axis (into the building), as the app's table has it: only the page's own sun uses it
+  // ── the scene's sky: colours by the sine of the height above the level line (linear interpolation between stops), sRGB 0..255 ──
+  sky: { land: [108, 128, 138], landTop: 0.004, horizon: [190, 210, 226],
+         stops: [[0.045, [181, 203, 222]], [0.153, [119, 170, 224]], [0.26, [88, 139, 202]], [0.6, [55, 100, 180]]],
+         treeAmp: 0.014, treeLift: -0.01, treeScale: 90 },     // what lights and mirrors see: the far tree line stands a little above level and is ragged
+  // What every ray except the camera's own sees the sky multiplied by (the scene lifts its shade light this way; the mirror part of the
+  // glass is divided by it in the model, so a mirror shows the sky as it is).
+  skyGain: [6.226384530578516, 4.0023751489194686, 2.449166880354],
+  ground: { albedo: [0.1, 0.125, 0.07], half: 6000 },          // the plane under the model, metres from the middle to an edge
+  // ── the page's own choices ──
+  // The page's own noon sun, used when no reference is handed in (elevation and bearing in degrees, strength as the scene's unit).
+  sun: { strength: [1.5653356029720626, 1.5273819360186915, 0.9085198081828816] },
+  envSize: Math.round(num('env', 1024)),   // width of the sky image the lighting is made from (its height is half)
+  shadow: { size: Math.round(num('shadow', 2048)), bias: -0.0002, normalBias: 0.05, radius: 1.5, on: q.get('shadows') !== '0' },   // size: pixels a side of the sun's shadow map. 2048 and 4096 give the same picture on this tower (measured); 4096 costs 100 MB more
+  aa: q.get('aa') || 'msaa',            // 'msaa' (4 samples a pixel), 'ss' (2 x the pixels each way, no multisampling), '0' (none)
+  dpr: num('dpr', window.devicePixelRatio || 1),
+  tone: q.get('tone') || 'standard',    // 'standard' = Blender's Standard view transform (plain sRGB); 'agx', 'neutral' = three.js tone curves
+  exposure: num('exposure', 1),
+  ambient: num('ambient', 1),           // scales the sky light (1 = as the scene)
+  // The sky-light map baked in Blender (scripts/blender_export_look.py): how much sky each part of each face sees. 1 = as baked, 0 = off (?ao=0).
+  skyLight: { on: q.get('ao') !== '0', strength: num('aostrength', 1) },
+  glassDiffuseFix: q.get('glassfix') !== '0',   // three.js takes the mirror's share out of the glass's diffuse part, colour channel by channel; the scene adds the two. true = put it back (?glassfix=0 = leave it)
+  probeHeight: 60,                      // the height (m) the sky image is seen from: sets where the ground plane ends in it
+  // Night: rooms lit (share of the window panes, colour and brightness, linear), the sign lit, a moon for a little shape, and the sky's own
+  // light lifted (a city sky at night is not black). All choices of this page; the Blender scene has no night.
+  night: { litShare: 0.3, roomColour: [1.0, 0.78, 0.5], roomStrength: 0.95, seed: 7, signColour: [1.0, 0.92, 0.78], signStrength: 0.9,
+           skyLift: 3.0, moon: { elevDeg: 48, bearingDeg: 140, strength: [0.035, 0.045, 0.07] } },
+  view: { distance: 190, turnDeg: 28, pitchDeg: 6, vfov: 34 },                             // the plain view when no reference camera is given
+};
+
+const hud = document.getElementById('hud');
+const say = t => { hud.textContent = t; };
+const LOOK = window.LOOK = { ready: false, error: null };
+
+// ── colour helpers (the scene's numbers are sRGB bytes; light is added in linear) ──
+const lin = c => c.map(v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+const mix3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const clamp01 = v => Math.max(0, Math.min(1, v));
+
+// ── the sky by time of day: the scene's own sky at noon, warmer and darker toward dusk, a night sky after it ──
+function skyAt(sunElevDeg) {
+  const S = LOOK_SET.sky, day = { land: lin(S.land), horizon: lin(S.horizon), stops: S.stops.map(([z, c]) => [z, lin(c)]) };
+  const dusk = { land: lin([92, 78, 84]), horizon: lin([255, 176, 110]), stops: [[0.045, lin([244, 170, 120])], [0.153, lin([170, 150, 170])], [0.26, lin([96, 112, 168])], [0.6, lin([44, 64, 128])]] };
+  const night = { land: lin([10, 13, 20]), horizon: lin([18, 24, 40]), stops: [[0.045, lin([15, 20, 36])], [0.153, lin([10, 14, 28])], [0.26, lin([7, 10, 22])], [0.6, lin([4, 6, 14])]] };
+  const blend = (A, B, t) => ({ land: mix3(A.land, B.land, t), horizon: mix3(A.horizon, B.horizon, t), stops: A.stops.map(([z, c], i) => [z, mix3(c, B.stops[i][1], t)]) });
+  if (sunElevDeg >= 25) return day;
+  if (sunElevDeg >= 4) return blend(dusk, day, (sunElevDeg - 4) / 21);
+  if (sunElevDeg >= -8) return blend(night, dusk, (sunElevDeg + 8) / 12);
+  return night;
+}
+function rampAt(sky, z) {       // the scene's colour ramp: land up to landTop, then the horizon colour, then the stops
+  const S = LOOK_SET.sky, pts = [[-0.02, sky.land], [S.landTop, sky.land], [S.landTop + 0.002, sky.horizon], ...sky.stops];
+  if (z <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++) if (z <= pts[i][0]) { const t = (z - pts[i - 1][0]) / (pts[i][0] - pts[i - 1][0]); return mix3(pts[i - 1][1], pts[i][1], t); }
+  return pts[pts.length - 1][1];
+}
+// a ragged tree line: smooth noise by bearing, 0..1
+const hash1 = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+const vnoise = x => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return hash1(i) * (1 - u) + hash1(i + 1) * u; };
+const fbm = x => vnoise(x) * 0.5 + vnoise(x * 2.03 + 17) * 0.25 + vnoise(x * 4.01 + 31) * 0.15 + vnoise(x * 8.1 + 47) * 0.1;
+
+/** the sky as an image (equirectangular, half-float, linear), as lights and mirrors see it: gained, a ragged tree line, the lit ground below */
+function skyImage(sky, sun, forLight = true) {
+  const W = LOOK_SET.envSize, H = W / 2, data = new Uint16Array(W * H * 4), G = LOOK_SET.skyGain.map(v => v * LOOK_SET.ambient * (state.envLift || 1));
+  const S = LOOK_SET.sky, toHalf = THREE.DataUtils.toHalfFloat;
+  // light falling on the ground: the sun, and the sky's own light (the mean of the gained sky, weighted by the cosine)
+  let skyE = [0, 0, 0], wsum = 0;
+  for (let k = 0; k < 64; k++) { const z = (k + 0.5) / 64, c = rampAt(sky, z); for (let i = 0; i < 3; i++) skyE[i] += c[i] * G[i] * z; wsum += z; }
+  skyE = skyE.map(v => v / wsum);                                                        // radiance of a white ground under the sky alone
+  const sunE = sun.strength.map(v => v * Math.max(0, sun.dir[1]) / Math.PI);             // the same under the sun (sun.dir is up in y)
+  const ground = LOOK_SET.ground.albedo.map((a, i) => a * (skyE[i] + sunE[i]));
+  const edge = -Math.sin(Math.atan2(LOOK_SET.probeHeight, LOOK_SET.ground.half));        // below this the ground plane fills the view
+  for (let y = 0; y < H; y++) {
+    const elev = ((y + 0.5) / H - 0.5) * Math.PI, z = Math.sin(elev);                   // row 0 is straight down (three.js: v = 0)
+    for (let x = 0; x < W; x++) {
+      const o = (y * W + x) * 4; let c;
+      if (forLight && z < edge) c = ground;
+      else {
+        const zz = forLight ? z - (fbm((x / W) * S.treeScale * 6.2832) * S.treeAmp + S.treeLift) : z;
+        c = rampAt(sky, zz); c = [c[0] * G[0], c[1] * G[1], c[2] * G[2]];
+      }
+      data[o] = toHalf(c[0]); data[o + 1] = toHalf(c[1]); data[o + 2] = toHalf(c[2]); data[o + 3] = toHalf(1);
+    }
+  }
+  const t = new THREE.DataTexture(data, W, H, THREE.RGBAFormat, THREE.HalfFloatType);
+  t.mapping = THREE.EquirectangularReflectionMapping; t.colorSpace = THREE.LinearSRGBColorSpace;
+  t.magFilter = t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; t.flipY = false; t.needsUpdate = true;
+  return t;
+}
+
+// ── the sun by hour: a plain arc (rises in the east at 6, due south at 12, sets in the west at 18), turned into the model's frame ──
+function sunAtHour(h) {
+  const a = (h - 6) / 12 * Math.PI, elev = Math.asin(Math.sin(a) * Math.sin(62 * Math.PI / 180)), az = (90 + (h - 6) * 15) * Math.PI / 180;   // compass bearing of the sun
+  const e = Math.sin(az) * Math.cos(elev), n = Math.cos(az) * Math.cos(elev), u = Math.sin(elev);                                              // east, north, up
+  const hd = LOOK_SET.headingDeg * Math.PI / 180, c = Math.cos(hd), s = Math.sin(hd);
+  // model X = east * c - north * s, model Y (into the building) = east * s + north * c; three.js: (X, up, -Y)
+  const dir = [e * c - n * s, u, -(e * s + n * c)];
+  const warm = clamp01((25 - elev * 180 / Math.PI) / 21), up = clamp01((elev * 180 / Math.PI + 1) / 6);
+  const st = LOOK_SET.sun.strength, strength = [st[0] * up, st[1] * up * (1 - 0.35 * warm), st[2] * up * (1 - 0.65 * warm)];
+  return { dir, strength, elevDeg: elev * 180 / Math.PI };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+const canvas = document.createElement('canvas'); document.body.prepend(canvas);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: LOOK_SET.aa === 'msaa', powerPreference: 'high-performance' });
+renderer.setPixelRatio(LOOK_SET.dpr * (LOOK_SET.aa === 'ss' ? 2 : 1));
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = LOOK_SET.tone === 'agx' ? THREE.AgXToneMapping : LOOK_SET.tone === 'neutral' ? THREE.NeutralToneMapping : THREE.NoToneMapping;
+renderer.toneMappingExposure = LOOK_SET.exposure;
+renderer.shadowMap.enabled = LOOK_SET.shadow.on; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;     // the sun and the model stand still between frames: the shadow map is drawn when the light changes, not every frame
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(LOOK_SET.view.vfov, innerWidth / innerHeight, 1, 20000);
+const controls = new OrbitControls(camera, canvas); controls.enableDamping = false;
+const sunLight = new THREE.DirectionalLight(0xffffff, 1); sunLight.castShadow = LOOK_SET.shadow.on;
+sunLight.shadow.mapSize.set(LOOK_SET.shadow.size, LOOK_SET.shadow.size); sunLight.shadow.bias = LOOK_SET.shadow.bias; sunLight.shadow.normalBias = LOOK_SET.shadow.normalBias; sunLight.shadow.radius = LOOK_SET.shadow.radius;
+scene.add(sunLight, sunLight.target);
+const pmrem = new THREE.PMREMGenerator(renderer);
+const groundMat = new THREE.MeshPhysicalMaterial({ roughness: 0.8, metalness: 0, specularIntensity: 0 });
+groundMat.color.setRGB(...LOOK_SET.ground.albedo, THREE.LinearSRGBColorSpace);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(LOOK_SET.ground.half * 2, LOOK_SET.ground.half * 2), groundMat);
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+// the sky the camera sees: the same colour ramp, drawn by a shader on a dome (exact at any size; an image would blur the level line)
+const domeMat = new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
+  uniforms: { uZ: { value: new Float32Array(7) }, uC: { value: Array.from({ length: 7 }, () => new THREE.Vector3()) } },
+  vertexShader: 'varying vec3 vDir; void main(){ vDir = position; vec4 p = projectionMatrix * modelViewMatrix * vec4(position + cameraPosition, 1.0); gl_Position = p.xyww; }',
+  fragmentShader: `uniform float uZ[7]; uniform vec3 uC[7]; varying vec3 vDir;
+    void main(){ float z = normalize(vDir).y; vec3 c = uC[0];
+      for (int i = 1; i < 7; i++) { c = mix(c, uC[i], clamp((z - uZ[i - 1]) / max(uZ[i] - uZ[i - 1], 1e-6), 0.0, 1.0)); }
+      gl_FragColor = vec4(c, 1.0);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }` });
+const dome = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24), domeMat); dome.frustumCulled = false; dome.renderOrder = -10; scene.add(dome);
+function setDome(sky) {
+  const S = LOOK_SET.sky, pts = [[-0.02, sky.land], [S.landTop, sky.land], [S.landTop + 0.002, sky.horizon], ...sky.stops];
+  pts.forEach(([z, c], i) => { domeMat.uniforms.uZ.value[i] = z; domeMat.uniforms.uC.value[i].set(c[0], c[1], c[2]); });
+}
+const state = { hour: null, sun: null, model: null, box: new THREE.Box3(), centre: new THREE.Vector3(), radius: 60, envTarget: null, env: null, rooms: null, sign: null, envLift: 1, dirty: true, refCamera: false };
+
+function setLight(sun, sky) {
+  state.sun = sun;
+  const m = Math.max(...sun.strength, 1e-6);
+  sunLight.color.setRGB(sun.strength[0] / m, sun.strength[1] / m, sun.strength[2] / m, THREE.LinearSRGBColorSpace); sunLight.intensity = m > 1e-5 ? m : 0;
+  sunLight.visible = sunLight.intensity > 0;
+  const d = new THREE.Vector3(...sun.dir).normalize();
+  sunLight.target.position.copy(state.centre); sunLight.position.copy(state.centre).addScaledVector(d, state.radius * 3);
+  const sc = sunLight.shadow.camera, r = state.radius * 1.05; sc.left = -r; sc.right = r; sc.top = r; sc.bottom = -r; sc.near = state.radius; sc.far = state.radius * 5; sc.updateProjectionMatrix();
+  if (state.env) state.env.dispose(); if (state.envTarget) state.envTarget.dispose();
+  state.env = skyImage(sky, sun);
+  state.envTarget = pmrem.fromEquirectangular(state.env);
+  setDome(sky); scene.environment = state.envTarget.texture;
+  renderer.shadowMap.needsUpdate = true; state.dirty = true;
+}
+function setHour(h) {
+  state.hour = h;
+  const N = LOOK_SET.night, sun = sunAtHour(h), sky = skyAt(sun.elevDeg), nightness = clamp01((4 - sun.elevDeg) / 10);
+  state.envLift = 1 + (N.skyLift - 1) * nightness;
+  let light = sun;
+  if (sun.elevDeg < 0) {   // the sun is down: the moon is the one light with a direction
+    const el = N.moon.elevDeg * Math.PI / 180, az = N.moon.bearingDeg * Math.PI / 180, e = Math.sin(az) * Math.cos(el), n = Math.cos(az) * Math.cos(el), hd = LOOK_SET.headingDeg * Math.PI / 180;
+    light = { dir: [e * Math.cos(hd) - n * Math.sin(hd), Math.sin(el), -(e * Math.sin(hd) + n * Math.cos(hd))], strength: N.moon.strength.map(v => v * nightness), elevDeg: sun.elevDeg };
+  }
+  setLight(light, sky);
+  if (state.rooms) { state.rooms.visible = nightness > 0.05; state.rooms.material.emissiveIntensity = N.roomStrength * nightness; }
+  if (state.sign) state.sign.emissiveIntensity = N.signStrength * nightness;
+  say(`hour ${h}: sun ${sun.elevDeg.toFixed(0)} deg up`);
+}
+
+// ── glass: the scene's two parts (dark diffuse + a mirror of a set colour, the same from every angle) as a physical material ──
+function glassMaterial(src) {
+  const e = src.userData || {}, g = e.look_glossy || [0.04, 0.08, 0.14], si = Math.max(...g), k = 0.16;   // 0.16 = ((ior - 1) / (ior + 1))^2 at ior 2.333, the most three.js allows
+  const m = new THREE.MeshPhysicalMaterial({ roughness: e.look_rough ?? 0.03, metalness: 0, ior: 2.333, specularIntensity: si, side: src.side });
+  m.specularColor.setRGB(g[0] / (k * si), g[1] / (k * si), g[2] / (k * si), THREE.LinearSRGBColorSpace);    // so the mirror's colour is exactly g, and it does not grow toward grazing angles
+  m.color.copy(src.color);
+  if (LOOK_SET.glassDiffuseFix) { m.color.r /= 1 - g[0]; m.color.g /= 1 - g[1]; m.color.b /= 1 - g[2]; }
+  if (e.look_transparent > 0) { m.transparent = true; m.opacity = 1 - e.look_transparent; m.depthWrite = false; }
+  m.name = src.name; m.userData = e;
+  return m;
+}
+/** rooms lit at night: a share of the window panes (each pane is two triangles), drawn again just in front of the glass as a light source */
+function roomsMesh(root) {
+  const N = LOOK_SET.night, pos = [];
+  root.traverse(o => {
+    if (!o.isMesh || !/^glass(_b)?$/.test(o.material.name)) return;
+    const P = o.geometry.attributes.position, I = o.geometry.index, Nn = o.geometry.attributes.normal;
+    for (let k = 0; k + 5 < I.count; k += 6) {
+      const idx = [0, 1, 2, 3, 4, 5].map(j => I.getX(k + j)), v = idx.map(i => new THREE.Vector3().fromBufferAttribute(P, i));
+      const lo = v.reduce((a, b) => a.clone().min(b)), hi = v.reduce((a, b) => a.clone().max(b)), size = hi.clone().sub(lo);
+      if (Math.max(size.x, size.z) > 3 || size.y > 3.2) continue;                                   // a long strip of glazing is not a room
+      const c = lo.clone().add(hi).multiplyScalar(0.5); if (hash1(Math.round(c.x * 31) + Math.round(c.y * 57) * 3 + Math.round(c.z * 13) * 7 + N.seed) > N.litShare) continue;
+      const n = new THREE.Vector3().fromBufferAttribute(Nn, idx[0]).multiplyScalar(0.02);
+      for (const p of v) pos.push(p.x + n.x, p.y + n.y, p.z + n.z);
+    }
+  });
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+  const m = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 1, metalness: 0, side: THREE.DoubleSide });
+  m.emissive.setRGB(...N.roomColour, THREE.LinearSRGBColorSpace); m.emissiveIntensity = 0;
+  const mesh = new THREE.Mesh(g, m); mesh.visible = false; mesh.name = 'rooms'; return mesh;
+}
+
+function fitClip() {    // near and far planes round the model and the ground: the model's thin layers stand millimetres apart
+  const d = camera.position.distanceTo(state.centre);
+  camera.near = Math.max(0.5, (d - state.radius) * 0.5); camera.far = Math.max(2000, LOOK_SET.ground.half * 2.2); camera.updateProjectionMatrix();
+}
+function setCamera(c) {
+  state.refCamera = true; controls.enabled = false;
+  const m = new THREE.Matrix4().fromArray(c.matrix); m.decompose(camera.position, camera.quaternion, camera.scale);
+  camera.fov = c.vfov; camera.aspect = innerWidth / innerHeight; fitClip(); state.dirty = true;
+}
+function orbit(distance, turnDeg, pitchDeg, vfov) {    // turn 0 = straight in front of the lettered face; positive = round toward the building's south side
+  state.refCamera = false; controls.enabled = true;
+  const a = turnDeg * Math.PI / 180, p = pitchDeg * Math.PI / 180, t = state.centre.clone(); t.y = state.box.max.y * 0.62;
+  camera.position.set(t.x + Math.sin(a) * Math.cos(p) * distance, t.y + Math.sin(p) * distance, t.z + Math.cos(a) * Math.cos(p) * distance);
+  if (vfov) camera.fov = vfov;
+  camera.aspect = innerWidth / innerHeight; controls.target.copy(t); camera.lookAt(t); controls.update(); fitClip(); state.dirty = true;
+}
+function render() { if (!state.refCamera) fitClip(); renderer.render(scene, camera); state.dirty = false; }
+function info() {
+  const i = renderer.info, gl = renderer.getContext();
+  let verts = 0; scene.traverse(o => { if (o.isMesh) verts += o.geometry.attributes.position.count; });
+  const buf = renderer.getDrawingBufferSize(new THREE.Vector2()), samples = gl.getParameter(gl.SAMPLES);
+  const env = state.envTarget ? state.envTarget.texture.image : { width: 0, height: 0 };
+  const bytes = { vertices: verts * 24, shadowMap: LOOK_SET.shadow.on ? LOOK_SET.shadow.size ** 2 * 4 : 0, skyLight: env.width * env.height * 8,
+                  skyImage: LOOK_SET.envSize * LOOK_SET.envSize / 2 * 8, frame: buf.x * buf.y * (4 + 4) * Math.max(1, samples) + (samples ? buf.x * buf.y * 4 : 0) };
+  bytes.total = Object.values(bytes).reduce((a, b) => a + b, 0);
+  return { three: THREE.REVISION, triangles: i.render.triangles, calls: i.render.calls, geometries: i.memory.geometries, textures: i.memory.textures, vertices: verts,
+           buffer: [buf.x, buf.y], samples, dpr: renderer.getPixelRatio(), gpu: (() => { const x = gl.getExtension('WEBGL_debug_renderer_info'); return x ? gl.getParameter(x.UNMASKED_RENDERER_WEBGL) : ''; })(),
+           estimatedGpuBytes: bytes, jsHeap: performance.memory ? performance.memory.usedJSHeapSize : null, hour: state.hour };
+}
+/** milliseconds a frame: n frames with the camera turning a little each time, timed to the GPU finishing the last one */
+async function bench(n = 60, everyFrameShadow = false) {
+  const gl = renderer.getContext(), px = new Uint8Array(4), t = controls.target.clone(), base = camera.position.clone().sub(t);
+  const frame = k => { const a = k * 0.002, c = Math.cos(a), s = Math.sin(a); camera.position.set(t.x + base.x * c - base.z * s, t.y + base.y, t.z + base.x * s + base.z * c); camera.lookAt(t); if (everyFrameShadow) renderer.shadowMap.needsUpdate = true; renderer.render(scene, camera); };
+  for (let k = 0; k < 5; k++) frame(k); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  const t0 = performance.now(); for (let k = 0; k < n; k++) frame(k); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  const ms = (performance.now() - t0) / n; camera.position.copy(t).add(base); camera.lookAt(t); state.dirty = true;
+  return +ms.toFixed(2);
+}
+Object.assign(LOOK, { setHour, setCamera, orbit, render, bench, info, set: LOOK_SET, state, THREE, renderer, camera, scene,
+  setSun(sun) { state.envLift = 1; setLight({ dir: sun.dir, strength: sun.strength, elevDeg: 90 }, skyAt(90)); if (state.rooms) state.rooms.visible = false; if (state.sign) state.sign.emissiveIntensity = 0; } });
+
+const skyMap = LOOK_SET.skyLight.on ? await new Promise(res => new THREE.TextureLoader().load(LOOK_SET.model.replace(/\.glb$/, '-sky.png'), t => {
+  t.flipY = false; t.colorSpace = THREE.NoColorSpace; t.magFilter = t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; res(t); }, undefined, () => res(null))) : null;
+new GLTFLoader().load(LOOK_SET.model, gltf => {
+  const root = gltf.scene; state.model = root;
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    const kind = o.material.userData && o.material.userData.look_kind;
+    if (kind === 'glass') o.material = glassMaterial(o.material);
+    else if ('specularIntensity' in o.material) o.material.specularIntensity = o.material.userData.look_specular != null ? o.material.userData.look_specular * 2 : o.material.specularIntensity;
+    if (o.material.name === 'letters') { state.sign = o.material; o.material.emissive.setRGB(...LOOK_SET.night.signColour, THREE.LinearSRGBColorSpace); o.material.emissiveIntensity = 0; }
+    if (skyMap && o.geometry.attributes.uv) { o.material.aoMap = skyMap; o.material.aoMapIntensity = LOOK_SET.skyLight.strength; }
+    o.castShadow = !o.material.transparent; o.receiveShadow = true;
+  });
+  scene.add(root);
+  state.box.setFromObject(root); state.box.getCenter(state.centre); state.radius = state.box.getSize(new THREE.Vector3()).length() / 2;
+  state.rooms = roomsMesh(root); scene.add(state.rooms);
+  const ref = window.BLENDER_LOOK_REF;
+  if (q.has('hour')) setHour(num('hour', 12));
+  else if (ref && ref.sun) LOOK.setSun(ref.sun);
+  else setHour(12);
+  if (ref && ref.camera) setCamera(ref.camera); else orbit(LOOK_SET.view.distance, LOOK_SET.view.turnDeg, LOOK_SET.view.pitchDeg, LOOK_SET.view.vfov);
+  render(); render();
+  LOOK.ready = true;
+  if (!ref) say(`three.js r${THREE.REVISION} · ${info().triangles.toLocaleString()} triangles · drag to turn · ?hour=6..24`);
+}, undefined, e => { LOOK.error = String(e && e.message || e); say('could not load the model: ' + LOOK.error); });
+
+controls.addEventListener('change', () => { state.dirty = true; });
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); state.dirty = true; });
+(function loop() { requestAnimationFrame(loop); if (LOOK.ready && state.dirty) render(); })();
+</script>
+</body>
+</html>

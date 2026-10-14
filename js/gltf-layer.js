@@ -1,0 +1,320 @@
+/**
+ * gltf-layer.js — buildings modelled in Blender, drawn next to the recipe buildings. OFF unless the page asks: ?gltf=1.
+ *
+ * WHY. The apartment buildings are drawn from recipes (data/apartments/*.json): rules that make walls, windows and
+ * panels. A model made in Blender by hand has no recipe, so it could not be shown. This file draws a plain .glb
+ * (metres, coloured meshes, no images) as ONE more mesh in the city's own three.js scene (js/slopes.js), through the
+ * city's own builder and material, so it takes the city's sun, shadows, hour, haze and render distance for nothing.
+ *
+ * REPLACE, NEVER OVERLAP. A building named in the table below is left out of js/slopes-apartments.js while this layer is
+ * on (one hook there: GLTF_LAYER.hides), so the recipe's drawing and the model never stand in the same place. The
+ * generic block under it stays hidden through the recipe's own replacedBuildingIds. With the switch off this file adds
+ * the table and nothing else: no fetch, no mesh, no change to any other file's behaviour.
+ *
+ * WHAT A .glb MUST BE (checked, a wrong file fails loudly instead of drawing wrong): glTF 2.0 binary, positions as
+ * float32, indices as uint8/16/32, one flat colour per material (baseColorFactor), no node transforms, no images, no
+ * sparse accessors. The loader (js/gltf-layer-draw.js) is about 70 lines for exactly that. Model frame (Blender's, Z up): X along the
+ * street face, Y into the building, Z up; Z = 0 at the ground. The .glb stores it Y-up (x, z, -y); the loader turns it
+ * back.
+ *
+ * WHAT IT DOES NOT CARRY from a recipe building is listed in docs/gltf-layer.md (night windows, click card, name label,
+ * far tier, packed vertices, picking), each with the cost of adding it.
+ *
+ * TWO FILES. This one holds the table, every taste value and the two functions js/slopes-apartments.js calls. The drawing code
+ * (the .glb loader, colours, the mesh) is js/gltf-layer-draw.js, fetched only when the switch is on.
+ *
+ * Public: window.GLTF_LAYER = { on, buildings, hides(spec), stub(spec), replacedIds(), masks(), stats(), group, ready } (+ parse(), for scripts/verify).
+ */
+(function () {
+  'use strict';
+  const q = new URLSearchParams(window.location.search);
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  TASTE BLOCK — CLAUDE.md rule 11. Every value here is a choice, not a measurement, unless it says so.
+  // ══════════════════════════════════════════════════════════════════════
+  const OWN_DEFAULT = q.get('gltfaa') !== '0';
+  const GLTF = {
+    // ?gltf=1 turns it on. Anything else, or nothing: the layer is not there.
+    on: q.get('gltf') === '1',
+
+    // ── THE TABLE: one row per building ───────────────────────────────────
+    //   file       the .glb, metres, local origin at the ground, X along the street face, Y into the building
+    //   lng, lat   where that origin stands (the middle of the slab's lettering, on the slab's street face). Fitted to the surveyed
+    //              footprint (the map outline, which the 2021 laser scan agrees with): the model's podium is centred on the outline's
+    //              extent along the street face. The recipe's slab would put it 6.35 m south of that (lng -97.7442748, lat 30.2881180).
+    //   groundM    height of the origin above the city's ground plane (the recipes all stand on 0). 1.74 is a CHOICE: the
+    //              model's own ground level is inferred and its height scale is good to about 5 % (4.7 m on this tower).
+    //              Set 0 for the model's own inferred ground (docs/gltf-layer.md, "Placement").
+    //   topM       the model's height above the city's ground (the .glb's height plus groundM): the flight collision
+    //              reads it from `built`, so nobody flies through the top of the tower. scripts/verify/gltf-layer.mjs checks it.
+    //   headingDeg compass bearing of the model's +Y axis (into the building); the recipe's own frame gives 95
+    //   replaces   the id of the recipe whose drawing this takes over (data/apartments/yugo-austin-waterloo.json)
+    buildings: [
+      { name: 'Yugo Austin Waterloo', file: 'data/gltf/waterloo.glb',
+        lng: -97.7442690, lat: 30.2881748, groundM: 1.74, headingDeg: 95, topM: 104.02,
+        replaces: '57d4d01d-0a57-4b46-b2a8-02fcaf77f81a',
+        // The same model WITH its Blender materials, drawn by js/gltf-look.js under the app's light (js/city-sky.js) instead of the flat colours
+        // above. `lookOrigin`: the point of that file (its own X, Y, Z) that stands on this row's lng / lat.
+        look: 'data/gltf/waterloo-look.glb', lookOrigin: [7.78, 0, 0],
+        // The same file with every colour as it is on a CLEAR day (?skyview=1, see `look.oneWeather` below): this tower's site photograph
+        // shows a veiled sun and a cloud-bright sky, and its Blender colours were chosen under that. Divided by 4.4, its white wall is
+        // the same white as the other buildings' (0.17 under this light).
+        lookClearDay: 'data/gltf/waterloo-look-clear.glb',
+        // The night profile the city's night rules read for this building (the recipe's own `night`): the share of rooms lit and the
+        // lamps. Lamp positions are in the MODEL frame (x along the street face, y into the building, z up from the model's ground), the
+        // recipe's four downlights moved onto this model's terrace, sign and entry: sign wash, two terrace lamps, entry canopy.
+        night: { occupancy: 0.23, unitBays: 1, fixtures: [
+          { position: [0, -0.45, 100.85], colour: '#ffe6bd', radius: 5, power: 0.45 },
+          { position: [10.7, 9.7, 92.64], colour: '#ffe6b8', radius: 5, power: 0.25 },
+          { position: [10.7, 22.7, 92.64], colour: '#ffe6b8', radius: 5, power: 0.25 },
+          { position: [13.7, 29.0, 4.7], colour: '#ffdb9e', radius: 5, power: 0.4 } ] } },
+      // The Venue on Guadalupe: the app has no hand-made recipe for it, its drawing is the neighbourhood collection's entry
+      // (data/neighborhood_apartments.json, id below), which this row replaces like any recipe. Origin = the blue triangle's corner at the ground,
+      // X along the long sign face, Y into the building. Placed by fitting its two measured street walls to the surveyed outline (see
+      // docs/gltf-layer.md); its own values below override the layer's: the materials (each window group is a measured pane colour), the
+      // light gains, the hour whose sun matches the site photograph (the sign face lit, the Guadalupe face in shade), storeys of 3.3 m.
+      { name: 'The Venue on Guadalupe', file: 'data/gltf/venue.glb',
+        lng: -97.7419657, lat: 30.2939211, groundM: 0, headingDeg: 6.834, topM: 22.91,
+        replaces: '5d3a4e03-f525-4037-917c-4c4b56584fc4',
+        // The same build WITH its materials, its colours re-derived under the standard light (docs/gltf-layer.md, "One light for every
+        // Blender build"). In that file the panes are one painted material (`glass`) and the lettering is `sign`.
+        look: 'data/gltf/venue-look.glb', lookOrigin: [0, 0, 0],
+        photoHour: 0.28, storeyM: 3.3, storeyOffsetM: 0, glassStrength: 0.22,
+        windowGapM: 0.3,       // the panes of one window (2 to 4, a few cm apart) are one room at night
+        materials: (() => {
+          const m = {
+            white:    { fix: 'white', surface: 'concrete', strength: 0.04 },
+            grey:     { fix: 'grey',  surface: 'concrete', strength: 0.04 },
+            blue:     { fix: 'blue',  surface: 'concrete', strength: 0.04 },
+            band:     { fix: 'band',  surface: 'concrete', strength: 0.04 },
+            roof:     { fix: 'roof',  surface: 'concrete', strength: 0.04 },
+            slab:     { fix: 'dark',  night: '#1c252d' },
+            frame:    { fix: 'dark',  night: '#242b30' },
+            bulkhead: { fix: 'roof',  night: '#3a3d3d' },
+            unit:     { fix: 'roof',  night: '#3a3d3d' },
+            sign:     { fix: 'dark',  surface: 'glass', strength: 0, night: '#fff0d4', sign: true },
+            glass:    { fix: 'glass', surface: 'glass', lit: true },      // the look file's panes
+          };
+          for (let i = 0; i < 16; i++) m['glass_' + i] = { fix: 'glass', surface: 'glass', lit: true };
+          return m;
+        })(),
+        litFix: {
+          shade: { white: [0.78, 0.77, 0.80], grey: [0.52, 0.56, 0.58], blue: [0.04, 0.24, 0.37], band: [1, 1, 1], roof: [1, 1, 1], dark: [1, 1, 1], glass: [1, 1, 1] },
+          sun:   { white: [0.99, 0.97, 0.97], grey: [0.93, 0.94, 0.90], blue: [0.79, 0.81, 0.82], band: [0.91, 0.88, 0.90], roof: [0.98, 0.98, 0.96], dark: [1, 1, 1], glass: [1, 1, 1] },
+        } },
+      // Builds that exist only WITH their materials (a `look` file and no flat-colour file): drawn under the app's light or not at all.
+      // Their frame is the surveyed outline's own: x east, y north, the origin at the mean of the outline's points (so headingDeg 0).
+      // `alsoReplaces`: more recipes whose drawing the one model takes over (a complex the map holds as several buildings).
+      { name: '26 West', look: 'data/gltf/26-west-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7436263, lat: 30.2913934, groundM: 0, headingDeg: 0, topM: 28.2,
+        replaces: '9363b194-9c98-4d84-a3a5-2e8cce340bba',
+        alsoReplaces: ['38b2cf1c-830d-4b39-8225-b6aead30f538', '23994eaf-1258-43d1-9648-fdff8c14acc1', '529724dc-ce98-4052-a23c-ca3c8e776217'],
+        storeyM: 3.3, storeyOffsetM: -0.6,      // measured by its builder: floors at 3.9, 7.15, 10.42, 13.76 m
+        materials: { glass_window: { lit: true }, sign_white: { sign: true } } },
+      { name: 'Yugo Austin Nueces', look: 'data/gltf/yugo-nueces-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.743395, lat: 30.2895842, groundM: 0, headingDeg: 0, topM: 28.6,
+        replaces: '5453ffd2-7119-4e67-ba04-603bde7f10b4',
+        materials: { glass_window: { lit: true } } },
+      // Ten more Blender builds made under the standard light (2026-10-12 night), each on the origin of its surveyed outline. Glass and
+      // signs are known by their material names (glass_*, sign_*). Two are lean files: their full models are too heavy for the page.
+      { name: 'Norman Hackerman Building', look: 'data/gltf/norman-hackerman-building-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.737827, lat: 30.2876315, groundM: 0, headingDeg: 0, topM: 32.5, replaces: 'f8a072d5-4751-4e9b-8939-49239919913a' },
+      { name: 'T. S. Painter Hall', look: 'data/gltf/t-s-painter-hall-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7387578, lat: 30.2870211, groundM: 0, headingDeg: 0, topM: 28.8, replaces: '82bcddc0-ec33-4a0a-a9f2-f380a838a40f' },
+      { name: 'Anna Hiss Gymnasium', look: 'data/gltf/anna-hiss-gymnasium-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7377165, lat: 30.2885432, groundM: 0, headingDeg: 0, topM: 14.4, replaces: 'b4909598-6273-4a6a-9b3c-28c777205a08' },
+      { name: 'Ion Austin', look: 'data/gltf/ion-austin-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7432782, lat: 30.2843874, groundM: 0, headingDeg: 0, topM: 58.4, replaces: 'dd38bf46-46cc-4ea9-b1ac-138fc2a56019' },
+      { name: 'Villas on 24th', look: 'data/gltf/villas-on-24th-look.glb', lookOrigin: [0, 0, 0],   // the lean file (see docs)
+        lng: -97.7443431, lat: 30.2876477, groundM: 0, headingDeg: 0, topM: 97.1, replaces: '4e5f2b29-dd92-4232-82c9-fa8ef81c6e77' },
+      { name: 'The Castilian', look: 'data/gltf/the-castilian-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.742365, lat: 30.2873797, groundM: 0, headingDeg: 0, topM: 56.0, replaces: '307878e3-63d2-471c-83d1-6b405de9e7b7' },
+      { name: 'Pointe on Rio', look: 'data/gltf/pointe-on-rio-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7447345, lat: 30.2832218, groundM: 0, headingDeg: 0, topM: 21.1, replaces: '176b7e6b-f1d0-432c-a185-130948f9a3e1' },
+      { name: 'The Standard', look: 'data/gltf/the-standard-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7457076, lat: 30.2869975, groundM: 0, headingDeg: 0, topM: 59.4, replaces: '36365d18-2eb6-43c5-b042-6197e7767e17' },
+      { name: 'Noble 2500', look: 'data/gltf/noble-2500-look.glb', lookOrigin: [0, 0, 0],
+        lng: -97.7480199, lat: 30.28965, groundM: 0, headingDeg: 0, topM: 23.0, replaces: 'ffb87957-520e-4340-bdd2-e331c2c51046' },
+      { name: 'Union on 24th', look: 'data/gltf/union-on-24th-look.glb', lookOrigin: [0, 0, 0],   // the lean file (see docs)
+        lng: -97.7451624, lat: 30.2876793, groundM: 0, headingDeg: 0, topM: 95.5, replaces: '0a6d10a2-a664-4049-9ea2-83ce692103ef' },
+    ],
+
+    // ── How each Blender material is drawn ────────────────────────────────
+    // `surface` is one of the city's own material classes (APARTMENTS.materials: stone, brick, concrete, glass, ...).
+    // `strength` overrides that class's strength (the 4th number). `day` / `night` replace the colour read from the
+    // file (hex); without them the day colour is the file's own and the night colour comes from the ramp below.
+    // A material not listed is drawn as a plain flat colour from the file. The glass keeps the file's own dark colour: the city's glass
+    // class mirrors the city's sky over it (the colour under it hardly shows: a lighter stand-in changed the picture by 1 grey level).
+    materials: {
+      white:        { fix: 'slab', surface: 'concrete', strength: 0.04, night: '#85847c' },   // the blade: the recipe's `cream` night tone
+      white_joint:  { fix: 'slab', surface: 'concrete', strength: 0.04, night: '#6f6e68' },
+      white_panel:  { fix: 'panel', surface: 'concrete', strength: 0.04, night: '#62696c' },   // the recipe's `charPanel`
+      south_white:  { fix: 'wall', surface: 'concrete', strength: 0.04, night: '#85847c' },
+      south_greige: { fix: 'wall', surface: 'concrete', strength: 0.04, night: '#61676b' },   // `greige`
+      podium_panel: { fix: 'panel', surface: 'concrete', strength: 0.04, night: '#737777' },   // `brickLight`
+      brick:        { fix: 'brick', surface: 'brick', strength: 0.35, night: '#272830' },      // `brick`
+      charcoal:     { fix: 'dark', night: '#2a3138' },                                        // `charcoal`
+      black:        { fix: 'dark', night: '#1c252d' },                                        // `frameDark`
+      midgrey:      { fix: 'dark', night: '#363a3a' },                                        // the blade's slots: `slot`
+      duct:         { fix: 'dark', night: '#323d47' },                                        // `metal`
+      penthouse:    { fix: 'dark', night: '#323d47' },
+      // The sign: the recipe's lit lettering. A glass surface of strength 0 is how the recipe's `signFace` is drawn: no mirror, and the
+      // city's night rules light it with its night tone.
+      letters:      { fix: 'dark', surface: 'glass', strength: 0, night: '#fff0d4', sign: true },
+      // Windows are lit room by room (below). The tone of a dark pane is the city's own (CityNight.tune.unlitGlass); the crown and rails
+      // use the recipe's `crownGlass` night tone.
+      glass:        { fix: 'glass', surface: 'glass', lit: true },
+      glass_b:      { fix: 'glass', surface: 'glass', lit: true },
+      glass_rail:   { fix: 'glass', surface: 'glass', night: '#122a31' },
+      glass_rail_c: { fix: 'glass', surface: 'glass', night: '#122a31' },
+      glass_south:  { fix: 'glass', surface: 'glass', night: '#122a31' },
+    },
+    // ── Night windows ─────────────────────────────────────────────────────
+    // A material marked `lit: true` above has its panes lit by the CITY'S OWN night rules, CityNight.room(building, floor, column): the
+    // profile above (occupancy 0.23), the city's tones and brightness, and its dark-pane tone for the rest. The floor comes from the
+    // pane's height (3.05 m storeys from the ground) and the column from its place in its row on its wall. `nightLit` is only the
+    // fallback when the city's night rules are off (?citynight=0): that fraction of panes, by a hash of where the pane is.
+    maxRoomWidthM: 3.0,   // a glass pane wider than this is a strip of glazing (the crown), not a room: never lit, like the recipe's subdued crown glazing
+    storeyM: 3.05, storeyOffsetM: 0.25,   // the model's floors: floor = floor((height above its ground + offset) / storey)
+    nightLit: (() => { const v = parseFloat(q.get('gltflit')); return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.23; })(),
+    litTone: '#eadfc8',      // the recipes' APTS.nightLitTone
+    // ── Day colour under the app's light ──────────────────────────────────────────────────────────────────────
+    // The colours in the file are what a lit photograph shows, and the app lights them again with its own sun and grade. So each class
+    // of material (its `fix` above) gets a gain per colour channel, one for faces the sun reaches at the photograph's hour and one for
+    // faces it does not, found by rendering the app from the photograph's camera and dividing the photograph's colour by the app's
+    // (js/look-photo.js does the same for trees and roads). Measured numbers are in the pull request. The gain is
+    // applied to the day colour and to the golden colour made from it; night colours are the table's own.
+    photoHour: 0.315,                // the app's time of day (0..1) whose sun matches the site photograph's light
+    sunThreshold: 0.15,              // a face is sunlit when its normal dotted with the sun's direction is above this
+    litFix: {
+      shade: { slab: [1.22, 1.30, 1.36], panel: [1.08, 1.20, 1.38], wall: [1, 1, 1], dark: [1.31, 1.51, 1.58], brick: [1, 1, 1], glass: [1, 1, 1] },
+      sun:   { slab: [0.81, 0.84, 0.84], panel: [0.81, 0.84, 0.84], wall: [0.81, 0.84, 0.84], dark: [1, 1, 1], brick: [1, 1, 1], glass: [1, 1, 1] },
+    },
+    glassStrength: 0.5,              // how much sky the glass mirrors (0..1; the city's glass class is 1, the recipe tower's own glass 0.55); null = the city's
+    // The long strips of glazing (the crown) mirror the sky differently from room windows in the photograph: bluer and darker than the
+    // city's sky mirror makes the file's near-black glass. Only panes wider than `maxRoomWidthM` take these; windows keep the file's glass.
+    crownGlass: { day: '#1870b8', strength: 0.22 },
+    // The day colour's golden-hour and night colours when a material gives none: the same ramp the recipes use
+    // (js/slopes-apartments.js ramp(), which copies js/westcampus.js).
+    goldMix: 0.16, goldTo: [255, 190, 130],
+    nightGain: 0.19, nightTint: [18, 22, 40], nightToward: 0.42,
+
+    // ── Far away: the windows must be steady (CLAUDE.md rule 15) ──────────────────────────────────────────
+    // Panes thinner than a pixel crawl when they are drawn as geometry. The city's cure for its recipe buildings is a texture of each
+    // wall's AREA-AVERAGED colours, minified by the GPU's mip chain, drawn over the wall once a pixel covers more than about 0.3 m
+    // (js/facade-filter.js, js/slopes.js facadeMaterial). This layer builds the same overlay from the model's own quads, painted back
+    // to front: near = the hard panes of the geometry, far = their true area average, in between a fade that never pops. Nothing is
+    // blurred: the texture is only ever sampled where a texel is smaller than a pixel. ?gltffilter=0 turns it off for an A/B.
+    facade: {
+      on: q.get('gltffilter') !== '0',
+      fadeStart: 0.25, fadeEnd: 0.5,           // metres a pixel covers: the overlay starts here and is complete there (the recipes use 0.3 and 0.8; the
+                                               // model's panes are thinner and more of them, so the geometry beneath must be gone by 250 m)
+      nightFadeStart: 0.4, nightFadeEnd: 0.5,  // the hour (0..1) it gives way to the lit-window geometry at night (the recipes' values)
+      texelMetres: 0.25, maxDimension: 256,    // one texel of the wall map, and its largest side in texels
+      supersample: 3,                          // painting resolution: this many cells a texel side
+      anisotropy: 4,
+      minArea: 40, minDetails: 12,             // a wall face gets an overlay if it is this big (m2) and has this many quads on it
+      behind: 0.02, front: 0.4,                // quads this far behind / in front of the face (m) belong to it
+      lift: 0.1,                               // the overlay stands this far (m) in front of the frontmost quad (more than the depth buffer can mix up with it at 1 km)
+    },
+
+    // ── The app's light (round 5): a row with a `look` file is drawn by js/gltf-look.js under js/city-sky.js ─────────────────────────────
+    // ?gltflook=0 draws every row the old way (flat colours with light gains, wall maps). `skyMapStrength`: 1 = recesses get as little
+    // sky light as the map baked in Blender says, 0 = the map is ignored.
+    // `shadowLiftM`: the sun's shadow map is read this far in front of a face (see the shader's note; 0 = on the face).
+    // `oneWeather` (?skyview=1): every building is drawn with the colours it has on a clear day (a row's `lookClearDay` file when it has one),
+    // so that one light and one exposure serve the whole view. Off: the tower keeps colours that hold its own photograph's picture.
+    look: { on: q.get('gltflook') !== '0', packed: q.get('gltfpacked') !== '0', oneWeather: q.get('skyview') === '1', scripts: ['js/city-sky.js', 'js/gltf-look.js'], skyMapStrength: 1, shadowLiftM: q.has('gltflift') ? +q.get('gltflift') : 0.6,
+      // THE LIGHT the Blender buildings stand under, a NAMED choice (&gltflight=soft|noon). `noon`: the hour's own light of js/city-sky.js, a clear
+      // sun with hard shade (what this layer drew before). `soft`: the builders' NO-SUN light (CitySky.tune.soft: their rig's grey sky and ground,
+      // no sun and so no sun shadow, the rig's one exposure number), by day; toward night it gives way to the hour's own light. Most builds were
+      // made from photographs with no sun and scored in renders under that light. Only this layer changes: the rest of the city keeps its noon sun,
+      // so under `soft` a Blender building has no dark side while the recipe building next to it has one, and it still casts its sun shadow on the street.
+      light: (v => (v === 'soft' || v === 'noon' ? v : 'noon'))(q.get('gltflight')),
+      // WALL PATTERNS (js/gltf-look.js patColour): a wall material made with the builders' wall maker carries its measured numbers in the look file
+      // (running bond, stack bond, panel grid, boards; unit sizes in metres; the joint's colour; how far single units differ). The shader draws
+      // them in the model's own metres, with no image. Rule 15: a course that is `coursePx[0]` canvas pixels high or more is drawn in full; from
+      // there the pattern gives way to the wall's mean colour and IS the mean, the flat colour drawn before, at `coursePx[1]` pixels and beyond
+      // (joints are never sampled: each pixel takes the exact share of joint that lies in it). `tint`: how strongly single units differ (1 = as
+      // measured). `max`: patterns a building may carry (more are drawn flat). &gltfwalls=0: every wall flat, as before.
+      walls: { on: q.get('gltfwalls') !== '0', max: 8, coursePx: [3, 1.5], tint: 1 },
+      // THE STANDARD GLASS (the builders' rig: one mirror strength for every build). A pane made with it mirrors `mirror` of what it faces at a
+      // straight view and more at a slant (`power`: 0.25 and 4.1 give the rig's 25 %, 30 % at 60 degrees, 37 % at 70). What it faces: the sky as
+      // a camera sees it above the street opposite, the street below. `oppositeDeg`: how high the street opposite stands when a row does not
+      // say (the builders' median; a row's own `oppositeDeg` is its builder's number), `stepDeg`: that edge is soft by this much to each side.
+      // `recess`, `straight`: a pane set back between fins, in a deep reveal or under an arcade mirrors ONE ray. Seen straight on, that ray leaves the
+      // building; seen at a slant it runs into what stands beside the pane. So the sky-light map dims this mirror only as the view slants: not at all
+      // when the cosine of the view's angle to the pane is `straight[1]` or more, in full at `straight[0]` and less (`recess` scales the whole rule;
+      // 0 = a recess never dims). &gltfglass=0: such panes are drawn as before (a dark pane with no mirror). Glass made the older way keeps its own mirror colour.
+      glass: { on: q.get('gltfglass') !== '0', mirror: 0.25, power: 4.1, oppositeDeg: 24, stepDeg: 2.5, recess: 1, straight: [0.5, 0.9] },
+      // Smooth edges of its own (js/gltf-look.js "SMOOTH EDGES OF ITS OWN"). Smoothing the whole canvas costs an integrated chip about 140 ms a
+      // frame at a laptop's full density with the city drawn (measured), so each look building is drawn alone into a small target with `samples`
+      // samples a pixel, covering only the part of the screen it stands on, and that picture is laid onto the canvas where the building is in
+      // front. Used only when the canvas itself is not smoothed. `bigPixels`: a building that covers more pixels than this takes `bigSamples`
+      // (its target would otherwise hold 36 bytes for each of them). ?gltfaa=0 turns it off (hard edges, thin lines break up).
+      own: { on: OWN_DEFAULT, samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2, slackTimes: 2, slackFrames: 60 },
+      // FAR, rule 15 (js/gltf-look.js "FAR: THIN PARTS"): a piece of the model that is thin by its own shape (a bar whose second size is
+      // under `thinM` metres and that is `long` times as long, or a piece under `thinM` in every direction) is never drawn narrower than
+      // `minPx` pixels, and counts for the share of the pixel it truly covers. ?gltffar=0 draws thin parts as they are (they flicker from far).
+      // And a building that covers `smallPixels` of the screen or fewer is smoothed with `smallSamples` samples a pixel, one up to `midPixels`
+      // with `midSamples` (the graphics chip's own limit caps both): the edges of windows a few pixels wide then step finely as the camera moves.
+      // The small ones are also drawn at `smallScale` times the pixels, each canvas pixel taking the mean of its own block.
+      // The tiers go by how many canvas pixels the building's box covers: up to `tinyPixels`, `smallPixels`, `midPixels`. Each has its samples
+      // a pixel (the graphics chip's own limit caps them) and the most it is drawn at beyond the canvas's pixels (`Scale`: 1, 1.5 or 2; each
+      // canvas pixel then takes the mean of its own block). `density`: the scale aimed at is this many picture pixels to one CSS pixel
+      // along a side, so a screen with two pixels to a CSS pixel draws at 1.5 times and one with three at once (0: always the tier's Scale).
+      // Why these numbers (measured, docs/gltf-layer.md "Far away, part three"): 8 samples and twice the pixels each cost about 10 ms a frame
+      // on an integrated chip at a laptop's full density with fourteen buildings in view; 4 samples cost next to nothing.
+      far: { build: true, on: q.get('gltffar') !== '0', thinM: 0.3, long: 3, minPx: 1, hide: false, density: 3,
+        tinyPixels: 70000, tinySamples: 8, tinyScale: 2, smallPixels: 160000, smallSamples: 4, smallScale: 2, midPixels: 600000, midSamples: 4, midScale: 1.5 },
+      // BY DISTANCE (js/gltf-look.js): a building's file is fetched and built when the camera's eye is within `inM` metres of it and let go
+      // beyond `outM`; `atOnce` files at a time, looked at every `everyMs`. ?gltfload=0 loads every row at the start and keeps it.
+      // THE FAR COPY (js/gltf-look.js "THE FAR COPY", scripts/gltf_far.py): every row has one, a few hundred triangles. Which is drawn goes by
+      // how many METRES OF THE BUILDING ONE CSS PIXEL COVERS: the full building under `fullM` (a 1.5 m window is then 1.8 CSS pixels wide or
+      // more: 3.6 pixels of a laptop's dense screen), the far copy alone from `farM`, a dissolve between the two in between. The full file is fetched under `loadM` and let go
+      // above `unloadM`. On a 1440 x 900 window (the app's lens is 58 degrees) these are 680, 800, 845 and 895 metres from the camera's eye; a larger window sees
+      // the full building from farther, a phone from nearer, as the eye does. `fadeS`: a full file that arrives late dissolves in over
+      // this many seconds. `pushM`: while both are drawn the far copy stands this far behind in depth. `bandPx`: a wall band of the far
+      // copy starts giving way to the wall's mean colour when it is this many canvas pixels high, and is the mean at the second number
+      // (rule 15: a band a pixel or two high would flicker). `nightShare`: the share of a far copy's glass that is lit at night, times the
+      // row's own occupancy. ?gltfcopy=0: no far copies (every full file by distance, as before).
+      copy: { on: q.get('gltfcopy') !== '0', fullM: q.has('gltffull') ? +q.get('gltffull') : 0.84, farM: q.has('gltffarm') ? +q.get('gltffarm') : 0.99, loadM: 1.04, unloadM: 1.10, fadeS: 0.5, pushM: 3, bandPx: [4, 2], nightShare: 1 },
+      load: { on: q.get('gltfload') !== '0', inM: q.has('gltfin') ? +q.get('gltfin') : 2500, outM: q.has('gltfout') ? +q.get('gltfout') : 3000, atOnce: 3, everyMs: 250 } },
+    // The layer's place in the scene, as the apartments' group has it (js/slopes-apartments.js APTS.lod / minzoom).
+    lod: null, minzoom: 14,
+    // Draw both sides of every face, as the apartments do (APTS.twoSided): a model with one mis-wound face must not show a hole.
+    twoSided: true,
+    fetchTimeoutMs: 45000,
+    drawScript: 'js/gltf-layer-draw.js',
+  };
+  window.GLTF_LAYER = GLTF;
+  // More rows, from js/gltf-rows.js: builds that have only a look file, each standing on the origin of its surveyed map outline (heading 0).
+  // (?gltfrows=0 leaves them out: the table above alone, for a test against an earlier measurement.)
+  for (const r of (q.get('gltfrows') === '0' ? [] : window.GLTF_ROWS || [])) GLTF.buildings.push({ name: r.name, look: 'data/gltf/' + r.slug + '-look.glb', lookOrigin: [0, 0, 0],
+    lng: r.lng, lat: r.lat, groundM: 0, headingDeg: 0, topM: r.topM, replaces: r.replaces, alsoReplaces: r.alsoReplaces, rings: r.rings, oppositeDeg: r.opp });
+
+  // ── what js/slopes-apartments.js asks ───────────────────────────────────
+  const rowFor = spec => spec && GLTF.buildings.find(b => b.replaces && (b.replaces === spec.id || (b.alsoReplaces || []).includes(spec.id)) && (b.file || (GLTF.look.on && b.look)));
+  /** true when a model replaces this recipe: the apartments builder then does not draw it */
+  GLTF.hides = spec => GLTF.on && !!rowFor(spec);
+  /** what the apartments' `built` list holds for a recipe that is not drawn there (ids are read by campus-landscape, places, arches) */
+  GLTF.stub = spec => ({ name: spec.name, id: spec.id || null, top: (rowFor(spec) || {}).topM || 0, frame: null, roofs: [], rakes: [], signs: 0, insets: 0, replacedBy: 'gltf' });
+  // A model may replace a building that has NO recipe (the app draws it from its generic campus layers: a block, a roof, storey lines).
+  // js/slopes-apartments.js hides those by id and by outline: every id a drawn row replaces, and the outlines (`rings`) of such rows.
+  const drawn = b => b.replaces && (b.file || (GLTF.look.on && b.look));
+  GLTF.replacedIds = () => GLTF.on ? GLTF.buildings.filter(drawn).flatMap(b => [b.replaces, ...(b.alsoReplaces || [])]) : [];
+  GLTF.masks = () => GLTF.on ? GLTF.buildings.filter(b => drawn(b) && b.rings).flatMap(b => b.rings.map((ring, i) => ({ name: 'gltf|' + b.name + '|' + i, footprint: { ring } }))) : [];
+  GLTF.group = null;
+  GLTF.ready = false;
+  const info = { loaded: [], triangles: 0, vertices: 0, drawCalls: 0, litTriangles: 0, bytes: 0, ms: 0, buildMs: 0, errors: [] };
+  GLTF.info = info;
+  GLTF.stats = () => Object.assign({}, info);
+  if (!GLTF.on) return;
+  // The drawing code (loader, colours, build) is a second file that is only fetched when the switch is on, so a page
+  // without ?gltf=1 pays for the table and two functions and nothing else.
+  const tag = document.createElement('script');
+  tag.src = GLTF.drawScript;
+  document.head.appendChild(tag);
+  // ... and, when a row has a `look` file, the app's light and the code that draws with it
+  if (GLTF.look.on && GLTF.buildings.some(b => b.look)) for (const src of GLTF.look.scripts) { const t = document.createElement('script'); t.src = src; t.async = false; document.head.appendChild(t); }
+})();
