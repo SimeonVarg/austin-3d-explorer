@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 109 builds of 85 buildings; 35 buildings flagged to retarget.
+Right now: 110 builds of 86 buildings; 36 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -72,6 +72,7 @@ Right now: 109 builds of 85 buildings; 35 buildings flagged to retarget.
 | Gary L. Thomas Energy Engineering Building | Opus 5.5 | 2026-10-13 | 21,104 | 41 min, 367k plan tokens |  |  |
 | Gates Dell Complex | Opus 5.5 | 2026-10-13 | 16,632 | 42 min, 397k plan tokens |  |  |
 | George I. Sanchez Building | Opus 5.5 | 2026-10-13 | 2,132 | 52 min, 425k plan tokens | "A is opus" | yes |
+| Goodall Wooten House | Opus 5.5 | 2026-10-14 | 24,898 | 48 min, 401k plan tokens |  | yes |
 | Graduate School of Business | Opus 5.5 | 2026-10-13 | 7,240 | 52 min, 437k plan tokens |  |  |
 | Gregory Gymnasium | Opus 5.5 | 2026-10-12 | 7,334 | 79 min | "Nice" |  |
 | Hogg Memorial Auditorium | Opus 5.5 | 2026-10-13 | 17,813 | 52 min, 458k plan tokens |  |  |
@@ -130,6 +131,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Carothers Dormitory**: held-out points re-picked twice (weak proof); stone grey; east side inferred
 - **Engineering Teaching Center II**: coping 11% under the scan height; ground level not proven; glass too bright
 - **George I. Sanchez Building**: camera unproven on a far photograph; roof 22.0 m vs scan 19.1 m; a public picture may give a better camera
+- **Goodall Wooten House**: dusk photos only (lamp light): wall colour guessed; columns unfluted; roof balustrade missing; sides and back not seen
 - **GrandMarc Austin** (score 8.3): scored 8.3 but storey count in doubt (scan roof height unread); 48k triangles
 - **Ion Austin**: after-sunset photograph: colours all miss; roof scale shrunk 11% late (53 to 60 m)
 - **J. T. Patterson Laboratories**: stair tower position inferred, up to 7.3 m off; glass too light
