@@ -552,3 +552,25 @@ noon-lit recipe buildings is two lights in one picture; the recipes' shader coul
 nothing about any building). A wall's pattern has one spread of tones; a real brick wall has a few very dark and very light bricks and
 blotches inside a brick. Joints are colour only, no depth. A far copy's glass uses the layer's default street height, not its row's. The
 phone was not run with this; the opening flight was not watched; night under `soft` was not looked at (by its rule it is the hour's own).
+
+## Thirty-one more builds: eighty-nine in the layer (2026-10-14)
+
+The builds finished on 2026-10-13 and 14 went in the way the 58 did, still behind `?gltf=1`: each one export command from its
+builder's file (`scripts/blender_export_look.py`, two Blenders at a time), its far copy made right after (`scripts/gltf_far.py`),
+the look file gzip-packed, and one generated line each in `js/gltf-rows.js` (the origin of its surveyed outline, its height, the map
+building it replaces, `opp` from its scene, and `rings` for the eleven that stand where the app drew a generic campus block). A site
+plane or flat paving that a builder left in the scene is skipped by name (`skip=`), as before; a raised plaza or podium stays. All 31
+were made under the standard light, so none needed the pale-build division (`white=`). None is over 30,000 triangles, so none is lean.
+
+Left out by rule: a build that flickers more than any building already in the layer (the slow-pan test at 450 m: the Travis County
+courts tower read 225 flickering pixels of 24,660, 0.9 %, where the worst of the earlier fourteen reads 0.44 %; rule 15); a build whose camera is unproven, unless its builder's notes say the model itself is finished (one is let in on
+that: its notes say everything but one held-out point is done); a build that stands on no map building (a street, an unplaced one).
+
+Flicker in the slow-pan test at 450 m (all rows loaded at the start, one page each): the fourteen of the earlier tests read 85 of
+213,372 pixels with the new rows in the city, 89 of 213,406 without them; seven new builds read 0 to 12 pixels each (0 to 0.14 %).
+
+Checked: off, the page is the same as before (five day views 0 % of pixels changed; the same requests, nothing under `data/gltf/`);
+on, every new row loads its full file and its far copy with no error; each model's ground plan against its surveyed outline (share of
+the outline it covers, share of the model outside it: eaves and canopies count as outside, a courtyard counts as uncovered).
+`scripts/verify/gltf-layer.mjs`: a far copy's `from` (its look file's own name) is no longer searched for folder names, since a
+building called Homer read as a home folder.
