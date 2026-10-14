@@ -167,7 +167,7 @@ truly cannot be read is said so, with what the reference pictures say it is.
 This holds for every way of building (a recipe, a Blender build) and every
 model.
 
-*Checks 9c, 9d, 9e, 9f, 9g and 9h are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
+*Checks 9c, 9d, 9e, 9f, 9g, 9h, 9i and 9j are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
 hard rules but more so generalizations that it has the freedom to ignore if it thinks what's shown is different").
 The photograph wins: when what is shown is different, build what is shown and say so.*
 
@@ -218,6 +218,21 @@ best one and check depth, heights and hidden parts on the others: what one
 view cannot show (the underside and the sky gaps of a tree crown, the far side
 of a terrace, a step count) is read from another view, not guessed. Building a
 whole scene from one view is a fault when other views exist.
+
+**9i. The roof has what the photograph shows, and nothing else.** Read the
+roofline on the photograph at full size (and on the laser scan's levels):
+flat or pitched, where each change of height is, what stands on it. Build
+those. A slanted roof, a canopy, a crown or a rooftop box that no picture
+shows is a fault, even when it "looks right" for the style.
+
+**9j. Windows: the glass is the glass, the room behind it is the app's.**
+Which windows are covered by blinds, lit, or lit in a colour is a moment in
+one photograph, not a property of the building. Build every pane with the
+glass colour of the photograph's uncovered panes and keep the pattern of
+covered panes only as data (pane names in the build's notes), so the app can
+choose covered, lit and dark panes at night by how often each happens. A
+coloured light (for example a red room light) may appear at a realistic rate
+in apartment buildings only; campus buildings never show coloured lights.
 
 **10. Could not see it.** A part hidden by a tree or outside the frame is
 NOT KNOWN. Say so. Build it from the visible pattern and label it INFERRED. Do
@@ -348,3 +363,12 @@ made or sharpened.
   and its tree crowns closed into one dark mass overhead. His words: "The top
   looks super weird. Like a gray ceiling ... we need to get better at using
   various angles for stuff like this instead of hyper focusing on one": check 9h.
+- **2026-10-14, midday.** A plain seven-storey siding block came back from a
+  paid builder with its walls and windows right, slanted roofs where the
+  building has none, and one window lit red as in the photograph. His words:
+  "the roof details are a bit off with slanted roofs where there shouldn't be
+  and details that are not supposed to be there", and on windows: "every single
+  window that has like blinds ... the blender model usually copies which ones
+  are covered ... we can lean into that direction by like having it random based
+  on how many times it appears in real life ... in general there shouldn't be
+  colored lights on campus": checks 9i and 9j.
