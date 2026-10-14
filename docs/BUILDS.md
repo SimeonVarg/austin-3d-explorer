@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 132 builds of 106 buildings; 43 buildings flagged to retarget.
+Right now: 133 builds of 106 buildings; 43 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -112,7 +112,7 @@ Right now: 132 builds of 106 buildings; 43 buildings flagged to retarget.
 | Travis County Civil and Family Courts | Opus 5.5 | 2026-10-14 | 22,196 | 51 min, 436k plan tokens |  |  |
 | University Presbyterian Church | Opus 5.5 | 2026-10-14 | 14,435 | 56 min, 401k plan tokens |  | yes |
 | Waggener Hall | Opus 5.5 | 2026-10-14 | 20,433 | 51 min, 436k plan tokens |  |  |
-| Walter Webb Hall | Sol 6.1 | 2026-10-14 | 13,610 | 72 min, $2.80 |  | yes |
+| Walter Webb Hall | Sol 6.1 | 2026-10-14 | 14,481 | 37 min, $1.61 |  | yes |
 | Will C. Hogg Building | Opus 5.5 | 2026-10-13 | 24,386 | 55 min, 420k plan tokens |  |  |
 | William Randolph Hearst Building | Opus 5.5 | 2026-10-14 | 12,406 | 44 min, 319k plan tokens |  |  |
 
@@ -146,7 +146,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **The Nine at Rio** (Sol 6.1): glass dark; base storey inferred (hidden by a hedge)
 - **The Texan Shoal Creek** (Sol 6.1, fix round): fix 1 on the owner note (stone detail, slanted tower roof); tower windows still black holes; cheaper model (base Sol build: 65 min, $3.15, 9.1M tokens)
 - **University Avenue Church of Christ** (Sol 6.1, redo): Sol redo; it chose its own camera limit (24 px) to pass; stone too even
-- **Walter Webb Hall** (Sol 6.1): glass too light; name sign clipped at the wall edge
+- **Walter Webb Hall** (Sol 6.1, fix round): redo with the three checks; glass too bright
 
 ### The best build is Opus but has a known open fault
 
@@ -219,6 +219,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | University Avenue Church of Christ | Haiku 5.5 | trial | 2026-10-13 | 977 | 36 min, 443k plan tokens | <6 | superseded | Haiku alone: stone box, camera unproven |
 | Villas on Nueces | Haiku 5.5 | trial | 2026-10-13 | 2,490 | 27 min, 315k plan tokens | "A is really horrible haiku" | trial | owner: horrible; does not register to the photograph |
 | Villas on Nueces | Sonnet 5.5 | trial | 2026-10-13 | 2,698 | 57 min, 468k plan tokens | "B is sonnet it's somewhat alright" | trial | owner: somewhat alright; roof 28% over the scan |
+| Walter Webb Hall | Sol 6.1 | lean | 2026-10-14 | 13,610 | 72 min, $2.80 |  | superseded | glass too light; name sign clipped at the wall edge |
 | Yugo Austin Waterloo | Haiku 5.5 | trial | 2026-10-12 | 7,388 | 17 min | 4 | trial | weakest of three; stopped early |
 | Yugo Austin Waterloo | Sonnet 5.5 | trial | 2026-10-12 | 6,428 | 68 min | 6.5 | trial | weaker than Opus on the same brief |
 | Yugo Austin Waterloo | Astra 6 | trial | 2026-10-12 |  | 5 min, $2.16 |  | failed | run killed after 5 min, no build |
