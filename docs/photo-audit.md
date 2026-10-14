@@ -167,7 +167,7 @@ truly cannot be read is said so, with what the reference pictures say it is.
 This holds for every way of building (a recipe, a Blender build) and every
 model.
 
-*Checks 9c, 9d, 9e, 9f, 9g, 9h, 9i, 9j, 9k and 9l are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
+*Checks 9c, 9d, 9e, 9f, 9g, 9h, 9i, 9j, 9k, 9l and 9m are generalisations from his reviews, not laws (owner, the same day: "I don't want those to be
 hard rules but more so generalizations that it has the freedom to ignore if it thinks what's shown is different").
 The photograph wins: when what is shown is different, build what is shown and say so.*
 
@@ -246,6 +246,17 @@ columns and openings stand, how deep each recess or parking level goes, where
 the grade steps. No hole, open bay or undercut that the photograph does not
 show; no recess deeper or set further in than measured. A base hidden by
 plants or cars is built plain and closed, and said to be inferred.
+
+**9m. Openings in the wall's shape are built as the photograph shows them.**
+Big gaps in the wall geometry (open corners, loggias, balcony slots, recessed
+bays, passages) are measured as solids: where each opening is, how deep it
+goes, and which way it faces. An opening on a corner faces the way the
+photograph shows it (often perpendicular to the main face), not toward the
+camera by default. Count them on every face and corner.
+
+*Checks 9i (roof), 9l (ground) and 9m (openings) are run together, on every
+face, before the final render: the owner's "three checks", meant to be
+holistic.*
 
 **10. Could not see it.** A part hidden by a tree or outside the frame is
 NOT KNOWN. Say so. Build it from the visible pattern and label it INFERRED. Do
@@ -395,3 +406,12 @@ made or sharpened.
   addition to the roof check, add a ground / lower check. In this example
   there's a hole near the corner that prob shouldn't be there, And the cutoff on
   the left bottom side is a bit too far in": check 9l.
+- **2026-10-14, afternoon.** A four-storey brick hall with breeze-block screens
+  came back from a paid builder with a good roof, a thin base and its corner
+  balcony slots turned the wrong way. His words: "ground check the lower details
+  could be improved alot there's some missing recessed entrance detail with
+  walls and colors. Add another check for holes in the building ... wall
+  geometry with big gaps. Like the corner there's two of them, the closer one is
+  done incorrectly - it puts the gaps facing the camera instead of facing
+  perpendicular. This makes 3 checks in total that should be somewhat
+  holistic": check 9m, and 9i, 9l and 9m run together.
