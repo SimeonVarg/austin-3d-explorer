@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 106 builds of 82 buildings; 33 buildings flagged to retarget.
+Right now: 107 builds of 83 buildings; 34 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -64,6 +64,7 @@ Right now: 106 builds of 82 buildings; 33 buildings flagged to retarget.
 | AT&T Executive Education and Conference Center | Opus 5.5 | 2026-10-13 | 16,126 | 53 min, 454k plan tokens |  | yes |
 | Brick campus building (name unconfirmed) | Opus 5.5 | 2026-10-12 | 2,420 | 59 min | "between 8s and 9s" | yes |
 | Bullock Texas State History Museum | Opus 5.5 | 2026-10-13 | 29,058 | 61 min, 515k plan tokens |  |  |
+| Carothers Dormitory | Opus 5.5 | 2026-10-14 | 20,879 | 44 min, 389k plan tokens |  | yes |
 | Chemical and Petroleum Engineering | Opus 5.5 | 2026-10-12 | 12,062 | 55 min |  |  |
 | Edgar A. Smith Building | Opus 5.5 | 2026-10-13 | 8,068 | 55 min, 461k plan tokens |  |  |
 | Engineering Teaching Center II | Opus 5.5 | 2026-10-13 | 22,022 | 52 min, 451k plan tokens |  | yes |
@@ -124,6 +125,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Anna Hiss Gymnasium**: owner asked for the brick pattern; lower arch springs from the ground and cuts the door top
 - **AT&T Executive Education and Conference Center**: base bare (street rises 4 m); terrace, fence and sign not built; west arcade inferred
 - **Brick campus building (name unconfirmed)**: name never confirmed (matches no reference picture), not placed on the map
+- **Carothers Dormitory**: held-out points re-picked twice (weak proof); stone grey; east side inferred
 - **Engineering Teaching Center II**: coping 11% under the scan height; ground level not proven; glass too bright
 - **George I. Sanchez Building**: camera unproven on a far photograph; roof 22.0 m vs scan 19.1 m; a public picture may give a better camera
 - **GrandMarc Austin** (score 8.3): scored 8.3 but storey count in doubt (scan roof height unread); 48k triangles
