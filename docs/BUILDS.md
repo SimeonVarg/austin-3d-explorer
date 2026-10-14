@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 108 builds of 84 buildings; 34 buildings flagged to retarget.
+Right now: 109 builds of 85 buildings; 35 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -77,6 +77,7 @@ Right now: 108 builds of 84 buildings; 34 buildings flagged to retarget.
 | Hogg Memorial Auditorium | Opus 5.5 | 2026-10-13 | 17,813 | 52 min, 458k plan tokens |  |  |
 | Homer Rainey Hall | Opus 5.5 | 2026-10-14 | 15,891 | 39 min, 394k plan tokens |  |  |
 | J. T. Patterson Laboratories | Opus 5.5 | 2026-10-13 | 10,542 | 55 min, 482k plan tokens |  | yes |
+| Littlefield House | Opus 5.5 | 2026-10-14 | 23,294 | 42 min, 413k plan tokens |  | yes |
 | Mary E. Gearing Hall | Opus 5.5 | 2026-10-13 | 26,811 | 62 min, 464k plan tokens |  |  |
 | McCombs School of Business | Opus 5.5 | 2026-10-13 | 25,031 | 52 min, 452k plan tokens |  |  |
 | Moffett Molecular Biology | Opus 5.5 | 2026-10-13 | 26,391 | 45 min, 370k plan tokens | "Make the X dots a bit more prominent" |  |
@@ -132,6 +133,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **GrandMarc Austin** (score 8.3): scored 8.3 but storey count in doubt (scan roof height unread); 48k triangles
 - **Ion Austin**: after-sunset photograph: colours all miss; roof scale shrunk 11% late (53 to 60 m)
 - **J. T. Patterson Laboratories**: stair tower position inferred, up to 7.3 m off; glass too light
+- **Littlefield House**: camera unproven on an old small public photo; work render only; heights maybe 5-10 % high
 - **Norman Hackerman Building**: overcast photo: colour gate failed 2 of 10, sun set by hand; wall 3.5 m off the outline
 - **Rowling Hall**: fins miss the colour gate by 65%; south wing and street sides inferred
 - **Speedway (campus road), first 178 m**: trees bad (thick black trunks, grey ceiling), west terrace, stairs and rails missing; round 2 cancelled by the owner
