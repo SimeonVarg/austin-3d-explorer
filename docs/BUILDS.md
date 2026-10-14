@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 122 builds of 96 buildings; 38 buildings flagged to retarget.
+Right now: 123 builds of 97 buildings; 38 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -20,6 +20,7 @@ Right now: 122 builds of 96 buildings; 38 buildings flagged to retarget.
 | 2400 Nueces | Opus 5.5 | 2026-10-12 | 36,710 | 71 min |  |  |
 | 26 West | Opus 5.5 | 2026-10-12 | 76,396 | 72 min | 8.5 |  |
 | 2819 Rio Grande | Opus 5.5 | 2026-10-12 | 22,712 | 65 min | 8.2 |  |
+| Axis West Campus | Opus 5.5 | 2026-10-14 | 15,939 | 40 min, 395k plan tokens |  |  |
 | Block on 25th West | Opus 5.5 | 2026-10-12 | 26,429 | 101 min |  |  |
 | Cambridge Tower | Opus 5.5 | 2026-10-12 | 20,636 | 50 min |  |  |
 | GrandMarc Austin | Opus 5.5 | 2026-10-12 | 48,464 | 75 min | 8.3 | yes |
