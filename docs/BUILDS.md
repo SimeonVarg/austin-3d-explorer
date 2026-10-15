@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 185 builds of 148 buildings; 53 buildings flagged to retarget.
+Right now: 186 builds of 149 buildings; 53 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -36,6 +36,7 @@ Right now: 185 builds of 148 buildings; 53 buildings flagged to retarget.
 | Icon | Opus 5.5 | 2026-10-15 | 20,804 | 64 min, 445k plan tokens |  |  |
 | Inspire on 22nd | Opus 5.5 | 2026-10-12 | 40,966 | 78 min |  |  |
 | Ion Austin | Opus 5.5 | 2026-10-12 | 7,056 | 60 min |  | yes |
+| John H. Reagan State Office Building | Opus 5.5 | 2026-10-15 | 14,066 | 40 min, 395k plan tokens |  |  |
 | Lark Austin | Opus 5.5 | 2026-10-13 | 6,292 | 75 min, 644k plan tokens |  |  |
 | Moontower | Opus 5.5 | 2026-10-12 | 10,992 | 76 min |  |  |
 | Noble 2500 | Opus 5.5 | 2026-10-12 | 19,802 | 47 min |  |  |
