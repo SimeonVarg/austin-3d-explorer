@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 167 builds of 136 buildings; 48 buildings flagged to retarget.
+Right now: 168 builds of 136 buildings; 48 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -247,6 +247,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | McCombs School of Business | Opus 5.5 | lean | 2026-10-13 | 24,153 | 54 min, 447k plan tokens |  | trial | B of the A/B test (toolkit + short rules); no cheaper than A |
 | Neural Molecular Science Building | Opus 5.5 | lean | 2026-10-13 |  | 45 min |  | failed | stopped by the owner (about 45 min in); partial files only, no hand-back |
 | Pi Beta Phi house | Haiku 5.5 | trial | 2026-10-13 | 1,172 | 40 min, 527k plan tokens |  | superseded | Haiku alone: flat columns, no porch depth; used more tokens than an Opus build; thumbs down |
+| Powers Student Activity Center | Opus 5.5 | fix round | 2026-10-15 | 32,768 | 51 min, 516k plan tokens |  | trial | WCP round 3: still 4 of 36 photos proven (south only); 27 photos show no measured point; waits for photo-to-photo matching; not sent |
 | Texan Pearl | Sol 6.1 | lean | 2026-10-13 | 15,674 | 70 min, $3.10 |  | superseded | overlapping, mis-spaced slanted roofs |
 | Texas Alpha Phi house | Haiku 5.5 | trial | 2026-10-13 | 9,868 | 45 min, 467k plan tokens |  | superseded | Haiku alone: iron lace is loose rings; shade patches miss 84-89% |
 | Texas Cowboys Pavilion | Opus 5.5 | lean | 2026-10-15 | 12,004 | 58 min, 440k plan tokens |  | failed | main camera not proven (11 px held-out, shift-corrected photo); parts right, framing off; not sent |
