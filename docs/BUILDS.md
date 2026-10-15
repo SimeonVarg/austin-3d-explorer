@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 197 builds of 158 buildings; 56 buildings flagged to retarget.
+Right now: 198 builds of 158 buildings; 56 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -239,7 +239,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Austin Proper**: downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent
 - **Turtle Pond and Memorial Garden**: first ground piece; camera not proven (12.7/19.6 px); close-up photo, wrong scale for the city; not sent
 - **Block 185**: retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos
-- **Seaholm Residences**: downtown lane; camera not proven (a held-out pick on the wrong corner, 49.8 px, kept per 9t); render 2x dark; not sent
+- **Seaholm Residences**: independent retry: window grid fits, roof parts 2-4 m high and podium cap 22.7 vs 26.5 m in the model; PARKED (2 fails)
 - **Heinsohn Hall**: camera not proven (held-out 1.5 / 20.5 px, 8 px of it own pick); one photo only; not sent
 - **The Monarch**: downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent
 - **Sam Houston State Office Building**: camera not proven: 4 of 6 held-out pass, 2 bad own picks (tree, antenna mast) kept locked; work render only; not sent
@@ -282,6 +282,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Powers Student Activity Center | Opus 5.5 | fix round | 2026-10-15 | 32,768 | 51 min, 516k plan tokens |  | trial | WCP round 3: still 4 of 36 photos proven (south only); 27 photos show no measured point; waits for photo-to-photo matching; not sent |
 | Sam Houston State Office Building | Opus 5.5 | lean | 2026-10-15 | 17,555 | 52 min, 452k plan tokens |  | failed | camera not proven: 4 of 6 held-out pass, 2 bad own picks (tree, antenna mast) kept locked; work render only; not sent |
 | Seaholm Residences | Opus 5.5 | lean | 2026-10-15 | 29,280 | 56 min, 445k plan tokens |  | failed | downtown lane; camera not proven (a held-out pick on the wrong corner, 49.8 px, kept per 9t); render 2x dark; not sent |
+| Seaholm Residences | Opus 5.5 | redo | 2026-10-15 | 29,280 | 40 min |  | failed | independent retry: window grid fits, roof parts 2-4 m high and podium cap 22.7 vs 26.5 m in the model; PARKED (2 fails) |
 | Texan Pearl | Sol 6.1 | lean | 2026-10-13 | 15,674 | 70 min, $3.10 |  | superseded | overlapping, mis-spaced slanted roofs |
 | Texas Alpha Phi house | Haiku 5.5 | trial | 2026-10-13 | 9,868 | 45 min, 467k plan tokens |  | superseded | Haiku alone: iron lace is loose rings; shade patches miss 84-89% |
 | Texas Cowboys Pavilion | Opus 5.5 | lean | 2026-10-15 | 12,004 | 58 min, 440k plan tokens |  | failed | main camera not proven (11 px held-out, shift-corrected photo); parts right, framing off; not sent |
