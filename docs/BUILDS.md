@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 163 builds of 133 buildings; 49 buildings flagged to retarget.
+Right now: 164 builds of 133 buildings; 48 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -129,6 +129,7 @@ Right now: 163 builds of 133 buildings; 49 buildings flagged to retarget.
 | Seay Building | Opus 5.5 | 2026-10-13 | 15,404 | 52 min, 437k plan tokens |  |  |
 | Student Services Building | Opus 5.5 | 2026-10-14 | 21,876 | 42 min, 446k plan tokens |  |  |
 | T. S. Painter Hall | Opus 5.5 | 2026-10-12 | 16,751 | 53 min |  |  |
+| Texas Cowboys Pavilion | Opus 5.5 | 2026-10-15 | 12,028 | 24 min, 232k plan tokens |  |  |
 | Texas Hillel | Opus 5.5 | 2026-10-15 | 15,503 | 61 min, 393k plan tokens |  |  |
 | Texas Memorial Museum | Opus 5.5 | 2026-10-14 | 15,874 | 72 min, 364k plan tokens |  |  |
 | Travis County Civil and Family Courts | Opus 5.5 | 2026-10-14 | 22,196 | 51 min, 436k plan tokens |  |  |
@@ -214,7 +215,6 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Frost Bank Tower**: downtown lane; camera not proven (held-out 10-22 px); telephoto crown photo with no lens; hidden faces by symmetry, refuted; not sent
 - **Austin Proper**: downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent
 - **Turtle Pond and Memorial Garden**: first ground piece; camera not proven (12.7/19.6 px); close-up photo, wrong scale for the city; not sent
-- **Texas Cowboys Pavilion**: main camera not proven (11 px held-out, shift-corrected photo); parts right, framing off; not sent
 - **Block 185**: downtown lane; camera not proven (12-19 px); straightened photo, started before fb_shift existed; outline 57 m vs photo 93 m; not sent; retry with fb_shift
 
 ### Good test set for a cheaper model
