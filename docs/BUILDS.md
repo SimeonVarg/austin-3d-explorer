@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 194 builds of 156 buildings; 56 buildings flagged to retarget.
+Right now: 199 builds of 158 buildings; 55 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -29,6 +29,7 @@ Right now: 194 builds of 156 buildings; 56 buildings flagged to retarget.
 | Centennial Condominiums | Opus 5.5 | 2026-10-15 | 14,722 | 49 min, 443k plan tokens |  |  |
 | Crest at Pearl | Opus 5.5 | 2026-10-15 | 18,688 | 53 min, 355k plan tokens |  |  |
 | Delta Gamma | Opus 5.5 | 2026-10-15 | 13,367 | 48 min, 675k plan tokens |  |  |
+| Driskill Hotel | Sol 6.1 | 2026-10-15 | 35,160 | 45 min, $3.00 |  | yes |
 | Four Seasons Residences | Opus 5.5 | 2026-10-15 | 30,791 | 45 min, 403k plan tokens |  |  |
 | GrandMarc Austin | Opus 5.5 | 2026-10-12 | 48,464 | 75 min | 8.3 | yes |
 | Hampton Inn and Suites Austin (campus) | Opus 5.5 | 2026-10-14 | 18,819 | 56 min, 450k plan tokens |  | yes |
@@ -46,6 +47,7 @@ Right now: 194 builds of 156 buildings; 56 buildings flagged to retarget.
 | Rambler | Opus 5.5 | 2026-10-12 | 17,742 | 61 min |  |  |
 | Regents West at 24th | Opus 5.5 | 2026-10-15 | 17,750 | 47 min, 395k plan tokens |  |  |
 | Regents West at 26th | Opus 5.5 | 2026-10-14 | 15,887 | 52 min, 454k plan tokens |  | yes |
+| Sam Houston State Office Building | Opus 5.5 | 2026-10-15 | 17,549 | 13 min, 217k plan tokens |  |  |
 | Signature 1909 | Opus 5.5 | 2026-10-12 | 6,953 | 76 min | "weird lines ... better text recognition" |  |
 | Skyloft Austin | Opus 5.5 | 2026-10-12 | 6,016 | 72 min | 8.6 |  |
 | Texan 26 | Opus 5.5 | 2026-10-15 | 11,836 | 55 min, 370k plan tokens |  |  |
@@ -53,6 +55,7 @@ Right now: 194 builds of 156 buildings; 56 buildings flagged to retarget.
 | Texan Tower | Opus 5.5 | 2026-10-13 | 8,320 | 48 min, 458k plan tokens |  | yes |
 | Texas Law Center | Opus 5.5 | 2026-10-15 | 10,352 | 45 min, 398k plan tokens |  |  |
 | Texas Supreme Court Building | Opus 5.5 | 2026-10-15 | 13,870 | 42 min, 372k plan tokens |  |  |
+| Texas Workforce Commission Building | Opus 5.5 | 2026-10-15 | 11,246 | 55 min, 379k plan tokens |  |  |
 | The Austonian | Opus 5.5 | 2026-10-15 | 30,504 | 43 min, 401k plan tokens |  |  |
 | The Callaway House | Opus 5.5 | 2026-10-13 | 4,116 | 46 min, 397k plan tokens |  | yes |
 | The Castilian | Opus 5.5 | 2026-10-12 | 12,501 | 52 min |  | yes |
@@ -95,6 +98,7 @@ Right now: 194 builds of 156 buildings; 56 buildings flagged to retarget.
 | Anna Hiss Gymnasium | Opus 5.5 | 2026-10-12 | 32,898 | 46 min | "I want the brick pattern" | yes |
 | Arno Nowotny Building | Opus 5.5 | 2026-10-15 | 13,817 | 49 min, 380k plan tokens |  |  |
 | AT&T Executive Education and Conference Center | Opus 5.5 | 2026-10-13 | 16,126 | 53 min, 454k plan tokens |  | yes |
+| Austin by Ellsworth Kelly | Opus 5.5 | 2026-10-15 | 7,915 | 46 min, 385k plan tokens |  |  |
 | Bass Concert Hall | Opus 5.5 | 2026-10-14 | 23,880 | 49 min, 431k plan tokens |  | yes |
 | Biological Laboratories | Opus 5.5 | 2026-10-15 | 19,935 | 52 min, 415k plan tokens |  |  |
 | Biomedical Engineering Building | Opus 5.5 | 2026-10-14 | 24,046 | 47 min, 407k plan tokens |  | yes |
@@ -182,6 +186,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **100 Congress** (Sol 6.1, fix round): his ask: walls and corners; corners better, base changed and overhang added
 - **1609 Shoal Creek office** (Sol 6.1): soffit too dark; roof +13 % vs scan (sloped lot)
 - **21 Rio** (Sonnet 5.5, fix round): Sonnet detail pass on the Opus build (Opus base: 50 min, 423k plan tokens); glazed bay moved to the right face; 3.4 m recess left from the scale error
+- **Driskill Hotel** (Sol 6.1, fix round): his ask: detail pass; carving, surrounds, balusters added; camera still 0.6 px short
 - **Kappa Delta house** (Sol 6.1, redo): Sol redo of the Haiku build at the same triangle budget; cheaper model, cream wall where photo is white
 - **Pi Beta Phi house** (Sol 6.1, redo): Sol redo: real portico, but sits smaller and a little turned
 - **Texan Pearl** (Sol 6.1, fix round): fix 1: every roof plate and canopy re-measured; shaded left wing still too dark; cheaper model (base Sol build: 70 min, $3.10)
@@ -235,16 +240,14 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Austin Proper**: downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent
 - **Turtle Pond and Memorial Garden**: first ground piece; camera not proven (12.7/19.6 px); close-up photo, wrong scale for the city; not sent
 - **Block 185**: retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos
-- **Seaholm Residences**: downtown lane; camera not proven (a held-out pick on the wrong corner, 49.8 px, kept per 9t); render 2x dark; not sent
+- **Seaholm Residences**: independent retry: window grid fits, roof parts 2-4 m high and podium cap 22.7 vs 26.5 m in the model; PARKED (2 fails)
 - **Heinsohn Hall**: camera not proven (held-out 1.5 / 20.5 px, 8 px of it own pick); one photo only; not sent
 - **The Monarch**: downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent
-- **Sam Houston State Office Building**: camera not proven: 4 of 6 held-out pass, 2 bad own picks (tree, antenna mast) kept locked; work render only; not sent
 - **Dewitt C. Greer State Highway Building**: camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent
-- **Driskill Hotel**: corner fix: held-out 127.9 -> 8.6 px (0.6 over); colour gate passes; no carving; sent as a rough version
 
 ### Good test set for a cheaper model
 
-Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); Yugo Austin Waterloo (4,200 tri).
+Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Austin by Ellsworth Kelly (7,915 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); Yugo Austin Waterloo (4,200 tri).
 
 ## All other builds
 
@@ -279,6 +282,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Powers Student Activity Center | Opus 5.5 | fix round | 2026-10-15 | 32,768 | 51 min, 516k plan tokens |  | trial | WCP round 3: still 4 of 36 photos proven (south only); 27 photos show no measured point; waits for photo-to-photo matching; not sent |
 | Sam Houston State Office Building | Opus 5.5 | lean | 2026-10-15 | 17,555 | 52 min, 452k plan tokens |  | failed | camera not proven: 4 of 6 held-out pass, 2 bad own picks (tree, antenna mast) kept locked; work render only; not sent |
 | Seaholm Residences | Opus 5.5 | lean | 2026-10-15 | 29,280 | 56 min, 445k plan tokens |  | failed | downtown lane; camera not proven (a held-out pick on the wrong corner, 49.8 px, kept per 9t); render 2x dark; not sent |
+| Seaholm Residences | Opus 5.5 | redo | 2026-10-15 | 29,280 | 40 min |  | failed | independent retry: window grid fits, roof parts 2-4 m high and podium cap 22.7 vs 26.5 m in the model; PARKED (2 fails) |
 | Texan Pearl | Sol 6.1 | lean | 2026-10-13 | 15,674 | 70 min, $3.10 |  | superseded | overlapping, mis-spaced slanted roofs |
 | Texas Alpha Phi house | Haiku 5.5 | trial | 2026-10-13 | 9,868 | 45 min, 467k plan tokens |  | superseded | Haiku alone: iron lace is loose rings; shade patches miss 84-89% |
 | Texas Cowboys Pavilion | Opus 5.5 | lean | 2026-10-15 | 12,004 | 58 min, 440k plan tokens |  | failed | main camera not proven (11 px held-out, shift-corrected photo); parts right, framing off; not sent |
