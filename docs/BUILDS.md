@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 145 builds of 115 buildings; 43 buildings flagged to retarget.
+Right now: 146 builds of 116 buildings; 44 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -196,6 +196,10 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Villas on Nueces**: owner: pretty good; camera unproven (a corner 1.8 m off); street face 1.8 m inside the outline; base storeys and Nueces face have no openings
 - **Yugo The Corner**: two far photographs only; north-east panel block not built; east base 3.4 m outside the scan
 
+### No finished build yet
+
+- **University Christian Church**: camera not proven (held-out 164-375 px); heights 0.8 of scan, gable front 10.3 m vs survey 6 m; tower crown wrong; not sent
+
 ### Good test set for a cheaper model
 
 Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); Yugo Austin Waterloo (4,200 tri).
@@ -226,6 +230,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | The Quarters Grayson House | Sol 6.1 | lean | 2026-10-13 |  | 14 min, $0.57 |  | failed | stopped by the lead after 14 min (decorated, so Opus); no build yet |
 | The Texan Shoal Creek | Sol 6.1 | lean | 2026-10-13 | 15,461 | 65 min, $3.15 |  | superseded | close match; flat left tower wall |
 | University Avenue Church of Christ | Haiku 5.5 | trial | 2026-10-13 | 977 | 36 min, 443k plan tokens | <6 | superseded | Haiku alone: stone box, camera unproven |
+| University Christian Church | Opus 5.5 | lean | 2026-10-15 | 19,966 | 60 min, 461k plan tokens |  | failed | camera not proven (held-out 164-375 px); heights 0.8 of scan, gable front 10.3 m vs survey 6 m; tower crown wrong; not sent |
 | Villas on Nueces | Haiku 5.5 | trial | 2026-10-13 | 2,490 | 27 min, 315k plan tokens | "A is really horrible haiku" | trial | owner: horrible; does not register to the photograph |
 | Villas on Nueces | Sonnet 5.5 | trial | 2026-10-13 | 2,698 | 57 min, 468k plan tokens | "B is sonnet it's somewhat alright" | trial | owner: somewhat alright; roof 28% over the scan |
 | Walter Webb Hall | Sol 6.1 | lean | 2026-10-14 | 13,610 | 72 min, $2.80 |  | superseded | glass too light; name sign clipped at the wall edge |
