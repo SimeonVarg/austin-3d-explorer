@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 159 builds of 129 buildings; 47 buildings flagged to retarget.
+Right now: 160 builds of 130 buildings; 48 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -212,6 +212,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Frost Bank Tower**: downtown lane; camera not proven (held-out 10-22 px); telephoto crown photo with no lens; hidden faces by symmetry, refuted; not sent
 - **Austin Proper**: downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent
 - **Turtle Pond and Memorial Garden**: first ground piece; camera not proven (12.7/19.6 px); close-up photo, wrong scale for the city; not sent
+- **Texas Cowboys Pavilion**: main camera not proven (11 px held-out, shift-corrected photo); parts right, framing off; not sent
 
 ### Good test set for a cheaper model
 
@@ -241,6 +242,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Pi Beta Phi house | Haiku 5.5 | trial | 2026-10-13 | 1,172 | 40 min, 527k plan tokens |  | superseded | Haiku alone: flat columns, no porch depth; used more tokens than an Opus build; thumbs down |
 | Texan Pearl | Sol 6.1 | lean | 2026-10-13 | 15,674 | 70 min, $3.10 |  | superseded | overlapping, mis-spaced slanted roofs |
 | Texas Alpha Phi house | Haiku 5.5 | trial | 2026-10-13 | 9,868 | 45 min, 467k plan tokens |  | superseded | Haiku alone: iron lace is loose rings; shade patches miss 84-89% |
+| Texas Cowboys Pavilion | Opus 5.5 | lean | 2026-10-15 | 12,004 | 58 min, 440k plan tokens |  | failed | main camera not proven (11 px held-out, shift-corrected photo); parts right, framing off; not sent |
 | The Nine at West Campus | Sol 6.1 | lean | 2026-10-13 | 14,966 | 71 min, $3.15 |  | superseded | owner: decorated buildings are too hard for Sol; windows read as closed blinds, orange flat |
 | The Quarters Grayson House | Sol 6.1 | lean | 2026-10-13 |  | 14 min, $0.57 |  | failed | stopped by the lead after 14 min (decorated, so Opus); no build yet |
 | The Texan Shoal Creek | Sol 6.1 | lean | 2026-10-13 | 15,461 | 65 min, $3.15 |  | superseded | close match; flat left tower wall |
