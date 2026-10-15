@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 171 builds of 139 buildings; 48 buildings flagged to retarget.
+Right now: 173 builds of 141 buildings; 49 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -118,6 +118,7 @@ Right now: 171 builds of 139 buildings; 48 buildings flagged to retarget.
 | Mary E. Gearing Hall | Opus 5.5 | 2026-10-13 | 26,811 | 62 min, 464k plan tokens |  |  |
 | McCombs School of Business | Opus 5.5 | 2026-10-13 | 25,031 | 52 min, 452k plan tokens |  |  |
 | Moffett Molecular Biology | Opus 5.5 | 2026-10-13 | 26,391 | 45 min, 370k plan tokens | "Make the X dots a bit more prominent" |  |
+| Music Recital Hall | Opus 5.5 | 2026-10-15 | 21,256 | 51 min, 398k plan tokens |  |  |
 | Neural Molecular Science Building | Opus 5.5 | 2026-10-15 | 21,790 | 59 min, 448k plan tokens |  |  |
 | Norman Hackerman Building | Opus 5.5 | 2026-10-12 | 6,770 | 54 min |  | yes |
 | Nursing School | Opus 5.5 | 2026-10-15 | 12,494 | 43 min, 355k plan tokens |  |  |
@@ -222,6 +223,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Austin Proper**: downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent
 - **Turtle Pond and Memorial Garden**: first ground piece; camera not proven (12.7/19.6 px); close-up photo, wrong scale for the city; not sent
 - **Block 185**: downtown lane; camera not proven (12-19 px); straightened photo, started before fb_shift existed; outline 57 m vs photo 93 m; not sent; retry with fb_shift
+- **Seaholm Residences**: downtown lane; camera not proven (a held-out pick on the wrong corner, 49.8 px, kept per 9t); render 2x dark; not sent
 
 ### Good test set for a cheaper model
 
@@ -251,6 +253,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Neural Molecular Science Building | Opus 5.5 | lean | 2026-10-13 |  | 45 min |  | failed | stopped by the owner (about 45 min in); partial files only, no hand-back |
 | Pi Beta Phi house | Haiku 5.5 | trial | 2026-10-13 | 1,172 | 40 min, 527k plan tokens |  | superseded | Haiku alone: flat columns, no porch depth; used more tokens than an Opus build; thumbs down |
 | Powers Student Activity Center | Opus 5.5 | fix round | 2026-10-15 | 32,768 | 51 min, 516k plan tokens |  | trial | WCP round 3: still 4 of 36 photos proven (south only); 27 photos show no measured point; waits for photo-to-photo matching; not sent |
+| Seaholm Residences | Opus 5.5 | lean | 2026-10-15 | 29,280 | 56 min, 445k plan tokens |  | failed | downtown lane; camera not proven (a held-out pick on the wrong corner, 49.8 px, kept per 9t); render 2x dark; not sent |
 | Texan Pearl | Sol 6.1 | lean | 2026-10-13 | 15,674 | 70 min, $3.10 |  | superseded | overlapping, mis-spaced slanted roofs |
 | Texas Alpha Phi house | Haiku 5.5 | trial | 2026-10-13 | 9,868 | 45 min, 467k plan tokens |  | superseded | Haiku alone: iron lace is loose rings; shade patches miss 84-89% |
 | Texas Cowboys Pavilion | Opus 5.5 | lean | 2026-10-15 | 12,004 | 58 min, 440k plan tokens |  | failed | main camera not proven (11 px held-out, shift-corrected photo); parts right, framing off; not sent |
