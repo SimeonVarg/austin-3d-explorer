@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 166 builds of 135 buildings; 48 buildings flagged to retarget.
+Right now: 167 builds of 136 buildings; 48 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -117,6 +117,7 @@ Right now: 166 builds of 135 buildings; 48 buildings flagged to retarget.
 | Moffett Molecular Biology | Opus 5.5 | 2026-10-13 | 26,391 | 45 min, 370k plan tokens | "Make the X dots a bit more prominent" |  |
 | Neural Molecular Science Building | Opus 5.5 | 2026-10-15 | 21,790 | 59 min, 448k plan tokens |  |  |
 | Norman Hackerman Building | Opus 5.5 | 2026-10-12 | 6,770 | 54 min |  | yes |
+| Nursing School | Opus 5.5 | 2026-10-15 | 12,494 | 43 min, 355k plan tokens |  |  |
 | O'Donnell Building | Opus 5.5 | 2026-10-13 | 13,280 | 59 min, 500k plan tokens |  |  |
 | Parlin Hall | Opus 5.5 | 2026-10-14 | 18,067 | 41 min, 345k plan tokens |  |  |
 | PCL Library | Opus 5.5 | 2026-10-13 | 3,148 | 48 min, 397k plan tokens |  |  |
