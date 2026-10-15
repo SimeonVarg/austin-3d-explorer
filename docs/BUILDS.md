@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 140 builds of 113 buildings; 44 buildings flagged to retarget.
+Right now: 141 builds of 114 buildings; 45 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -116,6 +116,7 @@ Right now: 140 builds of 113 buildings; 44 buildings flagged to retarget.
 | T. S. Painter Hall | Opus 5.5 | 2026-10-12 | 16,751 | 53 min |  |  |
 | Texas Memorial Museum | Opus 5.5 | 2026-10-14 | 15,874 | 72 min, 364k plan tokens |  |  |
 | Travis County Civil and Family Courts | Opus 5.5 | 2026-10-14 | 22,196 | 51 min, 436k plan tokens |  |  |
+| University Catholic Center | Sol 6.1 | 2026-10-14 | 11,957 | 62 min, $3.07 |  | yes |
 | University Presbyterian Church | Opus 5.5 | 2026-10-14 | 14,435 | 56 min, 401k plan tokens |  | yes |
 | Waggener Hall | Opus 5.5 | 2026-10-14 | 20,433 | 51 min, 436k plan tokens |  |  |
 | Walter Webb Hall | Sol 6.1 | 2026-10-14 | 14,481 | 37 min, $1.61 |  | yes |
@@ -153,6 +154,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **The Nine at Rio** (Sol 6.1): glass dark; base storey inferred (hidden by a hedge)
 - **The Texan Shoal Creek** (Sol 6.1, fix round): fix 1 on the owner note (stone detail, slanted tower roof); tower windows still black holes; cheaper model (base Sol build: 65 min, $3.15, 9.1M tokens)
 - **University Avenue Church of Christ** (Sol 6.1, redo): Sol redo; it chose its own camera limit (24 px) to pass; stone too even
+- **University Catholic Center** (Sol 6.1): soffit dark; glass dark
 - **Walter Webb Hall** (Sol 6.1, fix round): redo with the three checks; glass too bright
 
 ### The best build is Opus but has a known open fault
