@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 198 builds of 158 buildings; 56 buildings flagged to retarget.
+Right now: 199 builds of 158 buildings; 55 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -47,6 +47,7 @@ Right now: 198 builds of 158 buildings; 56 buildings flagged to retarget.
 | Rambler | Opus 5.5 | 2026-10-12 | 17,742 | 61 min |  |  |
 | Regents West at 24th | Opus 5.5 | 2026-10-15 | 17,750 | 47 min, 395k plan tokens |  |  |
 | Regents West at 26th | Opus 5.5 | 2026-10-14 | 15,887 | 52 min, 454k plan tokens |  | yes |
+| Sam Houston State Office Building | Opus 5.5 | 2026-10-15 | 17,549 | 13 min, 217k plan tokens |  |  |
 | Signature 1909 | Opus 5.5 | 2026-10-12 | 6,953 | 76 min | "weird lines ... better text recognition" |  |
 | Skyloft Austin | Opus 5.5 | 2026-10-12 | 6,016 | 72 min | 8.6 |  |
 | Texan 26 | Opus 5.5 | 2026-10-15 | 11,836 | 55 min, 370k plan tokens |  |  |
@@ -242,7 +243,6 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Seaholm Residences**: independent retry: window grid fits, roof parts 2-4 m high and podium cap 22.7 vs 26.5 m in the model; PARKED (2 fails)
 - **Heinsohn Hall**: camera not proven (held-out 1.5 / 20.5 px, 8 px of it own pick); one photo only; not sent
 - **The Monarch**: downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent
-- **Sam Houston State Office Building**: camera not proven: 4 of 6 held-out pass, 2 bad own picks (tree, antenna mast) kept locked; work render only; not sent
 - **Dewitt C. Greer State Highway Building**: camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent
 
 ### Good test set for a cheaper model
