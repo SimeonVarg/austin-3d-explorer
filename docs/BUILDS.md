@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 181 builds of 146 buildings; 51 buildings flagged to retarget.
+Right now: 182 builds of 147 buildings; 52 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -230,6 +230,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Block 185**: retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos
 - **Seaholm Residences**: downtown lane; camera not proven (a held-out pick on the wrong corner, 49.8 px, kept per 9t); render 2x dark; not sent
 - **Heinsohn Hall**: camera not proven (held-out 1.5 / 20.5 px, 8 px of it own pick); one photo only; not sent
+- **The Monarch**: downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent
 
 ### Good test set for a cheaper model
 
@@ -265,6 +266,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Texan Pearl | Sol 6.1 | lean | 2026-10-13 | 15,674 | 70 min, $3.10 |  | superseded | overlapping, mis-spaced slanted roofs |
 | Texas Alpha Phi house | Haiku 5.5 | trial | 2026-10-13 | 9,868 | 45 min, 467k plan tokens |  | superseded | Haiku alone: iron lace is loose rings; shade patches miss 84-89% |
 | Texas Cowboys Pavilion | Opus 5.5 | lean | 2026-10-15 | 12,004 | 58 min, 440k plan tokens |  | failed | main camera not proven (11 px held-out, shift-corrected photo); parts right, framing off; not sent |
+| The Monarch | Opus 5.5 | lean | 2026-10-15 | 32,762 | 59 min |  | failed | downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent |
 | The Nine at West Campus | Sol 6.1 | lean | 2026-10-13 | 14,966 | 71 min, $3.15 |  | superseded | owner: decorated buildings are too hard for Sol; windows read as closed blinds, orange flat |
 | The Quarters Grayson House | Sol 6.1 | lean | 2026-10-13 |  | 14 min, $0.57 |  | failed | stopped by the lead after 14 min (decorated, so Opus); no build yet |
 | The Texan Shoal Creek | Sol 6.1 | lean | 2026-10-13 | 15,461 | 65 min, $3.15 |  | superseded | close match; flat left tower wall |
