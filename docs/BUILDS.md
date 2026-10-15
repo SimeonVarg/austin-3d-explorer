@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 195 builds of 157 buildings; 56 buildings flagged to retarget.
+Right now: 196 builds of 157 buildings; 56 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -29,6 +29,7 @@ Right now: 195 builds of 157 buildings; 56 buildings flagged to retarget.
 | Centennial Condominiums | Opus 5.5 | 2026-10-15 | 14,722 | 49 min, 443k plan tokens |  |  |
 | Crest at Pearl | Opus 5.5 | 2026-10-15 | 18,688 | 53 min, 355k plan tokens |  |  |
 | Delta Gamma | Opus 5.5 | 2026-10-15 | 13,367 | 48 min, 675k plan tokens |  |  |
+| Driskill Hotel | Sol 6.1 | 2026-10-15 | 35,160 | 45 min, $3.00 |  | yes |
 | Four Seasons Residences | Opus 5.5 | 2026-10-15 | 30,791 | 45 min, 403k plan tokens |  |  |
 | GrandMarc Austin | Opus 5.5 | 2026-10-12 | 48,464 | 75 min | 8.3 | yes |
 | Hampton Inn and Suites Austin (campus) | Opus 5.5 | 2026-10-14 | 18,819 | 56 min, 450k plan tokens |  | yes |
@@ -183,6 +184,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **100 Congress** (Sol 6.1, fix round): his ask: walls and corners; corners better, base changed and overhang added
 - **1609 Shoal Creek office** (Sol 6.1): soffit too dark; roof +13 % vs scan (sloped lot)
 - **21 Rio** (Sonnet 5.5, fix round): Sonnet detail pass on the Opus build (Opus base: 50 min, 423k plan tokens); glazed bay moved to the right face; 3.4 m recess left from the scale error
+- **Driskill Hotel** (Sol 6.1, fix round): his ask: detail pass; carving, surrounds, balusters added; camera still 0.6 px short
 - **Kappa Delta house** (Sol 6.1, redo): Sol redo of the Haiku build at the same triangle budget; cheaper model, cream wall where photo is white
 - **Pi Beta Phi house** (Sol 6.1, redo): Sol redo: real portico, but sits smaller and a little turned
 - **Texan Pearl** (Sol 6.1, fix round): fix 1: every roof plate and canopy re-measured; shaded left wing still too dark; cheaper model (base Sol build: 70 min, $3.10)
@@ -241,7 +243,6 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **The Monarch**: downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent
 - **Sam Houston State Office Building**: camera not proven: 4 of 6 held-out pass, 2 bad own picks (tree, antenna mast) kept locked; work render only; not sent
 - **Dewitt C. Greer State Highway Building**: camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent
-- **Driskill Hotel**: corner fix: held-out 127.9 -> 8.6 px (0.6 over); colour gate passes; no carving; sent as a rough version
 
 ### Good test set for a cheaper model
 
