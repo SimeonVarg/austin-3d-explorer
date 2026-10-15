@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 148 builds of 118 buildings; 45 buildings flagged to retarget.
+Right now: 149 builds of 119 buildings; 45 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -56,6 +56,7 @@ Right now: 148 builds of 118 buildings; 45 buildings flagged to retarget.
 | Torre Student Living | Opus 5.5 | 2026-10-13 | 6,744 | 47 min, 427k plan tokens |  |  |
 | Union on 24th | Opus 5.5 | 2026-10-12 | 109,098 | 46 min |  | yes |
 | Union on San Antonio | Opus 5.5 | 2026-10-13 | 31,114 | 56 min, 437k plan tokens |  | yes |
+| Villas at San Gabriel | Opus 5.5 | 2026-10-15 | 21,102 | 51 min, 316k plan tokens |  |  |
 | Villas on 24th | Opus 5.5 | 2026-10-12 | 58,220 | 45 min |  | yes |
 | Villas on Guadalupe | Opus 5.5 | 2026-10-12 | 4,829 | 73 min |  | yes |
 | Villas on Nueces | Opus 5.5 | 2026-10-13 | 3,686 | 62 min, 417k plan tokens | "C is opus ... pretty good" | yes |
