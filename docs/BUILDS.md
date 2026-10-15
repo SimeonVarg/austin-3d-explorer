@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 183 builds of 148 buildings; 52 buildings flagged to retarget.
+Right now: 184 builds of 148 buildings; 52 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -225,7 +225,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 ### No finished build yet
 
 - **University Christian Church**: retries 2+3: outline misread fixed, heights within 1% of scan, crown right; camera still not proven (54/54 px, likely a pavement drop); parked after 3 tries
-- **Frost Bank Tower**: downtown lane; camera not proven (held-out 10-22 px); telephoto crown photo with no lens; hidden faces by symmetry, refuted; not sent
+- **Frost Bank Tower**: retry on EXIF main: held-out 6.5-21.6 px; both photos from the south-east; 9% too large; PARKED (2 fails)
 - **Austin Proper**: downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent
 - **Turtle Pond and Memorial Garden**: first ground piece; camera not proven (12.7/19.6 px); close-up photo, wrong scale for the city; not sent
 - **Block 185**: retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos
@@ -252,6 +252,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Block 185 | Opus 5.5 | lean | 2026-10-15 | 32,051 | 49 min, 394k plan tokens |  | failed | downtown lane; camera not proven (12-19 px); straightened photo, started before fb_shift existed; outline 57 m vs photo 93 m; not sent; retry with fb_shift |
 | Block 185 | Opus 5.5 | redo | 2026-10-15 | 32,983 | 50 min, 267k plan tokens |  | failed | retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos |
 | Frost Bank Tower | Opus 5.5 | lean | 2026-10-15 | 35,216 | 46 min, 345k plan tokens |  | failed | downtown lane; camera not proven (held-out 10-22 px); telephoto crown photo with no lens; hidden faces by symmetry, refuted; not sent |
+| Frost Bank Tower | Opus 5.5 | redo | 2026-10-15 | 36,520 | 49 min |  | failed | retry on EXIF main: held-out 6.5-21.6 px; both photos from the south-east; 9% too large; PARKED (2 fails) |
 | George H. W. Bush State Office Building | Opus 5.5 | lean | 2026-10-13 | 14,246 | 51 min |  | failed | stopped by the owner (about 51 min in); partial files only, no hand-back |
 | George I. Sanchez Building | Haiku 5.5 | trial | 2026-10-13 | 1,538 | 29 min, 337k plan tokens |  | trial | ranked last; camera unproven, height 20% over the scan; final render refused |
 | George I. Sanchez Building | Sonnet 5.5 | trial | 2026-10-13 | 4,964 | 44 min, 403k plan tokens |  | trial | ranked second by the owner (blind guess); raised the camera limit itself |
