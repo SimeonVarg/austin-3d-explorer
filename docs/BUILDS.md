@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 142 builds of 114 buildings; 45 buildings flagged to retarget.
+Right now: 143 builds of 114 buildings; 44 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -91,6 +91,7 @@ Right now: 142 builds of 114 buildings; 45 buildings flagged to retarget.
 | Goodall Wooten House | Opus 5.5 | 2026-10-14 | 24,898 | 48 min, 401k plan tokens |  | yes |
 | Graduate School of Business | Opus 5.5 | 2026-10-13 | 7,240 | 52 min, 437k plan tokens |  |  |
 | Gregory Gymnasium | Opus 5.5 | 2026-10-12 | 7,334 | 79 min | "Nice" |  |
+| Harry Ransom Center | Opus 5.5 | 2026-10-15 | 18,100 | 57 min, 416k plan tokens |  |  |
 | Hogg Memorial Auditorium | Opus 5.5 | 2026-10-13 | 17,813 | 52 min, 458k plan tokens |  |  |
 | Homer Rainey Hall | Opus 5.5 | 2026-10-14 | 15,891 | 39 min, 394k plan tokens |  |  |
 | J. T. Patterson Laboratories | Opus 5.5 | 2026-10-13 | 10,542 | 55 min, 482k plan tokens |  | yes |
@@ -196,7 +197,6 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 ### No finished build yet
 
 - **Neural Molecular Science Building**: stopped by the owner (about 45 min in); partial files only, no hand-back
-- **Harry Ransom Center**: stopped by the owner (about 21 min in); model file only, no render
 
 ### Good test set for a cheaper model
 
