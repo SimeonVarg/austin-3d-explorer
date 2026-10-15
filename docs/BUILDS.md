@@ -6,13 +6,13 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 184 builds of 148 buildings; 52 buildings flagged to retarget.
+Right now: 185 builds of 148 buildings; 53 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
 | Building | Model | Date | Triangles | Minutes / cost | Owner score | Retarget |
 |---|---|---|---|---|---|---|
-| 100 Congress | Opus 5.5 | 2026-10-15 | 28,246 | 62 min, 439k plan tokens |  |  |
+| 100 Congress | Sol 6.1 | 2026-10-15 | 27,106 | 51 min, $3.00 |  | yes |
 | 1609 Shoal Creek office | Sol 6.1 | 2026-10-14 | 11,776 | 64 min, $2.61 |  | yes |
 | 1836 San Jacinto | Opus 5.5 | 2026-10-14 | 17,434 | 33 min, 335k plan tokens |  |  |
 | 1883 at Montgomery House | Opus 5.5 | 2026-10-14 | 17,974 | 38 min, 343k plan tokens |  |  |
@@ -174,6 +174,7 @@ Right now: 184 builds of 148 buildings; 52 buildings flagged to retarget.
 
 In the 2026-10-13 blind trials the owner picked the models correctly every time and ranked Opus above Sonnet above Haiku; he said decorated buildings are too hard for Sol. A better model should redo these at the same triangle budget.
 
+- **100 Congress** (Sol 6.1, fix round): his ask: walls and corners; corners better, base changed and overhang added
 - **1609 Shoal Creek office** (Sol 6.1): soffit too dark; roof +13 % vs scan (sloped lot)
 - **21 Rio** (Sonnet 5.5, fix round): Sonnet detail pass on the Opus build (Opus base: 50 min, 423k plan tokens); glazed bay moved to the right face; 3.4 m recess left from the scale error
 - **Kappa Delta house** (Sol 6.1, redo): Sol redo of the Haiku build at the same triangle budget; cheaper model, cream wall where photo is white
@@ -241,6 +242,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 
 | Building | Model | Method | Date | Triangles | Minutes / cost | Owner score | Status | Note |
 |---|---|---|---|---|---|---|---|---|
+| 100 Congress | Opus 5.5 | lean | 2026-10-15 | 28,246 | 62 min, 439k plan tokens |  | superseded | downtown; weak proof (free lens, fit max at limit); outline off up to 18 m, followed photos; podium plain |
 | 1836 San Jacinto | Sol 6.1 | lean | 2026-10-13 | 18,320 | 66 min, $2.92 |  | superseded | Sol build; owner ordered an Opus redo (started 2026-10-14, not finished when this row was written); glass flat grey |
 | 21 Pearl West Campus | Sol 6.1 | lean | 2026-10-13 |  | 3 min, $0.22 |  | failed | stopped by the lead after 3 min (decorated, so Opus); no build yet |
 | 21 Rio | Opus 5.5 | trial | 2026-10-13 | 16,225 | 50 min, 423k plan tokens | "build A clears in every other dimension" | superseded | blind A/B vs Sonnet: owner picked Opus; scale and plan good to about 10%; glazed bay on the wrong face |
@@ -252,7 +254,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Block 185 | Opus 5.5 | lean | 2026-10-15 | 32,051 | 49 min, 394k plan tokens |  | failed | downtown lane; camera not proven (12-19 px); straightened photo, started before fb_shift existed; outline 57 m vs photo 93 m; not sent; retry with fb_shift |
 | Block 185 | Opus 5.5 | redo | 2026-10-15 | 32,983 | 50 min, 267k plan tokens |  | failed | retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos |
 | Frost Bank Tower | Opus 5.5 | lean | 2026-10-15 | 35,216 | 46 min, 345k plan tokens |  | failed | downtown lane; camera not proven (held-out 10-22 px); telephoto crown photo with no lens; hidden faces by symmetry, refuted; not sent |
-| Frost Bank Tower | Opus 5.5 | redo | 2026-10-15 | 36,520 | 49 min |  | failed | retry on EXIF main: held-out 6.5-21.6 px; both photos from the south-east; 9% too large; PARKED (2 fails) |
+| Frost Bank Tower | Opus 5.5 | redo | 2026-10-15 | 36,520 | 49 min, 463k plan tokens |  | failed | retry on EXIF main: held-out 6.5-21.6 px; both photos from the south-east; 9% too large; PARKED (2 fails) |
 | George H. W. Bush State Office Building | Opus 5.5 | lean | 2026-10-13 | 14,246 | 51 min |  | failed | stopped by the owner (about 51 min in); partial files only, no hand-back |
 | George I. Sanchez Building | Haiku 5.5 | trial | 2026-10-13 | 1,538 | 29 min, 337k plan tokens |  | trial | ranked last; camera unproven, height 20% over the scan; final render refused |
 | George I. Sanchez Building | Sonnet 5.5 | trial | 2026-10-13 | 4,964 | 44 min, 403k plan tokens |  | trial | ranked second by the owner (blind guess); raised the camera limit itself |
