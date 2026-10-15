@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 175 builds of 142 buildings; 49 buildings flagged to retarget.
+Right now: 176 builds of 142 buildings; 49 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -219,7 +219,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### No finished build yet
 
-- **University Christian Church**: camera not proven (held-out 164-375 px); heights 0.8 of scan, gable front 10.3 m vs survey 6 m; tower crown wrong; not sent
+- **University Christian Church**: retries 2+3: outline misread fixed, heights within 1% of scan, crown right; camera still not proven (54/54 px, likely a pavement drop); parked after 3 tries
 - **Frost Bank Tower**: downtown lane; camera not proven (held-out 10-22 px); telephoto crown photo with no lens; hidden faces by symmetry, refuted; not sent
 - **Austin Proper**: downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent
 - **Turtle Pond and Memorial Garden**: first ground piece; camera not proven (12.7/19.6 px); close-up photo, wrong scale for the city; not sent
@@ -265,6 +265,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Turtle Pond and Memorial Garden | Opus 5.5 | lean | 2026-10-15 | 14,776 | 49 min, 401k plan tokens |  | failed | first ground piece; camera not proven (12.7/19.6 px); close-up photo, wrong scale for the city; not sent |
 | University Avenue Church of Christ | Haiku 5.5 | trial | 2026-10-13 | 977 | 36 min, 443k plan tokens | <6 | superseded | Haiku alone: stone box, camera unproven |
 | University Christian Church | Opus 5.5 | lean | 2026-10-15 | 19,966 | 60 min, 461k plan tokens |  | failed | camera not proven (held-out 164-375 px); heights 0.8 of scan, gable front 10.3 m vs survey 6 m; tower crown wrong; not sent |
+| University Christian Church | Opus 5.5 | redo | 2026-10-15 | 20,646 | 45 min, 533k plan tokens |  | failed | retries 2+3: outline misread fixed, heights within 1% of scan, crown right; camera still not proven (54/54 px, likely a pavement drop); parked after 3 tries |
 | Villas on Nueces | Haiku 5.5 | trial | 2026-10-13 | 2,490 | 27 min, 315k plan tokens | "A is really horrible haiku" | trial | owner: horrible; does not register to the photograph |
 | Villas on Nueces | Sonnet 5.5 | trial | 2026-10-13 | 2,698 | 57 min, 468k plan tokens | "B is sonnet it's somewhat alright" | trial | owner: somewhat alright; roof 28% over the scan |
 | Walter Webb Hall | Sol 6.1 | lean | 2026-10-14 | 13,610 | 72 min, $2.80 |  | superseded | glass too light; name sign clipped at the wall edge |
