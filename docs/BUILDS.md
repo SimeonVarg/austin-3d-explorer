@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 199 builds of 158 buildings; 55 buildings flagged to retarget.
+Right now: 200 builds of 158 buildings; 56 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -98,7 +98,7 @@ Right now: 199 builds of 158 buildings; 55 buildings flagged to retarget.
 | Anna Hiss Gymnasium | Opus 5.5 | 2026-10-12 | 32,898 | 46 min | "I want the brick pattern" | yes |
 | Arno Nowotny Building | Opus 5.5 | 2026-10-15 | 13,817 | 49 min, 380k plan tokens |  |  |
 | AT&T Executive Education and Conference Center | Opus 5.5 | 2026-10-13 | 16,126 | 53 min, 454k plan tokens |  | yes |
-| Austin by Ellsworth Kelly | Opus 5.5 | 2026-10-15 | 7,915 | 46 min, 385k plan tokens |  |  |
+| Austin by Ellsworth Kelly | Sonnet 5.5 | 2026-10-15 | 7,915 | 9 min, 174k plan tokens |  | yes |
 | Bass Concert Hall | Opus 5.5 | 2026-10-14 | 23,880 | 49 min, 431k plan tokens |  | yes |
 | Biological Laboratories | Opus 5.5 | 2026-10-15 | 19,935 | 52 min, 415k plan tokens |  |  |
 | Biomedical Engineering Building | Opus 5.5 | 2026-10-14 | 24,046 | 47 min, 407k plan tokens |  | yes |
@@ -186,6 +186,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **100 Congress** (Sol 6.1, fix round): his ask: walls and corners; corners better, base changed and overhang added
 - **1609 Shoal Creek office** (Sol 6.1): soffit too dark; roof +13 % vs scan (sloped lot)
 - **21 Rio** (Sonnet 5.5, fix round): Sonnet detail pass on the Opus build (Opus base: 50 min, 423k plan tokens); glazed bay moved to the right face; 3.4 m recess left from the scale error
+- **Austin by Ellsworth Kelly** (Sonnet 5.5, fix round): named fix: coloured glass via new fb_glass (21 panes, worst-channel error 32 -> 0.5 of 255)
 - **Driskill Hotel** (Sol 6.1, fix round): his ask: detail pass; carving, surrounds, balusters added; camera still 0.6 px short
 - **Kappa Delta house** (Sol 6.1, redo): Sol redo of the Haiku build at the same triangle budget; cheaper model, cream wall where photo is white
 - **Pi Beta Phi house** (Sol 6.1, redo): Sol redo: real portico, but sits smaller and a little turned
@@ -247,7 +248,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### Good test set for a cheaper model
 
-Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Austin by Ellsworth Kelly (7,915 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); Yugo Austin Waterloo (4,200 tri).
+Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); Yugo Austin Waterloo (4,200 tri).
 
 ## All other builds
 
@@ -261,6 +262,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | 26 West | Astra 6 | trial | 2026-10-12 |  | 45 min, $14.19 | 7.5 | trial | run ended exit 1 after 45 min and cost $14; picture still scored |
 | 26 West | Sol 6.1 | trial | 2026-10-12 | 452,172 | 78 min, $4.13 | 8.2-8.3 | trial | file about 6x the Opus triangles, scored below Opus |
 | 2819 Rio Grande | Sol 6.1 | trial | 2026-10-12 | 26,802 | 83 min, $4.66 | "Opus is better" | trial | owner preferred Opus; Sol got no number |
+| Austin by Ellsworth Kelly | Opus 5.5 | lean | 2026-10-15 | 7,915 | 46 min, 385k plan tokens |  | superseded | proven; coloured glass washed out by the standard glass |
 | Austin Proper | Opus 5.5 | lean | 2026-10-15 | 30,982 | 55 min, 396k plan tokens |  | failed | downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent |
 | Block 185 | Opus 5.5 | lean | 2026-10-15 | 32,051 | 49 min, 394k plan tokens |  | failed | downtown lane; camera not proven (12-19 px); straightened photo, started before fb_shift existed; outline 57 m vs photo 93 m; not sent; retry with fb_shift |
 | Block 185 | Opus 5.5 | redo | 2026-10-15 | 32,983 | 50 min, 267k plan tokens |  | failed | retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos |
