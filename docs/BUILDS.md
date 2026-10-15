@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 138 builds of 111 buildings; 44 buildings flagged to retarget.
+Right now: 139 builds of 112 buildings; 44 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -126,6 +126,7 @@ Right now: 138 builds of 111 buildings; 44 buildings flagged to retarget.
 | Building | Model | Date | Triangles | Minutes / cost | Owner score | Retarget |
 |---|---|---|---|---|---|---|
 | Kappa Delta house | Sol 6.1 | 2026-10-13 | 11,780 | 62 min, $3.15 |  | yes |
+| Kappa Kappa Gamma house | Opus 5.5 | 2026-10-14 | 16,029 | 51 min, 411k plan tokens |  |  |
 | Pi Beta Phi house | Sol 6.1 | 2026-10-13 | 12,076 | 62 min, $3.34 |  | yes |
 | Texas Alpha Phi house | Sol 6.1 | 2026-10-13 | 16,719 | 49 min, $2.58 |  | yes |
 | University Avenue Church of Christ | Sol 6.1 | 2026-10-13 | 12,225 | 60 min, $2.97 |  | yes |
