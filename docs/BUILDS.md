@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 161 builds of 131 buildings; 48 buildings flagged to retarget.
+Right now: 162 builds of 132 buildings; 49 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -214,6 +214,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Austin Proper**: downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent
 - **Turtle Pond and Memorial Garden**: first ground piece; camera not proven (12.7/19.6 px); close-up photo, wrong scale for the city; not sent
 - **Texas Cowboys Pavilion**: main camera not proven (11 px held-out, shift-corrected photo); parts right, framing off; not sent
+- **Block 185**: downtown lane; camera not proven (12-19 px); straightened photo, started before fb_shift existed; outline 57 m vs photo 93 m; not sent; retry with fb_shift
 
 ### Good test set for a cheaper model
 
@@ -231,6 +232,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | 26 West | Sol 6.1 | trial | 2026-10-12 | 452,172 | 78 min, $4.13 | 8.2-8.3 | trial | file about 6x the Opus triangles, scored below Opus |
 | 2819 Rio Grande | Sol 6.1 | trial | 2026-10-12 | 26,802 | 83 min, $4.66 | "Opus is better" | trial | owner preferred Opus; Sol got no number |
 | Austin Proper | Opus 5.5 | lean | 2026-10-15 | 30,982 | 55 min, 396k plan tokens |  | failed | downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent |
+| Block 185 | Opus 5.5 | lean | 2026-10-15 | 32,051 | 49 min, 394k plan tokens |  | failed | downtown lane; camera not proven (12-19 px); straightened photo, started before fb_shift existed; outline 57 m vs photo 93 m; not sent; retry with fb_shift |
 | Frost Bank Tower | Opus 5.5 | lean | 2026-10-15 | 35,216 | 46 min, 345k plan tokens |  | failed | downtown lane; camera not proven (held-out 10-22 px); telephoto crown photo with no lens; hidden faces by symmetry, refuted; not sent |
 | George H. W. Bush State Office Building | Opus 5.5 | lean | 2026-10-13 | 14,246 | 51 min |  | failed | stopped by the owner (about 51 min in); partial files only, no hand-back |
 | George I. Sanchez Building | Haiku 5.5 | trial | 2026-10-13 | 1,538 | 29 min, 337k plan tokens |  | trial | ranked last; camera unproven, height 20% over the scan; final render refused |
