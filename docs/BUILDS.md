@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 194 builds of 156 buildings; 56 buildings flagged to retarget.
+Right now: 195 builds of 157 buildings; 56 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -95,6 +95,7 @@ Right now: 194 builds of 156 buildings; 56 buildings flagged to retarget.
 | Anna Hiss Gymnasium | Opus 5.5 | 2026-10-12 | 32,898 | 46 min | "I want the brick pattern" | yes |
 | Arno Nowotny Building | Opus 5.5 | 2026-10-15 | 13,817 | 49 min, 380k plan tokens |  |  |
 | AT&T Executive Education and Conference Center | Opus 5.5 | 2026-10-13 | 16,126 | 53 min, 454k plan tokens |  | yes |
+| Austin by Ellsworth Kelly | Opus 5.5 | 2026-10-15 | 7,915 | 46 min, 385k plan tokens |  |  |
 | Bass Concert Hall | Opus 5.5 | 2026-10-14 | 23,880 | 49 min, 431k plan tokens |  | yes |
 | Biological Laboratories | Opus 5.5 | 2026-10-15 | 19,935 | 52 min, 415k plan tokens |  |  |
 | Biomedical Engineering Building | Opus 5.5 | 2026-10-14 | 24,046 | 47 min, 407k plan tokens |  | yes |
@@ -244,7 +245,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### Good test set for a cheaper model
 
-Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); Yugo Austin Waterloo (4,200 tri).
+Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Austin by Ellsworth Kelly (7,915 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); Yugo Austin Waterloo (4,200 tri).
 
 ## All other builds
 
