@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 149 builds of 119 buildings; 45 buildings flagged to retarget.
+Right now: 149 builds of 119 buildings; 44 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -43,6 +43,7 @@ Right now: 149 builds of 119 buildings; 45 buildings flagged to retarget.
 | Texan Tower | Opus 5.5 | 2026-10-13 | 8,320 | 48 min, 458k plan tokens |  | yes |
 | The Callaway House | Opus 5.5 | 2026-10-13 | 4,116 | 46 min, 397k plan tokens |  | yes |
 | The Castilian | Opus 5.5 | 2026-10-12 | 12,501 | 52 min |  | yes |
+| The Independent | Opus 5.5 | 2026-10-15 | 40,918 | 60 min, 591k plan tokens |  |  |
 | The Mark Austin | Opus 5.5 | 2026-10-12 | 42,036 | 84 min |  |  |
 | The Nine at Rio | Sol 6.1 | 2026-10-14 | 14,180 | 61 min, $2.27 |  | yes |
 | The Nine at West Campus | Opus 5.5 | 2026-10-13 | 14,814 | 43 min, 381k plan tokens |  |  |
@@ -201,7 +202,6 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 ### No finished build yet
 
 - **University Christian Church**: camera not proven (held-out 164-375 px); heights 0.8 of scan, gable front 10.3 m vs survey 6 m; tower crown wrong; not sent
-- **The Independent**: downtown lane; camera proven (held-out 3.98 px); glass and south-face light wrong; Sonnet colour fix running
 
 ### Good test set for a cheaper model
 
@@ -229,7 +229,6 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Pi Beta Phi house | Haiku 5.5 | trial | 2026-10-13 | 1,172 | 40 min, 527k plan tokens |  | superseded | Haiku alone: flat columns, no porch depth; used more tokens than an Opus build; thumbs down |
 | Texan Pearl | Sol 6.1 | lean | 2026-10-13 | 15,674 | 70 min, $3.10 |  | superseded | overlapping, mis-spaced slanted roofs |
 | Texas Alpha Phi house | Haiku 5.5 | trial | 2026-10-13 | 9,868 | 45 min, 467k plan tokens |  | superseded | Haiku alone: iron lace is loose rings; shade patches miss 84-89% |
-| The Independent | Opus 5.5 | lean | 2026-10-15 | 40,918 | 60 min, 361k plan tokens |  | trial | downtown lane; camera proven (held-out 3.98 px); glass and south-face light wrong; Sonnet colour fix running |
 | The Nine at West Campus | Sol 6.1 | lean | 2026-10-13 | 14,966 | 71 min, $3.15 |  | superseded | owner: decorated buildings are too hard for Sol; windows read as closed blinds, orange flat |
 | The Quarters Grayson House | Sol 6.1 | lean | 2026-10-13 |  | 14 min, $0.57 |  | failed | stopped by the lead after 14 min (decorated, so Opus); no build yet |
 | The Texan Shoal Creek | Sol 6.1 | lean | 2026-10-13 | 15,461 | 65 min, $3.15 |  | superseded | close match; flat left tower wall |
