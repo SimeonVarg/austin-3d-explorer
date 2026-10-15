@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 180 builds of 146 buildings; 50 buildings flagged to retarget.
+Right now: 181 builds of 146 buildings; 51 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -75,7 +75,7 @@ Right now: 180 builds of 146 buildings; 50 buildings flagged to retarget.
 | Villas on Rio | Opus 5.5 | 2026-10-12 | 15,857 | 38 min |  |  |
 | W Austin | Opus 5.5 | 2026-10-15 | 33,060 | 57 min, 412k plan tokens |  |  |
 | Westgate Tower | Opus 5.5 | 2026-10-15 | 24,864 | 57 min, 420k plan tokens |  |  |
-| William P. Clements Jr. State Office Building | Opus 5.5 | 2026-10-15 | 20,748 | 50 min, 420k plan tokens |  |  |
+| William P. Clements Jr. State Office Building | Sol 6.1 | 2026-10-15 | 20,746 | 50 min, $3.00 |  | yes |
 | Yugo Austin Nueces | Opus 5.5 | 2026-10-12 | 14,022 | 71 min |  |  |
 | Yugo Austin Rio | Opus 5.5 | 2026-10-12 | 8,220 | 46 min |  |  |
 | Yugo Austin Waterloo | Opus 5.5 | 2026-10-12 | 4,200 | 66 min | 9 |  |
@@ -184,6 +184,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **University Avenue Church of Christ** (Sol 6.1, redo): Sol redo; it chose its own camera limit (24 px) to pass; stone too even
 - **University Catholic Center** (Sol 6.1): soffit dark; glass dark
 - **Walter Webb Hall** (Sol 6.1, fix round): redo with the three checks; glass too bright
+- **William P. Clements Jr. State Office Building** (Sol 6.1, fix round): his ask: Sol fix round; glass, corners, arch improved
 
 ### The best build is Opus but has a known open fault
 
@@ -274,6 +275,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Villas on Nueces | Haiku 5.5 | trial | 2026-10-13 | 2,490 | 27 min, 315k plan tokens | "A is really horrible haiku" | trial | owner: horrible; does not register to the photograph |
 | Villas on Nueces | Sonnet 5.5 | trial | 2026-10-13 | 2,698 | 57 min, 468k plan tokens | "B is sonnet it's somewhat alright" | trial | owner: somewhat alright; roof 28% over the scan |
 | Walter Webb Hall | Sol 6.1 | lean | 2026-10-14 | 13,610 | 72 min, $2.80 |  | superseded | glass too light; name sign clipped at the wall edge |
+| William P. Clements Jr. State Office Building | Opus 5.5 | lean | 2026-10-15 | 20,748 | 50 min, 420k plan tokens |  | superseded | other buildings; gate done by the builder; glass light; hidden faces inferred |
 | Yugo Austin Waterloo | Haiku 5.5 | trial | 2026-10-12 | 7,388 | 17 min | 4 | trial | weakest of three; stopped early |
 | Yugo Austin Waterloo | Sonnet 5.5 | trial | 2026-10-12 | 6,428 | 68 min | 6.5 | trial | weaker than Opus on the same brief |
 | Yugo Austin Waterloo | Astra 6 | trial | 2026-10-12 |  | 5 min, $2.16 |  | failed | run killed after 5 min, no build |
