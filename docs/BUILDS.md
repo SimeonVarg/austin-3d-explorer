@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 196 builds of 157 buildings; 56 buildings flagged to retarget.
+Right now: 197 builds of 158 buildings; 56 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -54,6 +54,7 @@ Right now: 196 builds of 157 buildings; 56 buildings flagged to retarget.
 | Texan Tower | Opus 5.5 | 2026-10-13 | 8,320 | 48 min, 458k plan tokens |  | yes |
 | Texas Law Center | Opus 5.5 | 2026-10-15 | 10,352 | 45 min, 398k plan tokens |  |  |
 | Texas Supreme Court Building | Opus 5.5 | 2026-10-15 | 13,870 | 42 min, 372k plan tokens |  |  |
+| Texas Workforce Commission Building | Opus 5.5 | 2026-10-15 | 11,246 | 55 min, 379k plan tokens |  |  |
 | The Austonian | Opus 5.5 | 2026-10-15 | 30,504 | 43 min, 401k plan tokens |  |  |
 | The Callaway House | Opus 5.5 | 2026-10-13 | 4,116 | 46 min, 397k plan tokens |  | yes |
 | The Castilian | Opus 5.5 | 2026-10-12 | 12,501 | 52 min |  | yes |
