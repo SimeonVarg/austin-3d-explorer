@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 192 builds of 155 buildings; 56 buildings flagged to retarget.
+Right now: 193 builds of 155 buildings; 56 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -239,7 +239,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **The Monarch**: downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent
 - **Sam Houston State Office Building**: camera not proven: 4 of 6 held-out pass, 2 bad own picks (tree, antenna mast) kept locked; work render only; not sent
 - **Dewitt C. Greer State Highway Building**: camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent
-- **Driskill Hotel**: 3 of 4 held-out pass; 4th on a traced OSM corner 3-4 m off (128 px); retry as a model fix started
+- **Driskill Hotel**: corner fix: held-out 127.9 -> 8.6 px (0.6 over); colour gate passes; no carving; sent as a rough version
 
 ### Good test set for a cheaper model
 
@@ -262,6 +262,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Block 185 | Opus 5.5 | redo | 2026-10-15 | 32,983 | 50 min, 267k plan tokens |  | failed | retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos |
 | Dewitt C. Greer State Highway Building | Opus 5.5 | lean | 2026-10-15 | 25,244 | 51 min, 437k plan tokens |  | failed | camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent |
 | Driskill Hotel | Opus 5.5 | lean | 2026-10-15 | 35,655 | 62 min, 448k plan tokens |  | failed | 3 of 4 held-out pass; 4th on a traced OSM corner 3-4 m off (128 px); retry as a model fix started |
+| Driskill Hotel | Opus 5.5 | redo | 2026-10-15 | 35,211 | 15 min, 200k plan tokens |  | trial | corner fix: held-out 127.9 -> 8.6 px (0.6 over); colour gate passes; no carving; sent as a rough version |
 | Frost Bank Tower | Opus 5.5 | lean | 2026-10-15 | 35,216 | 46 min, 345k plan tokens |  | failed | downtown lane; camera not proven (held-out 10-22 px); telephoto crown photo with no lens; hidden faces by symmetry, refuted; not sent |
 | Frost Bank Tower | Opus 5.5 | redo | 2026-10-15 | 36,520 | 49 min, 463k plan tokens |  | failed | retry on EXIF main: held-out 6.5-21.6 px; both photos from the south-east; 9% too large; PARKED (2 fails) |
 | George H. W. Bush State Office Building | Opus 5.5 | lean | 2026-10-13 | 14,246 | 51 min |  | failed | stopped by the owner (about 51 min in); partial files only, no hand-back |
