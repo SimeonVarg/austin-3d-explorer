@@ -606,5 +606,5 @@ Checked: off, the page is the same as `main` (three views, five day frames, at m
 building; each model's ground plan covers 81 to 100 % of its outline, and where a model reaches past it (terraces, steps, porches,
 eaves) it stands on no other map building above 1.5 m except two slivers of 5 to 8 m2 and 52 m2 where the Neural Molecular Science
 Building meets the Biomedical Engineering Building. Flicker at 450 m (all rows loaded at the start): the fourteen of the earlier tests
-read 88 of 213,833 pixels; the 33 new builds 146 of 251,952, the worst 0.35 % (University Catholic Center). Delta Gamma is hidden behind
+read 88 of 213,833 pixels with the new rows in the city, 85 of 213,375 on `main`; the 33 new builds 146 of 251,952, the worst 0.35 % (University Catholic Center). Delta Gamma is hidden behind
 the Waterloo tower from the test's camera and was not measured. `data/gltf/` went from 30.2 MB (272 files) to 40.2 MB (371 files).
