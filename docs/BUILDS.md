@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 200 builds of 158 buildings; 56 buildings flagged to retarget.
+Right now: 201 builds of 158 buildings; 56 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -242,7 +242,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Turtle Pond and Memorial Garden**: first ground piece; camera not proven (12.7/19.6 px); close-up photo, wrong scale for the city; not sent
 - **Block 185**: retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos
 - **Seaholm Residences**: independent retry: window grid fits, roof parts 2-4 m high and podium cap 22.7 vs 26.5 m in the model; PARKED (2 fails)
-- **Heinsohn Hall**: camera not proven (held-out 1.5 / 20.5 px, 8 px of it own pick); one photo only; not sent
+- **Heinsohn Hall**: independent retry: held-out pass but all on one flat face; camera height 0.44 m (implausible); porthole wall 1.5x tall; not sent; PARKED (2 tries)
 - **The Monarch**: downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent
 - **Dewitt C. Greer State Highway Building**: camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent
 
@@ -277,6 +277,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Graduate School of Business | Opus 5.5 | lean | 2026-10-13 | 4,025 | 52 min, 437k plan tokens |  | trial | B of the A/B test; glass painted flat, fresh reviewer wanted a second round |
 | Harry Ransom Center | Opus 5.5 | lean | 2026-10-13 | 11,962 | 21 min |  | failed | stopped by the owner (about 21 min in); model file only, no render |
 | Heinsohn Hall | Opus 5.5 | lean | 2026-10-15 | 13,758 | 57 min, 489k plan tokens |  | failed | camera not proven (held-out 1.5 / 20.5 px, 8 px of it own pick); one photo only; not sent |
+| Heinsohn Hall | Opus 5.5 | redo | 2026-10-15 | 13,710 | 27 min, 276k plan tokens |  | failed | independent retry: held-out pass but all on one flat face; camera height 0.44 m (implausible); porthole wall 1.5x tall; not sent; PARKED (2 tries) |
 | Kappa Delta house | Haiku 5.5 | trial | 2026-10-13 | 2,288 | 27 min, 321k plan tokens |  | superseded | Haiku alone: camera unproven, grainy 800 px render, stopped early; thumbs down |
 | McCombs School of Business | Opus 5.5 | lean | 2026-10-13 | 24,153 | 54 min, 447k plan tokens |  | trial | B of the A/B test (toolkit + short rules); no cheaper than A |
 | Neural Molecular Science Building | Opus 5.5 | lean | 2026-10-13 |  | 45 min |  | failed | stopped by the owner (about 45 min in); partial files only, no hand-back |
