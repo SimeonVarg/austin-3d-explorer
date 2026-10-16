@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 206 builds of 161 buildings; 58 buildings flagged to retarget.
+Right now: 207 builds of 161 buildings; 58 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -290,6 +290,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Norwood Tower | Opus 5.5 | lean | 2026-10-15 | 27,050 | 53 min, 390k plan tokens |  | superseded | downtown; early-stop package that proved; glass grey; ornament schematic |
 | Pi Beta Phi house | Haiku 5.5 | trial | 2026-10-13 | 1,172 | 40 min, 527k plan tokens |  | superseded | Haiku alone: flat columns, no porch depth; used more tokens than an Opus build; thumbs down |
 | Powers Student Activity Center | Opus 5.5 | fix round | 2026-10-15 | 32,768 | 51 min, 516k plan tokens |  | trial | WCP round 3: still 4 of 36 photos proven (south only); 27 photos show no measured point; waits for photo-to-photo matching; not sent |
+| Powers Student Activity Center | Opus 5.5 | fix round | 2026-10-15 | 32,996 | 47 min, 363k plan tokens |  | trial | WCP round 4: roof and north side from Earth views (unproven); still only south proven; turnaround sent for his read |
 | Sam Houston State Office Building | Opus 5.5 | lean | 2026-10-15 | 17,555 | 52 min, 452k plan tokens |  | failed | camera not proven: 4 of 6 held-out pass, 2 bad own picks (tree, antenna mast) kept locked; work render only; not sent |
 | Seaholm Residences | Opus 5.5 | lean | 2026-10-15 | 29,280 | 56 min, 445k plan tokens |  | failed | downtown lane; camera not proven (a held-out pick on the wrong corner, 49.8 px, kept per 9t); render 2x dark; not sent |
 | Seaholm Residences | Opus 5.5 | redo | 2026-10-15 | 29,280 | 40 min |  | failed | independent retry: window grid fits, roof parts 2-4 m high and podium cap 22.7 vs 26.5 m in the model; PARKED (2 fails) |
