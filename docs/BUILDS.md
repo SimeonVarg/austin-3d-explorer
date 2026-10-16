@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 242 builds of 190 buildings; 63 buildings flagged to retarget.
+Right now: 243 builds of 191 buildings; 63 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -134,6 +134,7 @@ Right now: 242 builds of 190 buildings; 63 buildings flagged to retarget.
 | Gates Dell Complex | Opus 5.5 | 2026-10-13 | 16,632 | 42 min, 397k plan tokens |  |  |
 | George H.W. Bush State Office Building | Opus 5.5 | 2026-10-15 | 22,975 | 53 min, 378k plan tokens |  | yes |
 | George I. Sanchez Building | Opus 5.5 | 2026-10-13 | 2,132 | 52 min, 425k plan tokens | "A is opus" | yes |
+| Goldsmith Hall | Opus 5.5 | 2026-10-16 | 20,544 | 37 min, 381k plan tokens |  |  |
 | Goodall Wooten House | Opus 5.5 | 2026-10-14 | 24,898 | 48 min, 401k plan tokens |  | yes |
 | Graduate School of Business | Opus 5.5 | 2026-10-13 | 7,240 | 52 min, 437k plan tokens |  |  |
 | Gregory Gymnasium | Opus 5.5 | 2026-10-12 | 7,334 | 79 min | "Nice" |  |
