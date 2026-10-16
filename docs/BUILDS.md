@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 286 builds of 228 buildings; 60 buildings flagged to retarget.
+Right now: 287 builds of 229 buildings; 60 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -201,6 +201,7 @@ Right now: 286 builds of 228 buildings; 60 buildings flagged to retarget.
 | Scottish Rite Dormitory | Opus 5.5 | 2026-10-14 | loose | public photo | unreviewed | 24,297 | 40 min, 364k plan tokens |  |  |
 | Seay Building | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 15,404 | 52 min, 437k plan tokens |  |  |
 | Sid Richardson Hall | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 15,925 | 57 min, 390k plan tokens |  |  |
+| Solar-roof hall (63e601e8) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 2,042 | 37 min, 316k plan tokens |  |  |
 | Stone hall with dormer gables (297fcc8d) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 1,236 | 36 min, 363k plan tokens |  |  |
 | Stone hall with loggia (768ae01e) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 4,785 | 33 min, 359k plan tokens |  |  |
 | Student Services Building | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 21,876 | 42 min, 446k plan tokens |  |  |
@@ -324,7 +325,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### Good test set for a cheaper model
 
-Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); White block on stilts (5b56cd35) (7,064 tri); Yugo Austin Waterloo (4,200 tri).
+Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Solar-roof hall (63e601e8) (2,042 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); White block on stilts (5b56cd35) (7,064 tri); Yugo Austin Waterloo (4,200 tri).
 
 ## All other builds
 
