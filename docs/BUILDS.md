@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 247 builds of 195 buildings; 63 buildings flagged to retarget.
+Right now: 248 builds of 196 buildings; 63 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -116,6 +116,7 @@ Right now: 247 builds of 195 buildings; 63 buildings flagged to retarget.
 | AT&T Executive Education and Conference Center | Opus 5.5 | 2026-10-13 | 16,126 | 53 min, 454k plan tokens |  | yes |
 | Austin by Ellsworth Kelly | Sonnet 5.5 | 2026-10-15 | 7,915 | 9 min, 174k plan tokens |  | yes |
 | Bass Concert Hall | Opus 5.5 | 2026-10-14 | 23,880 | 49 min, 431k plan tokens |  | yes |
+| Bernard and Audre Rapoport Building | Opus 5.5 | 2026-10-16 | 13,583 | 35 min, 336k plan tokens |  |  |
 | Biological Laboratories | Opus 5.5 | 2026-10-15 | 19,935 | 52 min, 415k plan tokens |  |  |
 | Biomedical Engineering Building | Opus 5.5 | 2026-10-14 | 24,046 | 47 min, 407k plan tokens |  | yes |
 | Blanton Museum of Art | Opus 5.5 | 2026-10-14 | 21,870 | 61 min, 342k plan tokens |  |  |
