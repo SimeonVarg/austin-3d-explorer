@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 306 builds of 247 buildings; 64 buildings flagged to retarget.
+Right now: 307 builds of 248 buildings; 65 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -267,6 +267,7 @@ Right now: 306 builds of 247 buildings; 64 buildings flagged to retarget.
 | Stephen F. Austin State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 22,682 | 32 min, 344k plan tokens |  |  |
 | Stone church on Guadalupe (27bbc14c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 17,662 | 32 min, 356k plan tokens |  |  |
 | The Co-op | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 8,602 | 34 min, 346k plan tokens |  |  |
+| Thompson Austin | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 10,144 | 36 min, 389k plan tokens |  | yes |
 
 ## Retarget first
 
@@ -326,6 +327,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **The Callaway House**: colour level weakly anchored (k 10.8 vs 18.9); stepped corner box not built
 - **The Castilian**: dusk photograph: render dark and blue, colours miss
 - **The Standard**: owner said it needs work; tower glass near black; outline 4-6 m short on the south
+- **Thompson Austin**: Earth 3D; held-out 2.6/25.1/11.1/22.3 px (street slope); roof heights match scan; glass flat vs ribbed; 10k tri vs 22k target
 - **Two-wing brick block (bcf8a2ba)**: rough; Earth 3D only; held-out 1 of 5; galleries read as scaffolding; wing-end gables wrong; walls too light; 1,059 tri
 - **Union on 24th**: 109k triangles is too many for the phone; north court guessed; needs a lean copy
 - **Union on San Antonio**: tower too pale and plainer than the photograph; tower height 92.7 m vs notes 101 m (older app version scored 8.3)
