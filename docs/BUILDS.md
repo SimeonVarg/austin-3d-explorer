@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 243 builds of 191 buildings; 63 buildings flagged to retarget.
+Right now: 244 builds of 192 buildings; 63 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -170,6 +170,7 @@ Right now: 243 builds of 191 buildings; 63 buildings flagged to retarget.
 | Robert A. Welch Hall | Opus 5.5 | 2026-10-13 | 32,296 | 54 min, 473k plan tokens |  |  |
 | Roberts Hall | Opus 5.5 | 2026-10-14 | 17,954 | 44 min, 382k plan tokens |  | yes |
 | Rowling Hall | Opus 5.5 | 2026-10-12 | 13,189 | 70 min |  | yes |
+| San Jacinto Hall | Opus 5.5 | 2026-10-16 | 29,141 | 33 min, 358k plan tokens |  |  |
 | Scottish Rite Dormitory | Opus 5.5 | 2026-10-14 | 24,297 | 40 min, 364k plan tokens |  |  |
 | Seay Building | Opus 5.5 | 2026-10-13 | 15,404 | 52 min, 437k plan tokens |  |  |
 | Sid Richardson Hall | Opus 5.5 | 2026-10-15 | 15,925 | 57 min, 390k plan tokens |  |  |
