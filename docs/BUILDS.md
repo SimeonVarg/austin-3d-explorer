@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 307 builds of 248 buildings; 65 buildings flagged to retarget.
+Right now: 308 builds of 249 buildings; 66 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -140,6 +140,7 @@ Right now: 307 builds of 248 buildings; 65 buildings flagged to retarget.
 | Art Building and Museum | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,524 | 34 min, 372k plan tokens |  |  |
 | AT&T Executive Education and Conference Center | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 16,126 | 53 min, 454k plan tokens |  | yes |
 | Austin by Ellsworth Kelly | Sonnet 5.5 | 2026-10-15 |  |  | unreviewed | 7,915 | 9 min, 174k plan tokens |  | yes |
+| Austin Technology Incubator | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 491 | 32 min, 366k plan tokens |  | yes |
 | Bass Concert Hall | Opus 5.5 | 2026-10-14 | unproven | public photo | unreviewed | 23,880 | 49 min, 431k plan tokens |  | yes |
 | Battle Hall | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 20,068 | 33 min, 376k plan tokens |  |  |
 | Bernard and Audre Rapoport Building | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 13,583 | 35 min, 336k plan tokens |  |  |
@@ -303,6 +304,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Andrews Dormitory**: weak camera proof; west wing hidden by an oak; east section inferred; roof pitches fitted to the scan
 - **Anna Hiss Gymnasium**: owner asked for the brick pattern; lower arch springs from the ground and cuts the door top
 - **AT&T Executive Education and Conference Center**: base bare (street rises 4 m); terrace, fence and sign not built; west arcade inferred
+- **Austin Technology Incubator**: Earth 3D; 1 of 4 held-out pass; wall hue blue vs charcoal; 491 tri vs 9k target (plain box)
 - **Bass Concert Hall**: camera unproven (one held-out 7.45 px; a corner moved after a miss); glass dark
 - **Biomedical Engineering Building**: one held-out height corrected after a miss; 400 px main photo; glass colour off; base grey
 - **Brick campus building (name unconfirmed)**: name never confirmed (matches no reference picture), not placed on the map
