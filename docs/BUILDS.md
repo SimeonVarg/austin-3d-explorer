@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 271 builds of 219 buildings; 65 buildings flagged to retarget.
+Right now: 272 builds of 219 buildings; 64 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -72,6 +72,7 @@ Right now: 271 builds of 219 buildings; 65 buildings flagged to retarget.
 | The G | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 14,359 | 40 min, 366k plan tokens |  |  |
 | The Independent | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 40,918 | 60 min, 591k plan tokens |  |  |
 | The Mark Austin | Opus 5.5 | 2026-10-12 |  | mixed | unreviewed | 42,036 | 84 min |  |  |
+| The Monarch | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 33,340 | 34 min, 355k plan tokens |  |  |
 | The Nine at Rio | Sol 6.1 | 2026-10-14 | proven | public photo | unreviewed | 14,180 | 61 min, $2.27 |  | yes |
 | The Nine at West Campus | Opus 5.5 | 2026-10-13 | proven | public photo | unreviewed | 14,814 | 43 min, 381k plan tokens |  |  |
 | The Otis Hotel | Opus 5.5 | 2026-10-13 |  | mixed | unreviewed | 12,467 | 44 min, 387k plan tokens |  |  |
@@ -307,7 +308,6 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Block 185**: retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos
 - **Seaholm Residences**: independent retry: window grid fits, roof parts 2-4 m high and podium cap 22.7 vs 26.5 m in the model; PARKED (2 fails)
 - **Heinsohn Hall**: independent retry: held-out pass but all on one flat face; camera height 0.44 m (implausible); porthole wall 1.5x tall; not sent; PARKED (2 tries)
-- **The Monarch**: downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent
 - **Dewitt C. Greer State Highway Building**: camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent
 - **Dorothy Gebauer Building**: three early stops (oaks; floating camera; scale free with one panorama position); PARKED; parapet ~3 m over the roof deck
 - **The Block on Pearl (south)**: parked: Earth 3D only; held-out fails (one pick on the wrong edge); massing reads wrong next to Earth; 800 px draft only; not sent
