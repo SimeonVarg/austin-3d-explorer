@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 211 builds of 161 buildings; 62 buildings flagged to retarget.
+Right now: 212 builds of 161 buildings; 61 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -25,6 +25,7 @@ Right now: 211 builds of 161 buildings; 62 buildings flagged to retarget.
 | 360 Condominiums | Opus 5.5 | 2026-10-15 | 33,784 | 46 min, 357k plan tokens |  |  |
 | Axis West Campus | Opus 5.5 | 2026-10-14 | 15,939 | 40 min, 395k plan tokens |  |  |
 | Block on 25th West | Opus 5.5 | 2026-10-12 | 26,429 | 101 min |  |  |
+| Brown Building | Opus 5.5 | 2026-10-15 | 17,526 | 17 min, 245k plan tokens |  |  |
 | Cambridge Tower | Opus 5.5 | 2026-10-12 | 20,636 | 50 min |  |  |
 | Centennial Condominiums | Opus 5.5 | 2026-10-15 | 14,722 | 49 min, 443k plan tokens |  |  |
 | Crest at Pearl | Opus 5.5 | 2026-10-15 | 18,688 | 53 min, 355k plan tokens |  |  |
@@ -252,7 +253,6 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Heinsohn Hall**: independent retry: held-out pass but all on one flat face; camera height 0.44 m (implausible); porthole wall 1.5x tall; not sent; PARKED (2 tries)
 - **The Monarch**: downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent
 - **Dewitt C. Greer State Highway Building**: camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent
-- **Brown Building**: camera not proven: misses along the east face far end (17-21 px); east face length from OSM likely off; retry after Street View captures
 
 ### Good test set for a cheaper model
 
