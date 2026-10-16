@@ -13,8 +13,12 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.VERIFY_OUT || '/tmp/perf-layer-cost';
 const URLB = process.env.VERIFY_URL || 'http://127.0.0.1:8442';
-const EXTRA = process.argv.slice(2);
+// --shots POSE first takes the before/after pictures of one pose at 1440x900 DPR 2 (a dense laptop screen); the rest is passed to both timings
+const argv = process.argv.slice(2), si = argv.indexOf('--shots');
+const SHOTS = si >= 0 ? argv.splice(si, 2)[1] : null;
+const EXTRA = argv;
 const RUNS = [
+  ...(SHOTS ? [['shots', ['--shots', SHOTS, '--width', '1440', '--height', '900', '--dpr', '2']]] : []),
   ['desktop', ['--rounds', '4', '--deadline-min', '24']],
   ['phone4x', ['--rounds', '2', '--frames', '20', '--warm', '8', '--phone', '--throttle', '4', '--deadline-min', '24']],
 ];

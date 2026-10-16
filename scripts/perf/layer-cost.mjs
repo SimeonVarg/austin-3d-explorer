@@ -111,6 +111,7 @@ const PAGE_SETUP = `(() => {
     noLay: () => swapScenes(['depth', 'fill']),
     noGlass: () => swapScenes(['glass']),
     farOff: () => { const was = G.look.far.on; G.look.far.on = false; return () => { G.look.far.on = was; }; },
+    leanOff: () => { const was = G.look.own.lean; G.look.own.lean = false; return () => { G.look.own.lean = was; }; },
     copies: () => { const C = G.look.copy, a = C.fullM, b = C.farM, f = C.fadeS; C.fullM = 1e-6; C.farM = 2e-6; C.fadeS = 0; return () => { C.fullM = a; C.farM = b; setTimeout(() => { C.fadeS = f; }, 1500); }; },
   };
   const status = () => ({ timer: !!ext, own: OWN.list.length, fullShown: OWN.list.filter(b => b.group && b.group.visible).length, rows: rows().length, loaded: rows().filter(e => e.state === 2).length,
@@ -145,7 +146,11 @@ const PAGE_SETUP = `(() => {
 const pct = (a, q) => { const s = a.filter(x => x != null).sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : null; };
 const r2 = x => x == null ? null : +x.toFixed(2);
 
-const W = PHONE ? 390 : 1280, H = PHONE ? 844 : 800, DPR = PHONE ? 3 : 1.5;
+// --shots POSE: no timing; pictures of one pose with variant A and B in turn (A, B, A, B; the second of each is kept), in the same page,
+// plus a pixel count of what differs (A against A = the page's own noise; A against B = the change). --width/--height/--dpr set the window.
+const SHOTS = arg('--shots', '');
+const SHOT_AB = arg('--shot-ab', 'leanOff,on').split(',');
+const W = +arg('--width', PHONE ? 390 : 1280), H = +arg('--height', PHONE ? 844 : 800), DPR = +arg('--dpr', PHONE ? 3 : 1.5);
 const chrome = await startChrome({ gl: GL, width: W, height: H, vsync: 'off', maxMs: 3000000 });
 const result = { label: LABEL, phone: PHONE, throttle: THROTTLE, poses: {}, profiles: {} };
 try {
@@ -173,7 +178,28 @@ try {
   result.setup = await ev(PAGE_SETUP);
   console.error(`[${LABEL}] loaded in ${result.loadMs} ms; ${JSON.stringify(result.env)}; ${JSON.stringify(result.setup)}`);
 
-  for (const name of POSE_NAMES) {
+  if (SHOTS) {
+    const pose = POSES[SHOTS];
+    await ev(`(async()=>{window.__LC.set('on');window.__map.jumpTo(${JSON.stringify(pose)});for(let i=0;i<240;i++){await new Promise(r=>setTimeout(r,250));if(window.GLTF_LAYER.lookTick())break;}return 0})()`);
+    await sleep(8000);
+    // the drawing buffer read at the end of a map render (it is still whole then); kept in the page, compared there
+    await ev(`(() => { window.__LCgrab = () => new Promise(res => { const m = window.__map, gl = m.painter.context.gl; const f = () => { m.off('render', f); const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight, px = new Uint8Array(W * H * 4); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px); res(px); }; m.on('render', f); m.triggerRepaint(); });
+      window.__LCdiff = (a, b) => { let n2 = 0, n16 = 0, mx = 0; for (let i = 0; i < a.length; i += 4) { const d = Math.max(Math.abs(a[i] - b[i]), Math.abs(a[i + 1] - b[i + 1]), Math.abs(a[i + 2] - b[i + 2])); if (d > 2) n2++; if (d > 16) n16++; if (d > mx) mx = d; } return { pixels: a.length / 4, over2: n2, over16: n16, max: mx }; };
+      window.__LCimg = {}; return 0; })()`);
+    const shots = {};
+    for (const [k, v] of [['A1', SHOT_AB[0]], ['B1', SHOT_AB[1]], ['A2', SHOT_AB[0]], ['B2', SHOT_AB[1]]]) {
+      await ev(`window.__LC.set(${JSON.stringify(v)})`); await sleep(2500);
+      await ev(`window.__LCgrab().then(px => { window.__LCimg[${JSON.stringify(k)}] = px; return 0; })`);
+      const { data } = await page.send('Page.captureScreenshot', { format: 'png' });
+      if (k.endsWith('2')) fs.writeFileSync(path.join(OUT, `${LABEL}-${SHOTS}-${v}.png`), Buffer.from(data, 'base64'));
+      shots[k] = await ev(`window.__LC.status()`);
+    }
+    result.shots = { pose: SHOTS, ab: SHOT_AB, window: [W, H, DPR],
+      noiseA: await ev(`window.__LCdiff(window.__LCimg.A1, window.__LCimg.A2)`), noiseB: await ev(`window.__LCdiff(window.__LCimg.B1, window.__LCimg.B2)`),
+      change: await ev(`window.__LCdiff(window.__LCimg.A2, window.__LCimg.B2)`), status: shots };
+    console.error(`[${LABEL}] shots ${JSON.stringify(result.shots)}`);
+  }
+  for (const name of (SHOTS ? [] : POSE_NAMES)) {
     if (DEADLINE_MIN && Date.now() - T_START > DEADLINE_MIN * 60000) { console.error(`deadline passed: pose ${name} not run`); continue; }
     const pose = POSES[name], cfg = n => JSON.stringify({ pose, n });
     // let the rows for this camera load (by distance), then warm
@@ -240,9 +266,10 @@ for (const [name, P] of Object.entries(result.poses)) {
     out.push('by file: ' + p.topFiles.map(x => `${x.file} ${x.selfMs}`).join(' | '));
   }
 }
+if (result.shots) { const s = result.shots; out.push(`\n## pictures ${s.pose} at ${s.window.join(' x ')}: ${s.ab[0]} against ${s.ab[1]}`); out.push(`noise ${s.ab[0]} vs itself ${JSON.stringify(s.noiseA)}; noise ${s.ab[1]} vs itself ${JSON.stringify(s.noiseB)}; change ${JSON.stringify(s.change)}`); }
 out.push('\nJSON_TABLE ' + JSON.stringify(table));
 const text = out.join('\n');
 fs.writeFileSync(path.join(OUT, `report-${LABEL}.txt`), text);
 fs.writeFileSync(path.join(OUT, `raw-${LABEL}.json`), JSON.stringify(result, null, 1));
 console.log(text);
-process.exit(Object.keys(result.poses).length ? 0 : 1);
+process.exit(Object.keys(result.poses).length || result.shots ? 0 : 1);

@@ -252,7 +252,10 @@
       // samples a pixel, covering only the part of the screen it stands on, and that picture is laid onto the canvas where the building is in
       // front. Used only when the canvas itself is not smoothed. `bigPixels`: a building that covers more pixels than this takes `bigSamples`
       // (its target would otherwise hold 36 bytes for each of them). ?gltfaa=0 turns it off (hard edges, thin lines break up).
-      own: { on: OWN_DEFAULT, tight: q.get('gltftight') !== '0', samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2, slackTimes: 2, slackFrames: 60 },
+      // `lean` (2026-10-16, docs/gltf-layer.md "What the layer's frame time is"): the same picture with less work a frame: each building's
+      // depth, lay and glass passes are ONE three.js render call instead of three, and its shadow casters (which draw nothing in the city's own
+      // picture) are left out of that picture. ?gltflean=0: as before.
+      own: { on: OWN_DEFAULT, tight: q.get('gltftight') !== '0', lean: q.get('gltflean') !== '0', samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2, slackTimes: 2, slackFrames: 60 },
       // FAR, rule 15 (js/gltf-look.js "FAR: THIN PARTS"): a piece of the model that is thin by its own shape (a bar whose second size is
       // under `thinM` metres and that is `long` times as long, or a piece under `thinM` in every direction) is never drawn narrower than
       // `minPx` pixels, and counts for the share of the pixel it truly covers. ?gltffar=0 draws thin parts as they are (they flicker from far).

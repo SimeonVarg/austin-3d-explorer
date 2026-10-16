@@ -301,7 +301,10 @@
       fragmentShader: 'uniform sampler2D u_picture; uniform vec4 u_at; uniform float u_ss, u_fade; void main(){ vec2 i = floor(gl_FragCoord.xy - u_at.xy); '
         + 'if (u_ss < 2.5) { vec2 a = i * u_ss, j = floor(a + 0.001), w1 = (a + u_ss - j - 1.0) / u_ss; gl_FragColor = texture2D(u_picture, (j + 0.5 + w1) / u_at.zw) * u_fade; return; } '
         + 'vec2 b = i * u_ss; vec4 s = vec4(0.0); for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) { if (float(x) < u_ss && float(y) < u_ss) s += texture2D(u_picture, (b + vec2(float(x), float(y)) + 0.5) / u_at.zw); } gl_FragColor = s / (u_ss * u_ss) * u_fade; }' });   // u_fade: the share of the full building while it changes places with its far copy
-    return { picture: new T.Scene(), depth: new T.Scene(), fill: new T.Scene(), glass: new T.Scene(), nothing, depthOnly, lay, box: new T.Box3(), target: null, cam: new T.Camera(), group: null };
+    // `canvas` (GLTF.look.own.lean): the depth, lay and glass meshes again (the same geometry and materials) in ONE scene, so the three passes are
+    // one render call. The order inside it is the order of the three calls: the depth pass is opaque (drawn first), the lay pass and the two glass
+    // passes are see-through and sorted by renderOrder (0, 1, 2). `casters`: the meshes that only cast the shadow.
+    return { picture: new T.Scene(), depth: new T.Scene(), fill: new T.Scene(), glass: new T.Scene(), canvas: new T.Scene(), casters: [], nothing, depthOnly, lay, box: new T.Box3(), target: null, cam: new T.Camera(), group: null };
   }
   function ownFrame(S, renderer, camera) {
     const T = window.THREE, O = GLTF.look.own, gl = renderer.getContext(), t0 = performance.now();
@@ -387,10 +390,14 @@
           try { renderer.render(b.picture, b.cam); } finally { b.target.width = fw; b.target.height = fh; }
         } else { renderer.properties.get(b.target).__ignoreDepthValues = false; renderer.render(b.picture, b.cam); }
         restore();
-        renderer.render(b.depth, camera);                          // 2. its depth into the canvas
         b.lay.uniforms.u_picture.value = b.target.texture; b.lay.uniforms.u_at.value.set(px0, py0, b.target.width, b.target.height); b.lay.uniforms.u_ss.value = ss; b.lay.uniforms.u_fade.value = b.fade === undefined ? 1 : b.fade;
-        renderer.render(b.fill, camera);                           // 3. the smoothed picture, where the building is in front
-        if (b.glass.children.length) { for (const gm of b.glass.children) gm.material.uniforms.u_lookFade.value = b.fade === undefined ? 1 : b.fade; renderer.render(b.glass, camera); }
+        for (const gm of b.glass.children) gm.material.uniforms.u_lookFade.value = b.fade === undefined ? 1 : b.fade;
+        if (O.lean) renderer.render(b.canvas, camera);             // 2, 3 and the glass in one call (see ownParts)
+        else {
+          renderer.render(b.depth, camera);                        // 2. its depth into the canvas
+          renderer.render(b.fill, camera);                         // 3. the smoothed picture, where the building is in front
+          if (b.glass.children.length) renderer.render(b.glass, camera);
+        }
       } finally { restore(); renderer.setClearColor(clear, alpha); }
       if (rep === 0) OWN.pixels += tw0 * th0; b.samples = samples; b.scale = ss; b.px = tw0 * th0; b.whole = !!behind;
     }
@@ -406,8 +413,20 @@
   }
   function ownHook(S) {
     if (OWN.hooked || !S.scene) return; OWN.hooked = true;
+    // LEAN (GLTF.look.own.lean): a shadow caster draws nothing in the city's own picture, but three.js still draws every triangle of it there.
+    // It is hidden for that render only (the city's picture: its camera, no target, no override material) and shown again after it and
+    // before any other render, so the shadow maps still see it. (Their redraw goes by the visibility of the city's top groups, not of these.)
+    const showCasters = () => { if (!OWN.castersHidden) return; OWN.castersHidden = false; for (const b of OWN.list) for (const c of b.casters) c.visible = true; };
+    const prevBefore = S.scene.onBeforeRender;
+    S.scene.onBeforeRender = function (renderer, scene, camera) {
+      if (prevBefore) prevBefore.apply(this, arguments);
+      showCasters();
+      if (!GLTF.look.own.lean || camera !== S.camera || scene.overrideMaterial || renderer.getRenderTarget()) return;
+      OWN.castersHidden = true; for (const b of OWN.list) for (const c of b.casters) c.visible = false;
+    };
     const prev = S.scene.onAfterRender;
     S.scene.onAfterRender = function (renderer, scene, camera) {
+      showCasters();
       if (prev) prev.apply(this, arguments);
       // only after the city's own picture (not after a shadow map, not inside another target)
       if (camera !== S.camera || scene.overrideMaterial || renderer.getRenderTarget()) return;
@@ -504,12 +523,14 @@
         if (!own) { g.add(mesh); continue; }
         // smooth edges of its own: the real mesh is drawn by ownFrame(); the city's scene keeps a mesh that draws nothing and casts the shadow
         mesh.frustumCulled = false; mesh.layers.set(0);
-        if (pass === 1 || pass === 2) own.glass.add(mesh);
+        // (each mesh of the depth, lay and glass passes twice: once in its own scene, once in `canvas`; the same geometry and material)
+        const twin = (m, sc) => { m.frustumCulled = false; const t = new T.Mesh(geom, m.material); t.frustumCulled = false; t.renderOrder = m.renderOrder; t.layers.mask = m.layers.mask; t.onBeforeRender = m.onBeforeRender; t.name = m.name; sc.add(m); own.canvas.add(t); };
+        if (pass === 1 || pass === 2) twin(mesh, own.glass);
         else {
           own.picture.add(mesh);
-          const caster = new T.Mesh(geom, own.nothing); caster.name = mesh.name + '-shadow'; g.add(caster);
-          const dm = new T.Mesh(geom, own.depthOnly); dm.frustumCulled = false; own.depth.add(dm);
-          const fm = new T.Mesh(geom, own.lay); fm.frustumCulled = false; own.fill.add(fm);
+          const caster = new T.Mesh(geom, own.nothing); caster.name = mesh.name + '-shadow'; g.add(caster); own.casters.push(caster);
+          twin(new T.Mesh(geom, own.depthOnly), own.depth);
+          twin(new T.Mesh(geom, own.lay), own.fill);
           own.box.union(geom.boundingBox);
         }
       }
