@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 268 builds of 216 buildings; 64 buildings flagged to retarget.
+Right now: 269 builds of 217 buildings; 64 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -228,6 +228,7 @@ Right now: 268 builds of 216 buildings; 64 buildings flagged to retarget.
 | Barbara Jordan State Office Building | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,114 | 44 min, 396k plan tokens |  |  |
 | Church of Scientology (Guadalupe) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 12,192 | 30 min, 344k plan tokens |  |  |
 | Lyndon B. Johnson State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 19,816 | 22 min, 287k plan tokens |  |  |
+| Robert E. Johnson State Legislative Office Building | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 21,746 | 33 min, 336k plan tokens |  |  |
 | Speedway (campus road), first 178 m | Opus 5.5 | 2026-10-14 |  |  | best | 8,256 | 60 min, 426k plan tokens | "The top looks super weird" | yes |
 | Stephen F. Austin State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 22,682 | 32 min, 344k plan tokens |  |  |
 | Stone church on Guadalupe (27bbc14c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 17,662 | 32 min, 356k plan tokens |  |  |
@@ -327,18 +328,18 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | 2819 Rio Grande | Sol 6.1 | trial | 2026-10-12 | proven | site photographs | 26,802 | 83 min, $4.66 | "Opus is better" | trial | owner preferred Opus; Sol got no number |
 | Austin by Ellsworth Kelly | Opus 5.5 | lean | 2026-10-15 |  |  | 7,915 | 46 min, 385k plan tokens |  | superseded | proven; coloured glass washed out by the standard glass |
 | Austin Proper | Opus 5.5 | lean | 2026-10-15 |  | public photo | 30,982 | 55 min, 396k plan tokens |  | failed | downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent |
-| Block 185 | Opus 5.5 | lean | 2026-10-15 |  | public photo | 32,051 | 49 min, 394k plan tokens |  | failed | downtown lane; camera not proven (12-19 px); straightened photo, started before fb_shift existed; outline 57 m vs photo 93 m; not sent; retry with fb_shift |
-| Block 185 | Opus 5.5 | redo | 2026-10-15 |  | public photo | 32,983 | 50 min, 267k plan tokens |  | failed | retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos |
+| Block 185 | Opus 5.5 | lean | 2026-10-15 |  | mixed | 32,051 | 49 min, 394k plan tokens |  | failed | downtown lane; camera not proven (12-19 px); straightened photo, started before fb_shift existed; outline 57 m vs photo 93 m; not sent; retry with fb_shift |
+| Block 185 | Opus 5.5 | redo | 2026-10-15 |  | mixed | 32,983 | 50 min, 267k plan tokens |  | failed | retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos |
 | Block on Pearl north (064e7194) | Opus 5.5 | lean | 2026-10-16 | unproven | Earth 3D | 17,297 | 42 min, 416k plan tokens |  | failed | parked, not sent: very noisy 16-sample draft, mansards and blue walls far too dark, massing reads heavier than Earth; same complex as the parked Pearl south |
 | Brown Building | Opus 5.5 | lean | 2026-10-15 |  | Street View | 17,514 | 51 min, 390k plan tokens |  | failed | camera not proven: misses along the east face far end (17-21 px); east face length from OSM likely off; retry after Street View captures |
 | Cambridge Tower | Opus 5.5 | first batch | 2026-10-12 |  | site photographs | 20,636 | 50 min |  | superseded | no score given; second final render added after a picture/model mismatch |
-| Dewitt C. Greer State Highway Building | Opus 5.5 | lean | 2026-10-15 |  | public photo | 25,244 | 51 min, 437k plan tokens |  | failed | camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent |
+| Dewitt C. Greer State Highway Building | Opus 5.5 | lean | 2026-10-15 |  | mixed | 25,244 | 51 min, 437k plan tokens |  | failed | camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent |
 | Dorothy Gebauer Building | Opus 5.5 | lean | 2026-10-15 |  | public photo |  | 26 min, 336k plan tokens |  | failed | three early stops (oaks; floating camera; scale free with one panorama position); PARKED; parapet ~3 m over the roof deck |
 | Driskill Hotel | Opus 5.5 | lean | 2026-10-15 |  | public photo | 35,655 | 62 min, 448k plan tokens |  | failed | 3 of 4 held-out pass; 4th on a traced OSM corner 3-4 m off (128 px); retry as a model fix started |
 | Driskill Hotel | Opus 5.5 | redo | 2026-10-15 |  | public photo | 35,211 | 15 min, 200k plan tokens |  | trial | corner fix: held-out 127.9 -> 8.6 px (0.6 over); colour gate passes; no carving; sent as a rough version |
 | Ernest O. Thompson State Office Building | Opus 5.5 | lean | 2026-10-15 |  | public photo | 17,944 | 49 min, 365k plan tokens |  | superseded | Capitol lane; early-stop package that proved; marble flat |
-| Frost Bank Tower | Opus 5.5 | lean | 2026-10-15 |  | public photo | 35,216 | 46 min, 345k plan tokens |  | failed | downtown lane; camera not proven (held-out 10-22 px); telephoto crown photo with no lens; hidden faces by symmetry, refuted; not sent |
-| Frost Bank Tower | Opus 5.5 | redo | 2026-10-15 |  | public photo | 36,520 | 49 min, 463k plan tokens |  | failed | retry on EXIF main: held-out 6.5-21.6 px; both photos from the south-east; 9% too large; PARKED (2 fails) |
+| Frost Bank Tower | Opus 5.5 | lean | 2026-10-15 |  | mixed | 35,216 | 46 min, 345k plan tokens |  | failed | downtown lane; camera not proven (held-out 10-22 px); telephoto crown photo with no lens; hidden faces by symmetry, refuted; not sent |
+| Frost Bank Tower | Opus 5.5 | redo | 2026-10-15 |  | mixed | 36,520 | 49 min, 463k plan tokens |  | failed | retry on EXIF main: held-out 6.5-21.6 px; both photos from the south-east; 9% too large; PARKED (2 fails) |
 | Frost Bank Tower | Opus 5.5 | redo | 2026-10-15 |  | Street View | 34,780 | 75 min |  | failed | try 3 with Street View north/west: wide frames (~116 deg) matched only at sky corners; held-out up to 206 px; PARKED (3 tries) |
 | George H. W. Bush State Office Building | Opus 5.5 | lean | 2026-10-13 |  | mixed | 14,246 | 51 min |  | failed | stopped by the owner (about 51 min in); partial files only, no hand-back |
 | George I. Sanchez Building | Haiku 5.5 | trial | 2026-10-13 | unproven | mixed | 1,538 | 29 min, 337k plan tokens |  | trial | ranked last; camera unproven, height 20% over the scan; final render refused |
@@ -358,13 +359,13 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Powers Student Activity Center | Opus 5.5 | fix round | 2026-10-15 |  | public photo | 32,996 | 47 min, 363k plan tokens |  | trial | WCP round 4: roof and north side from Earth views (unproven); still only south proven; turnaround sent for his read |
 | Price Daniel Sr. State Office Building | Opus 5.5 | lean | 2026-10-15 |  | public photo | 16,479 | 43 min, 399k plan tokens |  | superseded | other buildings; no score yet; glass grey |
 | Sam Houston State Office Building | Opus 5.5 | lean | 2026-10-15 |  | public photo | 17,555 | 52 min, 452k plan tokens |  | failed | camera not proven: 4 of 6 held-out pass, 2 bad own picks (tree, antenna mast) kept locked; work render only; not sent |
-| Seaholm Residences | Opus 5.5 | lean | 2026-10-15 |  | public photo | 29,280 | 56 min, 445k plan tokens |  | failed | downtown lane; camera not proven (a held-out pick on the wrong corner, 49.8 px, kept per 9t); render 2x dark; not sent |
-| Seaholm Residences | Opus 5.5 | redo | 2026-10-15 |  | public photo | 29,280 | 40 min |  | failed | independent retry: window grid fits, roof parts 2-4 m high and podium cap 22.7 vs 26.5 m in the model; PARKED (2 fails) |
+| Seaholm Residences | Opus 5.5 | lean | 2026-10-15 |  | mixed | 29,280 | 56 min, 445k plan tokens |  | failed | downtown lane; camera not proven (a held-out pick on the wrong corner, 49.8 px, kept per 9t); render 2x dark; not sent |
+| Seaholm Residences | Opus 5.5 | redo | 2026-10-15 |  | mixed | 29,280 | 40 min |  | failed | independent retry: window grid fits, roof parts 2-4 m high and podium cap 22.7 vs 26.5 m in the model; PARKED (2 fails) |
 | Texan Pearl | Sol 6.1 | lean | 2026-10-13 | proven | public photo | 15,674 | 70 min, $3.10 |  | superseded | overlapping, mis-spaced slanted roofs |
 | Texas Alpha Phi house | Haiku 5.5 | trial | 2026-10-13 | proven | public photo | 9,868 | 45 min, 467k plan tokens |  | superseded | Haiku alone: iron lace is loose rings; shade patches miss 84-89% |
 | Texas Cowboys Pavilion | Opus 5.5 | lean | 2026-10-15 |  | public photo | 12,004 | 58 min, 440k plan tokens |  | failed | main camera not proven (11 px held-out, shift-corrected photo); parts right, framing off; not sent |
 | The Block on Pearl (south) | Opus 5.5 | lean | 2026-10-16 | unproven | Earth 3D | 23,455 | 46 min, 428k plan tokens |  | failed | parked: Earth 3D only; held-out fails (one pick on the wrong edge); massing reads wrong next to Earth; 800 px draft only; not sent |
-| The Monarch | Opus 5.5 | lean | 2026-10-15 |  | public photo | 32,762 | 59 min, 368k plan tokens |  | failed | downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent |
+| The Monarch | Opus 5.5 | lean | 2026-10-15 |  | mixed | 32,762 | 59 min, 368k plan tokens |  | failed | downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent |
 | The Nine at West Campus | Sol 6.1 | lean | 2026-10-13 | proven | public photo | 14,966 | 71 min, $3.15 |  | superseded | owner: decorated buildings are too hard for Sol; windows read as closed blinds, orange flat |
 | The Quarters Grayson House | Sol 6.1 | lean | 2026-10-13 |  | public photo |  | 14 min, $0.57 |  | failed | stopped by the lead after 14 min (decorated, so Opus); no build yet |
 | The Texan Shoal Creek | Sol 6.1 | lean | 2026-10-13 | proven | public photo | 15,461 | 65 min, $3.15 |  | superseded | close match; flat left tower wall |
