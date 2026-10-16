@@ -184,7 +184,9 @@ console.log('the standard light for Blender builders');
 {
   const { rigText, HOURS } = await import('../city-sky-rig.mjs');
   const py = fs.readFileSync(path.join(ROOT, 'scripts/blender_light_rig.py'), 'utf8'), m = py.match(/# RIG-BEGIN[^\n]*\n([\s\S]*?)# RIG-END/);
-  check(!!m && m[1] === rigText(), 'scripts/blender_light_rig.py holds the numbers js/city-sky.js gives today (else: node scripts/city-sky-rig.mjs)', Object.keys(HOURS).join(', '));
+  check(!!m && m[1] === rigText('A'), 'scripts/blender_light_rig.py holds light A, the numbers js/city-sky.js gives with ?skyrig=a (else: node scripts/city-sky-rig.mjs)', Object.keys(HOURS).join(', '));
+  const mb = py.match(/# RIG-B-BEGIN[^\n]*\n([\s\S]*?)# RIG-B-END/);
+  check(!!mb && mb[1] === rigText('B') && /'mirrorSky':1\.6/.test(mb[1]) && py.includes('def use('), 'it holds light B too (the app\'s default since 2026-10-15, with the brighter sky in mirrors) and a builder can switch to it', 'FLYOVER_RIG=B');
   check(['def apply(', 'def sun_from_photo(', 'def check(', 'def base_colour(', 'def gate('].every(t => py.includes(t)), 'it has the three calls a builder needs, and the colour function and the gate');
 }
 // ── the generated rows (js/gltf-rows.js): each has its look file and sky-light map, no image inside, and its height is the file's ──────

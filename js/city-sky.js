@@ -44,6 +44,19 @@
   //  the same ones); the sun's strength and the ground's colour are measured on site photographs (below); dusk, night and the
   //  moon are choices of this file. scripts/blender_light_rig.py carries these numbers into Blender (node scripts/city-sky-rig.mjs).
   // ══════════════════════════════════════════════════════════════════════
+  // LIGHT B (owner, 2026-10-15: "B definitely"). Shade and undersides rendered far darker than his photographs, and glass that mirrors
+  // the sky far darker and greyer (flyover-private rig study, sections 1-7: soffits 0.35-0.42 of the photograph, sky-mirroring glass
+  // 0.60). B lifts the light that does NOT come straight from the sun and keeps sunlit walls where they were:
+  //   sky     how much the sky lights a surface, times the scene's gain (A: 1)
+  //   ground  the ground's colour for the bounce it throws up at walls (A: 0.16; B doubles it: it stands for sunlit pavement AND the
+  //           sunlit walls across the street, which a single grey plane under-counts)
+  //   sun     the measured sun, times this (A: 1; 0.84 holds a wall lit mostly by the sun where it was, against the lifted sky)
+  //   mirror  the sky as a MIRROR sees it, times this (A: 1). What lights shade and what a pane mirrors are two different numbers: raising
+  //           the sky that lights moved glass only 0.60 -> 0.65 of the photograph; the mirror's own sky moves it (x1.8 gave 1.08, so 1.6).
+  // ?skyrig=a gives the light before 2026-10-15 (A); ?skyambient= ?skyground= ?skysun= ?skymirror= override one number each.
+  // The Blender rig carries both lights (RIG = A, RIG_B = B; node scripts/city-sky-rig.mjs): builders switch with FLYOVER_RIG=B.
+  const LIGHTS = { a: { sky: 1, ground: 0.16, sun: 1, mirror: 1 }, b: { sky: 1.5, ground: 0.32, sun: 0.84, mirror: 1.6 } };
+  const LIGHT = LIGHTS[(q.get('skyrig') || 'b').toLowerCase()] || LIGHTS.b;
   const TUNE = {
     // the sky by the sine of the height above the level line, sRGB 0..255: far land up to `landTop`, the horizon colour just above it, then the stops
     day:   { land: [108, 128, 138], horizon: [190, 210, 226], stops: [[0.045, [181, 203, 222]], [0.153, [119, 170, 224]], [0.26, [88, 139, 202]], [0.6, [55, 100, 180]]] },
@@ -54,13 +67,16 @@
     // What the sky is multiplied by when it lights a surface (red, green, blue). The Blender scene lifts its shade light this way; a
     // mirror shows the sky without it (the glass's mirror colour in the model is already divided by it).
     skyGain: [6.226384530578516, 4.0023751489194686, 2.449166880354],
-    ambient: num('skyambient', 1),               // scales all sky light (1 = as the scene)
+    ambient: num('skyambient', LIGHT.sky),       // scales all sky light (1 = as the scene; LIGHT B: 1.5)
+    mirrorSky: num('skymirror', LIGHT.mirror),   // the sky as a mirror sees it, times this (glass; LIGHT B: 1.6). Lighting is not changed by it.
     // The ground's colour (linear) for the light it throws back up at walls. It stands for everything below the level line that lights a
     // wall in shade: pavement, and the sunlit walls across the street. NEUTRAL, and MEASURED (2026-10-12 night) on the five pale walls that
     // three site photographs show both in sun and in shade: with this grey their shaded pixels come out at 1.01 / 1.03 / 1.04 (red, green,
     // blue) of the photographs'. The value before, 0.1 / 0.125 / 0.07, was one Blender scene's lawn: it left the same walls at 0.83 / 0.95 /
     // 0.85, which is a green cast of about 13 % on every wall in shade (and plain green on a recessed wall with no sun at all).
-    ground: [0.16, 0.16, 0.16],
+    // LIGHT B doubles it (see LIGHT above): the measured 0.16 matched the five walls' shade under light A, but undersides and recesses
+    // stayed at 0.35-0.46 of the photographs.
+    ground: [0, 1, 2].map(() => num('skyground', LIGHT.ground)),
     groundMirror: [0.1, 0.125, 0.07],            // what a MIRROR ray sees below the level line (glass seen from above): not changed with the bounce
     groundEdge: -0.01,                           // below this sine a ray sees the ground; above it, the far land
     tree: { amp: 0.014, lift: -0.01, scale: 90 },// the far tree line as lights and mirrors see it: a little above level, ragged
@@ -70,7 +86,8 @@
     // the sky above, pooled over 14 materials of three buildings (single photographs gave 8 to 34). The first value here, 1.57 / 1.53 /
     // 0.91, was one Blender scene's own sun, set for a photograph of walls in shade: under it a sunlit wall was only 1.6 times a shaded
     // one, where the photographs show 3 to 10 times (most between 4 and 7). `?skysun=` scales it.
-    sunStrength: [23.65, 21.64, 18.95].map(v => v * num('skysun', 1)),
+    // one sun (LIGHT B: x0.84, so a sunlit wall stays where it was under the lifted sky).
+    sunStrength: [23.65, 21.64, 18.95].map(v => v * num('skysun', LIGHT.sun)),
     sunWarmBelow: 25, sunGoneAt: -1, sunFullAt: 5,   // degrees: the sun warms below this height; it fades out between the last two
     sunWarm: [0, 0.35, 0.65],                    // how much green and blue the low sun loses
     nightLift: 3.0,                              // a city sky at night is not black: its light is multiplied by this at full night
@@ -229,6 +246,7 @@
     uniform vec3 u_csGain, u_csGround, u_csSun, u_csSunDir, u_csStreet, u_csGroundStd;
     uniform vec4 u_csTree;          // amp, lift, scale, ground edge
     uniform float u_csSoft, u_csUndoOn, u_csExposure;
+    uniform vec2 u_csMirrorK;       // the sky as a mirror sees it, times: x for csMirror (its gain already holds the sky's lift), y for csMirrorStd (TUNE.mirrorSky)
     uniform sampler2D u_csUndo;
     // light from the whole sky and the ground on a surface with normal n (east, north, up)
     vec3 csSkyLight(vec3 n) {
@@ -248,14 +266,14 @@
       float a = (atan(d.y, d.x) / 6.2831853 + 0.5) * u_csTree.z * 6.2831853;
       float rag = (csNoise(a) * 0.5 + csNoise(a * 2.03 + 17.0) * 0.25 + csNoise(a * 4.01 + 31.0) * 0.15 + csNoise(a * 8.1 + 47.0) * 0.1) * u_csTree.x + u_csTree.y;
       float z = d.z - rag;
-      vec3 sky = (csRamp(z - u_csSoft) + 2.0 * csRamp(z) + csRamp(z + u_csSoft)) * 0.25 * u_csGain;
+      vec3 sky = (csRamp(z - u_csSoft) + 2.0 * csRamp(z) + csRamp(z + u_csSoft)) * 0.25 * u_csGain * u_csMirrorK.x;
       return mix(u_csGround, sky, smoothstep(u_csTree.w - u_csSoft, u_csTree.w + u_csSoft, d.z));
     }
     // what THE STANDARD GLASS mirrors in direction d: the sky as a camera sees it (no gain) above the street opposite, the street below
     // band (the sine of the street's top edge, from and to: a soft step), the lit ground below the level line
     vec3 csMirrorStd(vec3 d, vec2 band) {
       d = normalize(d);
-      vec3 sky = (csRamp(d.z - u_csSoft) + 2.0 * csRamp(d.z) + csRamp(d.z + u_csSoft)) * 0.25;
+      vec3 sky = (csRamp(d.z - u_csSoft) + 2.0 * csRamp(d.z) + csRamp(d.z + u_csSoft)) * 0.25 * u_csMirrorK.y;
       vec3 c = mix(u_csStreet, sky, smoothstep(band.x, band.y, d.z));
       return mix(u_csGroundStd, c, smoothstep(u_csTree.w - u_csSoft, u_csTree.w + u_csSoft, d.z));
     }
@@ -272,13 +290,13 @@
     const T = window.THREE, V = () => new T.Vector3();
     return { u_csLight: { value: Array.from({ length: 17 }, V) }, u_csZ: { value: new Float32Array(7) }, u_csC: { value: Array.from({ length: 7 }, V) },
       u_csGain: { value: V() }, u_csGround: { value: V() }, u_csStreet: { value: V() }, u_csGroundStd: { value: V() }, u_csSun: { value: V() }, u_csSunDir: { value: new T.Vector3(0, 0, 1) }, u_csTree: { value: new T.Vector4() },
-      u_csSoft: { value: TUNE.mirrorSoft }, u_csExposure: { value: 1 }, u_csUndoOn: { value: 0 }, u_csUndo: { value: null }, _csKey: { value: '' } };
+      u_csSoft: { value: TUNE.mirrorSoft }, u_csMirrorK: { value: new T.Vector2(1, 1) }, u_csExposure: { value: 1 }, u_csUndoOn: { value: 0 }, u_csUndo: { value: null }, _csKey: { value: '' } };
   }
   /** fill a material's uniforms for hour p under the light named `mode` ('soft', or the hour's own; cheap when nothing changed) */
   function sync(u, p, mode) {
     const s = atMode(p, mode), tex = undoTexture();
     u.u_csUndo.value = tex; u.u_csUndoOn.value = _undoOn; u.u_csExposure.value = s.exposure;
-    const key = (s.mode === 'soft' ? _softKey : _key) + '|' + TUNE.ambient;
+    const key = (s.mode === 'soft' ? _softKey : _key) + '|' + TUNE.ambient + '|' + TUNE.mirrorSky;
     if (u._csKey.value === key) return s;
     u._csKey.value = key;
     s.light.forEach((c, i) => u.u_csLight.value[i].set(c[0], c[1], c[2]));
@@ -286,6 +304,9 @@
     // a mirror's ray sees what every ray but the camera's sees: the sky WITH the light gain. (A model's mirror colour is divided by the
     // gain where it was made, so mirror colour times this is the plain sky times the glass's own tint.)
     u.u_csGain.value.set(s.gain[0], s.gain[1], s.gain[2]);
+    // the mirror's own sky (LIGHT B): the hour's light only; the soft light's mirror sky is the builders' measured one and is not lifted
+    const mk = 1 + (TUNE.mirrorSky - 1) * (1 - (s.mode === 'soft' ? s.share : 0));
+    u.u_csMirrorK.value.set(mk / TUNE.ambient, mk);   // csMirror's gain already carries TUNE.ambient: take it out, so a mirror sees only its own sky
     u.u_csGround.value.set(s.groundMirror[0], s.groundMirror[1], s.groundMirror[2]);
     u.u_csStreet.value.set(s.street[0], s.street[1], s.street[2]); u.u_csGroundStd.value.set(s.groundStd[0], s.groundStd[1], s.groundStd[2]);
     u.u_csSun.value.set(s.sunStrength[0], s.sunStrength[1], s.sunStrength[2]);
