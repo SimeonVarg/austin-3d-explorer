@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 212 builds of 161 buildings; 61 buildings flagged to retarget.
+Right now: 213 builds of 162 buildings; 62 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -253,6 +253,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Heinsohn Hall**: independent retry: held-out pass but all on one flat face; camera height 0.44 m (implausible); porthole wall 1.5x tall; not sent; PARKED (2 tries)
 - **The Monarch**: downtown; camera not proven (fit 23-26 px, fin checks 17/44 px); main is a crop (lens 3,300 vs EXIF 1,480); not sent
 - **Dewitt C. Greer State Highway Building**: camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent
+- **Dorothy Gebauer Building**: three early stops (oaks; floating camera; scale free with one panorama position); PARKED; parapet ~3 m over the roof deck
 
 ### Good test set for a cheaper model
 
@@ -276,6 +277,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Block 185 | Opus 5.5 | redo | 2026-10-15 | 32,983 | 50 min, 267k plan tokens |  | failed | retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos |
 | Brown Building | Opus 5.5 | lean | 2026-10-15 | 17,514 | 51 min, 390k plan tokens |  | failed | camera not proven: misses along the east face far end (17-21 px); east face length from OSM likely off; retry after Street View captures |
 | Dewitt C. Greer State Highway Building | Opus 5.5 | lean | 2026-10-15 | 25,244 | 51 min, 437k plan tokens |  | failed | camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent |
+| Dorothy Gebauer Building | Opus 5.5 | lean | 2026-10-15 |  | 26 min, 336k plan tokens |  | failed | three early stops (oaks; floating camera; scale free with one panorama position); PARKED; parapet ~3 m over the roof deck |
 | Driskill Hotel | Opus 5.5 | lean | 2026-10-15 | 35,655 | 62 min, 448k plan tokens |  | failed | 3 of 4 held-out pass; 4th on a traced OSM corner 3-4 m off (128 px); retry as a model fix started |
 | Driskill Hotel | Opus 5.5 | redo | 2026-10-15 | 35,211 | 15 min, 200k plan tokens |  | trial | corner fix: held-out 127.9 -> 8.6 px (0.6 over); colour gate passes; no carving; sent as a rough version |
 | Ernest O. Thompson State Office Building | Opus 5.5 | lean | 2026-10-15 | 17,944 | 49 min, 365k plan tokens |  | superseded | Capitol lane; early-stop package that proved; marble flat |
