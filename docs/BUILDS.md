@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 269 builds of 217 buildings; 64 buildings flagged to retarget.
+Right now: 269 builds of 217 buildings; 65 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -228,7 +228,7 @@ Right now: 269 builds of 217 buildings; 64 buildings flagged to retarget.
 | Barbara Jordan State Office Building | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,114 | 44 min, 396k plan tokens |  |  |
 | Church of Scientology (Guadalupe) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 12,192 | 30 min, 344k plan tokens |  |  |
 | Lyndon B. Johnson State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 19,816 | 22 min, 287k plan tokens |  |  |
-| Robert E. Johnson State Legislative Office Building | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 21,746 | 33 min, 336k plan tokens |  |  |
+| Robert E. Johnson State Legislative Office Building | Opus 5.5 | 2026-10-16 | loose | Earth 3D | best | 21,746 | 33 min, 336k plan tokens | 5 | yes |
 | Speedway (campus road), first 178 m | Opus 5.5 | 2026-10-14 |  |  | best | 8,256 | 60 min, 426k plan tokens | "The top looks super weird" | yes |
 | Stephen F. Austin State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 22,682 | 32 min, 344k plan tokens |  |  |
 | Stone church on Guadalupe (27bbc14c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 17,662 | 32 min, 356k plan tokens |  |  |
@@ -280,6 +280,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Littlefield House**: camera unproven on an old small public photo; work render only; heights maybe 5-10 % high
 - **Norman Hackerman Building**: overcast photo: colour gate failed 2 of 10, sun set by hand; wall 3.5 m off the outline
 - **Regents West at 26th**: camera unproven (stair bay vs survey); stucco too dark; east wing thin
+- **Robert E. Johnson State Legislative Office Building** (score 5): no score yet; Earth 3D only; h225 proven, h045 (main) not; teal glass too dark
 - **Roberts Hall**: camera passed after post-hoc held-out fixes; brick and stone a bit dark; other wings from an aerial
 - **Rowling Hall**: fins miss the colour gate by 65%; south wing and street sides inferred
 - **Speedway (campus road), first 178 m**: trees bad (thick black trunks, grey ceiling), west terrace, stairs and rails missing; round 2 cancelled by the owner
