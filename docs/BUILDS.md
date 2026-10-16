@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 270 builds of 218 buildings; 65 buildings flagged to retarget.
+Right now: 271 builds of 219 buildings; 65 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -27,6 +27,7 @@ Right now: 270 builds of 218 buildings; 65 buildings flagged to retarget.
 | Axis West Campus | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 15,939 | 40 min, 395k plan tokens |  |  |
 | Block on 25th East | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 25,552 | 37 min, 347k plan tokens |  |  |
 | Block on 25th West | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 26,429 | 101 min |  |  |
+| Brick house with columned portico (319e8154) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 19,255 | 30 min, 306k plan tokens |  |  |
 | Brown Building | Opus 5.5 | 2026-10-15 |  | Street View | unreviewed | 17,526 | 17 min, 245k plan tokens |  |  |
 | Cambridge Tower | Opus 5.5 | 2026-10-16 | proven | Street View | unreviewed | 29,116 | 37 min, 394k plan tokens |  |  |
 | Centennial Condominiums | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 14,722 | 49 min, 443k plan tokens |  |  |
