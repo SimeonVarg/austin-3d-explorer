@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 291 builds of 233 buildings; 60 buildings flagged to retarget.
+Right now: 292 builds of 234 buildings; 60 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -64,6 +64,7 @@ Right now: 291 builds of 233 buildings; 60 buildings flagged to retarget.
 | Signature 1909 | Opus 5.5 | 2026-10-12 |  | public photo | best | 6,953 | 76 min | "weird lines ... better text recognition" |  |
 | Skyloft Austin | Opus 5.5 | 2026-10-12 |  | site photographs | best | 6,016 | 72 min | 8.6 |  |
 | Stone corner block with red awning (f0b137e7) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 13,024 | 33 min, 351k plan tokens |  |  |
+| Stone-base block with metal roof ring (08cca10d) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 13,563 | 38 min, 389k plan tokens |  |  |
 | Texan 26 | Opus 5.5 | 2026-10-15 |  |  | unreviewed | 11,836 | 55 min, 370k plan tokens |  |  |
 | Texan Pearl | Sol 6.1 | 2026-10-13 |  | public photo | best | 15,685 | 37 min, $1.71 | "Fix the slanted roofs" | yes |
 | Texan Tower | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 8,320 | 48 min, 458k plan tokens |  | yes |
