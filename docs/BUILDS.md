@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 305 builds of 246 buildings; 63 buildings flagged to retarget.
+Right now: 306 builds of 247 buildings; 64 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -59,6 +59,7 @@ Right now: 305 builds of 246 buildings; 63 buildings flagged to retarget.
 | Moontower | Opus 5.5 | 2026-10-12 |  | public photo | unreviewed | 10,992 | 76 min |  |  |
 | Noble 2500 | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 19,802 | 47 min |  |  |
 | North Campus block 211c1f8e | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 15,414 | 38 min, 389k plan tokens |  |  |
+| North Campus block 21fe5c30 | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 2,772 | 26 min, 313k plan tokens |  | yes |
 | Norwood Tower | Sonnet 5.5 | 2026-10-15 |  | public photo | unreviewed | 27,050 | 16 min, 164k plan tokens |  | yes |
 | Pointe on Rio | Opus 5.5 | 2026-10-12 |  | public photo | unreviewed | 19,021 | 40 min |  |  |
 | Price Daniel Sr. State Office Building | Sonnet 5.5 | 2026-10-15 |  | public photo | unreviewed |  | 7 min, 61k plan tokens |  | yes |
@@ -315,6 +316,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **J. T. Patterson Laboratories**: stair tower position inferred, up to 7.3 m off; glass too light
 - **Littlefield House**: camera unproven on an old small public photo; work render only; heights maybe 5-10 % high
 - **Norman Hackerman Building**: overcast photo: colour gate failed 2 of 10, sun set by hand; wall 3.5 m off the outline
+- **North Campus block 21fe5c30**: Earth 3D; 2 of 3 held-out fail (oak hides corners); plain stucco block, 2.8k tri vs 13k target; roof hue fixed (grey)
 - **Regents West at 26th**: camera unproven (stair bay vs survey); stucco too dark; east wing thin
 - **Robert E. Johnson State Legislative Office Building** (score 5): no score yet; Earth 3D only; h225 proven, h045 (main) not; teal glass too dark
 - **Roberts Hall**: camera passed after post-hoc held-out fixes; brick and stone a bit dark; other wings from an aerial
