@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 251 builds of 199 buildings; 63 buildings flagged to retarget.
+Right now: 263 builds of 211 buildings; 64 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -92,6 +92,8 @@ Right now: 251 builds of 199 buildings; 63 buildings flagged to retarget.
 | Villas on Rio | Opus 5.5 | 2026-10-12 |  | public photo | unreviewed | 15,857 | 38 min |  |  |
 | W Austin | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 33,060 | 57 min, 412k plan tokens |  |  |
 | Waterford Condominiums | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 13,551 | 33 min, 374k plan tokens |  |  |
+| West Campus block + car-park deck (8f3cb88c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 15,910 | 33 min, 356k plan tokens |  |  |
+| West Campus block with ΣΧ letters (eaca344c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 11,724 | 30 min, 352k plan tokens |  |  |
 | West Campus courtyard block (3b8f0f69) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 25,484 | 34 min, 367k plan tokens |  |  |
 | West Campus courtyard block (bddea10c) | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 27,305 | 38 min, 370k plan tokens |  |  |
 | West Campus long block (66d719c5) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 13,698 | 35 min, 378k plan tokens |  |  |
@@ -111,18 +113,22 @@ Right now: 251 builds of 199 buildings; 63 buildings flagged to retarget.
 | Aerospace Engineering Building | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 19,700 | 45 min, 377k plan tokens |  |  |
 | Almetris Duren Hall | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 19,358 | 38 min, 321k plan tokens |  |  |
 | Andrews Dormitory | Opus 5.5 | 2026-10-14 | loose | public photo | unreviewed | 17,861 | 41 min, 400k plan tokens |  | yes |
+| Animal Resource Center | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 15,461 | 38 min, 411k plan tokens |  |  |
 | Anna Hiss Gymnasium | Opus 5.5 | 2026-10-12 |  | site photographs | best | 32,898 | 46 min | "I want the brick pattern" | yes |
 | Arno Nowotny Building | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 13,817 | 49 min, 380k plan tokens |  |  |
 | Art Building and Museum | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,524 | 34 min, 372k plan tokens |  |  |
 | AT&T Executive Education and Conference Center | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 16,126 | 53 min, 454k plan tokens |  | yes |
 | Austin by Ellsworth Kelly | Sonnet 5.5 | 2026-10-15 |  |  | unreviewed | 7,915 | 9 min, 174k plan tokens |  | yes |
 | Bass Concert Hall | Opus 5.5 | 2026-10-14 | unproven | public photo | unreviewed | 23,880 | 49 min, 431k plan tokens |  | yes |
+| Battle Hall | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 20,068 | 33 min, 376k plan tokens |  |  |
 | Bernard and Audre Rapoport Building | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 13,583 | 35 min, 336k plan tokens |  |  |
 | Biological Laboratories | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 19,935 | 52 min, 415k plan tokens |  |  |
 | Biomedical Engineering Building | Opus 5.5 | 2026-10-14 | loose | public photo | unreviewed | 24,046 | 47 min, 407k plan tokens |  | yes |
+| Blanton Dormitory | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 17,999 | 44 min, 399k plan tokens |  |  |
 | Blanton Museum of Art | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 21,870 | 61 min, 342k plan tokens |  |  |
 | Brick campus building (name unconfirmed) | Opus 5.5 | 2026-10-12 |  |  | best | 2,420 | 59 min | "between 8s and 9s" | yes |
 | Bullock Texas State History Museum | Opus 5.5 | 2026-10-13 |  | mixed | unreviewed | 29,058 | 61 min, 515k plan tokens |  |  |
+| Burdine Hall | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 19,726 | 48 min, 436k plan tokens |  |  |
 | Carothers Dormitory | Opus 5.5 | 2026-10-14 | loose | public photo | unreviewed | 20,879 | 44 min, 389k plan tokens |  | yes |
 | Chemical and Petroleum Engineering | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 12,062 | 55 min |  |  |
 | Dealey Center for New Media | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,912 | 36 min, 360k plan tokens |  |  |
@@ -139,6 +145,7 @@ Right now: 251 builds of 199 buildings; 63 buildings flagged to retarget.
 | George I. Sanchez Building | Opus 5.5 | 2026-10-13 | unproven | public photo | best | 2,132 | 52 min, 425k plan tokens | "A is opus" | yes |
 | Goldsmith Hall | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 20,544 | 37 min, 381k plan tokens |  |  |
 | Goodall Wooten House | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 24,898 | 48 min, 401k plan tokens |  | yes |
+| Gordon-White Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 19,646 | 37 min, 382k plan tokens |  |  |
 | Graduate School of Business | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 7,240 | 52 min, 437k plan tokens |  |  |
 | Gregory Gymnasium | Opus 5.5 | 2026-10-12 |  | site photographs | best | 7,334 | 79 min | "Nice" |  |
 | Harry Ransom Center | Opus 5.5 | 2026-10-15 | proven | public photo | unreviewed | 18,100 | 57 min, 416k plan tokens |  |  |
@@ -180,6 +187,7 @@ Right now: 251 builds of 199 buildings; 63 buildings flagged to retarget.
 | Scottish Rite Dormitory | Opus 5.5 | 2026-10-14 | loose | public photo | unreviewed | 24,297 | 40 min, 364k plan tokens |  |  |
 | Seay Building | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 15,404 | 52 min, 437k plan tokens |  |  |
 | Sid Richardson Hall | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 15,925 | 57 min, 390k plan tokens |  |  |
+| Stone hall with dormer gables (297fcc8d) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 1,236 | 36 min, 363k plan tokens |  |  |
 | Student Services Building | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 21,876 | 42 min, 446k plan tokens |  |  |
 | Sutton Hall | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 21,936 | 44 min, 417k plan tokens |  |  |
 | T. S. Painter Hall | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 16,751 | 53 min |  |  |
@@ -192,6 +200,7 @@ Right now: 251 builds of 199 buildings; 63 buildings flagged to retarget.
 | University Catholic Center | Sol 6.1 | 2026-10-14 | proven | public photo | unreviewed | 11,957 | 62 min, $3.07 |  | yes |
 | University Presbyterian Church | Opus 5.5 | 2026-10-14 | unproven | public photo | unreviewed | 14,435 | 56 min, 401k plan tokens |  | yes |
 | University Teaching Center | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 19,958 | 32 min, 305k plan tokens |  |  |
+| UT office block (878d9137) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 14,184 | 31 min, 329k plan tokens |  |  |
 | Waggener Hall | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 20,433 | 51 min, 436k plan tokens |  |  |
 | Walter Webb Hall | Sol 6.1 | 2026-10-14 | proven | public photo | unreviewed | 14,481 | 37 min, $1.61 |  | yes |
 | Will C. Hogg Building | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 24,386 | 55 min, 420k plan tokens |  |  |
@@ -212,9 +221,11 @@ Right now: 251 builds of 199 buildings; 63 buildings flagged to retarget.
 | Building | Model | Date | Camera | Source | Status | Triangles | Minutes / cost | Owner score | Retarget |
 |---|---|---|---|---|---|---|---|---|---|
 | Barbara Jordan State Office Building | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,114 | 44 min, 396k plan tokens |  |  |
+| Church of Scientology (Guadalupe) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 12,192 | 30 min, 344k plan tokens |  |  |
 | Lyndon B. Johnson State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 19,816 | 22 min, 287k plan tokens |  |  |
 | Speedway (campus road), first 178 m | Opus 5.5 | 2026-10-14 |  |  | best | 8,256 | 60 min, 426k plan tokens | "The top looks super weird" | yes |
 | Stephen F. Austin State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 22,682 | 32 min, 344k plan tokens |  |  |
+| Stone church on Guadalupe (27bbc14c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 17,662 | 32 min, 356k plan tokens |  |  |
 
 ## Retarget first
 
@@ -291,10 +302,11 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Dewitt C. Greer State Highway Building**: camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent
 - **Dorothy Gebauer Building**: three early stops (oaks; floating camera; scale free with one panorama position); PARKED; parapet ~3 m over the roof deck
 - **The Block on Pearl (south)**: parked: Earth 3D only; held-out fails (one pick on the wrong edge); massing reads wrong next to Earth; 800 px draft only; not sent
+- **Block on Pearl north (064e7194)**: parked, not sent: very noisy 16-sample draft, mansards and blue walls far too dark, massing reads heavier than Earth; same complex as the parked Pearl south
 
 ### Good test set for a cheaper model
 
-Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); Yugo Austin Waterloo (4,200 tri).
+Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); Yugo Austin Waterloo (4,200 tri).
 
 ## All other builds
 
@@ -312,6 +324,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Austin Proper | Opus 5.5 | lean | 2026-10-15 |  | public photo | 30,982 | 55 min, 396k plan tokens |  | failed | downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent |
 | Block 185 | Opus 5.5 | lean | 2026-10-15 |  | public photo | 32,051 | 49 min, 394k plan tokens |  | failed | downtown lane; camera not proven (12-19 px); straightened photo, started before fb_shift existed; outline 57 m vs photo 93 m; not sent; retry with fb_shift |
 | Block 185 | Opus 5.5 | redo | 2026-10-15 |  | public photo | 32,983 | 50 min, 267k plan tokens |  | failed | retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos |
+| Block on Pearl north (064e7194) | Opus 5.5 | lean | 2026-10-16 | unproven | Earth 3D | 17,297 | 42 min, 416k plan tokens |  | failed | parked, not sent: very noisy 16-sample draft, mansards and blue walls far too dark, massing reads heavier than Earth; same complex as the parked Pearl south |
 | Brown Building | Opus 5.5 | lean | 2026-10-15 |  | Street View | 17,514 | 51 min, 390k plan tokens |  | failed | camera not proven: misses along the east face far end (17-21 px); east face length from OSM likely off; retry after Street View captures |
 | Cambridge Tower | Opus 5.5 | first batch | 2026-10-12 |  | site photographs | 20,636 | 50 min |  | superseded | no score given; second final render added after a picture/model mismatch |
 | Dewitt C. Greer State Highway Building | Opus 5.5 | lean | 2026-10-15 |  | public photo | 25,244 | 51 min, 437k plan tokens |  | failed | camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent |
