@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 303 builds of 245 buildings; 61 buildings flagged to retarget.
+Right now: 304 builds of 245 buildings; 62 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -257,7 +257,7 @@ Right now: 303 builds of 245 buildings; 61 buildings flagged to retarget.
 | Fairmont Austin | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 14,049 | 38 min, 402k plan tokens |  |  |
 | Frost Bank Tower | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 12,596 | 45 min, 407k plan tokens |  |  |
 | Hilton Austin | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 29,200 | 40 min, 382k plan tokens |  |  |
-| Indeed Tower | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 31,187 | 42 min, 398k plan tokens |  |  |
+| Indeed Tower | Sol 6.1 | 2026-10-16 | loose | Earth 3D | unreviewed | 31,619 | 33 min |  | yes |
 | Lyndon B. Johnson State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 19,816 | 22 min, 287k plan tokens |  |  |
 | Robert E. Johnson State Legislative Office Building | Opus 5.5 | 2026-10-16 | loose | Earth 3D | best | 21,746 | 33 min, 336k plan tokens | 5 | yes |
 | Southwest Tower | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 8,728 | 43 min, 398k plan tokens |  |  |
@@ -278,6 +278,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Austin by Ellsworth Kelly** (Sonnet 5.5, fix round): named fix: coloured glass via new fb_glass (21 panes, worst-channel error 32 -> 0.5 of 255)
 - **Driskill Hotel** (Sol 6.1, fix round): his ask: detail pass; carving, surrounds, balusters added; camera still 0.6 px short
 - **Ernest O. Thompson State Office Building** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
+- **Indeed Tower** (Sol 6.1, fix round): Sol fix round on the Opus build at his ask: sharp mullions, glass mix, SW corner and N tip moved; camera check conditional on the new shape; cost $1.61
 - **John H. Reagan State Office Building** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
 - **Kappa Delta house** (Sol 6.1, redo): Sol redo of the Haiku build at the same triangle budget; cheaper model, cream wall where photo is white
 - **Norwood Tower** (Sonnet 5.5, fix round): named fix: dark_window glass; panes 60/76/89 -> 27/32/40 vs photo 25/29/39
@@ -378,6 +379,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Harry Ransom Center | Opus 5.5 | lean | 2026-10-13 |  | public photo | 11,962 | 21 min |  | failed | stopped by the owner (about 21 min in); model file only, no render |
 | Heinsohn Hall | Opus 5.5 | lean | 2026-10-15 |  | public photo | 13,758 | 57 min, 489k plan tokens |  | failed | camera not proven (held-out 1.5 / 20.5 px, 8 px of it own pick); one photo only; not sent |
 | Heinsohn Hall | Opus 5.5 | redo | 2026-10-15 |  | public photo | 13,710 | 27 min, 276k plan tokens |  | failed | independent retry: held-out pass but all on one flat face; camera height 0.44 m (implausible); porthole wall 1.5x tall; not sent; PARKED (2 tries) |
+| Indeed Tower | Opus 5.5 | lean | 2026-10-16 | unproven | Earth 3D | 31,187 | 42 min, 398k plan tokens |  | superseded | no score yet; Earth 3D only; held-out 3 of 5 (OSM outline 4-5.5 m off); draft 800 px; glass too blue/flat (rig mirror) |
 | John H. Reagan State Office Building | Opus 5.5 | lean | 2026-10-15 |  | public photo | 14,066 | 40 min, 395k plan tokens |  | superseded | Capitol lane; strong; glass grey |
 | Kappa Delta house | Haiku 5.5 | trial | 2026-10-13 | unproven | mixed | 2,288 | 27 min, 321k plan tokens |  | superseded | Haiku alone: camera unproven, grainy 800 px render, stopped early; thumbs down |
 | McCombs School of Business | Opus 5.5 | lean | 2026-10-13 |  | site photographs | 24,153 | 54 min, 447k plan tokens |  | trial | B of the A/B test (toolkit + short rules); no cheaper than A |
