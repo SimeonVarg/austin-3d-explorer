@@ -128,6 +128,7 @@ const PAGE_SETUP = `(() => {
     before: () => own({ shared: false, pack: false }),
     noPack: () => own({ pack: false }),
     sharedOff: () => own({ shared: false }),
+    thinOld: () => own({ sharedThin: false }),   // one material a pass, but the thin parts keep their own building's material (two-sided, as before)
     cap96: () => own({ atlasMB: 96 }), cap64: () => own({ atlasMB: 64 }), cap48: () => own({ atlasMB: 48 }), cap32: () => own({ atlasMB: 32 }),
     // WHERE a draw's cost goes, on the old path (a material for each building, as #503): each switch takes one part away
     //   oldOneMat    every building's picture drawn with ONE building's material (a wrong picture): no material switch, no upload

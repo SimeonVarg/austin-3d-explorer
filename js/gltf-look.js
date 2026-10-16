@@ -547,15 +547,20 @@
       } else u.setValue(gl, v);
     }
   }
-  function ownSharedParts(S, b) {
-    if (b.sha) return b.sha;
+  // `thin` false (GLTF.look.own.sharedThin off): the thin parts keep their own building's material, drawn as before
+  function ownSharedParts(S, b, thin) {
+    const key = thin ? 'sha' : 'shaOwnThin';
+    if (b[key]) return b[key];
     const T = window.THREE, A = OWN.atlas, SH = ownShared(S);
     const twin = (src, mat, ro, shared) => { const t = new T.Mesh(src.geometry, mat); t.frustumCulled = false; t.renderOrder = ro; t.layers.mask = src.layers.mask; t.name = src.name;
       if (shared) { t.userData.src = src; t.onBeforeRender = shBefore; } else t.onBeforeRender = src.onBeforeRender;
       t.onAfterRender = shAfter; return t; };
     const pic = new T.Group(), canvas = new T.Group(); pic.visible = canvas.visible = false;
     for (const m of b.picture.children) {
-      if (m.material.uniforms.u_lookPass.value > 2.5) { pic.add(twin(m, SH.pic3b, 3, true)); pic.add(twin(m, SH.pic3f, 3.5, true)); }   // back faces, then front faces (see above)
+      if (m.material.uniforms.u_lookPass.value > 2.5) {
+        if (thin) { pic.add(twin(m, SH.pic3b, 3, true)); pic.add(twin(m, SH.pic3f, 3.5, true)); }   // back faces, then front faces (see above)
+        else pic.add(twin(m, m.material, m.renderOrder, false));
+      }
       else pic.add(twin(m, SH.pic0, m.renderOrder, true));
     }
     for (const m of b.canvas.children) {
@@ -565,7 +570,7 @@
     }
     for (const g of [pic, canvas]) { g.matrixAutoUpdate = false; for (const m of g.children) m.matrixAutoUpdate = false; g.updateMatrixWorld(true); }
     A.spic.add(pic); A.scanvas.add(canvas);
-    return (b.sha = { pic, canvas });
+    return (b[key] = { pic, canvas });
   }
   function ownAtlas(S, T, O, renderer, camera, W, H, cssPx, cap, rep, restore) {
     const A = OWN.atlas || (OWN.atlas = {
@@ -577,7 +582,7 @@
     A.depth.forceSinglePass = true;
     // (each render of the shared scenes starts with no material drawn: see shBefore)
     if (!A.hooked) { A.hooked = true; A.spic.onBeforeRender = A.scanvas.onBeforeRender = () => { if (OWN.sh) OWN.sh.last = null; }; }
-    const shared = !!O.shared, SH = shared ? ownShared(S) : null, parts = shared ? b => ownSharedParts(S, b) : ownAtlasParts;
+    const shared = !!O.shared, SH = shared ? ownShared(S) : null, thinSh = O.sharedThin !== false, parts = shared ? b => ownSharedParts(S, b, thinSh) : ownAtlasParts;
     if (SH && rep === 0) { SH.pushes = SH.uploads = 0; }
     // the camera of the pictures: the city's own (an identity world, as each building's own camera had), uncut; each mesh cuts and moves itself
     A.cam.projectionMatrix.copy(camera.projectionMatrix); A.cam.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
@@ -661,7 +666,8 @@
         for (const b of items) {
           const k = b.bx;
           if (x + k.tw0 > P.pw && x > 0) { y += row; x = 0; row = 0; }
-          if (y + k.th0 > P.ph && list.length > 1) { for (const q of Object.keys(A.packs)) reset(A.packs[q]); return false; }
+          // (the first shelf of a target takes any rectangle, however tall: as before, an empty target takes any one building)
+          if (y > 0 && y + k.th0 > P.ph) { for (const q of Object.keys(A.packs)) reset(A.packs[q]); return false; }
           k.ox = x; k.oy = y; x += k.tw0; row = Math.max(row, k.th0); usedW = Math.max(usedW, x); usedH = Math.max(usedH, y + row);
           P.items.push(b);
         }
@@ -881,7 +887,7 @@
     const seen = new Set(), drop = o => { if (o.geometry && !seen.has(o.geometry)) { seen.add(o.geometry); o.geometry.dispose(); } if (o.material && !seen.has(o.material)) { seen.add(o.material); o.material.dispose(); } };
     b.group.traverse(drop); if (b.own) for (const sc of [b.own.picture, b.own.depth, b.own.fill, b.own.glass]) sc.traverse(drop);
     if (b.own && b.own.atl) { b.own.atl.pic.removeFromParent(); b.own.atl.canvas.removeFromParent(); b.own.atl = null; }   // its twins in the atlas scenes (same geometry and materials)
-    if (b.own && b.own.sha) { b.own.sha.pic.removeFromParent(); b.own.sha.canvas.removeFromParent(); b.own.sha = null; }   // and in the shared-material scenes (the shared materials stay)
+    for (const key of ['sha', 'shaOwnThin']) if (b.own && b.own[key]) { b.own[key].pic.removeFromParent(); b.own[key].canvas.removeFromParent(); b.own[key] = null; }   // and in the shared-material scenes (the shared materials stay)
     if (e.map) e.map.dispose();
     L.triangles -= b.triangles; L.litTriangles -= b.lit; L.drawCalls -= b.group.children.length; L.bytes -= e.fileBytes; L.mapBytes -= e.mapBytes; L.loaded = L.loaded.filter(n => n !== e.row.name); delete L.thin[e.row.name]; delete L.walls[e.row.name]; L.unloads++;
     e.built = e.map = null; e.state = 0;
