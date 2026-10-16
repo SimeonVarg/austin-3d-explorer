@@ -692,3 +692,66 @@ targets hold the SUM of the buildings' boxes, not the biggest one: about 210 to 
 material (a full upload of the light's uniforms, `CitySky.sync` in its `onBeforeRender`), and 1.5 to 1.8 million triangles drawn three times
 (picture, depth, lay). **Next:** one material per pass shared by all buildings (the per-building numbers as vertex data or a small table), so
 the light is set once a frame and the draws of a pass can be merged; then fewer triangles in the picture of a far building.
+
+## One material a pass, and where a draw's cost goes (2026-10-16, `mac/gltf-shared-material`)
+
+**Where a draw's cost went** (`scripts/perf/layer-cost.mjs`, new switches, all on the #503 path inside one page; AWS L4 run 38940589496,
+desktop 1920 x 1200 canvas, the minimum over 4 rounds of the median frame interval; frame time saved against the #503 path at the opening
+view, start close, over West Campus and the Union close):
+
+| the switch | saves (ms) | so the part is |
+|---|---|---|
+| the lay pass in ONE two-sided pass (`oldLay1`) | 1.1, 1.8, 2.1, 1.5 | the biggest part: three.js draws a see-through two-sided material as two draws, back faces then front, and changes its side between them (a program change and a whole new list of uniforms, each time) |
+| every picture with ONE building's material (`oldOneMat`, a wrong picture) | 1.7, 0.9, 1.1, 0.9 | material switch plus upload |
+| the same, but three.js told to upload the whole list before each draw (`oldOneMatUp`) | 0.9, 0.1, -0.1, 0.1 | so the upload is 0.8 to 1.2 ms of it, the switch itself little |
+| the hour's sky not set on each material (`oldNoSync`) | -1.1, 0.1, -0.3, 0.3 | nothing (noise) |
+| no triangle drawn (draw range 0, `oldNoDraw`) | -1.0, 0.1, 0.3, 0.3 | nothing: the triangles are not the cost |
+| more, smaller atlas targets (`cap64`, `cap32`) | -0.4 to -4 | each extra flush costs GPU time (a target switch, a clear and a resolve) |
+
+**What changed (`GLTF.look.own.shared`, on with `?gltf=1`; `?gltfshared=0` = the #503 path).** Every building's picture is drawn with ONE
+material (`js/gltf-look.js` "ONE MATERIAL A PASS"): the hour's light is set on it once a frame, and before each draw only the building's own
+values are sent (its wall patterns, frame, rectangle, sky-light map), and of those only what is a different object from what the program
+already holds (a wall-pattern table only for the rows the building's vertices can name). When the draw before used the same material,
+three.js uploads nothing and the values go straight to the program; otherwise three.js uploads the whole list as before. The lay pass is ONE
+two-sided pass: every fragment it draws at a pixel lays the same colour (the picture at that pixel) and writes no depth, so the order of its
+triangles cannot change the pixel. The thin parts keep their own building's material (see below). Nothing in a shader changed.
+
+**Same picture.** 1440 x 900 at pixel ratio 2, the Union close view, in one page (run 38947560446): 61 of 5,184,000 pixels differ by more
+than 2 levels of 255, none by more than 16 (largest 15); the page against itself 0. `shots/gltf-shared-material/union-close-before-after-1440x900-dpr2.jpg`
+(top: before, bottom: after). No shader changed and no part is drawn thinner or softer, so nothing can shimmer more (rule 15).
+
+**Frame time** (run 38947560446, one page, interleaved; desktop 1920 x 1200 canvas, 4 rounds; SIMULATED phone 390 x 844 at 3, renderScale
+0.75, CPU slowed 4 times, 3 rounds; `after` is the switch `thinOld`, which is exactly the new default except that its atlas packing was the
+opt-in `pack`; the packing changes where a picture lies, not what is drawn):
+
+| view | layer off | before (#503) | after | thin parts shared too (`?gltfsharedthin=1`) |
+|---|---|---|---|---|
+| opening view | 8.4 ms | 13.1 (+56 %) | 12.4 (+48 %) | 12.1 (+44 %) |
+| start, close | 7.8 | 12.4 (+59 %) | 12.0 (+54 %) | 10.9 (+40 %) |
+| over West Campus | 7.5 | 12.3 (+64 %) | 12.1 (+61 %) | 11.7 (+56 %) |
+| Union on San Antonio, close | 7.4 | 11.7 (+58 %) | 11.2 (+51 %) | 10.6 (+43 %) |
+| phone: opening view | 21.5 | 45.4 (+111 %) | 42.7 (+99 %) | 37.4 (+74 %) |
+| phone: start, close | 16.5 | 35.0 (+112 %) | 31.9 (+93 %) | 34.0 (+106 %) |
+| phone: over West Campus | 20.9 | 48.0 (+130 %) | 48.2 (+131 %) | 40.0 (+91 %) |
+| phone: Union, close | 16.5 | 36.7 (+122 %) | 29.7 (+80 %) | 28.3 (+72 %) |
+
+The same code one run earlier (38944342680, the thin parts shared) read the #503 path 1 to 2 ms slower on the desktop and 2 to 9 ms slower
+on the phone than this run did; the readings of one variant move by about a millisecond between runs, so trust the columns side by side, not
+one cell. **The +25 % goal is not met:** +48 to +61 % on the desktop with the default.
+
+**The thin parts, shared, are NOT the same picture** (`?gltfsharedthin=1`, off): drawn by two shared materials of a fixed side (all back
+faces, then all front faces; each building's own order is kept, and buildings never share a pixel of the atlas), the far-treatment bars of a
+close building come out about 5 levels darker: 4,157 pixels differ by more than 2 levels, largest 16 (the balcony frames of Ion Austin).
+Why is not found. It is the fastest setting (table), so it is the next thing to look at: until it is the same picture, it stays off.
+
+**Memory: not cut.** The targets are what #503 left (the size each frame needed, `GLTF_LAYER.lookOwn.needMB`, median over a pass): desktop
+268, 372, 214, 221 MB at the four views; simulated phone 286, 282, 176, 245 MB. Two ways were measured and neither is on:
+- packing the atlas tallest first (`?gltfpack=1`): 269, 395, 214, 211 MB desktop and 259, 278, 180, 316 MB phone: smaller in some views,
+  BIGGER in others (it fills each target to its limit before it flushes), so it stays off;
+- smaller targets: 96 MB a sample count (with the packing) held 204, 370, 214, 201 MB on the desktop at the same frame time as 128 (12.1,
+  11.7, 11.8, 11.1 ms); 64 MB costs 0.4 to 1.3 ms more (each flush is GPU time). Not measured on the phone, so not the default.
+
+**Next.** (1) `gltfatlasmb=96` on the simulated phone; if it holds there, make it the default (about 60 MB less in the busy views). (2) Why the
+shared thin parts darken; with them, the desktop reads +40 to +56 %. (3) What is left is mostly the flushes' GPU time (a clear and a resolve
+of each target) and three.js's own walk of each render call, not the triangles: a smaller far tier (fewer pixels in the 8-sample target)
+would cut both memory and that time, but it is a look choice for the owner.

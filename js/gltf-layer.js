@@ -259,7 +259,13 @@
       // building: every building's picture goes into its own rectangle of one shared target (one per sample count) and all of them are drawn by
       // one call, then all their depth, lay and glass passes by one more, in the same order. `atlasMB`: the most one such target may hold before
       // the buildings so far are drawn and it is used again (more = fewer calls, more graphics memory). ?gltfatlas=0: one building at a time, as before.
-      own: { on: OWN_DEFAULT, tight: q.get('gltftight') !== '0', lean: q.get('gltflean') !== '0', atlas: q.get('gltfatlas') !== '0', atlasMB: +(q.get('gltfatlasmb') || 128), samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2, slackTimes: 2, slackFrames: 60 },
+      // `shared` (2026-10-16, js/gltf-look.js "ONE MATERIAL A PASS"): with the atlas, every building's picture is drawn with ONE material a pass
+      // (the light set once a frame; each draw changes only the building's own few values) and the lay pass is one pass, not two. The same
+      // picture. ?gltfshared=0: a material for each building, as before. `sharedThin` (OFF; ?gltfsharedthin=1): the thin parts too, which is
+      // faster but NOT the same picture (thin bars about 5 levels of 255 darker on about 4,000 pixels of a close view; docs/gltf-layer.md).
+      // `pack` (OFF; ?gltfpack=1): the atlas packs the rectangles tallest first in runs of the list; measured, it made the targets bigger in
+      // some views, not smaller (docs/gltf-layer.md "One material a pass").
+      own: { on: OWN_DEFAULT, tight: q.get('gltftight') !== '0', lean: q.get('gltflean') !== '0', atlas: q.get('gltfatlas') !== '0', atlasMB: +(q.get('gltfatlasmb') || 128), shared: q.get('gltfshared') !== '0', sharedThin: q.get('gltfsharedthin') === '1', pack: q.get('gltfpack') === '1', packFill: 1, samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2, slackTimes: 2, slackFrames: 60 },
       // FAR, rule 15 (js/gltf-look.js "FAR: THIN PARTS"): a piece of the model that is thin by its own shape (a bar whose second size is
       // under `thinM` metres and that is `long` times as long, or a piece under `thinM` in every direction) is never drawn narrower than
       // `minPx` pixels, and counts for the share of the pixel it truly covers. ?gltffar=0 draws thin parts as they are (they flicker from far).

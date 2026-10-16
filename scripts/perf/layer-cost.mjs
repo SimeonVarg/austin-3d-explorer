@@ -121,9 +121,43 @@ const PAGE_SETUP = `(() => {
     atlas64: () => { const was = G.look.own.atlasMB; G.look.own.atlasMB = 64; return () => { G.look.own.atlasMB = was; }; },
     atlasOff: () => { const was = G.look.own.atlas; G.look.own.atlas = false; return () => { G.look.own.atlas = was; }; },
     copies: () => { const C = G.look.copy, a = C.fullM, b = C.farM, f = C.fadeS; C.fullM = 1e-6; C.farM = 2e-6; C.fadeS = 0; return () => { C.fullM = a; C.farM = b; setTimeout(() => { C.fadeS = f; }, 1500); }; },
+    // ── one material a pass (GLTF.look.own.shared, 2026-10-16) and the atlas packing (own.pack) ──
+    // before   the atlas as #503 left it: a material for each building, rectangles in the list's order
+    // noPack   one material a pass, rectangles in the list's order;  sharedOff  a material for each building, the new packing
+    // capNN    one material a pass with targets of up to NN MB a sample count
+    before: () => own({ shared: false, pack: false }),
+    noPack: () => own({ pack: false }),
+    sharedOff: () => own({ shared: false }),
+    thinOld: () => own({ sharedThin: false }),   // one material a pass, but the thin parts keep their own building's material (two-sided, as before)
+    thinShared: () => own({ sharedThin: true }), pack: () => own({ pack: true }),   // (both OFF by default since 2026-10-16: see docs/gltf-layer.md)
+    cap96: () => own({ atlasMB: 96 }), cap64: () => own({ atlasMB: 64 }), cap48: () => own({ atlasMB: 48 }), cap32: () => own({ atlasMB: 32 }),
+    // WHERE a draw's cost goes, on the old path (a material for each building, as #503): each switch takes one part away
+    //   oldOneMat    every building's picture drawn with ONE building's material (a wrong picture): no material switch, no upload
+    //   oldOneMatUp  the same, and three.js told to upload the material's whole list before every draw: the upload without the switch
+    //   oldLay1      the lay pass drawn in one two-sided pass instead of back faces then front faces (a program and side change a draw)
+    //   oldNoSync    the hour's sky not set on each material before its draw (CitySky.sync a no-op; the values stay what they were)
+    //   oldNoDraw    every draw of the smoothing pass draws no triangle (draw range 0): what is left is the calls without the drawing
+    //   noDraw       the same with one material a pass
+    oldOneMat: () => oldPics(false), oldOneMatUp: () => oldPics(true),
+    oldLay1: () => { const u = own({ shared: false, pack: false }); for (const b of OWN.list) b.lay.forceSinglePass = true; return () => { for (const b of OWN.list) b.lay.forceSinglePass = false; u(); }; },
+    oldNoSync: () => { const u = own({ shared: false, pack: false }), C = window.CitySky, f = C.sync; C.sync = () => null; return () => { C.sync = f; u(); }; },
+    oldNoDraw: () => noDraw(own({ shared: false, pack: false })),
+    noDraw: () => noDraw(() => {}),
   };
+  function own(set) { const O = G.look.own, was = {}; for (const k of Object.keys(set)) { was[k] = O[k]; O[k] = set[k]; } return () => Object.assign(O, was); }
+  function oldPics(upload) {
+    const u = own({ shared: false, pack: false }), saved = []; let first = null;
+    for (const b of OWN.list) { if (!OWN.atlas || !b.picture) continue; const P = OWN.atlasParts(b); for (const m of P.pic.children) { if (m.material.uniforms.u_lookPass.value > 0.5) continue; first = first || m.material; saved.push([m, m.material, m.onBeforeRender]); m.material = first;
+      if (upload) { const f = m.onBeforeRender; m.onBeforeRender = function (r, s, c, g, mat) { f.apply(this, arguments); mat.uniformsNeedUpdate = true; }; } } }
+    return () => { for (const [m, mat, f] of saved) { m.material = mat; m.onBeforeRender = f; } u(); };
+  }
+  function noDraw(u) {
+    const geoms = new Set(); for (const b of OWN.list) for (const sc of [b.picture, b.canvas]) if (sc) for (const m of sc.children) geoms.add(m.geometry);
+    for (const g of geoms) g.setDrawRange(0, 0);
+    return () => { for (const g of geoms) g.setDrawRange(0, Infinity); u(); };
+  }
   const status = () => ({ timer: !!ext, own: OWN.list.length, fullShown: OWN.list.filter(b => b.group && b.group.visible).length, rows: rows().length, loaded: rows().filter(e => e.state === 2).length,
-    copiesShown: COPY.shown, ownPixels: OWN.pixels, atlas: !!G.look.own.atlas, ownRenders: OWN.renders, ownFlushes: OWN.flushes, ownMB: Math.round((OWN.bytes || 0) / 1e6), layerTris: G.info.look ? G.info.look.triangles : null,
+    copiesShown: COPY.shown, ownPixels: OWN.pixels, atlas: !!G.look.own.atlas, ownRenders: OWN.renders, ownFlushes: OWN.flushes, shared: !!G.look.own.shared, pack: !!G.look.own.pack, atlasMB: G.look.own.atlasMB, shPushes: OWN.sh ? OWN.sh.pushes : null, shUploads: OWN.sh ? OWN.sh.uploads : null, needMB: OWN.needMB, ownMB: Math.round((OWN.bytes || 0) / 1e6), layerTris: G.info.look ? G.info.look.triangles : null,
     shadowMapRenders: S.sunlightStats().shadowMapRenders, tiers: OWN.list.filter(b => b.group && b.group.visible).map(b => (b.samples || 0) + 'x' + (b.scale || 0)).join(' ') });
   window.__LC = {
     status, variants: Object.keys(V),
@@ -195,7 +229,9 @@ try {
       window.__LCdiff = (a, b) => { let n2 = 0, n16 = 0, mx = 0; for (let i = 0; i < a.length; i += 4) { const d = Math.max(Math.abs(a[i] - b[i]), Math.abs(a[i + 1] - b[i + 1]), Math.abs(a[i + 2] - b[i + 2])); if (d > 2) n2++; if (d > 16) n16++; if (d > mx) mx = d; } return { pixels: a.length / 4, over2: n2, over16: n16, max: mx }; };
       window.__LCimg = {}; return 0; })()`);
     const shots = {};
-    for (const [k, v] of [['A1', SHOT_AB[0]], ['B1', SHOT_AB[1]], ['A2', SHOT_AB[0]], ['B2', SHOT_AB[1]]]) {
+    // two variants (A, B) or three (A, B, C: B and C each against A); every variant twice, the second kept
+    const SL = 'ABC'.slice(0, Math.min(3, SHOT_AB.length)).split('');
+    for (const [k, v] of [...SL.map((L, i) => [L + '1', SHOT_AB[i]]), ...SL.map((L, i) => [L + '2', SHOT_AB[i]])]) {
       await ev(`window.__LC.set(${JSON.stringify(v)})`); await sleep(2500);
       await ev(`window.__LCgrab().then(px => { window.__LCimg[${JSON.stringify(k)}] = px; return 0; })`);
       const { data } = await page.send('Page.captureScreenshot', { format: 'png' });
@@ -205,6 +241,7 @@ try {
     result.shots = { pose: SHOTS, ab: SHOT_AB, window: [W, H, DPR],
       noiseA: await ev(`window.__LCdiff(window.__LCimg.A1, window.__LCimg.A2)`), noiseB: await ev(`window.__LCdiff(window.__LCimg.B1, window.__LCimg.B2)`),
       change: await ev(`window.__LCdiff(window.__LCimg.A2, window.__LCimg.B2)`), status: shots };
+    if (SL.length > 2) { result.shots.noiseC = await ev(`window.__LCdiff(window.__LCimg.C1, window.__LCimg.C2)`); result.shots.changeC = await ev(`window.__LCdiff(window.__LCimg.A2, window.__LCimg.C2)`); }
     console.error(`[${LABEL}] shots ${JSON.stringify(result.shots)}`);
   }
   for (const name of (SHOTS ? [] : POSE_NAMES)) {
@@ -274,7 +311,7 @@ for (const [name, P] of Object.entries(result.poses)) {
     out.push('by file: ' + p.topFiles.map(x => `${x.file} ${x.selfMs}`).join(' | '));
   }
 }
-if (result.shots) { const s = result.shots; out.push(`\n## pictures ${s.pose} at ${s.window.join(' x ')}: ${s.ab[0]} against ${s.ab[1]}`); out.push(`noise ${s.ab[0]} vs itself ${JSON.stringify(s.noiseA)}; noise ${s.ab[1]} vs itself ${JSON.stringify(s.noiseB)}; change ${JSON.stringify(s.change)}`); }
+if (result.shots) { const s = result.shots; out.push(`\n## pictures ${s.pose} at ${s.window.join(' x ')}: ${s.ab[0]} against ${s.ab[1]}`); out.push(`noise ${s.ab[0]} vs itself ${JSON.stringify(s.noiseA)}; noise ${s.ab[1]} vs itself ${JSON.stringify(s.noiseB)}; change ${JSON.stringify(s.change)}`); if (s.changeC) out.push(`${s.ab[2]}: noise ${JSON.stringify(s.noiseC)}; change against ${s.ab[0]} ${JSON.stringify(s.changeC)}`); }
 out.push('\nJSON_TABLE ' + JSON.stringify(table));
 const text = out.join('\n');
 fs.writeFileSync(path.join(OUT, `report-${LABEL}.txt`), text);

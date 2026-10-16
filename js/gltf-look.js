@@ -291,13 +291,9 @@
   const OWN_VS = 'void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; }';
   const OWN = { list: [], hooked: false, frames: 0, bytes: 0, pixels: 0, ms: 0, pool: {}, need: {}, slack: {}, idle: 0 };
   const ownWanted = S => { const O = GLTF.look.own; if (!O || !O.on || !S.renderer || !S.renderer.capabilities.isWebGL2) return false; const gl = S.renderer.getContext(); return !(gl.getParameter(gl.SAMPLES) > 0); };
-  function ownParts() {
-    const T = window.THREE;
-    const nothing = new T.MeshBasicMaterial({ colorWrite: false, depthWrite: false, depthTest: false, side: T.DoubleSide });
-    // the depth pass and the lay pass share one vertex program text, so the two give the same depth at every pixel
-    const VS = OWN_VS;
-    const depthOnly = new T.ShaderMaterial({ colorWrite: false, depthWrite: true, depthTest: true, side: T.DoubleSide, vertexShader: VS, fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }' });
-    const lay = new T.ShaderMaterial({ side: T.DoubleSide, depthTest: true, depthWrite: false, depthFunc: T.LessEqualDepth, transparent: true, blending: T.CustomBlending, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2,
+  function layMaterial() {
+    const T = window.THREE, VS = OWN_VS;
+    return new T.ShaderMaterial({ side: T.DoubleSide, depthTest: true, depthWrite: false, depthFunc: T.LessEqualDepth, transparent: true, blending: T.CustomBlending, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2,
       blendEquation: T.AddEquation, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor, blendSrcAlpha: T.OneFactor, blendDstAlpha: T.OneMinusSrcAlphaFactor,
       uniforms: { u_picture: { value: null }, u_at: { value: new T.Vector4(0, 0, 1, 1) }, u_off: { value: new T.Vector2(0, 0) }, u_ss: { value: 1 }, u_fade: { value: 1 } },
       vertexShader: VS,
@@ -310,6 +306,14 @@
       fragmentShader: 'uniform sampler2D u_picture; uniform vec4 u_at; uniform vec2 u_off; uniform float u_ss, u_fade; void main(){ vec2 i = floor(gl_FragCoord.xy - u_at.xy); '
         + 'if (u_ss < 2.5) { vec2 a = i * u_ss, j = floor(a + 0.001), w1 = (a + u_ss - j - 1.0) / u_ss; gl_FragColor = texture2D(u_picture, (u_off + j + 0.5 + w1) / u_at.zw) * u_fade; return; } '
         + 'vec2 b = u_off + i * u_ss; vec4 s = vec4(0.0); for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) { if (float(x) < u_ss && float(y) < u_ss) s += texture2D(u_picture, (b + vec2(float(x), float(y)) + 0.5) / u_at.zw); } gl_FragColor = s / (u_ss * u_ss) * u_fade; }' });   // u_fade: the share of the full building while it changes places with its far copy
+  }
+  function ownParts() {
+    const T = window.THREE;
+    const nothing = new T.MeshBasicMaterial({ colorWrite: false, depthWrite: false, depthTest: false, side: T.DoubleSide });
+    // the depth pass and the lay pass share one vertex program text, so the two give the same depth at every pixel
+    const VS = OWN_VS;
+    const depthOnly = new T.ShaderMaterial({ colorWrite: false, depthWrite: true, depthTest: true, side: T.DoubleSide, vertexShader: VS, fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }' });
+    const lay = layMaterial();
     // `canvas` (GLTF.look.own.lean): the depth, lay and glass meshes again (the same geometry and materials) in ONE scene, so the three passes are
     // one render call. The order inside it is the order of the three calls: the depth pass is opaque (drawn first), the lay pass and the two glass
     // passes are see-through and sorted by renderOrder (0, 1, 2). `casters`: the meshes that only cast the shadow.
@@ -405,7 +409,7 @@
     // (a measuring switch: GLTF_LAYER.lookOwn.repeat = 3 does all of this three times a frame; the smoothing's own cost is then (T3 - T1) / 2,
     //  far above the noise of a whole-city frame time)
     for (let rep = 0, reps = Math.max(1, OWN.repeat | 0); rep < reps; rep++) {
-      if (O.atlas) { ownAtlas(T, O, renderer, camera, W, H, cssPx, cap, rep, restore); continue; }
+      if (O.atlas) { ownAtlas(S, T, O, renderer, camera, W, H, cssPx, cap, rep, restore); continue; }
       for (const b of OWN.list) {
         if (rep === 0) b.samples = b.scale = 0;
         if (!ownBox(b, T, O, camera, W, H, cssPx, cap)) continue;
@@ -475,13 +479,111 @@
     A.pic.add(pic); A.canvas.add(canvas);
     return (b.atl = { pic, canvas });
   }
-  function ownAtlas(T, O, renderer, camera, W, H, cssPx, cap, rep, restore) {
+  // ══════════════════════════════════════════════════════════════════════
+  //  ONE MATERIAL A PASS (GLTF.look.own.shared): the atlas's draws without a material, a light and a two-sided pass for each building
+  // ══════════════════════════════════════════════════════════════════════
+  // After the atlas (docs/gltf-layer.md "The atlas") the cost was per DRAW: about 370 a frame, and each one was a different three.js material,
+  // so three.js uploaded that material's whole list of uniforms (the city's light, the sky, the wall patterns: about eighty) before it, and the
+  // building's onBeforeRender set the hour's sky on it again. The see-through passes (the lay pass, the thin parts) were worse: a material
+  // that is see-through and two-sided is drawn by three.js as two draws, back faces then front faces, and it changes the material's side
+  // between them, which costs a program change and a new list of uniforms each time.
+  // Here every building's picture is drawn with ONE material for each pass (the light set on it once a frame), and before each draw only
+  // the building's own values are sent: its wall patterns, its frame, its rectangle, its sky-light map (`SH_PIC`). The thin parts are drawn
+  // back faces then front faces by two materials of a fixed side (the order inside each building is the same; buildings never share a
+  // pixel of the atlas, so the order between them does not matter there). The lay pass is ONE two-sided pass: every fragment it draws at a
+  // pixel lays the same colour (the picture at that pixel) and writes no depth, so the order of its triangles cannot change the pixel.
+  // HOW a building's values reach the graphics card without the material's whole list: when the draw before used the same material, three.js
+  // will not upload anything, the material's program is the current one, and the values are sent straight to it (`shPush`); otherwise three.js
+  // uploads the whole list, and the values were put in the material's uniforms just before (`shBefore`).
+  const SH_PIC = ['u_patA', 'u_patB', 'u_patC', 'u_patD', 'u_patAt', 'u_patTurn', 'u_atlasXf', 'u_atlasRect', 'u_patPx', 'u_lookGlass', 'u_lookStd', 'u_lookStraight', 'u_skyMapStrength',
+    'u_lookShadowLift', 'u_lookFar', 'u_lookPx', 'u_lookCopy', 'u_lookPush', 'u_lookFade', 'u_lookBand', 'u_lookThrough', 'u_lookTransmit', 'u_skyMap'];
+  const SH_LAY = ['u_at', 'u_off', 'u_ss', 'u_fade', 'u_picture'];
+  const SH_TEX = { u_skyMap: true, u_picture: true };
+  function ownShared(S) {
+    if (OWN.sh) return OWN.sh;
+    const T = window.THREE, pic = pass => { const m = material(S, null, pass); m.userData.keys = SH_PIC; return m; };
+    const SH = { last: null, frame: -1, pic0: pic(0), pic3b: pic(3), pic3f: pic(3), lay: layMaterial(), pushes: 0, uploads: 0 };
+    SH.pic3b.side = T.BackSide; SH.pic3f.side = T.FrontSide;
+    SH.lay.forceSinglePass = true; SH.lay.userData.keys = SH_LAY;
+    return (OWN.sh = SH);
+  }
+  // before a twin's draw: the building's values (kept in its own material's uniforms, where the old path draws them from) into the shared material
+  function shBefore(renderer, scene, camera, geometry, mat) {
+    const src = this.userData.src, SH = OWN.sh; if (!src || !SH) return;
+    if (src.userData.frameVals) src.userData.frameVals(renderer);
+    const SU = src.material.uniforms, MU = mat.uniforms, keys = mat.userData.keys;
+    for (let i = 0; i < keys.length; i++) { const k = keys[i]; if (MU[k] && SU[k]) MU[k].value = SU[k].value; }
+    if (SH.last === mat) shPush(renderer, mat, keys);
+    else {                                                         // three.js uploads the whole list now: what it sends is what the program holds
+      SH.uploads++; const sent = mat.userData.sent || (mat.userData.sent = {});
+      for (let i = 0; i < keys.length; i++) { const k = keys[i]; sent[k] = MU[k] ? MU[k].value : undefined; }
+    }
+  }
+  function shAfter(renderer, scene, camera, geometry, mat) { if (OWN.sh) OWN.sh.last = mat; }
+  // the material is the one drawn just before: its program is current and three.js will upload nothing. Send the building's values to it
+  // (three.js's own setters, which skip a value the program already holds). A texture is bound on the unit three.js gave the sampler.
+  // Anything not as expected: three.js uploads the whole list instead (uniformsNeedUpdate), which is always right.
+  function shPush(renderer, mat, keys) {
+    const mp = renderer.properties.get(mat), prog = mp.currentProgram;
+    if (!prog) { mat.uniformsNeedUpdate = true; return; }
+    const pu = prog.getUniforms(), gl = renderer.getContext(), MU = mat.uniforms, sent = mat.userData.sent || (mat.userData.sent = {});
+    OWN.sh.pushes++;
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i], u = pu.map[k]; if (!u || !MU[k]) continue;   // (a uniform the shader does not use is not in the program)
+      const v = MU[k].value;
+      // the same object as the program got last in this render call (the building's other mesh): nothing to send. (Each building's values
+      // are its own objects, set before the render call and not changed during it; `sent` starts afresh with three.js's upload, see shBefore.)
+      if (v !== null && typeof v === 'object' && sent[k] === v) continue;
+      sent[k] = v;
+      if (v && v.__n !== undefined) {                              // a wall-pattern table: only the rows this building's vertices can name
+        if (v.__n > 0) { const f = v.__flat || (v.__flat = Float32Array.from(v.slice(0, v.__n).flatMap(q => [q.x, q.y, q.z, q.w]))); gl.uniform4fv(u.addr, f); }
+        continue;
+      }
+      if (SH_TEX[k]) {
+        if (!v) continue;                                          // no sky-light map: its strength is 0, the sampler is not read
+        const tp = renderer.properties.get(v);
+        if (tp.__webglTexture === undefined || (v.isRenderTargetTexture !== true && tp.__version !== v.version) || typeof u.cache[0] !== 'number') { mat.uniformsNeedUpdate = true; continue; }
+        renderer.state.bindTexture(gl.TEXTURE_2D, tp.__webglTexture, gl.TEXTURE0 + u.cache[0]);
+      } else u.setValue(gl, v);
+    }
+  }
+  // `thin` false (GLTF.look.own.sharedThin off): the thin parts keep their own building's material, drawn as before
+  function ownSharedParts(S, b, thin) {
+    const key = thin ? 'sha' : 'shaOwnThin';
+    if (b[key]) return b[key];
+    const T = window.THREE, A = OWN.atlas, SH = ownShared(S);
+    const twin = (src, mat, ro, shared) => { const t = new T.Mesh(src.geometry, mat); t.frustumCulled = false; t.renderOrder = ro; t.layers.mask = src.layers.mask; t.name = src.name;
+      if (shared) { t.userData.src = src; t.onBeforeRender = shBefore; } else t.onBeforeRender = src.onBeforeRender;
+      t.onAfterRender = shAfter; return t; };
+    const pic = new T.Group(), canvas = new T.Group(); pic.visible = canvas.visible = false;
+    for (const m of b.picture.children) {
+      if (m.material.uniforms.u_lookPass.value > 2.5) {
+        if (thin) { pic.add(twin(m, SH.pic3b, 3, true)); pic.add(twin(m, SH.pic3f, 3.5, true)); }   // back faces, then front faces (see above)
+        else pic.add(twin(m, m.material, m.renderOrder, false));
+      }
+      else pic.add(twin(m, SH.pic0, m.renderOrder, true));
+    }
+    for (const m of b.canvas.children) {
+      if (m.material === b.depthOnly) canvas.add(twin(m, A.depth, -1, false));
+      else if (m.material === b.lay) canvas.add(twin(m, SH.lay, m.renderOrder, true));
+      else canvas.add(twin(m, m.material, m.renderOrder, false));   // see-through glass: its own material, as before
+    }
+    for (const g of [pic, canvas]) { g.matrixAutoUpdate = false; for (const m of g.children) m.matrixAutoUpdate = false; g.updateMatrixWorld(true); }
+    A.spic.add(pic); A.scanvas.add(canvas);
+    return (b[key] = { pic, canvas });
+  }
+  function ownAtlas(S, T, O, renderer, camera, W, H, cssPx, cap, rep, restore) {
     const A = OWN.atlas || (OWN.atlas = {
       pic: Object.assign(new T.Scene(), { matrixWorldAutoUpdate: false }), canvas: Object.assign(new T.Scene(), { matrixWorldAutoUpdate: false }), cam: new T.Camera(), packs: {}, run: [],
+      spic: Object.assign(new T.Scene(), { matrixWorldAutoUpdate: false }), scanvas: Object.assign(new T.Scene(), { matrixWorldAutoUpdate: false }),
       // the depth pass of ownParts as a see-through material, so that it is sorted with the lay and glass passes of its own building
       depth: new T.ShaderMaterial({ colorWrite: false, depthWrite: true, depthTest: true, transparent: true, blending: T.NoBlending, side: T.DoubleSide, vertexShader: OWN_VS, fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }' }),
     });
     A.depth.forceSinglePass = true;
+    // (each render of the shared scenes starts with no material drawn: see shBefore)
+    if (!A.hooked) { A.hooked = true; A.spic.onBeforeRender = A.scanvas.onBeforeRender = () => { if (OWN.sh) OWN.sh.last = null; }; }
+    const shared = !!O.shared, SH = shared ? ownShared(S) : null, thinSh = !!O.sharedThin, parts = shared ? b => ownSharedParts(S, b, thinSh) : ownAtlasParts;
+    if (SH && rep === 0) { SH.pushes = SH.uploads = 0; }
     // the camera of the pictures: the city's own (an identity world, as each building's own camera had), uncut; each mesh cuts and moves itself
     A.cam.projectionMatrix.copy(camera.projectionMatrix); A.cam.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
     const run = A.run; run.length = 0;
@@ -495,6 +597,8 @@
       OWN.flushes++;
       const clear = renderer.getClearColor(new T.Color()), alpha = renderer.getClearAlpha();
       try {
+        // the light, once a frame, on the shared materials
+        if (SH && SH.frame !== OWN.frames) { SH.frame = OWN.frames; const U = S.uniforms(), p = U.u_p ? U.u_p.value : 0.3; for (const M of [SH.pic0, SH.pic3b, SH.pic3f]) window.CitySky.sync(M.uniforms, p, GLTF.look.light); }
         // 1. the pictures, one render call for each sample count
         for (const s of Object.keys(A.packs)) {
           const P = A.packs[s]; if (!P.items.length) continue;
@@ -505,39 +609,91 @@
             const ax = 2 / (nx1 - nx0) * k.tw0 / VW, ay = 2 / (ny1 - ny0) * k.th0 / VH;
             const cx = (2 * k.ox + k.tw0) / VW - 1 - ax * (nx0 + nx1) / 2, cy = (2 * k.oy + k.th0) / VH - 1 - ay * (ny0 + ny1) / 2;
             k.xf[0] = ax; k.xf[1] = ay; k.xf[2] = cx; k.xf[3] = cy; k.rect[0] = k.ox; k.rect[1] = k.oy; k.rect[2] = k.ox + k.tw0; k.rect[3] = k.oy + k.th0;
-            ownAtlasUniforms(b, k.xf, k.rect); b.ssNow = k.ss; ownAtlasParts(b).pic.visible = true;
+            ownAtlasUniforms(b, k.xf, k.rect); b.ssNow = k.ss; parts(b).pic.visible = true;
           }
           t.viewport.set(0, 0, VW, VH); t.scissor.set(0, 0, VW, VH); t.scissorTest = true;
           renderer.setRenderTarget(t); renderer.setClearColor(0x000000, 0); renderer.clear(true, true, false);
-          try { ownRenderInto(renderer, O, t, A.pic, A.cam, VW, VH); }
-          finally { for (const b of P.items) b.atl.pic.visible = false; }
+          try { ownRenderInto(renderer, O, t, shared ? A.spic : A.pic, A.cam, VW, VH); }
+          finally { for (const b of P.items) parts(b).pic.visible = false; }
           restore();
           for (const b of P.items) { const k = b.bx, L = b.lay.uniforms; L.u_picture.value = t.texture; L.u_at.value.set(k.px0, k.py0, t.width, t.height); L.u_off.value.set(k.ox, k.oy); L.u_ss.value = k.ss; L.u_fade.value = b.fade === undefined ? 1 : b.fade; }
         }
         // 2. their depth, lay and glass on the canvas, building after building in the list's order: one render call
-        run.forEach((b, i) => { const c = ownAtlasParts(b).canvas; c.renderOrder = i; c.visible = true; for (const gm of b.glass.children) gm.material.uniforms.u_lookFade.value = b.fade === undefined ? 1 : b.fade; });
+        run.forEach((b, i) => { const c = parts(b).canvas; c.renderOrder = i; c.visible = true; for (const gm of b.glass.children) gm.material.uniforms.u_lookFade.value = b.fade === undefined ? 1 : b.fade; });
         OWN.renders++;
-        try { renderer.render(A.canvas, camera); } finally { for (const b of run) b.atl.canvas.visible = false; }
+        try { renderer.render(shared ? A.scanvas : A.canvas, camera); } finally { for (const b of run) parts(b).canvas.visible = false; }
       } finally { restore(); renderer.setClearColor(clear, alpha); }
       for (const s of Object.keys(A.packs)) reset(A.packs[s]);
       run.length = 0;
     };
+    const take = b => { const k = b.bx; run.push(b); if (rep === 0) OWN.pixels += k.tw0 * k.th0; b.samples = k.samples; b.scale = k.ss; b.px = k.tw0 * k.th0; b.whole = !!k.behind; };
+    if (!O.pack) {
+      for (const b of OWN.list) {
+        if (rep === 0) b.samples = b.scale = 0;
+        if (!ownBox(b, T, O, camera, W, H, cssPx, cap)) continue;
+        const k = b.bx; if (!k.xf) { k.xf = [1, 1, 0, 0]; k.rect = [0, 0, 0, 0]; }
+        // its rectangle: on this row of its target, or a new row, or (the target is full) after the buildings so far are drawn
+        for (let tries = 0; ; tries++) {
+          const P = pack(k.samples);
+          if (P.x + k.tw0 > P.pw && P.x > 0) { P.y += P.row; P.x = 0; P.row = 0; }
+          if (P.items.length && P.y + k.th0 > P.ph && tries === 0) { flush(); continue; }   // (an empty target takes any one building)
+          k.ox = P.x; k.oy = P.y; P.x += k.tw0; P.row = Math.max(P.row, k.th0); P.usedW = Math.max(P.usedW, P.x); P.usedH = Math.max(P.usedH, P.y + P.row);
+          P.items.push(b); break;
+        }
+        take(b);
+      }
+      flush();
+      return;
+    }
+    // PACK (GLTF.look.own.pack): the buildings, in the list's order, are cut into runs whose rectangles fill at most `packFill` of a target's
+    // area for each sample count; inside a run each sample count's rectangles go on shelves TALLEST FIRST (a shelf is as tall as its first
+    // rectangle, so little of it is empty). The canvas still draws the buildings in the list's order: only where a picture lies in its
+    // target changes. A run that does not fit is halved (an empty target takes any one building).
+    const all = [];
     for (const b of OWN.list) {
       if (rep === 0) b.samples = b.scale = 0;
       if (!ownBox(b, T, O, camera, W, H, cssPx, cap)) continue;
       const k = b.bx; if (!k.xf) { k.xf = [1, 1, 0, 0]; k.rect = [0, 0, 0, 0]; }
-      // its rectangle: on this row of its target, or a new row, or (the target is full) after the buildings so far are drawn
-      for (let tries = 0; ; tries++) {
-        const P = pack(k.samples);
-        if (P.x + k.tw0 > P.pw && P.x > 0) { P.y += P.row; P.x = 0; P.row = 0; }
-        if (P.items.length && P.y + k.th0 > P.ph && tries === 0) { flush(); continue; }   // (an empty target takes any one building)
-        k.ox = P.x; k.oy = P.y; P.x += k.tw0; P.row = Math.max(P.row, k.th0); P.usedW = Math.max(P.usedW, P.x); P.usedH = Math.max(P.usedH, P.y + P.row);
-        P.items.push(b); break;
-      }
-      run.push(b);
-      if (rep === 0) OWN.pixels += k.tw0 * k.th0; b.samples = k.samples; b.scale = k.ss; b.px = k.tw0 * k.th0; b.whole = !!k.behind;
+      all.push(b);
     }
-    flush();
+    const fill = Math.min(1, Math.max(0.1, O.packFill || 1));
+    const shelf = list => {
+      const by = {};
+      for (const b of list) (by[b.bx.samples] || (by[b.bx.samples] = [])).push(b);
+      for (const s of Object.keys(by)) {
+        const P = pack(+s), items = by[s].slice().sort((a, c) => c.bx.th0 - a.bx.th0);
+        let x = 0, y = 0, row = 0, usedW = 0, usedH = 0;
+        for (const b of items) {
+          const k = b.bx;
+          if (x + k.tw0 > P.pw && x > 0) { y += row; x = 0; row = 0; }
+          // (the first shelf of a target takes any rectangle, however tall: as before, an empty target takes any one building)
+          if (y > 0 && y + k.th0 > P.ph) { for (const q of Object.keys(A.packs)) reset(A.packs[q]); return false; }
+          k.ox = x; k.oy = y; x += k.tw0; row = Math.max(row, k.th0); usedW = Math.max(usedW, x); usedH = Math.max(usedH, y + row);
+          P.items.push(b);
+        }
+        P.usedW = usedW; P.usedH = usedH;
+      }
+      return true;
+    };
+    // each run is the LONGEST stretch of the list from i0 whose rectangles fit (found by halving: a few packings, not one for each building);
+    // the area of the rectangles bounds it from above
+    let i0 = 0;
+    while (i0 < all.length) {
+      const area = {}; let hi = i0;
+      for (; hi < all.length; hi++) {
+        const k = all[hi].bx, s = k.samples, P = pack(s), a = k.tw0 * k.th0;
+        if (hi > i0 && (area[s] || 0) + a > P.pw * P.ph * fill) break;
+        area[s] = (area[s] || 0) + a;
+      }
+      let lo = i0 + 1;                                             // one building always fits (an empty target takes any one)
+      if (!shelf(all.slice(i0, hi))) {
+        while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (shelf(all.slice(i0, mid))) { lo = mid; for (const q of Object.keys(A.packs)) reset(A.packs[q]); } else hi = mid; }
+        shelf(all.slice(i0, lo)); hi = lo;
+      }
+      for (let i = i0; i < hi; i++) take(all[i]);
+      flush();
+      i0 = hi;
+    }
   }
   function ownHook(S) {
     if (OWN.hooked || !S.scene) return; OWN.hooked = true;
@@ -565,6 +721,7 @@
     };
   }
   GLTF.lookOwn = OWN;
+  OWN.atlasParts = ownAtlasParts;   // for scripts/perf/layer-cost.mjs (its measuring switches change the old path's twins)
 
   function releaseArray() { this.array = null; }
   // ── one building ────────────────────────────────────────────────────────
@@ -636,10 +793,16 @@
         pats.forEach((q, i) => { MU.u_patA.value[i].set(q.kind === 'boards' ? 0 : q.w, q.h, Math.min(q.joint, 0.9 * q.h), q.kind === 'running_bond' ? 0.5 : 0); MU.u_patB.value[i].set(q.jointShare[0], q.jointShare[1], q.jointShare[2], 0);
           MU.u_patC.value[i].set(q.vary[0], q.vary[1], q.vary[2], q.upright ? 1 : 0); MU.u_patD.value[i].set(q.origin[0], q.origin[1], q.seed, 0); });
         MU.u_patAt.value.set(O.x, O.y, O.z); MU.u_patTurn.value.set(c, s);
+        for (const k of ['u_patA', 'u_patB', 'u_patC', 'u_patD']) MU[k].value.__n = pats.length;   // how many the shader can read (shPush sends only these)
         mesh.name = g.name + '-' + name + (pass ? pass : ''); mesh.renderOrder = pass; if (pass === 1 || pass === 2) mesh.layers.set(1);   // see-through glass casts no shadow (the shadow cameras see layer 0 only)
         // the light for the hour, once per frame: the sky and sun from js/city-sky.js at the app's own clock
+        // (split in two: the light, and this building's own values a frame. With one material a pass (ownShared) the light is set once a frame
+        // on the shared material and only frameVals runs for each building)
         mesh.onBeforeRender = renderer => {
           const U = S.uniforms(); window.CitySky.sync(mat.uniforms, U.u_p ? U.u_p.value : 0.3, GLTF.look.light);
+          mesh.userData.frameVals(renderer);
+        };
+        mesh.userData.frameVals = renderer => {
           // the light's name, the wall patterns and the glass, each frame (all three may be flipped while the page runs). A building that is drawn
           // at more than the canvas's pixels (own.ssNow, see ownFrame) fades its patterns by CANVAS pixels, not by its own finer ones.
           const ssNow = (own && own.ssNow) || 1, od = (row.oppositeDeg !== undefined && row.oppositeDeg !== null ? row.oppositeDeg : GS.oppositeDeg) * Math.PI / 180, st = GS.stepDeg * Math.PI / 180, lo = Math.sin(Math.max(od - st, 0));
@@ -724,6 +887,7 @@
     const seen = new Set(), drop = o => { if (o.geometry && !seen.has(o.geometry)) { seen.add(o.geometry); o.geometry.dispose(); } if (o.material && !seen.has(o.material)) { seen.add(o.material); o.material.dispose(); } };
     b.group.traverse(drop); if (b.own) for (const sc of [b.own.picture, b.own.depth, b.own.fill, b.own.glass]) sc.traverse(drop);
     if (b.own && b.own.atl) { b.own.atl.pic.removeFromParent(); b.own.atl.canvas.removeFromParent(); b.own.atl = null; }   // its twins in the atlas scenes (same geometry and materials)
+    for (const key of ['sha', 'shaOwnThin']) if (b.own && b.own[key]) { b.own[key].pic.removeFromParent(); b.own[key].canvas.removeFromParent(); b.own[key] = null; }   // and in the shared-material scenes (the shared materials stay)
     if (e.map) e.map.dispose();
     L.triangles -= b.triangles; L.litTriangles -= b.lit; L.drawCalls -= b.group.children.length; L.bytes -= e.fileBytes; L.mapBytes -= e.mapBytes; L.loaded = L.loaded.filter(n => n !== e.row.name); delete L.thin[e.row.name]; delete L.walls[e.row.name]; L.unloads++;
     e.built = e.map = null; e.state = 0;
