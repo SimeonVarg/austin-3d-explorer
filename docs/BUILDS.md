@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 264 builds of 212 buildings; 64 buildings flagged to retarget.
+Right now: 265 builds of 213 buildings; 64 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -179,6 +179,7 @@ Right now: 264 builds of 212 buildings; 64 buildings flagged to retarget.
 | Peter T. Flawn Academic Center | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 32,445 | 55 min, 426k plan tokens |  |  |
 | Physics, Math and Astronomy | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 7,180 | 45 min, 383k plan tokens |  |  |
 | Powers Student Activity Center | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 22,905 | 40 min, 399k plan tokens |  |  |
+| Prather Hall | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 12,786 | 31 min, 354k plan tokens |  |  |
 | Raku Sushi and Asian Bistro building | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 16,088 | 56 min, 381k plan tokens |  |  |
 | Recreational Sports Center | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 17,971 | 32 min, 390k plan tokens |  |  |
 | Robert A. Welch Hall | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 32,296 | 54 min, 473k plan tokens |  |  |
