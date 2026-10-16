@@ -628,13 +628,13 @@ about 600 m at that window), 1.5 to 1.8 million layer triangles. Frame time adde
 | the picture pass's pixels (same draws into boxes 2 % the size) | 0 | 0 | 0 | 0 |
 | the far treatment (8 samples, 1.5-2 times the pixels) | 0.8 | 0.3 | 0.3 | 0 |
 | the shadow casters in the city's own pass | 0.6 | 0.4 | 0.4 | 0 |
-| the see-through glass pass | 0.3 | 0.2 | 0 | 0 |
+| the see-through glass pass | 0.2 | 0.2 | 0 | 0 |
 
 **The cause is the number of render calls, not pixels, shading, triangles or shadows.** Every full building is drawn by four three.js
 render calls a frame (its picture into the smoothing target, then its depth, its lay and its glass on the canvas), and switches between the
 smoothing target and the canvas twice. With about 85 buildings in view that is about 340 render calls and 170 target switches; each costs the
 same for a building 500 m away as for one beside the camera, so the cost follows the COUNT of full buildings, not their size on the screen.
-The page's own JS time for the layer is 7.5 of the 10 ms on the desktop (5.6 to 7.3 ms of it inside the smoothing pass) and about 30 of the 40
+The page's own JS time for the layer is 5.6 to 7.7 ms of its 6.5 to 10.2 ms on the desktop (5.0 to 7.3 ms of it inside the smoothing pass) and 25 to 36 of its 29 to 41
 ms on the simulated phone, where the main thread is slow; the CPU profile puts it in three.js's per-render work (scene and light setup,
 uniform upload, the target's resolve), not in the layer's own code. The shadow maps are not redrawn while the camera only turns.
 
