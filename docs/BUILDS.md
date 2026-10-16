@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 235 builds of 183 buildings; 63 buildings flagged to retarget.
+Right now: 236 builds of 184 buildings; 63 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -31,6 +31,7 @@ Right now: 235 builds of 183 buildings; 63 buildings flagged to retarget.
 | Centennial Condominiums | Opus 5.5 | 2026-10-15 | 14,722 | 49 min, 443k plan tokens |  |  |
 | Crest at Pearl | Opus 5.5 | 2026-10-15 | 18,688 | 53 min, 355k plan tokens |  |  |
 | Delta Gamma | Opus 5.5 | 2026-10-15 | 13,367 | 48 min, 675k plan tokens |  |  |
+| Dobie Twenty21 | Opus 5.5 | 2026-10-16 | 13,616 | 41 min, 365k plan tokens |  |  |
 | Driskill Hotel | Sol 6.1 | 2026-10-15 | 35,160 | 45 min, $3.00 |  | yes |
 | Ernest O. Thompson State Office Building | Sonnet 5.5 | 2026-10-15 |  | 7 min, 61k plan tokens |  | yes |
 | Four Seasons Residences | Opus 5.5 | 2026-10-15 | 30,791 | 45 min, 403k plan tokens |  |  |
