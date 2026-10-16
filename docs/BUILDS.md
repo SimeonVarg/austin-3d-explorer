@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 283 builds of 225 buildings; 60 buildings flagged to retarget.
+Right now: 284 builds of 226 buildings; 60 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -104,6 +104,7 @@ Right now: 283 builds of 225 buildings; 60 buildings flagged to retarget.
 | West Campus long block (66d719c5) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 13,698 | 35 min, 378k plan tokens |  |  |
 | West Campus pool-deck block (4fe90bd0) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 23,174 | 42 min, 395k plan tokens |  |  |
 | Westgate Tower | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 24,864 | 57 min, 420k plan tokens |  |  |
+| White block on stilts (5b56cd35) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 7,064 | 29 min, 329k plan tokens |  |  |
 | White block with stone base (79e82c98) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 8,782 | 42 min, 389k plan tokens |  |  |
 | White stucco block on a slope (42508a4b) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 11,486 | 35 min, 373k plan tokens |  |  |
 | William B. Travis State Office Building | Opus 5.5 | 2026-10-15 |  |  | unreviewed | 22,026 | 47 min, 374k plan tokens |  |  |
@@ -321,7 +322,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### Good test set for a cheaper model
 
-Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); Yugo Austin Waterloo (4,200 tri).
+Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); White block on stilts (5b56cd35) (7,064 tri); Yugo Austin Waterloo (4,200 tri).
 
 ## All other builds
 
