@@ -147,7 +147,7 @@ async function oneArm(rep, arm) {
         const dts = await ev(`${PAGE_PASS}(${JSON.stringify({ pose, n: FRAMES, stall: pass === 'stall' })}).then(r=>JSON.stringify(r))`).then(JSON.parse);
         out[pass] = { n: dts.length, p50: r1(pct(dts, 0.5)), p95: r1(pct(dts, 0.95)), max: r1(Math.max(...dts)) };
       }
-      out.gltf = await ev(`(()=>{const G=window.GLTF_LAYER;if(!G||!G.on)return null;const s=G.stats();return{loaded:s.loaded.length,triangles:s.triangles,drawCalls:s.drawCalls,errors:s.errors.length}})()`);
+      out.gltf = await ev(`(()=>{const G=window.GLTF_LAYER;if(!G||!G.on)return null;const s=G.stats(),l=s.look||s;return{loaded:l.loaded.length,triangles:l.triangles,drawCalls:l.drawCalls,errors:l.errors.length}})()`);
       res.poses[name] = out;
       console.error(`  [rep ${rep} ${arm}] ${name}: free p50 ${out.free.p50} p95 ${out.free.p95} | stall p50 ${out.stall.p50} p95 ${out.stall.p95}${out.gltf ? ' | layer ' + JSON.stringify(out.gltf) : ''}`);
     }
