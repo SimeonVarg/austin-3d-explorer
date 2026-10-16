@@ -174,6 +174,12 @@ memory and is never written here, in any tracked file, or in a commit message.
     - **The gates do not change:** his eye decides; rule 15 (nothing shimmers, blur is not a fix) holds for every
       Blender building; the phone must still run the city; a picture of the app for him is drawn at his screen's
       density and never smaller than the picture it stands beside.
+    - **Light B: more sky light (owner, 2026-10-15: "B definitely").** Shade and undersides rendered far darker than his photos
+      and sky-mirroring glass far darker and greyer, on most builds of 10-14/15. The fix he chose: sky light about x1.5, ground
+      bounce about x2, sun about x0.84, and a separate brighter sky in reflections (about x1.6) for glass; sunlit walls stay
+      the same. It changes the Blender light rig AND the app's own light (`js/city-sky.js`), together, so a building looks
+      the same in both; old builds get their colours re-derived under the new light. Dark windows (near-black in the photo)
+      use their own dark glass, not the sky mirror.
     - **Privacy:** photographs, builder folders and the place a photograph was taken from stay outside the repo. A
       model file in the repo holds shapes and plain colours, never an image cut from a photograph.
 
