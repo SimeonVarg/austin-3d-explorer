@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 249 builds of 197 buildings; 63 buildings flagged to retarget.
+Right now: 250 builds of 198 buildings; 63 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -21,6 +21,7 @@ Right now: 249 builds of 197 buildings; 63 buildings flagged to retarget.
 | 21 Rio | Sonnet 5.5 | 2026-10-13 | loose | public photo | best | 16,181 | 26 min, 313k plan tokens | "Good" | yes |
 | 2400 Nueces | Opus 5.5 | 2026-10-12 |  | public photo | unreviewed | 36,710 | 71 min |  |  |
 | 26 West | Opus 5.5 | 2026-10-12 |  | site photographs | best | 76,396 | 72 min | 8.5 |  |
+| 2706 Rio Grande block (ec1b4af2) | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 23,693 | 40 min, 370k plan tokens |  |  |
 | 2819 Rio Grande | Opus 5.5 | 2026-10-12 |  | site photographs | best | 22,712 | 65 min | 8.2 |  |
 | 360 Condominiums | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 33,784 | 46 min, 357k plan tokens |  |  |
 | Axis West Campus | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 15,939 | 40 min, 395k plan tokens |  |  |
