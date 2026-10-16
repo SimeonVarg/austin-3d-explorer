@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 300 builds of 242 buildings; 61 buildings flagged to retarget.
+Right now: 301 builds of 243 buildings; 61 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -254,6 +254,7 @@ Right now: 300 builds of 242 buildings; 61 buildings flagged to retarget.
 | Embassy Suites Austin Downtown | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 12,268 | 41 min, 363k plan tokens |  |  |
 | Fairmont Austin | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 14,049 | 38 min, 402k plan tokens |  |  |
 | Frost Bank Tower | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 12,596 | 45 min, 407k plan tokens |  |  |
+| Hilton Austin | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 29,200 | 40 min, 382k plan tokens |  |  |
 | Indeed Tower | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 31,187 | 42 min, 398k plan tokens |  |  |
 | Lyndon B. Johnson State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 19,816 | 22 min, 287k plan tokens |  |  |
 | Robert E. Johnson State Legislative Office Building | Opus 5.5 | 2026-10-16 | loose | Earth 3D | best | 21,746 | 33 min, 336k plan tokens | 5 | yes |
