@@ -259,7 +259,11 @@
       // building: every building's picture goes into its own rectangle of one shared target (one per sample count) and all of them are drawn by
       // one call, then all their depth, lay and glass passes by one more, in the same order. `atlasMB`: the most one such target may hold before
       // the buildings so far are drawn and it is used again (more = fewer calls, more graphics memory). ?gltfatlas=0: one building at a time, as before.
-      own: { on: OWN_DEFAULT, tight: q.get('gltftight') !== '0', lean: q.get('gltflean') !== '0', atlas: q.get('gltfatlas') !== '0', atlasMB: +(q.get('gltfatlasmb') || 128), samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2, slackTimes: 2, slackFrames: 60 },
+      // `shared` (2026-10-16, js/gltf-look.js "ONE MATERIAL A PASS"): with the atlas, every building's picture is drawn with ONE material a pass
+      // (the light set once a frame; each draw changes only the building's own few values) and the lay pass is one pass, not two. The same
+      // picture. ?gltfshared=0: a material for each building, as before. `pack` (same day): the atlas packs the rectangles tallest first in
+      // a run of buildings taken in the list's order (`packFill` of a target's area at most), so a target holds less empty space. ?gltfpack=0: as before.
+      own: { on: OWN_DEFAULT, tight: q.get('gltftight') !== '0', lean: q.get('gltflean') !== '0', atlas: q.get('gltfatlas') !== '0', atlasMB: +(q.get('gltfatlasmb') || 128), shared: q.get('gltfshared') !== '0', pack: q.get('gltfpack') !== '0', packFill: 0.9, samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2, slackTimes: 2, slackFrames: 60 },
       // FAR, rule 15 (js/gltf-look.js "FAR: THIN PARTS"): a piece of the model that is thin by its own shape (a bar whose second size is
       // under `thinM` metres and that is `long` times as long, or a piece under `thinM` in every direction) is never drawn narrower than
       // `minPx` pixels, and counts for the share of the pixel it truly covers. ?gltffar=0 draws thin parts as they are (they flicker from far).
