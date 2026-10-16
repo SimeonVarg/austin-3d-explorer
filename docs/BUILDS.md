@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 207 builds of 161 buildings; 58 buildings flagged to retarget.
+Right now: 211 builds of 161 buildings; 62 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -30,7 +30,7 @@ Right now: 207 builds of 161 buildings; 58 buildings flagged to retarget.
 | Crest at Pearl | Opus 5.5 | 2026-10-15 | 18,688 | 53 min, 355k plan tokens |  |  |
 | Delta Gamma | Opus 5.5 | 2026-10-15 | 13,367 | 48 min, 675k plan tokens |  |  |
 | Driskill Hotel | Sol 6.1 | 2026-10-15 | 35,160 | 45 min, $3.00 |  | yes |
-| Ernest O. Thompson State Office Building | Opus 5.5 | 2026-10-15 | 17,944 | 49 min, 365k plan tokens |  |  |
+| Ernest O. Thompson State Office Building | Sonnet 5.5 | 2026-10-15 |  | 7 min, 61k plan tokens |  | yes |
 | Four Seasons Residences | Opus 5.5 | 2026-10-15 | 30,791 | 45 min, 403k plan tokens |  |  |
 | GrandMarc Austin | Opus 5.5 | 2026-10-12 | 48,464 | 75 min | 8.3 | yes |
 | Hampton Inn and Suites Austin (campus) | Opus 5.5 | 2026-10-14 | 18,819 | 56 min, 450k plan tokens |  | yes |
@@ -39,13 +39,13 @@ Right now: 207 builds of 161 buildings; 58 buildings flagged to retarget.
 | Icon | Opus 5.5 | 2026-10-15 | 20,804 | 64 min, 445k plan tokens |  |  |
 | Inspire on 22nd | Opus 5.5 | 2026-10-12 | 40,966 | 78 min |  |  |
 | Ion Austin | Opus 5.5 | 2026-10-12 | 7,056 | 60 min |  | yes |
-| John H. Reagan State Office Building | Opus 5.5 | 2026-10-15 | 14,066 | 40 min, 395k plan tokens |  |  |
+| John H. Reagan State Office Building | Sonnet 5.5 | 2026-10-15 |  | 7 min, 61k plan tokens |  | yes |
 | Lark Austin | Opus 5.5 | 2026-10-13 | 6,292 | 75 min, 644k plan tokens |  |  |
 | Moontower | Opus 5.5 | 2026-10-12 | 10,992 | 76 min |  |  |
 | Noble 2500 | Opus 5.5 | 2026-10-12 | 19,802 | 47 min |  |  |
 | Norwood Tower | Sonnet 5.5 | 2026-10-15 | 27,050 | 16 min, 164k plan tokens |  | yes |
 | Pointe on Rio | Opus 5.5 | 2026-10-12 | 19,021 | 40 min |  |  |
-| Price Daniel Sr. State Office Building | Opus 5.5 | 2026-10-15 | 16,479 | 43 min, 399k plan tokens |  |  |
+| Price Daniel Sr. State Office Building | Sonnet 5.5 | 2026-10-15 |  | 7 min, 61k plan tokens |  | yes |
 | Rambler | Opus 5.5 | 2026-10-12 | 17,742 | 61 min |  |  |
 | Regents West at 24th | Opus 5.5 | 2026-10-15 | 17,750 | 47 min, 395k plan tokens |  |  |
 | Regents West at 26th | Opus 5.5 | 2026-10-14 | 15,887 | 52 min, 454k plan tokens |  | yes |
@@ -136,7 +136,7 @@ Right now: 207 builds of 161 buildings; 58 buildings flagged to retarget.
 | Music Recital Hall | Opus 5.5 | 2026-10-15 | 21,256 | 51 min, 398k plan tokens |  |  |
 | Neural Molecular Science Building | Opus 5.5 | 2026-10-15 | 21,790 | 59 min, 448k plan tokens |  |  |
 | Norman Hackerman Building | Opus 5.5 | 2026-10-12 | 6,770 | 54 min |  | yes |
-| Nursing School | Opus 5.5 | 2026-10-15 | 12,494 | 43 min, 355k plan tokens |  |  |
+| Nursing School | Sonnet 5.5 | 2026-10-15 |  | 7 min, 61k plan tokens |  | yes |
 | O'Donnell Building | Opus 5.5 | 2026-10-13 | 13,280 | 59 min, 500k plan tokens |  |  |
 | Parlin Hall | Opus 5.5 | 2026-10-14 | 18,067 | 41 min, 345k plan tokens |  |  |
 | PCL Library | Opus 5.5 | 2026-10-13 | 3,148 | 48 min, 397k plan tokens |  |  |
@@ -190,9 +190,13 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **21 Rio** (Sonnet 5.5, fix round): Sonnet detail pass on the Opus build (Opus base: 50 min, 423k plan tokens); glazed bay moved to the right face; 3.4 m recess left from the scale error
 - **Austin by Ellsworth Kelly** (Sonnet 5.5, fix round): named fix: coloured glass via new fb_glass (21 panes, worst-channel error 32 -> 0.5 of 255)
 - **Driskill Hotel** (Sol 6.1, fix round): his ask: detail pass; carving, surrounds, balusters added; camera still 0.6 px short
+- **Ernest O. Thompson State Office Building** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
+- **John H. Reagan State Office Building** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
 - **Kappa Delta house** (Sol 6.1, redo): Sol redo of the Haiku build at the same triangle budget; cheaper model, cream wall where photo is white
 - **Norwood Tower** (Sonnet 5.5, fix round): named fix: dark_window glass; panes 60/76/89 -> 27/32/40 vs photo 25/29/39
+- **Nursing School** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
 - **Pi Beta Phi house** (Sol 6.1, redo): Sol redo: real portico, but sits smaller and a little turned
+- **Price Daniel Sr. State Office Building** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
 - **Texan Pearl** (Sol 6.1, fix round): fix 1: every roof plate and canopy re-measured; shaded left wing still too dark; cheaper model (base Sol build: 70 min, $3.10)
 - **Texas Alpha Phi house** (Sol 6.1, redo): Sol redo; thin iron may flicker in the app; wall under decks too dark
 - **The Nine at Rio** (Sol 6.1): glass dark; base storey inferred (hidden by a hedge)
@@ -274,6 +278,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Dewitt C. Greer State Highway Building | Opus 5.5 | lean | 2026-10-15 | 25,244 | 51 min, 437k plan tokens |  | failed | camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent |
 | Driskill Hotel | Opus 5.5 | lean | 2026-10-15 | 35,655 | 62 min, 448k plan tokens |  | failed | 3 of 4 held-out pass; 4th on a traced OSM corner 3-4 m off (128 px); retry as a model fix started |
 | Driskill Hotel | Opus 5.5 | redo | 2026-10-15 | 35,211 | 15 min, 200k plan tokens |  | trial | corner fix: held-out 127.9 -> 8.6 px (0.6 over); colour gate passes; no carving; sent as a rough version |
+| Ernest O. Thompson State Office Building | Opus 5.5 | lean | 2026-10-15 | 17,944 | 49 min, 365k plan tokens |  | superseded | Capitol lane; early-stop package that proved; marble flat |
 | Frost Bank Tower | Opus 5.5 | lean | 2026-10-15 | 35,216 | 46 min, 345k plan tokens |  | failed | downtown lane; camera not proven (held-out 10-22 px); telephoto crown photo with no lens; hidden faces by symmetry, refuted; not sent |
 | Frost Bank Tower | Opus 5.5 | redo | 2026-10-15 | 36,520 | 49 min, 463k plan tokens |  | failed | retry on EXIF main: held-out 6.5-21.6 px; both photos from the south-east; 9% too large; PARKED (2 fails) |
 | Frost Bank Tower | Opus 5.5 | redo | 2026-10-15 | 34,780 | 75 min |  | failed | try 3 with Street View north/west: wide frames (~116 deg) matched only at sky corners; held-out up to 206 px; PARKED (3 tries) |
@@ -284,13 +289,16 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Harry Ransom Center | Opus 5.5 | lean | 2026-10-13 | 11,962 | 21 min |  | failed | stopped by the owner (about 21 min in); model file only, no render |
 | Heinsohn Hall | Opus 5.5 | lean | 2026-10-15 | 13,758 | 57 min, 489k plan tokens |  | failed | camera not proven (held-out 1.5 / 20.5 px, 8 px of it own pick); one photo only; not sent |
 | Heinsohn Hall | Opus 5.5 | redo | 2026-10-15 | 13,710 | 27 min, 276k plan tokens |  | failed | independent retry: held-out pass but all on one flat face; camera height 0.44 m (implausible); porthole wall 1.5x tall; not sent; PARKED (2 tries) |
+| John H. Reagan State Office Building | Opus 5.5 | lean | 2026-10-15 | 14,066 | 40 min, 395k plan tokens |  | superseded | Capitol lane; strong; glass grey |
 | Kappa Delta house | Haiku 5.5 | trial | 2026-10-13 | 2,288 | 27 min, 321k plan tokens |  | superseded | Haiku alone: camera unproven, grainy 800 px render, stopped early; thumbs down |
 | McCombs School of Business | Opus 5.5 | lean | 2026-10-13 | 24,153 | 54 min, 447k plan tokens |  | trial | B of the A/B test (toolkit + short rules); no cheaper than A |
 | Neural Molecular Science Building | Opus 5.5 | lean | 2026-10-13 |  | 45 min |  | failed | stopped by the owner (about 45 min in); partial files only, no hand-back |
 | Norwood Tower | Opus 5.5 | lean | 2026-10-15 | 27,050 | 53 min, 390k plan tokens |  | superseded | downtown; early-stop package that proved; glass grey; ornament schematic |
+| Nursing School | Opus 5.5 | lean | 2026-10-15 | 12,494 | 43 min, 355k plan tokens |  | superseded | no score yet; slots grey not black; gated PASS first |
 | Pi Beta Phi house | Haiku 5.5 | trial | 2026-10-13 | 1,172 | 40 min, 527k plan tokens |  | superseded | Haiku alone: flat columns, no porch depth; used more tokens than an Opus build; thumbs down |
 | Powers Student Activity Center | Opus 5.5 | fix round | 2026-10-15 | 32,768 | 51 min, 516k plan tokens |  | trial | WCP round 3: still 4 of 36 photos proven (south only); 27 photos show no measured point; waits for photo-to-photo matching; not sent |
 | Powers Student Activity Center | Opus 5.5 | fix round | 2026-10-15 | 32,996 | 47 min, 363k plan tokens |  | trial | WCP round 4: roof and north side from Earth views (unproven); still only south proven; turnaround sent for his read |
+| Price Daniel Sr. State Office Building | Opus 5.5 | lean | 2026-10-15 | 16,479 | 43 min, 399k plan tokens |  | superseded | other buildings; no score yet; glass grey |
 | Sam Houston State Office Building | Opus 5.5 | lean | 2026-10-15 | 17,555 | 52 min, 452k plan tokens |  | failed | camera not proven: 4 of 6 held-out pass, 2 bad own picks (tree, antenna mast) kept locked; work render only; not sent |
 | Seaholm Residences | Opus 5.5 | lean | 2026-10-15 | 29,280 | 56 min, 445k plan tokens |  | failed | downtown lane; camera not proven (a held-out pick on the wrong corner, 49.8 px, kept per 9t); render 2x dark; not sent |
 | Seaholm Residences | Opus 5.5 | redo | 2026-10-15 | 29,280 | 40 min |  | failed | independent retry: window grid fits, roof parts 2-4 m high and podium cap 22.7 vs 26.5 m in the model; PARKED (2 fails) |
