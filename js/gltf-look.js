@@ -444,6 +444,8 @@
       if (OWN.slack[k] > O.slackFrames) { t.dispose(); OWN.pool[k] = null; OWN.slack[k] = 0; continue; }
       OWN.bytes += t.width * t.height * (4 + 8 * Number(k));
     }
+    // the memory the targets would settle to at this view (each at the size this frame needed; the pool keeps a bigger one for `slackFrames`)
+    OWN.needMB = Math.round(Object.keys(OWN.need).reduce((a, k) => a + OWN.need[k][0] * OWN.need[k][1] * (4 + 8 * Number(k)), 0) / 1e6);
     OWN.frames++; OWN.ms = +(performance.now() - t0).toFixed(2);
   }
 
@@ -467,12 +469,15 @@
     const pic = new T.Group(), canvas = new T.Group(); pic.visible = canvas.visible = false;
     for (const m of b.picture.children) pic.add(twin(m));
     for (const m of b.canvas.children) canvas.add(m.material === b.depthOnly ? twin(m, A.depth, -1) : twin(m));
+    // the twins stand where their building's own meshes stand (an identity transform): their matrices are worked out once, here, and the
+    // two scenes do not walk all their buildings again before each render call (that walk was the biggest JS item of the first atlas)
+    for (const g of [pic, canvas]) { g.matrixAutoUpdate = false; for (const m of g.children) m.matrixAutoUpdate = false; g.updateMatrixWorld(true); }
     A.pic.add(pic); A.canvas.add(canvas);
     return (b.atl = { pic, canvas });
   }
   function ownAtlas(T, O, renderer, camera, W, H, cssPx, cap, rep, restore) {
     const A = OWN.atlas || (OWN.atlas = {
-      pic: new T.Scene(), canvas: new T.Scene(), cam: new T.Camera(), packs: {}, run: [],
+      pic: Object.assign(new T.Scene(), { matrixWorldAutoUpdate: false }), canvas: Object.assign(new T.Scene(), { matrixWorldAutoUpdate: false }), cam: new T.Camera(), packs: {}, run: [],
       // the depth pass of ownParts as a see-through material, so that it is sorted with the lay and glass passes of its own building
       depth: new T.ShaderMaterial({ colorWrite: false, depthWrite: true, depthTest: true, transparent: true, blending: T.NoBlending, side: T.DoubleSide, vertexShader: OWN_VS, fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }' }),
     });
@@ -480,7 +485,7 @@
     // the camera of the pictures: the city's own (an identity world, as each building's own camera had), uncut; each mesh cuts and moves itself
     A.cam.projectionMatrix.copy(camera.projectionMatrix); A.cam.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
     const run = A.run; run.length = 0;
-    const mb = Math.max(1, O.atlasMB || 64) * 1048576, maxTex = renderer.capabilities.maxTextureSize || 4096;
+    const mb = Math.max(1, O.atlasMB || 128) * 1048576, maxTex = renderer.capabilities.maxTextureSize || 4096;
     const pack = s => { let P = A.packs[s]; if (!P) P = A.packs[s] = { items: [] };
       if (!P.items.length && P.pw === undefined) { P.pw = W; P.ph = Math.min(maxTex, Math.max(64, Math.floor(mb / ((4 + 8 * s) * W)))); P.x = P.y = P.row = P.usedW = P.usedH = 0; }
       return P; };

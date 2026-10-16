@@ -259,7 +259,7 @@
       // building: every building's picture goes into its own rectangle of one shared target (one per sample count) and all of them are drawn by
       // one call, then all their depth, lay and glass passes by one more, in the same order. `atlasMB`: the most one such target may hold before
       // the buildings so far are drawn and it is used again (more = fewer calls, more graphics memory). ?gltfatlas=0: one building at a time, as before.
-      own: { on: OWN_DEFAULT, tight: q.get('gltftight') !== '0', lean: q.get('gltflean') !== '0', atlas: q.get('gltfatlas') !== '0', atlasMB: +(q.get('gltfatlasmb') || 64), samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2, slackTimes: 2, slackFrames: 60 },
+      own: { on: OWN_DEFAULT, tight: q.get('gltftight') !== '0', lean: q.get('gltflean') !== '0', atlas: q.get('gltfatlas') !== '0', atlasMB: +(q.get('gltfatlasmb') || 128), samples: 4, bigSamples: 2, bigPixels: 2600000, growBy: 128, pad: 2, slackTimes: 2, slackFrames: 60 },
       // FAR, rule 15 (js/gltf-look.js "FAR: THIN PARTS"): a piece of the model that is thin by its own shape (a bar whose second size is
       // under `thinM` metres and that is `long` times as long, or a piece under `thinM` in every direction) is never drawn narrower than
       // `minPx` pixels, and counts for the share of the pixel it truly covers. ?gltffar=0 draws thin parts as they are (they flicker from far).
