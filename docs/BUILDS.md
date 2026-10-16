@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 281 builds of 224 buildings; 60 buildings flagged to retarget.
+Right now: 282 builds of 224 buildings; 60 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -378,6 +378,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | The Quarters Grayson House | Sol 6.1 | lean | 2026-10-13 |  | public photo |  | 14 min, $0.57 |  | failed | stopped by the lead after 14 min (decorated, so Opus); no build yet |
 | The Texan Shoal Creek | Sol 6.1 | lean | 2026-10-13 | proven | public photo | 15,461 | 65 min, $3.15 |  | superseded | close match; flat left tower wall |
 | Turtle Pond and Memorial Garden | Opus 5.5 | lean | 2026-10-15 |  | public photo | 14,776 | 49 min, 401k plan tokens |  | failed | first ground piece; camera not proven (12.7/19.6 px); close-up photo, wrong scale for the city; not sent |
+| Twenty Two 15 | Opus 5.5 | trial | 2026-10-16 | unproven | mixed | 14,113 | 35 min, 402k plan tokens |  | trial | trial redo from his rooftop photo 070 (069 is the neighbour north, not this building); camera unproven (outline corners used as held-out: builder's mistake); roof and colours better; court too dark |
 | University Avenue Church of Christ | Haiku 5.5 | trial | 2026-10-13 | unproven | site photographs | 977 | 36 min, 443k plan tokens | <6 | superseded | Haiku alone: stone box, camera unproven |
 | University Christian Church | Opus 5.5 | lean | 2026-10-15 |  | public photo | 19,966 | 60 min, 461k plan tokens |  | failed | camera not proven (held-out 164-375 px); heights 0.8 of scan, gable front 10.3 m vs survey 6 m; tower crown wrong; not sent |
 | University Christian Church | Opus 5.5 | redo | 2026-10-15 |  | public photo | 20,646 | 45 min, 533k plan tokens |  | failed | retries 2+3: outline misread fixed, heights within 1% of scan, crown right; camera still not proven (54/54 px, likely a pavement drop); parked after 3 tries |
