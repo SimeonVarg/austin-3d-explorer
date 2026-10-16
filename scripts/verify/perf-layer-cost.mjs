@@ -16,11 +16,14 @@ const URLB = process.env.VERIFY_URL || 'http://127.0.0.1:8442';
 // --shots POSE first takes the before/after pictures of one pose at 1440x900 DPR 2 (a dense laptop screen); the rest is passed to both timings
 const argv = process.argv.slice(2), si = argv.indexOf('--shots');
 const SHOTS = si >= 0 ? argv.splice(si, 2)[1] : null;
+// --motion POSE[,POSE..] (2026-10-16): the camera flying forward in real time at 1440x900 DPR 2, a screencast of each --motion-ab variant
+const mi = argv.indexOf('--motion'), MOTION = mi >= 0 ? argv.splice(mi, 2)[1] : null;
 // --phone-variants LIST: the simulated phone measures only these (it is about four times slower a variant); default: the same as the desktop
 const pv = argv.indexOf('--phone-variants'), PHONE_VARIANTS = pv >= 0 ? argv.splice(pv, 2)[1] : null;
 const EXTRA = argv;
 const RUNS = [
   ...(SHOTS ? [['shots', ['--shots', SHOTS, '--width', '1440', '--height', '900', '--dpr', '2']]] : []),
+  ...(MOTION ? [['motion', ['--motion', MOTION, '--width', '1440', '--height', '900', '--dpr', '2']]] : []),
   ['desktop', ['--rounds', '4', '--deadline-min', '24']],
   ['phone4x', ['--rounds', '3', '--frames', '20', '--warm', '8', '--phone', '--throttle', '4', '--deadline-min', '24']],
 ];
