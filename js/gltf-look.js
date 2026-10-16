@@ -582,7 +582,7 @@
     A.depth.forceSinglePass = true;
     // (each render of the shared scenes starts with no material drawn: see shBefore)
     if (!A.hooked) { A.hooked = true; A.spic.onBeforeRender = A.scanvas.onBeforeRender = () => { if (OWN.sh) OWN.sh.last = null; }; }
-    const shared = !!O.shared, SH = shared ? ownShared(S) : null, thinSh = O.sharedThin !== false, parts = shared ? b => ownSharedParts(S, b, thinSh) : ownAtlasParts;
+    const shared = !!O.shared, SH = shared ? ownShared(S) : null, thinSh = !!O.sharedThin, parts = shared ? b => ownSharedParts(S, b, thinSh) : ownAtlasParts;
     if (SH && rep === 0) { SH.pushes = SH.uploads = 0; }
     // the camera of the pictures: the city's own (an identity world, as each building's own camera had), uncut; each mesh cuts and moves itself
     A.cam.projectionMatrix.copy(camera.projectionMatrix); A.cam.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
