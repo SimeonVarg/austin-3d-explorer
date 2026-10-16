@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 267 builds of 215 buildings; 64 buildings flagged to retarget.
+Right now: 268 builds of 216 buildings; 64 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -162,6 +162,7 @@ Right now: 267 builds of 215 buildings; 64 buildings flagged to retarget.
 | Jesse H. Jones Hall | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 21,636 | 41 min, 394k plan tokens |  |  |
 | Jester East Hall | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 21,372 | 39 min, 397k plan tokens |  |  |
 | John B. Connally Center for Justice | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 16,000 | 27 min, 316k plan tokens |  |  |
+| John W. Hargis Hall | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 19,482 | 39 min, 361k plan tokens |  |  |
 | Kinsolving Dormitory | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 24,872 | 34 min, 356k plan tokens |  |  |
 | LBJ Presidential Library | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 13,602 | 40 min, 375k plan tokens |  |  |
 | Lee and Joe Jamail Texas Swimming Center | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 13,916 | 34 min, 359k plan tokens |  |  |
