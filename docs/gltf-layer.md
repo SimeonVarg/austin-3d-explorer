@@ -651,3 +651,44 @@ atlas: each building its own rectangle, drawn by one render call with the viewpo
 depth, lay and glass on the canvas in one more call, ordered by render order as now. That keeps each building's picture its own (no change at
 the edges where two buildings overlap) and takes about 340 calls to about 3. Or, a look choice for the owner: a nearer change to the far copy
 (the far copies cost nothing that can be measured).
+
+## The atlas: a handful of render calls instead of two a building (2026-10-16, `mac/gltf-atlas`)
+
+**What changed (`GLTF.look.own.atlas`, on with `?gltf=1`; `?gltfatlas=0` = one building at a time, as before).** Every full building's
+picture goes into its own rectangle of ONE shared smoothing target for its sample count (a shelf packing, in the list's order). Each picture
+mesh is moved into its rectangle by a uniform (`u_atlasXf`, the building's screen box onto its rectangle, applied to `gl_Position`) and cut to
+it (`u_atlasRect`, a discard tested after every derivative is taken), so all the pictures of a sample count are ONE render call and one
+resolve. Then the depth, lay and glass passes of the same buildings are ONE more call: each building is a Group whose `renderOrder` is its place
+in the list, and its depth pass is a see-through material with `renderOrder` -1, so the canvas sees exactly the sequence of draws the
+per-building calls gave it. When a target would pass `atlasMB` (128 MB a sample count; `?gltfatlasmb=N`), the buildings so far are drawn and
+the target is used again. The atlas scenes' matrices are worked out once when a building comes in (three.js otherwise walks every building
+before each render call: that walk was the biggest JS item of the first try).
+
+**Same picture.** 1440 x 900 at pixel ratio 2, the close view of the Union on San Antonio, 76+ full buildings, in one page: 127 of 5,184,000
+pixels differ by more than 2 levels of 255, one by more than 16 (largest 18); the page against itself 1 pixel by 3. The differing pixels are
+single pixels on the edges of far buildings (eight samples, drawn at twice the pixels), where a vertex moved into its rectangle rounds a hair
+differently: the same picture to within a sample, no seam, no blur. `shots/gltf-atlas/union-close-1440x900-dpr2.jpg`.
+
+**Frame time** (`scripts/perf/layer-cost.mjs` in one page, the variants interleaved; AWS L4 run 38928719025; the minimum over rounds of the
+median frame interval; desktop 1920 x 1200 canvas, 4 rounds; SIMULATED phone 390 x 844 at 3, renderScale 0.75, CPU slowed 4 times, 3 rounds):
+
+| view | layer off | before (`gltfatlas=0`) | atlas | render calls before -> atlas |
+|---|---|---|---|---|
+| opening view | 8.3 ms | 17.1 (+106 %) | 12.2 (+47 %) | 120 -> 10 |
+| start, close | 7.3 | 14.6 (+100 %) | 11.9 (+63 %) | 94 -> 28 |
+| over West Campus | 7.3 | 16.0 (+119 %) | 11.7 (+60 %) | 112 -> 12 |
+| Union on San Antonio, close | 7.5 | 14.2 (+89 %) | 11.1 (+48 %) | 86 -> 9 |
+| phone: opening view | 19.8 | 53.7 (+171 %) | 44.0 (+122 %) | 126 -> 5 |
+| phone: start, close | 16.1 | 37.1 (+130 %) | 36.8 (+129 %) | 96 -> 10 |
+| phone: over West Campus | 18.5 | 44.7 (+142 %) | 36.9 (+99 %) | 116 -> 5 |
+| phone: Union, close | 16.3 | 36.8 (+126 %) | 33.7 (+107 %) | 88 -> 5 |
+
+The layer's GPU time about halves (desktop +7.6 to +9.6 ms -> +2.8 to +4.3), its JS time drops a little (+4.2 to +5.9 -> +3.3 to +4.0).
+256 MB targets (`atlasBig`) save at most another 0.7 ms and hold up to twice the memory; 64 MB cost up to 1.2 ms more. **Memory:** the
+targets hold the SUM of the buildings' boxes, not the biggest one: about 210 to 410 MB at these views on the desktop (91 to 168 before) and
+210 to 290 MB on the simulated phone (96 to 165), read as the size each frame needed (`GLTF_LAYER.lookOwn.needMB`).
+
+**The +25 % goal is not met:** +47 to +63 % on the desktop. What is left is per MESH, not per call: about 370 draws a frame, each with its own
+material (a full upload of the light's uniforms, `CitySky.sync` in its `onBeforeRender`), and 1.5 to 1.8 million triangles drawn three times
+(picture, depth, lay). **Next:** one material per pass shared by all buildings (the per-building numbers as vertex data or a small table), so
+the light is set once a frame and the draws of a pass can be merged; then fewer triangles in the picture of a far building.
