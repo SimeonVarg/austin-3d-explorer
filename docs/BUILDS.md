@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 295 builds of 237 buildings; 60 buildings flagged to retarget.
+Right now: 296 builds of 238 buildings; 60 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -29,6 +29,7 @@ Right now: 295 builds of 237 buildings; 60 buildings flagged to retarget.
 | Block on 25th East | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 25,552 | 37 min, 347k plan tokens |  |  |
 | Block on 25th West | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 26,429 | 101 min |  |  |
 | Blue and brick gallery block (6e7dec36) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 8,866 | 29 min, 324k plan tokens |  |  |
+| Blue-grey gabled apartments (3f9b807a) | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 17,393 | 43 min, 407k plan tokens |  |  |
 | Brick house with columned portico (319e8154) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 19,255 | 30 min, 306k plan tokens |  |  |
 | Brick U-plan walk-up (071ef0d5) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 11,582 | 35 min, 356k plan tokens |  |  |
 | Brown Building | Opus 5.5 | 2026-10-15 |  | Street View | unreviewed | 17,526 | 17 min, 245k plan tokens |  |  |
