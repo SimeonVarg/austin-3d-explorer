@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 216 builds of 164 buildings; 62 buildings flagged to retarget.
+Right now: 217 builds of 165 buildings; 62 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -42,7 +42,7 @@ Right now: 216 builds of 164 buildings; 62 buildings flagged to retarget.
 | Ion Austin | Opus 5.5 | 2026-10-12 | 7,056 | 60 min |  | yes |
 | John H. Reagan State Office Building | Sonnet 5.5 | 2026-10-15 |  | 7 min, 61k plan tokens |  | yes |
 | Lark Austin | Opus 5.5 | 2026-10-13 | 6,292 | 75 min, 644k plan tokens |  |  |
-| Legacy on Rio | Opus 5.5 | 2026-10-16 | 22,871 | 41 min, 364k plan tokens |  |  |
+| Legacy on Rio | Opus 5.5 | 2026-10-16 | 22,385 | 41 min, 364k plan tokens |  |  |
 | Moontower | Opus 5.5 | 2026-10-12 | 10,992 | 76 min |  |  |
 | Noble 2500 | Opus 5.5 | 2026-10-12 | 19,802 | 47 min |  |  |
 | Norwood Tower | Sonnet 5.5 | 2026-10-15 | 27,050 | 16 min, 164k plan tokens |  | yes |
@@ -61,6 +61,7 @@ Right now: 216 builds of 164 buildings; 62 buildings flagged to retarget.
 | Texas Supreme Court Building | Opus 5.5 | 2026-10-15 | 13,870 | 42 min, 372k plan tokens |  |  |
 | Texas Workforce Commission Building | Opus 5.5 | 2026-10-15 | 11,246 | 55 min, 379k plan tokens |  |  |
 | The Austonian | Opus 5.5 | 2026-10-15 | 30,504 | 43 min, 401k plan tokens |  |  |
+| The Block on 23rd | Opus 5.5 | 2026-10-16 | 23,149 | 38 min, 373k plan tokens |  |  |
 | The Callaway House | Opus 5.5 | 2026-10-13 | 4,116 | 46 min, 397k plan tokens |  | yes |
 | The Castilian | Opus 5.5 | 2026-10-12 | 12,501 | 52 min |  | yes |
 | The G | Opus 5.5 | 2026-10-15 | 14,359 | 40 min, 366k plan tokens |  |  |
