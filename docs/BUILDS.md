@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 279 builds of 222 buildings; 60 buildings flagged to retarget.
+Right now: 280 builds of 223 buildings; 60 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -105,6 +105,7 @@ Right now: 279 builds of 222 buildings; 60 buildings flagged to retarget.
 | West Campus pool-deck block (4fe90bd0) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 23,174 | 42 min, 395k plan tokens |  |  |
 | Westgate Tower | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 24,864 | 57 min, 420k plan tokens |  |  |
 | White block with stone base (79e82c98) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 8,782 | 42 min, 389k plan tokens |  |  |
+| White stucco block on a slope (42508a4b) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 11,486 | 35 min, 373k plan tokens |  |  |
 | William B. Travis State Office Building | Opus 5.5 | 2026-10-15 |  |  | unreviewed | 22,026 | 47 min, 374k plan tokens |  |  |
 | William P. Clements Jr. State Office Building | Sol 6.1 | 2026-10-15 |  |  | unreviewed | 20,746 | 50 min, $3.00 |  | yes |
 | Yugo Austin Nueces | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 14,022 | 71 min |  |  |
