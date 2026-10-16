@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 265 builds of 213 buildings; 64 buildings flagged to retarget.
+Right now: 266 builds of 214 buildings; 64 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -127,6 +127,7 @@ Right now: 265 builds of 213 buildings; 64 buildings flagged to retarget.
 | Biomedical Engineering Building | Opus 5.5 | 2026-10-14 | loose | public photo | unreviewed | 24,046 | 47 min, 407k plan tokens |  | yes |
 | Blanton Dormitory | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 17,999 | 44 min, 399k plan tokens |  |  |
 | Blanton Museum of Art | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 21,870 | 61 min, 342k plan tokens |  |  |
+| Brackenridge Hall | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,623 | 39 min, 422k plan tokens |  |  |
 | Brick campus building (name unconfirmed) | Opus 5.5 | 2026-10-12 |  |  | best | 2,420 | 59 min | "between 8s and 9s" | yes |
 | Bullock Texas State History Museum | Opus 5.5 | 2026-10-13 |  | mixed | unreviewed | 29,058 | 61 min, 515k plan tokens |  |  |
 | Burdine Hall | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 19,726 | 48 min, 436k plan tokens |  |  |
