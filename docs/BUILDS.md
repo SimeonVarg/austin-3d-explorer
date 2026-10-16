@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 214 builds of 163 buildings; 62 buildings flagged to retarget.
+Right now: 215 builds of 163 buildings; 62 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -26,7 +26,7 @@ Right now: 214 builds of 163 buildings; 62 buildings flagged to retarget.
 | Axis West Campus | Opus 5.5 | 2026-10-14 | 15,939 | 40 min, 395k plan tokens |  |  |
 | Block on 25th West | Opus 5.5 | 2026-10-12 | 26,429 | 101 min |  |  |
 | Brown Building | Opus 5.5 | 2026-10-15 | 17,526 | 17 min, 245k plan tokens |  |  |
-| Cambridge Tower | Opus 5.5 | 2026-10-12 | 20,636 | 50 min |  |  |
+| Cambridge Tower | Opus 5.5 | 2026-10-16 | 29,116 | 37 min, 394k plan tokens |  |  |
 | Centennial Condominiums | Opus 5.5 | 2026-10-15 | 14,722 | 49 min, 443k plan tokens |  |  |
 | Crest at Pearl | Opus 5.5 | 2026-10-15 | 18,688 | 53 min, 355k plan tokens |  |  |
 | Delta Gamma | Opus 5.5 | 2026-10-15 | 13,367 | 48 min, 675k plan tokens |  |  |
@@ -277,6 +277,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Block 185 | Opus 5.5 | lean | 2026-10-15 | 32,051 | 49 min, 394k plan tokens |  | failed | downtown lane; camera not proven (12-19 px); straightened photo, started before fb_shift existed; outline 57 m vs photo 93 m; not sent; retry with fb_shift |
 | Block 185 | Opus 5.5 | redo | 2026-10-15 | 32,983 | 50 min, 267k plan tokens |  | failed | retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos |
 | Brown Building | Opus 5.5 | lean | 2026-10-15 | 17,514 | 51 min, 390k plan tokens |  | failed | camera not proven: misses along the east face far end (17-21 px); east face length from OSM likely off; retry after Street View captures |
+| Cambridge Tower | Opus 5.5 | first batch | 2026-10-12 | 20,636 | 50 min |  | superseded | no score given; second final render added after a picture/model mismatch |
 | Dewitt C. Greer State Highway Building | Opus 5.5 | lean | 2026-10-15 | 25,244 | 51 min, 437k plan tokens |  | failed | camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent |
 | Dorothy Gebauer Building | Opus 5.5 | lean | 2026-10-15 |  | 26 min, 336k plan tokens |  | failed | three early stops (oaks; floating camera; scale free with one panorama position); PARKED; parapet ~3 m over the roof deck |
 | Driskill Hotel | Opus 5.5 | lean | 2026-10-15 | 35,655 | 62 min, 448k plan tokens |  | failed | 3 of 4 held-out pass; 4th on a traced OSM corner 3-4 m off (128 px); retry as a model fix started |
