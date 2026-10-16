@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 213 builds of 162 buildings; 62 buildings flagged to retarget.
+Right now: 214 builds of 163 buildings; 62 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -112,6 +112,7 @@ Right now: 213 builds of 162 buildings; 62 buildings flagged to retarget.
 | Chemical and Petroleum Engineering | Opus 5.5 | 2026-10-12 | 12,062 | 55 min |  |  |
 | Edgar A. Smith Building | Opus 5.5 | 2026-10-13 | 8,068 | 55 min, 461k plan tokens |  |  |
 | Employees Retirement System of Texas | Opus 5.5 | 2026-10-14 | 17,829 | 44 min, 363k plan tokens |  |  |
+| Engineering Education and Research Center | Opus 5.5 | 2026-10-16 | 23,912 | 44 min, 404k plan tokens |  |  |
 | Engineering Teaching Center II | Opus 5.5 | 2026-10-13 | 22,022 | 52 min, 451k plan tokens |  | yes |
 | Ernest Cockrell Jr. Hall | Opus 5.5 | 2026-10-13 | 9,594 | 60 min, 473k plan tokens |  |  |
 | Etter-Harbin Alumni Center | Opus 5.5 | 2026-10-15 | 13,650 | 45 min, 396k plan tokens |  |  |
