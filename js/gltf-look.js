@@ -513,7 +513,11 @@
     if (src.userData.frameVals) src.userData.frameVals(renderer);
     const SU = src.material.uniforms, MU = mat.uniforms, keys = mat.userData.keys;
     for (let i = 0; i < keys.length; i++) { const k = keys[i]; if (MU[k] && SU[k]) MU[k].value = SU[k].value; }
-    if (SH.last === mat) shPush(renderer, mat, keys); else SH.uploads++;
+    if (SH.last === mat) shPush(renderer, mat, keys);
+    else {                                                         // three.js uploads the whole list now: what it sends is what the program holds
+      SH.uploads++; const sent = mat.userData.sent || (mat.userData.sent = {});
+      for (let i = 0; i < keys.length; i++) { const k = keys[i]; sent[k] = MU[k] ? MU[k].value : undefined; }
+    }
   }
   function shAfter(renderer, scene, camera, geometry, mat) { if (OWN.sh) OWN.sh.last = mat; }
   // the material is the one drawn just before: its program is current and three.js will upload nothing. Send the building's values to it
@@ -522,11 +526,19 @@
   function shPush(renderer, mat, keys) {
     const mp = renderer.properties.get(mat), prog = mp.currentProgram;
     if (!prog) { mat.uniformsNeedUpdate = true; return; }
-    const pu = prog.getUniforms(), gl = renderer.getContext(), MU = mat.uniforms;
+    const pu = prog.getUniforms(), gl = renderer.getContext(), MU = mat.uniforms, sent = mat.userData.sent || (mat.userData.sent = {});
     OWN.sh.pushes++;
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i], u = pu.map[k]; if (!u || !MU[k]) continue;   // (a uniform the shader does not use is not in the program)
       const v = MU[k].value;
+      // the same object as the program got last in this render call (the building's other mesh): nothing to send. (Each building's values
+      // are its own objects, set before the render call and not changed during it; `sent` starts afresh with three.js's upload, see shBefore.)
+      if (v !== null && typeof v === 'object' && sent[k] === v) continue;
+      sent[k] = v;
+      if (v && v.__n !== undefined) {                              // a wall-pattern table: only the rows this building's vertices can name
+        if (v.__n > 0) { const f = v.__flat || (v.__flat = Float32Array.from(v.slice(0, v.__n).flatMap(q => [q.x, q.y, q.z, q.w]))); gl.uniform4fv(u.addr, f); }
+        continue;
+      }
       if (SH_TEX[k]) {
         if (!v) continue;                                          // no sky-light map: its strength is 0, the sampler is not read
         const tp = renderer.properties.get(v);
@@ -639,7 +651,7 @@
       const k = b.bx; if (!k.xf) { k.xf = [1, 1, 0, 0]; k.rect = [0, 0, 0, 0]; }
       all.push(b);
     }
-    const fill = Math.min(1, Math.max(0.1, O.packFill || 0.9));
+    const fill = Math.min(1, Math.max(0.1, O.packFill || 1));
     const shelf = list => {
       const by = {};
       for (const b of list) (by[b.bx.samples] || (by[b.bx.samples] = [])).push(b);
@@ -657,18 +669,24 @@
       }
       return true;
     };
+    // each run is the LONGEST stretch of the list from i0 whose rectangles fit (found by halving: a few packings, not one for each building);
+    // the area of the rectangles bounds it from above
     let i0 = 0;
     while (i0 < all.length) {
-      const area = {}; let i1 = i0;
-      for (; i1 < all.length; i1++) {
-        const k = all[i1].bx, s = k.samples, P = pack(s), a = k.tw0 * k.th0;
-        if (i1 > i0 && (area[s] || 0) + a > P.pw * P.ph * fill) break;
+      const area = {}; let hi = i0;
+      for (; hi < all.length; hi++) {
+        const k = all[hi].bx, s = k.samples, P = pack(s), a = k.tw0 * k.th0;
+        if (hi > i0 && (area[s] || 0) + a > P.pw * P.ph * fill) break;
         area[s] = (area[s] || 0) + a;
       }
-      while (!shelf(all.slice(i0, i1))) i1 = i0 + Math.max(1, (i1 - i0) >> 1);
-      for (let i = i0; i < i1; i++) take(all[i]);
+      let lo = i0 + 1;                                             // one building always fits (an empty target takes any one)
+      if (!shelf(all.slice(i0, hi))) {
+        while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (shelf(all.slice(i0, mid))) { lo = mid; for (const q of Object.keys(A.packs)) reset(A.packs[q]); } else hi = mid; }
+        shelf(all.slice(i0, lo)); hi = lo;
+      }
+      for (let i = i0; i < hi; i++) take(all[i]);
       flush();
-      i0 = i1;
+      i0 = hi;
     }
   }
   function ownHook(S) {
@@ -769,6 +787,7 @@
         pats.forEach((q, i) => { MU.u_patA.value[i].set(q.kind === 'boards' ? 0 : q.w, q.h, Math.min(q.joint, 0.9 * q.h), q.kind === 'running_bond' ? 0.5 : 0); MU.u_patB.value[i].set(q.jointShare[0], q.jointShare[1], q.jointShare[2], 0);
           MU.u_patC.value[i].set(q.vary[0], q.vary[1], q.vary[2], q.upright ? 1 : 0); MU.u_patD.value[i].set(q.origin[0], q.origin[1], q.seed, 0); });
         MU.u_patAt.value.set(O.x, O.y, O.z); MU.u_patTurn.value.set(c, s);
+        for (const k of ['u_patA', 'u_patB', 'u_patC', 'u_patD']) MU[k].value.__n = pats.length;   // how many the shader can read (shPush sends only these)
         mesh.name = g.name + '-' + name + (pass ? pass : ''); mesh.renderOrder = pass; if (pass === 1 || pass === 2) mesh.layers.set(1);   // see-through glass casts no shadow (the shadow cameras see layer 0 only)
         // the light for the hour, once per frame: the sky and sun from js/city-sky.js at the app's own clock
         // (split in two: the light, and this building's own values a frame. With one material a pass (ownShared) the light is set once a frame

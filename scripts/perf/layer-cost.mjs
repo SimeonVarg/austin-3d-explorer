@@ -227,7 +227,9 @@ try {
       window.__LCdiff = (a, b) => { let n2 = 0, n16 = 0, mx = 0; for (let i = 0; i < a.length; i += 4) { const d = Math.max(Math.abs(a[i] - b[i]), Math.abs(a[i + 1] - b[i + 1]), Math.abs(a[i + 2] - b[i + 2])); if (d > 2) n2++; if (d > 16) n16++; if (d > mx) mx = d; } return { pixels: a.length / 4, over2: n2, over16: n16, max: mx }; };
       window.__LCimg = {}; return 0; })()`);
     const shots = {};
-    for (const [k, v] of [['A1', SHOT_AB[0]], ['B1', SHOT_AB[1]], ['A2', SHOT_AB[0]], ['B2', SHOT_AB[1]]]) {
+    // two variants (A, B) or three (A, B, C: B and C each against A); every variant twice, the second kept
+    const SL = 'ABC'.slice(0, Math.min(3, SHOT_AB.length)).split('');
+    for (const [k, v] of [...SL.map((L, i) => [L + '1', SHOT_AB[i]]), ...SL.map((L, i) => [L + '2', SHOT_AB[i]])]) {
       await ev(`window.__LC.set(${JSON.stringify(v)})`); await sleep(2500);
       await ev(`window.__LCgrab().then(px => { window.__LCimg[${JSON.stringify(k)}] = px; return 0; })`);
       const { data } = await page.send('Page.captureScreenshot', { format: 'png' });
@@ -237,6 +239,7 @@ try {
     result.shots = { pose: SHOTS, ab: SHOT_AB, window: [W, H, DPR],
       noiseA: await ev(`window.__LCdiff(window.__LCimg.A1, window.__LCimg.A2)`), noiseB: await ev(`window.__LCdiff(window.__LCimg.B1, window.__LCimg.B2)`),
       change: await ev(`window.__LCdiff(window.__LCimg.A2, window.__LCimg.B2)`), status: shots };
+    if (SL.length > 2) { result.shots.noiseC = await ev(`window.__LCdiff(window.__LCimg.C1, window.__LCimg.C2)`); result.shots.changeC = await ev(`window.__LCdiff(window.__LCimg.A2, window.__LCimg.C2)`); }
     console.error(`[${LABEL}] shots ${JSON.stringify(result.shots)}`);
   }
   for (const name of (SHOTS ? [] : POSE_NAMES)) {
@@ -306,7 +309,7 @@ for (const [name, P] of Object.entries(result.poses)) {
     out.push('by file: ' + p.topFiles.map(x => `${x.file} ${x.selfMs}`).join(' | '));
   }
 }
-if (result.shots) { const s = result.shots; out.push(`\n## pictures ${s.pose} at ${s.window.join(' x ')}: ${s.ab[0]} against ${s.ab[1]}`); out.push(`noise ${s.ab[0]} vs itself ${JSON.stringify(s.noiseA)}; noise ${s.ab[1]} vs itself ${JSON.stringify(s.noiseB)}; change ${JSON.stringify(s.change)}`); }
+if (result.shots) { const s = result.shots; out.push(`\n## pictures ${s.pose} at ${s.window.join(' x ')}: ${s.ab[0]} against ${s.ab[1]}`); out.push(`noise ${s.ab[0]} vs itself ${JSON.stringify(s.noiseA)}; noise ${s.ab[1]} vs itself ${JSON.stringify(s.noiseB)}; change ${JSON.stringify(s.change)}`); if (s.changeC) out.push(`${s.ab[2]}: noise ${JSON.stringify(s.noiseC)}; change against ${s.ab[0]} ${JSON.stringify(s.changeC)}`); }
 out.push('\nJSON_TABLE ' + JSON.stringify(table));
 const text = out.join('\n');
 fs.writeFileSync(path.join(OUT, `report-${LABEL}.txt`), text);
