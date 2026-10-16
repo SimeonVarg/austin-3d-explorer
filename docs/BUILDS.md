@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 302 builds of 244 buildings; 61 buildings flagged to retarget.
+Right now: 303 builds of 245 buildings; 61 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -58,6 +58,7 @@ Right now: 302 builds of 244 buildings; 61 buildings flagged to retarget.
 | Mansard block with court (88dcc810) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 12,313 | 35 min, 349k plan tokens |  |  |
 | Moontower | Opus 5.5 | 2026-10-12 |  | public photo | unreviewed | 10,992 | 76 min |  |  |
 | Noble 2500 | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 19,802 | 47 min |  |  |
+| North Campus block 211c1f8e | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 15,414 | 38 min, 389k plan tokens |  |  |
 | Norwood Tower | Sonnet 5.5 | 2026-10-15 |  | public photo | unreviewed | 27,050 | 16 min, 164k plan tokens |  | yes |
 | Pointe on Rio | Opus 5.5 | 2026-10-12 |  | public photo | unreviewed | 19,021 | 40 min |  |  |
 | Price Daniel Sr. State Office Building | Sonnet 5.5 | 2026-10-15 |  | public photo | unreviewed |  | 7 min, 61k plan tokens |  | yes |
