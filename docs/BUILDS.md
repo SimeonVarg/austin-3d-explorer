@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 249 builds of 197 buildings; 63 buildings flagged to retarget.
+Right now: 251 builds of 199 buildings; 63 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -21,6 +21,7 @@ Right now: 249 builds of 197 buildings; 63 buildings flagged to retarget.
 | 21 Rio | Sonnet 5.5 | 2026-10-13 | loose | public photo | best | 16,181 | 26 min, 313k plan tokens | "Good" | yes |
 | 2400 Nueces | Opus 5.5 | 2026-10-12 |  | public photo | unreviewed | 36,710 | 71 min |  |  |
 | 26 West | Opus 5.5 | 2026-10-12 |  | site photographs | best | 76,396 | 72 min | 8.5 |  |
+| 2706 Rio Grande block (ec1b4af2) | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 23,693 | 40 min, 370k plan tokens |  |  |
 | 2819 Rio Grande | Opus 5.5 | 2026-10-12 |  | site photographs | best | 22,712 | 65 min | 8.2 |  |
 | 360 Condominiums | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 33,784 | 46 min, 357k plan tokens |  |  |
 | Axis West Campus | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 15,939 | 40 min, 395k plan tokens |  |  |
@@ -154,6 +155,7 @@ Right now: 249 builds of 197 buildings; 63 buildings flagged to retarget.
 | Kinsolving Dormitory | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 24,872 | 34 min, 356k plan tokens |  |  |
 | LBJ Presidential Library | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 13,602 | 40 min, 375k plan tokens |  |  |
 | Lee and Joe Jamail Texas Swimming Center | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 13,916 | 34 min, 359k plan tokens |  |  |
+| Littlefield Dormitory | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 22,020 | 30 min, 348k plan tokens |  |  |
 | Littlefield House | Opus 5.5 | 2026-10-14 | unproven | public photo | unreviewed | 23,294 | 42 min, 413k plan tokens |  | yes |
 | Mary E. Gearing Hall | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 26,811 | 62 min, 464k plan tokens |  |  |
 | McCombs School of Business | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 25,031 | 52 min, 452k plan tokens |  |  |

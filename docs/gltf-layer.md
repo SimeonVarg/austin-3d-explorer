@@ -610,3 +610,44 @@ eaves) it stands on no other map building above 1.5 m except two slivers of 5 to
 Building meets the Biomedical Engineering Building. Flicker at 450 m (all rows loaded at the start): the fourteen of the earlier tests
 read 88 of 213,833 pixels with the new rows in the city, 85 of 213,375 on `main`; the 33 new builds 146 of 251,952, the worst 0.35 % (University Catholic Center). Delta Gamma is hidden behind
 the Waterloo tower from the test's camera and was not measured. `data/gltf/` went from 30.2 MB (272 files) to 40.2 MB (371 files).
+
+## What the layer's frame time is (2026-10-16)
+
+Measured with `scripts/perf/layer-cost.mjs` (one page load, the parts of the layer switched off one at a time inside it, interleaved, the
+minimum of 4 rounds; AWS runs 38908628034 on an A10G and 38912708887 on an L4, desktop 1280 x 800 at pixel ratio 1.5, and a SIMULATED
+phone: 390 x 844 at 3, CPU slowed 4 times). The four cameras of `layer-speed.mjs` have **76 to 96 full buildings** in view (each within
+about 600 m at that window), 1.5 to 1.8 million layer triangles. Frame time added by the layer, and what each switch takes back (A10G):
+
+| switched off | spawn | start-close | west-campus | union-close |
+|---|---|---|---|---|
+| the whole layer: its cost | 10.2 ms | 7.8 | 9.8 | 6.5 |
+| every row drawn as its far copy | all of it | all | all | all |
+| the smoothing pass (picture, depth, lay, glass) | 9.9 | 7.8 | 9.0 | 6.7 |
+| its picture pass alone | 2.3 | 2.1 | 1.9 | 1.4 |
+| its depth and lay passes | 2.6 | 1.6 | 0.9 | 1.3 |
+| the picture pass's pixels (same draws into boxes 2 % the size) | 0 | 0 | 0 | 0 |
+| the far treatment (8 samples, 1.5-2 times the pixels) | 0.8 | 0.3 | 0.3 | 0 |
+| the shadow casters in the city's own pass | 0.6 | 0.4 | 0.4 | 0 |
+| the see-through glass pass | 0.2 | 0.2 | 0 | 0 |
+
+**The cause is the number of render calls, not pixels, shading, triangles or shadows.** Every full building is drawn by four three.js
+render calls a frame (its picture into the smoothing target, then its depth, its lay and its glass on the canvas), and switches between the
+smoothing target and the canvas twice. With about 85 buildings in view that is about 340 render calls and 170 target switches; each costs the
+same for a building 500 m away as for one beside the camera, so the cost follows the COUNT of full buildings, not their size on the screen.
+The page's own JS time for the layer is 5.6 to 7.7 ms of its 6.5 to 10.2 ms on the desktop (5.0 to 7.3 ms of it inside the smoothing pass) and 25 to 36 of its 29 to 41
+ms on the simulated phone, where the main thread is slow; the CPU profile puts it in three.js's per-render work (scene and light setup,
+uniform upload, the target's resolve), not in the layer's own code. The shadow maps are not redrawn while the camera only turns.
+
+**What was changed (`GLTF.look.own.lean`, `?gltflean=0` = as before).** A building's depth, lay and glass passes are ONE render call
+(the depth pass is opaque and drawn first; the lay pass and the two glass passes are sorted by their render order, as the three calls were),
+and the shadow casters are left out of the city's own picture (they draw nothing there; the shadow maps still see them). Same picture: at
+1440 x 900, pixel ratio 2, the close view of the Union on San Antonio with 86 full buildings drawn, the two settings give the same pixels
+(0 of 5,184,000 differ; the page against itself: 1 pixel by 3 levels), `shots/gltf-layer-cost/union-close-1440x900-dpr2.png`.
+Saved (L4, in one page): 0 to 1.1 ms on the desktop (+9.0 to +6.8 ms instead of +10.1 to +7.2), 0.8 to 2.9 ms on the simulated phone.
+**The +25 % goal is not met**: the layer still costs +85 to +110 % on the desktop.
+
+**Next.** The rest needs fewer render calls for the PICTURES: one smoothing target holding every building's picture side by side (an
+atlas: each building its own rectangle, drawn by one render call with the viewport set per building, resolved once), then every building's
+depth, lay and glass on the canvas in one more call, ordered by render order as now. That keeps each building's picture its own (no change at
+the edges where two buildings overlap) and takes about 340 calls to about 3. Or, a look choice for the owner: a nearer change to the far copy
+(the far copies cost nothing that can be measured).
