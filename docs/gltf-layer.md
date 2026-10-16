@@ -574,3 +574,37 @@ on, every new row loads its full file and its far copy with no error; each model
 the outline it covers, share of the model outside it: eaves and canopies count as outside, a courtyard counts as uncovered).
 `scripts/verify/gltf-layer.mjs`: a far copy's `from` (its look file's own name) is no longer searched for folder names, since a
 building called Homer read as a home folder.
+
+## Thirty-three more builds: one hundred and twenty-two in the layer (2026-10-15)
+
+The proven builds finished after #498 went in the same way, still behind `?gltf=1`: one export each (`scripts/blender_export_look.py`),
+its far copy (`scripts/gltf_far.py`), the look file packed, one generated row each in `js/gltf-rows.js` (27 of them with `rings`, since
+the app draws those blocks from its generic campus layers). Flat site planes, streets, sidewalks and pavings at ground level were skipped
+by name. One build had a 1.2 km "retaining edge" site object, a face wider than the sky-light map allows; it was skipped as well. All
+33 were made under the standard light; none is over 23,000 triangles. Two Sol fix rounds stand in for their first builds (the William P.
+Clements, Jr. Building and 100 Congress; 100 Congress is left out for the reason below).
+
+Left out: two builds that flicker more than the worst building already in the layer in the 450 m slow-pan test (rule 15; that is
+Yugo Austin Waterloo, 23 of 5,253 pixels, 0.44 %): the Harry Ransom Center (30 of 6,372, 0.47 %) and the William B. Travis Building
+(70 of 15,051, 0.46 %). Three whose camera is not proven. Icon, built on an approximate plot instead of a surveyed outline (its model
+covers 1,117 m2 over a 168 m2 map building and stands on 252 m2 of the neighbouring one). The Music Recital Hall, which covers 29 % of
+its outline (its right block is not built, and the row would hide the whole outline).
+
+**Eight builds downtown stand on OpenStreetMap outlines, and a row cannot stand in for them yet** (The Independent, 360 Condominiums, Four
+Seasons Residences, W Austin, The Austonian, 100 Congress, Hampton Inn and Suites downtown, and Westgate Tower). Seven are drawn by the
+outer ring (`data/outer_ring.geojson`, cut into `data/tiles/outer.pmtiles`, eight fill-extrusion layers in `js/outer.js`); Westgate by
+the Capitol bake (`data/capitol.geojson`). The outer ring's features carry no building id, and its downtown towers are laser-scan shapes
+split into parts (#470), so the id hide a row uses cannot reach them. There is a hide by outline for the outer ring already (a recipe's
+`replaceOuter`: `js/slopes-apartments.js` filters the eight outer layers with MapLibre's `distance`), but the layer's `masks()` are kept
+out of it on purpose, a row's `replaces` must be a map id the layer check knows, and each OSM outline would have to be checked against
+the scan-shaped parts it would hide. That is a small change of its own, not a row: let a row's `rings` join the outer hide (`outer: true`),
+allow a row with no core id, add both to `scripts/verify/gltf-layer.mjs`, and check each outline against the outer ring.
+
+Checked: off, the page is the same as `main` (three views, five day frames, at most 0.001 % of pixels changed; the same 207 addresses in
+306 requests, nothing under `data/gltf/`); on, every new row loads its full file and its far copy with no error (1440 x 900 at pixel ratio
+2); in a slow approach to the Clements building the far copy alone holds to 651 m, the dissolve runs to 563 m and no frame misses the
+building; each model's ground plan covers 81 to 100 % of its outline, and where a model reaches past it (terraces, steps, porches,
+eaves) it stands on no other map building above 1.5 m except two slivers of 5 to 8 m2 and 52 m2 where the Neural Molecular Science
+Building meets the Biomedical Engineering Building. Flicker at 450 m (all rows loaded at the start): the fourteen of the earlier tests
+read 88 of 213,833 pixels with the new rows in the city, 85 of 213,375 on `main`; the 33 new builds 146 of 251,952, the worst 0.35 % (University Catholic Center). Delta Gamma is hidden behind
+the Waterloo tower from the test's camera and was not measured. `data/gltf/` went from 30.2 MB (272 files) to 40.2 MB (371 files).
