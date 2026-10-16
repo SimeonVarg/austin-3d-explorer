@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 297 builds of 239 buildings; 60 buildings flagged to retarget.
+Right now: 298 builds of 240 buildings; 61 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -96,6 +96,7 @@ Right now: 297 builds of 239 buildings; 60 buildings flagged to retarget.
 | The Venue on Guadalupe | Opus 5.5 | 2026-10-12 | proven |  | best | 3,631 | 63 min | "between 8s and 9s" |  |
 | Torre Student Living | Opus 5.5 | 2026-10-13 |  | mixed | unreviewed | 6,744 | 47 min, 427k plan tokens |  |  |
 | Twenty Two 15 | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 13,774 | 25 min, 314k plan tokens |  |  |
+| Two-wing brick block (bcf8a2ba) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 1,059 | 32 min, 364k plan tokens |  | yes |
 | Union on 24th | Opus 5.5 | 2026-10-12 |  | mixed | unreviewed | 109,098 | 46 min |  | yes |
 | Union on San Antonio | Opus 5.5 | 2026-10-13 |  | mixed | unreviewed | 31,114 | 56 min, 437k plan tokens |  | yes |
 | Villas at San Gabriel | Opus 5.5 | 2026-10-15 |  |  | unreviewed | 21,102 | 51 min, 316k plan tokens |  |  |
@@ -315,6 +316,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **The Callaway House**: colour level weakly anchored (k 10.8 vs 18.9); stepped corner box not built
 - **The Castilian**: dusk photograph: render dark and blue, colours miss
 - **The Standard**: owner said it needs work; tower glass near black; outline 4-6 m short on the south
+- **Two-wing brick block (bcf8a2ba)**: rough; Earth 3D only; held-out 1 of 5; galleries read as scaffolding; wing-end gables wrong; walls too light; 1,059 tri
 - **Union on 24th**: 109k triangles is too many for the phone; north court guessed; needs a lean copy
 - **Union on San Antonio**: tower too pale and plainer than the photograph; tower height 92.7 m vs notes 101 m (older app version scored 8.3)
 - **University Presbyterian Church**: camera unproven (lines disagree); door surround spiky; wings plain boxes
