@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 285 builds of 227 buildings; 60 buildings flagged to retarget.
+Right now: 286 builds of 228 buildings; 60 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -141,6 +141,7 @@ Right now: 285 builds of 227 buildings; 60 buildings flagged to retarget.
 | Burdine Hall | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 19,726 | 48 min, 436k plan tokens |  |  |
 | Carothers Dormitory | Opus 5.5 | 2026-10-14 | loose | public photo | unreviewed | 20,879 | 44 min, 389k plan tokens |  | yes |
 | Chemical and Petroleum Engineering | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 12,062 | 55 min |  |  |
+| Collections Deposit Library | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 506 | 29 min, 347k plan tokens |  |  |
 | Dealey Center for New Media | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,912 | 36 min, 360k plan tokens |  |  |
 | Edgar A. Smith Building | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 8,068 | 55 min, 461k plan tokens |  |  |
 | Employees Retirement System of Texas | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 17,829 | 44 min, 363k plan tokens |  |  |
@@ -323,7 +324,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### Good test set for a cheaper model
 
-Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); White block on stilts (5b56cd35) (7,064 tri); Yugo Austin Waterloo (4,200 tri).
+Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); White block on stilts (5b56cd35) (7,064 tri); Yugo Austin Waterloo (4,200 tri).
 
 ## All other builds
 
