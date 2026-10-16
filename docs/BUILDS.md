@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 224 builds of 172 buildings; 63 buildings flagged to retarget.
+Right now: 225 builds of 173 buildings; 63 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -168,6 +168,7 @@ Right now: 224 builds of 172 buildings; 63 buildings flagged to retarget.
 | Travis County Civil and Family Courts | Opus 5.5 | 2026-10-14 | 22,196 | 51 min, 436k plan tokens |  |  |
 | University Catholic Center | Sol 6.1 | 2026-10-14 | 11,957 | 62 min, $3.07 |  | yes |
 | University Presbyterian Church | Opus 5.5 | 2026-10-14 | 14,435 | 56 min, 401k plan tokens |  | yes |
+| University Teaching Center | Opus 5.5 | 2026-10-16 | 19,958 | 32 min, 305k plan tokens |  |  |
 | Waggener Hall | Opus 5.5 | 2026-10-14 | 20,433 | 51 min, 436k plan tokens |  |  |
 | Walter Webb Hall | Sol 6.1 | 2026-10-14 | 14,481 | 37 min, $1.61 |  | yes |
 | Will C. Hogg Building | Opus 5.5 | 2026-10-13 | 24,386 | 55 min, 420k plan tokens |  |  |
