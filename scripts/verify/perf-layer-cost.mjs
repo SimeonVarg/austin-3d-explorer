@@ -4,7 +4,7 @@
  * Not a check: no verdict, listed under tools in ci/checks.json. Two measurements one after the other (two at once would
  * disturb each other's timing):
  *   1 desktop 1280x800 DPR1.5, 4 poses, 4 rounds
- *   2 SIMULATED phone: 390x844 DPR3 mobile emulation + CDP CPU throttle 4x, 4 poses, 2 rounds
+ *   2 SIMULATED phone: 390x844 DPR3 mobile emulation + CDP CPU throttle 4x, 4 poses, 3 rounds
  * Extra arguments are passed to both (for example --query gltfcast=0).
  */
 import { spawnSync } from 'node:child_process';
@@ -20,7 +20,7 @@ const EXTRA = argv;
 const RUNS = [
   ...(SHOTS ? [['shots', ['--shots', SHOTS, '--width', '1440', '--height', '900', '--dpr', '2']]] : []),
   ['desktop', ['--rounds', '4', '--deadline-min', '24']],
-  ['phone4x', ['--rounds', '2', '--frames', '20', '--warm', '8', '--phone', '--throttle', '4', '--deadline-min', '24']],
+  ['phone4x', ['--rounds', '3', '--frames', '20', '--warm', '8', '--phone', '--throttle', '4', '--deadline-min', '24']],
 ];
 let code = 0;
 for (const [label, args] of RUNS) {
