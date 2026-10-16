@@ -664,7 +664,7 @@ per-building calls gave it. When a target would pass `atlasMB` (128 MB a sample 
 the target is used again. The atlas scenes' matrices are worked out once when a building comes in (three.js otherwise walks every building
 before each render call: that walk was the biggest JS item of the first try).
 
-**Same picture.** 1440 x 900 at pixel ratio 2, the close view of the Union on San Antonio, 76+ full buildings, in one page: 127 of 5,184,000
+**Same picture.** 1440 x 900 at pixel ratio 2, the close view of the Union on San Antonio with its full buildings drawn, in one page: 127 of 5,184,000
 pixels differ by more than 2 levels of 255, one by more than 16 (largest 18); the page against itself 1 pixel by 3. The differing pixels are
 single pixels on the edges of far buildings (eight samples, drawn at twice the pixels), where a vertex moved into its rectangle rounds a hair
 differently: the same picture to within a sample, no seam, no blur. `shots/gltf-atlas/union-close-1440x900-dpr2.jpg`.
