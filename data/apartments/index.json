@@ -59,7 +59,9 @@
     "quarters-nueces-house.json",
     "texan-tower.json",
     "26-west-garage.json",
-    "26-west-rio-grande.json"
+    "26-west-rio-grande.json",
+    "the-nine-at-west-campus.json",
+    "peter-t-flawn-academic-center.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -122,7 +124,9 @@
     "5e94c2db-4245-4db3-b5c0-9ed631bcd658",
     "f142fa08-fece-4a8d-8aae-efe0b88b38cf",
     "23994eaf-1258-43d1-9648-fdff8c14acc1",
-    "529724dc-ce98-4052-a23c-ca3c8e776217"
+    "529724dc-ce98-4052-a23c-ca3c8e776217",
+    "5087a362-0908-4863-a94b-6d7cf6e87d92",
+    "1c11a66a-7138-402b-a5f9-8e0c23551162"
   ],
   "replacedNames": [
     "The Standard",
@@ -183,7 +187,9 @@
     "The Quarters Nueces House",
     "Texan Tower",
     "26 West Garage",
-    "26 West Rio Grande Bar"
+    "26 West Rio Grande Bar",
+    "The Nine at West Campus",
+    "Peter T. Flawn Academic Center"
   ],
   "collections": [
     "data/campus_buildings.json",

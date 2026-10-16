@@ -31,7 +31,13 @@ overlapping photographs still needs its landmarks looked at, and an extraction
 that fails its quality check stays a rejected trial.
 
 **0. Is it the right building?** Confirm the photograph shows this building
-and which wall, before anything else.
+and which wall, before anything else. A bearing and distance from an
+approximate camera is a lead, never a name: a camera whose yaw is off by
+5 degrees moved a tower from one building to its neighbour, and a white tower
+that the arithmetic called Dobie Twenty21 is a blue-green glass building in the
+map. Confirm by a sign, or by a shape you can match on the reference
+photographs of the building. When neither exists the row is "identity not
+settled" and nothing is built.
 
 **1. Count first.**
 - Storeys. Rows of windows on each wall in view.
@@ -337,6 +343,10 @@ made or sharpened.
   again": a new shop went live with its name in the 5x7 dot font, and the lead
   looked at the whole picture and not at the sign. Check 9b, and
   `sign-lettering.mjs` (the dot font is frozen to the 12 recipes that had it).
+- 2026-10-11, found by a builder ranking every building in four whole views: a
+  tower named by bearing was a different building than the SKYLOFT sign and its
+  window language showed. Check 0 (identity is a lead until a sign or a matched
+  shape confirms it) and the rule that an unsettled identity is a row, not a build.
 - 2026-10-11. Not an owner comment: the overnight detail trial found a camera
   with a small fitting error that sat UNDER the modelled ground, and a fitted
   camera whose projection did not agree with the app's. Checks 5c and 5d, the
