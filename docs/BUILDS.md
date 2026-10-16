@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 273 builds of 219 buildings; 63 buildings flagged to retarget.
+Right now: 274 builds of 219 buildings; 62 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -228,6 +228,7 @@ Right now: 273 builds of 219 buildings; 63 buildings flagged to retarget.
 | Building | Model | Date | Camera | Source | Status | Triangles | Minutes / cost | Owner score | Retarget |
 |---|---|---|---|---|---|---|---|---|---|
 | Barbara Jordan State Office Building | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,114 | 44 min, 396k plan tokens |  |  |
+| Block 185 | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 10,452 | 40 min, 355k plan tokens |  |  |
 | Church of Scientology (Guadalupe) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 12,192 | 30 min, 344k plan tokens |  |  |
 | Frost Bank Tower | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 12,596 | 45 min, 407k plan tokens |  |  |
 | Lyndon B. Johnson State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 19,816 | 22 min, 287k plan tokens |  |  |
@@ -305,7 +306,6 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **University Christian Church**: retries 2+3: outline misread fixed, heights within 1% of scan, crown right; camera still not proven (54/54 px, likely a pavement drop); parked after 3 tries
 - **Austin Proper**: downtown lane; camera fit passed but the build does not match the photo (terraces, podium); main photo blocked by a bridge arch and wires, a 2x crop; height 18% off; not sent
 - **Turtle Pond and Memorial Garden**: first ground piece; camera not proven (12.7/19.6 px); close-up photo, wrong scale for the city; not sent
-- **Block 185**: retry: camera still not proven (33.5/16.4/7.6 px); plan 3.4x too big through a wrong depth; parked: only 2 photos
 - **Seaholm Residences**: independent retry: window grid fits, roof parts 2-4 m high and podium cap 22.7 vs 26.5 m in the model; PARKED (2 fails)
 - **Heinsohn Hall**: independent retry: held-out pass but all on one flat face; camera height 0.44 m (implausible); porthole wall 1.5x tall; not sent; PARKED (2 tries)
 - **Dewitt C. Greer State Highway Building**: camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent
