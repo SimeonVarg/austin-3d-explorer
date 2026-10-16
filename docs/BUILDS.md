@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 301 builds of 243 buildings; 61 buildings flagged to retarget.
+Right now: 302 builds of 244 buildings; 61 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -250,6 +250,7 @@ Right now: 301 builds of 243 buildings; 61 buildings flagged to retarget.
 | Barbara Jordan State Office Building | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,114 | 44 min, 396k plan tokens |  |  |
 | Block 185 | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 10,452 | 40 min, 355k plan tokens |  |  |
 | Church of Scientology (Guadalupe) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 12,192 | 30 min, 344k plan tokens |  |  |
+| Colorado Tower | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 20,986 | 37 min, 386k plan tokens |  |  |
 | Dewitt C. Greer State Highway Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 25,357 | 39 min, 363k plan tokens |  |  |
 | Embassy Suites Austin Downtown | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 12,268 | 41 min, 363k plan tokens |  |  |
 | Fairmont Austin | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 14,049 | 38 min, 402k plan tokens |  |  |
