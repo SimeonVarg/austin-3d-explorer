@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 222 builds of 170 buildings; 62 buildings flagged to retarget.
+Right now: 223 builds of 171 buildings; 62 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -74,6 +74,7 @@ Right now: 222 builds of 170 buildings; 62 buildings flagged to retarget.
 | The Otis Hotel | Opus 5.5 | 2026-10-13 | 12,467 | 44 min, 387k plan tokens |  |  |
 | The Quarters Grayson House | Opus 5.5 | 2026-10-14 | 17,678 | 57 min, 429k plan tokens |  |  |
 | The Quarters Nueces House | Opus 5.5 | 2026-10-12 | 11,476 | 49 min |  |  |
+| The Quarters Sterling House | Opus 5.5 | 2026-10-16 | 27,018 | 39 min, 345k plan tokens |  |  |
 | The Rise at West Campus | Opus 5.5 | 2026-10-12 | 20,140 | 69 min |  |  |
 | The Standard | Opus 5.5 | 2026-10-12 | 17,168 | 47 min | "Standard needs work" | yes |
 | The Texan Shoal Creek | Sol 6.1 | 2026-10-13 | 15,565 | 21 min, $1.14 | "smooth stone detail / texture on the left tower" | yes |
