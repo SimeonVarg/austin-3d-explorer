@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 204 builds of 161 buildings; 57 buildings flagged to retarget.
+Right now: 205 builds of 161 buildings; 58 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -43,7 +43,7 @@ Right now: 204 builds of 161 buildings; 57 buildings flagged to retarget.
 | Lark Austin | Opus 5.5 | 2026-10-13 | 6,292 | 75 min, 644k plan tokens |  |  |
 | Moontower | Opus 5.5 | 2026-10-12 | 10,992 | 76 min |  |  |
 | Noble 2500 | Opus 5.5 | 2026-10-12 | 19,802 | 47 min |  |  |
-| Norwood Tower | Opus 5.5 | 2026-10-15 | 27,050 | 53 min, 390k plan tokens |  |  |
+| Norwood Tower | Sonnet 5.5 | 2026-10-15 | 27,050 | 16 min, 164k plan tokens |  | yes |
 | Pointe on Rio | Opus 5.5 | 2026-10-12 | 19,021 | 40 min |  |  |
 | Price Daniel Sr. State Office Building | Opus 5.5 | 2026-10-15 | 16,479 | 43 min, 399k plan tokens |  |  |
 | Rambler | Opus 5.5 | 2026-10-12 | 17,742 | 61 min |  |  |
@@ -191,6 +191,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Austin by Ellsworth Kelly** (Sonnet 5.5, fix round): named fix: coloured glass via new fb_glass (21 panes, worst-channel error 32 -> 0.5 of 255)
 - **Driskill Hotel** (Sol 6.1, fix round): his ask: detail pass; carving, surrounds, balusters added; camera still 0.6 px short
 - **Kappa Delta house** (Sol 6.1, redo): Sol redo of the Haiku build at the same triangle budget; cheaper model, cream wall where photo is white
+- **Norwood Tower** (Sonnet 5.5, fix round): named fix: dark_window glass; panes 60/76/89 -> 27/32/40 vs photo 25/29/39
 - **Pi Beta Phi house** (Sol 6.1, redo): Sol redo: real portico, but sits smaller and a little turned
 - **Texan Pearl** (Sol 6.1, fix round): fix 1: every roof plate and canopy re-measured; shaded left wing still too dark; cheaper model (base Sol build: 70 min, $3.10)
 - **Texas Alpha Phi house** (Sol 6.1, redo): Sol redo; thin iron may flicker in the app; wall under decks too dark
@@ -285,6 +286,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Kappa Delta house | Haiku 5.5 | trial | 2026-10-13 | 2,288 | 27 min, 321k plan tokens |  | superseded | Haiku alone: camera unproven, grainy 800 px render, stopped early; thumbs down |
 | McCombs School of Business | Opus 5.5 | lean | 2026-10-13 | 24,153 | 54 min, 447k plan tokens |  | trial | B of the A/B test (toolkit + short rules); no cheaper than A |
 | Neural Molecular Science Building | Opus 5.5 | lean | 2026-10-13 |  | 45 min |  | failed | stopped by the owner (about 45 min in); partial files only, no hand-back |
+| Norwood Tower | Opus 5.5 | lean | 2026-10-15 | 27,050 | 53 min, 390k plan tokens |  | superseded | downtown; early-stop package that proved; glass grey; ornament schematic |
 | Pi Beta Phi house | Haiku 5.5 | trial | 2026-10-13 | 1,172 | 40 min, 527k plan tokens |  | superseded | Haiku alone: flat columns, no porch depth; used more tokens than an Opus build; thumbs down |
 | Powers Student Activity Center | Opus 5.5 | fix round | 2026-10-15 | 32,768 | 51 min, 516k plan tokens |  | trial | WCP round 3: still 4 of 36 photos proven (south only); 27 photos show no measured point; waits for photo-to-photo matching; not sent |
 | Sam Houston State Office Building | Opus 5.5 | lean | 2026-10-15 | 17,555 | 52 min, 452k plan tokens |  | failed | camera not proven: 4 of 6 held-out pass, 2 bad own picks (tree, antenna mast) kept locked; work render only; not sent |
