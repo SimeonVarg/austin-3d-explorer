@@ -23,6 +23,10 @@
  *   noLay      the depth pass and the lay pass draw nothing
  *   noGlass    the see-through glass pass draws nothing
  *   farOff     the far treatment off (4 samples a pixel at the canvas's pixels for every box)
+ *   atlasBig   the atlas with targets of up to 256 MB a sample count (fewer flushes, more memory); atlas128, atlas64 likewise
+ *   atlasOff   one building at a time (GLTF.look.own.atlas off: two render calls a building, as before the atlas). With the atlas ON
+ *              the variants cheap, noPicture, noLay and noGlass do not reach the drawing (they swap the per-building scenes): pass
+ *              --query gltfatlas=0 for them.
  *   copies     every row drawn as its far copy (GLTF.look.copy distances set to zero): the floor a level of detail could reach
  * Plus, once per pose with the layer as loaded, a CPU profile of the main thread (2 s, 1 ms sampling) and the share of it in
  * the layer's own functions.
@@ -112,10 +116,14 @@ const PAGE_SETUP = `(() => {
     noGlass: () => swapScenes(['glass']),
     farOff: () => { const was = G.look.far.on; G.look.far.on = false; return () => { G.look.far.on = was; }; },
     leanOff: () => { const was = G.look.own.lean; G.look.own.lean = false; return () => { G.look.own.lean = was; }; },
+    atlasBig: () => { const was = G.look.own.atlasMB; G.look.own.atlasMB = 256; return () => { G.look.own.atlasMB = was; }; },
+    atlas128: () => { const was = G.look.own.atlasMB; G.look.own.atlasMB = 128; return () => { G.look.own.atlasMB = was; }; },
+    atlas64: () => { const was = G.look.own.atlasMB; G.look.own.atlasMB = 64; return () => { G.look.own.atlasMB = was; }; },
+    atlasOff: () => { const was = G.look.own.atlas; G.look.own.atlas = false; return () => { G.look.own.atlas = was; }; },
     copies: () => { const C = G.look.copy, a = C.fullM, b = C.farM, f = C.fadeS; C.fullM = 1e-6; C.farM = 2e-6; C.fadeS = 0; return () => { C.fullM = a; C.farM = b; setTimeout(() => { C.fadeS = f; }, 1500); }; },
   };
   const status = () => ({ timer: !!ext, own: OWN.list.length, fullShown: OWN.list.filter(b => b.group && b.group.visible).length, rows: rows().length, loaded: rows().filter(e => e.state === 2).length,
-    copiesShown: COPY.shown, ownPixels: OWN.pixels, layerTris: G.info.look ? G.info.look.triangles : null,
+    copiesShown: COPY.shown, ownPixels: OWN.pixels, atlas: !!G.look.own.atlas, ownRenders: OWN.renders, ownFlushes: OWN.flushes, ownMB: Math.round((OWN.bytes || 0) / 1e6), layerTris: G.info.look ? G.info.look.triangles : null,
     shadowMapRenders: S.sunlightStats().shadowMapRenders, tiers: OWN.list.filter(b => b.group && b.group.visible).map(b => (b.samples || 0) + 'x' + (b.scale || 0)).join(' ') });
   window.__LC = {
     status, variants: Object.keys(V),
@@ -126,7 +134,7 @@ const PAGE_SETUP = `(() => {
       await new Promise(res => {
         const step = (ts) => {
           pollGpu();
-          if (i > 2) rec.push({ dt: ts - last, cpu: st.cpu, own: OWN.ms, calls: st.calls, tris: st.tris, frame: st.frame });
+          if (i > 2) rec.push({ dt: ts - last, cpu: st.cpu, own: OWN.ms, renders: OWN.renders, mb: OWN.needMB, calls: st.calls, tris: st.tris, frame: st.frame });
           last = ts; st.frame = (st.frame || 0) + 1;
           if (i++ >= cfg.n + 2) return res();
           m.jumpTo({ bearing: cfg.pose.bearing + i * 0.12 });
@@ -227,7 +235,7 @@ try {
         await ev(`window.__LC.pass(${cfg(WARM)}).then(()=>0)`);
         const { rec, gpu } = await ev(`window.__LC.pass(${cfg(FRAMES)})`);
         const agg = { free: r2(pct(rec.map(x => x.dt), 0.5)), p95: r2(pct(rec.map(x => x.dt), 0.95)), cpu: r2(pct(rec.map(x => x.cpu), 0.5)), gpu: r2(pct(gpu, 0.5)), gpuN: gpu.length, own: r2(pct(rec.map(x => x.own), 0.5)),
-          calls: pct(rec.map(x => x.calls), 0.5), tris: pct(rec.map(x => x.tris), 0.5), fullShown: s.fullShown, ownPixels: s.ownPixels };
+          calls: pct(rec.map(x => x.calls), 0.5), tris: pct(rec.map(x => x.tris), 0.5), renders: pct(rec.map(x => x.renders), 0.5), mb: pct(rec.map(x => x.mb), 0.5), fullShown: s.fullShown, ownPixels: s.ownPixels };
         (per[v] = per[v] || []).push(agg);
       }
       await ev(`window.__LC.set('on')`);
@@ -248,15 +256,15 @@ const mn = a => { const b = a.filter(x => x != null); return b.length ? Math.min
 const table = {};
 for (const [name, P] of Object.entries(result.poses)) {
   out.push(`\n## ${name}  (${JSON.stringify(P.status)})`);
-  out.push('| variant | free ms | free delta | cpu ms | cpu delta | gpu ms | gpu delta | own ms | draw calls | triangles | free per round |');
-  out.push('|---|---|---|---|---|---|---|---|---|---|---|');
+  out.push('| variant | free ms | free delta | cpu ms | cpu delta | gpu ms | gpu delta | own ms | render calls (smoothing) | target MB | draw calls | triangles | free per round |');
+  out.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
   const base = k => mn(P.per.off.map(x => x[k]));
   table[name] = {};
   for (const v of VARIANTS) {
     const rs = P.per[v]; if (!rs) continue;
     const m = k => mn(rs.map(x => x[k])), d = k => (m(k) != null && base(k) != null ? (m(k) - base(k) >= 0 ? '+' : '') + (m(k) - base(k)).toFixed(2) : '-');
-    table[name][v] = { free: m('free'), cpu: m('cpu'), gpu: m('gpu'), own: m('own'), calls: m('calls'), tris: m('tris') };
-    out.push(`| ${v} | ${m('free')} | ${d('free')} | ${m('cpu')} | ${d('cpu')} | ${m('gpu')} | ${d('gpu')} | ${m('own')} | ${m('calls')} | ${m('tris')} | ${rs.map(x => x.free).join(' / ')} |`);
+    table[name][v] = { free: m('free'), cpu: m('cpu'), gpu: m('gpu'), own: m('own'), renders: m('renders'), mb: m('mb'), calls: m('calls'), tris: m('tris') };
+    out.push(`| ${v} | ${m('free')} | ${d('free')} | ${m('cpu')} | ${d('cpu')} | ${m('gpu')} | ${d('gpu')} | ${m('own')} | ${m('renders')} | ${m('mb')} | ${m('calls')} | ${m('tris')} | ${rs.map(x => x.free).join(' / ')} |`);
   }
   const p = result.profiles[name];
   if (p) {

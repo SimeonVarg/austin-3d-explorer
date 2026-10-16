@@ -62,7 +62,7 @@
   // ── the shader ──────────────────────────────────────────────────────────
   const VERT = `
     attribute vec3 aBase; attribute vec3 aMirror; attribute vec3 aNight; attribute float aGlass; attribute vec2 aPat; attribute vec4 aThin; attribute vec4 aFarA; attribute vec4 aFarB;
-    uniform vec3 u_eye, u_patAt; uniform float u_lookFar, u_lookPx, u_lookPass, u_lookCopy, u_lookPush; uniform vec2 u_lookBand, u_patTurn;
+    uniform vec3 u_eye, u_patAt; uniform float u_lookFar, u_lookPx, u_lookPass, u_lookCopy, u_lookPush; uniform vec2 u_lookBand, u_patTurn; uniform vec4 u_atlasXf;
     varying vec3 v_pos, v_normal, v_base, v_mirror, v_night, v_ppos; varying vec2 v_uv, v_pat; varying float v_glass, v_cover;
     void main() {
       vec3 pos = position; v_cover = 1.0;
@@ -90,6 +90,9 @@
       // a far copy that stands UNDER its full building while the two change places is drawn at the depth of a point u_lookPush metres
       // farther along the line of sight, so the full building's own faces (a recessed window, a wall behind a balcony) are in front of it
       if (u_lookPush > 0.0) { vec4 q = projectionMatrix * modelViewMatrix * vec4(pos + normalize(pos - u_eye) * u_lookPush, 1.0); gl_Position.z = q.z / q.w * gl_Position.w; }
+      // THE ATLAS (GLTF.look.own.atlas, see ownAtlas): the building's part of the screen moved into its own rectangle of a shared target.
+      // (1, 1, 0, 0) everywhere else: x times 1 plus 0 is x to the bit.
+      gl_Position.xy = gl_Position.xy * u_atlasXf.xy + u_atlasXf.zw * gl_Position.w;
     }`;
   const FRAG = () => `
     ${window.CityLighting.uniforms}
@@ -97,7 +100,7 @@
     ${window.CityLighting.glsl}
     ${window.CitySky.glsl}
     uniform sampler2D u_skyMap; uniform float u_skyMapStrength, u_nightWallAmbient, u_lookPass, u_lookThrough, u_lookShadowLift, u_lookCopy, u_lookFade; uniform vec3 u_lookTransmit;
-    uniform vec4 u_patA[PATN], u_patB[PATN], u_patC[PATN], u_patD[PATN]; uniform vec3 u_patPx; uniform vec2 u_patTurn; uniform vec4 u_lookGlass; uniform vec2 u_lookStd, u_lookStraight;
+    uniform vec4 u_patA[PATN], u_patB[PATN], u_patC[PATN], u_patD[PATN]; uniform vec3 u_patPx; uniform vec2 u_patTurn; uniform vec4 u_lookGlass; uniform vec2 u_lookStd, u_lookStraight; uniform vec4 u_atlasRect;
     varying vec3 v_pos, v_normal, v_base, v_mirror, v_night, v_ppos; varying vec2 v_uv, v_pat; varying float v_glass, v_cover;
     // ── WALL PATTERNS (GLTF.look.walls) ──
     // A wall's pattern is arithmetic on the place in the model's own metres: courses Ph high, units Pw long, joints j wide centred on every
@@ -186,6 +189,10 @@
       // the second pass of see-through glass adds the pane's own picture in the share the first pass took away (screen values, as the first pass multiplied)
       if (u_lookPass > 1.5) col *= (vec3(1.0) - pow(u_lookThrough * u_lookTransmit, vec3(1.0 / 2.2))) * u_lookFade;
       // a thin part far away: its colour times the share of the pixel it covers (pass 3 lays it over what is behind in that share)
+      // the atlas: nothing outside this building's own rectangle (its neighbours' rectangles lie there). z <= 0: no atlas. Tested LAST, after
+      // every derivative is taken, so that a pixel at a rectangle's edge takes its derivatives from a neighbour that ran the whole shader, as
+      // a pixel at the edge of its own target's viewport did.
+      if (u_atlasRect.z > 0.0 && (gl_FragCoord.x < u_atlasRect.x || gl_FragCoord.y < u_atlasRect.y || gl_FragCoord.x >= u_atlasRect.z || gl_FragCoord.y >= u_atlasRect.w)) discard;
       gl_FragColor = u_lookPass > 2.5 ? vec4(col * v_cover, v_cover) : vec4(col, 1.0);
     }`;
 
@@ -259,7 +266,7 @@
     const T = window.THREE, U = S.uniforms(), PN = Math.max(1, GLTF.look.walls.max | 0), v4 = () => Array.from({ length: PN }, () => new T.Vector4());
     const mat = new T.ShaderMaterial({
       defines: { PATN: PN }, extensions: { derivatives: true },
-      uniforms: Object.assign({}, U, window.CitySky.uniforms(), { u_patA: { value: v4() }, u_patB: { value: v4() }, u_patC: { value: v4() }, u_patD: { value: v4() }, u_patAt: { value: new T.Vector3() }, u_patTurn: { value: new T.Vector2(1, 0) },
+      uniforms: Object.assign({}, U, window.CitySky.uniforms(), { u_patA: { value: v4() }, u_patB: { value: v4() }, u_patC: { value: v4() }, u_patD: { value: v4() }, u_patAt: { value: new T.Vector3() }, u_patTurn: { value: new T.Vector2(1, 0) }, u_atlasXf: { value: new T.Vector4(1, 1, 0, 0) }, u_atlasRect: { value: new T.Vector4(0, 0, -1, -1) },
         u_patPx: { value: new T.Vector3(-1, 1, 1) }, u_lookGlass: { value: new T.Vector4(4, 0, 0.05, 0) }, u_lookStd: { value: new T.Vector2(0.25, 1) }, u_lookStraight: { value: new T.Vector2(0.5, 0.9) }, u_skyMap: { value: skyMap }, u_skyMapStrength: { value: skyMap ? GLTF.look.skyMapStrength : 0 }, u_lookShadowLift: { value: GLTF.look.shadowLiftM }, u_lookFar: { value: 0 }, u_lookPx: { value: 0 }, u_lookCopy: { value: 0 }, u_lookPush: { value: 0 }, u_lookFade: { value: 1 }, u_lookBand: { value: new T.Vector2(1, 2) },
         u_lookPass: { value: pass }, u_lookThrough: { value: through || 0 }, u_lookTransmit: { value: new T.Vector3(...(transmit || [1, 1, 1])) } }),
       vertexShader: VERT, fragmentShader: FRAG(), side: T.DoubleSide, depthTest: true, depthWrite: pass === 0 || pass === 3, transparent: pass > 0, blending: pass === 0 ? T.NoBlending : T.CustomBlending,
@@ -281,125 +288,153 @@
   // In the city's own scene the building is a mesh that draws nothing: it is there to cast its shadow into the app's shadow maps.
   // `pool`: the smoothing targets are SHARED by all buildings (one per sample count): the buildings are drawn one after another, so one
   // target the size of the biggest box does for all of them. (A target per building held 411 MB with fourteen buildings.)
+  const OWN_VS = 'void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; }';
   const OWN = { list: [], hooked: false, frames: 0, bytes: 0, pixels: 0, ms: 0, pool: {}, need: {}, slack: {}, idle: 0 };
   const ownWanted = S => { const O = GLTF.look.own; if (!O || !O.on || !S.renderer || !S.renderer.capabilities.isWebGL2) return false; const gl = S.renderer.getContext(); return !(gl.getParameter(gl.SAMPLES) > 0); };
   function ownParts() {
     const T = window.THREE;
     const nothing = new T.MeshBasicMaterial({ colorWrite: false, depthWrite: false, depthTest: false, side: T.DoubleSide });
     // the depth pass and the lay pass share one vertex program text, so the two give the same depth at every pixel
-    const VS = 'void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; }';
+    const VS = OWN_VS;
     const depthOnly = new T.ShaderMaterial({ colorWrite: false, depthWrite: true, depthTest: true, side: T.DoubleSide, vertexShader: VS, fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }' });
     const lay = new T.ShaderMaterial({ side: T.DoubleSide, depthTest: true, depthWrite: false, depthFunc: T.LessEqualDepth, transparent: true, blending: T.CustomBlending, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2,
       blendEquation: T.AddEquation, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor, blendSrcAlpha: T.OneFactor, blendDstAlpha: T.OneMinusSrcAlphaFactor,
-      uniforms: { u_picture: { value: null }, u_at: { value: new T.Vector4(0, 0, 1, 1) }, u_ss: { value: 1 }, u_fade: { value: 1 } },
+      uniforms: { u_picture: { value: null }, u_at: { value: new T.Vector4(0, 0, 1, 1) }, u_off: { value: new T.Vector2(0, 0) }, u_ss: { value: 1 }, u_fade: { value: 1 } },
       vertexShader: VS,
       // the smoothed picture at this very pixel (its colours are already times how much of the pixel the building covers).
       // A picture drawn at u_ss times the pixels (1, 1.5 or 2): this canvas pixel takes the mean of ITS OWN block of it, each texel by the
       // share of it that lies in the block, and nothing from a neighbouring pixel. The block starts on a texel edge and spans two texels
       // a side at most, so ONE read with linear filtering is that mean exactly: the read is placed between the two texels' middles at the
       // second one's share (1: the texel itself; 2: a quarter each of four; 1.5: two thirds and one third, turn about). 3 and 4 times: a loop.
-      fragmentShader: 'uniform sampler2D u_picture; uniform vec4 u_at; uniform float u_ss, u_fade; void main(){ vec2 i = floor(gl_FragCoord.xy - u_at.xy); '
-        + 'if (u_ss < 2.5) { vec2 a = i * u_ss, j = floor(a + 0.001), w1 = (a + u_ss - j - 1.0) / u_ss; gl_FragColor = texture2D(u_picture, (j + 0.5 + w1) / u_at.zw) * u_fade; return; } '
-        + 'vec2 b = i * u_ss; vec4 s = vec4(0.0); for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) { if (float(x) < u_ss && float(y) < u_ss) s += texture2D(u_picture, (b + vec2(float(x), float(y)) + 0.5) / u_at.zw); } gl_FragColor = s / (u_ss * u_ss) * u_fade; }' });   // u_fade: the share of the full building while it changes places with its far copy
+      // u_off: where this building's picture starts in its target (0, 0; or its rectangle in the atlas, see ownAtlas)
+      fragmentShader: 'uniform sampler2D u_picture; uniform vec4 u_at; uniform vec2 u_off; uniform float u_ss, u_fade; void main(){ vec2 i = floor(gl_FragCoord.xy - u_at.xy); '
+        + 'if (u_ss < 2.5) { vec2 a = i * u_ss, j = floor(a + 0.001), w1 = (a + u_ss - j - 1.0) / u_ss; gl_FragColor = texture2D(u_picture, (u_off + j + 0.5 + w1) / u_at.zw) * u_fade; return; } '
+        + 'vec2 b = u_off + i * u_ss; vec4 s = vec4(0.0); for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) { if (float(x) < u_ss && float(y) < u_ss) s += texture2D(u_picture, (b + vec2(float(x), float(y)) + 0.5) / u_at.zw); } gl_FragColor = s / (u_ss * u_ss) * u_fade; }' });   // u_fade: the share of the full building while it changes places with its far copy
     // `canvas` (GLTF.look.own.lean): the depth, lay and glass meshes again (the same geometry and materials) in ONE scene, so the three passes are
     // one render call. The order inside it is the order of the three calls: the depth pass is opaque (drawn first), the lay pass and the two glass
     // passes are see-through and sorted by renderOrder (0, 1, 2). `casters`: the meshes that only cast the shadow.
     return { picture: new T.Scene(), depth: new T.Scene(), fill: new T.Scene(), glass: new T.Scene(), canvas: new T.Scene(), casters: [], nothing, depthOnly, lay, box: new T.Box3(), target: null, cam: new T.Camera(), group: null };
   }
+  // the part of the screen building `b` stands on, its samples a pixel and its scale, into b.bx; false when it is not drawn this frame
+  function ownBox(b, T, O, camera, W, H, cssPx, cap) {
+    if (!b.group || !b.group.visible || (b.group.parent && !b.group.parent.visible) || b.box.isEmpty()) return false;   // the app hides the layer's group by zoom and tier
+    // the part of the screen the building stands on: its box's corners through the camera
+    // A box that crosses the camera's near plane is cut by it (its edges are cut where they cross), not taken as the whole screen: a
+    // building beside the street the camera stands in has corners behind the eye, and a whole-screen target for each such building
+    // was most of the pixels the smoothing drew.
+    let x0 = 1, y0 = 1, x1 = -1, y1 = -1, behind = 0;
+    const C8 = OWN.c8 || (OWN.c8 = Array.from({ length: 8 }, () => new T.Vector4()));
+    for (let i = 0; i < 8; i++) {
+      const c = C8[i].set(i & 1 ? b.box.max.x : b.box.min.x, i & 2 ? b.box.max.y : b.box.min.y, i & 4 ? b.box.max.z : b.box.min.z, 1).applyMatrix4(camera.projectionMatrix);
+      if (c.z + c.w < 0) { behind++; continue; }                 // in front of the near plane is z >= -w
+      x0 = Math.min(x0, c.x / c.w); x1 = Math.max(x1, c.x / c.w); y0 = Math.min(y0, c.y / c.w); y1 = Math.max(y1, c.y / c.w);
+    }
+    if (behind === 8) return false;                              // the whole building is behind the camera
+    if (behind) for (let i = 0; i < 8; i++) for (const bit of [1, 2, 4]) {   // each edge that crosses the near plane, cut where it crosses
+      const j = i | bit; if (j === i) continue;
+      const a = C8[i], c = C8[j], da = a.z + a.w, dc = c.z + c.w; if ((da < 0) === (dc < 0)) continue;
+      const t = da / (da - dc), w = a.w + (c.w - a.w) * t; if (w <= 1e-6) { x0 = y0 = -1; x1 = y1 = 1; continue; }
+      const x = (a.x + (c.x - a.x) * t) / w, y = (a.y + (c.y - a.y) * t) / w;
+      x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+    }
+    let px0 = Math.max(0, Math.floor((x0 * 0.5 + 0.5) * W) - O.pad), px1 = Math.min(W, Math.ceil((x1 * 0.5 + 0.5) * W) + O.pad), py0 = Math.max(0, Math.floor((y0 * 0.5 + 0.5) * H) - O.pad), py1 = Math.min(H, Math.ceil((y1 * 0.5 + 0.5) * H) + O.pad);
+    let w = px1 - px0, h = py1 - py0; if (w < 2 || h < 2) return false;
+    if (OWN.shrink) { px1 = px0 + Math.max(2, Math.round(w * OWN.shrink)); py1 = py0 + Math.max(2, Math.round(h * OWN.shrink)); w = px1 - px0; h = py1 - py0; }   // a measuring switch: the same draws into tiny boxes (no pixels to fill)
+    // FAR: a building that is small on the screen is drawn finer. Its windows are then a few pixels wide, and with four samples a
+    // pixel a dark pane's edge on a pale wall steps by a quarter of that contrast as the camera moves. WHAT IT COSTS decided the
+    // settings (measured on an integrated chip, 14 buildings, a laptop's full density): four samples a pixel are nearly free, eight
+    // cost as much again as the whole smoothing does (10 ms a frame), and so does drawing at twice the pixels. So:
+    //   - every tier takes 4 samples a pixel, except the smallest boxes (`tinyPixels`), whose cost is small because they are small;
+    //   - a small building is drawn at more than the canvas's pixels, each canvas pixel taking the mean of its own block (that is
+    //     more samples, not a blur): `density` picture pixels to one CSS pixel along a side, at most the tier's `Scale`. A canvas
+    //     that already has two pixels to a CSS pixel is drawn at 1.5 times, one with 1.5 at twice, a phone's with three at once: the
+    //     same fineness on every screen as the eye sees it, and the dense screens do not pay for more.
+    const FARS = GLTF.look.far;
+    let samples = w * h > O.bigPixels ? O.bigSamples : O.samples, ss = 1;
+    if (FARS && FARS.on) {
+      const tier = w * h <= FARS.tinyPixels ? 'tiny' : w * h <= FARS.smallPixels ? 'small' : w * h <= FARS.midPixels ? 'mid' : null;
+      if (tier) {
+        samples = Math.min(cap, FARS[tier + 'Samples']);
+        const most = FARS[tier + 'Scale'], want = FARS.density > 0 ? Math.min(most, FARS.density / cssPx) : most;
+        ss = want > 2.5 ? Math.min(4, Math.round(want)) : want >= 1.75 ? 2 : want >= 1.25 ? 1.5 : 1;
+        // one and a half times: the box takes an even number of pixels each way, so that its picture is a whole number of texels
+        if (ss === 1.5) { if ((px1 - px0) & 1) { if (px1 < W) px1++; else if (px0 > 0) px0--; else ss = 2; } if ((py1 - py0) & 1) { if (py1 < H) py1++; else if (py0 > 0) py0--; else ss = 2; } w = px1 - px0; h = py1 - py0; }
+      }
+    }
+    const k = b.bx || (b.bx = {});
+    k.px0 = px0; k.py0 = py0; k.px1 = px1; k.py1 = py1; k.tw0 = w * ss; k.th0 = h * ss; k.samples = samples; k.ss = ss; k.behind = behind;
+    return true;
+  }
+  // the shared smoothing target for `samples` samples a pixel, at least tw0 x th0 (made again, bigger, when it is too small)
+  function ownTarget(T, O, samples, tw0, th0, W, H) {
+    const need = OWN.need[samples] || (OWN.need[samples] = [0, 0]); need[0] = Math.max(need[0], tw0); need[1] = Math.max(need[1], th0);
+    let t = OWN.pool[samples];
+    if (!t || t.width < tw0 || t.height < th0) {
+      const tw = Math.min(Math.max(W, tw0), Math.ceil(tw0 / O.growBy) * O.growBy), th = Math.min(Math.max(H, th0), Math.ceil(th0 / O.growBy) * O.growBy);
+      const ow = t ? t.width : 0, oh = t ? t.height : 0;
+      if (t) t.dispose();
+      t = OWN.pool[samples] = new T.WebGLRenderTarget(Math.max(tw, ow), Math.max(th, oh), { samples, depthBuffer: true, stencilBuffer: false, magFilter: T.LinearFilter, minFilter: T.LinearFilter, generateMipmaps: false });   // linear: see the lay pass
+      if ('colorSpace' in t.texture && T.NoColorSpace !== undefined) t.texture.colorSpace = T.NoColorSpace;
+    }
+    return t;
+  }
+  // draw into target `t` (already the render target) and resolve only its first tw0 x th0 pixels, colour only. TIGHT (GLTF.look.own.tight):
+  // three.js resolves a smoothed target by copying ALL of it, colour AND depth, after every render, and the shared target is the size of the
+  // biggest box (often the whole canvas). With thirty buildings in view that was thirty full-size copies a frame, 180 ms on an integrated
+  // chip. Only the corner drawn into is copied, and the depth (never read: the depth pass draws the building again) is not copied at all.
+  // The picture is the same to the bit.
+  function ownRenderInto(renderer, O, t, scene, cam, tw0, th0) {
+    OWN.renders++;
+    if (O.tight !== false) {
+      renderer.properties.get(t).__ignoreDepthValues = true;
+      const fw = t.width, fh = t.height; t.width = tw0; t.height = th0;
+      try { renderer.render(scene, cam); } finally { t.width = fw; t.height = fh; }
+    } else { renderer.properties.get(t).__ignoreDepthValues = false; renderer.render(scene, cam); }
+  }
+  const ATLAS_OFF = [1, 1, 0, 0], RECT_OFF = [0, 0, -1, -1];
+  function ownAtlasUniforms(b, xf, rect) { for (const m of b.picture.children) { const U = m.material.uniforms; if (U.u_atlasXf) { U.u_atlasXf.value.fromArray(xf); U.u_atlasRect.value.fromArray(rect); } } }
   function ownFrame(S, renderer, camera) {
     const T = window.THREE, O = GLTF.look.own, gl = renderer.getContext(), t0 = performance.now();
     // Back on the canvas the view is the whole drawing buffer with no scissor: that is what MapLibre draws a custom layer with. (Asking the
     // context for its viewport instead is a round trip to the GPU process that stalls the frame: 42 ms a frame here when I measured it.)
     const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight;
-    const v = new T.Vector4(), restore = () => { renderer.setRenderTarget(null); renderer.setViewport(0, 0, W, H); renderer.setScissor(0, 0, W, H); renderer.setScissorTest(false); };
-    OWN.pixels = 0; OWN.bytes = 0; OWN.need = {};
+    const restore = () => { renderer.setRenderTarget(null); renderer.setViewport(0, 0, W, H); renderer.setScissor(0, 0, W, H); renderer.setScissorTest(false); };
+    OWN.pixels = 0; OWN.bytes = 0; OWN.need = {}; OWN.renders = 0; OWN.flushes = 0;
     const cssPx = W / ((renderer.domElement && renderer.domElement.clientWidth) || W / (window.devicePixelRatio || 1));   // canvas pixels to one CSS pixel, along a side
+    const cap = renderer.capabilities.maxSamples || 4;
     // (a measuring switch: GLTF_LAYER.lookOwn.repeat = 3 does all of this three times a frame; the smoothing's own cost is then (T3 - T1) / 2,
     //  far above the noise of a whole-city frame time)
-    for (let rep = 0, reps = Math.max(1, OWN.repeat | 0); rep < reps; rep++) for (const b of OWN.list) {
-      if (rep === 0) b.samples = b.scale = 0;
-      if (!b.group || !b.group.visible || (b.group.parent && !b.group.parent.visible) || b.box.isEmpty()) continue;   // the app hides the layer's group by zoom and tier
-      // the part of the screen the building stands on: its box's corners through the camera
-      // A box that crosses the camera's near plane is cut by it (its edges are cut where they cross), not taken as the whole screen: a
-      // building beside the street the camera stands in has corners behind the eye, and a whole-screen target for each such building
-      // was most of the pixels the smoothing drew.
-      let x0 = 1, y0 = 1, x1 = -1, y1 = -1, behind = 0;
-      const C8 = OWN.c8 || (OWN.c8 = Array.from({ length: 8 }, () => new T.Vector4()));
-      for (let i = 0; i < 8; i++) {
-        const c = C8[i].set(i & 1 ? b.box.max.x : b.box.min.x, i & 2 ? b.box.max.y : b.box.min.y, i & 4 ? b.box.max.z : b.box.min.z, 1).applyMatrix4(camera.projectionMatrix);
-        if (c.z + c.w < 0) { behind++; continue; }                 // in front of the near plane is z >= -w
-        x0 = Math.min(x0, c.x / c.w); x1 = Math.max(x1, c.x / c.w); y0 = Math.min(y0, c.y / c.w); y1 = Math.max(y1, c.y / c.w);
+    for (let rep = 0, reps = Math.max(1, OWN.repeat | 0); rep < reps; rep++) {
+      if (O.atlas) { ownAtlas(T, O, renderer, camera, W, H, cssPx, cap, rep, restore); continue; }
+      for (const b of OWN.list) {
+        if (rep === 0) b.samples = b.scale = 0;
+        if (!ownBox(b, T, O, camera, W, H, cssPx, cap)) continue;
+        const { px0, py0, px1, py1, tw0, th0, samples, ss, behind } = b.bx;
+        b.target = ownTarget(T, O, samples, tw0, th0, W, H);
+        // the same camera, looking only at that part of the screen
+        const nx0 = px0 / W * 2 - 1, nx1 = px1 / W * 2 - 1, ny0 = py0 / H * 2 - 1, ny1 = py1 / H * 2 - 1, sx = 2 / (nx1 - nx0), sy = 2 / (ny1 - ny0);
+        b.cam.projectionMatrix.set(sx, 0, 0, -sx * (nx0 + nx1) / 2, 0, sy, 0, -sy * (ny0 + ny1) / 2, 0, 0, 1, 0, 0, 0, 0, 1).multiply(camera.projectionMatrix);
+        b.cam.projectionMatrixInverse.copy(b.cam.projectionMatrix).invert();
+        b.target.viewport.set(0, 0, tw0, th0); b.target.scissor.set(0, 0, tw0, th0); b.target.scissorTest = true;
+        ownAtlasUniforms(b, ATLAS_OFF, RECT_OFF);                 // (the atlas may have been switched off while the page runs)
+        const clear = renderer.getClearColor(new T.Color()), alpha = renderer.getClearAlpha();
+        try {
+          renderer.setRenderTarget(b.target); renderer.setClearColor(0x000000, 0); renderer.clear(true, true, false);
+          b.ssNow = ss;                                              // (the wall patterns fade by canvas pixels: see the mesh's onBeforeRender)
+          ownRenderInto(renderer, O, b.target, b.picture, b.cam, tw0, th0);   // 1. the building alone, four samples a pixel
+          restore();
+          b.lay.uniforms.u_picture.value = b.target.texture; b.lay.uniforms.u_at.value.set(px0, py0, b.target.width, b.target.height); b.lay.uniforms.u_off.value.set(0, 0); b.lay.uniforms.u_ss.value = ss; b.lay.uniforms.u_fade.value = b.fade === undefined ? 1 : b.fade;
+          for (const gm of b.glass.children) gm.material.uniforms.u_lookFade.value = b.fade === undefined ? 1 : b.fade;
+          if (O.lean) { OWN.renders++; renderer.render(b.canvas, camera); }   // 2, 3 and the glass in one call (see ownParts)
+          else {
+            OWN.renders += 2 + (b.glass.children.length ? 1 : 0);
+            renderer.render(b.depth, camera);                        // 2. its depth into the canvas
+            renderer.render(b.fill, camera);                         // 3. the smoothed picture, where the building is in front
+            if (b.glass.children.length) renderer.render(b.glass, camera);
+          }
+        } finally { restore(); renderer.setClearColor(clear, alpha); }
+        if (rep === 0) OWN.pixels += tw0 * th0; b.samples = samples; b.scale = ss; b.px = tw0 * th0; b.whole = !!behind;
       }
-      if (behind === 8) continue;                                  // the whole building is behind the camera
-      if (behind) for (let i = 0; i < 8; i++) for (const bit of [1, 2, 4]) {   // each edge that crosses the near plane, cut where it crosses
-        const j = i | bit; if (j === i) continue;
-        const a = C8[i], c = C8[j], da = a.z + a.w, dc = c.z + c.w; if ((da < 0) === (dc < 0)) continue;
-        const t = da / (da - dc), w = a.w + (c.w - a.w) * t; if (w <= 1e-6) { x0 = y0 = -1; x1 = y1 = 1; continue; }
-        const x = (a.x + (c.x - a.x) * t) / w, y = (a.y + (c.y - a.y) * t) / w;
-        x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
-      }
-      let px0 = Math.max(0, Math.floor((x0 * 0.5 + 0.5) * W) - O.pad), px1 = Math.min(W, Math.ceil((x1 * 0.5 + 0.5) * W) + O.pad), py0 = Math.max(0, Math.floor((y0 * 0.5 + 0.5) * H) - O.pad), py1 = Math.min(H, Math.ceil((y1 * 0.5 + 0.5) * H) + O.pad);
-      let w = px1 - px0, h = py1 - py0; if (w < 2 || h < 2) continue;
-      if (OWN.shrink) { px1 = px0 + Math.max(2, Math.round(w * OWN.shrink)); py1 = py0 + Math.max(2, Math.round(h * OWN.shrink)); w = px1 - px0; h = py1 - py0; }   // a measuring switch: the same draws into tiny boxes (no pixels to fill)
-      // FAR: a building that is small on the screen is drawn finer. Its windows are then a few pixels wide, and with four samples a
-      // pixel a dark pane's edge on a pale wall steps by a quarter of that contrast as the camera moves. WHAT IT COSTS decided the
-      // settings (measured on an integrated chip, 14 buildings, a laptop's full density): four samples a pixel are nearly free, eight
-      // cost as much again as the whole smoothing does (10 ms a frame), and so does drawing at twice the pixels. So:
-      //   - every tier takes 4 samples a pixel, except the smallest boxes (`tinyPixels`), whose cost is small because they are small;
-      //   - a small building is drawn at more than the canvas's pixels, each canvas pixel taking the mean of its own block (that is
-      //     more samples, not a blur): `density` picture pixels to one CSS pixel along a side, at most the tier's `Scale`. A canvas
-      //     that already has two pixels to a CSS pixel is drawn at 1.5 times, one with 1.5 at twice, a phone's with three at once: the
-      //     same fineness on every screen as the eye sees it, and the dense screens do not pay for more.
-      const FARS = GLTF.look.far, cap = renderer.capabilities.maxSamples || 4;
-      let samples = w * h > O.bigPixels ? O.bigSamples : O.samples, ss = 1;
-      if (FARS && FARS.on) {
-        const tier = w * h <= FARS.tinyPixels ? 'tiny' : w * h <= FARS.smallPixels ? 'small' : w * h <= FARS.midPixels ? 'mid' : null;
-        if (tier) {
-          samples = Math.min(cap, FARS[tier + 'Samples']);
-          const most = FARS[tier + 'Scale'], want = FARS.density > 0 ? Math.min(most, FARS.density / cssPx) : most;
-          ss = want > 2.5 ? Math.min(4, Math.round(want)) : want >= 1.75 ? 2 : want >= 1.25 ? 1.5 : 1;
-          // one and a half times: the box takes an even number of pixels each way, so that its picture is a whole number of texels
-          if (ss === 1.5) { if ((px1 - px0) & 1) { if (px1 < W) px1++; else if (px0 > 0) px0--; else ss = 2; } if ((py1 - py0) & 1) { if (py1 < H) py1++; else if (py0 > 0) py0--; else ss = 2; } w = px1 - px0; h = py1 - py0; }
-        }
-      }
-      const tw0 = w * ss, th0 = h * ss, need = OWN.need[samples] || (OWN.need[samples] = [0, 0]); need[0] = Math.max(need[0], tw0); need[1] = Math.max(need[1], th0);
-      b.target = OWN.pool[samples];
-      if (!b.target || b.target.width < tw0 || b.target.height < th0) {
-        const tw = Math.min(Math.max(W, tw0), Math.ceil(tw0 / O.growBy) * O.growBy), th = Math.min(Math.max(H, th0), Math.ceil(th0 / O.growBy) * O.growBy);
-        const ow = b.target ? b.target.width : 0, oh = b.target ? b.target.height : 0;
-        if (b.target) b.target.dispose();
-        b.target = OWN.pool[samples] = new T.WebGLRenderTarget(Math.max(tw, ow), Math.max(th, oh), { samples, depthBuffer: true, stencilBuffer: false, magFilter: T.LinearFilter, minFilter: T.LinearFilter, generateMipmaps: false });   // linear: see the lay pass
-        if ('colorSpace' in b.target.texture && T.NoColorSpace !== undefined) b.target.texture.colorSpace = T.NoColorSpace;
-      }
-      // the same camera, looking only at that part of the screen
-      const nx0 = px0 / W * 2 - 1, nx1 = px1 / W * 2 - 1, ny0 = py0 / H * 2 - 1, ny1 = py1 / H * 2 - 1, sx = 2 / (nx1 - nx0), sy = 2 / (ny1 - ny0);
-      b.cam.projectionMatrix.set(sx, 0, 0, -sx * (nx0 + nx1) / 2, 0, sy, 0, -sy * (ny0 + ny1) / 2, 0, 0, 1, 0, 0, 0, 0, 1).multiply(camera.projectionMatrix);
-      b.cam.projectionMatrixInverse.copy(b.cam.projectionMatrix).invert();
-      b.target.viewport.set(0, 0, tw0, th0); b.target.scissor.set(0, 0, tw0, th0); b.target.scissorTest = true;
-      const clear = renderer.getClearColor(new T.Color()), alpha = renderer.getClearAlpha();
-      try {
-        renderer.setRenderTarget(b.target); renderer.setClearColor(0x000000, 0); renderer.clear(true, true, false);
-        b.ssNow = ss;                                              // (the wall patterns fade by canvas pixels: see the mesh's onBeforeRender)
-        // 1. the building alone, four samples a pixel. TIGHT (GLTF.look.own.tight): three.js resolves a smoothed target by copying ALL of it, colour
-        // AND depth, after every render, and the shared target is the size of the biggest box (often the whole canvas). With thirty buildings
-        // in view that was thirty full-size copies a frame, 180 ms on an integrated chip. Only the corner the building was drawn into is
-        // copied, and the depth (never read: step 2 draws the building again) is not copied at all. The picture is the same to the bit.
-        if (O.tight !== false) {
-          renderer.properties.get(b.target).__ignoreDepthValues = true;
-          const fw = b.target.width, fh = b.target.height; b.target.width = tw0; b.target.height = th0;
-          try { renderer.render(b.picture, b.cam); } finally { b.target.width = fw; b.target.height = fh; }
-        } else { renderer.properties.get(b.target).__ignoreDepthValues = false; renderer.render(b.picture, b.cam); }
-        restore();
-        b.lay.uniforms.u_picture.value = b.target.texture; b.lay.uniforms.u_at.value.set(px0, py0, b.target.width, b.target.height); b.lay.uniforms.u_ss.value = ss; b.lay.uniforms.u_fade.value = b.fade === undefined ? 1 : b.fade;
-        for (const gm of b.glass.children) gm.material.uniforms.u_lookFade.value = b.fade === undefined ? 1 : b.fade;
-        if (O.lean) renderer.render(b.canvas, camera);             // 2, 3 and the glass in one call (see ownParts)
-        else {
-          renderer.render(b.depth, camera);                        // 2. its depth into the canvas
-          renderer.render(b.fill, camera);                         // 3. the smoothed picture, where the building is in front
-          if (b.glass.children.length) renderer.render(b.glass, camera);
-        }
-      } finally { restore(); renderer.setClearColor(clear, alpha); }
-      if (rep === 0) OWN.pixels += tw0 * th0; b.samples = samples; b.scale = ss; b.px = tw0 * th0; b.whole = !!behind;
     }
     // what the shared targets hold; one that has been `slackTimes` too big for `slackFrames` frames is let go (it is made again at the size
     // needed). A target made for a close view of one building is the size of the canvas: 187 MB at a laptop's full density.
@@ -409,7 +444,100 @@
       if (OWN.slack[k] > O.slackFrames) { t.dispose(); OWN.pool[k] = null; OWN.slack[k] = 0; continue; }
       OWN.bytes += t.width * t.height * (4 + 8 * Number(k));
     }
+    // the memory the targets would settle to at this view (each at the size this frame needed; the pool keeps a bigger one for `slackFrames`)
+    OWN.needMB = Math.round(Object.keys(OWN.need).reduce((a, k) => a + OWN.need[k][0] * OWN.need[k][1] * (4 + 8 * Number(k)), 0) / 1e6);
     OWN.frames++; OWN.ms = +(performance.now() - t0).toFixed(2);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  THE ATLAS (GLTF.look.own.atlas): every building's picture in ONE shared target, side by side, drawn by one render call
+  // ══════════════════════════════════════════════════════════════════════
+  // Why (docs/gltf-layer.md "What the layer's frame time is"): the layer's frame time followed the NUMBER of full buildings, not their size:
+  // each one cost two three.js render calls a frame (its picture into the shared target, then its depth, lay and glass on the canvas), a switch
+  // of target and a resolve. Here the buildings are taken in the list's order and each gets its own rectangle of the target for its samples a
+  // pixel (a shelf packing: left to right, then a new row). When a target is full, the pictures so far are drawn, ONE render call for each
+  // sample count (each mesh is moved into its rectangle by its own u_atlasXf and cut to it by u_atlasRect), and then the depth, lay and glass of
+  // the same buildings on the canvas in ONE more call, each building's three passes in the same order as its own calls drew them (a Group's
+  // renderOrder is the building's place in the list, the depth pass is a see-through pass with renderOrder -1 so that it comes first in its
+  // building). So the canvas sees exactly the sequence of draws it saw before, building by building, and each picture is the same picture: the
+  // look does not change. With about 85 buildings in view that is a handful of render calls instead of about 170, and a few resolves instead
+  // of 85. `atlasMB`: the most a target of the atlas may hold for one sample count (a bigger one means fewer flushes and more memory).
+  function ownAtlasParts(b) {
+    if (b.atl) return b.atl;
+    const T = window.THREE, A = OWN.atlas;
+    const twin = (m, mat, ro) => { const t = new T.Mesh(m.geometry, mat || m.material); t.frustumCulled = false; t.renderOrder = ro === undefined ? m.renderOrder : ro; t.layers.mask = m.layers.mask; t.onBeforeRender = m.onBeforeRender; t.name = m.name; return t; };
+    const pic = new T.Group(), canvas = new T.Group(); pic.visible = canvas.visible = false;
+    for (const m of b.picture.children) pic.add(twin(m));
+    for (const m of b.canvas.children) canvas.add(m.material === b.depthOnly ? twin(m, A.depth, -1) : twin(m));
+    // the twins stand where their building's own meshes stand (an identity transform): their matrices are worked out once, here, and the
+    // two scenes do not walk all their buildings again before each render call (that walk was the biggest JS item of the first atlas)
+    for (const g of [pic, canvas]) { g.matrixAutoUpdate = false; for (const m of g.children) m.matrixAutoUpdate = false; g.updateMatrixWorld(true); }
+    A.pic.add(pic); A.canvas.add(canvas);
+    return (b.atl = { pic, canvas });
+  }
+  function ownAtlas(T, O, renderer, camera, W, H, cssPx, cap, rep, restore) {
+    const A = OWN.atlas || (OWN.atlas = {
+      pic: Object.assign(new T.Scene(), { matrixWorldAutoUpdate: false }), canvas: Object.assign(new T.Scene(), { matrixWorldAutoUpdate: false }), cam: new T.Camera(), packs: {}, run: [],
+      // the depth pass of ownParts as a see-through material, so that it is sorted with the lay and glass passes of its own building
+      depth: new T.ShaderMaterial({ colorWrite: false, depthWrite: true, depthTest: true, transparent: true, blending: T.NoBlending, side: T.DoubleSide, vertexShader: OWN_VS, fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }' }),
+    });
+    A.depth.forceSinglePass = true;
+    // the camera of the pictures: the city's own (an identity world, as each building's own camera had), uncut; each mesh cuts and moves itself
+    A.cam.projectionMatrix.copy(camera.projectionMatrix); A.cam.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+    const run = A.run; run.length = 0;
+    const mb = Math.max(1, O.atlasMB || 128) * 1048576, maxTex = renderer.capabilities.maxTextureSize || 4096;
+    const pack = s => { let P = A.packs[s]; if (!P) P = A.packs[s] = { items: [] };
+      if (!P.items.length && P.pw === undefined) { P.pw = W; P.ph = Math.min(maxTex, Math.max(64, Math.floor(mb / ((4 + 8 * s) * W)))); P.x = P.y = P.row = P.usedW = P.usedH = 0; }
+      return P; };
+    const reset = P => { P.items.length = 0; P.pw = undefined; };
+    const flush = () => {
+      if (!run.length) return;
+      OWN.flushes++;
+      const clear = renderer.getClearColor(new T.Color()), alpha = renderer.getClearAlpha();
+      try {
+        // 1. the pictures, one render call for each sample count
+        for (const s of Object.keys(A.packs)) {
+          const P = A.packs[s]; if (!P.items.length) continue;
+          const VW = P.usedW, VH = P.usedH, t = ownTarget(T, O, +s, VW, VH, W, H);
+          for (const b of P.items) {
+            const k = b.bx, nx0 = k.px0 / W * 2 - 1, nx1 = k.px1 / W * 2 - 1, ny0 = k.py0 / H * 2 - 1, ny1 = k.py1 / H * 2 - 1;
+            // the building's part of the screen (nx0..nx1) onto its rectangle (ox..ox+tw0 of VW): x' = x * a + w * c
+            const ax = 2 / (nx1 - nx0) * k.tw0 / VW, ay = 2 / (ny1 - ny0) * k.th0 / VH;
+            const cx = (2 * k.ox + k.tw0) / VW - 1 - ax * (nx0 + nx1) / 2, cy = (2 * k.oy + k.th0) / VH - 1 - ay * (ny0 + ny1) / 2;
+            k.xf[0] = ax; k.xf[1] = ay; k.xf[2] = cx; k.xf[3] = cy; k.rect[0] = k.ox; k.rect[1] = k.oy; k.rect[2] = k.ox + k.tw0; k.rect[3] = k.oy + k.th0;
+            ownAtlasUniforms(b, k.xf, k.rect); b.ssNow = k.ss; ownAtlasParts(b).pic.visible = true;
+          }
+          t.viewport.set(0, 0, VW, VH); t.scissor.set(0, 0, VW, VH); t.scissorTest = true;
+          renderer.setRenderTarget(t); renderer.setClearColor(0x000000, 0); renderer.clear(true, true, false);
+          try { ownRenderInto(renderer, O, t, A.pic, A.cam, VW, VH); }
+          finally { for (const b of P.items) b.atl.pic.visible = false; }
+          restore();
+          for (const b of P.items) { const k = b.bx, L = b.lay.uniforms; L.u_picture.value = t.texture; L.u_at.value.set(k.px0, k.py0, t.width, t.height); L.u_off.value.set(k.ox, k.oy); L.u_ss.value = k.ss; L.u_fade.value = b.fade === undefined ? 1 : b.fade; }
+        }
+        // 2. their depth, lay and glass on the canvas, building after building in the list's order: one render call
+        run.forEach((b, i) => { const c = ownAtlasParts(b).canvas; c.renderOrder = i; c.visible = true; for (const gm of b.glass.children) gm.material.uniforms.u_lookFade.value = b.fade === undefined ? 1 : b.fade; });
+        OWN.renders++;
+        try { renderer.render(A.canvas, camera); } finally { for (const b of run) b.atl.canvas.visible = false; }
+      } finally { restore(); renderer.setClearColor(clear, alpha); }
+      for (const s of Object.keys(A.packs)) reset(A.packs[s]);
+      run.length = 0;
+    };
+    for (const b of OWN.list) {
+      if (rep === 0) b.samples = b.scale = 0;
+      if (!ownBox(b, T, O, camera, W, H, cssPx, cap)) continue;
+      const k = b.bx; if (!k.xf) { k.xf = [1, 1, 0, 0]; k.rect = [0, 0, 0, 0]; }
+      // its rectangle: on this row of its target, or a new row, or (the target is full) after the buildings so far are drawn
+      for (let tries = 0; ; tries++) {
+        const P = pack(k.samples);
+        if (P.x + k.tw0 > P.pw && P.x > 0) { P.y += P.row; P.x = 0; P.row = 0; }
+        if (P.items.length && P.y + k.th0 > P.ph && tries === 0) { flush(); continue; }   // (an empty target takes any one building)
+        k.ox = P.x; k.oy = P.y; P.x += k.tw0; P.row = Math.max(P.row, k.th0); P.usedW = Math.max(P.usedW, P.x); P.usedH = Math.max(P.usedH, P.y + P.row);
+        P.items.push(b); break;
+      }
+      run.push(b);
+      if (rep === 0) OWN.pixels += k.tw0 * k.th0; b.samples = k.samples; b.scale = k.ss; b.px = k.tw0 * k.th0; b.whole = !!k.behind;
+    }
+    flush();
   }
   function ownHook(S) {
     if (OWN.hooked || !S.scene) return; OWN.hooked = true;
@@ -595,6 +723,7 @@
     const i = OWN.list.indexOf(b.own); if (i >= 0) OWN.list.splice(i, 1);
     const seen = new Set(), drop = o => { if (o.geometry && !seen.has(o.geometry)) { seen.add(o.geometry); o.geometry.dispose(); } if (o.material && !seen.has(o.material)) { seen.add(o.material); o.material.dispose(); } };
     b.group.traverse(drop); if (b.own) for (const sc of [b.own.picture, b.own.depth, b.own.fill, b.own.glass]) sc.traverse(drop);
+    if (b.own && b.own.atl) { b.own.atl.pic.removeFromParent(); b.own.atl.canvas.removeFromParent(); b.own.atl = null; }   // its twins in the atlas scenes (same geometry and materials)
     if (e.map) e.map.dispose();
     L.triangles -= b.triangles; L.litTriangles -= b.lit; L.drawCalls -= b.group.children.length; L.bytes -= e.fileBytes; L.mapBytes -= e.mapBytes; L.loaded = L.loaded.filter(n => n !== e.row.name); delete L.thin[e.row.name]; delete L.walls[e.row.name]; L.unloads++;
     e.built = e.map = null; e.state = 0;
