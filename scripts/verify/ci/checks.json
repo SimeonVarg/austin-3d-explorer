@@ -282,6 +282,7 @@
     "moire-roof-fps.mjs": "Manual interleaved hardware roof cost comparison; requires an explicit candidate source and does not impose a generic CI timing gate.",
     "moire-roof-study.mjs": "Manual hardware roof comparison; requires explicit output and matched visual review, not a default CI verdict.",
     "perf-frame-profile.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): scripts/perf wrapper for the AWS GPU runner; measures frame time, no verdict",
+    "perf-layer-cost.mjs": "tool, no verdict (timing; started by hand or on a cloud runner): where the Blender-building layer's frame time goes, part by part, in one page load, no verdict",
     "perf-layer-speed.mjs": "tool, no verdict (timing; started by hand or on a cloud runner): frame time and page memory with the Blender-building layer off and on (?gltf=1), no verdict",
     "perf-aws-suite.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): runs the scripts/perf tools in sequence on the AWS GPU runner, no verdict",
     "perf-load-profile.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): scripts/perf wrapper for the AWS GPU runner; measures cold-load time, no verdict",
