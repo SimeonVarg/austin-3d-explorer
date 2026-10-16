@@ -129,7 +129,9 @@ Switches (all off unless the page asks):
 | `?gltf=1&smooth=1` | the app's own "Smooth edges" for the whole canvas instead; the building's own smoothing then stands down |
 | `?gltflook=0` | every row the old way (flat colours with light gains, wall maps) |
 | `?skygrade=1` | leave the app's canvas tone table on the new light's pixels (to see what it does to them) |
-| `?skyambient=0.8` | scale all sky light |
+| `?skyambient=0.8` | scale all sky light (light B, the default since 2026-10-15: 1.5) |
+| `?skyrig=a` | light A, the light before 2026-10-15 (sky x1, ground 0.16, sun x1, mirror x1); the default is light B, the owner's choice: sky x1.5, ground bounce colour 0.32, sun x0.84, and a mirror sees the sky x1.6 |
+| `?skyground=0.16` `?skysun=1` `?skymirror=1` | one number of the light each: the ground's colour for the bounce, the sun's strength, the sky as glass mirrors it |
 
 **Smooth edges of its own.** A Blender model has lines far thinner than a pixel from across the street (joint lines 4 cm wide, mullions 7 cm
 wide). They need several samples a pixel, or they break up and every edge is stair-stepped. Giving the WHOLE canvas four samples a pixel is the
