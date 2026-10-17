@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 375 builds of 312 buildings; 117 buildings flagged to retarget.
+Right now: 376 builds of 313 buildings; 117 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -237,6 +237,7 @@ Right now: 375 builds of 312 buildings; 117 buildings flagged to retarget.
 | Mary E. Gearing Hall | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 26,811 | 62 min, 464k plan tokens |  |  |
 | McCombs School of Business | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 25,031 | 52 min, 452k plan tokens |  |  |
 | Moffett Molecular Biology | Opus 5.5 | 2026-10-13 |  | site photographs | best | 26,391 | 45 min, 370k plan tokens | "Make the X dots a bit more prominent" |  |
+| Moody Center | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 8,185 | 28 min, 178k plan tokens |  |  |
 | Music Recital Hall | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 21,256 | 51 min, 398k plan tokens |  |  |
 | Neural Molecular Science Building | Opus 5.5 | 2026-10-15 | proven | mixed | unreviewed | 21,790 | 59 min, 448k plan tokens |  |  |
 | Norman Hackerman Building | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 6,770 | 54 min |  | yes |
