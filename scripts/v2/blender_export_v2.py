@@ -21,7 +21,9 @@ import bpy, sys, os, json, math, re, struct
 import numpy as np
 
 # ── PARAMETERS ──────────────────────────────────────────────────────────
-SKIP_NAME = re.compile(r'(^|_)ground$|^ground|^wl_ground|^camera|^cam_|^proof|^helper|^ref[_-]|^measure', re.I)
+SKIP_NAME = re.compile(r'(^|_)ground$|^ground|^wl_ground|^camera|^cam_|^proof|^helper|^ref[_-]|^measure|^ctx_|^context_', re.I)
+# the builders keep the street, neighbours and trees they framed the photograph with in a collection named so ('context_not_model')
+SKIP_COLLECTION = re.compile(r'context|^ctx', re.I)
 GLASS_METALLIC = 0.975        # metal/rough stand-in for IOR-3 glass (F0 0.25): F0 = 0.04 (1 - m) + base * m
 GLASS_BASE = (0.18, 1.0)      # clamp of the glass base colour (so the mirror stays between F0 ~0.18 and ~1)
 DARKPANE_ROUGH = 0.05
@@ -36,6 +38,12 @@ WELD_M = 0.001
 # flicker. Triangles of these materials lying wholly below GROUND_DROP_BELOW_M are left out (a raised deck or planter stays).
 GROUND_DROP_MAT = re.compile(r'street|sidewalk|pavement|road|kerb|curb|asphalt|crosswalk|lawn|grass|turf|ground|gutter|driveway', re.I)
 GROUND_DROP_BELOW_M = 0.35
+# the light rig's ground (a lit plane, sometimes sloped, under the model) is left out whatever its height: by object OR material name
+# a builder's SITE work round the building (paving, plaza, courtyard floor) follows the lot's slope in its own frame; the app lays its own
+# ground, on which such a slab floats or sinks and covers the street. An object so named whose top is lower than SITE_DROP_TOP_M is left out.
+SITE_NAME = re.compile(r'^site[_-]|^plaza|paving|courtyard_(floor|ground|paving)|^lot[_-]|^sidewalk|^street', re.I)
+SITE_DROP_TOP_M = 3.5
+GROUND_MAT = re.compile(r'^(rig_|wl_)?ground(_|$)', re.I)
 
 args = sys.argv[sys.argv.index('--') + 1:]
 OUT_NEAR, OUT_FAR, OUT_JSON = args[0], args[1], args[2]
@@ -157,7 +165,8 @@ for inst in dg.object_instances:
     if ob.type not in ('MESH', 'CURVE', 'FONT', 'SURFACE', 'META'): continue
     src = inst.parent.original if inst.is_instance and inst.parent else ob.original
     nm = ob.original.name
-    if src.hide_render or (not inst.is_instance and ob.original.hide_render) or SKIP_NAME.search(nm) or SKIP_NAME.search(src.name):
+    if src.hide_render or (not inst.is_instance and ob.original.hide_render) or SKIP_NAME.search(nm) or SKIP_NAME.search(src.name) \
+            or any(SKIP_COLLECTION.search(c.name) for c in list(src.users_collection) + list(ob.original.users_collection)):
         skipped.append(nm); continue
     try: me = ob.to_mesh()
     except Exception: continue
@@ -172,6 +181,8 @@ for inst in dg.object_instances:
     cn = np.empty(nl * 3, np.float32); me.corner_normals.foreach_get('vector', cn); cn = cn.reshape(-1, 3).astype(np.float64)
     M = np.array(inst.matrix_world, dtype=np.float64)
     W = co @ M[:3, :3].T + M[:3, 3]
+    if SITE_NAME.search(nm) and W[:, 2].max() < SITE_DROP_TOP_M:
+        skipped.append('site:' + nm); ob.to_mesh_clear(); continue
     Ninv = np.linalg.inv(M[:3, :3]).T
     Nw = cn @ Ninv.T; Nw /= np.maximum(np.linalg.norm(Nw, axis=1, keepdims=True), 1e-12)
     if np.linalg.det(M[:3, :3]) < 0: tl = tl[:, ::-1]
@@ -188,6 +199,8 @@ for inst in dg.object_instances:
     for mi in np.unique(tm):
         mat = slots[mi] if mi < len(slots) else None
         mp = mat_props(mat); sel = tm == mi
+        if GROUND_MAT.search(mp['name']):
+            dropped_ground[0] += int(sel.sum()); continue
         if GROUND_DROP_MAT.search(mp['name']):
             low_ = P[:, :, 2].max(1) < GROUND_DROP_BELOW_M
             dropped_ground[0] += int((sel & low_).sum()); sel = sel & ~low_
@@ -208,7 +221,8 @@ for inst in dg.object_instances:
                 groups.setdefault(name, []).append((P[sel][s2], N[sel][s2], keep[sel][s2]))
         else:
             groups.setdefault(mp['name'], []).append((P[sel], N[sel], keep[sel]))
-    objs.append((nm, nt))
+    lo_, hi_ = W.min(0), W.max(0)
+    objs.append((nm, nt, round(float((hi_[0] - lo_[0]) * (hi_[1] - lo_[1]))), [round(float(v), 1) for v in (lo_[0], lo_[1], hi_[0], hi_[1], hi_[2])]))
     ob.to_mesh_clear()
 
 
@@ -267,7 +281,9 @@ kinds = {}
 for n in groups:
     kinds[MAT[n]['kind']] = kinds.get(MAT[n]['kind'], 0) + 1
 stats = {'near': near, 'far': far, 'materials': len(groups), 'kinds': kinds, 'objects': len(objs),
-         'biggest_objects': sorted(objs, key=lambda o: -o[1])[:12], 'skipped_objects': sorted(set(skipped))[:40], 'notes': NOTES, 'ground_triangles_dropped': dropped_ground[0],
+         'biggest_objects': [o[:2] for o in sorted(objs, key=lambda o: -o[1])[:12]],
+         'widest_objects': [[o[0], o[2], o[3]] for o in sorted(objs, key=lambda o: -o[2])[:10]],   # name, plan bbox m2, [x0 y0 x1 y1 top]
+         'skipped_objects': sorted(set(skipped))[:40], 'notes': NOTES, 'ground_triangles_dropped': dropped_ground[0],
          'blender': bpy.app.version_string, 'unit_scale': sc.unit_settings.scale_length, 'unit_system': sc.unit_settings.system}
 json.dump(stats, open(OUT_JSON, 'w'), indent=1)
 print('V2EXPORT', json.dumps({'near': near['triangles'], 'far': far['triangles'], 'bytes': near['bytes'], 'materials': len(groups), 'kinds': kinds}))

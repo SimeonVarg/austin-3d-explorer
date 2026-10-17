@@ -35,10 +35,30 @@ NOT_BUILDINGS = {'speedway': 'a stretch of road (Speedway), not a building: it h
                  'belo': 'name never confirmed and not placed on the map (its ledger row says so)'}
 
 
+EARTH_R = 6378137.0                             # the v2 app's projection (v2/geo.js on mac/v2-app): equirectangular round ORIGIN
+
+
 def to_frame(lon, lat):
-    x = (lon - ORIGIN['lon']) * M_PER_DEG * math.cos(math.radians(ORIGIN['lat']))
-    z = -(lat - ORIGIN['lat']) * M_PER_DEG
+    x = EARTH_R * math.cos(math.radians(ORIGIN['lat'])) * math.radians(lon - ORIGIN['lon'])
+    z = -EARTH_R * math.radians(lat - ORIGIN['lat'])
     return x, z
+
+
+def app_id(k):
+    """the id the app's extrusion layers use: the city map's 8-hex id, or 'w<way>' for an OpenStreetMap outline (data/outer/downtown_massing.json)"""
+    return 'w' + k[3:] if k.startswith('osm') else k[:8]
+
+
+def inside(pt, ring):
+    x, y = pt; c = False; n = len(ring)
+    for i in range(n):
+        x1, y1 = ring[i]; x2, y2 = ring[(i + 1) % n]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1: c = not c
+    return c
+
+
+def centroid(ring):
+    return (sum(p[0] for p in ring) / len(ring), sum(p[1] for p in ring) / len(ring))
 
 
 def tile_of(x, z):
@@ -83,7 +103,7 @@ def main(out_path):
         fid = str(f['properties'].get('id', ''))
         if fid: by_id[fid] = f
     # downtown and Capitol packages name OpenStreetMap outlines ('osm<way id>'): the repo's OSM caches hold them
-    for f in ('data/osm_cache/downtown_buildings.json',):
+    for f in ('data/osm_cache/downtown_buildings.json', 'data/osm_cache/v2_extra_outlines.json'):
         for row in json.load(open(REPO + '/' + f))['rows']:
             if row.get('g'):
                 by_id.setdefault('osm' + row['id'][1:], {'geometry': {'type': 'Polygon', 'coordinates': [row['g'][0]]}})
@@ -91,6 +111,12 @@ def main(out_path):
         for el in json.load(open(REPO + '/' + f))['elements']:
             if el.get('type') == 'way' and el.get('geometry') and 'building' in (el.get('tags') or {}):
                 by_id.setdefault('osm%d' % el['id'], {'geometry': {'type': 'Polygon', 'coordinates': [[[p['lon'], p['lat']] for p in el['geometry']]]}})
+    others = []                                  # (app id, outer ring) of every extrusion the app may draw
+    for k, f in by_id.items():
+        if k.startswith('osm'): continue
+        g = f['geometry']; others.append((app_id(k), g['coordinates'][0] if g['type'] == 'Polygon' else g['coordinates'][0][0]))
+    for row in json.load(open(REPO + '/data/outer/downtown_massing.json'))['rows']:
+        if row.get('g'): others.append((row['id'], row['g'][0]))
     res = {}
     for r in best:
         slug = r['slug']; model = MODEL_KEY.get(r['model'], r['model'])
@@ -125,7 +151,14 @@ def main(out_path):
         # (order-free: the farthest footprint point from its nearest re-derived point; OSM rings may start at another corner)
         row['origin_err_m'] = round(max(min(math.hypot(a[0] - b[0], a[1] - b[1]) for b in back) for a in fr), 3)
         x, z = to_frame(lon0, lat0)
-        row.update({'map_ids': ids, 'lng': round(lon0, 7), 'lat': round(lat0, 7), 'x': round(x, 3), 'z': round(z, 3), 'tile': tile_of(x, z),
+        # the app hides every map extrusion whose id is in map_ids: the package's own outlines, plus any other map or massing building
+        # whose middle lies inside them (the downtown massing table and the city map can hold the same building under another id)
+        hide = [app_id(k) for k in ids]
+        bb = [min(p[0] for p in pts), min(p[1] for p in pts), max(p[0] for p in pts), max(p[1] for p in pts)]
+        for oid, oring in others:
+            cx, cy = centroid(oring)
+            if bb[0] <= cx <= bb[2] and bb[1] <= cy <= bb[3] and oid not in hide and any(inside((cx, cy), rg) for rg in rings): hide.append(oid)
+        row.update({'map_ids': hide, 'map_ids_package': ids, 'lng': round(lon0, 7), 'lat': round(lat0, 7), 'x': round(x, 3), 'z': round(z, 3), 'tile': tile_of(x, z),
                     'rings_local': [[[round((p[0] - lon0) * mx, 3), round((p[1] - lat0) * M_PER_DEG, 3)] for p in ring] for ring in rings]})
         # the outline the builder was told to follow (footprint.json: the map's, or the laser-scan trace where the map's was found off)
         own = json.load(open(folder + '/footprint.json')) if os.path.exists(folder + '/footprint.json') else fp
