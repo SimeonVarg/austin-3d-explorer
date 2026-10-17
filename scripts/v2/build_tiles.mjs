@@ -28,7 +28,7 @@ const ORIGIN = { lat: 30.28601, lon: -97.73932 };   // must equal sources.py ORI
 const TILE_M = 250;
 const FAR_SIMPLIFY_RATIO = 0.5;      // lod1 keeps at most this share of triangles...
 const FAR_SIMPLIFY_ERROR = 0.002;    // ...and moves no surface by more than this share of the tile's size (0.002 x ~250 m = 0.5 m)
-const MESHOPT_LEVEL = 'medium';
+const MESHOPT_LEVEL = 'high';     // filter mode (octahedral normals etc.): about a fifth smaller than 'medium', keeps the dense West Campus tile under the phone line
 const QUANT = { quantizePosition: 14, quantizeNormal: 10, quantizeTexcoord: 12 };  // 14 bits over a ~260 m tile = 1.6 cm
 // A near tile over this is reported. Why 2 MB: a phone on cellular (~5-10 Mbit/s) fetches it in 2-3 s, and its decoded vertex and index
 // buffers (about 3-4x the Meshopt file) stay under ~8 MB of GPU memory, so the dozen or so tiles around the camera fit the phone's budget
