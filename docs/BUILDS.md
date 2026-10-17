@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 350 builds of 291 buildings; 105 buildings flagged to retarget.
+Right now: 351 builds of 292 buildings; 106 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -53,6 +53,7 @@ Right now: 350 builds of 291 buildings; 105 buildings flagged to retarget.
 | Inspire on 22nd | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 40,966 | 78 min |  |  |
 | Ion Austin | Opus 5.5 | 2026-10-12 |  | public photo | unreviewed | 7,056 | 60 min |  | yes |
 | John H. Reagan State Office Building | Sonnet 5.5 | 2026-10-15 |  | public photo | unreviewed |  | 7 min, 61k plan tokens |  | yes |
+| Lantern Lane Apartments | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,563 | 51 min, $2.00 |  | yes |
 | Lark Austin | Opus 5.5 | 2026-10-13 | proven | mixed | unreviewed | 6,292 | 75 min, 644k plan tokens |  |  |
 | Legacy on Rio | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 22,385 | 41 min, 364k plan tokens |  |  |
 | Loggia block with shingle roof (90072241) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 11,701 | 34 min, 371k plan tokens |  |  |
@@ -327,6 +328,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Indeed Tower** (Sol 6.1, fix round): Sol fix round on the Opus build at his ask: sharp mullions, glass mix, SW corner and N tip moved; camera check conditional on the new shape; cost $1.61
 - **John H. Reagan State Office Building** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
 - **Kappa Delta house** (Sol 6.1, redo): Sol redo of the Haiku build at the same triangle budget; cheaper model, cream wall where photo is white
+- **Lantern Lane Apartments** (Sol 6.1): Sol on an Earth 3D package + site photographs; overlay aligns closely; banner not built
 - **Norwood Tower** (Sonnet 5.5, fix round): named fix: dark_window glass; panes 60/76/89 -> 27/32/40 vs photo 25/29/39
 - **Nursing School** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
 - **Pi Beta Phi house** (Sol 6.1, redo): Sol redo: real portico, but sits smaller and a little turned
