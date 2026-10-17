@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 313 builds of 254 buildings; 70 buildings flagged to retarget.
+Right now: 314 builds of 255 buildings; 71 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -250,6 +250,7 @@ Right now: 313 builds of 254 buildings; 70 buildings flagged to retarget.
 
 | Building | Model | Date | Camera | Source | Status | Triangles | Minutes / cost | Owner score | Retarget |
 |---|---|---|---|---|---|---|---|---|---|
+| 111 Congress | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 21,394 | 31 min, 350k plan tokens |  | yes |
 | 300 Colorado | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 13,484 | 33 min, 329k plan tokens |  | yes |
 | 301 Congress | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 11,486 | 31 min, 371k plan tokens |  | yes |
 | Austin Marriott Downtown | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 6,002 | 26 min, 326k plan tokens |  | yes |
@@ -305,6 +306,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### The best build is Opus but has a known open fault
 
+- **111 Congress**: Earth 3D; crown-corner held-outs 1.8/1.4 px pass, shape checks to 8.3 px; camera/shape split assigned after errors were seen, so loose; serrated sides too light
 - **300 Colorado**: Earth 3D; two-view solve, 4 held-out pass but a 5th was dropped after its error was seen (on the front building's roof), so loose; plain glass tower, 13.5k tri vs 26k target (builder: no visible detail left)
 - **301 Congress**: Earth 3D; held-out 8.4/16.7/8.7/17.0 px, no rescue tried (9t kept); tiers match scan within 0.6 m; 11.5k vs 20k
 - **Andrews Dormitory**: weak camera proof; west wing hidden by an oak; east section inferred; roof pitches fitted to the scan
