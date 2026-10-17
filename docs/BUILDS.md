@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 378 builds of 314 buildings; 116 buildings flagged to retarget.
+Right now: 379 builds of 314 buildings; 116 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -461,7 +461,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Dorothy Gebauer Building**: three early stops (oaks; floating camera; scale free with one panorama position); PARKED; parapet ~3 m over the roof deck
 - **The Block on Pearl (south)**: parked: Earth 3D only; held-out fails (one pick on the wrong edge); massing reads wrong next to Earth; 800 px draft only; not sent
 - **Block on Pearl north (064e7194)**: parked, not sent: very noisy 16-sample draft, mansards and blue walls far too dark, massing reads heavier than Earth; same complex as the parked Pearl south
-- **West Campus block a06cb507**: Sol on a weak Earth package (34% of frame, oaks); angle off; roofs rough; blue pads
+- **West Campus block a06cb507**: Opus redo, unfinished: 1 storey fits the scan, but roof render 30-40 px off the views (corner matching wrong); colour checks invalid; next: named corners at 4x
 
 ### Good test set for a cheaper model
 
@@ -534,6 +534,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Walter Webb Hall | Sol 6.1 | lean | 2026-10-14 | proven | public photo | 13,610 | 72 min, $2.80 |  | superseded | glass too light; name sign clipped at the wall edge |
 | West Campus block 73d1d197 | Sol 6.1 | lean | 2026-10-17 | loose | Earth 3D | 3,200 | 41 min, $1.86 |  | superseded | Sol on an Earth 3D package (sol_earth_task.py); red east block outside outline omitted; camera roof corners loose |
 | West Campus block 7aacc4af | Sol 6.1 | lean | 2026-10-17 | loose | Earth 3D | 3,200 | 49 min, $2.00 |  | superseded | Sol on an Earth 3D package; overlay aligns; tree-hidden half left as blank white walls |
+| West Campus block a06cb507 | Opus 5.5 | redo | 2026-10-17 | unproven | Earth 3D | 3,040 | 35 min, 188k plan tokens |  | trial | Opus redo, unfinished: 1 storey fits the scan, but roof render 30-40 px off the views (corner matching wrong); colour checks invalid; next: named corners at 4x |
 | West Campus block a06cb507 | Sol 6.1 | lean | 2026-10-17 | loose | Earth 3D | 3,148 | 66 min, $2.00 |  | trial | Sol on a weak Earth package (34% of frame, oaks); angle off; roofs rough; blue pads |
 | West Campus block bb4c0263 | Sol 6.1 | lean | 2026-10-17 | loose | Earth 3D | 2,600 | 42 min, $2.00 |  | superseded | Sol on an Earth 3D package; overlay aligns; plain bar only; neighbouring white wing outside outline |
 | William P. Clements Jr. State Office Building | Opus 5.5 | lean | 2026-10-15 |  |  | 20,748 | 50 min, 420k plan tokens |  | superseded | other buildings; gate done by the builder; glass light; hidden faces inferred |
