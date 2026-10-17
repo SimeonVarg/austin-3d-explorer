@@ -26,11 +26,12 @@
     "hogg-memorial-auditorium",
     "littlefield-house",
     "peter-t-flawn-academic-center",
-    "union-building"
+    "union-building",
+    "ut-tower-main-building"
    ],
    "bytes": [
-    1735496,
-    42004
+    1881620,
+    49404
    ]
   },
   {
@@ -4353,6 +4354,17 @@
    "x": 57.923,
    "z": 334.112,
    "top": 22.9
+  },
+  "ut-tower-main-building": {
+   "tile": "t_-1_-1",
+   "map_ids": [
+    "a0af80df"
+   ],
+   "name": "UT Tower and Main Building",
+   "model": "opus",
+   "x": -0.478,
+   "z": -0.509,
+   "top": 95
   },
   "villas-at-san-gabriel": {
    "tile": "t_-4_-2",

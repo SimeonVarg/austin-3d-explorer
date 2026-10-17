@@ -1,11 +1,11 @@
 {
  "about": "Every current best Blender build (BUILDS.json status \"best\") and whether it is in the v2 tiles. Written by scripts/v2/build_tiles.mjs.",
- "built": "2026-10-17T19:52:19.514Z",
+ "built": "2026-10-17T22:14:42.835Z",
  "exporter": "b8707bf422eeb96d",
  "tiler": "30b5bca63aa7c6b3",
  "totals": {
   "best": 304,
-  "exported": 301
+  "exported": 302
  },
  "buildings": {
   "100-congress": {
@@ -3867,14 +3867,19 @@
    }
   },
   "ut-tower-main-building": {
-   "exported": false,
-   "reason": "not exported yet",
+   "exported": true,
+   "reason": null,
    "model": "opus",
    "kind": "campus",
    "tile": "t_-1_-1",
    "blend_sha256": "a7aaf04a4dc8a4e1",
-   "lod1": null,
-   "placement": null
+   "lod1": "mass",
+   "placement": {
+    "height_m": 95,
+    "area_ratio": 1.095,
+    "centre_off_m": 1.01,
+    "flags": []
+   }
   },
   "villas-at-san-gabriel": {
    "exported": true,
@@ -4823,15 +4828,15 @@
  },
  "tiles": {
   "t_-1_-1": {
-   "hash": "1f67e9dd3ae3fac5",
+   "hash": "305fc8120030518c",
    "near": {
-    "bytes": 1735496,
-    "tris": 157037,
+    "bytes": 1881620,
+    "tris": 171506,
     "draws": 2
    },
    "far": {
-    "bytes": 42004,
-    "tris": 3208,
+    "bytes": 49404,
+    "tris": 3877,
     "draws": 1
    }
   },
