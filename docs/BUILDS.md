@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 326 builds of 267 buildings; 81 buildings flagged to retarget.
+Right now: 327 builds of 268 buildings; 82 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -112,6 +112,7 @@ Right now: 326 builds of 267 buildings; 81 buildings flagged to retarget.
 | West Campus block + car-park deck (8f3cb88c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 15,910 | 33 min, 356k plan tokens |  |  |
 | West Campus block 41d7f858 | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 7,426 | 42 min, 380k plan tokens |  | yes |
 | West Campus block 619cb351 | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 4,250 | 40 min, 330k plan tokens |  | yes |
+| West Campus block 73d1d197 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,200 | 41 min, $1.86 |  | yes |
 | West Campus block 944d806a | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 4,269 | 31 min, 350k plan tokens |  | yes |
 | West Campus block c84206c0 | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 10,878 | 36 min, 341k plan tokens |  |  |
 | West Campus block e287bfea | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 4,682 | 32 min, 348k plan tokens |  | yes |
@@ -314,6 +315,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **University Avenue Church of Christ** (Sol 6.1, redo): Sol redo; it chose its own camera limit (24 px) to pass; stone too even
 - **University Catholic Center** (Sol 6.1): soffit dark; glass dark
 - **Walter Webb Hall** (Sol 6.1, fix round): redo with the three checks; glass too bright
+- **West Campus block 73d1d197** (Sol 6.1): Sol on an Earth 3D package (sol_earth_task.py); red east block outside outline omitted; camera roof corners loose
 - **William P. Clements Jr. State Office Building** (Sol 6.1, fix round): his ask: Sol fix round; glass, corners, arch improved
 
 ### The best build is Opus but has a known open fault
