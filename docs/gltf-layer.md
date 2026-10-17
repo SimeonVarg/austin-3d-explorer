@@ -818,3 +818,19 @@ the same rows in the same order), and only its live part is sent. A far copy und
 draws its row's triangles out of the same vertices (its small index list is kept with the row). The shadow pass sees the same triangles.
 
 **Same picture:** 0 of 5,184,000 pixels differ at all (1440 x 900 at 2, in one page, before against after) in all four views (run 39056661763).
+
+**Speed** (AWS L4 run 39059758764, `scripts/verify/perf-layer-table.mjs --only desktop --arms off,bothOld,both`: one fresh page per arm, 3
+reps with the arm order rotated, 60 frames a pass after 36 warm, minimum of the median frame interval, vsync off, the auto-detect probe
+cancelled, load average 2.5-3.7 on 8 CPUs; desktop 1280 x 800 at 1.5; both arms `?gltffardist=400&gltfatlasmb=96`; % = against the layer off):
+
+| view | off | before (`gltfcopystill=0`) | after | p95 before / after |
+|---|---|---|---|---|
+| opening view | 8.9 ms | 10.7 (+20 %) | 10.1 (+13 %) | 30.1 / 13.1 ms |
+| start, close | 8.5 | 11.3 (+33 %) | 10.8 (+27 %) | 29.8 / 14.9 |
+| over West Campus | 7.9 | 11.5 (+46 %) | 9.2 (+16 %) | 36.1 / 27.0 |
+| Union on San Antonio, close | 7.6 | 9.4 (+24 %) | 8.9 (+17 %) | 12.9 / 11.8 |
+
+Three of four desktop views now meet +25 % (start close +27 % does not). Memory after all poses: Chrome process tree 4,699 -> 4,452 MB,
+whole-card GPU memory 1,723 -> 1,682 MB (off: 4,439 and 1,546). The simulated phone was measured only on a loaded machine (load average 16
+falling to 3, run 39056661763) and is not quoted as a result: in one page over West Campus the layer's JS fell from 19.3 to 11.2 ms a frame
+(off 6.5). The phone table still needs a quiet run.
