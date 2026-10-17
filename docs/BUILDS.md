@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 379 builds of 314 buildings; 116 buildings flagged to retarget.
+Right now: 379 builds of 314 buildings; 118 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -199,7 +199,6 @@ Right now: 379 builds of 314 buildings; 116 buildings flagged to retarget.
 | Chemical and Petroleum Engineering | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 12,062 | 55 min |  |  |
 | Collections Deposit Library | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 506 | 29 min, 347k plan tokens |  |  |
 | Dealey Center for New Media | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,912 | 36 min, 360k plan tokens |  |  |
-| DKR Memorial Stadium | Opus 5.5 | 2026-10-17 | loose | mixed | unreviewed | 14,953 | 45 min, 168k plan tokens |  |  |
 | Edgar A. Smith Building | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 8,068 | 55 min, 461k plan tokens |  |  |
 | Employees Retirement System of Texas | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 17,829 | 44 min, 363k plan tokens |  |  |
 | Engineering Education and Research Center | Opus 5.5 | 2026-10-16 | proven | mixed | unreviewed | 23,912 | 44 min, 404k plan tokens |  |  |
@@ -278,7 +277,6 @@ Right now: 379 builds of 314 buildings; 116 buildings flagged to retarget.
 | University Presbyterian Church | Opus 5.5 | 2026-10-14 | unproven | public photo | unreviewed | 14,435 | 56 min, 401k plan tokens |  | yes |
 | University Teaching Center | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 19,958 | 32 min, 305k plan tokens |  |  |
 | UT office block (878d9137) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 14,184 | 31 min, 329k plan tokens |  |  |
-| UT Tower and Main Building | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 14,469 | 65 min, 469k plan tokens |  |  |
 | Waggener Hall | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 20,433 | 51 min, 436k plan tokens |  |  |
 | Walter Webb Hall | Sol 6.1 | 2026-10-14 | proven | public photo | unreviewed | 14,481 | 37 min, $1.61 |  | yes |
 | Will C. Hogg Building | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 24,386 | 55 min, 420k plan tokens |  |  |
@@ -462,6 +460,8 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **The Block on Pearl (south)**: parked: Earth 3D only; held-out fails (one pick on the wrong edge); massing reads wrong next to Earth; 800 px draft only; not sent
 - **Block on Pearl north (064e7194)**: parked, not sent: very noisy 16-sample draft, mansards and blue walls far too dark, massing reads heavier than Earth; same complex as the parked Pearl south
 - **West Campus block a06cb507**: Opus redo, unfinished: 1 storey fits the scan, but roof render 30-40 px off the views (corner matching wrong); colour checks invalid; next: named corners at 4x
+- **UT Tower and Main Building**: His verdict: bad; Earth 3D where clear photos exist; remake from his photos + public photos running
+- **DKR Memorial Stadium**: His score 0.5 (live site ~4): two blurry Earth views, rushed; needs many clear photos and full detail
 
 ### Good test set for a cheaper model
 
@@ -487,6 +487,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Brown Building | Opus 5.5 | lean | 2026-10-15 |  | Street View | 17,514 | 51 min, 390k plan tokens |  | failed | camera not proven: misses along the east face far end (17-21 px); east face length from OSM likely off; retry after Street View captures |
 | Cambridge Tower | Opus 5.5 | first batch | 2026-10-12 |  | site photographs | 20,636 | 50 min |  | superseded | no score given; second final render added after a picture/model mismatch |
 | Dewitt C. Greer State Highway Building | Opus 5.5 | lean | 2026-10-15 |  | mixed | 25,244 | 51 min, 437k plan tokens |  | failed | camera not proven (3 of 6 held-out over 8 px, one own bad pick); scale on a traced outline 15% off the photo; not sent |
+| DKR Memorial Stadium | Opus 5.5 | lean | 2026-10-17 | loose | mixed | 14,953 | 45 min, 168k plan tokens | 0.5 | failed | His score 0.5 (live site ~4): two blurry Earth views, rushed; needs many clear photos and full detail |
 | Dorothy Gebauer Building | Opus 5.5 | lean | 2026-10-15 |  | public photo |  | 26 min, 336k plan tokens |  | failed | three early stops (oaks; floating camera; scale free with one panorama position); PARKED; parapet ~3 m over the roof deck |
 | Driskill Hotel | Opus 5.5 | lean | 2026-10-15 |  | public photo | 35,655 | 62 min, 448k plan tokens |  | failed | 3 of 4 held-out pass; 4th on a traced OSM corner 3-4 m off (128 px); retry as a model fix started |
 | Driskill Hotel | Opus 5.5 | redo | 2026-10-15 |  | public photo | 35,211 | 15 min, 200k plan tokens |  | trial | corner fix: held-out 127.9 -> 8.6 px (0.6 over); colour gate passes; no carving; sent as a rough version |
@@ -529,6 +530,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | University Avenue Church of Christ | Haiku 5.5 | trial | 2026-10-13 | unproven | site photographs | 977 | 36 min, 443k plan tokens | <6 | superseded | Haiku alone: stone box, camera unproven |
 | University Christian Church | Opus 5.5 | lean | 2026-10-15 |  | public photo | 19,966 | 60 min, 461k plan tokens |  | failed | camera not proven (held-out 164-375 px); heights 0.8 of scan, gable front 10.3 m vs survey 6 m; tower crown wrong; not sent |
 | University Christian Church | Opus 5.5 | redo | 2026-10-15 |  | public photo | 20,646 | 45 min, 533k plan tokens |  | failed | retries 2+3: outline misread fixed, heights within 1% of scan, crown right; camera still not proven (54/54 px, likely a pavement drop); parked after 3 tries |
+| UT Tower and Main Building | Opus 5.5 | lean | 2026-10-17 | loose | mixed | 14,469 | 65 min, 469k plan tokens | "the tower you made looks bad. you used google earth 3d" | failed | His verdict: bad; Earth 3D where clear photos exist; remake from his photos + public photos running |
 | Villas on Nueces | Haiku 5.5 | trial | 2026-10-13 | unproven | mixed | 2,490 | 27 min, 315k plan tokens | "A is really horrible haiku" | trial | owner: horrible; does not register to the photograph |
 | Villas on Nueces | Sonnet 5.5 | trial | 2026-10-13 | proven | mixed | 2,698 | 57 min, 468k plan tokens | "B is sonnet it's somewhat alright" | trial | owner: somewhat alright; roof 28% over the scan |
 | Walter Webb Hall | Sol 6.1 | lean | 2026-10-14 | proven | public photo | 13,610 | 72 min, $2.80 |  | superseded | glass too light; name sign clipped at the wall edge |
