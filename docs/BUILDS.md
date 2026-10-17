@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 316 builds of 257 buildings; 73 buildings flagged to retarget.
+Right now: 317 builds of 258 buildings; 73 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -253,6 +253,7 @@ Right now: 316 builds of 257 buildings; 73 buildings flagged to retarget.
 | 111 Congress | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 21,394 | 31 min, 350k plan tokens |  | yes |
 | 300 Colorado | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 13,484 | 33 min, 329k plan tokens |  | yes |
 | 301 Congress | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 11,486 | 31 min, 371k plan tokens |  | yes |
+| 405 Colorado | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 12,476 | 35 min, 346k plan tokens |  |  |
 | Austin Marriott Downtown | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 6,002 | 26 min, 326k plan tokens |  | yes |
 | Barbara Jordan State Office Building | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,114 | 44 min, 396k plan tokens |  |  |
 | Block 185 | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 10,452 | 40 min, 355k plan tokens |  |  |
