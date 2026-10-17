@@ -21,8 +21,11 @@ const RUNS = [
   ['desktop', ['--reps', '3', '--frames', '60', '--poses', POSES, '--arms', ARMS, '--deadline-min', '26']],
   ['phone4x', ['--reps', '3', '--frames', '24', '--poses', POSES, '--arms', ARMS, '--phone', '--throttle', '4', '--deadline-min', '26']],
 ];
+// --only desktop|phone4x: run just that measurement. The AWS machine's idle watchdog stops it when ONE check runs longer than 20 minutes
+// (it is fed when a check starts), so the two measurements together (about 35 minutes) go in two runs.
+const oi = process.argv.indexOf('--only'), ONLY = oi >= 0 ? process.argv.splice(oi, 2)[1] : null;
 let code = 0;
-for (const [label, args] of RUNS) {
+for (const [label, args] of RUNS.filter(r => !ONLY || r[0] === ONLY)) {
   console.log(`\n===== ${label} =====`);
   const r = spawnSync('node', [path.join(HERE, '../perf/layer-speed.mjs'), '--url', URLB + '/', '--label', label, '--out', path.join(OUT, label), ...args, ...process.argv.slice(2)], { stdio: 'inherit', env: process.env, cwd: HERE });
   if (r.status) { console.log(`[${label}] exit ${r.status}`); code = r.status; }
