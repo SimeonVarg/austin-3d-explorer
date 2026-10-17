@@ -155,6 +155,24 @@ const PAGE_SETUP = `(() => {
     oldNoSync: () => { const u = own({ shared: false, pack: false }), C = window.CitySky, f = C.sync; C.sync = () => null; return () => { C.sync = f; u(); }; },
     oldNoDraw: () => noDraw(own({ shared: false, pack: false })),
     noDraw: () => noDraw(() => {}),
+    // ── WHERE the far-copy view's time goes (2026-10-17, mac/gltf-westcampus-cost; run with ?gltffardist=400) ──
+    //   noFull        every full building hidden, the far copies stay (as loaded: the far copy alone where it stands alone)
+    //   noCopies      every far copy hidden (the one mesh of those that stand alone and each one under a dissolving building), full buildings stay
+    //   noUnder       only the far copies under a dissolving building hidden (one mesh and draw each)
+    //   noAtlasPic    the atlas's picture pass draws nothing (its target is still cleared and resolved)
+    //   noAtlasCanvas the atlas's depth, lay and glass pass on the canvas draws nothing
+    //   noSync        the hour's sky not set on any of the layer's materials (CitySky.sync a no-op)
+    //   aa2           every box smoothed with 2 samples a pixel (the tiers' 8 and 4 too): what the samples cost
+    //   scale1        no box drawn at more than the canvas's pixels (the tiers' Scale 1): what the finer far tiers cost
+    noFull: () => { const hid = []; for (const e of rows()) if (e.built && e.built.group.visible) { e.built.group.visible = false; hid.push(e.built.group); } return () => { for (const g of hid) g.visible = true; }; },
+    noCopies: () => { const cg = COPY.group, cv = cg && cg.visible; if (cg) cg.visible = false; return () => { if (cg) cg.visible = cv; }; },
+    noUnder: () => { const hid = []; for (const m of COPY.fades.values()) if (m.visible) { m.visible = false; hid.push(m); } return () => { for (const m of hid) m.visible = true; }; },
+    noAtlasPic: () => { const A = OWN.atlas, s = A && [A.spic, A.pic]; if (s) for (const x of s) x.visible = false; return () => { if (s) for (const x of s) x.visible = true; }; },
+    noAtlasCanvas: () => { const A = OWN.atlas, s = A && [A.scanvas, A.canvas]; if (s) for (const x of s) x.visible = false; return () => { if (s) for (const x of s) x.visible = true; }; },
+    noSync: () => { const C = window.CitySky, f = C.sync; C.sync = () => null; return () => { C.sync = f; }; },
+    aa2: () => { const O = G.look.own, F = G.look.far, was = [O.samples, O.bigSamples, F.tinySamples, F.smallSamples, F.midSamples]; O.samples = O.bigSamples = F.tinySamples = F.smallSamples = F.midSamples = 2;
+      return () => { [O.samples, O.bigSamples, F.tinySamples, F.smallSamples, F.midSamples] = was; }; },
+    scale1: () => { const F = G.look.far, was = [F.tinyScale, F.smallScale, F.midScale]; F.tinyScale = F.smallScale = F.midScale = 1; return () => { [F.tinyScale, F.smallScale, F.midScale] = was; }; },
   };
   function own(set) { const O = G.look.own, was = {}; for (const k of Object.keys(set)) { was[k] = O[k]; O[k] = set[k]; } return () => Object.assign(O, was); }
   function oldPics(upload) {
@@ -170,7 +188,7 @@ const PAGE_SETUP = `(() => {
   }
   const status = () => ({ timer: !!ext, own: OWN.list.length, fullShown: OWN.list.filter(b => b.group && b.group.visible).length, rows: rows().length, loaded: rows().filter(e => e.state === 2).length,
     copiesShown: COPY.shown, ownPixels: OWN.pixels, atlas: !!G.look.own.atlas, ownRenders: OWN.renders, ownFlushes: OWN.flushes, shared: !!G.look.own.shared, pack: !!G.look.own.pack, atlasMB: G.look.own.atlasMB, shPushes: OWN.sh ? OWN.sh.pushes : null, shUploads: OWN.sh ? OWN.sh.uploads : null, needMB: OWN.needMB, ownMB: Math.round((OWN.bytes || 0) / 1e6), layerTris: G.info.look ? G.info.look.triangles : null,
-    shadowMapRenders: S.sunlightStats().shadowMapRenders, tiers: OWN.list.filter(b => b.group && b.group.visible).map(b => (b.samples || 0) + 'x' + (b.scale || 0)).join(' ') });
+    shadowMapRenders: S.sunlightStats().shadowMapRenders, copyRebuilds: COPY.rebuilds, dissolving: rows().filter(e => e.farMode === 2).length, under: COPY.fades ? COPY.fades.size : 0, tiers: OWN.list.filter(b => b.group && b.group.visible).map(b => (b.samples || 0) + 'x' + (b.scale || 0)).join(' ') });
   // farNNN: the far copy alone from NNN m on the owner's 1440 x 900 window (GLTF.look.copy.perM converts; js/gltf-layer.js ?gltffardist)
   const farV = name => { const m = /^far(\\d+)$/.exec(name); if (!m) throw new Error('no variant ' + name);
     return () => { const C = G.look.copy, a = C.fullM, b = C.farM; C.farM = +m[1] * C.perM; C.fullM = C.farM * C.share; return () => { C.fullM = a; C.farM = b; }; }; };
@@ -199,7 +217,7 @@ const PAGE_SETUP = `(() => {
       await new Promise(res => {
         const step = (ts) => {
           pollGpu();
-          if (i > 2) rec.push({ dt: ts - last, cpu: st.cpu, own: OWN.ms, renders: OWN.renders, mb: OWN.needMB, calls: st.calls, tris: st.tris, frame: st.frame });
+          if (i > 2) rec.push({ dt: ts - last, cpu: st.cpu, own: OWN.ms, renders: OWN.renders, mb: OWN.needMB, calls: st.calls, tris: st.tris, frame: st.frame, rb: COPY.rebuilds, n2: rows().filter(e => e.farMode === 2).length, px: OWN.pixels, sm: S.sunlightStats().shadowMapRenders });
           last = ts; st.frame = (st.frame || 0) + 1;
           if (i++ >= cfg.n + 2) return res();
           m.jumpTo({ bearing: cfg.pose.bearing + i * 0.12 });
@@ -339,7 +357,8 @@ try {
         await ev(`window.__LC.pass(${cfg(WARM)}).then(()=>0)`);
         const { rec, gpu } = await ev(`window.__LC.pass(${cfg(FRAMES)})`);
         const agg = { free: r2(pct(rec.map(x => x.dt), 0.5)), p95: r2(pct(rec.map(x => x.dt), 0.95)), cpu: r2(pct(rec.map(x => x.cpu), 0.5)), gpu: r2(pct(gpu, 0.5)), gpuN: gpu.length, own: r2(pct(rec.map(x => x.own), 0.5)),
-          calls: pct(rec.map(x => x.calls), 0.5), tris: pct(rec.map(x => x.tris), 0.5), renders: pct(rec.map(x => x.renders), 0.5), mb: pct(rec.map(x => x.mb), 0.5), fullShown: s.fullShown, ownPixels: s.ownPixels };
+          calls: pct(rec.map(x => x.calls), 0.5), tris: pct(rec.map(x => x.tris), 0.5), renders: pct(rec.map(x => x.renders), 0.5), mb: pct(rec.map(x => x.mb), 0.5), fullShown: s.fullShown, ownPixels: s.ownPixels,
+          rebuilds: rec.length ? rec[rec.length - 1].rb - rec[0].rb : null, dissolving: pct(rec.map(x => x.n2), 0.5), px: pct(rec.map(x => x.px), 0.5), shadowMaps: rec.length ? rec[rec.length - 1].sm - rec[0].sm : null };
         (per[v] = per[v] || []).push(agg);
       }
       await ev(`window.__LC.set('on')`);
@@ -360,15 +379,16 @@ const mn = a => { const b = a.filter(x => x != null); return b.length ? Math.min
 const table = {};
 for (const [name, P] of Object.entries(result.poses)) {
   out.push(`\n## ${name}  (${JSON.stringify(P.status)})`);
-  out.push('| variant | free ms | free delta | cpu ms | cpu delta | gpu ms | gpu delta | own ms | render calls (smoothing) | target MB | draw calls | triangles | free per round |');
-  out.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  out.push('| variant | free ms | free delta | cpu ms | cpu delta | gpu ms | gpu delta | own ms | render calls (smoothing) | target MB | draw calls | triangles | picture px | dissolving | far-copy rebuilds a pass (max) | shadow-map draws a pass (max) | free per round |');
+  out.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
   const base = k => mn(P.per.off.map(x => x[k]));
   table[name] = {};
   for (const v of VARIANTS) {
     const rs = P.per[v]; if (!rs) continue;
     const m = k => mn(rs.map(x => x[k])), d = k => (m(k) != null && base(k) != null ? (m(k) - base(k) >= 0 ? '+' : '') + (m(k) - base(k)).toFixed(2) : '-');
     table[name][v] = { free: m('free'), cpu: m('cpu'), gpu: m('gpu'), own: m('own'), renders: m('renders'), mb: m('mb'), calls: m('calls'), tris: m('tris') };
-    out.push(`| ${v} | ${m('free')} | ${d('free')} | ${m('cpu')} | ${d('cpu')} | ${m('gpu')} | ${d('gpu')} | ${m('own')} | ${m('renders')} | ${m('mb')} | ${m('calls')} | ${m('tris')} | ${rs.map(x => x.free).join(' / ')} |`);
+    const mx = k => { const b = rs.map(x => x[k]).filter(x => x != null); return b.length ? Math.max(...b) : null; };
+    out.push(`| ${v} | ${m('free')} | ${d('free')} | ${m('cpu')} | ${d('cpu')} | ${m('gpu')} | ${d('gpu')} | ${m('own')} | ${m('renders')} | ${m('mb')} | ${m('calls')} | ${m('tris')} | ${m('px')} | ${m('dissolving')} | ${mx('rebuilds')} | ${mx('shadowMaps')} | ${rs.map(x => x.free).join(' / ')} |`);
   }
   const p = result.profiles[name];
   if (p) {
