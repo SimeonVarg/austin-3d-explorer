@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 328 builds of 269 buildings; 83 buildings flagged to retarget.
+Right now: 329 builds of 270 buildings; 84 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -47,6 +47,7 @@ Right now: 328 builds of 269 buildings; 83 buildings flagged to retarget.
 | Greenwood Towers | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 13,594 | 38 min, 386k plan tokens |  |  |
 | Hampton Inn and Suites Austin (campus) | Opus 5.5 | 2026-10-14 | unproven | public photo | unreviewed | 18,819 | 56 min, 450k plan tokens |  | yes |
 | Hampton Inn and Suites Austin Downtown | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 25,994 | 49 min, 385k plan tokens |  |  |
+| Hardin House | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,981 | 76 min, $3.00 |  | yes |
 | HillTop | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 18,109 | 44 min, 389k plan tokens |  |  |
 | Icon | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 20,804 | 64 min, 445k plan tokens |  |  |
 | Inspire on 22nd | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 40,966 | 78 min |  |  |
@@ -302,6 +303,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Austin by Ellsworth Kelly** (Sonnet 5.5, fix round): named fix: coloured glass via new fb_glass (21 panes, worst-channel error 32 -> 0.5 of 255)
 - **Driskill Hotel** (Sol 6.1, fix round): his ask: detail pass; carving, surrounds, balusters added; camera still 0.6 px short
 - **Ernest O. Thompson State Office Building** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
+- **Hardin House** (Sol 6.1): Sol on an Earth 3D package + site photographs; grey wing built flat vs hipped; court depth >1 m off
 - **Indeed Tower** (Sol 6.1, fix round): Sol fix round on the Opus build at his ask: sharp mullions, glass mix, SW corner and N tip moved; camera check conditional on the new shape; cost $1.61
 - **John H. Reagan State Office Building** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
 - **Kappa Delta house** (Sol 6.1, redo): Sol redo of the Haiku build at the same triangle budget; cheaper model, cream wall where photo is white
