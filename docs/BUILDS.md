@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 317 builds of 258 buildings; 73 buildings flagged to retarget.
+Right now: 318 builds of 259 buildings; 74 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -271,6 +271,7 @@ Right now: 317 builds of 258 buildings; 73 buildings flagged to retarget.
 | One American Center | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 24,841 | 36 min, 376k plan tokens |  | yes |
 | Procore Tower | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 5,689 | 31 min, 370k plan tokens |  | yes |
 | Robert E. Johnson State Legislative Office Building | Opus 5.5 | 2026-10-16 | loose | Earth 3D | best | 21,746 | 33 min, 336k plan tokens | 5 | yes |
+| San Jacinto Center | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 8,961 | 37 min, 349k plan tokens |  | yes |
 | Southwest Tower | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 8,728 | 43 min, 398k plan tokens |  |  |
 | Speedway (campus road), first 178 m | Opus 5.5 | 2026-10-14 |  |  | best | 8,256 | 60 min, 426k plan tokens | "The top looks super weird" | yes |
 | Stephen F. Austin State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 22,682 | 32 min, 344k plan tokens |  |  |
@@ -340,6 +341,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Robert E. Johnson State Legislative Office Building** (score 5): no score yet; Earth 3D only; h225 proven, h045 (main) not; teal glass too dark
 - **Roberts Hall**: camera passed after post-hoc held-out fixes; brick and stone a bit dark; other wings from an aerial
 - **Rowling Hall**: fins miss the colour gate by 65%; south wing and street sides inferred
+- **San Jacinto Center**: Earth 3D; main-mass held-outs 1.9-13.7 px; shape checks 0.9-1.9 m; shade 45% dark; 9k vs 14k
 - **Speedway (campus road), first 178 m**: trees bad (thick black trunks, grey ceiling), west terrace, stairs and rails missing; round 2 cancelled by the owner
 - **Texan Tower**: name not confirmed (no readable sign); heights 6-9% under the scan
 - **The Callaway House**: colour level weakly anchored (k 10.8 vs 18.9); stepped corner box not built
