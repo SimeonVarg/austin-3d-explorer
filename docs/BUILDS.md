@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 352 builds of 293 buildings; 106 buildings flagged to retarget.
+Right now: 353 builds of 294 buildings; 106 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -138,6 +138,7 @@ Right now: 352 builds of 293 buildings; 106 buildings flagged to retarget.
 | West Campus block e1b470ab | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,556 | 65 min, $3.00 |  | yes |
 | West Campus block e287bfea | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 4,682 | 32 min, 348k plan tokens |  | yes |
 | West Campus block with ΣΧ letters (eaca344c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 11,724 | 30 min, 352k plan tokens |  |  |
+| West Campus brick bar 8d78646f | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,352 | 33 min, 331k plan tokens |  |  |
 | West Campus building 18668b8d | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 2,877 | 59 min, $2.00 |  | yes |
 | West Campus courtyard block (3b8f0f69) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 25,484 | 34 min, 367k plan tokens |  |  |
 | West Campus courtyard block (bddea10c) | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 27,305 | 38 min, 370k plan tokens |  |  |
@@ -434,7 +435,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### Good test set for a cheaper model
 
-Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Cream court block with 11 chimneys (04f1466e) (3,215 tri); Gabled walk-up (07ebbe8f) (1,228 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Solar-roof hall (63e601e8) (2,042 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Diplomat (2,154 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); White block on stilts (5b56cd35) (7,064 tri); Yugo Austin Waterloo (4,200 tri).
+Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Cream court block with 11 chimneys (04f1466e) (3,215 tri); Gabled walk-up (07ebbe8f) (1,228 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Solar-roof hall (63e601e8) (2,042 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Diplomat (2,154 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); West Campus brick bar 8d78646f (3,352 tri); White block on stilts (5b56cd35) (7,064 tri); Yugo Austin Waterloo (4,200 tri).
 
 ## All other builds
 
