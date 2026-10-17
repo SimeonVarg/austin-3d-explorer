@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 319 builds of 260 buildings; 75 buildings flagged to retarget.
+Right now: 320 builds of 261 buildings; 76 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -269,6 +269,7 @@ Right now: 319 builds of 260 buildings; 75 buildings flagged to retarget.
 | Indeed Tower | Sol 6.1 | 2026-10-16 | loose | Earth 3D | unreviewed | 31,619 | 33 min |  | yes |
 | JW Marriott Austin | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 19,288 | 34 min, 384k plan tokens |  | yes |
 | Lyndon B. Johnson State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 19,816 | 22 min, 287k plan tokens |  |  |
+| Omni Austin Hotel Downtown | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 7,661 | 33 min, 368k plan tokens |  | yes |
 | One American Center | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 24,841 | 36 min, 376k plan tokens |  | yes |
 | Procore Tower | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 5,689 | 31 min, 370k plan tokens |  | yes |
 | Robert E. Johnson State Legislative Office Building | Opus 5.5 | 2026-10-16 | loose | Earth 3D | best | 21,746 | 33 min, 336k plan tokens | 5 | yes |
@@ -337,6 +338,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Littlefield House**: camera unproven on an old small public photo; work render only; heights maybe 5-10 % high
 - **Norman Hackerman Building**: overcast photo: colour gate failed 2 of 10, sun set by hand; wall 3.5 m off the outline
 - **North Campus block 21fe5c30**: Earth 3D; 2 of 3 held-out fail (oak hides corners); plain stucco block, 2.8k tri vs 13k target; roof hue fixed (grey)
+- **Omni Austin Hotel Downtown**: Earth 3D; h135 proven (4.8/7.7 px), h315 loose (27 px at east corner, outline 7 m short); roof skylights crude
 - **One American Center**: Earth 3D; held-out 3 of 5 (8.7, 11.9 miss); stepped crowns right; shade 26-40% dark; 24.8k vs 30k
 - **Procore Tower**: Earth 3D; 3 held-out pass, 4th 85 px (pick above body top); dark glass hue brown vs grey-blue; 5.7k vs 12k
 - **Regents West at 26th**: camera unproven (stair bay vs survey); stucco too dark; east wing thin
