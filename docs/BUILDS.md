@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 342 builds of 283 buildings; 97 buildings flagged to retarget.
+Right now: 343 builds of 284 buildings; 98 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -124,6 +124,7 @@ Right now: 342 builds of 283 buildings; 97 buildings flagged to retarget.
 | West Campus block 944d806a | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 4,269 | 31 min, 350k plan tokens |  | yes |
 | West Campus block ae4909d9 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,624 | 71 min, $3.00 |  | yes |
 | West Campus block aef93bb7 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 2,400 | 35 min, $2.00 |  | yes |
+| West Campus block b01fbc20 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 2,729 | 42 min, $2.00 |  | yes |
 | West Campus block b497d279 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 2,338 | 48 min, $2.00 |  | yes |
 | West Campus block bb4c0263 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 2,600 | 42 min, $2.00 |  | yes |
 | West Campus block c84206c0 | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 10,878 | 36 min, 341k plan tokens |  |  |
@@ -340,6 +341,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **West Campus block 8c3494e9** (Sol 6.1): Sol on an Earth 3D package; courtyard block; overlay aligns; grainy draft; walls too white
 - **West Campus block ae4909d9** (Sol 6.1): Sol on an Earth 3D package; overlay aligns; both masses, roof pipes and units right; grainy draft
 - **West Campus block aef93bb7** (Sol 6.1): Sol on an Earth 3D package; overlay aligns well; T plan, roof, skylight right; street side inferred
+- **West Campus block b01fbc20** (Sol 6.1): Sol on an Earth 3D package; overlay aligns; roof stains and windows right; hidden face colour guessed
 - **West Campus block b497d279** (Sol 6.1): Sol on an Earth 3D package; overlay aligns; court tree built as red blobs; walls blue-white
 - **West Campus block bb4c0263** (Sol 6.1): Sol on an Earth 3D package; overlay aligns; plain bar only; neighbouring white wing outside outline
 - **West Campus block d4bda8fa** (Sol 6.1): Sol on an Earth 3D package; overlay aligns well; gable roofs, stone, court right; grainy draft
