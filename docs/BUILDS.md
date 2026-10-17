@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 358 builds of 298 buildings; 108 buildings flagged to retarget.
+Right now: 359 builds of 299 buildings; 108 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -100,6 +100,7 @@ Right now: 358 builds of 298 buildings; 108 buildings flagged to retarget.
 | The Standard | Opus 5.5 | 2026-10-12 |  | mixed | best | 17,168 | 47 min | "Standard needs work" | yes |
 | The Texan Shoal Creek | Sol 6.1 | 2026-10-13 |  | public photo | best | 15,565 | 21 min, $1.14 | "smooth stone detail / texture on the left tower" | yes |
 | The Venue on Guadalupe | Opus 5.5 | 2026-10-12 | proven |  | best | 3,631 | 63 min | "between 8s and 9s" |  |
+| The Venue on Guadalupe | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 13,506 | 58 min, 340k plan tokens |  |  |
 | Torre Student Living | Opus 5.5 | 2026-10-13 |  | mixed | unreviewed | 6,744 | 47 min, 427k plan tokens |  |  |
 | Twenty Two 15 | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 13,774 | 25 min, 314k plan tokens |  |  |
 | Two-wing brick block (bcf8a2ba) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 1,059 | 32 min, 364k plan tokens |  | yes |
