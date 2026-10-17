@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 353 builds of 294 buildings; 106 buildings flagged to retarget.
+Right now: 354 builds of 295 buildings; 107 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -118,6 +118,7 @@ Right now: 353 builds of 294 buildings; 106 buildings flagged to retarget.
 | West Campus block 12d10e75 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,665 | 66 min, $2.00 |  | yes |
 | West Campus block 1fe7267c | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 4,500 | 48 min, $2.00 |  | yes |
 | West Campus block 41d7f858 | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 7,426 | 42 min, 380k plan tokens |  | yes |
+| West Campus block 4e03b7f5 | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 979 | 35 min, 330k plan tokens |  | yes |
 | West Campus block 4fb09ed3 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,261 | 41 min, $2.00 |  | yes |
 | West Campus block 521ab442 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,721 | 77 min, $3.00 |  | yes |
 | West Campus block 619cb351 | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 4,250 | 40 min, 330k plan tokens |  | yes |
@@ -417,6 +418,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Villas on Guadalupe**: weak build; worst wall stretch 7.3 m off the outline; roofs wrong
 - **Villas on Nueces**: owner: pretty good; camera unproven (a corner 1.8 m off); street face 1.8 m inside the outline; base storeys and Nueces face have no openings
 - **West Campus block 41d7f858**: Earth 3D; held-outs on 4 chimney tops at scan height 0.85-1.43 px (all one height); walls moved 1.3 m onto the scan roof; fewer cross hips than the views
+- **West Campus block 4e03b7f5**: Earth 3D; SW wing rebuilt on a lead-asked pass; 1 held-out 52.8 px on a tree-hidden corner; east part inferred
 - **West Campus block 619cb351**: Earth 3D; held-out 10.1/20.9/41.6 px; gables fixed on two lead-asked passes (cap bug, then width); court 8 m wider than survey
 - **West Campus block 944d806a**: Earth 3D; 3 of 4 camera held-outs miss (Earth court ~1-1.5 m east of scan); walls on scan roof 2.75 m east of map; outline includes a white house (house_* objects), may be separate
 - **West Campus block e287bfea**: Earth 3D; held-out 1.98/26.1/19.8 px: survey outline 2 m wider than the mesh at the west end; gallery bands too pale; 4.7k vs 9k
