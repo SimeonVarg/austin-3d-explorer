@@ -908,7 +908,7 @@
   //     dissolve over a stretch of the approach, never a pop. A full file that arrives late dissolves in over `fadeS` seconds.
   //   - The full file is fetched when `pxM` falls under `loadM` and let go above `unloadM`; the far copy stands in meanwhile.
   //   - A row whose far file is missing is drawn as before (its full file by distance).
-  const COPY = { group: null, mesh: null, mat: null, fadeMat: null, fades: new Map(), pending: 0, rows: 0, triangles: 0, shown: 0, bytes: 0, rebuilds: 0, dirty: false, t: 0, hooked: false, failed: null };
+  const COPY = { group: null, mesh: null, mat: null, fadeMat: null, fades: new Map(), underGeoms: new Set(), all: null, allRows: 0, allMode: null, allIdx: null, pending: 0, rows: 0, triangles: 0, shown: 0, bytes: 0, rebuilds: 0, dirty: false, t: 0, hooked: false, failed: null };
   GLTF.lookCopy = COPY;
   const cssAngle = () => { const m = window.__map, cv = m && m.getCanvas && m.getCanvas(); if (!cv) return 0; const fov = (m.getVerticalFieldOfView ? m.getVerticalFieldOfView() : 36.87) * Math.PI / 180; return 2 * Math.tan(fov / 2) / (cv.clientHeight || 900); };
   /** one row's far copy as vertex arrays in the city's own frame (four vertices a rectangle) */
@@ -966,9 +966,49 @@
       mat.uniforms.u_lookGlass.value.set(GS.power, lo, Math.max(Math.sin(Math.min(od + st, Math.PI / 2)), lo + 1e-4), GS.on ? 1 : 0); mat.uniforms.u_lookStd.value.set(GS.mirror, GS.recess); mat.uniforms.u_lookStraight.value.set(GS.straight[0], GS.straight[1]); };
     return mesh;
   }
+  // STILL (GLTF.look.copy.still, 2026-10-17, docs/gltf-layer.md "The far copies stay on the graphics card"): the far copies' vertices are put
+  // on the graphics card ONCE, all rows in one geometry. A change of which rows stand alone (a row that starts or stops changing places with its
+  // full building, many times a second while the camera moves) then rewrites only the INDEX list of the one mesh: the same triangles of the
+  // same rows in the same order as the mesh built again had, so the same picture, without building and uploading every far copy's vertices
+  // again (about a hundred rows, megabytes, several times a second over West Campus). A far copy under a dissolving building is a mesh of its
+  // own as before, drawing that row's triangles out of the same vertices (its geometry is kept for the row and made again only with the whole).
+  function copyStill(S) {
+    const list = ROWS.filter(e => e.far);
+    if (!COPY.all || COPY.allRows !== list.length || COPY.allMode !== 'still') {
+      copyDropAll();
+      const geom = copyGeometry(list.map(e => e.far)), full = geom.index.array;
+      let i0 = 0, v0 = 0; for (const e of list) { e.copyIdx = [i0, e.far.idx.length]; e.copyV = v0; i0 += e.far.idx.length; v0 += e.far.nv; }
+      // the one mesh's index list: as long as every row's, filled with the rows that stand alone; the full list is kept for the filling
+      COPY.allIdx = full; geom.setIndex(new window.THREE.BufferAttribute(new Uint32Array(full.length), 1).setUsage(window.THREE.DynamicDrawUsage));
+      COPY.all = geom; COPY.allRows = list.length; COPY.allMode = 'still';
+      COPY.mesh = copyMesh(S, geom, COPY.mat, 'gltf-look-far'); COPY.group.add(COPY.mesh);
+    }
+    const geom = COPY.all, idx = geom.index, alone = list.filter(e => e.farMode === 1);
+    let n = 0; for (const e of alone) { const [a, k] = e.copyIdx; idx.array.set(COPY.allIdx.subarray(a, a + k), n); n += k; }
+    geom.setDrawRange(0, n); idx.updateRange.offset = 0; idx.updateRange.count = n; idx.needsUpdate = true;
+    COPY.mesh.visible = n > 0;
+    for (const [e, mesh] of COPY.fades) if (e.farMode !== 2) { COPY.group.remove(mesh); COPY.fades.delete(e); }   // (its geometry stays with the row)
+    for (const e of list) if (e.farMode === 2 && !COPY.fades.has(e)) {
+      if (!e.underGeom) { const g = new window.THREE.BufferGeometry(); for (const [name] of COPY_ATTRS) g.setAttribute(name, geom.attributes[name]);
+        const [a, k] = e.copyIdx; g.setIndex(new window.THREE.BufferAttribute(COPY.allIdx.slice(a, a + k), 1)); g.userData.bytes = k * 4; e.underGeom = g; COPY.underGeoms.add(g); }
+      const mesh = copyMesh(S, e.underGeom, COPY.fadeMat, 'gltf-look-far-under'); mesh.layers.set(1); COPY.fades.set(e, mesh); COPY.group.add(mesh);
+    }
+    COPY.shown = alone.length; COPY.triangles = n / 3; COPY.bytes = geom.userData.bytes; for (const m of COPY.fades.values()) COPY.bytes += m.geometry.userData.bytes;
+    COPY.rebuilds++;
+  }
+  // every far-copy mesh and geometry let go (the under geometries first: they share the one geometry's vertices, and three.js lets go of a shared
+  // attribute's buffer with whichever geometry is let go first)
+  function copyDropAll() {
+    for (const [e, mesh] of COPY.fades) { COPY.group && COPY.group.remove(mesh); if (!e.underGeom) mesh.geometry.dispose(); } COPY.fades.clear();
+    for (const g of COPY.underGeoms) g.dispose(); COPY.underGeoms.clear(); for (const e of ROWS) e.underGeom = null;
+    if (COPY.mesh) { if (COPY.group) COPY.group.remove(COPY.mesh); COPY.mesh.geometry.dispose(); COPY.mesh = null; }
+    COPY.all = null; COPY.allRows = 0; COPY.allMode = null; COPY.allIdx = null;
+  }
   /** the one mesh of the far copies that stand alone, and a mesh each for those under a full building that is changing places with it */
   function copyRebuild(S) {
     COPY.dirty = false; if (!COPY.group) return;
+    if (GLTF.look.copy.still) return copyStill(S);
+    if (COPY.allMode === 'still') copyDropAll();
     if (COPY.mesh) { COPY.group.remove(COPY.mesh); COPY.mesh.geometry.dispose(); COPY.mesh = null; }
     const alone = ROWS.filter(e => e.far && e.farMode === 1);
     if (alone.length) { COPY.mesh = copyMesh(S, copyGeometry(alone.map(e => e.far)), COPY.mat, 'gltf-look-far'); COPY.group.add(COPY.mesh); }
@@ -1049,7 +1089,7 @@
     } else if (!want && _group) {
       clearInterval(_tick); _tick = null;
       for (const e of ROWS) unloadRow(e);
-      if (COPY.mesh) COPY.mesh.geometry.dispose(); for (const m of COPY.fades.values()) m.geometry.dispose(); COPY.fades.clear(); if (COPY.mat) COPY.mat.dispose(); if (COPY.fadeMat) COPY.fadeMat.dispose(); COPY.mesh = COPY.mat = COPY.fadeMat = COPY.group = null; COPY.pending = 0;
+      if (COPY.allMode === 'still') copyDropAll(); else { if (COPY.mesh) COPY.mesh.geometry.dispose(); for (const m of COPY.fades.values()) m.geometry.dispose(); COPY.fades.clear(); } if (COPY.mat) COPY.mat.dispose(); if (COPY.fadeMat) COPY.fadeMat.dispose(); COPY.mesh = COPY.mat = COPY.fadeMat = COPY.group = null; COPY.pending = 0;
       for (const k of Object.keys(OWN.pool)) { if (OWN.pool[k]) OWN.pool[k].dispose(); OWN.pool[k] = null; } OWN.list.length = 0; S.remove(_group); _group = null; GLTF.lookReady = false;
     }
     if (window.__map && window.__map.triggerRepaint) window.__map.triggerRepaint();

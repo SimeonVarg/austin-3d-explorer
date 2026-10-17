@@ -164,6 +164,7 @@ const PAGE_SETUP = `(() => {
     //   noSync        the hour's sky not set on any of the layer's materials (CitySky.sync a no-op)
     //   aa2           every box smoothed with 2 samples a pixel (the tiers' 8 and 4 too): what the samples cost
     //   scale1        no box drawn at more than the canvas's pixels (the tiers' Scale 1): what the finer far tiers cost
+    stillOff: () => { const C = G.look.copy, was = C.still; C.still = false; COPY.dirty = true; return () => { C.still = was; COPY.dirty = true; }; },   // (js/gltf-look.js STILL off: the far copies' mesh built again on every change)
     noFull: () => { const hid = []; for (const e of rows()) if (e.built && e.built.group.visible) { e.built.group.visible = false; hid.push(e.built.group); } return () => { for (const g of hid) g.visible = true; }; },
     noCopies: () => { const cg = COPY.group, cv = cg && cg.visible; if (cg) cg.visible = false; return () => { if (cg) cg.visible = cv; }; },
     noUnder: () => { const hid = []; for (const m of COPY.fades.values()) if (m.visible) { m.visible = false; hid.push(m); } return () => { for (const m of hid) m.visible = true; }; },
@@ -188,7 +189,7 @@ const PAGE_SETUP = `(() => {
   }
   const status = () => ({ timer: !!ext, own: OWN.list.length, fullShown: OWN.list.filter(b => b.group && b.group.visible).length, rows: rows().length, loaded: rows().filter(e => e.state === 2).length,
     copiesShown: COPY.shown, ownPixels: OWN.pixels, atlas: !!G.look.own.atlas, ownRenders: OWN.renders, ownFlushes: OWN.flushes, shared: !!G.look.own.shared, pack: !!G.look.own.pack, atlasMB: G.look.own.atlasMB, shPushes: OWN.sh ? OWN.sh.pushes : null, shUploads: OWN.sh ? OWN.sh.uploads : null, needMB: OWN.needMB, ownMB: Math.round((OWN.bytes || 0) / 1e6), layerTris: G.info.look ? G.info.look.triangles : null,
-    shadowMapRenders: S.sunlightStats().shadowMapRenders, copyRebuilds: COPY.rebuilds, dissolving: rows().filter(e => e.farMode === 2).length, under: COPY.fades ? COPY.fades.size : 0, tiers: OWN.list.filter(b => b.group && b.group.visible).map(b => (b.samples || 0) + 'x' + (b.scale || 0)).join(' ') });
+    shadowMapRenders: S.sunlightStats().shadowMapRenders, copyRebuilds: COPY.rebuilds, dissolving: rows().filter(e => e.farMode === 2).length, under: COPY.fades ? COPY.fades.size : 0, still: !!G.look.copy.still, copyFailed: COPY.failed || null, errors: ((G.info.look && G.info.look.errors) || []).slice(0, 3), tiers: OWN.list.filter(b => b.group && b.group.visible).map(b => (b.samples || 0) + 'x' + (b.scale || 0)).join(' ') });
   // farNNN: the far copy alone from NNN m on the owner's 1440 x 900 window (GLTF.look.copy.perM converts; js/gltf-layer.js ?gltffardist)
   const farV = name => { const m = /^far(\\d+)$/.exec(name); if (!m) throw new Error('no variant ' + name);
     return () => { const C = G.look.copy, a = C.fullM, b = C.farM; C.farM = +m[1] * C.perM; C.fullM = C.farM * C.share; return () => { C.fullM = a; C.farM = b; }; }; };

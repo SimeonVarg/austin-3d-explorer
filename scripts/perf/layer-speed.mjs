@@ -47,7 +47,9 @@ const DEADLINE_MIN = +arg('--deadline-min', 0);       // stop starting new arms 
 const T_START = Date.now();
 const EXTRA = arg('--query', '');
 // --arms off,on,both (2026-10-17, mac/layer-table-505): the arms to visit. off = the plain URL; any other arm turns the layer on with its query
-const ARM_QUERY = { off: '', on: 'gltf=1', far400: 'gltf=1&gltffardist=400', cap96: 'gltf=1&gltfatlasmb=96', both: 'gltf=1&gltffardist=400&gltfatlasmb=96' };
+const ARM_QUERY = { off: '', on: 'gltf=1', far400: 'gltf=1&gltffardist=400', cap96: 'gltf=1&gltfatlasmb=96', both: 'gltf=1&gltffardist=400&gltfatlasmb=96',
+  // (2026-10-17, mac/gltf-westcampus-cost) the same as `both` with the far copies rebuilt on every change (js/gltf-look.js STILL off): the before arm
+  bothOld: 'gltf=1&gltffardist=400&gltfatlasmb=96&gltfcopystill=0' };
 const ARMS = arg('--arms', 'off,on').split(',');                 // extra query text for both arms, e.g. skyrig=a
 fs.mkdirSync(OUT, { recursive: true });
 const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';

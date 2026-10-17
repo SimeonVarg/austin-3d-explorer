@@ -16,7 +16,8 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.VERIFY_OUT || '/tmp/perf-layer-table';
 const URLB = process.env.VERIFY_URL || 'http://127.0.0.1:8442';
 const POSES = 'spawn,start-close,west-campus,union-close';
-const ARMS = 'off,on,both';
+// --arms LIST (2026-10-17): the arms (default off,on,both); e.g. off,bothOld,both for the far-copy STILL before/after
+const ai = process.argv.indexOf('--arms'), ARMS = ai >= 0 ? process.argv.splice(ai, 2)[1] : 'off,on,both';
 const RUNS = [
   ['desktop', ['--reps', '3', '--frames', '60', '--poses', POSES, '--arms', ARMS, '--deadline-min', '26']],
   ['phone4x', ['--reps', '3', '--frames', '24', '--poses', POSES, '--arms', ARMS, '--phone', '--throttle', '4', '--deadline-min', '26']],

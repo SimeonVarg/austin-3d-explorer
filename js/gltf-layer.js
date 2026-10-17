@@ -298,7 +298,9 @@
       // copy starts giving way to the wall's mean colour when it is this many canvas pixels high, and is the mean at the second number
       // (rule 15: a band a pixel or two high would flicker). `nightShare`: the share of a far copy's glass that is lit at night, times the
       // row's own occupancy. ?gltfcopy=0: no far copies (every full file by distance, as before).
-      copy: { on: q.get('gltfcopy') !== '0', fullM: q.has('gltffull') ? +q.get('gltffull') : FAR_DIST > 0 ? FAR_DIST * farPerM * FAR_REF.share : 0.84, farM: q.has('gltffarm') ? +q.get('gltffarm') : FAR_DIST > 0 ? FAR_DIST * farPerM : 0.99, perM: farPerM, share: FAR_REF.share, loadM: 1.04, unloadM: 1.10, fadeS: 0.5, pushM: 3, bandPx: [4, 2], nightShare: 1 },
+      // `still` (2026-10-17, js/gltf-look.js "STILL"): the far copies' vertices go to the graphics card once; a change of which rows stand alone
+      // rewrites only the one mesh's index list (the same picture). ?gltfcopystill=0: the mesh is built and uploaded again on every change, as before.
+      copy: { on: q.get('gltfcopy') !== '0', fullM: q.has('gltffull') ? +q.get('gltffull') : FAR_DIST > 0 ? FAR_DIST * farPerM * FAR_REF.share : 0.84, farM: q.has('gltffarm') ? +q.get('gltffarm') : FAR_DIST > 0 ? FAR_DIST * farPerM : 0.99, perM: farPerM, share: FAR_REF.share, still: q.get('gltfcopystill') !== '0', loadM: 1.04, unloadM: 1.10, fadeS: 0.5, pushM: 3, bandPx: [4, 2], nightShare: 1 },
       load: { on: q.get('gltfload') !== '0', inM: q.has('gltfin') ? +q.get('gltfin') : 2500, outM: q.has('gltfout') ? +q.get('gltfout') : 3000, atOnce: 3, everyMs: 250 } },
     // The layer's place in the scene, as the apartments' group has it (js/slopes-apartments.js APTS.lod / minzoom).
     lod: null, minzoom: 14,
