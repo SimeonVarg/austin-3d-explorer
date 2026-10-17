@@ -45,7 +45,12 @@ const SETTLE = +arg('--settle', 15000);
 const MAX = +arg('--max', 600000);
 const DEADLINE_MIN = +arg('--deadline-min', 0);       // stop starting new arms after this many minutes and report what is in (0 = no limit)
 const T_START = Date.now();
-const EXTRA = arg('--query', '');                 // extra query text for both arms, e.g. skyrig=a
+const EXTRA = arg('--query', '');
+// --arms off,on,both (2026-10-17, mac/layer-table-505): the arms to visit. off = the plain URL; any other arm turns the layer on with its query
+const ARM_QUERY = { off: '', on: 'gltf=1', far400: 'gltf=1&gltffardist=400', cap96: 'gltf=1&gltfatlasmb=96', both: 'gltf=1&gltffardist=400&gltfatlasmb=96',
+  // (2026-10-17, mac/gltf-westcampus-cost) the same as `both` with the far copies rebuilt on every change (js/gltf-look.js STILL off): the before arm
+  bothOld: 'gltf=1&gltffardist=400&gltfatlasmb=96&gltfcopystill=0' };
+const ARMS = arg('--arms', 'off,on').split(',');                 // extra query text for both arms, e.g. skyrig=a
 fs.mkdirSync(OUT, { recursive: true });
 const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -117,7 +122,7 @@ async function oneArm(rep, arm) {
     // cancel the graphics auto-detect probe the moment the page defines it (CLAUDE.md rule 10), and again after load
     await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `(()=>{const iv=setInterval(()=>{if(window.cancelGraphicsAutoDetect){try{window.cancelGraphicsAutoDetect();window.__acCancelled=performance.now();}catch(e){}clearInterval(iv);}},10);})();` });
     const ev = async (expr) => { const r = await page.send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true }); if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || 'eval failed'); return r.result.value; };
-    const q = ['intro=0', 'drift=0', EXTRA, arm === 'on' ? 'gltf=1' : ''].filter(Boolean).join('&');
+    const q = ['intro=0', 'drift=0', EXTRA, ARM_QUERY[arm]].filter(Boolean).join('&');
     const t0 = Date.now();
     await page.send('Page.navigate', { url: URL0 + (URL0.includes('?') ? '&' : '?') + q });
     for (;;) {
@@ -147,7 +152,7 @@ async function oneArm(rep, arm) {
         const dts = await ev(`${PAGE_PASS}(${JSON.stringify({ pose, n: FRAMES, stall: pass === 'stall' })}).then(r=>JSON.stringify(r))`).then(JSON.parse);
         out[pass] = { n: dts.length, p50: r1(pct(dts, 0.5)), p95: r1(pct(dts, 0.95)), max: r1(Math.max(...dts)) };
       }
-      out.gltf = await ev(`(()=>{const G=window.GLTF_LAYER;if(!G||!G.on)return null;const s=G.stats(),l=s.look||s;return{loaded:l.loaded.length,triangles:l.triangles,drawCalls:l.drawCalls,errors:l.errors.length}})()`);
+      out.gltf = await ev(`(()=>{try{const G=window.GLTF_LAYER;if(!G||!G.on)return null;const O=G.lookOwn,C=G.lookCopy;return{fullShown:O.list.filter(b=>b.group&&b.group.visible).length,copiesShown:C.shown,needMB:O.needMB,ownMB:Math.round((O.bytes||0)/1e6),layerTris:G.info.look?G.info.look.triangles:null}}catch(e){return{err:String(e)}}})()`);
       res.poses[name] = out;
       console.error(`  [rep ${rep} ${arm}] ${name}: free p50 ${out.free.p50} p95 ${out.free.p95} | stall p50 ${out.stall.p50} p95 ${out.stall.p95}${out.gltf ? ' | layer ' + JSON.stringify(out.gltf) : ''}`);
     }
@@ -160,7 +165,8 @@ async function oneArm(rep, arm) {
 
 const results = [];
 for (let rep = 1; rep <= REPS; rep++) {
-  const order = rep % 2 ? ['off', 'on'] : ['on', 'off'];
+  const k = (rep - 1) % ARMS.length, order = ARMS.slice(k).concat(ARMS.slice(0, k));   // rotated each rep: every arm takes every place
+  if (rep % 2 === 0) order.reverse();
   for (const arm of order) {
     if (DEADLINE_MIN && Date.now() - T_START > DEADLINE_MIN * 60000) { console.error(`deadline ${DEADLINE_MIN} min passed: rep ${rep} ${arm} NOT run`); continue; }
     try { const r = await oneArm(rep, arm); results.push(r); fs.writeFileSync(path.join(OUT, `${LABEL}-r${rep}-${arm}.json`), JSON.stringify(r, null, 1)); console.error(`rep ${rep} ${arm} done`); }
@@ -176,27 +182,28 @@ if (any) {
   out.push(`# layer-speed  url ${URL0}  gl ${GL}  ${PHONE ? 'SIMULATED phone: 390x844 DPR3 mobile emulation (iPhone user agent), the GPU is the runner\'s' : 'desktop 1280x800 DPR1.5'}  CPU throttle ${THROTTLE}x${THROTTLE > 1 ? ' (SIMULATED: CDP throttle on the page main thread only)' : ''}`);
   out.push(`renderer ${any.gpuRenderer}`);
   out.push(`preset ${e.preset}  renderScale ${e.renderScale} msaa ${e.msaa} shadows ${e.shadows} ao ${e.ao} bloom ${e.bloom} renderDistance ${e.renderDistance}  canvas ${e.canvas.join('x')}  phone tier ${JSON.stringify(e.lite)}`);
-  out.push(`?intro=0&drift=0${EXTRA ? '&' + EXTRA : ''}  vsync off  frames/pass ${FRAMES} (warm ${WARM_FRAMES}, discarded)  camera turns 0.12 deg/frame at a fixed pose  auto-detect cancelled at ms ${results.map(r => Math.round(r.env.autodetectCancelledAtMs)).join(',')}`);
-  out.push(`load average at arm start (off/on, in run order): ${results.map(r => r.arm + ':' + r.machine.load1).join(', ')}  cpus ${any.machine.cpus}`);
-  out.push(`load time ms (cold, fresh Chrome; off then on per rep): ${results.map(r => r.arm + ':' + r.loadMs).join(', ')}`);
+  out.push(`arms ${ARMS.map(a => a + '=[' + ARM_QUERY[a] + ']').join(' ')}  ?intro=0&drift=0${EXTRA ? '&' + EXTRA : ''}  vsync off  frames/pass ${FRAMES} (warm ${WARM_FRAMES}, discarded)  camera turns 0.12 deg/frame at a fixed pose  auto-detect cancelled at ms ${results.map(r => Math.round(r.env.autodetectCancelledAtMs)).join(',')}`);
+  out.push(`load average at arm start (in run order): ${results.map(r => r.arm + ':' + r.machine.load1).join(', ')}  cpus ${any.machine.cpus}`);
+  out.push(`load time ms (cold, fresh Chrome, in run order): ${results.map(r => r.arm + ':' + r.loadMs).join(', ')}`);
 }
 const arms = a => results.filter(r => r.arm === a);
 const mn = a => a.length ? Math.min(...a) : null;
-out.push('\n| pose | pass | layer OFF min p50 ms | layer ON min p50 ms | change | OFF min p95 | ON min p95 | per-rep p50 OFF | per-rep p50 ON | layer drew (ON) |');
-out.push('|---|---|---|---|---|---|---|---|---|---|');
+const ON_ARMS = ARMS.filter(a => a !== 'off');
+out.push('\n| pose | pass | arm | OFF min p50 ms | ON min p50 ms | change | OFF min p95 | ON min p95 | per-rep p50 OFF | per-rep p50 ON | layer drew (last rep, last visit of the pose) |');
+out.push('|---|---|---|---|---|---|---|---|---|---|---|');
 const table = [];
-for (const name of POSE_NAMES) for (const pass of ['free', 'stall']) {
-  const o = arms('off').map(r => r.poses[name]?.[pass]).filter(Boolean), n = arms('on').map(r => r.poses[name]?.[pass]).filter(Boolean);
+for (const name of POSE_NAMES) for (const pass of ['free', 'stall']) for (const arm of ON_ARMS) {
+  const o = arms('off').map(r => r.poses[name]?.[pass]).filter(Boolean), n = arms(arm).map(r => r.poses[name]?.[pass]).filter(Boolean);
   if (!o.length || !n.length) continue;
   const o50 = mn(o.map(x => x.p50)), n50 = mn(n.map(x => x.p50));
-  const g = arms('on').map(r => r.poses[name]?.gltf).filter(Boolean)[0];
+  const g = arms(arm).map(r => r.poses[name]?.gltf).filter(Boolean).slice(-1)[0];
   const change = ((n50 / o50 - 1) * 100);
-  table.push({ name, pass, o50, n50, change });
-  out.push(`| ${name} | ${pass} | ${o50} | ${n50} | ${change >= 0 ? '+' : ''}${change.toFixed(0)} % | ${mn(o.map(x => x.p95))} | ${mn(n.map(x => x.p95))} | ${o.map(x => x.p50).join(' / ')} | ${n.map(x => x.p50).join(' / ')} | ${g ? g.loaded + ' bldgs, ' + Math.round(g.triangles / 1000) + 'k tris, ' + g.drawCalls + ' draws' : '-'} |`);
+  table.push({ name, pass, arm, o50, n50, change });
+  out.push(`| ${name} | ${pass} | ${arm} | ${o50} | ${n50} | ${change >= 0 ? '+' : ''}${change.toFixed(0)} % | ${mn(o.map(x => x.p95))} | ${mn(n.map(x => x.p95))} | ${o.map(x => x.p50).join(' / ')} | ${n.map(x => x.p50).join(' / ')} | ${g ? g.fullShown + ' full, ' + g.copiesShown + ' far copies, targets ' + g.needMB + ' MB (held ' + g.ownMB + '), ' + Math.round(g.layerTris / 1000) + 'k tris' : '-'} |`);
 }
-out.push('\n| memory | layer OFF | layer ON |');
-out.push('|---|---|---|');
-const memRow = (label, f) => { const o = arms('off').map(f).filter(x => x != null), n = arms('on').map(f).filter(x => x != null); out.push(`| ${label} | min ${mn(o)} (reps ${o.join(' / ')}) | min ${mn(n)} (reps ${n.join(' / ')}) |`); };
+out.push('\n| memory | ' + ARMS.join(' | ') + ' |');
+out.push('|---|' + ARMS.map(() => '---').join('|') + '|');
+const memRow = (label, f) => out.push(`| ${label} | ` + ARMS.map(a => { const v = arms(a).map(f).filter(x => x != null); return `min ${mn(v)} (reps ${v.join(' / ')})`; }).join(' | ') + ' |');
 memRow('Chrome process tree RSS after load, MB', r => r.memAfterLoad.rssMB);
 memRow('Chrome process tree RSS after all poses, MB', r => r.memEnd.rssMB);
 memRow('JS heap after all poses, MB', r => r.memEnd.jsHeapMB);

@@ -798,3 +798,39 @@ fading in on a building over about half a second as the camera comes within 250 
 
 The pictures and clips are private (`~/flyover-private/far-distance-2026-10-16/`). **This is the owner's call** (rule 9): the default is
 unchanged and the layer stays off.
+
+## The far copies stay on the graphics card (2026-10-17, `mac/gltf-westcampus-cost`, draft)
+
+**Why over West Campus cost +53 % with only 25 full models** (desktop table of 2026-10-17 with `?gltffardist=400&gltfatlasmb=96`). Measured
+in one page on the AWS L4 (run 39055032783, `scripts/perf/layer-cost.mjs` with new variants; desktop 1280 x 800 at 1.5, vsync off, 4
+rounds of 40 frames, minimum of the median frame interval, the auto-detect probe cancelled; the camera turns 0.12 degrees a frame):
+layer on 10.5 ms, layer off 7.5 ms. Taking one part away at a time: the far copies (all of them) 2.1 ms, of which the copies under a
+dissolving building 0.7 ms; the full models 1.4 ms (their picture pass about 0.9, their depth, lay and glass pass about 1.3, overlapping);
+2 samples instead of 4, or no box drawn finer than the canvas, about 1.0 ms each; the shadow casters 0.3 ms; the sky sync is within the
+noise. The JS of the city's three.js layer was 2.4 ms against 1.2 off and its GPU time 1.5 against 0.6, so most of the 3 ms was outside
+both: the far copies' one mesh was BUILT AND UPLOADED AGAIN 7 times in 40 frames (every time a row started or stopped dissolving, which
+over West Campus at 400 m is many times a second while the camera moves: 11 rows are mid-dissolve there), about a hundred rows' vertices
+each time. The other views: 5 (opening), 2 (start close) and 1 (Union close) rebuilds a pass.
+
+**The change** (`GLTF.look.copy.still`, on in this branch; `?gltfcopystill=0` = before; js/gltf-look.js "STILL"): every row's far copy goes
+to the graphics card once, in one geometry. A change of which rows stand alone rewrites only that mesh's index list (the same triangles of
+the same rows in the same order), and only its live part is sent. A far copy under a dissolving building keeps its own mesh and draw, but
+draws its row's triangles out of the same vertices (its small index list is kept with the row). The shadow pass sees the same triangles.
+
+**Same picture:** 0 of 5,184,000 pixels differ at all (1440 x 900 at 2, in one page, before against after) in all four views (run 39056661763).
+
+**Speed** (AWS L4 run 39059758764, `scripts/verify/perf-layer-table.mjs --only desktop --arms off,bothOld,both`: one fresh page per arm, 3
+reps with the arm order rotated, 60 frames a pass after 36 warm, minimum of the median frame interval, vsync off, the auto-detect probe
+cancelled, load average 2.5-3.7 on 8 CPUs; desktop 1280 x 800 at 1.5; both arms `?gltffardist=400&gltfatlasmb=96`; % = against the layer off):
+
+| view | off | before (`gltfcopystill=0`) | after | p95 before / after |
+|---|---|---|---|---|
+| opening view | 8.9 ms | 10.7 (+20 %) | 10.1 (+13 %) | 30.1 / 13.1 ms |
+| start, close | 8.5 | 11.3 (+33 %) | 10.8 (+27 %) | 29.8 / 14.9 |
+| over West Campus | 7.9 | 11.5 (+46 %) | 9.2 (+16 %) | 36.1 / 27.0 |
+| Union on San Antonio, close | 7.6 | 9.4 (+24 %) | 8.9 (+17 %) | 12.9 / 11.8 |
+
+Three of four desktop views now meet +25 % (start close +27 % does not). Memory after all poses: Chrome process tree 4,699 -> 4,452 MB,
+whole-card GPU memory 1,723 -> 1,682 MB (off: 4,439 and 1,546). The simulated phone was measured only on a loaded machine (load average 16
+falling to 3, run 39056661763) and is not quoted as a result: in one page over West Campus the layer's JS fell from 19.3 to 11.2 ms a frame
+(off 6.5). The phone table still needs a quiet run.
