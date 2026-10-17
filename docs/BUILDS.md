@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 321 builds of 262 buildings; 77 buildings flagged to retarget.
+Right now: 322 builds of 263 buildings; 78 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -110,6 +110,7 @@ Right now: 321 builds of 262 buildings; 77 buildings flagged to retarget.
 | W Austin | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 33,060 | 57 min, 412k plan tokens |  |  |
 | Waterford Condominiums | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 13,551 | 33 min, 374k plan tokens |  |  |
 | West Campus block + car-park deck (8f3cb88c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 15,910 | 33 min, 356k plan tokens |  |  |
+| West Campus block e287bfea | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 4,682 | 32 min, 348k plan tokens |  | yes |
 | West Campus block with ΣΧ letters (eaca344c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 11,724 | 30 min, 352k plan tokens |  |  |
 | West Campus courtyard block (3b8f0f69) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 25,484 | 34 min, 367k plan tokens |  |  |
 | West Campus courtyard block (bddea10c) | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 27,305 | 38 min, 370k plan tokens |  |  |
@@ -361,6 +362,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Villas on 24th**: dawn photograph: all 28 colour places miss, render 5x too dark; 58k triangles; not replaced
 - **Villas on Guadalupe**: weak build; worst wall stretch 7.3 m off the outline; roofs wrong
 - **Villas on Nueces**: owner: pretty good; camera unproven (a corner 1.8 m off); street face 1.8 m inside the outline; base storeys and Nueces face have no openings
+- **West Campus block e287bfea**: Earth 3D; held-out 1.98/26.1/19.8 px: survey outline 2 m wider than the mesh at the west end; gallery bands too pale; 4.7k vs 9k
 - **Yugo The Corner**: two far photographs only; north-east panel block not built; east base 3.4 m outside the scan
 
 ### No finished build yet
