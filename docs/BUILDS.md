@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 331 builds of 272 buildings; 86 buildings flagged to retarget.
+Right now: 332 builds of 273 buildings; 87 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -391,6 +391,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Dorothy Gebauer Building**: three early stops (oaks; floating camera; scale free with one panorama position); PARKED; parapet ~3 m over the roof deck
 - **The Block on Pearl (south)**: parked: Earth 3D only; held-out fails (one pick on the wrong edge); massing reads wrong next to Earth; 800 px draft only; not sent
 - **Block on Pearl north (064e7194)**: parked, not sent: very noisy 16-sample draft, mansards and blue walls far too dark, massing reads heavier than Earth; same complex as the parked Pearl south
+- **West Campus block a06cb507**: Sol on a weak Earth package (34% of frame, oaks); angle off; roofs rough; blue pads
 
 ### Good test set for a cheaper model
 
@@ -460,6 +461,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Villas on Nueces | Haiku 5.5 | trial | 2026-10-13 | unproven | mixed | 2,490 | 27 min, 315k plan tokens | "A is really horrible haiku" | trial | owner: horrible; does not register to the photograph |
 | Villas on Nueces | Sonnet 5.5 | trial | 2026-10-13 | proven | mixed | 2,698 | 57 min, 468k plan tokens | "B is sonnet it's somewhat alright" | trial | owner: somewhat alright; roof 28% over the scan |
 | Walter Webb Hall | Sol 6.1 | lean | 2026-10-14 | proven | public photo | 13,610 | 72 min, $2.80 |  | superseded | glass too light; name sign clipped at the wall edge |
+| West Campus block a06cb507 | Sol 6.1 | lean | 2026-10-17 | loose | Earth 3D | 3,148 | 66 min, $2.00 |  | trial | Sol on a weak Earth package (34% of frame, oaks); angle off; roofs rough; blue pads |
 | William P. Clements Jr. State Office Building | Opus 5.5 | lean | 2026-10-15 |  |  | 20,748 | 50 min, 420k plan tokens |  | superseded | other buildings; gate done by the builder; glass light; hidden faces inferred |
 | Yugo Austin Waterloo | Haiku 5.5 | trial | 2026-10-12 |  |  | 7,388 | 17 min | 4 | trial | weakest of three; stopped early |
 | Yugo Austin Waterloo | Sonnet 5.5 | trial | 2026-10-12 |  |  | 6,428 | 68 min | 6.5 | trial | weaker than Opus on the same brief |
