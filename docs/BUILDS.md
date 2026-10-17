@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 343 builds of 284 buildings; 98 buildings flagged to retarget.
+Right now: 344 builds of 285 buildings; 99 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -135,6 +135,7 @@ Right now: 343 builds of 284 buildings; 98 buildings flagged to retarget.
 | West Campus courtyard block (3b8f0f69) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 25,484 | 34 min, 367k plan tokens |  |  |
 | West Campus courtyard block (bddea10c) | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 27,305 | 38 min, 370k plan tokens |  |  |
 | West Campus cream block (8e99b2fe) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 16,439 | 27 min, 314k plan tokens |  |  |
+| West Campus Flats | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 2,776 | 48 min, $2.00 |  | yes |
 | West Campus long block (66d719c5) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 13,698 | 35 min, 378k plan tokens |  |  |
 | West Campus pool-deck block (4fe90bd0) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 23,174 | 42 min, 395k plan tokens |  |  |
 | Westgate Tower | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 24,864 | 57 min, 420k plan tokens |  |  |
@@ -346,6 +347,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **West Campus block bb4c0263** (Sol 6.1): Sol on an Earth 3D package; overlay aligns; plain bar only; neighbouring white wing outside outline
 - **West Campus block d4bda8fa** (Sol 6.1): Sol on an Earth 3D package; overlay aligns well; gable roofs, stone, court right; grainy draft
 - **West Campus block e1b470ab** (Sol 6.1): Sol on an Earth 3D package; overlay aligns; roof crack-seal lines and tuck-under parking right; plain walls
+- **West Campus Flats** (Sol 6.1): Sol on an Earth 3D package; overlay aligns closely; stray black pad in the parking
 - **William P. Clements Jr. State Office Building** (Sol 6.1, fix round): his ask: Sol fix round; glass, corners, arch improved
 
 ### The best build is Opus but has a known open fault
