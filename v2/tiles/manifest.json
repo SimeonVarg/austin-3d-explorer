@@ -1,0 +1,101 @@
+{
+ "origin": {
+  "lat": 30.28601,
+  "lon": -97.73932
+ },
+ "frame": "local metres: x east, y up, z south (three.js); y = metres above ground at the building",
+ "projection": "x = (lon - origin.lon) * 111320 * cos(origin.lat); z = -(lat - origin.lat) * 111320",
+ "tile_m": 250,
+ "notes": "Each tile .glb: one opaque mesh (palette texture, one draw) and in lod0 one glass mesh; EXT_meshopt_compression + KHR_mesh_quantization (use MeshoptDecoder); vertex attribute _BUILDING = index into the tile's buildings list; colours are the builds' linear base colours on the Blender light rig scale (white paint ~0.17).",
+ "tiles": [
+  {
+   "id": "t_-2_-2",
+   "bounds": [
+    -500,
+    -500,
+    -250,
+    -250
+   ],
+   "lod0": "tiles/t_-2_-2.glb",
+   "lod1": "tiles/t_-2_-2.far.glb",
+   "buildings": [
+    "yugo-austin-waterloo"
+   ],
+   "bytes": [
+    246668,
+    104564
+   ]
+  },
+  {
+   "id": "t_-4_0",
+   "bounds": [
+    -1000,
+    0,
+    -750,
+    250
+   ],
+   "lod0": "tiles/t_-4_0.glb",
+   "lod1": "tiles/t_-4_0.far.glb",
+   "buildings": [
+    "21-pearl-west-campus"
+   ],
+   "bytes": [
+    187168,
+    14000
+   ]
+  },
+  {
+   "id": "t_0_-3",
+   "bounds": [
+    0,
+    -750,
+    250,
+    -500
+   ],
+   "lod0": "tiles/t_0_-3.glb",
+   "lod1": "tiles/t_0_-3.far.glb",
+   "buildings": [
+    "aerospace-engineering-building"
+   ],
+   "bytes": [
+    166788,
+    12232
+   ]
+  }
+ ],
+ "buildings": {
+  "21-pearl-west-campus": {
+   "tile": "t_-4_0",
+   "map_ids": [
+    "fa083239-119f-44f1-9a4c-9e106e84c94a"
+   ],
+   "name": "21 Pearl",
+   "model": "opus",
+   "x": -760.09,
+   "z": 162.08,
+   "top": 19.3
+  },
+  "aerospace-engineering-building": {
+   "tile": "t_0_-3",
+   "map_ids": [
+    "c32735e3-5b88-4953-966b-e39af4171da7"
+   ],
+   "name": "Aerospace Engineering Building",
+   "model": "opus",
+   "x": 170.973,
+   "z": -573.939,
+   "top": 31
+  },
+  "yugo-austin-waterloo": {
+   "tile": "t_-2_-2",
+   "map_ids": [
+    "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a"
+   ],
+   "name": "Yugo Austin Waterloo",
+   "model": "opus",
+   "x": -458.235,
+   "z": -254.221,
+   "top": 99.1
+  }
+ }
+}
