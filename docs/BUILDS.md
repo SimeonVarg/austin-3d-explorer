@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 318 builds of 259 buildings; 74 buildings flagged to retarget.
+Right now: 319 builds of 260 buildings; 75 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -263,6 +263,7 @@ Right now: 318 builds of 259 buildings; 74 buildings flagged to retarget.
 | Embassy Suites Austin Downtown | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 12,268 | 41 min, 363k plan tokens |  |  |
 | Fairmont Austin | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 14,049 | 38 min, 402k plan tokens |  |  |
 | Frost Bank Tower | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 12,596 | 45 min, 407k plan tokens |  |  |
+| Hanover Brazos Street | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 10,572 | 33 min, 326k plan tokens |  | yes |
 | Hilton Austin | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 29,200 | 40 min, 382k plan tokens |  |  |
 | Hotel ZaZa | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 8,980 | 35 min, 345k plan tokens |  | yes |
 | Indeed Tower | Sol 6.1 | 2026-10-16 | loose | Earth 3D | unreviewed | 31,619 | 33 min |  | yes |
@@ -328,6 +329,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Goodall Wooten House**: dusk photos only (lamp light): wall colour guessed; columns unfluted; roof balustrade missing; sides and back not seen
 - **GrandMarc Austin** (score 8.3): scored 8.3 but storey count in doubt (scan roof height unread); 48k triangles
 - **Hampton Inn and Suites Austin (campus)**: camera unproven (21 px at a frame-edge corner; lens bend likely); work render; deck furniture missing
+- **Hanover Brazos Street**: Earth 3D; first PROVEN camera under the camera/shape split (main-roof held-outs 2.45/6.53/5.84 px, fit 0.35 px); post-scan tower, height from storey count; red podium inferred
 - **Hotel ZaZa**: Earth 3D; 2nd view held-outs all shift one way (~0.44 deg heading), main view 2.3 px; balconies too light; 9k vs 12k
 - **Ion Austin**: after-sunset photograph: colours all miss; roof scale shrunk 11% late (53 to 60 m)
 - **J. T. Patterson Laboratories**: stair tower position inferred, up to 7.3 m off; glass too light
