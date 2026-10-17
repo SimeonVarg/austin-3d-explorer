@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Flyover v2</title>
+  <meta name="description" content="West Campus, UT and downtown Austin in 3D: pick an apartment and your class buildings, see the walk.">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./v2.css">
+  <script type="importmap">
+  { "imports": {
+      "three": "./vendor/three/build/three.module.js",
+      "three/addons/": "./vendor/three/examples/jsm/"
+  } }
+  </script>
+</head>
+<body>
+  <canvas id="view"></canvas>
+
+  <section id="panel" aria-label="Plan a walk">
+    <header>
+      <h1>Flyover <span>v2</span></h1>
+      <button id="fold" type="button" aria-expanded="true" aria-controls="panel-body" title="Fold the panel">&#8211;</button>
+    </header>
+    <div id="panel-body">
+      <label>Apartment
+        <select id="apt"><option value="">Loading…</option></select>
+      </label>
+      <label>Class building
+        <select id="cls"><option value="">Loading…</option></select>
+      </label>
+      <div id="result" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <div id="status" aria-live="polite">Loading the city…</div>
+  <noscript>This 3D map needs JavaScript and WebGL 2.</noscript>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

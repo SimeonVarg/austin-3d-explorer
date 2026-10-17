@@ -8,7 +8,9 @@ scripts/
 docs/
 
 # Build inputs for the outer-ring bake, not read at runtime.
-data/outer/
+data/outer/*
+# ...except the measured downtown massing, which the v2 app (v2/city-worker.js) extrudes at runtime.
+!data/outer/downtown_massing.json
 
 # Repo housekeeping
 .github/
