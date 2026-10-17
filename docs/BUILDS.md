@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 310 builds of 251 buildings; 68 buildings flagged to retarget.
+Right now: 311 builds of 252 buildings; 68 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -269,6 +269,7 @@ Right now: 310 builds of 251 buildings; 68 buildings flagged to retarget.
 | Speedway (campus road), first 178 m | Opus 5.5 | 2026-10-14 |  |  | best | 8,256 | 60 min, 426k plan tokens | "The top looks super weird" | yes |
 | Stephen F. Austin State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 22,682 | 32 min, 344k plan tokens |  |  |
 | Stone church on Guadalupe (27bbc14c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 17,662 | 32 min, 356k plan tokens |  |  |
+| The Ashton | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 27,829 | 43 min, 380k plan tokens |  |  |
 | The Co-op | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 8,602 | 34 min, 346k plan tokens |  |  |
 | Thompson Austin | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 10,144 | 36 min, 389k plan tokens |  | yes |
 
