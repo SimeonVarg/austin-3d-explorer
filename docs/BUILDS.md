@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 364 builds of 303 buildings; 110 buildings flagged to retarget.
+Right now: 366 builds of 305 buildings; 112 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -117,6 +117,7 @@ Right now: 364 builds of 303 buildings; 110 buildings flagged to retarget.
 | West Campus block 0fe2da88 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,124 | 48 min, $2.00 |  | yes |
 | West Campus block 10a07e54 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,120 | 48 min, $2.00 |  | yes |
 | West Campus block 12d10e75 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,665 | 66 min, $2.00 |  | yes |
+| West Campus block 130c7878 | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 4,192 | 52 min, 373k plan tokens |  | yes |
 | West Campus block 1fe7267c | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 4,500 | 48 min, $2.00 |  | yes |
 | West Campus block 2779329b | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 2,491 | 48 min, 349k plan tokens |  |  |
 | West Campus block 41d7f858 | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 7,426 | 42 min, 380k plan tokens |  | yes |
@@ -266,6 +267,7 @@ Right now: 364 builds of 303 buildings; 110 buildings flagged to retarget.
 | Texas Union Building | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 26,059 | 36 min, 370k plan tokens |  |  |
 | Townes Hall | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 23,390 | 38 min, 371k plan tokens |  |  |
 | Travis County Civil and Family Courts | Opus 5.5 | 2026-10-14 | proven | mixed | unreviewed | 22,196 | 51 min, 436k plan tokens |  |  |
+| University Baptist Church education building | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 1,920 | 55 min, 383k plan tokens |  | yes |
 | University Catholic Center | Sol 6.1 | 2026-10-14 | proven | public photo | unreviewed | 11,957 | 62 min, $3.07 |  | yes |
 | University Presbyterian Church | Opus 5.5 | 2026-10-14 | unproven | public photo | unreviewed | 14,435 | 56 min, 401k plan tokens |  | yes |
 | University Teaching Center | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 19,958 | 32 min, 305k plan tokens |  |  |
@@ -421,10 +423,12 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Two-wing brick block (bcf8a2ba)**: rough; Earth 3D only; held-out 1 of 5; galleries read as scaffolding; wing-end gables wrong; walls too light; 1,059 tri
 - **Union on 24th**: 109k triangles is too many for the phone; north court guessed; needs a lean copy
 - **Union on San Antonio**: tower too pale and plainer than the photograph; tower height 92.7 m vs notes 101 m (older app version scored 8.3)
+- **University Baptist Church education building**: Earth 3D + site photographs; held-outs 19.3/10.4/13.8 px (locked heights wrong); brick fixed on a lead-asked pass
 - **University Presbyterian Church**: camera unproven (lines disagree); door surround spiky; wings plain boxes
 - **Villas on 24th**: dawn photograph: all 28 colour places miss, render 5x too dark; 58k triangles; not replaced
 - **Villas on Guadalupe**: weak build; worst wall stretch 7.3 m off the outline; roofs wrong
 - **Villas on Nueces**: owner: pretty good; camera unproven (a corner 1.8 m off); street face 1.8 m inside the outline; base storeys and Nueces face have no openings
+- **West Campus block 130c7878**: Earth 3D + site photographs; 2 of 3 held-outs over 8 px; follows the scan shift; awnings from site photographs
 - **West Campus block 41d7f858**: Earth 3D; held-outs on 4 chimney tops at scan height 0.85-1.43 px (all one height); walls moved 1.3 m onto the scan roof; fewer cross hips than the views
 - **West Campus block 4e03b7f5**: Earth 3D; SW wing rebuilt on a lead-asked pass; 1 held-out 52.8 px on a tree-hidden corner; east part inferred
 - **West Campus block 619cb351**: Earth 3D; held-out 10.1/20.9/41.6 px; gables fixed on two lead-asked passes (cap bug, then width); court 8 m wider than survey
