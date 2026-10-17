@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 308 builds of 249 buildings; 66 buildings flagged to retarget.
+Right now: 309 builds of 250 buildings; 67 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -261,6 +261,7 @@ Right now: 308 builds of 249 buildings; 66 buildings flagged to retarget.
 | Frost Bank Tower | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 12,596 | 45 min, 407k plan tokens |  |  |
 | Hilton Austin | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 29,200 | 40 min, 382k plan tokens |  |  |
 | Indeed Tower | Sol 6.1 | 2026-10-16 | loose | Earth 3D | unreviewed | 31,619 | 33 min |  | yes |
+| JW Marriott Austin | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 19,288 | 34 min, 384k plan tokens |  | yes |
 | Lyndon B. Johnson State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 19,816 | 22 min, 287k plan tokens |  |  |
 | Robert E. Johnson State Legislative Office Building | Opus 5.5 | 2026-10-16 | loose | Earth 3D | best | 21,746 | 33 min, 336k plan tokens | 5 | yes |
 | Southwest Tower | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 8,728 | 43 min, 398k plan tokens |  |  |
@@ -317,6 +318,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Hampton Inn and Suites Austin (campus)**: camera unproven (21 px at a frame-edge corner; lens bend likely); work render; deck furniture missing
 - **Ion Austin**: after-sunset photograph: colours all miss; roof scale shrunk 11% late (53 to 60 m)
 - **J. T. Patterson Laboratories**: stair tower position inferred, up to 7.3 m off; glass too light
+- **JW Marriott Austin**: Earth 3D; 3 held-out pass but one only after a model change made after its error was seen, and R_NE sat on the neighbour; white 78.6 m tower inside the outline built too (may be a separate building); 19k vs 34k tri
 - **Littlefield House**: camera unproven on an old small public photo; work render only; heights maybe 5-10 % high
 - **Norman Hackerman Building**: overcast photo: colour gate failed 2 of 10, sun set by hand; wall 3.5 m off the outline
 - **North Campus block 21fe5c30**: Earth 3D; 2 of 3 held-out fail (oak hides corners); plain stucco block, 2.8k tri vs 13k target; roof hue fixed (grey)
