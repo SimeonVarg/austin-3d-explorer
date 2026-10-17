@@ -985,7 +985,9 @@
     }
     const geom = COPY.all, idx = geom.index, alone = list.filter(e => e.farMode === 1);
     let n = 0; for (const e of alone) { const [a, k] = e.copyIdx; idx.array.set(COPY.allIdx.subarray(a, a + k), n); n += k; }
-    geom.setDrawRange(0, n); idx.updateRange.offset = 0; idx.updateRange.count = n; idx.needsUpdate = true;
+    // only the first n numbers go to the graphics card (three.js's update ranges; with none it would send the whole list). n = 0: nothing is
+    // drawn, nothing is sent (the next change sends its own range)
+    geom.setDrawRange(0, n); if (n > 0) { idx.clearUpdateRanges(); idx.addUpdateRange(0, n); idx.needsUpdate = true; }
     COPY.mesh.visible = n > 0;
     for (const [e, mesh] of COPY.fades) if (e.farMode !== 2) { COPY.group.remove(mesh); COPY.fades.delete(e); }   // (its geometry stays with the row)
     for (const e of list) if (e.farMode === 2 && !COPY.fades.has(e)) {
