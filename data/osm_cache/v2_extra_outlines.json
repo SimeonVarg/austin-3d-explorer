@@ -1,0 +1,109 @@
+{
+ "source": "OpenStreetMap contributors, ODbL 1.0 (api/0.6 way/full)",
+ "fetched": "2026-10-17T18:54:59Z",
+ "about": "Building outlines a Blender package names by OSM way id that the other OSM caches here do not hold (scripts/v2/sources.py).",
+ "rows": [
+  {
+   "id": "w104137274",
+   "t": {
+    "addr:city": "Austin",
+    "addr:country": "US",
+    "addr:housename": "Embassy Suites Hotel",
+    "addr:housenumber": "300",
+    "addr:postcode": "78704",
+    "addr:state": "TX",
+    "addr:street": "South Congress Avenue",
+    "air_conditioning": "yes",
+    "branch": "Austin Downtown South Congress",
+    "brand": "Embassy Suites",
+    "brand:wikidata": "Q5369524",
+    "building": "yes",
+    "check_date": "2026-09-22",
+    "email": "auslk_gm@hilton.com",
+    "fax": "+1 512-480-9164",
+    "internet_access": "wlan",
+    "internet_access:fee": "yes",
+    "name": "Embassy Suites by Hilton Austin Downtown South Congress",
+    "official_name": "Embassy Suites by Hilton",
+    "phone": "+1 512-469-9000",
+    "ref": "AUSLKES",
+    "smoking": "no",
+    "tourism": "hotel",
+    "website": "https://www.hilton.com/en/hotels/auslkes-embassy-suites-austin-downtown-south-congress/",
+    "wheelchair": "yes"
+   },
+   "g": [
+    [
+     [
+      -97.7472687,
+      30.2586935
+     ],
+     [
+      -97.7472934,
+      30.2586062
+     ],
+     [
+      -97.7469385,
+      30.2582285
+     ],
+     [
+      -97.7468969,
+      30.2582204
+     ],
+     [
+      -97.7467264,
+      30.2583326
+     ],
+     [
+      -97.7467212,
+      30.2583895
+     ],
+     [
+      -97.7466522,
+      30.258388
+     ],
+     [
+      -97.7466033,
+      30.2587082
+     ],
+     [
+      -97.7465361,
+      30.2587551
+     ],
+     [
+      -97.7464981,
+      30.2587816
+     ],
+     [
+      -97.7465812,
+      30.2588695
+     ],
+     [
+      -97.7466247,
+      30.2588417
+     ],
+     [
+      -97.7466939,
+      30.2587975
+     ],
+     [
+      -97.7470592,
+      30.2588338
+     ],
+     [
+      -97.7470672,
+      30.2587788
+     ],
+     [
+      -97.7471396,
+      30.2587858
+     ],
+     [
+      -97.7472687,
+      30.2586935
+     ]
+    ]
+   ]
+  }
+ ]
+}

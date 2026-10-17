@@ -17,7 +17,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { Document, NodeIO } from '@gltf-transform/core';
+import { Document, Logger, NodeIO } from '@gltf-transform/core';
+const QUIET = new Logger(Logger.Verbosity.ERROR);   // (quantize says it skips _BUILDING: that is wanted, the ids stay whole numbers)
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, flatten, join, mergeDocuments, meshopt, palette, prune, simplify, unpartition, weld } from '@gltf-transform/functions';
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
@@ -83,6 +84,11 @@ const keyOf = (s) => `${sources[s].blend_sha256}:${EXPORTER_HASH}`;
 const stateFile = (s) => path.join(EXPORT, `${s}.key`);
 const exported = (s) => fs.existsSync(stateFile(s)) && fs.readFileSync(stateFile(s), 'utf8') === keyOf(s)
   && fs.existsSync(path.join(EXPORT, `${s}.near.glb`)) && fs.existsSync(path.join(EXPORT, `${s}.far.glb`));
+// an export made from the same .blend by an OLDER exporter still serves the tiles until it is redone (so an exporter change, or a
+// partial --only run, never empties a tile)
+const stateOf = (s) => { try { return fs.readFileSync(stateFile(s), 'utf8'); } catch { return ''; } };
+const usable = (s) => stateOf(s).startsWith(sources[s].blend_sha256 + ':')
+  && fs.existsSync(path.join(EXPORT, `${s}.near.glb`)) && fs.existsSync(path.join(EXPORT, `${s}.far.glb`));
 const placeable = Object.keys(sources).filter((s) => !sources[s].skip);
 const want = placeable.filter((s) => !ONLY || ONLY.has(s));
 const todo = NO_EXPORT ? [] : want.filter((s) => FORCE || !exported(s));
@@ -111,11 +117,31 @@ if (todo.length || !fs.existsSync(PLACE)) {
 }
 const place = readJSON(PLACE, {});
 
+// ── 3b. far masses (lod1): scripts/v2/far_mass.py, only where the near file or the mass code changed ──
+const MASS_HASH = sha(Buffer.concat([fs.readFileSync(path.join(HERE, 'far_mass.py')), fs.readFileSync(path.join(REPO, 'scripts/gltf_far.py'))])).slice(0, 16);
+const massKey = (s) => `${keyOf(s)}:${MASS_HASH}`;
+const massFile = (s) => path.join(EXPORT, `${s}.mass.key`);
+const massState = (s) => { try { return fs.readFileSync(massFile(s), 'utf8'); } catch { return ''; } };
+const hasMass = (s) => massState(s) === massKey(s) + ':ok' && fs.existsSync(path.join(EXPORT, `${s}.mass.glb`));
+{
+  const need = placeable.filter((s) => exported(s) && (FORCE && todo.includes(s) || !massState(s).startsWith(massKey(s))));
+  for (let i = 0; i < need.length; i += 40) {
+    const chunk = need.slice(i, i + 40);
+    const r = await run(PY, [path.join(HERE, 'far_mass.py'), EXPORT, ...chunk]);
+    for (const line of r.out.split('\n')) {
+      const m = line.match(/^MASS(-FAILED)? (\S+)/);
+      if (m) fs.writeFileSync(massFile(m[2]), massKey(m[2]) + (m[1] ? ':failed ' + line.slice(m[0].length).trim().slice(0, 160) : ':ok'));
+    }
+    if (r.code) console.log(r.out.slice(-2000));
+  }
+  if (need.length) console.log(`MASS ${need.length} made, ${need.filter((s) => !hasMass(s)).length} fell back to the near model without its small parts`);
+}
+
 // ── 4. tiles ─────────────────────────────────────────────────────────────
-const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
+const io = new NodeIO().setLogger(QUIET).registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
 await MeshoptEncoder.ready; await MeshoptSimplifier.ready; await MeshoptDecoder.ready;
 
-const inTiles = placeable.filter((s) => exported(s));
+const inTiles = placeable.filter((s) => usable(s));
 const tiles = {};
 for (const s of inTiles) (tiles[sources[s].tile] ||= []).push(s);
 for (const t in tiles) tiles[t].sort();
@@ -123,7 +149,7 @@ for (const t in tiles) tiles[t].sort();
 const isGlass = (m) => m && ((m.getExtras() || {}).v2_kind || 'plain') !== 'plain';
 
 async function buildingDoc(s, lod, idx, part) {
-  const doc = await io.read(path.join(EXPORT, `${s}.${lod === 0 ? 'near' : 'far'}.glb`));
+  const doc = await io.read(path.join(EXPORT, `${s}.${lod === 0 ? 'near' : hasMass(s) ? 'mass' : 'far'}.glb`));
   const root = doc.getRoot(); const buf = root.listBuffers()[0];
   root.listNodes()[0].setName(s).setTranslation([sources[s].x, 0, sources[s].z]);
   for (const mesh of root.listMeshes()) {
@@ -139,7 +165,7 @@ async function buildingDoc(s, lod, idx, part) {
 }
 
 async function partDoc(slugs, lod, part) {
-  const doc = new Document(); doc.createBuffer(); const scene = doc.createScene('tile'); doc.getRoot().setDefaultScene(scene);
+  const doc = new Document().setLogger(QUIET); doc.createBuffer(); const scene = doc.createScene('tile'); doc.getRoot().setDefaultScene(scene);
   for (let i = 0; i < slugs.length; i++) {
     const src = await buildingDoc(slugs[i], lod, i, part);
     mergeDocuments(doc, src);
@@ -183,7 +209,7 @@ async function buildTile(t, slugs, lod) {
 
 const INV = path.join(OUT, 'inventory.json');
 const prevInv = readJSON(INV, { tiles: {} });
-const tileHash = (t) => sha(JSON.stringify([TILER_HASH, EXPORTER_HASH, tiles[t].map((s) => [s, sources[s].blend_sha256, sources[s].x, sources[s].z])])).slice(0, 16);
+const tileHash = (t) => sha(JSON.stringify([TILER_HASH, MASS_HASH, tiles[t].map((s) => [s, stateOf(s), sources[s].x, sources[s].z, hasMass(s)])])).slice(0, 16);
 const tileInfo = {};
 let rebuilt = 0;
 for (const t of Object.keys(tiles).sort()) {
@@ -205,7 +231,8 @@ for (const f of fs.readdirSync(OUT)) {
 const manifest = {
   origin: ORIGIN,
   frame: 'local metres: x east, y up, z south (three.js); y = metres above ground at the building',
-  projection: 'x = (lon - origin.lon) * 111320 * cos(origin.lat); z = -(lat - origin.lat) * 111320',
+  projection: 'equirectangular round the origin, as v2/geo.js: x = R cos(lat0) (lon - lon0), z = -R (lat - lat0), radians, R = 6378137',
+  map_ids: 'ids the app hides extrusions by: the city map\'s 8-hex id or \'w<way>\' (OSM, as in data/outer/downtown_massing.json); the package\'s outlines plus any map/massing building whose middle lies inside them',
   tile_m: TILE_M,
   notes: 'Each tile .glb: one opaque mesh (palette texture, one draw) and in lod0 one glass mesh; EXT_meshopt_compression + KHR_mesh_quantization (use MeshoptDecoder); vertex attribute _BUILDING = index into the tile\'s buildings list; colours are the builds\' linear base colours on the Blender light rig scale (white paint ~0.17).',
   tiles: Object.keys(tiles).sort().map((t) => {
@@ -223,8 +250,9 @@ const inventory = {
   buildings: Object.fromEntries(Object.keys(sources).sort().map((s) => {
     const r = sources[s]; const p = place[s];
     let reason = r.skip || null;
-    if (!reason && !exported(s)) reason = failed[s] ? 'export failed: ' + failed[s] : 'not exported yet';
+    if (!reason && !usable(s)) reason = failed[s] ? 'export failed: ' + failed[s] : 'not exported yet';
     return [s, { exported: !reason, reason, model: r.model, kind: r.kind, tile: r.tile || null, blend_sha256: r.blend_sha256 ? r.blend_sha256.slice(0, 16) : null,
+      lod1: reason ? null : hasMass(s) ? "mass" : "near without small parts",
       placement: p && !reason ? { height_m: p.height_m, area_ratio: p.area_ratio, centre_off_m: p.centre_off_m, flags: p.flags } : null }];
   })),
   tiles: tileInfo,
