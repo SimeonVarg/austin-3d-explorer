@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 377 builds of 314 buildings; 117 buildings flagged to retarget.
+Right now: 378 builds of 314 buildings; 116 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -127,7 +127,7 @@ Right now: 377 builds of 314 buildings; 117 buildings flagged to retarget.
 | West Campus block 619cb351 | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 4,250 | 40 min, 330k plan tokens |  | yes |
 | West Campus block 732691d2 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 4,172 | 72 min, $3.00 |  | yes |
 | West Campus block 73d1d197 | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,084 | 32 min, 329k plan tokens |  |  |
-| West Campus block 7aacc4af | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,200 | 49 min, $2.00 |  | yes |
+| West Campus block 7aacc4af | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,118 | 29 min, 202k plan tokens |  |  |
 | West Campus block 7e7420aa | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,134 | 36 min, 366k plan tokens |  | yes |
 | West Campus block 861304d8 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,518 | 71 min, $3.00 |  | yes |
 | West Campus block 8c3494e9 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 2,800 | 50 min, $2.00 |  | yes |
@@ -369,7 +369,6 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **West Campus block 4fb09ed3** (Sol 6.1): Sol on an Earth 3D package; two bars and court; overlay aligns; plain walls; front end may overlap a lower neighbour
 - **West Campus block 521ab442** (Sol 6.1): Sol on an Earth 3D package; built on the scan roof (outline 2.7 m off); overlay aligns; brick, roofs, chimneys right
 - **West Campus block 732691d2** (Sol 6.1): Sol on an Earth 3D package; overlay aligns closely; shaped gable parapets and court galleries right; grainy draft
-- **West Campus block 7aacc4af** (Sol 6.1): Sol on an Earth 3D package; overlay aligns; tree-hidden half left as blank white walls
 - **West Campus block 861304d8** (Sol 6.1): Sol on an Earth 3D package; post-2021 building; overlay aligns; gables and two-tone walls right; grainy
 - **West Campus block 8c3494e9** (Sol 6.1): Sol on an Earth 3D package; courtyard block; overlay aligns; grainy draft; walls too white
 - **West Campus block ae4909d9** (Sol 6.1): Sol on an Earth 3D package; overlay aligns; both masses, roof pipes and units right; grainy draft
@@ -466,7 +465,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### Good test set for a cheaper model
 
-Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Cream court block with 11 chimneys (04f1466e) (3,215 tri); Gabled walk-up (07ebbe8f) (1,228 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Hardin House (3,749 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Solar-roof hall (63e601e8) (2,042 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Diplomat (2,154 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); West Campus block 2779329b (2,491 tri); West Campus block 73d1d197 (3,084 tri); West Campus block bb4c0263 (2,500 tri); West Campus brick bar 8d78646f (3,352 tri); White block on stilts (5b56cd35) (7,064 tri).
+Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Cream court block with 11 chimneys (04f1466e) (3,215 tri); Gabled walk-up (07ebbe8f) (1,228 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Hardin House (3,749 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Solar-roof hall (63e601e8) (2,042 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Diplomat (2,154 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); West Campus block 2779329b (2,491 tri); West Campus block 73d1d197 (3,084 tri); West Campus block 7aacc4af (3,118 tri); West Campus block bb4c0263 (2,500 tri); West Campus brick bar 8d78646f (3,352 tri); White block on stilts (5b56cd35) (7,064 tri).
 
 ## All other builds
 
@@ -534,6 +533,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | Villas on Nueces | Sonnet 5.5 | trial | 2026-10-13 | proven | mixed | 2,698 | 57 min, 468k plan tokens | "B is sonnet it's somewhat alright" | trial | owner: somewhat alright; roof 28% over the scan |
 | Walter Webb Hall | Sol 6.1 | lean | 2026-10-14 | proven | public photo | 13,610 | 72 min, $2.80 |  | superseded | glass too light; name sign clipped at the wall edge |
 | West Campus block 73d1d197 | Sol 6.1 | lean | 2026-10-17 | loose | Earth 3D | 3,200 | 41 min, $1.86 |  | superseded | Sol on an Earth 3D package (sol_earth_task.py); red east block outside outline omitted; camera roof corners loose |
+| West Campus block 7aacc4af | Sol 6.1 | lean | 2026-10-17 | loose | Earth 3D | 3,200 | 49 min, $2.00 |  | superseded | Sol on an Earth 3D package; overlay aligns; tree-hidden half left as blank white walls |
 | West Campus block a06cb507 | Sol 6.1 | lean | 2026-10-17 | loose | Earth 3D | 3,148 | 66 min, $2.00 |  | trial | Sol on a weak Earth package (34% of frame, oaks); angle off; roofs rough; blue pads |
 | West Campus block bb4c0263 | Sol 6.1 | lean | 2026-10-17 | loose | Earth 3D | 2,600 | 42 min, $2.00 |  | superseded | Sol on an Earth 3D package; overlay aligns; plain bar only; neighbouring white wing outside outline |
 | William P. Clements Jr. State Office Building | Opus 5.5 | lean | 2026-10-15 |  |  | 20,748 | 50 min, 420k plan tokens |  | superseded | other buildings; gate done by the builder; glass light; hidden faces inferred |
