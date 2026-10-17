@@ -51,7 +51,7 @@ const manifest = {
   frame: 'local metres: x east, y up (metres above the origin ground), z south (three.js); v2/geo.js',
   note: 'TEST tile set made by v2/tools/make-test-tile.mjs (one Blender build, 26 West). The real set is v2/tiles/manifest.json.',
   tiles: [{ id, bounds: [i * TILE_M, j * TILE_M, (i + 1) * TILE_M, (j + 1) * TILE_M],
-    lod0: `tiles/${id}.glb`, lod1: `tiles/${id}.far.glb`, buildings: [SLUG] }],
+    lod0: `test-tiles/tiles/${id}.glb`, lod1: `test-tiles/tiles/${id}.far.glb`, buildings: [SLUG] }],
   buildings: { [SLUG]: { tile: id, map_ids: MAP_IDS, name: '26 West' } },
 };
 fs.writeFileSync('v2/test-tiles/manifest.json', JSON.stringify(manifest, null, 2) + '\n');

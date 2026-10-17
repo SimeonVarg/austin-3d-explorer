@@ -17,6 +17,7 @@ export const TILES = {
   UNLOAD_DISTANCE_M: 3200,     // tiles beyond this are dropped (must be > LOAD_DISTANCE_M)
   TILE_TOP_M: 160,             // assumed top of a tile, for the in-view test
   UPDATE_EVERY_MS: 200,
+  MAX_TRIES: 2,                // a tile that fails this many times is left out (the plain extrusions stay)
 };
 
 export class TileStreamer {
@@ -40,7 +41,8 @@ export class TileStreamer {
     const r = await fetch(this.url, { cache: 'no-cache' });
     if (!r.ok) throw new Error('manifest ' + r.status);
     this.manifest = await r.json();
-    this.base = new URL('.', new URL(this.url, location.href)).href;
+    // tile paths in the manifest are relative to the APP (v2/), as in the contract: "lod0": "tiles/t_i_j.glb"
+    this.base = new URL('./', import.meta.url).href;
     for (const t of this.manifest.tiles || []) {
       const mapIds = [];
       for (const slug of t.buildings || []) { const b = this.manifest.buildings?.[slug]; if (b?.map_ids) mapIds.push(...b.map_ids.map(String)); }
@@ -85,7 +87,7 @@ export class TileStreamer {
     // drop what is not wanted
     for (const s of all) if (!s.want && s.obj) this.drop(s);
     // queue: in view first, then nearest
-    const queue = all.filter((s) => s.want && s.have !== s.want && !s.job).sort((a, b) => (b.inView - a.inView) || (a.d - b.d));
+    const queue = all.filter((s) => s.want && s.have !== s.want && !s.job && (s.failed || 0) < TILES.MAX_TRIES).sort((a, b) => (b.inView - a.inView) || (a.d - b.d));
     while (this.active < TILES.MAX_DECODES && queue.length) this.start(queue.shift());
   }
 

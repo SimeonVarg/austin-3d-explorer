@@ -14,8 +14,8 @@
         -250,
         -500
       ],
-      "lod0": "tiles/t_-2_-3.glb",
-      "lod1": "tiles/t_-2_-3.far.glb",
+      "lod0": "test-tiles/tiles/t_-2_-3.glb",
+      "lod1": "test-tiles/tiles/t_-2_-3.far.glb",
       "buildings": [
         "26-west"
       ]

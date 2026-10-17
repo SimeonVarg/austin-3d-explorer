@@ -333,7 +333,7 @@ const cityReady = new Promise((resolve) => {
 });
 
 // ── Blender tiles ──────────────────────────────────────────────────────
-const manifestUrl = new URL(params.get('tiles') === 'test' ? './test-tiles/manifest.json' : (params.get('manifest') || './tiles/manifest.json'), location.href).href;
+const manifestUrl = new URL(params.get('tiles') === 'test' ? './test-tiles/manifest.json' : (params.get('manifest') || './tiles/manifest.json'), import.meta.url).href;
 let tiles = null;
 const tilesReady = (async () => {
   try {
