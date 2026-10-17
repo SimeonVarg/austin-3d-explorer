@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 323 builds of 264 buildings; 79 buildings flagged to retarget.
+Right now: 324 builds of 265 buildings; 79 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -111,6 +111,7 @@ Right now: 323 builds of 264 buildings; 79 buildings flagged to retarget.
 | Waterford Condominiums | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 13,551 | 33 min, 374k plan tokens |  |  |
 | West Campus block + car-park deck (8f3cb88c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 15,910 | 33 min, 356k plan tokens |  |  |
 | West Campus block 619cb351 | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 4,250 | 40 min, 330k plan tokens |  | yes |
+| West Campus block c84206c0 | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 10,878 | 36 min, 341k plan tokens |  |  |
 | West Campus block e287bfea | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 4,682 | 32 min, 348k plan tokens |  | yes |
 | West Campus block with ΣΧ letters (eaca344c) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 11,724 | 30 min, 352k plan tokens |  |  |
 | West Campus courtyard block (3b8f0f69) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 25,484 | 34 min, 367k plan tokens |  |  |
