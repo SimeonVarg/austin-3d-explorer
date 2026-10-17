@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 320 builds of 261 buildings; 76 buildings flagged to retarget.
+Right now: 321 builds of 262 buildings; 77 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -61,6 +61,7 @@ Right now: 320 builds of 261 buildings; 76 buildings flagged to retarget.
 | North Campus block 211c1f8e | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 15,414 | 38 min, 389k plan tokens |  |  |
 | North Campus block 21fe5c30 | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 2,772 | 26 min, 313k plan tokens |  | yes |
 | Norwood Tower | Sonnet 5.5 | 2026-10-15 |  | public photo | unreviewed | 27,050 | 16 min, 164k plan tokens |  | yes |
+| Palmetto Apartments | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 5,629 | 25 min, 319k plan tokens |  | yes |
 | Pointe on Rio | Opus 5.5 | 2026-10-12 |  | public photo | unreviewed | 19,021 | 40 min |  |  |
 | Price Daniel Sr. State Office Building | Sonnet 5.5 | 2026-10-15 |  | public photo | unreviewed |  | 7 min, 61k plan tokens |  | yes |
 | Rambler | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 17,742 | 61 min |  |  |
@@ -340,6 +341,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **North Campus block 21fe5c30**: Earth 3D; 2 of 3 held-out fail (oak hides corners); plain stucco block, 2.8k tri vs 13k target; roof hue fixed (grey)
 - **Omni Austin Hotel Downtown**: Earth 3D; h135 proven (4.8/7.7 px), h315 loose (27 px at east corner, outline 7 m short); roof skylights crude
 - **One American Center**: Earth 3D; held-out 3 of 5 (8.7, 11.9 miss); stepped crowns right; shade 26-40% dark; 24.8k vs 30k
+- **Palmetto Apartments**: Earth 3D + site photographs; held-out 23.6 px at SW corner; site photo got no camera (one independent corner); roof colour from site photos; windows read blue; courtyard simplified
 - **Procore Tower**: Earth 3D; 3 held-out pass, 4th 85 px (pick above body top); dark glass hue brown vs grey-blue; 5.7k vs 12k
 - **Regents West at 26th**: camera unproven (stair bay vs survey); stucco too dark; east wing thin
 - **Robert E. Johnson State Legislative Office Building** (score 5): no score yet; Earth 3D only; h225 proven, h045 (main) not; teal glass too dark
