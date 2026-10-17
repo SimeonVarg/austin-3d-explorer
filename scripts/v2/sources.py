@@ -20,6 +20,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # ── PARAMETERS ──────────────────────────────────────────────────────────
 ORIGIN = {'lat': 30.28601, 'lon': -97.73932}   # the v2 frame's origin (manifest.json)
 M_PER_DEG = 111320.0                            # the packages' own number (footprint.json metres were made with it)
+NEARBY_M = 60.0                                 # how far round a build to look for other outlines it may stand on
 TILE_M = 250.0                                  # tiles are squares of this side on the origin's grid
 MODEL_KEY = {'claude-opus-5-5': 'opus', 'gpt-6.1-sol': 'sol', 'claude-sonnet-5-5': 'sonnet'}
 # where each builder's output lives inside a package folder (the newest qualifying .blend wins)
@@ -158,6 +159,16 @@ def main(out_path):
         for oid, oring in others:
             cx, cy = centroid(oring)
             if bb[0] <= cx <= bb[2] and bb[1] <= cy <= bb[3] and oid not in hide and any(inside((cx, cy), rg) for rg in rings): hide.append(oid)
+        # every map/massing outline near the build (within NEARBY_M of its outline's box), in the build's own metres: check_place.py
+        # adds to map_ids each one the model's footprint covers by more than half (an extra wing or another map part under the model)
+        pad = NEARBY_M / M_PER_DEG
+        near = []
+        for oid, oring in others:
+            if oid in hide: continue
+            ox = [p[0] for p in oring]; oy = [p[1] for p in oring]
+            if max(ox) < bb[0] - pad or min(ox) > bb[2] + pad or max(oy) < bb[1] - pad or min(oy) > bb[3] + pad: continue
+            near.append([oid, [[round((p[0] - lon0) * mx, 2), round((p[1] - lat0) * M_PER_DEG, 2)] for p in oring]])
+        row['nearby_outlines'] = near
         row.update({'map_ids': hide, 'map_ids_package': ids, 'lng': round(lon0, 7), 'lat': round(lat0, 7), 'x': round(x, 3), 'z': round(z, 3), 'tile': tile_of(x, z),
                     'rings_local': [[[round((p[0] - lon0) * mx, 3), round((p[1] - lat0) * M_PER_DEG, 3)] for p in ring] for ring in rings]})
         # the outline the builder was told to follow (footprint.json: the map's, or the laser-scan trace where the map's was found off)

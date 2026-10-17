@@ -20,6 +20,7 @@ MIN_Z_M = 1.0          # what lies lower is paving, steps and kerbs, not the bui
 FLAG_OFFSET_M = 2.0
 FLAG_AREA = 0.10
 FLAG_BASE_M = 1.0      # the model's lowest point should be within this of the ground (y = 0)
+HIDE_COVER = 0.5       # a map/massing outline whose area the model's footprint covers by more than this share is hidden by the app
 
 
 def tris(p):
@@ -42,7 +43,7 @@ def check(row, glb):
     T2 = T[T[..., 1].max(1) > MIN_Z_M]
     xy = np.stack([T2[..., 0], -T2[..., 2]], -1)            # east, north
     rings = row.get('rings_package') or row['rings_local']     # the outline the builder followed (scan trace where the map was off)
-    allp = np.concatenate([xy.reshape(-1, 2), np.array([p for g in rings for p in g])])
+    allp = np.concatenate([xy.reshape(-1, 2), np.array([p for g in rings + [o[1] for o in row.get('nearby_outlines', [])] for p in g])])
     lo = allp.min(0) - 2; hi = allp.max(0) + 2
     sz = np.ceil((hi - lo) / RES_M).astype(int) + 1
     px = lambda q: [((x - lo[0]) / RES_M, (hi[1] - y) / RES_M) for x, y in q]
@@ -57,7 +58,12 @@ def check(row, glb):
         n = m.sum(); return np.array([xx[m].sum() / n, yy[m].sum() / n]) * RES_M if n else np.array([np.nan, np.nan])
     off = float(np.linalg.norm(centre(a) - centre(o)))
     am, om = a.sum() * RES_M ** 2, o.sum() * RES_M ** 2
-    r = {'height_m': round(ymax, 1), 'base_m': round(ymin, 2), 'model_m2': round(float(am)), 'outline_m2': round(float(om)),
+    # other outlines the model stands on (rasterised on the same grid; parts off the grid count as not covered)
+    hides = []
+    for oid, ring in row.get('nearby_outlines', []):
+        Q = Image.new('1', tuple(sz)); ImageDraw.Draw(Q).polygon(px(ring), fill=1); q = np.array(Q)
+        if q.sum() and (a & q).sum() / q.sum() > HIDE_COVER: hides.append(oid)
+    r = {'hides': hides, 'height_m': round(ymax, 1), 'base_m': round(ymin, 2), 'model_m2': round(float(am)), 'outline_m2': round(float(om)),
          'area_ratio': round(float(am / max(om, 1e-6)), 3), 'centre_off_m': round(off, 2),
          'covered': round(float((a & o).sum() / max(o.sum(), 1)), 3), 'outside': round(float((a & ~o).sum() / max(a.sum(), 1)), 3)}
     flags = []

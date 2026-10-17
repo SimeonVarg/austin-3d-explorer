@@ -5,7 +5,7 @@
  },
  "frame": "local metres: x east, y up, z south (three.js); y = metres above ground at the building",
  "projection": "equirectangular round the origin, as v2/geo.js: x = R cos(lat0) (lon - lon0), z = -R (lat - lat0), radians, R = 6378137",
- "map_ids": "ids the app hides extrusions by: the city map's 8-hex id or 'w<way>' (OSM, as in data/outer/downtown_massing.json); the package's outlines plus any map/massing building whose middle lies inside them",
+ "map_ids": "ids the app hides extrusions by: the city map's 8-hex id or 'w<way>' (OSM, as in data/outer/downtown_massing.json); the package's outlines, any map/massing building whose middle lies inside them, and any whose area the model's footprint covers by more than half",
  "tile_m": 250,
  "notes": "Each tile .glb: one opaque mesh (palette texture, one draw) and in lod0 one glass mesh; EXT_meshopt_compression + KHR_mesh_quantization (use MeshoptDecoder); vertex attribute _BUILDING = index into the tile's buildings list; colours are the builds' linear base colours on the Blender light rig scale (white paint ~0.17).",
  "tiles": [
@@ -1812,7 +1812,8 @@
   "360-condominiums": {
    "tile": "t_-4_8",
    "map_ids": [
-    "w328839215"
+    "w328839215",
+    "w972380481"
    ],
    "name": "360 Condominiums",
    "model": "opus",
@@ -2125,7 +2126,9 @@
    "tile": "t_-1_2",
    "map_ids": [
     "b0101452",
-    "w516187606"
+    "w516187606",
+    "78a70444",
+    "w1123753441"
    ],
    "name": "Cambridge Tower",
    "model": "opus",
@@ -2370,7 +2373,8 @@
   "fairmont-austin": {
    "tile": "t_0_10",
    "map_ids": [
-    "w134786106"
+    "w134786106",
+    "w1527709964"
    ],
    "name": "Fairmont Austin",
    "model": "opus",
@@ -2805,7 +2809,8 @@
   "jw-marriott-austin": {
    "tile": "t_-2_9",
    "map_ids": [
-    "w231123149"
+    "w231123149",
+    "w1034698229"
    ],
    "name": "JW Marriott Austin",
    "model": "opus",
@@ -2883,7 +2888,9 @@
   "legacy-on-rio": {
    "tile": "t_-3_-3",
    "map_ids": [
-    "b6857217"
+    "b6857217",
+    "9cc24114",
+    "7476824a"
    ],
    "name": "Legacy on Rio",
    "model": "opus",
@@ -2916,7 +2923,8 @@
   "lyndon-b-johnson-building": {
    "tile": "t_0_3",
    "map_ids": [
-    "affb925c"
+    "affb925c",
+    "w42807259"
    ],
    "name": "Lyndon B. Johnson State Office Building",
    "model": "opus",
@@ -3882,7 +3890,8 @@
   "townes-hall": {
    "tile": "t_3_-2",
    "map_ids": [
-    "167648cf"
+    "167648cf",
+    "685ed77c"
    ],
    "name": "Townes Hall",
    "model": "opus",
@@ -4402,7 +4411,8 @@
   "villas-on-nueces": {
    "tile": "t_-2_0",
    "map_ids": [
-    "02bbe7f3"
+    "02bbe7f3",
+    "e111b1d3"
    ],
    "name": "Villas on Nueces",
    "model": "opus",
@@ -4699,7 +4709,8 @@
   "west-campus-73d1d197": {
    "tile": "t_-3_0",
    "map_ids": [
-    "73d1d197"
+    "73d1d197",
+    "c061b162"
    ],
    "name": "West Campus block 73d1d197",
    "model": "opus",

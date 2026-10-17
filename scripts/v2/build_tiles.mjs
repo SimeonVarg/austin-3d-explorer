@@ -232,7 +232,7 @@ const manifest = {
   origin: ORIGIN,
   frame: 'local metres: x east, y up, z south (three.js); y = metres above ground at the building',
   projection: 'equirectangular round the origin, as v2/geo.js: x = R cos(lat0) (lon - lon0), z = -R (lat - lat0), radians, R = 6378137',
-  map_ids: 'ids the app hides extrusions by: the city map\'s 8-hex id or \'w<way>\' (OSM, as in data/outer/downtown_massing.json); the package\'s outlines plus any map/massing building whose middle lies inside them',
+  map_ids: 'ids the app hides extrusions by: the city map\'s 8-hex id or \'w<way>\' (OSM, as in data/outer/downtown_massing.json); the package\'s outlines, any map/massing building whose middle lies inside them, and any whose area the model\'s footprint covers by more than half',
   tile_m: TILE_M,
   notes: 'Each tile .glb: one opaque mesh (palette texture, one draw) and in lod0 one glass mesh; EXT_meshopt_compression + KHR_mesh_quantization (use MeshoptDecoder); vertex attribute _BUILDING = index into the tile\'s buildings list; colours are the builds\' linear base colours on the Blender light rig scale (white paint ~0.17).',
   tiles: Object.keys(tiles).sort().map((t) => {
@@ -240,7 +240,7 @@ const manifest = {
     return { id: t, bounds: [i * TILE_M, j * TILE_M, (i + 1) * TILE_M, (j + 1) * TILE_M], lod0: `tiles/${t}.glb`, lod1: `tiles/${t}.far.glb`, buildings: tiles[t],
       bytes: [tileInfo[t].near.bytes, tileInfo[t].far.bytes] };
   }),
-  buildings: Object.fromEntries(inTiles.sort().map((s) => [s, { tile: sources[s].tile, map_ids: sources[s].map_ids, name: sources[s].name, model: sources[s].model,
+  buildings: Object.fromEntries(inTiles.sort().map((s) => [s, { tile: sources[s].tile, map_ids: [...new Set([...sources[s].map_ids, ...((place[s] && place[s].hides) || [])])], name: sources[s].name, model: sources[s].model,
     x: sources[s].x, z: sources[s].z, top: place[s] ? place[s].height_m : null }])),
 };
 const inventory = {
