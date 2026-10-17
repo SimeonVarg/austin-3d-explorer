@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 348 builds of 289 buildings; 103 buildings flagged to retarget.
+Right now: 349 builds of 290 buildings; 104 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -121,6 +121,7 @@ Right now: 348 builds of 289 buildings; 103 buildings flagged to retarget.
 | West Campus block 732691d2 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 4,172 | 72 min, $3.00 |  | yes |
 | West Campus block 73d1d197 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,200 | 41 min, $1.86 |  | yes |
 | West Campus block 7aacc4af | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,200 | 49 min, $2.00 |  | yes |
+| West Campus block 861304d8 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,518 | 71 min, $3.00 |  | yes |
 | West Campus block 8c3494e9 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 2,800 | 50 min, $2.00 |  | yes |
 | West Campus block 944d806a | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 4,269 | 31 min, 350k plan tokens |  | yes |
 | West Campus block ae4909d9 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,624 | 71 min, $3.00 |  | yes |
@@ -344,6 +345,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **West Campus block 732691d2** (Sol 6.1): Sol on an Earth 3D package; overlay aligns closely; shaped gable parapets and court galleries right; grainy draft
 - **West Campus block 73d1d197** (Sol 6.1): Sol on an Earth 3D package (sol_earth_task.py); red east block outside outline omitted; camera roof corners loose
 - **West Campus block 7aacc4af** (Sol 6.1): Sol on an Earth 3D package; overlay aligns; tree-hidden half left as blank white walls
+- **West Campus block 861304d8** (Sol 6.1): Sol on an Earth 3D package; post-2021 building; overlay aligns; gables and two-tone walls right; grainy
 - **West Campus block 8c3494e9** (Sol 6.1): Sol on an Earth 3D package; courtyard block; overlay aligns; grainy draft; walls too white
 - **West Campus block ae4909d9** (Sol 6.1): Sol on an Earth 3D package; overlay aligns; both masses, roof pipes and units right; grainy draft
 - **West Campus block aef93bb7** (Sol 6.1): Sol on an Earth 3D package; overlay aligns well; T plan, roof, skylight right; street side inferred
