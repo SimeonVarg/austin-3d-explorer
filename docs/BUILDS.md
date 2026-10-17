@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 366 builds of 305 buildings; 112 buildings flagged to retarget.
+Right now: 367 builds of 305 buildings; 112 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -162,7 +162,7 @@ Right now: 366 builds of 305 buildings; 112 buildings flagged to retarget.
 | William P. Clements Jr. State Office Building | Sol 6.1 | 2026-10-15 |  |  | unreviewed | 20,746 | 50 min, $3.00 |  | yes |
 | Yugo Austin Nueces | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 14,022 | 71 min |  |  |
 | Yugo Austin Rio | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 8,220 | 46 min |  |  |
-| Yugo Austin Waterloo | Opus 5.5 | 2026-10-12 | proven | mixed | best | 4,200 | 66 min | 9 |  |
+| Yugo Austin Waterloo | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 20,048 | 64 min, 393k plan tokens |  |  |
 | Yugo The Corner | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 3,602 | 50 min, 417k plan tokens |  | yes |
 
 ## Campus: best build of each building
@@ -452,7 +452,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### Good test set for a cheaper model
 
-Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Cream court block with 11 chimneys (04f1466e) (3,215 tri); Gabled walk-up (07ebbe8f) (1,228 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Hardin House (3,749 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Solar-roof hall (63e601e8) (2,042 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Diplomat (2,154 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); West Campus block 2779329b (2,491 tri); West Campus block 73d1d197 (3,084 tri); West Campus brick bar 8d78646f (3,352 tri); White block on stilts (5b56cd35) (7,064 tri); Yugo Austin Waterloo (4,200 tri).
+Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Cream court block with 11 chimneys (04f1466e) (3,215 tri); Gabled walk-up (07ebbe8f) (1,228 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Hardin House (3,749 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Solar-roof hall (63e601e8) (2,042 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Diplomat (2,154 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); West Campus block 2779329b (2,491 tri); West Campus block 73d1d197 (3,084 tri); West Campus brick bar 8d78646f (3,352 tri); White block on stilts (5b56cd35) (7,064 tri).
 
 ## All other builds
 
@@ -523,6 +523,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | West Campus block a06cb507 | Sol 6.1 | lean | 2026-10-17 | loose | Earth 3D | 3,148 | 66 min, $2.00 |  | trial | Sol on a weak Earth package (34% of frame, oaks); angle off; roofs rough; blue pads |
 | William P. Clements Jr. State Office Building | Opus 5.5 | lean | 2026-10-15 |  |  | 20,748 | 50 min, 420k plan tokens |  | superseded | other buildings; gate done by the builder; glass light; hidden faces inferred |
 | Yugo Austin Waterloo | Haiku 5.5 | trial | 2026-10-12 |  | mixed | 7,388 | 17 min | 4 | trial | weakest of three; stopped early |
+| Yugo Austin Waterloo | Opus 5.5 | trial | 2026-10-12 | proven | mixed | 4,200 | 66 min | 9 | superseded | scored 9; best of three |
 | Yugo Austin Waterloo | Sonnet 5.5 | trial | 2026-10-12 |  | mixed | 6,428 | 68 min | 6.5 | trial | weaker than Opus on the same brief |
 | Yugo Austin Waterloo | Astra 6 | trial | 2026-10-12 |  | mixed |  | 5 min, $2.16 |  | failed | run killed after 5 min, no build |
 | Yugo Austin Waterloo | Sol 6.1 | trial | 2026-10-12 |  | mixed |  | 5 min, $0.31 |  | failed | run killed after 5 min, no build |
