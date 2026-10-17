@@ -19,6 +19,7 @@ const resp = await page.goto(URL, { waitUntil: 'networkidle', timeout: 90000 });
 console.log('HTTP', resp.status(), URL);
 
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 90000 });
+await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
 
 await page.waitForTimeout(14000);   // let the 9s cinematic intro finish
 

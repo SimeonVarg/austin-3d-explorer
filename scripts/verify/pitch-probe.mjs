@@ -13,6 +13,7 @@ const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 900, height: 700 } });
 await page.goto(`${SERVER}/index.html?intro=0&drift=0`, { waitUntil: 'networkidle', timeout: 180000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 180000 });
+await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
 await page.waitForTimeout(6000);
 
 const out = await page.evaluate(() => {

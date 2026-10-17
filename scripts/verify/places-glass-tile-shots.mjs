@@ -21,6 +21,7 @@ const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.goto(SERVER + '/_harness.html?intro=0&drift=0', { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
+await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
 await page.waitForFunction(() => typeof window.placesTileSample === 'function' && window.PLACES_SOFTEN, null, { timeout: 30000 });
 await page.waitForTimeout(3000);
 
