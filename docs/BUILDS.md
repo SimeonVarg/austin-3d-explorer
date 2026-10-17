@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 359 builds of 299 buildings; 108 buildings flagged to retarget.
+Right now: 360 builds of 300 buildings; 108 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -211,6 +211,7 @@ Right now: 359 builds of 299 buildings; 108 buildings flagged to retarget.
 | Gregory Gymnasium | Opus 5.5 | 2026-10-12 |  | site photographs | best | 7,334 | 79 min | "Nice" |  |
 | Harry Ransom Center | Opus 5.5 | 2026-10-15 | proven | public photo | unreviewed | 18,100 | 57 min, 416k plan tokens |  |  |
 | Health Discovery Building | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 22,780 | 55 min, 406k plan tokens |  |  |
+| Historic brick hall 77b9403c | Opus 5.5 | 2026-10-17 | proven | Earth 3D | unreviewed | 11,551 | 52 min, 325k plan tokens |  |  |
 | Hogg Memorial Auditorium | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 17,813 | 52 min, 458k plan tokens |  |  |
 | Homer Rainey Hall | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 15,891 | 39 min, 394k plan tokens |  |  |
 | J. T. Patterson Laboratories | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 10,542 | 55 min, 482k plan tokens |  | yes |
