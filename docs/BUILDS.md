@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 354 builds of 295 buildings; 107 buildings flagged to retarget.
+Right now: 355 builds of 296 buildings; 108 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -125,6 +125,7 @@ Right now: 354 builds of 295 buildings; 107 buildings flagged to retarget.
 | West Campus block 732691d2 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 4,172 | 72 min, $3.00 |  | yes |
 | West Campus block 73d1d197 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,200 | 41 min, $1.86 |  | yes |
 | West Campus block 7aacc4af | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,200 | 49 min, $2.00 |  | yes |
+| West Campus block 7e7420aa | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,134 | 36 min, 366k plan tokens |  | yes |
 | West Campus block 861304d8 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,518 | 71 min, $3.00 |  | yes |
 | West Campus block 8c3494e9 | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 2,800 | 50 min, $2.00 |  | yes |
 | West Campus block 944d806a | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 4,269 | 31 min, 350k plan tokens |  | yes |
@@ -420,6 +421,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **West Campus block 41d7f858**: Earth 3D; held-outs on 4 chimney tops at scan height 0.85-1.43 px (all one height); walls moved 1.3 m onto the scan roof; fewer cross hips than the views
 - **West Campus block 4e03b7f5**: Earth 3D; SW wing rebuilt on a lead-asked pass; 1 held-out 52.8 px on a tree-hidden corner; east part inferred
 - **West Campus block 619cb351**: Earth 3D; held-out 10.1/20.9/41.6 px; gables fixed on two lead-asked passes (cap bug, then width); court 8 m wider than survey
+- **West Campus block 7e7420aa**: Earth 3D; held-outs 11.9/8.9/10.3 px and fit set changed after seeing them (loose); Dutch gables from a soft mesh
 - **West Campus block 944d806a**: Earth 3D; 3 of 4 camera held-outs miss (Earth court ~1-1.5 m east of scan); walls on scan roof 2.75 m east of map; outline includes a white house (house_* objects), may be separate
 - **West Campus block e287bfea**: Earth 3D; held-out 1.98/26.1/19.8 px: survey outline 2 m wider than the mesh at the west end; gallery bands too pale; 4.7k vs 9k
 - **Yugo The Corner**: two far photographs only; north-east panel block not built; east base 3.4 m outside the scan
