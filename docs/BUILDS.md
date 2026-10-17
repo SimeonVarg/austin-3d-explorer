@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 363 builds of 303 buildings; 111 buildings flagged to retarget.
+Right now: 364 builds of 303 buildings; 110 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -47,7 +47,7 @@ Right now: 363 builds of 303 buildings; 111 buildings flagged to retarget.
 | Greenwood Towers | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 13,594 | 38 min, 386k plan tokens |  |  |
 | Hampton Inn and Suites Austin (campus) | Opus 5.5 | 2026-10-14 | unproven | public photo | unreviewed | 18,819 | 56 min, 450k plan tokens |  | yes |
 | Hampton Inn and Suites Austin Downtown | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 25,994 | 49 min, 385k plan tokens |  |  |
-| Hardin House | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,981 | 76 min, $3.00 |  | yes |
+| Hardin House | Opus 5.5 | 2026-10-17 | loose | mixed | unreviewed | 3,749 | 58 min, 377k plan tokens |  |  |
 | HillTop | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 18,109 | 44 min, 389k plan tokens |  |  |
 | Icon | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 20,804 | 64 min, 445k plan tokens |  |  |
 | Inspire on 22nd | Opus 5.5 | 2026-10-12 |  | site photographs | unreviewed | 40,966 | 78 min |  |  |
@@ -335,7 +335,6 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Austin by Ellsworth Kelly** (Sonnet 5.5, fix round): named fix: coloured glass via new fb_glass (21 panes, worst-channel error 32 -> 0.5 of 255)
 - **Driskill Hotel** (Sol 6.1, fix round): his ask: detail pass; carving, surrounds, balusters added; camera still 0.6 px short
 - **Ernest O. Thompson State Office Building** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
-- **Hardin House** (Sol 6.1): Sol on an Earth 3D package + site photographs; grey wing built flat vs hipped; court depth >1 m off
 - **Indeed Tower** (Sol 6.1, fix round): Sol fix round on the Opus build at his ask: sharp mullions, glass mix, SW corner and N tip moved; camera check conditional on the new shape; cost $1.61
 - **John H. Reagan State Office Building** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
 - **Kappa Delta house** (Sol 6.1, redo): Sol redo of the Haiku build at the same triangle budget; cheaper model, cream wall where photo is white
@@ -449,7 +448,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### Good test set for a cheaper model
 
-Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Cream court block with 11 chimneys (04f1466e) (3,215 tri); Gabled walk-up (07ebbe8f) (1,228 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Solar-roof hall (63e601e8) (2,042 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Diplomat (2,154 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); West Campus block 2779329b (2,491 tri); West Campus block 73d1d197 (3,084 tri); West Campus brick bar 8d78646f (3,352 tri); White block on stilts (5b56cd35) (7,064 tri); Yugo Austin Waterloo (4,200 tri).
+Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Cream court block with 11 chimneys (04f1466e) (3,215 tri); Gabled walk-up (07ebbe8f) (1,228 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Hardin House (3,749 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Solar-roof hall (63e601e8) (2,042 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Diplomat (2,154 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); West Campus block 2779329b (2,491 tri); West Campus block 73d1d197 (3,084 tri); West Campus brick bar 8d78646f (3,352 tri); White block on stilts (5b56cd35) (7,064 tri); Yugo Austin Waterloo (4,200 tri).
 
 ## All other builds
 
@@ -482,6 +481,7 @@ Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap mod
 | George I. Sanchez Building | Haiku 5.5 | trial | 2026-10-13 | unproven | mixed | 1,538 | 29 min, 337k plan tokens |  | trial | ranked last; camera unproven, height 20% over the scan; final render refused |
 | George I. Sanchez Building | Sonnet 5.5 | trial | 2026-10-13 | unproven | mixed | 4,964 | 44 min, 403k plan tokens |  | trial | ranked second by the owner (blind guess); raised the camera limit itself |
 | Graduate School of Business | Opus 5.5 | lean | 2026-10-13 |  | site photographs | 4,025 | 52 min, 437k plan tokens |  | trial | B of the A/B test; glass painted flat, fresh reviewer wanted a second round |
+| Hardin House | Sol 6.1 | lean | 2026-10-17 | loose | Earth 3D | 3,981 | 76 min, $3.00 |  | superseded | Sol on an Earth 3D package + site photographs; grey wing built flat vs hipped; court depth >1 m off |
 | Harry Ransom Center | Opus 5.5 | lean | 2026-10-13 |  | public photo | 11,962 | 21 min |  | failed | stopped by the owner (about 21 min in); model file only, no render |
 | Heinsohn Hall | Opus 5.5 | lean | 2026-10-15 |  | public photo | 13,758 | 57 min, 489k plan tokens |  | failed | camera not proven (held-out 1.5 / 20.5 px, 8 px of it own pick); one photo only; not sent |
 | Heinsohn Hall | Opus 5.5 | redo | 2026-10-15 |  | public photo | 13,710 | 27 min, 276k plan tokens |  | failed | independent retry: held-out pass but all on one flat face; camera height 0.44 m (implausible); porthole wall 1.5x tall; not sent; PARKED (2 tries) |
