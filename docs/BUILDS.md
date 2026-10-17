@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 368 builds of 306 buildings; 113 buildings flagged to retarget.
+Right now: 369 builds of 307 buildings; 114 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -151,6 +151,7 @@ Right now: 368 builds of 306 buildings; 113 buildings flagged to retarget.
 | West Campus cream block (8e99b2fe) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 16,439 | 27 min, 314k plan tokens |  |  |
 | West Campus crest house 0c4b89ce | Opus 5.5 | 2026-10-17 | unproven | Earth 3D | unreviewed | 5,355 | 57 min, 384k plan tokens |  | yes |
 | West Campus Flats | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 2,776 | 48 min, $2.00 |  | yes |
+| West Campus lettered house 2527bdfa | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 1,807 | 45 min, 362k plan tokens |  | yes |
 | West Campus long block (66d719c5) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 13,698 | 35 min, 378k plan tokens |  |  |
 | West Campus metal-roof hall 5eae3fec | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 1,356 | 47 min, 385k plan tokens |  | yes |
 | West Campus pool-deck block (4fe90bd0) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 23,174 | 42 min, 395k plan tokens |  |  |
@@ -438,6 +439,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **West Campus block e287bfea**: Earth 3D; held-out 1.98/26.1/19.8 px: survey outline 2 m wider than the mesh at the west end; gallery bands too pale; 4.7k vs 9k
 - **West Campus columned house 584148b6**: Earth 3D; held-outs fail (mesh eaves 1-2 m inside survey walls); Earth ALT snapped to roof height (+9.3 m); porch columns heavy
 - **West Campus crest house 0c4b89ce**: Earth 3D; no scan-height corners, so no held-outs; two-view check 0.1-0.9 px; court red 27% off
+- **West Campus lettered house 2527bdfa**: Earth 3D; held-outs 16-29 px (fit pick under an oak); south wall may overlap the neighbour; letters A, E built, third blank
 - **West Campus metal-roof hall 5eae3fec**: Earth 3D; held-outs 11.8/20.8 px; ridge +1.5 m vs scan; walls blue; back wings inferred
 - **Yugo The Corner**: two far photographs only; north-east panel block not built; east base 3.4 m outside the scan
 
