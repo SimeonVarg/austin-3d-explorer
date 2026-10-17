@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 372 builds of 310 buildings; 117 buildings flagged to retarget.
+Right now: 373 builds of 311 buildings; 118 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -315,6 +315,7 @@ Right now: 372 builds of 310 buildings; 117 buildings flagged to retarget.
 | JW Marriott Austin | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 19,288 | 34 min, 384k plan tokens |  | yes |
 | Lyndon B. Johnson State Office Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 19,816 | 22 min, 287k plan tokens |  |  |
 | Neill-Cochran House Museum | Opus 5.5 | 2026-10-17 | loose | Earth 3D | unreviewed | 3,786 | 34 min, 342k plan tokens |  | yes |
+| Old gas station 1854f22e | Sol 6.1 | 2026-10-17 | loose | Earth 3D | unreviewed | 1,800 | 69 min, $2.00 |  | yes |
 | Omni Austin Hotel Downtown | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 7,661 | 33 min, 368k plan tokens |  | yes |
 | One American Center | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 24,841 | 36 min, 376k plan tokens |  | yes |
 | Procore Tower | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 5,689 | 31 min, 370k plan tokens |  | yes |
@@ -348,6 +349,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Lantern Lane Apartments** (Sol 6.1): Sol on an Earth 3D package + site photographs; overlay aligns closely; banner not built
 - **Norwood Tower** (Sonnet 5.5, fix round): named fix: dark_window glass; panes 60/76/89 -> 27/32/40 vs photo 25/29/39
 - **Nursing School** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
+- **Old gas station 1854f22e** (Sol 6.1): Sol on an Earth 3D package; overlay aligns closely; canopy and shop right
 - **Pi Beta Phi house** (Sol 6.1, redo): Sol redo: real portico, but sits smaller and a little turned
 - **Price Daniel Sr. State Office Building** (Sonnet 5.5, fix round): named fix: dark_window glass on the panes the photo shows dark
 - **Texan Pearl** (Sol 6.1, fix round): fix 1: every roof plate and canopy re-measured; shaded left wing still too dark; cheaper model (base Sol build: 70 min, $3.10)
