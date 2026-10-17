@@ -1,0 +1,5020 @@
+{
+ "origin": {
+  "lat": 30.28601,
+  "lon": -97.73932
+ },
+ "frame": "local metres: x east, y up, z south (three.js); y = metres above ground at the building",
+ "projection": "equirectangular round the origin, as v2/geo.js: x = R cos(lat0) (lon - lon0), z = -R (lat - lat0), radians, R = 6378137",
+ "map_ids": "ids the app hides extrusions by: the city map's 8-hex id or 'w<way>' (OSM, as in data/outer/downtown_massing.json); the package's outlines plus any map/massing building whose middle lies inside them",
+ "tile_m": 250,
+ "notes": "Each tile .glb: one opaque mesh (palette texture, one draw) and in lod0 one glass mesh; EXT_meshopt_compression + KHR_mesh_quantization (use MeshoptDecoder); vertex attribute _BUILDING = index into the tile's buildings list; colours are the builds' linear base colours on the Blender light rig scale (white paint ~0.17).",
+ "tiles": [
+  {
+   "id": "t_-1_-1",
+   "bounds": [
+    -250,
+    -250,
+    0,
+    0
+   ],
+   "lod0": "tiles/t_-1_-1.glb",
+   "lod1": "tiles/t_-1_-1.far.glb",
+   "buildings": [
+    "andrews-dormitory",
+    "biological-laboratories",
+    "gordon-white-building",
+    "hogg-memorial-auditorium",
+    "littlefield-house",
+    "peter-t-flawn-academic-center",
+    "union-building"
+   ],
+   "bytes": [
+    1735496,
+    42004
+   ]
+  },
+  {
+   "id": "t_-1_-2",
+   "bounds": [
+    -250,
+    -500,
+    0,
+    -250
+   ],
+   "lod0": "tiles/t_-1_-2.glb",
+   "lod1": "tiles/t_-1_-2.far.glb",
+   "buildings": [
+    "blanton-dormitory",
+    "carothers-dormitory",
+    "dealey-center-for-new-media",
+    "jesse-h-jones-communication-center-a",
+    "jesse-h-jones-communication-center-b",
+    "kinsolving-dormitory",
+    "littlefield-dormitory",
+    "walter-webb-hall",
+    "william-randolph-hearst-building"
+   ],
+   "bytes": [
+    1753312,
+    40384
+   ]
+  },
+  {
+   "id": "t_-1_-3",
+   "bounds": [
+    -250,
+    -750,
+    0,
+    -500
+   ],
+   "lod0": "tiles/t_-1_-3.glb",
+   "lod1": "tiles/t_-1_-3.far.glb",
+   "buildings": [
+    "almetris-duren-hall",
+    "scottish-rite-dormitory",
+    "unidentified-west-campus-f0b137e7"
+   ],
+   "bytes": [
+    635272,
+    22732
+   ]
+  },
+  {
+   "id": "t_-1_-4",
+   "bounds": [
+    -250,
+    -1000,
+    0,
+    -750
+   ],
+   "lod0": "tiles/t_-1_-4.glb",
+   "lod1": "tiles/t_-1_-4.far.glb",
+   "buildings": [
+    "the-venue",
+    "the-venue-on-guadalupe",
+    "unidentified-west-campus-319e8154",
+    "unidentified-west-campus-5b56cd35",
+    "villas-on-guadalupe"
+   ],
+   "bytes": [
+    664476,
+    33480
+   ]
+  },
+  {
+   "id": "t_-1_0",
+   "bounds": [
+    -250,
+    0,
+    0,
+    250
+   ],
+   "lod0": "tiles/t_-1_0.glb",
+   "lod1": "tiles/t_-1_0.far.glb",
+   "buildings": [
+    "battle-hall",
+    "goldsmith-hall",
+    "harry-ransom-center",
+    "homer-rainey-hall",
+    "parlin-hall",
+    "sutton-hall"
+   ],
+   "bytes": [
+    1304340,
+    22680
+   ]
+  },
+  {
+   "id": "t_-1_1",
+   "bounds": [
+    -250,
+    250,
+    0,
+    500
+   ],
+   "lod0": "tiles/t_-1_1.glb",
+   "lod1": "tiles/t_-1_1.far.glb",
+   "buildings": [
+    "att-executive-education-conference-center",
+    "dobie-twenty21",
+    "kappa-kappa-gamma",
+    "rowling-hall",
+    "university-catholic-center"
+   ],
+   "bytes": [
+    712556,
+    45616
+   ]
+  },
+  {
+   "id": "t_-1_10",
+   "bounds": [
+    -250,
+    2500,
+    0,
+    2750
+   ],
+   "lod0": "tiles/t_-1_10.glb",
+   "lod1": "tiles/t_-1_10.far.glb",
+   "buildings": [
+    "austin-marriott-downtown",
+    "four-seasons-residences"
+   ],
+   "bytes": [
+    455584,
+    8492
+   ]
+  },
+  {
+   "id": "t_-1_2",
+   "bounds": [
+    -250,
+    500,
+    0,
+    750
+   ],
+   "lod0": "tiles/t_-1_2.glb",
+   "lod1": "tiles/t_-1_2.far.glb",
+   "buildings": [
+    "cambridge-tower",
+    "greenwood-towers",
+    "hampton-inn-and-suites-austin",
+    "stephen-f-austin-state-office-building",
+    "the-g",
+    "university-avenue-church-of-christ"
+   ],
+   "bytes": [
+    1107900,
+    28984
+   ]
+  },
+  {
+   "id": "t_-1_3",
+   "bounds": [
+    -250,
+    750,
+    0,
+    1000
+   ],
+   "lod0": "tiles/t_-1_3.glb",
+   "lod1": "tiles/t_-1_3.far.glb",
+   "buildings": [
+    "texas-law-center"
+   ],
+   "bytes": [
+    89604,
+    10312
+   ]
+  },
+  {
+   "id": "t_-1_4",
+   "bounds": [
+    -250,
+    1000,
+    0,
+    1250
+   ],
+   "lod0": "tiles/t_-1_4.glb",
+   "lod1": "tiles/t_-1_4.far.glb",
+   "buildings": [
+    "john-h-reagan-state-office-building"
+   ],
+   "bytes": [
+    176296,
+    4736
+   ]
+  },
+  {
+   "id": "t_-1_6",
+   "bounds": [
+    -250,
+    1500,
+    0,
+    1750
+   ],
+   "lod0": "tiles/t_-1_6.glb",
+   "lod1": "tiles/t_-1_6.far.glb",
+   "buildings": [
+    "dewitt-c-greer-state-highway-building"
+   ],
+   "bytes": [
+    329560,
+    7028
+   ]
+  },
+  {
+   "id": "t_-1_7",
+   "bounds": [
+    -250,
+    1750,
+    0,
+    2000
+   ],
+   "lod0": "tiles/t_-1_7.glb",
+   "lod1": "tiles/t_-1_7.far.glb",
+   "buildings": [
+    "driskill-hotel",
+    "omni-austin-hotel-downtown",
+    "southwest-tower"
+   ],
+   "bytes": [
+    629092,
+    24532
+   ]
+  },
+  {
+   "id": "t_-1_8",
+   "bounds": [
+    -250,
+    2000,
+    0,
+    2250
+   ],
+   "lod0": "tiles/t_-1_8.glb",
+   "lod1": "tiles/t_-1_8.far.glb",
+   "buildings": [
+    "thompson-austin"
+   ],
+   "bytes": [
+    67444,
+    10752
+   ]
+  },
+  {
+   "id": "t_-2_-1",
+   "bounds": [
+    -500,
+    -250,
+    -250,
+    0
+   ],
+   "lod0": "tiles/t_-2_-1.glb",
+   "lod1": "tiles/t_-2_-1.far.glb",
+   "buildings": [
+    "2400-nueces",
+    "kappa-delta",
+    "pi-beta-phi",
+    "skyloft-austin",
+    "the-castilian",
+    "the-co-op",
+    "the-quarters-nueces-house",
+    "villas-on-24th",
+    "yugo-austin-rio"
+   ],
+   "bytes": [
+    1428228,
+    38288
+   ]
+  },
+  {
+   "id": "t_-2_-2",
+   "bounds": [
+    -500,
+    -500,
+    -250,
+    -250
+   ],
+   "lod0": "tiles/t_-2_-2.glb",
+   "lod1": "tiles/t_-2_-2.far.glb",
+   "buildings": [
+    "centennial-condominiums",
+    "delta-gamma",
+    "rambler",
+    "west-campus-0972f20f",
+    "west-campus-12159245",
+    "yugo-austin-nueces",
+    "yugo-austin-waterloo"
+   ],
+   "bytes": [
+    960080,
+    37832
+   ]
+  },
+  {
+   "id": "t_-2_-3",
+   "bounds": [
+    -500,
+    -750,
+    -250,
+    -500
+   ],
+   "lod0": "tiles/t_-2_-3.glb",
+   "lod1": "tiles/t_-2_-3.far.glb",
+   "buildings": [
+    "1883-at-montgomery-house",
+    "1883-cameron-house",
+    "26-west",
+    "grandmarc-austin",
+    "unidentified-west-campus-eaca344c"
+   ],
+   "bytes": [
+    1784672,
+    33288
+   ]
+  },
+  {
+   "id": "t_-2_-4",
+   "bounds": [
+    -500,
+    -1000,
+    -250,
+    -750
+   ],
+   "lod0": "tiles/t_-2_-4.glb",
+   "lod1": "tiles/t_-2_-4.far.glb",
+   "buildings": [
+    "unidentified-north-campus-6f01b458",
+    "unidentified-north-campus-90072241",
+    "west-campus-10a07e54",
+    "west-campus-1854f22e",
+    "west-campus-2527bdfa",
+    "west-campus-2779329b",
+    "west-campus-47882601",
+    "west-campus-584148b6",
+    "west-campus-732691d2",
+    "west-campus-7e7420aa",
+    "west-campus-b01fbc20",
+    "west-campus-e1b470ab"
+   ],
+   "bytes": [
+    638356,
+    32676
+   ]
+  },
+  {
+   "id": "t_-2_-5",
+   "bounds": [
+    -500,
+    -1250,
+    -250,
+    -1000
+   ],
+   "lod0": "tiles/t_-2_-5.glb",
+   "lod1": "tiles/t_-2_-5.far.glb",
+   "buildings": [
+    "2819-rio-grande"
+   ],
+   "bytes": [
+    297788,
+    9392
+   ]
+  },
+  {
+   "id": "t_-2_0",
+   "bounds": [
+    -500,
+    0,
+    -250,
+    250
+   ],
+   "lod0": "tiles/t_-2_0.glb",
+   "lod1": "tiles/t_-2_0.far.glb",
+   "buildings": [
+    "church-of-scientology-texas",
+    "icon",
+    "inspire-on-22nd",
+    "ion-austin",
+    "lark-austin",
+    "moontower",
+    "rise-at-west-campus",
+    "texas-hillel",
+    "the-callaway-house",
+    "unidentified-west-campus-27bbc14c",
+    "university-baptist-church-education-building",
+    "university-presbyterian-church",
+    "villas-on-nueces"
+   ],
+   "bytes": [
+    1866472,
+    58368
+   ]
+  },
+  {
+   "id": "t_-2_1",
+   "bounds": [
+    -500,
+    250,
+    -250,
+    500
+   ],
+   "lod0": "tiles/t_-2_1.glb",
+   "lod1": "tiles/t_-2_1.far.glb",
+   "buildings": [
+    "saint-austin-catholic-church",
+    "the-otis-hotel",
+    "torre-student-living",
+    "union-on-san-antonio",
+    "west-campus-d7c24ed5"
+   ],
+   "bytes": [
+    483464,
+    24204
+   ]
+  },
+  {
+   "id": "t_-2_10",
+   "bounds": [
+    -500,
+    2500,
+    -250,
+    2750
+   ],
+   "lod0": "tiles/t_-2_10.glb",
+   "lod1": "tiles/t_-2_10.far.glb",
+   "buildings": [
+    "111-congress",
+    "san-jacinto-center"
+   ],
+   "bytes": [
+    348648,
+    22852
+   ]
+  },
+  {
+   "id": "t_-2_2",
+   "bounds": [
+    -500,
+    500,
+    -250,
+    750
+   ],
+   "lod0": "tiles/t_-2_2.glb",
+   "lod1": "tiles/t_-2_2.far.glb",
+   "buildings": [
+    "travis-county-civil-and-family-courts-facility"
+   ],
+   "bytes": [
+    220836,
+    10304
+   ]
+  },
+  {
+   "id": "t_-2_3",
+   "bounds": [
+    -500,
+    750,
+    -250,
+    1000
+   ],
+   "lod0": "tiles/t_-2_3.glb",
+   "lod1": "tiles/t_-2_3.far.glb",
+   "buildings": [
+    "texas-supreme-court-building",
+    "william-p-clements-jr-state-office-building"
+   ],
+   "bytes": [
+    307548,
+    13728
+   ]
+  },
+  {
+   "id": "t_-2_4",
+   "bounds": [
+    -500,
+    1000,
+    -250,
+    1250
+   ],
+   "lod0": "tiles/t_-2_4.glb",
+   "lod1": "tiles/t_-2_4.far.glb",
+   "buildings": [
+    "price-daniel-sr-state-office-building"
+   ],
+   "bytes": [
+    212068,
+    8060
+   ]
+  },
+  {
+   "id": "t_-2_5",
+   "bounds": [
+    -500,
+    1250,
+    -250,
+    1500
+   ],
+   "lod0": "tiles/t_-2_5.glb",
+   "lod1": "tiles/t_-2_5.far.glb",
+   "buildings": [
+    "westgate-tower"
+   ],
+   "bytes": [
+    287272,
+    7004
+   ]
+  },
+  {
+   "id": "t_-2_6",
+   "bounds": [
+    -500,
+    1500,
+    -250,
+    1750
+   ],
+   "lod0": "tiles/t_-2_6.glb",
+   "lod1": "tiles/t_-2_6.far.glb",
+   "buildings": [
+    "ernest-o-thompson-state-office-building"
+   ],
+   "bytes": [
+    200392,
+    9876
+   ]
+  },
+  {
+   "id": "t_-2_7",
+   "bounds": [
+    -500,
+    1750,
+    -250,
+    2000
+   ],
+   "lod0": "tiles/t_-2_7.glb",
+   "lod1": "tiles/t_-2_7.far.glb",
+   "buildings": [
+    "brown-building",
+    "indeed-tower",
+    "norwood-tower",
+    "one-american-center"
+   ],
+   "bytes": [
+    1144872,
+    34376
+   ]
+  },
+  {
+   "id": "t_-2_8",
+   "bounds": [
+    -500,
+    2000,
+    -250,
+    2250
+   ],
+   "lod0": "tiles/t_-2_8.glb",
+   "lod1": "tiles/t_-2_8.far.glb",
+   "buildings": [
+    "405-colorado",
+    "frost-bank-tower"
+   ],
+   "bytes": [
+    202100,
+    32460
+   ]
+  },
+  {
+   "id": "t_-2_9",
+   "bounds": [
+    -500,
+    2250,
+    -250,
+    2500
+   ],
+   "lod0": "tiles/t_-2_9.glb",
+   "lod1": "tiles/t_-2_9.far.glb",
+   "buildings": [
+    "301-congress",
+    "hampton-inn-and-suites-austin-downtown",
+    "hanover-brazos-street",
+    "jw-marriott-austin",
+    "the-austonian"
+   ],
+   "bytes": [
+    936356,
+    28016
+   ]
+  },
+  {
+   "id": "t_-3_-1",
+   "bounds": [
+    -750,
+    -250,
+    -500,
+    0
+   ],
+   "lod0": "tiles/t_-3_-1.glb",
+   "lod1": "tiles/t_-3_-1.far.glb",
+   "buildings": [
+    "raku-sushi-and-asian-bistro",
+    "the-block-on-23rd",
+    "the-mark-austin",
+    "the-standard",
+    "twenty-two-15",
+    "unidentified-west-campus-8f3cb88c",
+    "union-on-24th",
+    "west-campus-8d78646f"
+   ],
+   "bytes": [
+    2290872,
+    46892
+   ]
+  },
+  {
+   "id": "t_-3_-2",
+   "bounds": [
+    -750,
+    -500,
+    -500,
+    -250
+   ],
+   "lod0": "tiles/t_-3_-2.glb",
+   "lod1": "tiles/t_-3_-2.far.glb",
+   "buildings": [
+    "block-on-25th-east",
+    "block-on-25th-west",
+    "texan-pearl",
+    "west-campus-12d10e75",
+    "west-campus-5eae3fec",
+    "west-campus-619cb351"
+   ],
+   "bytes": [
+    836880,
+    40852
+   ]
+  },
+  {
+   "id": "t_-3_-3",
+   "bounds": [
+    -750,
+    -750,
+    -500,
+    -500
+   ],
+   "lod0": "tiles/t_-3_-3.glb",
+   "lod1": "tiles/t_-3_-3.far.glb",
+   "buildings": [
+    "legacy-on-rio",
+    "regents-west-at-26th",
+    "unidentified-north-campus-21fe5c30",
+    "unidentified-north-campus-bcf8a2ba",
+    "unidentified-north-campus-dbdd6dfb",
+    "unidentified-west-campus-4fe90bd0",
+    "west-campus-8c3494e9",
+    "west-campus-d44c18cb"
+   ],
+   "bytes": [
+    925192,
+    41348
+   ]
+  },
+  {
+   "id": "t_-3_-4",
+   "bounds": [
+    -750,
+    -1000,
+    -500,
+    -750
+   ],
+   "lod0": "tiles/t_-3_-4.glb",
+   "lod1": "tiles/t_-3_-4.far.glb",
+   "buildings": [
+    "austin-technology-incubator-1a9a4b6c",
+    "unidentified-north-campus-211c1f8e",
+    "unidentified-north-campus-6e7dec36",
+    "unidentified-west-campus-3b8f0f69",
+    "unidentified-west-campus-42508a4b",
+    "unidentified-west-campus-ec1b4af2"
+   ],
+   "bytes": [
+    909096,
+    29792
+   ]
+  },
+  {
+   "id": "t_-3_0",
+   "bounds": [
+    -750,
+    0,
+    -500,
+    250
+   ],
+   "lod0": "tiles/t_-3_0.glb",
+   "lod1": "tiles/t_-3_0.far.glb",
+   "buildings": [
+    "21-rio",
+    "hardin-house",
+    "palmetto-apartment-complex",
+    "the-nine-at-rio",
+    "the-quarters-grayson-house",
+    "the-quarters-sterling-house",
+    "villas-on-rio",
+    "west-campus-521ab442",
+    "west-campus-73d1d197"
+   ],
+   "bytes": [
+    1127976,
+    47272
+   ]
+  },
+  {
+   "id": "t_-3_1",
+   "bounds": [
+    -750,
+    250,
+    -500,
+    500
+   ],
+   "lod0": "tiles/t_-3_1.glb",
+   "lod1": "tiles/t_-3_1.far.glb",
+   "buildings": [
+    "crest-at-pearl",
+    "goodall-wooten-house",
+    "pointe-on-rio",
+    "signature-1909",
+    "west-campus-130c7878"
+   ],
+   "bytes": [
+    830208,
+    26568
+   ]
+  },
+  {
+   "id": "t_-3_12",
+   "bounds": [
+    -750,
+    3000,
+    -500,
+    3250
+   ],
+   "lod0": "tiles/t_-3_12.glb",
+   "lod1": "tiles/t_-3_12.far.glb",
+   "buildings": [
+    "embassy-suites-austin-downtown"
+   ],
+   "bytes": [
+    138144,
+    10784
+   ]
+  },
+  {
+   "id": "t_-3_7",
+   "bounds": [
+    -750,
+    1750,
+    -500,
+    2000
+   ],
+   "lod0": "tiles/t_-3_7.glb",
+   "lod1": "tiles/t_-3_7.far.glb",
+   "buildings": [
+    "procore-tower"
+   ],
+   "bytes": [
+    56880,
+    9936
+   ]
+  },
+  {
+   "id": "t_-3_8",
+   "bounds": [
+    -750,
+    2000,
+    -500,
+    2250
+   ],
+   "lod0": "tiles/t_-3_8.glb",
+   "lod1": "tiles/t_-3_8.far.glb",
+   "buildings": [
+    "300-colorado",
+    "colorado-tower",
+    "hotel-zaza"
+   ],
+   "bytes": [
+    453424,
+    22588
+   ]
+  },
+  {
+   "id": "t_-3_9",
+   "bounds": [
+    -750,
+    2250,
+    -500,
+    2500
+   ],
+   "lod0": "tiles/t_-3_9.glb",
+   "lod1": "tiles/t_-3_9.far.glb",
+   "buildings": [
+    "100-congress",
+    "the-ashton",
+    "w-austin"
+   ],
+   "bytes": [
+    962844,
+    22204
+   ]
+  },
+  {
+   "id": "t_-4_-1",
+   "bounds": [
+    -1000,
+    -250,
+    -750,
+    0
+   ],
+   "lod0": "tiles/t_-4_-1.glb",
+   "lod1": "tiles/t_-4_-1.far.glb",
+   "buildings": [
+    "neill-cochran-house-museum",
+    "unidentified-west-campus-66d719c5",
+    "west-campus-0fe2da88",
+    "west-campus-77b9403c",
+    "west-campus-944d806a",
+    "west-campus-aef93bb7",
+    "west-campus-b497d279",
+    "west-campus-bb4c0263",
+    "west-campus-c84206c0",
+    "west-campus-d4bda8fa"
+   ],
+   "bytes": [
+    690544,
+    46900
+   ]
+  },
+  {
+   "id": "t_-4_-2",
+   "bounds": [
+    -1000,
+    -500,
+    -750,
+    -250
+   ],
+   "lod0": "tiles/t_-4_-2.glb",
+   "lod1": "tiles/t_-4_-2.far.glb",
+   "buildings": [
+    "hilltop",
+    "noble-2500",
+    "regents-west-at-24th",
+    "texan-tower",
+    "the-block-bddea10c",
+    "the-texan-shoal-creek",
+    "unidentified-west-campus-8e99b2fe",
+    "villas-at-san-gabriel",
+    "waterford-condominiums",
+    "west-campus-ae532cff",
+    "west-campus-e287bfea",
+    "yugo-the-corner"
+   ],
+   "bytes": [
+    1776876,
+    80568
+   ]
+  },
+  {
+   "id": "t_-4_-3",
+   "bounds": [
+    -1000,
+    -750,
+    -750,
+    -500
+   ],
+   "lod0": "tiles/t_-4_-3.glb",
+   "lod1": "tiles/t_-4_-3.far.glb",
+   "buildings": [
+    "texan-26",
+    "the-nine-at-west-campus",
+    "unidentified-north-campus-04f1466e",
+    "unidentified-west-campus-a6a65d0c",
+    "west-campus-18668b8d",
+    "west-campus-861304d8"
+   ],
+   "bytes": [
+    476268,
+    22792
+   ]
+  },
+  {
+   "id": "t_-4_0",
+   "bounds": [
+    -1000,
+    0,
+    -750,
+    250
+   ],
+   "lod0": "tiles/t_-4_0.glb",
+   "lod1": "tiles/t_-4_0.far.glb",
+   "buildings": [
+    "21-pearl-west-campus",
+    "diplomat-west-campus",
+    "west-campus-1fe7267c",
+    "west-campus-41d7f858",
+    "west-campus-4e03b7f5",
+    "west-campus-7aacc4af",
+    "west-campus-ae4909d9",
+    "west-campus-flats"
+   ],
+   "bytes": [
+    465584,
+    28900
+   ]
+  },
+  {
+   "id": "t_-4_8",
+   "bounds": [
+    -1000,
+    2000,
+    -750,
+    2250
+   ],
+   "lod0": "tiles/t_-4_8.glb",
+   "lod1": "tiles/t_-4_8.far.glb",
+   "buildings": [
+    "360-condominiums"
+   ],
+   "bytes": [
+    375780,
+    10204
+   ]
+  },
+  {
+   "id": "t_-5_-1",
+   "bounds": [
+    -1250,
+    -250,
+    -1000,
+    0
+   ],
+   "lod0": "tiles/t_-5_-1.glb",
+   "lod1": "tiles/t_-5_-1.far.glb",
+   "buildings": [
+    "west-campus-4fb09ed3"
+   ],
+   "bytes": [
+    45304,
+    5336
+   ]
+  },
+  {
+   "id": "t_-5_-2",
+   "bounds": [
+    -1250,
+    -500,
+    -1000,
+    -250
+   ],
+   "lod0": "tiles/t_-5_-2.glb",
+   "lod1": "tiles/t_-5_-2.far.glb",
+   "buildings": [
+    "axis-west-campus",
+    "west-campus-0c4b89ce"
+   ],
+   "bytes": [
+    235040,
+    18084
+   ]
+  },
+  {
+   "id": "t_-5_1",
+   "bounds": [
+    -1250,
+    250,
+    -1000,
+    500
+   ],
+   "lod0": "tiles/t_-5_1.glb",
+   "lod1": "tiles/t_-5_1.far.glb",
+   "buildings": [
+    "shoal-creek-office-1609"
+   ],
+   "bytes": [
+    167628,
+    5756
+   ]
+  },
+  {
+   "id": "t_-5_7",
+   "bounds": [
+    -1250,
+    1750,
+    -1000,
+    2000
+   ],
+   "lod0": "tiles/t_-5_7.glb",
+   "lod1": "tiles/t_-5_7.far.glb",
+   "buildings": [
+    "the-monarch"
+   ],
+   "bytes": [
+    326564,
+    14000
+   ]
+  },
+  {
+   "id": "t_-5_8",
+   "bounds": [
+    -1250,
+    2000,
+    -1000,
+    2250
+   ],
+   "lod0": "tiles/t_-5_8.glb",
+   "lod1": "tiles/t_-5_8.far.glb",
+   "buildings": [
+    "seaholm-residences",
+    "the-independent"
+   ],
+   "bytes": [
+    671028,
+    12308
+   ]
+  },
+  {
+   "id": "t_-5_9",
+   "bounds": [
+    -1250,
+    2250,
+    -1000,
+    2500
+   ],
+   "lod0": "tiles/t_-5_9.glb",
+   "lod1": "tiles/t_-5_9.far.glb",
+   "buildings": [
+    "block-185"
+   ],
+   "bytes": [
+    82776,
+    23460
+   ]
+  },
+  {
+   "id": "t_0_-1",
+   "bounds": [
+    0,
+    -250,
+    250,
+    0
+   ],
+   "lod0": "tiles/t_0_-1.glb",
+   "lod1": "tiles/t_0_-1.far.glb",
+   "buildings": [
+    "mary-e-gearing-hall",
+    "norman-hackerman-building",
+    "robert-a-welch-hall",
+    "t-s-painter-hall",
+    "will-c-hogg-building"
+   ],
+   "bytes": [
+    1114816,
+    32184
+   ]
+  },
+  {
+   "id": "t_0_-2",
+   "bounds": [
+    0,
+    -500,
+    250,
+    -250
+   ],
+   "lod0": "tiles/t_0_-2.glb",
+   "lod1": "tiles/t_0_-2.far.glb",
+   "buildings": [
+    "anna-hiss-gymnasium",
+    "biomedical-engineering-building",
+    "burdine-hall",
+    "moffett-molecular-biology",
+    "neural-molecular-science-building",
+    "seay-building",
+    "student-services-building"
+   ],
+   "bytes": [
+    1753944,
+    49468
+   ]
+  },
+  {
+   "id": "t_0_-3",
+   "bounds": [
+    0,
+    -750,
+    250,
+    -500
+   ],
+   "lod0": "tiles/t_0_-3.glb",
+   "lod1": "tiles/t_0_-3.far.glb",
+   "buildings": [
+    "aerospace-engineering-building",
+    "unidentified-297fcc8d",
+    "unidentified-north-campus-63e601e8",
+    "unidentified-north-campus-768ae01e"
+   ],
+   "bytes": [
+    238712,
+    18196
+   ]
+  },
+  {
+   "id": "t_0_-4",
+   "bounds": [
+    0,
+    -1000,
+    250,
+    -750
+   ],
+   "lod0": "tiles/t_0_-4.glb",
+   "lod1": "tiles/t_0_-4.far.glb",
+   "buildings": [
+    "unidentified-79e82c98",
+    "unidentified-north-campus-071ef0d5",
+    "unidentified-north-campus-08cca10d"
+   ],
+   "bytes": [
+    409576,
+    18856
+   ]
+  },
+  {
+   "id": "t_0_-5",
+   "bounds": [
+    0,
+    -1250,
+    250,
+    -1000
+   ],
+   "lod0": "tiles/t_0_-5.glb",
+   "lod1": "tiles/t_0_-5.far.glb",
+   "buildings": [
+    "unidentified-north-campus-dd0139ea"
+   ],
+   "bytes": [
+    140704,
+    12536
+   ]
+  },
+  {
+   "id": "t_0_0",
+   "bounds": [
+    0,
+    0,
+    250,
+    250
+   ],
+   "lod0": "tiles/t_0_0.glb",
+   "lod1": "tiles/t_0_0.far.glb",
+   "buildings": [
+    "bernard-and-audre-rapoport-building",
+    "garrison-hall",
+    "graduate-school-of-business",
+    "mccombs-school-of-business",
+    "waggener-hall"
+   ],
+   "bytes": [
+    981456,
+    24688
+   ]
+  },
+  {
+   "id": "t_0_1",
+   "bounds": [
+    0,
+    250,
+    250,
+    500
+   ],
+   "lod0": "tiles/t_0_1.glb",
+   "lod1": "tiles/t_0_1.far.glb",
+   "buildings": [
+    "austin-by-ellsworth-kelly",
+    "george-i-sanchez-building",
+    "pcl-library",
+    "texas-alpha-phi",
+    "university-teaching-center"
+   ],
+   "bytes": [
+    432072,
+    78788
+   ]
+  },
+  {
+   "id": "t_0_10",
+   "bounds": [
+    0,
+    2500,
+    250,
+    2750
+   ],
+   "lod0": "tiles/t_0_10.glb",
+   "lod1": "tiles/t_0_10.far.glb",
+   "buildings": [
+    "fairmont-austin"
+   ],
+   "bytes": [
+    113064,
+    12064
+   ]
+  },
+  {
+   "id": "t_0_2",
+   "bounds": [
+    0,
+    500,
+    250,
+    750
+   ],
+   "lod0": "tiles/t_0_2.glb",
+   "lod1": "tiles/t_0_2.far.glb",
+   "buildings": [
+    "blanton-museum-of-art",
+    "edgar-a-smith-building",
+    "george-h-w-bush-state-office-building",
+    "texas-state-history-museum"
+   ],
+   "bytes": [
+    729276,
+    39228
+   ]
+  },
+  {
+   "id": "t_0_3",
+   "bounds": [
+    0,
+    750,
+    250,
+    1000
+   ],
+   "lod0": "tiles/t_0_3.glb",
+   "lod1": "tiles/t_0_3.far.glb",
+   "buildings": [
+    "barbara-jordan-state-office-building",
+    "lyndon-b-johnson-building",
+    "william-b-travis-state-office-building"
+   ],
+   "bytes": [
+    699712,
+    18540
+   ]
+  },
+  {
+   "id": "t_0_4",
+   "bounds": [
+    0,
+    1000,
+    250,
+    1250
+   ],
+   "lod0": "tiles/t_0_4.glb",
+   "lod1": "tiles/t_0_4.far.glb",
+   "buildings": [
+    "robert-e-johnson-state-legislative-office-building",
+    "sam-houston-state-office-building",
+    "texas-workforce-commission-building"
+   ],
+   "bytes": [
+    526968,
+    14392
+   ]
+  },
+  {
+   "id": "t_0_9",
+   "bounds": [
+    0,
+    2250,
+    250,
+    2500
+   ],
+   "lod0": "tiles/t_0_9.glb",
+   "lod1": "tiles/t_0_9.far.glb",
+   "buildings": [
+    "hilton-austin-downtown"
+   ],
+   "bytes": [
+    370520,
+    12896
+   ]
+  },
+  {
+   "id": "t_1_-1",
+   "bounds": [
+    250,
+    -250,
+    500,
+    0
+   ],
+   "lod0": "tiles/t_1_-1.glb",
+   "lod1": "tiles/t_1_-1.far.glb",
+   "buildings": [
+    "gary-l-thomas-energy-engineering-building",
+    "gates-dell-complex",
+    "j-t-patterson-laboratories-building",
+    "odonnell-building"
+   ],
+   "bytes": [
+    602492,
+    32088
+   ]
+  },
+  {
+   "id": "t_1_-2",
+   "bounds": [
+    250,
+    -500,
+    500,
+    -250
+   ],
+   "lod0": "tiles/t_1_-2.glb",
+   "lod1": "tiles/t_1_-2.far.glb",
+   "buildings": [
+    "chemical-petroleum-engineering",
+    "engineering-education-and-research-center",
+    "engineering-teaching-center-ii",
+    "ernest-cockrell-jr-hall",
+    "physics-math-astronomy"
+   ],
+   "bytes": [
+    726100,
+    29924
+   ]
+  },
+  {
+   "id": "t_1_-3",
+   "bounds": [
+    250,
+    -750,
+    500,
+    -500
+   ],
+   "lod0": "tiles/t_1_-3.glb",
+   "lod1": "tiles/t_1_-3.far.glb",
+   "buildings": [
+    "animal-resource-center",
+    "unidentified-north-campus-3f9b807a"
+   ],
+   "bytes": [
+    377408,
+    15032
+   ]
+  },
+  {
+   "id": "t_1_-4",
+   "bounds": [
+    250,
+    -1000,
+    500,
+    -750
+   ],
+   "lod0": "tiles/t_1_-4.glb",
+   "lod1": "tiles/t_1_-4.far.glb",
+   "buildings": [
+    "unidentified-north-campus-07ebbe8f"
+   ],
+   "bytes": [
+    22228,
+    6020
+   ]
+  },
+  {
+   "id": "t_1_-5",
+   "bounds": [
+    250,
+    -1250,
+    500,
+    -1000
+   ],
+   "lod0": "tiles/t_1_-5.glb",
+   "lod1": "tiles/t_1_-5.far.glb",
+   "buildings": [
+    "unidentified-north-campus-88dcc810"
+   ],
+   "bytes": [
+    160572,
+    9668
+   ]
+  },
+  {
+   "id": "t_1_0",
+   "bounds": [
+    250,
+    0,
+    500,
+    250
+   ],
+   "lod0": "tiles/t_1_0.glb",
+   "lod1": "tiles/t_1_0.far.glb",
+   "buildings": [
+    "etter-harbin-alumni-center",
+    "gregory-gym",
+    "jackson-geological-sciences-building",
+    "patton-hall",
+    "powers-student-activity-center"
+   ],
+   "bytes": [
+    929924,
+    35624
+   ]
+  },
+  {
+   "id": "t_1_1",
+   "bounds": [
+    250,
+    250,
+    500,
+    500
+   ],
+   "lod0": "tiles/t_1_1.glb",
+   "lod1": "tiles/t_1_1.far.glb",
+   "buildings": [
+    "brackenridge-hall-dormitory",
+    "jester-east-hall",
+    "prather-hall",
+    "roberts-hall",
+    "san-jacinto-hall"
+   ],
+   "bytes": [
+    992516,
+    33916
+   ]
+  },
+  {
+   "id": "t_1_2",
+   "bounds": [
+    250,
+    500,
+    500,
+    750
+   ],
+   "lod0": "tiles/t_1_2.glb",
+   "lod1": "tiles/t_1_2.far.glb",
+   "buildings": [
+    "1836-san-jacinto",
+    "employees-retirement-system-of-texas"
+   ],
+   "bytes": [
+    421080,
+    13000
+   ]
+  },
+  {
+   "id": "t_1_3",
+   "bounds": [
+    250,
+    750,
+    500,
+    1000
+   ],
+   "lod0": "tiles/t_1_3.glb",
+   "lod1": "tiles/t_1_3.far.glb",
+   "buildings": [
+    "health-discovery-building",
+    "unidentified-ut-878d9137"
+   ],
+   "bytes": [
+    420576,
+    13084
+   ]
+  },
+  {
+   "id": "t_2_-1",
+   "bounds": [
+    500,
+    -250,
+    750,
+    0
+   ],
+   "lod0": "tiles/t_2_-1.glb",
+   "lod1": "tiles/t_2_-1.far.glb",
+   "buildings": [
+    "art-building-and-museum",
+    "texas-memorial-museum"
+   ],
+   "bytes": [
+    314348,
+    13940
+   ]
+  },
+  {
+   "id": "t_2_-2",
+   "bounds": [
+    500,
+    -500,
+    750,
+    -250
+   ],
+   "lod0": "tiles/t_2_-2.glb",
+   "lod1": "tiles/t_2_-2.far.glb",
+   "buildings": [
+    "jesse-h-jones-hall"
+   ],
+   "bytes": [
+    246096,
+    8036
+   ]
+  },
+  {
+   "id": "t_2_0",
+   "bounds": [
+    500,
+    0,
+    750,
+    250
+   ],
+   "lod0": "tiles/t_2_0.glb",
+   "lod1": "tiles/t_2_0.far.glb",
+   "buildings": [
+    "texas-cowboys-pavilion"
+   ],
+   "bytes": [
+    155188,
+    5476
+   ]
+  },
+  {
+   "id": "t_2_2",
+   "bounds": [
+    500,
+    500,
+    750,
+    750
+   ],
+   "lod0": "tiles/t_2_2.glb",
+   "lod1": "tiles/t_2_2.far.glb",
+   "buildings": [
+    "lee-and-joe-jamail-texas-swimming-center",
+    "recreational-sports-center"
+   ],
+   "bytes": [
+    352224,
+    20664
+   ]
+  },
+  {
+   "id": "t_2_3",
+   "bounds": [
+    500,
+    750,
+    750,
+    1000
+   ],
+   "lod0": "tiles/t_2_3.glb",
+   "lod1": "tiles/t_2_3.far.glb",
+   "buildings": [
+    "collections-deposit-library",
+    "john-w-hargis-hall",
+    "nursing-school"
+   ],
+   "bytes": [
+    417848,
+    13872
+   ]
+  },
+  {
+   "id": "t_3_-1",
+   "bounds": [
+    750,
+    -250,
+    1000,
+    0
+   ],
+   "lod0": "tiles/t_3_-1.glb",
+   "lod1": "tiles/t_3_-1.far.glb",
+   "buildings": [
+    "bass-concert-hall",
+    "john-b-connally-center-for-justice",
+    "music-recital-hall"
+   ],
+   "bytes": [
+    513412,
+    13900
+   ]
+  },
+  {
+   "id": "t_3_-2",
+   "bounds": [
+    750,
+    -500,
+    1000,
+    -250
+   ],
+   "lod0": "tiles/t_3_-2.glb",
+   "lod1": "tiles/t_3_-2.far.glb",
+   "buildings": [
+    "townes-hall"
+   ],
+   "bytes": [
+    324288,
+    10484
+   ]
+  },
+  {
+   "id": "t_3_0",
+   "bounds": [
+    750,
+    0,
+    1000,
+    250
+   ],
+   "lod0": "tiles/t_3_0.glb",
+   "lod1": "tiles/t_3_0.far.glb",
+   "buildings": [
+    "lbj-presidential-library",
+    "sid-richardson-hall"
+   ],
+   "bytes": [
+    283248,
+    7204
+   ]
+  },
+  {
+   "id": "t_3_3",
+   "bounds": [
+    750,
+    750,
+    1000,
+    1000
+   ],
+   "lod0": "tiles/t_3_3.glb",
+   "lod1": "tiles/t_3_3.far.glb",
+   "buildings": [
+    "arno-nowotny-building"
+   ],
+   "bytes": [
+    177576,
+    5272
+   ]
+  }
+ ],
+ "buildings": {
+  "100-congress": {
+   "tile": "t_-3_9",
+   "map_ids": [
+    "w206165495"
+   ],
+   "name": "100 Congress",
+   "model": "sol",
+   "x": -512.418,
+   "z": 2454.471,
+   "top": 88.3
+  },
+  "111-congress": {
+   "tile": "t_-2_10",
+   "map_ids": [
+    "w328644625"
+   ],
+   "name": "111 Congress",
+   "model": "opus",
+   "x": -417.088,
+   "z": 2500.902,
+   "top": 124.9
+  },
+  "1836-san-jacinto": {
+   "tile": "t_1_2",
+   "map_ids": [
+    "53e8d4e1",
+    "w677725120"
+   ],
+   "name": "1836 San Jacinto",
+   "model": "opus",
+   "x": 299.531,
+   "z": 715.677,
+   "top": 39.6
+  },
+  "1883-at-montgomery-house": {
+   "tile": "t_-2_-3",
+   "map_ids": [
+    "2f29f563"
+   ],
+   "name": "1883 at Montgomery House",
+   "model": "opus",
+   "x": -367.034,
+   "z": -696.844,
+   "top": 21.4
+  },
+  "1883-cameron-house": {
+   "tile": "t_-2_-3",
+   "map_ids": [
+    "658b9dd1"
+   ],
+   "name": "1883 Cameron House",
+   "model": "opus",
+   "x": -430.067,
+   "z": -702.574,
+   "top": 20.4
+  },
+  "21-pearl-west-campus": {
+   "tile": "t_-4_0",
+   "map_ids": [
+    "fa083239"
+   ],
+   "name": "21 Pearl",
+   "model": "opus",
+   "x": -760.087,
+   "z": 162.08,
+   "top": 19.3
+  },
+  "21-rio": {
+   "tile": "t_-3_0",
+   "map_ids": [
+    "73c958f3"
+   ],
+   "name": "21 Rio",
+   "model": "sonnet",
+   "x": -516.036,
+   "z": 196.508,
+   "top": 71.6
+  },
+  "2400-nueces": {
+   "tile": "t_-2_-1",
+   "map_ids": [
+    "01b885c4"
+   ],
+   "name": "2400 Nueces",
+   "model": "opus",
+   "x": -402.245,
+   "z": -244.962,
+   "top": 51.4
+  },
+  "26-west": {
+   "tile": "t_-2_-3",
+   "map_ids": [
+    "9363b194",
+    "38b2cf1c",
+    "23994eaf",
+    "529724dc"
+   ],
+   "name": "26 West",
+   "model": "opus",
+   "x": -413.948,
+   "z": -599.272,
+   "top": 28.2
+  },
+  "2819-rio-grande": {
+   "tile": "t_-2_-5",
+   "map_ids": [
+    "583f3864"
+   ],
+   "name": "2819 Rio Grande",
+   "model": "opus",
+   "x": -421.871,
+   "z": -1003.545,
+   "top": 28
+  },
+  "300-colorado": {
+   "tile": "t_-3_8",
+   "map_ids": [
+    "w957405852"
+   ],
+   "name": "300 Colorado",
+   "model": "opus",
+   "x": -588.885,
+   "z": 2228.528,
+   "top": 126.2
+  },
+  "301-congress": {
+   "tile": "t_-2_9",
+   "map_ids": [
+    "w328634432"
+   ],
+   "name": "301 Congress",
+   "model": "opus",
+   "x": -349.825,
+   "z": 2301.395,
+   "top": 89.6
+  },
+  "360-condominiums": {
+   "tile": "t_-4_8",
+   "map_ids": [
+    "w328839215"
+   ],
+   "name": "360 Condominiums",
+   "model": "opus",
+   "x": -996.078,
+   "z": 2069.703,
+   "top": 177.1
+  },
+  "405-colorado": {
+   "tile": "t_-2_8",
+   "map_ids": [
+    "w957405851"
+   ],
+   "name": "405 Colorado",
+   "model": "opus",
+   "x": -493.541,
+   "z": 2142.616,
+   "top": 112.2
+  },
+  "aerospace-engineering-building": {
+   "tile": "t_0_-3",
+   "map_ids": [
+    "c32735e3"
+   ],
+   "name": "Aerospace Engineering Building",
+   "model": "opus",
+   "x": 170.972,
+   "z": -573.936,
+   "top": 31
+  },
+  "almetris-duren-hall": {
+   "tile": "t_-1_-3",
+   "map_ids": [
+    "6f317cb1"
+   ],
+   "name": "Almetris Duren Hall",
+   "model": "opus",
+   "x": -122.326,
+   "z": -620.159,
+   "top": 35.7
+  },
+  "andrews-dormitory": {
+   "tile": "t_-1_-1",
+   "map_ids": [
+    "80dc93a7"
+   ],
+   "name": "Andrews Dormitory",
+   "model": "opus",
+   "x": -55.06,
+   "z": -244.545,
+   "top": 15.8
+  },
+  "animal-resource-center": {
+   "tile": "t_1_-3",
+   "map_ids": [
+    "51536c0f"
+   ],
+   "name": "Animal Resource Center",
+   "model": "opus",
+   "x": 318.272,
+   "z": -618.6,
+   "top": 27.5
+  },
+  "anna-hiss-gymnasium": {
+   "tile": "t_0_-2",
+   "map_ids": [
+    "b4909598"
+   ],
+   "name": "Anna Hiss Gymnasium",
+   "model": "opus",
+   "x": 154.139,
+   "z": -281.99,
+   "top": 14.4
+  },
+  "arno-nowotny-building": {
+   "tile": "t_3_3",
+   "map_ids": [
+    "4b7ecc48"
+   ],
+   "name": "Arno Nowotny Building",
+   "model": "opus",
+   "x": 798.466,
+   "z": 866.259,
+   "top": 14.7
+  },
+  "art-building-and-museum": {
+   "tile": "t_2_-1",
+   "map_ids": [
+    "ab3cf5d7"
+   ],
+   "name": "Art Building and Museum",
+   "model": "opus",
+   "x": 598.609,
+   "z": -21.359,
+   "top": 26.2
+  },
+  "att-executive-education-conference-center": {
+   "tile": "t_-1_1",
+   "map_ids": [
+    "5ab67a3b",
+    "c505680"
+   ],
+   "name": "AT&T Executive Education and Conference Center",
+   "model": "opus",
+   "x": -94.793,
+   "z": 451.244,
+   "top": 28.7
+  },
+  "austin-by-ellsworth-kelly": {
+   "tile": "t_0_1",
+   "map_ids": [
+    "a5ec01b5",
+    "c570651"
+   ],
+   "name": "Austin by Ellsworth Kelly",
+   "model": "sonnet",
+   "x": 143.719,
+   "z": 483.226,
+   "top": 8.8
+  },
+  "austin-marriott-downtown": {
+   "tile": "t_-1_10",
+   "map_ids": [
+    "w894064635"
+   ],
+   "name": "Austin Marriott Downtown",
+   "model": "opus",
+   "x": -213.062,
+   "z": 2574.403,
+   "top": 120
+  },
+  "austin-technology-incubator-1a9a4b6c": {
+   "tile": "t_-3_-4",
+   "map_ids": [
+    "1a9a4b6c"
+   ],
+   "name": "Austin Technology Incubator",
+   "model": "opus",
+   "x": -714.444,
+   "z": -973.897,
+   "top": 14.6
+  },
+  "axis-west-campus": {
+   "tile": "t_-5_-2",
+   "map_ids": [
+    "59a378f0"
+   ],
+   "name": "Axis West Campus",
+   "model": "opus",
+   "x": -1043.594,
+   "z": -465.031,
+   "top": 24.4
+  },
+  "barbara-jordan-state-office-building": {
+   "tile": "t_0_3",
+   "map_ids": [
+    "23f81e97",
+    "w93079527"
+   ],
+   "name": "Barbara Jordan State Office Building",
+   "model": "opus",
+   "x": 74.448,
+   "z": 873.184,
+   "top": 64.9
+  },
+  "bass-concert-hall": {
+   "tile": "t_3_-1",
+   "map_ids": [
+    "31901788"
+   ],
+   "name": "Bass Concert Hall",
+   "model": "opus",
+   "x": 774.748,
+   "z": -31.497,
+   "top": 33.2
+  },
+  "battle-hall": {
+   "tile": "t_-1_0",
+   "map_ids": [
+    "283f5992"
+   ],
+   "name": "Battle Hall",
+   "model": "opus",
+   "x": -99.782,
+   "z": 64.553,
+   "top": 19.7
+  },
+  "bernard-and-audre-rapoport-building": {
+   "tile": "t_0_0",
+   "map_ids": [
+    "c05c6591"
+   ],
+   "name": "Bernard and Audre Rapoport Building",
+   "model": "opus",
+   "x": 243.383,
+   "z": 84.814,
+   "top": 18.1
+  },
+  "biological-laboratories": {
+   "tile": "t_-1_-1",
+   "map_ids": [
+    "2315bfe2"
+   ],
+   "name": "Biological Laboratories",
+   "model": "opus",
+   "x": -36.109,
+   "z": -136.333,
+   "top": 25.2
+  },
+  "biomedical-engineering-building": {
+   "tile": "t_0_-2",
+   "map_ids": [
+    "becea532"
+   ],
+   "name": "Biomedical Engineering Building",
+   "model": "opus",
+   "x": 87.523,
+   "z": -352.681,
+   "top": 34.9
+  },
+  "blanton-dormitory": {
+   "tile": "t_-1_-2",
+   "map_ids": [
+    "be53a13b"
+   ],
+   "name": "Blanton Dormitory",
+   "model": "opus",
+   "x": -17.379,
+   "z": -266.997,
+   "top": 19.4
+  },
+  "blanton-museum-of-art": {
+   "tile": "t_0_2",
+   "map_ids": [
+    "8a27170d",
+    "c568540"
+   ],
+   "name": "Blanton Museum of Art",
+   "model": "opus",
+   "x": 172.823,
+   "z": 549.186,
+   "top": 20.6
+  },
+  "block-185": {
+   "tile": "t_-5_9",
+   "map_ids": [
+    "w961789209"
+   ],
+   "name": "Block 185",
+   "model": "opus",
+   "x": -1068.72,
+   "z": 2279.796,
+   "top": 182.5
+  },
+  "block-on-25th-east": {
+   "tile": "t_-3_-2",
+   "map_ids": [
+    "c039e065"
+   ],
+   "name": "Block on 25th East",
+   "model": "opus",
+   "x": -601.002,
+   "z": -401.486,
+   "top": 26.6
+  },
+  "block-on-25th-west": {
+   "tile": "t_-3_-2",
+   "map_ids": [
+    "3d9f61df"
+   ],
+   "name": "Block on 25th West",
+   "model": "opus",
+   "x": -675.811,
+   "z": -418.949,
+   "top": 27.7
+  },
+  "brackenridge-hall-dormitory": {
+   "tile": "t_1_1",
+   "map_ids": [
+    "6ae07c43"
+   ],
+   "name": "Brackenridge Hall",
+   "model": "opus",
+   "x": 316.873,
+   "z": 320.478,
+   "top": 19.1
+  },
+  "brown-building": {
+   "tile": "t_-2_7",
+   "map_ids": [
+    "w134807252"
+   ],
+   "name": "Brown Building",
+   "model": "opus",
+   "x": -432.119,
+   "z": 1766.302,
+   "top": 40.3
+  },
+  "burdine-hall": {
+   "tile": "t_0_-2",
+   "map_ids": [
+    "8b767e28"
+   ],
+   "name": "Burdine Hall",
+   "model": "opus",
+   "x": 77.973,
+   "z": -322.369,
+   "top": 26.9
+  },
+  "cambridge-tower": {
+   "tile": "t_-1_2",
+   "map_ids": [
+    "b0101452",
+    "w516187606"
+   ],
+   "name": "Cambridge Tower",
+   "model": "opus",
+   "x": -103.505,
+   "z": 580.076,
+   "top": 53.8
+  },
+  "carothers-dormitory": {
+   "tile": "t_-1_-2",
+   "map_ids": [
+    "9609810c"
+   ],
+   "name": "Carothers Dormitory",
+   "model": "opus",
+   "x": -73.321,
+   "z": -299.133,
+   "top": 14.4
+  },
+  "centennial-condominiums": {
+   "tile": "t_-2_-2",
+   "map_ids": [
+    "d77403e9"
+   ],
+   "name": "Centennial Condominiums",
+   "model": "opus",
+   "x": -305.7,
+   "z": -452.344,
+   "top": 12.4
+  },
+  "chemical-petroleum-engineering": {
+   "tile": "t_1_-2",
+   "map_ids": [
+    "5228f0a8"
+   ],
+   "name": "Chemical and Petroleum Engineering",
+   "model": "opus",
+   "x": 308.086,
+   "z": -473.715,
+   "top": 29.5
+  },
+  "church-of-scientology-texas": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "1d1677e9"
+   ],
+   "name": "Church of Scientology (Guadalupe)",
+   "model": "opus",
+   "x": -280.714,
+   "z": 75.78,
+   "top": 16.9
+  },
+  "collections-deposit-library": {
+   "tile": "t_2_3",
+   "map_ids": [
+    "66844d71",
+    "c505874"
+   ],
+   "name": "Collections Deposit Library",
+   "model": "opus",
+   "x": 607.227,
+   "z": 803.224,
+   "top": 13.8
+  },
+  "colorado-tower": {
+   "tile": "t_-3_8",
+   "map_ids": [
+    "w231123152"
+   ],
+   "name": "Colorado Tower",
+   "model": "opus",
+   "x": -525.816,
+   "z": 2242.788,
+   "top": 122.2
+  },
+  "crest-at-pearl": {
+   "tile": "t_-3_1",
+   "map_ids": [
+    "ee8c58ee"
+   ],
+   "name": "Crest at Pearl",
+   "model": "opus",
+   "x": -650.291,
+   "z": 302.107,
+   "top": 28
+  },
+  "dealey-center-for-new-media": {
+   "tile": "t_-1_-2",
+   "map_ids": [
+    "7924174a"
+   ],
+   "name": "Dealey Center for New Media",
+   "model": "opus",
+   "x": -134.542,
+   "z": -461.888,
+   "top": 29.3
+  },
+  "delta-gamma": {
+   "tile": "t_-2_-2",
+   "map_ids": [
+    "814e59c4"
+   ],
+   "name": "Delta Gamma",
+   "model": "opus",
+   "x": -477.489,
+   "z": -327.784,
+   "top": 11.1
+  },
+  "dewitt-c-greer-state-highway-building": {
+   "tile": "t_-1_6",
+   "map_ids": [
+    "w42806887"
+   ],
+   "name": "Dewitt C. Greer State Highway Building",
+   "model": "opus",
+   "x": -89.659,
+   "z": 1540.066,
+   "top": 50.6
+  },
+  "diplomat-west-campus": {
+   "tile": "t_-4_0",
+   "map_ids": [
+    "41e34c24"
+   ],
+   "name": "The Diplomat",
+   "model": "opus",
+   "x": -824.199,
+   "z": 169.283,
+   "top": 6
+  },
+  "dobie-twenty21": {
+   "tile": "t_-1_1",
+   "map_ids": [
+    "0e189df9"
+   ],
+   "name": "Dobie Twenty21",
+   "model": "opus",
+   "x": -176.056,
+   "z": 291.463,
+   "top": 93
+  },
+  "driskill-hotel": {
+   "tile": "t_-1_7",
+   "map_ids": [
+    "w313917989"
+   ],
+   "name": "Driskill Hotel",
+   "model": "sol",
+   "x": -234.269,
+   "z": 1995.951,
+   "top": 28.4
+  },
+  "edgar-a-smith-building": {
+   "tile": "t_0_2",
+   "map_ids": [
+    "8ceb5fdd",
+    "w126134749"
+   ],
+   "name": "Edgar A. Smith Building",
+   "model": "opus",
+   "x": 113.931,
+   "z": 537.965,
+   "top": 21.1
+  },
+  "embassy-suites-austin-downtown": {
+   "tile": "t_-3_12",
+   "map_ids": [
+    "w104137274"
+   ],
+   "name": "Embassy Suites Austin Downtown",
+   "model": "opus",
+   "x": -724.507,
+   "z": 3047.966,
+   "top": 37.5
+  },
+  "employees-retirement-system-of-texas": {
+   "tile": "t_1_2",
+   "map_ids": [
+    "77382140",
+    "w677725010"
+   ],
+   "name": "Employees Retirement System of Texas",
+   "model": "opus",
+   "x": 257.449,
+   "z": 706.269,
+   "top": 27.5
+  },
+  "engineering-education-and-research-center": {
+   "tile": "t_1_-2",
+   "map_ids": [
+    "8f0abac0"
+   ],
+   "name": "Engineering Education and Research Center",
+   "model": "opus",
+   "x": 376.98,
+   "z": -266.872,
+   "top": 42
+  },
+  "engineering-teaching-center-ii": {
+   "tile": "t_1_-2",
+   "map_ids": [
+    "f0df9e3e"
+   ],
+   "name": "Engineering Teaching Center II",
+   "model": "opus",
+   "x": 372.846,
+   "z": -433.9,
+   "top": 36.7
+  },
+  "ernest-cockrell-jr-hall": {
+   "tile": "t_1_-2",
+   "map_ids": [
+    "d26b9b86"
+   ],
+   "name": "Ernest Cockrell Jr. Hall",
+   "model": "opus",
+   "x": 360.849,
+   "z": -333.219,
+   "top": 57.7
+  },
+  "ernest-o-thompson-state-office-building": {
+   "tile": "t_-2_6",
+   "map_ids": [
+    "w42806909"
+   ],
+   "name": "Ernest O. Thompson State Office Building",
+   "model": "sonnet",
+   "x": -359.973,
+   "z": 1569.586,
+   "top": 48.6
+  },
+  "etter-harbin-alumni-center": {
+   "tile": "t_1_0",
+   "map_ids": [
+    "80583519"
+   ],
+   "name": "Etter-Harbin Alumni Center",
+   "model": "opus",
+   "x": 473.674,
+   "z": 179.19,
+   "top": 10.1
+  },
+  "fairmont-austin": {
+   "tile": "t_0_10",
+   "map_ids": [
+    "w134786106"
+   ],
+   "name": "Fairmont Austin",
+   "model": "opus",
+   "x": 99.142,
+   "z": 2647.484,
+   "top": 181.1
+  },
+  "four-seasons-residences": {
+   "tile": "t_-1_10",
+   "map_ids": [
+    "w134807222"
+   ],
+   "name": "Four Seasons Residences",
+   "model": "opus",
+   "x": -231.939,
+   "z": 2665.412,
+   "top": 120.8
+  },
+  "frost-bank-tower": {
+   "tile": "t_-2_8",
+   "map_ids": [
+    "w37546502"
+   ],
+   "name": "Frost Bank Tower",
+   "model": "opus",
+   "x": -339.024,
+   "z": 2171.895,
+   "top": 157.3
+  },
+  "garrison-hall": {
+   "tile": "t_0_0",
+   "map_ids": [
+    "c5562674"
+   ],
+   "name": "Garrison Hall",
+   "model": "opus",
+   "x": 84.674,
+   "z": 97.484,
+   "top": 18.9
+  },
+  "gary-l-thomas-energy-engineering-building": {
+   "tile": "t_1_-1",
+   "map_ids": [
+    "cb27d128"
+   ],
+   "name": "Gary L. Thomas Energy Engineering Building",
+   "model": "opus",
+   "x": 332.466,
+   "z": -165.756,
+   "top": 37.9
+  },
+  "gates-dell-complex": {
+   "tile": "t_1_-1",
+   "map_ids": [
+    "44e418d6"
+   ],
+   "name": "Gates Dell Complex",
+   "model": "opus",
+   "x": 264.557,
+   "z": -31.029,
+   "top": 31.5
+  },
+  "george-h-w-bush-state-office-building": {
+   "tile": "t_0_2",
+   "map_ids": [
+    "c0e0b704",
+    "w960916213"
+   ],
+   "name": "George H.W. Bush State Office Building",
+   "model": "opus",
+   "x": 153.24,
+   "z": 674.582,
+   "top": 62
+  },
+  "george-i-sanchez-building": {
+   "tile": "t_0_1",
+   "map_ids": [
+    "2dab807b",
+    "w126134750"
+   ],
+   "name": "George I. Sanchez Building",
+   "model": "opus",
+   "x": 53.805,
+   "z": 482.374,
+   "top": 22
+  },
+  "goldsmith-hall": {
+   "tile": "t_-1_0",
+   "map_ids": [
+    "2173ffc5"
+   ],
+   "name": "Goldsmith Hall",
+   "model": "opus",
+   "x": -172.737,
+   "z": 68.032,
+   "top": 24
+  },
+  "goodall-wooten-house": {
+   "tile": "t_-3_1",
+   "map_ids": [
+    "b5f52960"
+   ],
+   "name": "Goodall Wooten House",
+   "model": "opus",
+   "x": -600.069,
+   "z": 324.634,
+   "top": 9.6
+  },
+  "gordon-white-building": {
+   "tile": "t_-1_-1",
+   "map_ids": [
+    "cfd92e36"
+   ],
+   "name": "Gordon-White Building",
+   "model": "opus",
+   "x": -53.783,
+   "z": -202.388,
+   "top": 18.2
+  },
+  "graduate-school-of-business": {
+   "tile": "t_0_0",
+   "map_ids": [
+    "3558486d"
+   ],
+   "name": "Graduate School of Business",
+   "model": "opus",
+   "x": 95.327,
+   "z": 208.093,
+   "top": 16.8
+  },
+  "grandmarc-austin": {
+   "tile": "t_-2_-3",
+   "map_ids": [
+    "41f43559"
+   ],
+   "name": "GrandMarc Austin",
+   "model": "opus",
+   "x": -304.601,
+   "z": -532.07,
+   "top": 23.9
+  },
+  "greenwood-towers": {
+   "tile": "t_-1_2",
+   "map_ids": [
+    "a7e41f22",
+    "w236328113"
+   ],
+   "name": "Greenwood Towers",
+   "model": "opus",
+   "x": -191.036,
+   "z": 599.305,
+   "top": 27.9
+  },
+  "gregory-gym": {
+   "tile": "t_1_0",
+   "map_ids": [
+    "1bb698db"
+   ],
+   "name": "Gregory Gymnasium",
+   "model": "opus",
+   "x": 283.657,
+   "z": 214.589,
+   "top": 26.7
+  },
+  "hampton-inn-and-suites-austin": {
+   "tile": "t_-1_2",
+   "map_ids": [
+    "f4338205",
+    "w236328111"
+   ],
+   "name": "Hampton Inn and Suites Austin (campus)",
+   "model": "opus",
+   "x": -144.647,
+   "z": 714.511,
+   "top": 41.4
+  },
+  "hampton-inn-and-suites-austin-downtown": {
+   "tile": "t_-2_9",
+   "map_ids": [
+    "w55932518"
+   ],
+   "name": "Hampton Inn and Suites Austin Downtown",
+   "model": "opus",
+   "x": -271.392,
+   "z": 2448.962,
+   "top": 49.5
+  },
+  "hanover-brazos-street": {
+   "tile": "t_-2_9",
+   "map_ids": [
+    "w55932516"
+   ],
+   "name": "Hanover Brazos Street",
+   "model": "opus",
+   "x": -281.235,
+   "z": 2389.958,
+   "top": 156.9
+  },
+  "hardin-house": {
+   "tile": "t_-3_0",
+   "map_ids": [
+    "1abc43a3"
+   ],
+   "name": "Hardin House",
+   "model": "opus",
+   "x": -572.778,
+   "z": 9.922,
+   "top": 11.6
+  },
+  "harry-ransom-center": {
+   "tile": "t_-1_0",
+   "map_ids": [
+    "4f12c48f"
+   ],
+   "name": "Harry Ransom Center",
+   "model": "opus",
+   "x": -168.865,
+   "z": 176.859,
+   "top": 32.5
+  },
+  "health-discovery-building": {
+   "tile": "t_1_3",
+   "map_ids": [
+    "f1ca81ce",
+    "w1054507728"
+   ],
+   "name": "Health Discovery Building",
+   "model": "opus",
+   "x": 443.865,
+   "z": 900.923,
+   "top": 42.1
+  },
+  "hilltop": {
+   "tile": "t_-4_-2",
+   "map_ids": [
+    "9f8dbbd9"
+   ],
+   "name": "HillTop",
+   "model": "opus",
+   "x": -852.492,
+   "z": -280.224,
+   "top": 28.9
+  },
+  "hilton-austin-downtown": {
+   "tile": "t_0_9",
+   "map_ids": [
+    "w328723692"
+   ],
+   "name": "Hilton Austin",
+   "model": "opus",
+   "x": 78.586,
+   "z": 2305.463,
+   "top": 118.6
+  },
+  "hogg-memorial-auditorium": {
+   "tile": "t_-1_-1",
+   "map_ids": [
+    "20fe49d7"
+   ],
+   "name": "Hogg Memorial Auditorium",
+   "model": "opus",
+   "x": -124.394,
+   "z": -97.334,
+   "top": 17.2
+  },
+  "homer-rainey-hall": {
+   "tile": "t_-1_0",
+   "map_ids": [
+    "370a06f8"
+   ],
+   "name": "Homer Rainey Hall",
+   "model": "opus",
+   "x": -87.871,
+   "z": 211.004,
+   "top": 17.1
+  },
+  "hotel-zaza": {
+   "tile": "t_-3_8",
+   "map_ids": [
+    "w903084328"
+   ],
+   "name": "Hotel ZaZa",
+   "model": "opus",
+   "x": -669.631,
+   "z": 2095.632,
+   "top": 93.8
+  },
+  "icon": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "9f5efc93"
+   ],
+   "name": "Icon",
+   "model": "opus",
+   "x": -383.242,
+   "z": 83.299,
+   "top": 96.1
+  },
+  "indeed-tower": {
+   "tile": "t_-2_7",
+   "map_ids": [
+    "w957405853"
+   ],
+   "name": "Indeed Tower",
+   "model": "sol",
+   "x": -490.875,
+   "z": 1883.137,
+   "top": 160.6
+  },
+  "inspire-on-22nd": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "ebb4403e"
+   ],
+   "name": "Inspire on 22nd",
+   "model": "opus",
+   "x": -461.498,
+   "z": 64.938,
+   "top": 55.7
+  },
+  "ion-austin": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "dd38bf46"
+   ],
+   "name": "Ion Austin",
+   "model": "opus",
+   "x": -380.49,
+   "z": 180.631,
+   "top": 58.4
+  },
+  "j-t-patterson-laboratories-building": {
+   "tile": "t_1_-1",
+   "map_ids": [
+    "587dadbf"
+   ],
+   "name": "J. T. Patterson Laboratories",
+   "model": "opus",
+   "x": 280.962,
+   "z": -216.746,
+   "top": 33
+  },
+  "jackson-geological-sciences-building": {
+   "tile": "t_1_0",
+   "map_ids": [
+    "affcb997"
+   ],
+   "name": "Jackson Geological Sciences Building",
+   "model": "opus",
+   "x": 344.373,
+   "z": 11.075,
+   "top": 24
+  },
+  "jesse-h-jones-communication-center-a": {
+   "tile": "t_-1_-2",
+   "map_ids": [
+    "cee5ba4e"
+   ],
+   "name": "Jesse H. Jones Communication Center (A)",
+   "model": "opus",
+   "x": -135.913,
+   "z": -378.362,
+   "top": 24
+  },
+  "jesse-h-jones-communication-center-b": {
+   "tile": "t_-1_-2",
+   "map_ids": [
+    "c175f70f"
+   ],
+   "name": "Jesse H. Jones Communication Center (B)",
+   "model": "opus",
+   "x": -172.823,
+   "z": -357.393,
+   "top": 44
+  },
+  "jesse-h-jones-hall": {
+   "tile": "t_2_-2",
+   "map_ids": [
+    "1ef31058"
+   ],
+   "name": "Jesse H. Jones Hall",
+   "model": "opus",
+   "x": 739.579,
+   "z": -295.799,
+   "top": 29.3
+  },
+  "jester-east-hall": {
+   "tile": "t_1_1",
+   "map_ids": [
+    "1161f877"
+   ],
+   "name": "Jester East Hall",
+   "model": "opus",
+   "x": 328.107,
+   "z": 410.902,
+   "top": 36.6
+  },
+  "john-b-connally-center-for-justice": {
+   "tile": "t_3_-1",
+   "map_ids": [
+    "685ed77c"
+   ],
+   "name": "John B. Connally Center for Justice",
+   "model": "opus",
+   "x": 851.298,
+   "z": -224.545,
+   "top": 23.2
+  },
+  "john-h-reagan-state-office-building": {
+   "tile": "t_-1_4",
+   "map_ids": [
+    "05f7aabf",
+    "w42806380"
+   ],
+   "name": "John H. Reagan State Office Building",
+   "model": "sonnet",
+   "x": -98.313,
+   "z": 1041.429,
+   "top": 23.2
+  },
+  "john-w-hargis-hall": {
+   "tile": "t_2_3",
+   "map_ids": [
+    "45465ad7"
+   ],
+   "name": "John W. Hargis Hall",
+   "model": "opus",
+   "x": 703.726,
+   "z": 847.361,
+   "top": 17.2
+  },
+  "jw-marriott-austin": {
+   "tile": "t_-2_9",
+   "map_ids": [
+    "w231123149"
+   ],
+   "name": "JW Marriott Austin",
+   "model": "opus",
+   "x": -390.425,
+   "z": 2395.582,
+   "top": 124.3
+  },
+  "kappa-delta": {
+   "tile": "t_-2_-1",
+   "map_ids": [
+    "779d7a4b"
+   ],
+   "name": "Kappa Delta house",
+   "model": "sol",
+   "x": -390.545,
+   "z": -180.048,
+   "top": 8.3
+  },
+  "kappa-kappa-gamma": {
+   "tile": "t_-1_1",
+   "map_ids": [
+    "bfd78be3"
+   ],
+   "name": "Kappa Kappa Gamma house",
+   "model": "opus",
+   "x": -0.006,
+   "z": 362.62,
+   "top": 11.9
+  },
+  "kinsolving-dormitory": {
+   "tile": "t_-1_-2",
+   "map_ids": [
+    "71504854"
+   ],
+   "name": "Kinsolving Dormitory",
+   "model": "opus",
+   "x": -22.54,
+   "z": -481.575,
+   "top": 21
+  },
+  "lark-austin": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "dad49016"
+   ],
+   "name": "Lark Austin",
+   "model": "opus",
+   "x": -474.613,
+   "z": 191.824,
+   "top": 53.9
+  },
+  "lbj-presidential-library": {
+   "tile": "t_3_0",
+   "map_ids": [
+    "d997136f"
+   ],
+   "name": "LBJ Presidential Library",
+   "model": "opus",
+   "x": 959.604,
+   "z": 17.673,
+   "top": 27.7
+  },
+  "lee-and-joe-jamail-texas-swimming-center": {
+   "tile": "t_2_2",
+   "map_ids": [
+    "bc7f61d3",
+    "w172665673"
+   ],
+   "name": "Lee and Joe Jamail Texas Swimming Center",
+   "model": "opus",
+   "x": 576.451,
+   "z": 687.786,
+   "top": 23.1
+  },
+  "legacy-on-rio": {
+   "tile": "t_-3_-3",
+   "map_ids": [
+    "b6857217"
+   ],
+   "name": "Legacy on Rio",
+   "model": "opus",
+   "x": -522.467,
+   "z": -640.072,
+   "top": 24.2
+  },
+  "littlefield-dormitory": {
+   "tile": "t_-1_-2",
+   "map_ids": [
+    "c855e790"
+   ],
+   "name": "Littlefield Dormitory",
+   "model": "opus",
+   "x": -35.924,
+   "z": -363.723,
+   "top": 17.3
+  },
+  "littlefield-house": {
+   "tile": "t_-1_-1",
+   "map_ids": [
+    "da0bda39"
+   ],
+   "name": "Littlefield House",
+   "model": "opus",
+   "x": -138.381,
+   "z": -234.752,
+   "top": 29.4
+  },
+  "lyndon-b-johnson-building": {
+   "tile": "t_0_3",
+   "map_ids": [
+    "affb925c"
+   ],
+   "name": "Lyndon B. Johnson State Office Building",
+   "model": "opus",
+   "x": 156.309,
+   "z": 896.885,
+   "top": 56.4
+  },
+  "mary-e-gearing-hall": {
+   "tile": "t_0_-1",
+   "map_ids": [
+    "5f2441ff"
+   ],
+   "name": "Mary E. Gearing Hall",
+   "model": "opus",
+   "x": 7.549,
+   "z": -190.03,
+   "top": 26.6
+  },
+  "mccombs-school-of-business": {
+   "tile": "t_0_0",
+   "map_ids": [
+    "e246e0b6"
+   ],
+   "name": "McCombs School of Business",
+   "model": "opus",
+   "x": 144.049,
+   "z": 185.497,
+   "top": 27.6
+  },
+  "moffett-molecular-biology": {
+   "tile": "t_0_-2",
+   "map_ids": [
+    "a707ccde"
+   ],
+   "name": "Moffett Molecular Biology",
+   "model": "opus",
+   "x": 195.807,
+   "z": -280.627,
+   "top": 22.4
+  },
+  "moontower": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "b423d7a9"
+   ],
+   "name": "Moontower",
+   "model": "opus",
+   "x": -371.767,
+   "z": 42.598,
+   "top": 57.2
+  },
+  "music-recital-hall": {
+   "tile": "t_3_-1",
+   "map_ids": [
+    "463d54fd"
+   ],
+   "name": "Music Recital Hall",
+   "model": "opus",
+   "x": 817.421,
+   "z": -129.562,
+   "top": 32.7
+  },
+  "neill-cochran-house-museum": {
+   "tile": "t_-4_-1",
+   "map_ids": [
+    "d683564e"
+   ],
+   "name": "Neill-Cochran House Museum",
+   "model": "opus",
+   "x": -864.549,
+   "z": -163.554,
+   "top": 10.3
+  },
+  "neural-molecular-science-building": {
+   "tile": "t_0_-2",
+   "map_ids": [
+    "c674b3ae"
+   ],
+   "name": "Neural Molecular Science Building",
+   "model": "opus",
+   "x": 157.009,
+   "z": -354.556,
+   "top": 30.6
+  },
+  "noble-2500": {
+   "tile": "t_-4_-2",
+   "map_ids": [
+    "ffb87957"
+   ],
+   "name": "Noble 2500",
+   "model": "opus",
+   "x": -836.294,
+   "z": -405.206,
+   "top": 23
+  },
+  "norman-hackerman-building": {
+   "tile": "t_0_-1",
+   "map_ids": [
+    "f8a072d5"
+   ],
+   "name": "Norman Hackerman Building",
+   "model": "opus",
+   "x": 143.514,
+   "z": -180.5,
+   "top": 32.5
+  },
+  "norwood-tower": {
+   "tile": "t_-2_7",
+   "map_ids": [
+    "w516286382"
+   ],
+   "name": "Norwood Tower",
+   "model": "sonnet",
+   "x": -372.059,
+   "z": 1835.779,
+   "top": 63.5
+  },
+  "nursing-school": {
+   "tile": "t_2_3",
+   "map_ids": [
+    "476c4290",
+    "c733463"
+   ],
+   "name": "Nursing School",
+   "model": "sonnet",
+   "x": 557.091,
+   "z": 913.742,
+   "top": 19.5
+  },
+  "odonnell-building": {
+   "tile": "t_1_-1",
+   "map_ids": [
+    "d63edc63"
+   ],
+   "name": "O'Donnell Building",
+   "model": "opus",
+   "x": 263.085,
+   "z": -92.19,
+   "top": 26.4
+  },
+  "omni-austin-hotel-downtown": {
+   "tile": "t_-1_7",
+   "map_ids": [
+    "w183289651"
+   ],
+   "name": "Omni Austin Hotel Downtown",
+   "model": "opus",
+   "x": -95.045,
+   "z": 1886.141,
+   "top": 68.6
+  },
+  "one-american-center": {
+   "tile": "t_-2_7",
+   "map_ids": [
+    "w206163832"
+   ],
+   "name": "One American Center",
+   "model": "opus",
+   "x": -378.627,
+   "z": 1936.014,
+   "top": 127.1
+  },
+  "palmetto-apartment-complex": {
+   "tile": "t_-3_0",
+   "map_ids": [
+    "eaea8038"
+   ],
+   "name": "Palmetto Apartments",
+   "model": "opus",
+   "x": -588.299,
+   "z": 137.596,
+   "top": 13.5
+  },
+  "parlin-hall": {
+   "tile": "t_-1_0",
+   "map_ids": [
+    "10f0f99b"
+   ],
+   "name": "Parlin Hall",
+   "model": "opus",
+   "x": -74.273,
+   "z": 126.856,
+   "top": 19.9
+  },
+  "patton-hall": {
+   "tile": "t_1_0",
+   "map_ids": [
+    "253a6f8f"
+   ],
+   "name": "Patton Hall",
+   "model": "opus",
+   "x": 390.163,
+   "z": 118.274,
+   "top": 27
+  },
+  "pcl-library": {
+   "tile": "t_0_1",
+   "map_ids": [
+    "04ac46be"
+   ],
+   "name": "PCL Library",
+   "model": "opus",
+   "x": 109.051,
+   "z": 354.911,
+   "top": 29.5
+  },
+  "peter-t-flawn-academic-center": {
+   "tile": "t_-1_-1",
+   "map_ids": [
+    "1c11a66a"
+   ],
+   "name": "Peter T. Flawn Academic Center",
+   "model": "opus",
+   "x": -116.036,
+   "z": -38.565,
+   "top": 23
+  },
+  "physics-math-astronomy": {
+   "tile": "t_1_-2",
+   "map_ids": [
+    "41db4bf3"
+   ],
+   "name": "Physics, Math and Astronomy",
+   "model": "opus",
+   "x": 294.794,
+   "z": -322.756,
+   "top": 76.8
+  },
+  "pi-beta-phi": {
+   "tile": "t_-2_-1",
+   "map_ids": [
+    "b2942a04"
+   ],
+   "name": "Pi Beta Phi house",
+   "model": "sol",
+   "x": -352.927,
+   "z": -96.7,
+   "top": 11.6
+  },
+  "pointe-on-rio": {
+   "tile": "t_-3_1",
+   "map_ids": [
+    "176b7e6b"
+   ],
+   "name": "Pointe on Rio",
+   "model": "opus",
+   "x": -520.477,
+   "z": 310.378,
+   "top": 21.1
+  },
+  "powers-student-activity-center": {
+   "tile": "t_1_0",
+   "map_ids": [
+    "bbd0117e"
+   ],
+   "name": "Powers Student Activity Center",
+   "model": "opus",
+   "x": 292.263,
+   "z": 118.723,
+   "top": 29.5
+  },
+  "prather-hall": {
+   "tile": "t_1_1",
+   "map_ids": [
+    "5979169b"
+   ],
+   "name": "Prather Hall",
+   "model": "opus",
+   "x": 414.541,
+   "z": 388.368,
+   "top": 23.4
+  },
+  "price-daniel-sr-state-office-building": {
+   "tile": "t_-2_4",
+   "map_ids": [
+    "e1211084",
+    "w112834511"
+   ],
+   "name": "Price Daniel Sr. State Office Building",
+   "model": "sonnet",
+   "x": -264.116,
+   "z": 1088.044,
+   "top": 42
+  },
+  "procore-tower": {
+   "tile": "t_-3_7",
+   "map_ids": [
+    "w99868625"
+   ],
+   "name": "Procore Tower",
+   "model": "opus",
+   "x": -515.723,
+   "z": 1973.24,
+   "top": 97.6
+  },
+  "raku-sushi-and-asian-bistro": {
+   "tile": "t_-3_-1",
+   "map_ids": [
+    "aa4e407e"
+   ],
+   "name": "Raku Sushi and Asian Bistro building",
+   "model": "opus",
+   "x": -547.65,
+   "z": -89.078,
+   "top": 15.9
+  },
+  "rambler": {
+   "tile": "t_-2_-2",
+   "map_ids": [
+    "3ad3da38"
+   ],
+   "name": "Rambler",
+   "model": "opus",
+   "x": -385.634,
+   "z": -448.597,
+   "top": 31.4
+  },
+  "recreational-sports-center": {
+   "tile": "t_2_2",
+   "map_ids": [
+    "a4dfe5a7"
+   ],
+   "name": "Recreational Sports Center",
+   "model": "opus",
+   "x": 661.122,
+   "z": 504.742,
+   "top": 20.8
+  },
+  "regents-west-at-24th": {
+   "tile": "t_-4_-2",
+   "map_ids": [
+    "70dcc366"
+   ],
+   "name": "Regents West at 24th",
+   "model": "opus",
+   "x": -781.886,
+   "z": -273.226,
+   "top": 26.6
+  },
+  "regents-west-at-26th": {
+   "tile": "t_-3_-3",
+   "map_ids": [
+    "17ee612c"
+   ],
+   "name": "Regents West at 26th",
+   "model": "opus",
+   "x": -686.774,
+   "z": -571.271,
+   "top": 31.3
+  },
+  "rise-at-west-campus": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "65e5a9ce"
+   ],
+   "name": "The Rise at West Campus",
+   "model": "opus",
+   "x": -458.892,
+   "z": 17.28,
+   "top": 82.6
+  },
+  "robert-a-welch-hall": {
+   "tile": "t_0_-1",
+   "map_ids": [
+    "ca0207d3"
+   ],
+   "name": "Robert A. Welch Hall",
+   "model": "opus",
+   "x": 156.954,
+   "z": -38.589,
+   "top": 26.9
+  },
+  "robert-e-johnson-state-legislative-office-building": {
+   "tile": "t_0_4",
+   "map_ids": [
+    "f810f28b",
+    "w42807246"
+   ],
+   "name": "Robert E. Johnson State Legislative Office Building",
+   "model": "opus",
+   "x": 98.054,
+   "z": 1003.79,
+   "top": 30
+  },
+  "roberts-hall": {
+   "tile": "t_1_1",
+   "map_ids": [
+    "b6a65eef"
+   ],
+   "name": "Roberts Hall",
+   "model": "opus",
+   "x": 403.737,
+   "z": 331.249,
+   "top": 20.6
+  },
+  "rowling-hall": {
+   "tile": "t_-1_1",
+   "map_ids": [
+    "3e41820f"
+   ],
+   "name": "Rowling Hall",
+   "model": "opus",
+   "x": -203.869,
+   "z": 423.19,
+   "top": 33.7
+  },
+  "saint-austin-catholic-church": {
+   "tile": "t_-2_1",
+   "map_ids": [
+    "9ceed9b3"
+   ],
+   "name": "Saint Austin Catholic Church",
+   "model": "opus",
+   "x": -287.023,
+   "z": 325.578,
+   "top": 24.2
+  },
+  "sam-houston-state-office-building": {
+   "tile": "t_0_4",
+   "map_ids": [
+    "w42806376"
+   ],
+   "name": "Sam Houston State Office Building",
+   "model": "opus",
+   "x": 64.198,
+   "z": 1212.991,
+   "top": 48.1
+  },
+  "san-jacinto-center": {
+   "tile": "t_-2_10",
+   "map_ids": [
+    "w134807224"
+   ],
+   "name": "San Jacinto Center",
+   "model": "opus",
+   "x": -355.374,
+   "z": 2638.805,
+   "top": 97.3
+  },
+  "san-jacinto-hall": {
+   "tile": "t_1_1",
+   "map_ids": [
+    "93cc2567"
+   ],
+   "name": "San Jacinto Hall",
+   "model": "opus",
+   "x": 478.656,
+   "z": 409.721,
+   "top": 28
+  },
+  "scottish-rite-dormitory": {
+   "tile": "t_-1_-3",
+   "map_ids": [
+    "9b5645c2"
+   ],
+   "name": "Scottish Rite Dormitory",
+   "model": "opus",
+   "x": -14.06,
+   "z": -718.906,
+   "top": 18.6
+  },
+  "seaholm-residences": {
+   "tile": "t_-5_8",
+   "map_ids": [
+    "w516271460"
+   ],
+   "name": "Seaholm Residences",
+   "model": "opus",
+   "x": -1232.669,
+   "z": 2101.891,
+   "top": 104.7
+  },
+  "seay-building": {
+   "tile": "t_0_-2",
+   "map_ids": [
+    "e4ae129e"
+   ],
+   "name": "Seay Building",
+   "model": "opus",
+   "x": 179.95,
+   "z": -459.852,
+   "top": 24.4
+  },
+  "shoal-creek-office-1609": {
+   "tile": "t_-5_1",
+   "map_ids": [
+    "63ef9428",
+    "w381834080"
+   ],
+   "name": "1609 Shoal Creek office",
+   "model": "sol",
+   "x": -1011.408,
+   "z": 476.67,
+   "top": 11.9
+  },
+  "sid-richardson-hall": {
+   "tile": "t_3_0",
+   "map_ids": [
+    "1b412a8b"
+   ],
+   "name": "Sid Richardson Hall",
+   "model": "opus",
+   "x": 997.308,
+   "z": 121.185,
+   "top": 12.2
+  },
+  "signature-1909": {
+   "tile": "t_-3_1",
+   "map_ids": [
+    "4d0b4ea1"
+   ],
+   "name": "Signature 1909",
+   "model": "opus",
+   "x": -522.169,
+   "z": 263.709,
+   "top": 51.9
+  },
+  "skyloft-austin": {
+   "tile": "t_-2_-1",
+   "map_ids": [
+    "4c485eb1"
+   ],
+   "name": "Skyloft Austin",
+   "model": "opus",
+   "x": -407.592,
+   "z": -15.732,
+   "top": 62.3
+  },
+  "southwest-tower": {
+   "tile": "t_-1_7",
+   "map_ids": [
+    "w99256718"
+   ],
+   "name": "Southwest Tower",
+   "model": "opus",
+   "x": -142.282,
+   "z": 1980.7,
+   "top": 53.9
+  },
+  "stephen-f-austin-state-office-building": {
+   "tile": "t_-1_2",
+   "map_ids": [
+    "28f60e35",
+    "w139466223"
+   ],
+   "name": "Stephen F. Austin State Office Building",
+   "model": "opus",
+   "x": -4.11,
+   "z": 737.295,
+   "top": 52.5
+  },
+  "student-services-building": {
+   "tile": "t_0_-2",
+   "map_ids": [
+    "271f779c"
+   ],
+   "name": "Student Services Building",
+   "model": "opus",
+   "x": 87.297,
+   "z": -463.088,
+   "top": 27.6
+  },
+  "sutton-hall": {
+   "tile": "t_-1_0",
+   "map_ids": [
+    "5846e1c5"
+   ],
+   "name": "Sutton Hall",
+   "model": "opus",
+   "x": -151.293,
+   "z": 114.523,
+   "top": 23.2
+  },
+  "t-s-painter-hall": {
+   "tile": "t_0_-1",
+   "map_ids": [
+    "82bcddc0"
+   ],
+   "name": "T. S. Painter Hall",
+   "model": "opus",
+   "x": 54.043,
+   "z": -112.559,
+   "top": 28.8
+  },
+  "texan-26": {
+   "tile": "t_-4_-3",
+   "map_ids": [
+    "c3c6a75c"
+   ],
+   "name": "Texan 26",
+   "model": "opus",
+   "x": -855.606,
+   "z": -525.678,
+   "top": 23.2
+  },
+  "texan-pearl": {
+   "tile": "t_-3_-2",
+   "map_ids": [
+    "4c13313f"
+   ],
+   "name": "Texan Pearl",
+   "model": "sol",
+   "x": -666.599,
+   "z": -491.942,
+   "top": 24.3
+  },
+  "texan-tower": {
+   "tile": "t_-4_-2",
+   "map_ids": [
+    "f142fa08"
+   ],
+   "name": "Texan Tower",
+   "model": "opus",
+   "x": -770.028,
+   "z": -433.385,
+   "top": 26.9
+  },
+  "texas-alpha-phi": {
+   "tile": "t_0_1",
+   "map_ids": [
+    "a23aad22"
+   ],
+   "name": "Texas Alpha Phi house",
+   "model": "sol",
+   "x": 1.743,
+   "z": 331.803,
+   "top": 10.1
+  },
+  "texas-cowboys-pavilion": {
+   "tile": "t_2_0",
+   "map_ids": [
+    "7ffe47fe"
+   ],
+   "name": "Texas Cowboys Pavilion",
+   "model": "opus",
+   "x": 511.662,
+   "z": 117.754,
+   "top": 5.5
+  },
+  "texas-hillel": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "75abd113"
+   ],
+   "name": "Texas Hillel",
+   "model": "opus",
+   "x": -326.812,
+   "z": 208.337,
+   "top": 9.1
+  },
+  "texas-law-center": {
+   "tile": "t_-1_3",
+   "map_ids": [
+    "470f03b0",
+    "w42806943"
+   ],
+   "name": "Texas Law Center",
+   "model": "opus",
+   "x": -190.773,
+   "z": 991.336,
+   "top": 27.3
+  },
+  "texas-memorial-museum": {
+   "tile": "t_2_-1",
+   "map_ids": [
+    "577f874a"
+   ],
+   "name": "Texas Memorial Museum",
+   "model": "opus",
+   "x": 673.036,
+   "z": -106.505,
+   "top": 20
+  },
+  "texas-state-history-museum": {
+   "tile": "t_0_2",
+   "map_ids": [
+    "459de063",
+    "w27397820"
+   ],
+   "name": "Bullock Texas State History Museum",
+   "model": "opus",
+   "x": 30.562,
+   "z": 637.328,
+   "top": 33.3
+  },
+  "texas-supreme-court-building": {
+   "tile": "t_-2_3",
+   "map_ids": [
+    "93f09bd6",
+    "w516187604"
+   ],
+   "name": "Texas Supreme Court Building",
+   "model": "opus",
+   "x": -273.193,
+   "z": 846.084,
+   "top": 28.5
+  },
+  "texas-workforce-commission-building": {
+   "tile": "t_0_4",
+   "map_ids": [
+    "w42806374"
+   ],
+   "name": "Texas Workforce Commission Building",
+   "model": "opus",
+   "x": 40.659,
+   "z": 1093.881,
+   "top": 25.6
+  },
+  "the-ashton": {
+   "tile": "t_-3_9",
+   "map_ids": [
+    "w134807227"
+   ],
+   "name": "The Ashton",
+   "model": "opus",
+   "x": -580.051,
+   "z": 2423.477,
+   "top": 127.4
+  },
+  "the-austonian": {
+   "tile": "t_-2_9",
+   "map_ids": [
+    "w204413181"
+   ],
+   "name": "The Austonian",
+   "model": "opus",
+   "x": -499.03,
+   "z": 2368.919,
+   "top": 208
+  },
+  "the-block-bddea10c": {
+   "tile": "t_-4_-2",
+   "map_ids": [
+    "bddea10c"
+   ],
+   "name": "West Campus courtyard block (bddea10c)",
+   "model": "opus",
+   "x": -982.826,
+   "z": -492.74,
+   "top": 30.1
+  },
+  "the-block-on-23rd": {
+   "tile": "t_-3_-1",
+   "map_ids": [
+    "df278986"
+   ],
+   "name": "The Block on 23rd",
+   "model": "opus",
+   "x": -713.715,
+   "z": -116.869,
+   "top": 24.4
+  },
+  "the-callaway-house": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "11b2bb80"
+   ],
+   "name": "The Callaway House",
+   "model": "opus",
+   "x": -396.163,
+   "z": 150.332,
+   "top": 57.6
+  },
+  "the-castilian": {
+   "tile": "t_-2_-1",
+   "map_ids": [
+    "307878e3"
+   ],
+   "name": "The Castilian",
+   "model": "opus",
+   "x": -292.709,
+   "z": -152.479,
+   "top": 56
+  },
+  "the-co-op": {
+   "tile": "t_-2_-1",
+   "map_ids": [
+    "f1ef97ab"
+   ],
+   "name": "The Co-op",
+   "model": "opus",
+   "x": -268.515,
+   "z": -25.847,
+   "top": 13.4
+  },
+  "the-g": {
+   "tile": "t_-1_2",
+   "map_ids": [
+    "f1d2f1fb",
+    "w516187632"
+   ],
+   "name": "The G",
+   "model": "opus",
+   "x": -235.375,
+   "z": 641.531,
+   "top": 26.4
+  },
+  "the-independent": {
+   "tile": "t_-5_8",
+   "map_ids": [
+    "w516271461"
+   ],
+   "name": "The Independent",
+   "model": "opus",
+   "x": -1141.248,
+   "z": 2021.511,
+   "top": 210.2
+  },
+  "the-mark-austin": {
+   "tile": "t_-3_-1",
+   "map_ids": [
+    "6dfb0958"
+   ],
+   "name": "The Mark Austin",
+   "model": "opus",
+   "x": -647.041,
+   "z": -194.258,
+   "top": 59
+  },
+  "the-monarch": {
+   "tile": "t_-5_7",
+   "map_ids": [
+    "w135049604"
+   ],
+   "name": "The Monarch",
+   "model": "opus",
+   "x": -1235.954,
+   "z": 1877.588,
+   "top": 100.2
+  },
+  "the-nine-at-rio": {
+   "tile": "t_-3_0",
+   "map_ids": [
+    "899a97bb"
+   ],
+   "name": "The Nine at Rio",
+   "model": "sol",
+   "x": -594.383,
+   "z": 189.257,
+   "top": 23.9
+  },
+  "the-nine-at-west-campus": {
+   "tile": "t_-4_-3",
+   "map_ids": [
+    "5087a362"
+   ],
+   "name": "The Nine at West Campus",
+   "model": "opus",
+   "x": -964.611,
+   "z": -561.491,
+   "top": 17.2
+  },
+  "the-otis-hotel": {
+   "tile": "t_-2_1",
+   "map_ids": [
+    "12126a99"
+   ],
+   "name": "The Otis Hotel",
+   "model": "opus",
+   "x": -340.546,
+   "z": 394.891,
+   "top": 45.5
+  },
+  "the-quarters-grayson-house": {
+   "tile": "t_-3_0",
+   "map_ids": [
+    "41627514"
+   ],
+   "name": "The Quarters Grayson House",
+   "model": "opus",
+   "x": -656.273,
+   "z": 55.247,
+   "top": 25.3
+  },
+  "the-quarters-nueces-house": {
+   "tile": "t_-2_-1",
+   "map_ids": [
+    "5e94c2db"
+   ],
+   "name": "The Quarters Nueces House",
+   "model": "opus",
+   "x": -443.321,
+   "z": -137.29,
+   "top": 27.2
+  },
+  "the-quarters-sterling-house": {
+   "tile": "t_-3_0",
+   "map_ids": [
+    "1aa1bea6"
+   ],
+   "name": "The Quarters Sterling House",
+   "model": "opus",
+   "x": -657.486,
+   "z": 111.926,
+   "top": 21
+  },
+  "the-standard": {
+   "tile": "t_-3_-1",
+   "map_ids": [
+    "36365d18"
+   ],
+   "name": "The Standard",
+   "model": "opus",
+   "x": -614.022,
+   "z": -109.926,
+   "top": 59.4
+  },
+  "the-texan-shoal-creek": {
+   "tile": "t_-4_-2",
+   "map_ids": [
+    "6bae1b04"
+   ],
+   "name": "The Texan Shoal Creek",
+   "model": "sol",
+   "x": -999.689,
+   "z": -447.695,
+   "top": 24.6
+  },
+  "the-venue": {
+   "tile": "t_-1_-4",
+   "map_ids": [
+    "5d3a4e03"
+   ],
+   "name": "The Venue on Guadalupe",
+   "model": "opus",
+   "x": -248.203,
+   "z": -911.521,
+   "top": 22.2
+  },
+  "the-venue-on-guadalupe": {
+   "tile": "t_-1_-4",
+   "map_ids": [
+    "5d3a4e03"
+   ],
+   "name": "The Venue on Guadalupe",
+   "model": "opus",
+   "x": -248.203,
+   "z": -911.521,
+   "top": 22.2
+  },
+  "thompson-austin": {
+   "tile": "t_-1_8",
+   "map_ids": [
+    "w927242882"
+   ],
+   "name": "Thompson Austin",
+   "model": "opus",
+   "x": -182.77,
+   "z": 2128.121,
+   "top": 109
+  },
+  "torre-student-living": {
+   "tile": "t_-2_1",
+   "map_ids": [
+    "90cfca73"
+   ],
+   "name": "Torre Student Living",
+   "model": "opus",
+   "x": -482.599,
+   "z": 270.395,
+   "top": 56.4
+  },
+  "townes-hall": {
+   "tile": "t_3_-2",
+   "map_ids": [
+    "167648cf"
+   ],
+   "name": "Townes Hall",
+   "model": "opus",
+   "x": 818.344,
+   "z": -286.142,
+   "top": 20
+  },
+  "travis-county-civil-and-family-courts-facility": {
+   "tile": "t_-2_2",
+   "map_ids": [
+    "acec9c4e",
+    "w1020963731"
+   ],
+   "name": "Travis County Civil and Family Courts",
+   "model": "opus",
+   "x": -336.083,
+   "z": 619.976,
+   "top": 71
+  },
+  "twenty-two-15": {
+   "tile": "t_-3_-1",
+   "map_ids": [
+    "7a5984d8"
+   ],
+   "name": "Twenty Two 15",
+   "model": "opus",
+   "x": -503.991,
+   "z": -35.08,
+   "top": 29
+  },
+  "unidentified-297fcc8d": {
+   "tile": "t_0_-3",
+   "map_ids": [
+    "297fcc8d"
+   ],
+   "name": "Stone hall with dormer gables (297fcc8d)",
+   "model": "opus",
+   "x": 84.463,
+   "z": -684.04,
+   "top": 18.1
+  },
+  "unidentified-79e82c98": {
+   "tile": "t_0_-4",
+   "map_ids": [
+    "79e82c98"
+   ],
+   "name": "White block with stone base (79e82c98)",
+   "model": "opus",
+   "x": 116.462,
+   "z": -918.329,
+   "top": 19.1
+  },
+  "unidentified-north-campus-04f1466e": {
+   "tile": "t_-4_-3",
+   "map_ids": [
+    "04f1466e"
+   ],
+   "name": "Cream court block with 11 chimneys (04f1466e)",
+   "model": "opus",
+   "x": -760.989,
+   "z": -577.72,
+   "top": 15.9
+  },
+  "unidentified-north-campus-071ef0d5": {
+   "tile": "t_0_-4",
+   "map_ids": [
+    "071ef0d5"
+   ],
+   "name": "Brick U-plan walk-up (071ef0d5)",
+   "model": "opus",
+   "x": 244.375,
+   "z": -907.345,
+   "top": 15.9
+  },
+  "unidentified-north-campus-07ebbe8f": {
+   "tile": "t_1_-4",
+   "map_ids": [
+    "07ebbe8f"
+   ],
+   "name": "Gabled walk-up (07ebbe8f)",
+   "model": "opus",
+   "x": 312.432,
+   "z": -910.843,
+   "top": 13
+  },
+  "unidentified-north-campus-08cca10d": {
+   "tile": "t_0_-4",
+   "map_ids": [
+    "08cca10d"
+   ],
+   "name": "Stone-base block with metal roof ring (08cca10d)",
+   "model": "opus",
+   "x": 166.36,
+   "z": -891.674,
+   "top": 19.2
+  },
+  "unidentified-north-campus-211c1f8e": {
+   "tile": "t_-3_-4",
+   "map_ids": [
+    "211c1f8e"
+   ],
+   "name": "North Campus block 211c1f8e",
+   "model": "opus",
+   "x": -592.279,
+   "z": -773.782,
+   "top": 15.8
+  },
+  "unidentified-north-campus-21fe5c30": {
+   "tile": "t_-3_-3",
+   "map_ids": [
+    "21fe5c30"
+   ],
+   "name": "North Campus block 21fe5c30",
+   "model": "opus",
+   "x": -693.584,
+   "z": -641.819,
+   "top": 10.4
+  },
+  "unidentified-north-campus-3f9b807a": {
+   "tile": "t_1_-3",
+   "map_ids": [
+    "3f9b807a"
+   ],
+   "name": "Blue-grey gabled apartments (3f9b807a)",
+   "model": "opus",
+   "x": 374.188,
+   "z": -701.083,
+   "top": 16.6
+  },
+  "unidentified-north-campus-63e601e8": {
+   "tile": "t_0_-3",
+   "map_ids": [
+    "63e601e8"
+   ],
+   "name": "Solar-roof hall (63e601e8)",
+   "model": "opus",
+   "x": 218.765,
+   "z": -719.091,
+   "top": 13.5
+  },
+  "unidentified-north-campus-6e7dec36": {
+   "tile": "t_-3_-4",
+   "map_ids": [
+    "6e7dec36"
+   ],
+   "name": "Blue and brick gallery block (6e7dec36)",
+   "model": "opus",
+   "x": -508.817,
+   "z": -898.137,
+   "top": 15
+  },
+  "unidentified-north-campus-6f01b458": {
+   "tile": "t_-2_-4",
+   "map_ids": [
+    "6f01b458"
+   ],
+   "name": "Brick hip-roofed court building (6f01b458)",
+   "model": "opus",
+   "x": -357.906,
+   "z": -859.447,
+   "top": 17
+  },
+  "unidentified-north-campus-768ae01e": {
+   "tile": "t_0_-3",
+   "map_ids": [
+    "768ae01e"
+   ],
+   "name": "Stone hall with loggia (768ae01e)",
+   "model": "opus",
+   "x": 147.543,
+   "z": -733.2,
+   "top": 18.2
+  },
+  "unidentified-north-campus-88dcc810": {
+   "tile": "t_1_-5",
+   "map_ids": [
+    "88dcc810"
+   ],
+   "name": "Mansard block with court (88dcc810)",
+   "model": "opus",
+   "x": 373.759,
+   "z": -1061.873,
+   "top": 13.6
+  },
+  "unidentified-north-campus-90072241": {
+   "tile": "t_-2_-4",
+   "map_ids": [
+    "90072241"
+   ],
+   "name": "Loggia block with shingle roof (90072241)",
+   "model": "opus",
+   "x": -344.397,
+   "z": -968.238,
+   "top": 13.7
+  },
+  "unidentified-north-campus-bcf8a2ba": {
+   "tile": "t_-3_-3",
+   "map_ids": [
+    "bcf8a2ba"
+   ],
+   "name": "Two-wing brick block (bcf8a2ba)",
+   "model": "opus",
+   "x": -523.431,
+   "z": -582.67,
+   "top": 15.1
+  },
+  "unidentified-north-campus-dbdd6dfb": {
+   "tile": "t_-3_-3",
+   "map_ids": [
+    "dbdd6dfb"
+   ],
+   "name": "Banded block with light well (dbdd6dfb)",
+   "model": "opus",
+   "x": -611.492,
+   "z": -504.71,
+   "top": 24.3
+  },
+  "unidentified-north-campus-dd0139ea": {
+   "tile": "t_0_-5",
+   "map_ids": [
+    "dd0139ea"
+   ],
+   "name": "Gabled courtyard complex (dd0139ea)",
+   "model": "opus",
+   "x": 124.005,
+   "z": -1005.874,
+   "top": 27.5
+  },
+  "unidentified-ut-878d9137": {
+   "tile": "t_1_3",
+   "map_ids": [
+    "878d9137",
+    "w236328124"
+   ],
+   "name": "UT office block (878d9137)",
+   "model": "opus",
+   "x": 345.747,
+   "z": 853.254,
+   "top": 16.4
+  },
+  "unidentified-west-campus-27bbc14c": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "27bbc14c"
+   ],
+   "name": "Stone church on Guadalupe (27bbc14c)",
+   "model": "opus",
+   "x": -278.746,
+   "z": 139.274,
+   "top": 20
+  },
+  "unidentified-west-campus-319e8154": {
+   "tile": "t_-1_-4",
+   "map_ids": [
+    "319e8154"
+   ],
+   "name": "Brick house with columned portico (319e8154)",
+   "model": "opus",
+   "x": -98.684,
+   "z": -955.888,
+   "top": 18.4
+  },
+  "unidentified-west-campus-3b8f0f69": {
+   "tile": "t_-3_-4",
+   "map_ids": [
+    "3b8f0f69"
+   ],
+   "name": "West Campus courtyard block (3b8f0f69)",
+   "model": "opus",
+   "x": -516.952,
+   "z": -760.887,
+   "top": 20.2
+  },
+  "unidentified-west-campus-42508a4b": {
+   "tile": "t_-3_-4",
+   "map_ids": [
+    "42508a4b"
+   ],
+   "name": "White stucco block on a slope (42508a4b)",
+   "model": "opus",
+   "x": -646.168,
+   "z": -788.725,
+   "top": 13.1
+  },
+  "unidentified-west-campus-4fe90bd0": {
+   "tile": "t_-3_-3",
+   "map_ids": [
+    "4fe90bd0"
+   ],
+   "name": "West Campus pool-deck block (4fe90bd0)",
+   "model": "opus",
+   "x": -595.736,
+   "z": -696.458,
+   "top": 24.2
+  },
+  "unidentified-west-campus-5b56cd35": {
+   "tile": "t_-1_-4",
+   "map_ids": [
+    "5b56cd35"
+   ],
+   "name": "White block on stilts (5b56cd35)",
+   "model": "opus",
+   "x": -132.35,
+   "z": -865.787,
+   "top": 13.2
+  },
+  "unidentified-west-campus-66d719c5": {
+   "tile": "t_-4_-1",
+   "map_ids": [
+    "66d719c5"
+   ],
+   "name": "West Campus long block (66d719c5)",
+   "model": "opus",
+   "x": -768.136,
+   "z": -181.756,
+   "top": 20.2
+  },
+  "unidentified-west-campus-8e99b2fe": {
+   "tile": "t_-4_-2",
+   "map_ids": [
+    "8e99b2fe"
+   ],
+   "name": "West Campus cream block (8e99b2fe)",
+   "model": "opus",
+   "x": -908.2,
+   "z": -334.619,
+   "top": 18
+  },
+  "unidentified-west-campus-8f3cb88c": {
+   "tile": "t_-3_-1",
+   "map_ids": [
+    "8f3cb88c"
+   ],
+   "name": "West Campus block + car-park deck (8f3cb88c)",
+   "model": "opus",
+   "x": -718.705,
+   "z": -189.897,
+   "top": 21.9
+  },
+  "unidentified-west-campus-a6a65d0c": {
+   "tile": "t_-4_-3",
+   "map_ids": [
+    "a6a65d0c"
+   ],
+   "name": "White hip-roofed hall (a6a65d0c)",
+   "model": "opus",
+   "x": -871.034,
+   "z": -582.762,
+   "top": 21.2
+  },
+  "unidentified-west-campus-eaca344c": {
+   "tile": "t_-2_-3",
+   "map_ids": [
+    "eaca344c"
+   ],
+   "name": "West Campus block with ΣΧ letters (eaca344c)",
+   "model": "opus",
+   "x": -269.769,
+   "z": -705.699,
+   "top": 19.8
+  },
+  "unidentified-west-campus-ec1b4af2": {
+   "tile": "t_-3_-4",
+   "map_ids": [
+    "ec1b4af2"
+   ],
+   "name": "2706 Rio Grande block (ec1b4af2)",
+   "model": "opus",
+   "x": -510.157,
+   "z": -805.034,
+   "top": 25.5
+  },
+  "unidentified-west-campus-f0b137e7": {
+   "tile": "t_-1_-3",
+   "map_ids": [
+    "f0b137e7"
+   ],
+   "name": "Stone corner block with red awning (f0b137e7)",
+   "model": "opus",
+   "x": -213.715,
+   "z": -640.682,
+   "top": 20.7
+  },
+  "union-building": {
+   "tile": "t_-1_-1",
+   "map_ids": [
+    "8a2648f5"
+   ],
+   "name": "Texas Union Building",
+   "model": "opus",
+   "x": -175.431,
+   "z": -55.608,
+   "top": 22.4
+  },
+  "union-on-24th": {
+   "tile": "t_-3_-1",
+   "map_ids": [
+    "0a6d10a2"
+   ],
+   "name": "Union on 24th",
+   "model": "opus",
+   "x": -561.605,
+   "z": -185.823,
+   "top": 95.5
+  },
+  "union-on-san-antonio": {
+   "tile": "t_-2_1",
+   "map_ids": [
+    "87f9cf87"
+   ],
+   "name": "Union on San Antonio",
+   "model": "opus",
+   "x": -340.12,
+   "z": 311.334,
+   "top": 95.7
+  },
+  "university-avenue-church-of-christ": {
+   "tile": "t_-1_2",
+   "map_ids": [
+    "58e81489",
+    "w382075765"
+   ],
+   "name": "University Avenue Church of Christ",
+   "model": "sol",
+   "x": -14.186,
+   "z": 513.991,
+   "top": 18.5
+  },
+  "university-baptist-church-education-building": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "51efcac3"
+   ],
+   "name": "University Baptist Church education building",
+   "model": "opus",
+   "x": -318.347,
+   "z": 137.407,
+   "top": 11
+  },
+  "university-catholic-center": {
+   "tile": "t_-1_1",
+   "map_ids": [
+    "826faac8"
+   ],
+   "name": "University Catholic Center",
+   "model": "sol",
+   "x": -66.887,
+   "z": 287.752,
+   "top": 15
+  },
+  "university-presbyterian-church": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "1d3e8340"
+   ],
+   "name": "University Presbyterian Church",
+   "model": "opus",
+   "x": -312.127,
+   "z": 58.432,
+   "top": 11.4
+  },
+  "university-teaching-center": {
+   "tile": "t_0_1",
+   "map_ids": [
+    "c7ac4306"
+   ],
+   "name": "University Teaching Center",
+   "model": "opus",
+   "x": 57.923,
+   "z": 334.112,
+   "top": 22.9
+  },
+  "villas-at-san-gabriel": {
+   "tile": "t_-4_-2",
+   "map_ids": [
+    "b3d158e5"
+   ],
+   "name": "Villas at San Gabriel",
+   "model": "opus",
+   "x": -854.695,
+   "z": -340.939,
+   "top": 25.3
+  },
+  "villas-on-24th": {
+   "tile": "t_-2_-1",
+   "map_ids": [
+    "4e5f2b29"
+   ],
+   "name": "Villas on 24th",
+   "model": "opus",
+   "x": -482.853,
+   "z": -182.31,
+   "top": 97.1
+  },
+  "villas-on-guadalupe": {
+   "tile": "t_-1_-4",
+   "map_ids": [
+    "84a96de1"
+   ],
+   "name": "Villas on Guadalupe",
+   "model": "opus",
+   "x": -187.451,
+   "z": -861.55,
+   "top": 25.9
+  },
+  "villas-on-nueces": {
+   "tile": "t_-2_0",
+   "map_ids": [
+    "02bbe7f3"
+   ],
+   "name": "Villas on Nueces",
+   "model": "opus",
+   "x": -413.171,
+   "z": 55.556,
+   "top": 28.9
+  },
+  "villas-on-rio": {
+   "tile": "t_-3_0",
+   "map_ids": [
+    "e6abe8cf"
+   ],
+   "name": "Villas on Rio",
+   "model": "opus",
+   "x": -512.402,
+   "z": 135.911,
+   "top": 57.3
+  },
+  "w-austin": {
+   "tile": "t_-3_9",
+   "map_ids": [
+    "w134807228"
+   ],
+   "name": "W Austin",
+   "model": "opus",
+   "x": -740.355,
+   "z": 2268.62,
+   "top": 145.3
+  },
+  "waggener-hall": {
+   "tile": "t_0_0",
+   "map_ids": [
+    "bb2c550f"
+   ],
+   "name": "Waggener Hall",
+   "model": "opus",
+   "x": 165.264,
+   "z": 97.397,
+   "top": 22.1
+  },
+  "walter-webb-hall": {
+   "tile": "t_-1_-2",
+   "map_ids": [
+    "2e2ea8a8"
+   ],
+   "name": "Walter Webb Hall",
+   "model": "sol",
+   "x": -239.343,
+   "z": -367.27,
+   "top": 18.8
+  },
+  "waterford-condominiums": {
+   "tile": "t_-4_-2",
+   "map_ids": [
+    "3f64e7ea"
+   ],
+   "name": "Waterford Condominiums",
+   "model": "opus",
+   "x": -920.701,
+   "z": -276.905,
+   "top": 16.9
+  },
+  "west-campus-0972f20f": {
+   "tile": "t_-2_-2",
+   "map_ids": [
+    "0972f20f"
+   ],
+   "name": "West Campus tile-roof block 0972f20f",
+   "model": "opus",
+   "x": -330.131,
+   "z": -387.243,
+   "top": 15.6
+  },
+  "west-campus-0c4b89ce": {
+   "tile": "t_-5_-2",
+   "map_ids": [
+    "0c4b89ce"
+   ],
+   "name": "West Campus crest house 0c4b89ce",
+   "model": "opus",
+   "x": -1000.638,
+   "z": -287.34,
+   "top": 14.1
+  },
+  "west-campus-0fe2da88": {
+   "tile": "t_-4_-1",
+   "map_ids": [
+    "0fe2da88"
+   ],
+   "name": "West Campus block 0fe2da88",
+   "model": "sol",
+   "x": -892.547,
+   "z": -50.335,
+   "top": 7.1
+  },
+  "west-campus-10a07e54": {
+   "tile": "t_-2_-4",
+   "map_ids": [
+    "10a07e54"
+   ],
+   "name": "West Campus block 10a07e54",
+   "model": "sol",
+   "x": -434.001,
+   "z": -768.082,
+   "top": 8.4
+  },
+  "west-campus-12159245": {
+   "tile": "t_-2_-2",
+   "map_ids": [
+    "12159245"
+   ],
+   "name": "West Campus villa 12159245",
+   "model": "opus",
+   "x": -295.775,
+   "z": -373.648,
+   "top": 16.4
+  },
+  "west-campus-12d10e75": {
+   "tile": "t_-3_-2",
+   "map_ids": [
+    "12d10e75"
+   ],
+   "name": "West Campus block 12d10e75",
+   "model": "sol",
+   "x": -682.377,
+   "z": -275.792,
+   "top": 10
+  },
+  "west-campus-130c7878": {
+   "tile": "t_-3_1",
+   "map_ids": [
+    "130c7878"
+   ],
+   "name": "West Campus block 130c7878",
+   "model": "opus",
+   "x": -602.247,
+   "z": 300.137,
+   "top": 9.5
+  },
+  "west-campus-1854f22e": {
+   "tile": "t_-2_-4",
+   "map_ids": [
+    "1854f22e"
+   ],
+   "name": "Old gas station 1854f22e",
+   "model": "sol",
+   "x": -279.43,
+   "z": -982.404,
+   "top": 5.5
+  },
+  "west-campus-18668b8d": {
+   "tile": "t_-4_-3",
+   "map_ids": [
+    "18668b8d"
+   ],
+   "name": "West Campus building 18668b8d",
+   "model": "sol",
+   "x": -842.314,
+   "z": -598.99,
+   "top": 8.6
+  },
+  "west-campus-1fe7267c": {
+   "tile": "t_-4_0",
+   "map_ids": [
+    "1fe7267c"
+   ],
+   "name": "West Campus block 1fe7267c",
+   "model": "sol",
+   "x": -808.744,
+   "z": 31.553,
+   "top": 12.3
+  },
+  "west-campus-2527bdfa": {
+   "tile": "t_-2_-4",
+   "map_ids": [
+    "2527bdfa"
+   ],
+   "name": "West Campus lettered house 2527bdfa",
+   "model": "opus",
+   "x": -422.019,
+   "z": -886.15,
+   "top": 15.2
+  },
+  "west-campus-2779329b": {
+   "tile": "t_-2_-4",
+   "map_ids": [
+    "2779329b"
+   ],
+   "name": "West Campus block 2779329b",
+   "model": "opus",
+   "x": -361.532,
+   "z": -788.376,
+   "top": 10.5
+  },
+  "west-campus-41d7f858": {
+   "tile": "t_-4_0",
+   "map_ids": [
+    "41d7f858"
+   ],
+   "name": "West Campus block 41d7f858",
+   "model": "opus",
+   "x": -998.8,
+   "z": 136.519,
+   "top": 14.6
+  },
+  "west-campus-47882601": {
+   "tile": "t_-2_-4",
+   "map_ids": [
+    "47882601"
+   ],
+   "name": "West Campus building 47882601",
+   "model": "sol",
+   "x": -346.92,
+   "z": -837.717,
+   "top": 6.4
+  },
+  "west-campus-4e03b7f5": {
+   "tile": "t_-4_0",
+   "map_ids": [
+    "4e03b7f5"
+   ],
+   "name": "West Campus block 4e03b7f5",
+   "model": "opus",
+   "x": -806.641,
+   "z": 116.026,
+   "top": 6.5
+  },
+  "west-campus-4fb09ed3": {
+   "tile": "t_-5_-1",
+   "map_ids": [
+    "4fb09ed3"
+   ],
+   "name": "West Campus block 4fb09ed3",
+   "model": "sol",
+   "x": -1003.877,
+   "z": -214.829,
+   "top": 9.6
+  },
+  "west-campus-521ab442": {
+   "tile": "t_-3_0",
+   "map_ids": [
+    "521ab442"
+   ],
+   "name": "West Campus block 521ab442",
+   "model": "sol",
+   "x": -739.8,
+   "z": 1.601,
+   "top": 11.9
+  },
+  "west-campus-584148b6": {
+   "tile": "t_-2_-4",
+   "map_ids": [
+    "584148b6"
+   ],
+   "name": "West Campus columned house 584148b6",
+   "model": "opus",
+   "x": -284.255,
+   "z": -770.977,
+   "top": 11.9
+  },
+  "west-campus-5eae3fec": {
+   "tile": "t_-3_-2",
+   "map_ids": [
+    "5eae3fec"
+   ],
+   "name": "West Campus metal-roof hall 5eae3fec",
+   "model": "opus",
+   "x": -735.711,
+   "z": -342.259,
+   "top": 10.8
+  },
+  "west-campus-619cb351": {
+   "tile": "t_-3_-2",
+   "map_ids": [
+    "619cb351"
+   ],
+   "name": "West Campus block 619cb351",
+   "model": "opus",
+   "x": -656.576,
+   "z": -349.682,
+   "top": 15
+  },
+  "west-campus-732691d2": {
+   "tile": "t_-2_-4",
+   "map_ids": [
+    "732691d2"
+   ],
+   "name": "West Campus block 732691d2",
+   "model": "sol",
+   "x": -429.385,
+   "z": -858.48,
+   "top": 12.4
+  },
+  "west-campus-73d1d197": {
+   "tile": "t_-3_0",
+   "map_ids": [
+    "73d1d197"
+   ],
+   "name": "West Campus block 73d1d197",
+   "model": "opus",
+   "x": -749.215,
+   "z": 213.585,
+   "top": 6.5
+  },
+  "west-campus-77b9403c": {
+   "tile": "t_-4_-1",
+   "map_ids": [
+    "77b9403c"
+   ],
+   "name": "Historic brick hall 77b9403c",
+   "model": "opus",
+   "x": -865.475,
+   "z": -206.203,
+   "top": 15
+  },
+  "west-campus-7aacc4af": {
+   "tile": "t_-4_0",
+   "map_ids": [
+    "7aacc4af"
+   ],
+   "name": "West Campus block 7aacc4af",
+   "model": "sol",
+   "x": -886.265,
+   "z": 157.038,
+   "top": 11.3
+  },
+  "west-campus-7e7420aa": {
+   "tile": "t_-2_-4",
+   "map_ids": [
+    "7e7420aa"
+   ],
+   "name": "West Campus block 7e7420aa",
+   "model": "opus",
+   "x": -349.468,
+   "z": -944.624,
+   "top": 14.5
+  },
+  "west-campus-861304d8": {
+   "tile": "t_-4_-3",
+   "map_ids": [
+    "861304d8"
+   ],
+   "name": "West Campus block 861304d8",
+   "model": "sol",
+   "x": -764.19,
+   "z": -621.556,
+   "top": 13.4
+  },
+  "west-campus-8c3494e9": {
+   "tile": "t_-3_-3",
+   "map_ids": [
+    "8c3494e9"
+   ],
+   "name": "West Campus block 8c3494e9",
+   "model": "sol",
+   "x": -601.544,
+   "z": -656.09,
+   "top": 7
+  },
+  "west-campus-8d78646f": {
+   "tile": "t_-3_-1",
+   "map_ids": [
+    "8d78646f"
+   ],
+   "name": "West Campus brick bar 8d78646f",
+   "model": "opus",
+   "x": -624.32,
+   "z": -36.704,
+   "top": 14.1
+  },
+  "west-campus-944d806a": {
+   "tile": "t_-4_-1",
+   "map_ids": [
+    "944d806a"
+   ],
+   "name": "West Campus block 944d806a",
+   "model": "opus",
+   "x": -803.948,
+   "z": -113.689,
+   "top": 14.2
+  },
+  "west-campus-ae4909d9": {
+   "tile": "t_-4_0",
+   "map_ids": [
+    "ae4909d9"
+   ],
+   "name": "West Campus block ae4909d9",
+   "model": "sol",
+   "x": -820.875,
+   "z": 93.697,
+   "top": 15.8
+  },
+  "west-campus-ae532cff": {
+   "tile": "t_-4_-2",
+   "map_ids": [
+    "ae532cff"
+   ],
+   "name": "West Campus building ae532cff",
+   "model": "sol",
+   "x": -922.319,
+   "z": -419.174,
+   "top": 7.5
+  },
+  "west-campus-aef93bb7": {
+   "tile": "t_-4_-1",
+   "map_ids": [
+    "aef93bb7"
+   ],
+   "name": "West Campus block aef93bb7",
+   "model": "sol",
+   "x": -947.411,
+   "z": -82.049,
+   "top": 6.2
+  },
+  "west-campus-b01fbc20": {
+   "tile": "t_-2_-4",
+   "map_ids": [
+    "b01fbc20"
+   ],
+   "name": "West Campus block b01fbc20",
+   "model": "sol",
+   "x": -344.261,
+   "z": -926.011,
+   "top": 8.9
+  },
+  "west-campus-b497d279": {
+   "tile": "t_-4_-1",
+   "map_ids": [
+    "b497d279"
+   ],
+   "name": "West Campus block b497d279",
+   "model": "sol",
+   "x": -938.955,
+   "z": -12.121,
+   "top": 9.4
+  },
+  "west-campus-bb4c0263": {
+   "tile": "t_-4_-1",
+   "map_ids": [
+    "bb4c0263"
+   ],
+   "name": "West Campus block bb4c0263",
+   "model": "sol",
+   "x": -927.165,
+   "z": -37.162,
+   "top": 6
+  },
+  "west-campus-c84206c0": {
+   "tile": "t_-4_-1",
+   "map_ids": [
+    "c84206c0"
+   ],
+   "name": "West Campus block c84206c0",
+   "model": "opus",
+   "x": -751.788,
+   "z": -61.121,
+   "top": 20.6
+  },
+  "west-campus-d44c18cb": {
+   "tile": "t_-3_-3",
+   "map_ids": [
+    "d44c18cb"
+   ],
+   "name": "West Campus block d44c18cb",
+   "model": "sol",
+   "x": -591.355,
+   "z": -621.421,
+   "top": 15.9
+  },
+  "west-campus-d4bda8fa": {
+   "tile": "t_-4_-1",
+   "map_ids": [
+    "d4bda8fa"
+   ],
+   "name": "West Campus block d4bda8fa",
+   "model": "sol",
+   "x": -862.79,
+   "z": -113.773,
+   "top": 11.9
+  },
+  "west-campus-d7c24ed5": {
+   "tile": "t_-2_1",
+   "map_ids": [
+    "d7c24ed5"
+   ],
+   "name": "Lantern Lane Apartments",
+   "model": "sol",
+   "x": -380.525,
+   "z": 302.056,
+   "top": 13.3
+  },
+  "west-campus-e1b470ab": {
+   "tile": "t_-2_-4",
+   "map_ids": [
+    "e1b470ab"
+   ],
+   "name": "West Campus block e1b470ab",
+   "model": "sol",
+   "x": -497.198,
+   "z": -931.095,
+   "top": 10.1
+  },
+  "west-campus-e287bfea": {
+   "tile": "t_-4_-2",
+   "map_ids": [
+    "e287bfea"
+   ],
+   "name": "West Campus block e287bfea",
+   "model": "opus",
+   "x": -994.699,
+   "z": -343.133,
+   "top": 12.4
+  },
+  "west-campus-flats": {
+   "tile": "t_-4_0",
+   "map_ids": [
+    "d88dd7df"
+   ],
+   "name": "West Campus Flats",
+   "model": "sol",
+   "x": -883.918,
+   "z": 110.353,
+   "top": 6.1
+  },
+  "westgate-tower": {
+   "tile": "t_-2_5",
+   "map_ids": [
+    "w112834466"
+   ],
+   "name": "Westgate Tower",
+   "model": "opus",
+   "x": -345.689,
+   "z": 1327.244,
+   "top": 70.8
+  },
+  "will-c-hogg-building": {
+   "tile": "t_0_-1",
+   "map_ids": [
+    "66d27477"
+   ],
+   "name": "Will C. Hogg Building",
+   "model": "opus",
+   "x": 87.654,
+   "z": -4.645,
+   "top": 23.5
+  },
+  "william-b-travis-state-office-building": {
+   "tile": "t_0_3",
+   "map_ids": [
+    "85c099e3",
+    "w139466225"
+   ],
+   "name": "William B. Travis State Office Building",
+   "model": "opus",
+   "x": 137.802,
+   "z": 773.071,
+   "top": 47.8
+  },
+  "william-p-clements-jr-state-office-building": {
+   "tile": "t_-2_3",
+   "map_ids": [
+    "a074a9b6",
+    "w42807005"
+   ],
+   "name": "William P. Clements Jr. State Office Building",
+   "model": "sol",
+   "x": -272.315,
+   "z": 879.304,
+   "top": 76.2
+  },
+  "william-randolph-hearst-building": {
+   "tile": "t_-1_-2",
+   "map_ids": [
+    "98a45c85"
+   ],
+   "name": "William Randolph Hearst Building",
+   "model": "opus",
+   "x": -140.596,
+   "z": -325.885,
+   "top": 6.5
+  },
+  "yugo-austin-nueces": {
+   "tile": "t_-2_-2",
+   "map_ids": [
+    "5453ffd2"
+   ],
+   "name": "Yugo Austin Nueces",
+   "model": "opus",
+   "x": -391.711,
+   "z": -397.876,
+   "top": 28.6
+  },
+  "yugo-austin-rio": {
+   "tile": "t_-2_-1",
+   "map_ids": [
+    "762122e3"
+   ],
+   "name": "Yugo Austin Rio",
+   "model": "opus",
+   "x": -487.955,
+   "z": -244.613,
+   "top": 26
+  },
+  "yugo-austin-waterloo": {
+   "tile": "t_-2_-2",
+   "map_ids": [
+    "57d4d01d"
+   ],
+   "name": "Yugo Austin Waterloo",
+   "model": "opus",
+   "x": -458.233,
+   "z": -254.22,
+   "top": 99.1
+  },
+  "yugo-the-corner": {
+   "tile": "t_-4_-2",
+   "map_ids": [
+    "3de7a448"
+   ],
+   "name": "Yugo The Corner",
+   "model": "opus",
+   "x": -820.513,
+   "z": -479.281,
+   "top": 29
+  }
+ }
+}
