@@ -1,0 +1,2741 @@
+{
+ "about": "Every current best Blender build (BUILDS.json status \"best\") and whether it is in the v2 tiles. Written by scripts/v2/build_tiles.mjs.",
+ "built": "2026-10-17T18:52:31.830Z",
+ "exporter": "8d34549bee3f5359",
+ "tiler": "6b5241e2754bda8b",
+ "totals": {
+  "best": 297,
+  "exported": 3
+ },
+ "buildings": {
+  "100-congress": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-3_9",
+   "blend_sha256": "2dd84c9cfa425092",
+   "placement": null
+  },
+  "111-congress": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-2_10",
+   "blend_sha256": "5e5429d6b63b5a08",
+   "placement": null
+  },
+  "1836-san-jacinto": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_1_2",
+   "blend_sha256": "720171250674a9e8",
+   "placement": null
+  },
+  "1883-at-montgomery-house": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-3",
+   "blend_sha256": "991e3935d8811ffc",
+   "placement": null
+  },
+  "1883-cameron-house": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-3",
+   "blend_sha256": "09bf16b95ada052e",
+   "placement": null
+  },
+  "21-pearl-west-campus": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_0",
+   "blend_sha256": "b655196b4bbb4180",
+   "placement": {
+    "height_m": 19.3,
+    "area_ratio": 1.012,
+    "centre_off_m": 0.26,
+    "flags": []
+   }
+  },
+  "21-rio": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sonnet",
+   "kind": "apartment",
+   "tile": "t_-3_0",
+   "blend_sha256": "b48ca47269f35d5d",
+   "placement": null
+  },
+  "2400-nueces": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-1",
+   "blend_sha256": "35968fcddfe5b507",
+   "placement": null
+  },
+  "26-west": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-3",
+   "blend_sha256": "8f6040fa68c14a51",
+   "placement": null
+  },
+  "2819-rio-grande": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-5",
+   "blend_sha256": "b88dc9692411a17b",
+   "placement": null
+  },
+  "300-colorado": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-3_8",
+   "blend_sha256": "5db6f4381f1e0a50",
+   "placement": null
+  },
+  "301-congress": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-2_9",
+   "blend_sha256": "2a996c15fca1b602",
+   "placement": null
+  },
+  "360-condominiums": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_8",
+   "blend_sha256": "0bce799b2e3735dc",
+   "placement": null
+  },
+  "405-colorado": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-2_8",
+   "blend_sha256": "816215ef07025dbd",
+   "placement": null
+  },
+  "aerospace-engineering-building": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-3",
+   "blend_sha256": "e449276b879fe336",
+   "placement": {
+    "height_m": 31,
+    "area_ratio": 0.997,
+    "centre_off_m": 0.07,
+    "flags": []
+   }
+  },
+  "almetris-duren-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-3",
+   "blend_sha256": "e80d77c845dfca4b",
+   "placement": null
+  },
+  "andrews-dormitory": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-1",
+   "blend_sha256": "a6e856c5c4002270",
+   "placement": null
+  },
+  "animal-resource-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_-3",
+   "blend_sha256": "45a5d45010867438",
+   "placement": null
+  },
+  "anna-hiss-gymnasium": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-2",
+   "blend_sha256": "51cc57b142f9df6f",
+   "placement": null
+  },
+  "arno-nowotny-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_3_3",
+   "blend_sha256": "5e8ee40fce86b44c",
+   "placement": null
+  },
+  "art-building-and-museum": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_2_-1",
+   "blend_sha256": "28cd4d9f8fe36a75",
+   "placement": null
+  },
+  "att-executive-education-conference-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_1",
+   "blend_sha256": "d8154a171bb2df7e",
+   "placement": null
+  },
+  "austin-by-ellsworth-kelly": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sonnet",
+   "kind": "campus",
+   "tile": "t_0_1",
+   "blend_sha256": "5daa2cadbd15c3e4",
+   "placement": null
+  },
+  "austin-marriott-downtown": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-1_10",
+   "blend_sha256": "ec59969e4674fd10",
+   "placement": null
+  },
+  "austin-technology-incubator-1a9a4b6c": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-3_-4",
+   "blend_sha256": "931228a81e1f7d8f",
+   "placement": null
+  },
+  "axis-west-campus": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-5_-2",
+   "blend_sha256": "62315f0c7b2e6004",
+   "placement": null
+  },
+  "barbara-jordan-state-office-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_0_3",
+   "blend_sha256": "0a1e77451e4be1b9",
+   "placement": null
+  },
+  "bass-concert-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_3_-1",
+   "blend_sha256": "654db0b007ebdbef",
+   "placement": null
+  },
+  "battle-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_0",
+   "blend_sha256": "91f85485c3ca2fd8",
+   "placement": null
+  },
+  "belo": {
+   "exported": false,
+   "reason": "name never confirmed and not placed on the map (its ledger row says so)",
+   "model": "opus",
+   "kind": "campus",
+   "tile": null,
+   "blend_sha256": null,
+   "placement": null
+  },
+  "bernard-and-audre-rapoport-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_0",
+   "blend_sha256": "656896cc9abfefab",
+   "placement": null
+  },
+  "biological-laboratories": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-1",
+   "blend_sha256": "9735048fce4c2715",
+   "placement": null
+  },
+  "biomedical-engineering-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-2",
+   "blend_sha256": "cbde84130aa3606e",
+   "placement": null
+  },
+  "blanton-dormitory": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-2",
+   "blend_sha256": "fc01f222e1b60a81",
+   "placement": null
+  },
+  "blanton-museum-of-art": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_2",
+   "blend_sha256": "cd77a35b9940cce4",
+   "placement": null
+  },
+  "block-185": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-5_9",
+   "blend_sha256": "6aa2bc02822252d2",
+   "placement": null
+  },
+  "block-on-25th-east": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-2",
+   "blend_sha256": "f22e2ab22c462de6",
+   "placement": null
+  },
+  "block-on-25th-west": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-2",
+   "blend_sha256": "1d200a695f6183af",
+   "placement": null
+  },
+  "brackenridge-hall-dormitory": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_1",
+   "blend_sha256": "dfa7fc0a4ce1b57e",
+   "placement": null
+  },
+  "brown-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_7",
+   "blend_sha256": "85e4be4b0fc435d4",
+   "placement": null
+  },
+  "burdine-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-2",
+   "blend_sha256": "f236b6f9a488ab34",
+   "placement": null
+  },
+  "cambridge-tower": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_2",
+   "blend_sha256": "a998b2f3813fcdc9",
+   "placement": null
+  },
+  "carothers-dormitory": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-2",
+   "blend_sha256": "82e6f7c70366e1c1",
+   "placement": null
+  },
+  "centennial-condominiums": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-2",
+   "blend_sha256": "aa3926da7eeebfbd",
+   "placement": null
+  },
+  "chemical-petroleum-engineering": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_-2",
+   "blend_sha256": "0c7cfb1780dce872",
+   "placement": null
+  },
+  "church-of-scientology-texas": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-2_0",
+   "blend_sha256": "3251d4adcbac97c5",
+   "placement": null
+  },
+  "collections-deposit-library": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_2_3",
+   "blend_sha256": "560169dffde914c5",
+   "placement": null
+  },
+  "colorado-tower": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-3_8",
+   "blend_sha256": "4fb128b83ad69a25",
+   "placement": null
+  },
+  "crest-at-pearl": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_1",
+   "blend_sha256": "dea2108cbd7235d0",
+   "placement": null
+  },
+  "dealey-center-for-new-media": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-2",
+   "blend_sha256": "2d2b19f0f6c8e3f9",
+   "placement": null
+  },
+  "delta-gamma": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-2",
+   "blend_sha256": "4f1685dcbacd01de",
+   "placement": null
+  },
+  "dewitt-c-greer-state-highway-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-1_6",
+   "blend_sha256": "9b55cb8dd3a63bbb",
+   "placement": null
+  },
+  "diplomat-west-campus": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_0",
+   "blend_sha256": "28fe985ddf5bb320",
+   "placement": null
+  },
+  "dobie-twenty21": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_1",
+   "blend_sha256": "4fee953433aa313a",
+   "placement": null
+  },
+  "driskill-hotel": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-1_7",
+   "blend_sha256": "512e040a190c92b2",
+   "placement": null
+  },
+  "edgar-a-smith-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_2",
+   "blend_sha256": "21f03fa1e97bce86",
+   "placement": null
+  },
+  "embassy-suites-austin-downtown": {
+   "exported": false,
+   "reason": "its map outline (osm104137274) is not in the map file",
+   "model": "opus",
+   "kind": "street",
+   "tile": null,
+   "blend_sha256": "833fb2364f074b0e",
+   "placement": null
+  },
+  "employees-retirement-system-of-texas": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_2",
+   "blend_sha256": "0c0fe6ddc1b4146b",
+   "placement": null
+  },
+  "engineering-education-and-research-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_-2",
+   "blend_sha256": "8837d0a684db75c8",
+   "placement": null
+  },
+  "engineering-teaching-center-ii": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_-2",
+   "blend_sha256": "cfc36454af0cca9f",
+   "placement": null
+  },
+  "ernest-cockrell-jr-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_-2",
+   "blend_sha256": "aaf95ebf5d23c537",
+   "placement": null
+  },
+  "ernest-o-thompson-state-office-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sonnet",
+   "kind": "apartment",
+   "tile": "t_-2_6",
+   "blend_sha256": "fe0293a67becd102",
+   "placement": null
+  },
+  "etter-harbin-alumni-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_0",
+   "blend_sha256": "a7a6903a762db23c",
+   "placement": null
+  },
+  "fairmont-austin": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_0_10",
+   "blend_sha256": "2d9bfa3ac36fff05",
+   "placement": null
+  },
+  "four-seasons-residences": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_10",
+   "blend_sha256": "bcb03ada1dd13782",
+   "placement": null
+  },
+  "frost-bank-tower": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-2_8",
+   "blend_sha256": "4ef69f1854236317",
+   "placement": null
+  },
+  "garrison-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_0",
+   "blend_sha256": "fddcd6fc3b1375c2",
+   "placement": null
+  },
+  "gary-l-thomas-energy-engineering-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_-1",
+   "blend_sha256": "3106b50b1844c3ce",
+   "placement": null
+  },
+  "gates-dell-complex": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_-1",
+   "blend_sha256": "7a600f4bfca56b26",
+   "placement": null
+  },
+  "george-h-w-bush-state-office-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_2",
+   "blend_sha256": "9f6616ed07fbfedc",
+   "placement": null
+  },
+  "george-i-sanchez-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_1",
+   "blend_sha256": "c599dab39936f29b",
+   "placement": null
+  },
+  "goldsmith-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_0",
+   "blend_sha256": "34a279601827b1e1",
+   "placement": null
+  },
+  "goodall-wooten-house": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-3_1",
+   "blend_sha256": "6bcbeb04116d0181",
+   "placement": null
+  },
+  "gordon-white-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-1",
+   "blend_sha256": "e2eaa3dde5abd0bc",
+   "placement": null
+  },
+  "graduate-school-of-business": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_0",
+   "blend_sha256": "644422edf7dea0c9",
+   "placement": null
+  },
+  "grandmarc-austin": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-3",
+   "blend_sha256": "d95caf1ab928991a",
+   "placement": null
+  },
+  "greenwood-towers": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_2",
+   "blend_sha256": "8adb8d1eaba6a19f",
+   "placement": null
+  },
+  "gregory-gym": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_0",
+   "blend_sha256": "23f0a619edff73a6",
+   "placement": null
+  },
+  "hampton-inn-and-suites-austin": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_2",
+   "blend_sha256": "10ac85a8eae0992d",
+   "placement": null
+  },
+  "hampton-inn-and-suites-austin-downtown": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_9",
+   "blend_sha256": "f82db526ddd0ffb7",
+   "placement": null
+  },
+  "hanover-brazos-street": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-2_9",
+   "blend_sha256": "b0e45f6778ec0de4",
+   "placement": null
+  },
+  "hardin-house": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_0",
+   "blend_sha256": "e26ea83d4c14f10c",
+   "placement": null
+  },
+  "harry-ransom-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_0",
+   "blend_sha256": "8cf4f5f5e7b7f2f6",
+   "placement": null
+  },
+  "health-discovery-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_3",
+   "blend_sha256": "8ee53e224db628fb",
+   "placement": null
+  },
+  "hilltop": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-2",
+   "blend_sha256": "8949277bc62125d2",
+   "placement": null
+  },
+  "hilton-austin-downtown": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_0_9",
+   "blend_sha256": "889162559018507e",
+   "placement": null
+  },
+  "hogg-memorial-auditorium": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-1",
+   "blend_sha256": "3979dba3da1bb8d5",
+   "placement": null
+  },
+  "homer-rainey-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_0",
+   "blend_sha256": "e94005ca4ecc3214",
+   "placement": null
+  },
+  "hotel-zaza": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-3_8",
+   "blend_sha256": "a017525dd6af43a5",
+   "placement": null
+  },
+  "icon": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_0",
+   "blend_sha256": "4ee9b40ea3427470",
+   "placement": null
+  },
+  "indeed-tower": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "street",
+   "tile": "t_-2_7",
+   "blend_sha256": "4bb3e7cab405e4b7",
+   "placement": null
+  },
+  "inspire-on-22nd": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_0",
+   "blend_sha256": "35850f9410f2b61c",
+   "placement": null
+  },
+  "ion-austin": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_0",
+   "blend_sha256": "c304f607547da86d",
+   "placement": null
+  },
+  "j-t-patterson-laboratories-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_-1",
+   "blend_sha256": "56a56d73006dfa99",
+   "placement": null
+  },
+  "jackson-geological-sciences-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_0",
+   "blend_sha256": "46c99dab8482114f",
+   "placement": null
+  },
+  "jesse-h-jones-communication-center-a": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-2",
+   "blend_sha256": "1192b2591b655b8f",
+   "placement": null
+  },
+  "jesse-h-jones-communication-center-b": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-2",
+   "blend_sha256": "3ffc20a63c697d0d",
+   "placement": null
+  },
+  "jesse-h-jones-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_2_-2",
+   "blend_sha256": "16a76e3b487fe4d8",
+   "placement": null
+  },
+  "jester-east-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_1",
+   "blend_sha256": "63ab28f159c8ef7b",
+   "placement": null
+  },
+  "john-b-connally-center-for-justice": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_3_-1",
+   "blend_sha256": "ab7d88400487474d",
+   "placement": null
+  },
+  "john-h-reagan-state-office-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sonnet",
+   "kind": "apartment",
+   "tile": "t_-1_4",
+   "blend_sha256": "97d79a8a04c88b1f",
+   "placement": null
+  },
+  "john-w-hargis-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_2_3",
+   "blend_sha256": "569ea1192393352f",
+   "placement": null
+  },
+  "jw-marriott-austin": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-2_9",
+   "blend_sha256": "62294081a3ec1766",
+   "placement": null
+  },
+  "kappa-delta": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "house",
+   "tile": "t_-2_-1",
+   "blend_sha256": "4ae5c2789645677c",
+   "placement": null
+  },
+  "kappa-kappa-gamma": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "house",
+   "tile": "t_-1_1",
+   "blend_sha256": "6e1597eac21e1db4",
+   "placement": null
+  },
+  "kinsolving-dormitory": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-2",
+   "blend_sha256": "4bbaa5ef57e533f6",
+   "placement": null
+  },
+  "lark-austin": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_0",
+   "blend_sha256": "8b1b21567497f854",
+   "placement": null
+  },
+  "lbj-presidential-library": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_3_0",
+   "blend_sha256": "b7f83a50569c5c76",
+   "placement": null
+  },
+  "lee-and-joe-jamail-texas-swimming-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_2_2",
+   "blend_sha256": "2119785c1905eec2",
+   "placement": null
+  },
+  "legacy-on-rio": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-3",
+   "blend_sha256": "1fde1661d6bab9b6",
+   "placement": null
+  },
+  "littlefield-dormitory": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-2",
+   "blend_sha256": "fee3469819e90e0c",
+   "placement": null
+  },
+  "littlefield-house": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-1",
+   "blend_sha256": "3b57188a2200bc90",
+   "placement": null
+  },
+  "lyndon-b-johnson-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_0_3",
+   "blend_sha256": "34f1ff94999e58e4",
+   "placement": null
+  },
+  "mary-e-gearing-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-1",
+   "blend_sha256": "029ed0a245446b36",
+   "placement": null
+  },
+  "mccombs-school-of-business": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_0",
+   "blend_sha256": "bc911b8cff022bb3",
+   "placement": null
+  },
+  "moffett-molecular-biology": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-2",
+   "blend_sha256": "c92b4505462148a5",
+   "placement": null
+  },
+  "moontower": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_0",
+   "blend_sha256": "b9bd4a560472f2ed",
+   "placement": null
+  },
+  "music-recital-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_3_-1",
+   "blend_sha256": "46ce5aa32352c6e5",
+   "placement": null
+  },
+  "neural-molecular-science-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-2",
+   "blend_sha256": "d86ef31c0f988783",
+   "placement": null
+  },
+  "noble-2500": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-2",
+   "blend_sha256": "816fe9b929110d90",
+   "placement": null
+  },
+  "norman-hackerman-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-1",
+   "blend_sha256": "a289cf0c480c4fd1",
+   "placement": null
+  },
+  "norwood-tower": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sonnet",
+   "kind": "apartment",
+   "tile": "t_-2_7",
+   "blend_sha256": "142324aef14e7883",
+   "placement": null
+  },
+  "nursing-school": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sonnet",
+   "kind": "campus",
+   "tile": "t_2_3",
+   "blend_sha256": "0f5ae46b7a342283",
+   "placement": null
+  },
+  "odonnell-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_-1",
+   "blend_sha256": "77d4036f593b0af2",
+   "placement": null
+  },
+  "omni-austin-hotel-downtown": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-1_7",
+   "blend_sha256": "9eb0ab608b9b324d",
+   "placement": null
+  },
+  "one-american-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-2_7",
+   "blend_sha256": "706700af4d0602da",
+   "placement": null
+  },
+  "palmetto-apartment-complex": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_0",
+   "blend_sha256": "bfeaf51764c4bd8b",
+   "placement": null
+  },
+  "parlin-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_0",
+   "blend_sha256": "09589398eb2ddbc2",
+   "placement": null
+  },
+  "patton-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_0",
+   "blend_sha256": "327c62a0cce39f33",
+   "placement": null
+  },
+  "pcl-library": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_1",
+   "blend_sha256": "5a4e459158005e0d",
+   "placement": null
+  },
+  "peter-t-flawn-academic-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-1",
+   "blend_sha256": "dc96bc4babc613f5",
+   "placement": null
+  },
+  "physics-math-astronomy": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_-2",
+   "blend_sha256": "ada21c38318b3ccb",
+   "placement": null
+  },
+  "pi-beta-phi": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "house",
+   "tile": "t_-2_-1",
+   "blend_sha256": "1c9985fd09f9e5ee",
+   "placement": null
+  },
+  "pointe-on-rio": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_1",
+   "blend_sha256": "a35331d16583d117",
+   "placement": null
+  },
+  "powers-student-activity-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_0",
+   "blend_sha256": "1a64d436f8905a20",
+   "placement": null
+  },
+  "prather-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_1",
+   "blend_sha256": "216ed9ad2721be52",
+   "placement": null
+  },
+  "price-daniel-sr-state-office-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sonnet",
+   "kind": "apartment",
+   "tile": "t_-2_4",
+   "blend_sha256": "a6d66609c3ae7eb6",
+   "placement": null
+  },
+  "procore-tower": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-3_7",
+   "blend_sha256": "eb10c8f919b6167d",
+   "placement": null
+  },
+  "raku-sushi-and-asian-bistro": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-3_-1",
+   "blend_sha256": "2d82f2c649bfd1c8",
+   "placement": null
+  },
+  "rambler": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-2",
+   "blend_sha256": "98ba07ed65dc1c59",
+   "placement": null
+  },
+  "recreational-sports-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_2_2",
+   "blend_sha256": "3f6f29a19396afba",
+   "placement": null
+  },
+  "regents-west-at-24th": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-2",
+   "blend_sha256": "ecef016777df9fd4",
+   "placement": null
+  },
+  "regents-west-at-26th": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-3",
+   "blend_sha256": "ef1d4549e06cf81c",
+   "placement": null
+  },
+  "rise-at-west-campus": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_0",
+   "blend_sha256": "03566dcad974572f",
+   "placement": null
+  },
+  "robert-a-welch-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-1",
+   "blend_sha256": "4fc37c6dc1660397",
+   "placement": null
+  },
+  "robert-e-johnson-state-legislative-office-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_0_4",
+   "blend_sha256": "24170ed64fb06cb7",
+   "placement": null
+  },
+  "roberts-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_1",
+   "blend_sha256": "9239f1720ab5c175",
+   "placement": null
+  },
+  "rowling-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_1",
+   "blend_sha256": "17553d085ec0aa2d",
+   "placement": null
+  },
+  "saint-austin-catholic-church": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-2_1",
+   "blend_sha256": "324bc9167f7e6546",
+   "placement": null
+  },
+  "sam-houston-state-office-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_0_4",
+   "blend_sha256": "115000cfa9cfa45a",
+   "placement": null
+  },
+  "san-jacinto-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-2_10",
+   "blend_sha256": "d7f7366e0c3b97b5",
+   "placement": null
+  },
+  "san-jacinto-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_1",
+   "blend_sha256": "8dca86a307c0f94d",
+   "placement": null
+  },
+  "scottish-rite-dormitory": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-3",
+   "blend_sha256": "d80c0c7db2cfe685",
+   "placement": null
+  },
+  "seaholm-residences": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-5_8",
+   "blend_sha256": "103053dd575f57a7",
+   "placement": null
+  },
+  "seay-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-2",
+   "blend_sha256": "29ac3a0a9ead9da7",
+   "placement": null
+  },
+  "shoal-creek-office-1609": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-5_1",
+   "blend_sha256": "9c8bcefed4c44d9a",
+   "placement": null
+  },
+  "sid-richardson-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_3_0",
+   "blend_sha256": "ad37ddc6d19d089b",
+   "placement": null
+  },
+  "signature-1909": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_1",
+   "blend_sha256": "84334c0f813e330a",
+   "placement": null
+  },
+  "skyloft-austin": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-1",
+   "blend_sha256": "faa70f0c3273cdf3",
+   "placement": null
+  },
+  "southwest-tower": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-1_7",
+   "blend_sha256": "14e67aaf80628397",
+   "placement": null
+  },
+  "speedway": {
+   "exported": false,
+   "reason": "a stretch of road (Speedway), not a building: it has no map outline to place it by",
+   "model": "opus",
+   "kind": "street",
+   "tile": null,
+   "blend_sha256": null,
+   "placement": null
+  },
+  "stephen-f-austin-state-office-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-1_2",
+   "blend_sha256": "65b1e0f09aceaacd",
+   "placement": null
+  },
+  "student-services-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-2",
+   "blend_sha256": "c09092b0cecfcb27",
+   "placement": null
+  },
+  "sutton-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_0",
+   "blend_sha256": "5831aff359892094",
+   "placement": null
+  },
+  "t-s-painter-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-1",
+   "blend_sha256": "d16117970a4ace13",
+   "placement": null
+  },
+  "texan-26": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-3",
+   "blend_sha256": "4c49441c5bcaa6b2",
+   "placement": null
+  },
+  "texan-pearl": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-3_-2",
+   "blend_sha256": "27837884c24e72e6",
+   "placement": null
+  },
+  "texan-tower": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-2",
+   "blend_sha256": "3e7c32db37da82a1",
+   "placement": null
+  },
+  "texas-alpha-phi": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "house",
+   "tile": "t_0_1",
+   "blend_sha256": "8e9a7b4d4aea1c58",
+   "placement": null
+  },
+  "texas-cowboys-pavilion": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_2_0",
+   "blend_sha256": "0877e5b4ada6d292",
+   "placement": null
+  },
+  "texas-hillel": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-2_0",
+   "blend_sha256": "3594dbb9f909ab93",
+   "placement": null
+  },
+  "texas-law-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_3",
+   "blend_sha256": "d1424139deb39dcf",
+   "placement": null
+  },
+  "texas-memorial-museum": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_2_-1",
+   "blend_sha256": "92f05e9b76b26659",
+   "placement": null
+  },
+  "texas-state-history-museum": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_2",
+   "blend_sha256": "0acabb2c19918678",
+   "placement": null
+  },
+  "texas-supreme-court-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_3",
+   "blend_sha256": "47d67f2ab8a2c7e4",
+   "placement": null
+  },
+  "texas-workforce-commission-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_0_4",
+   "blend_sha256": "f9cda71166392e4e",
+   "placement": null
+  },
+  "the-ashton": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-3_9",
+   "blend_sha256": "c629cfe5c0a4c39c",
+   "placement": null
+  },
+  "the-austonian": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_9",
+   "blend_sha256": "173e2cff9f067b7a",
+   "placement": null
+  },
+  "the-block-bddea10c": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-2",
+   "blend_sha256": "ea02fd7fd0bea909",
+   "placement": null
+  },
+  "the-block-on-23rd": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-1",
+   "blend_sha256": "0a66d05647631fab",
+   "placement": null
+  },
+  "the-callaway-house": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_0",
+   "blend_sha256": "0c780e43c7792f0f",
+   "placement": null
+  },
+  "the-castilian": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-1",
+   "blend_sha256": "44c3156af798c09b",
+   "placement": null
+  },
+  "the-co-op": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-2_-1",
+   "blend_sha256": "db3cc88bfd6acb6c",
+   "placement": null
+  },
+  "the-g": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_2",
+   "blend_sha256": "d7385a5e35f351d8",
+   "placement": null
+  },
+  "the-independent": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-5_8",
+   "blend_sha256": "c2c14977859865cd",
+   "placement": null
+  },
+  "the-mark-austin": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-1",
+   "blend_sha256": "f9fbc625330333e2",
+   "placement": null
+  },
+  "the-monarch": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-5_7",
+   "blend_sha256": "a48c44541ce7ee4a",
+   "placement": null
+  },
+  "the-nine-at-rio": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-3_0",
+   "blend_sha256": "7044c00c33b62eae",
+   "placement": null
+  },
+  "the-nine-at-west-campus": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-3",
+   "blend_sha256": "b04f423b2903b533",
+   "placement": null
+  },
+  "the-otis-hotel": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_1",
+   "blend_sha256": "0d2fccc04588f24f",
+   "placement": null
+  },
+  "the-quarters-grayson-house": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_0",
+   "blend_sha256": "0eb632a3a1a2906b",
+   "placement": null
+  },
+  "the-quarters-nueces-house": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-1",
+   "blend_sha256": "715464d8d256f66f",
+   "placement": null
+  },
+  "the-quarters-sterling-house": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_0",
+   "blend_sha256": "20d1110edd0a0a85",
+   "placement": null
+  },
+  "the-standard": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-1",
+   "blend_sha256": "d9572df91e016809",
+   "placement": null
+  },
+  "the-texan-shoal-creek": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-4_-2",
+   "blend_sha256": "be7284aad25ac222",
+   "placement": null
+  },
+  "the-venue": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_-4",
+   "blend_sha256": "37d1e1efcc189eeb",
+   "placement": null
+  },
+  "the-venue-on-guadalupe": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_-4",
+   "blend_sha256": "37d1e1efcc189eeb",
+   "placement": null
+  },
+  "thompson-austin": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-1_8",
+   "blend_sha256": "28d9da50e7ad8829",
+   "placement": null
+  },
+  "torre-student-living": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_1",
+   "blend_sha256": "f7ead61f64b910e9",
+   "placement": null
+  },
+  "townes-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_3_-2",
+   "blend_sha256": "7cee46515dda650d",
+   "placement": null
+  },
+  "travis-county-civil-and-family-courts-facility": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-2_2",
+   "blend_sha256": "ab38b9ad93b2c603",
+   "placement": null
+  },
+  "twenty-two-15": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-1",
+   "blend_sha256": "91b0d43bce5fb5b4",
+   "placement": null
+  },
+  "unidentified-297fcc8d": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-3",
+   "blend_sha256": "10345275cff4b3d5",
+   "placement": null
+  },
+  "unidentified-79e82c98": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_0_-4",
+   "blend_sha256": "b3b58559c2c45aad",
+   "placement": null
+  },
+  "unidentified-north-campus-04f1466e": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-3",
+   "blend_sha256": "26bc558b1535ed96",
+   "placement": null
+  },
+  "unidentified-north-campus-071ef0d5": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_0_-4",
+   "blend_sha256": "cf62b41299641c7d",
+   "placement": null
+  },
+  "unidentified-north-campus-07ebbe8f": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_1_-4",
+   "blend_sha256": "9bac80f013cf7d4f",
+   "placement": null
+  },
+  "unidentified-north-campus-08cca10d": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_0_-4",
+   "blend_sha256": "2bdbd649d6b3e814",
+   "placement": null
+  },
+  "unidentified-north-campus-211c1f8e": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-4",
+   "blend_sha256": "49c6affac2a3909f",
+   "placement": null
+  },
+  "unidentified-north-campus-21fe5c30": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-3",
+   "blend_sha256": "80a08ff3b417f76f",
+   "placement": null
+  },
+  "unidentified-north-campus-3f9b807a": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_1_-3",
+   "blend_sha256": "32103740853e09ad",
+   "placement": null
+  },
+  "unidentified-north-campus-63e601e8": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-3",
+   "blend_sha256": "745fcc0188070f4a",
+   "placement": null
+  },
+  "unidentified-north-campus-6e7dec36": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-4",
+   "blend_sha256": "1d97269faf2c6a28",
+   "placement": null
+  },
+  "unidentified-north-campus-6f01b458": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-2_-4",
+   "blend_sha256": "c6d8f2b6d345c2cc",
+   "placement": null
+  },
+  "unidentified-north-campus-768ae01e": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-3",
+   "blend_sha256": "39d93481bfa6a38e",
+   "placement": null
+  },
+  "unidentified-north-campus-88dcc810": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_1_-5",
+   "blend_sha256": "76e0ebbf223d4f44",
+   "placement": null
+  },
+  "unidentified-north-campus-90072241": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-4",
+   "blend_sha256": "3adaf9f8d7729b30",
+   "placement": null
+  },
+  "unidentified-north-campus-bcf8a2ba": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-3",
+   "blend_sha256": "a0fe5528f6276752",
+   "placement": null
+  },
+  "unidentified-north-campus-dbdd6dfb": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-3",
+   "blend_sha256": "bdcb75ff7e8796c3",
+   "placement": null
+  },
+  "unidentified-north-campus-dd0139ea": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-5",
+   "blend_sha256": "f572a7bd601dbafd",
+   "placement": null
+  },
+  "unidentified-ut-878d9137": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_3",
+   "blend_sha256": "c89fc0a64ef27d4e",
+   "placement": null
+  },
+  "unidentified-west-campus-27bbc14c": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "street",
+   "tile": "t_-2_0",
+   "blend_sha256": "cc83375a4e9fa0a0",
+   "placement": null
+  },
+  "unidentified-west-campus-319e8154": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_-4",
+   "blend_sha256": "20f3b6e8548777de",
+   "placement": null
+  },
+  "unidentified-west-campus-3b8f0f69": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-4",
+   "blend_sha256": "185fcc7fc2a3e428",
+   "placement": null
+  },
+  "unidentified-west-campus-42508a4b": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-4",
+   "blend_sha256": "ae7c7441ac7f2eba",
+   "placement": null
+  },
+  "unidentified-west-campus-4fe90bd0": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-3",
+   "blend_sha256": "88cd331227108af7",
+   "placement": null
+  },
+  "unidentified-west-campus-5b56cd35": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_-4",
+   "blend_sha256": "baf6e399fa5c2bcb",
+   "placement": null
+  },
+  "unidentified-west-campus-66d719c5": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-1",
+   "blend_sha256": "0477f05eed4a0303",
+   "placement": null
+  },
+  "unidentified-west-campus-8e99b2fe": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-2",
+   "blend_sha256": "31dfa4886bdbd700",
+   "placement": null
+  },
+  "unidentified-west-campus-8f3cb88c": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-1",
+   "blend_sha256": "42f0aa27676f1f6b",
+   "placement": null
+  },
+  "unidentified-west-campus-a6a65d0c": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-3",
+   "blend_sha256": "ca3957cdd5ecd3ce",
+   "placement": null
+  },
+  "unidentified-west-campus-eaca344c": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-3",
+   "blend_sha256": "c82134cbfc831beb",
+   "placement": null
+  },
+  "unidentified-west-campus-ec1b4af2": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-4",
+   "blend_sha256": "c048bef9a14b1b0e",
+   "placement": null
+  },
+  "unidentified-west-campus-f0b137e7": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_-3",
+   "blend_sha256": "a4db0a9dba45c9e4",
+   "placement": null
+  },
+  "union-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-1",
+   "blend_sha256": "9e1af65064b7487d",
+   "placement": null
+  },
+  "union-on-24th": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-1",
+   "blend_sha256": "54d06b7c6fe6cb96",
+   "placement": null
+  },
+  "union-on-san-antonio": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_1",
+   "blend_sha256": "c2af9cf5f445fd97",
+   "placement": null
+  },
+  "university-avenue-church-of-christ": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "house",
+   "tile": "t_-1_2",
+   "blend_sha256": "5975491b77c1e42a",
+   "placement": null
+  },
+  "university-baptist-church-education-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-2_0",
+   "blend_sha256": "8b813d4fdeebc198",
+   "placement": null
+  },
+  "university-catholic-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "campus",
+   "tile": "t_-1_1",
+   "blend_sha256": "cbb9be6ff36ee144",
+   "placement": null
+  },
+  "university-presbyterian-church": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-2_0",
+   "blend_sha256": "2e60fc384697c851",
+   "placement": null
+  },
+  "university-teaching-center": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_1",
+   "blend_sha256": "3655c0bcf359727c",
+   "placement": null
+  },
+  "villas-at-san-gabriel": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-2",
+   "blend_sha256": "c58f0d0456a9e336",
+   "placement": null
+  },
+  "villas-on-24th": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-1",
+   "blend_sha256": "5849f9b676dcf0a0",
+   "placement": null
+  },
+  "villas-on-guadalupe": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-1_-4",
+   "blend_sha256": "6bd222c0e14e6d51",
+   "placement": null
+  },
+  "villas-on-nueces": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_0",
+   "blend_sha256": "279f3f39df74fc15",
+   "placement": null
+  },
+  "villas-on-rio": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_0",
+   "blend_sha256": "6a052046b7c63ae8",
+   "placement": null
+  },
+  "w-austin": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_9",
+   "blend_sha256": "b0f25e4f77bd80c8",
+   "placement": null
+  },
+  "waggener-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_0",
+   "blend_sha256": "c597697f725601e7",
+   "placement": null
+  },
+  "walter-webb-hall": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "campus",
+   "tile": "t_-1_-2",
+   "blend_sha256": "f022d751de4ba72d",
+   "placement": null
+  },
+  "waterford-condominiums": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-2",
+   "blend_sha256": "f68d27df77eed272",
+   "placement": null
+  },
+  "west-campus-0c4b89ce": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-5_-2",
+   "blend_sha256": "9fc05ff485bc02e9",
+   "placement": null
+  },
+  "west-campus-0fe2da88": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-4_-1",
+   "blend_sha256": "a440e34d28617964",
+   "placement": null
+  },
+  "west-campus-10a07e54": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-2_-4",
+   "blend_sha256": "58e4b3aab8c155f2",
+   "placement": null
+  },
+  "west-campus-12d10e75": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-3_-2",
+   "blend_sha256": "3e07e17f063c7cb4",
+   "placement": null
+  },
+  "west-campus-130c7878": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_1",
+   "blend_sha256": "62ad2e8341f87c04",
+   "placement": null
+  },
+  "west-campus-18668b8d": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-4_-3",
+   "blend_sha256": "8d51dff470493564",
+   "placement": null
+  },
+  "west-campus-1fe7267c": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-4_0",
+   "blend_sha256": "3e8dbdbfc59c91c6",
+   "placement": null
+  },
+  "west-campus-2779329b": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-4",
+   "blend_sha256": "06fd854fd5e04444",
+   "placement": null
+  },
+  "west-campus-41d7f858": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_0",
+   "blend_sha256": "01f076485352bfb3",
+   "placement": null
+  },
+  "west-campus-47882601": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "street",
+   "tile": "t_-2_-4",
+   "blend_sha256": "734b7b1234c957ce",
+   "placement": null
+  },
+  "west-campus-4e03b7f5": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_0",
+   "blend_sha256": "0f89db98eb18bfb0",
+   "placement": null
+  },
+  "west-campus-4fb09ed3": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-5_-1",
+   "blend_sha256": "e58c73e0ec150507",
+   "placement": null
+  },
+  "west-campus-521ab442": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-3_0",
+   "blend_sha256": "9d4e7a8e9d9114b8",
+   "placement": null
+  },
+  "west-campus-5eae3fec": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-2",
+   "blend_sha256": "8dd74c4de66da62e",
+   "placement": null
+  },
+  "west-campus-619cb351": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-2",
+   "blend_sha256": "e15cb0983efd3b72",
+   "placement": null
+  },
+  "west-campus-732691d2": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-2_-4",
+   "blend_sha256": "f4f8d29e150bb403",
+   "placement": null
+  },
+  "west-campus-73d1d197": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_0",
+   "blend_sha256": "4fd3b7661e1ee78c",
+   "placement": null
+  },
+  "west-campus-77b9403c": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-4_-1",
+   "blend_sha256": "907911f2cb5d03dd",
+   "placement": null
+  },
+  "west-campus-7aacc4af": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-4_0",
+   "blend_sha256": "21c9fb74498a7b3b",
+   "placement": null
+  },
+  "west-campus-7e7420aa": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-4",
+   "blend_sha256": "3ff6fd8d5f0158dc",
+   "placement": null
+  },
+  "west-campus-861304d8": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-4_-3",
+   "blend_sha256": "d94bbbf424fc914b",
+   "placement": null
+  },
+  "west-campus-8c3494e9": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-3_-3",
+   "blend_sha256": "f9758ab4d6b54b57",
+   "placement": null
+  },
+  "west-campus-8d78646f": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-3_-1",
+   "blend_sha256": "86c59e3b40dc0e0c",
+   "placement": null
+  },
+  "west-campus-944d806a": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-1",
+   "blend_sha256": "499b3975e3b53bee",
+   "placement": null
+  },
+  "west-campus-ae4909d9": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-4_0",
+   "blend_sha256": "d4d43ee909c69bfa",
+   "placement": null
+  },
+  "west-campus-ae532cff": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "street",
+   "tile": "t_-4_-2",
+   "blend_sha256": "1443a19f71b82b98",
+   "placement": null
+  },
+  "west-campus-aef93bb7": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-4_-1",
+   "blend_sha256": "59bd3b0a25be0b40",
+   "placement": null
+  },
+  "west-campus-b01fbc20": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-2_-4",
+   "blend_sha256": "5e56cde83ca0e0c7",
+   "placement": null
+  },
+  "west-campus-b497d279": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-4_-1",
+   "blend_sha256": "5b0f2a478191c001",
+   "placement": null
+  },
+  "west-campus-bb4c0263": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-4_-1",
+   "blend_sha256": "64472297ee28af35",
+   "placement": null
+  },
+  "west-campus-c84206c0": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-1",
+   "blend_sha256": "bcc9c41264698f8b",
+   "placement": null
+  },
+  "west-campus-d44c18cb": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-3_-3",
+   "blend_sha256": "d93f08b9902e9195",
+   "placement": null
+  },
+  "west-campus-d4bda8fa": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-4_-1",
+   "blend_sha256": "1287291208d9c189",
+   "placement": null
+  },
+  "west-campus-d7c24ed5": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-2_1",
+   "blend_sha256": "a5e25ea3f350aa9a",
+   "placement": null
+  },
+  "west-campus-e1b470ab": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-2_-4",
+   "blend_sha256": "704fe54970d60e6e",
+   "placement": null
+  },
+  "west-campus-e287bfea": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-2",
+   "blend_sha256": "ab9f6094b9d814dc",
+   "placement": null
+  },
+  "west-campus-flats": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-4_0",
+   "blend_sha256": "d2f0933a50cb7698",
+   "placement": null
+  },
+  "westgate-tower": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_5",
+   "blend_sha256": "cabc3d62674dcd06",
+   "placement": null
+  },
+  "will-c-hogg-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-1",
+   "blend_sha256": "de0785b6ce2df0ca",
+   "placement": null
+  },
+  "william-b-travis-state-office-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_0_3",
+   "blend_sha256": "29754842cc656402",
+   "placement": null
+  },
+  "william-p-clements-jr-state-office-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "sol",
+   "kind": "apartment",
+   "tile": "t_-2_3",
+   "blend_sha256": "82cf3440b5c9eccb",
+   "placement": null
+  },
+  "william-randolph-hearst-building": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_-2",
+   "blend_sha256": "c301f296475606b1",
+   "placement": null
+  },
+  "yugo-austin-nueces": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-2",
+   "blend_sha256": "838f79d2e0d8c1f2",
+   "placement": null
+  },
+  "yugo-austin-rio": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-1",
+   "blend_sha256": "996460124937a604",
+   "placement": null
+  },
+  "yugo-austin-waterloo": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-2_-2",
+   "blend_sha256": "a46d81713d770ec6",
+   "placement": {
+    "height_m": 99.1,
+    "area_ratio": 1.027,
+    "centre_off_m": 0.63,
+    "flags": []
+   }
+  },
+  "yugo-the-corner": {
+   "exported": false,
+   "reason": "not exported yet",
+   "model": "opus",
+   "kind": "apartment",
+   "tile": "t_-4_-2",
+   "blend_sha256": "234e51c1ca5273c5",
+   "placement": null
+  }
+ },
+ "tiles": {
+  "t_-2_-2": {
+   "hash": "680e0b7ffcfdf276",
+   "near": {
+    "bytes": 246668,
+    "tris": 20040,
+    "draws": 3
+   },
+   "far": {
+    "bytes": 104564,
+    "tris": 9272,
+    "draws": 1
+   }
+  },
+  "t_-4_0": {
+   "hash": "32e1e2beb961d025",
+   "near": {
+    "bytes": 187168,
+    "tris": 14432,
+    "draws": 2
+   },
+   "far": {
+    "bytes": 14000,
+    "tris": 838,
+    "draws": 1
+   }
+  },
+  "t_0_-3": {
+   "hash": "24cfa3985678a992",
+   "near": {
+    "bytes": 166788,
+    "tris": 19700,
+    "draws": 2
+   },
+   "far": {
+    "bytes": 12232,
+    "tris": 730,
+    "draws": 1
+   }
+  }
+ }
+}

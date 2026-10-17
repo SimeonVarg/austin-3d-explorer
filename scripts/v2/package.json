@@ -1,0 +1,12 @@
+{
+  "name": "flyover-v2-tiles",
+  "private": true,
+  "type": "module",
+  "description": "Builds v2/tiles (streamed map tiles of the Blender buildings). Entry point: scripts/v2/build_tiles.mjs.",
+  "dependencies": {
+    "@gltf-transform/core": "4.5.0",
+    "@gltf-transform/extensions": "4.5.0",
+    "@gltf-transform/functions": "4.5.0",
+    "meshoptimizer": "1.2.0"
+  }
+}
