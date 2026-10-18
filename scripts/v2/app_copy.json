@@ -1,0 +1,8 @@
+{
+  "_about": "Builds that get a light APP COPY in the v2 tiles, made from the detailed export by scripts/v2/app_copy.mjs (owner rule, CLAUDE.md 2026-10-17: no triangle limit on a build; reduce afterwards). triangles = the target for the copy; crease_deg = edges sharper than this stay hard when the copy is shaded again; site = how the builder's own ground is cut down to the app's flat ground (metres): kept within skirt_m of the building, its height fades to 0 between flat_m and skirt_m, triangles lower than min_m dropped.",
+  "dkr-memorial-stadium": {
+    "triangles": 60000,
+    "crease_deg": 35,
+    "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 12, "skirt_m": 60, "min_m": 0.15 }
+  }
+}

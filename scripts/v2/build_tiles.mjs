@@ -8,6 +8,9 @@
 //   2. scripts/v2/blender_export_v2.py one plain near .glb + far .glb per building (headless Blender through brender.sh: at most two
 //                                      Blenders on this Mac, shared with the builders)
 //   3. scripts/v2/check_place.py       does each model stand on its surveyed outline (the placement table, flags)
+//   3c. scripts/v2/app_copy.mjs        for the builds named in app_copy.json only: the light APP COPY, made afterwards from the detailed export
+//                                      (site ground graded onto the app's flat ground, simplified to a triangle number). The detailed export stays;
+//                                      the placement check, the far mass and the tile all read the copy.
 //   4. here                            per tile, with glTF Transform: dedup -> palette -> flatten -> join, glass apart from the rest,
 //                                      then Meshopt (reorder + quantize + EXT_meshopt_compression). lod1 (far): weld -> simplify first.
 // The export cache (per-building .glb, state) lives OUTSIDE the repo: $V2_CACHE (default ~/flyover-private/v2-tiles-cache).
@@ -22,6 +25,7 @@ const QUIET = new Logger(Logger.Verbosity.ERROR);   // (quantize says it skips _
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, flatten, join, mergeDocuments, meshopt, palette, prune, simplify, unpartition, weld } from '@gltf-transform/functions';
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
+import { makeAppCopy } from './app_copy.mjs';
 
 // ── PARAMETERS ──────────────────────────────────────────────────────────
 const ORIGIN = { lat: 30.28601, lon: -97.73932 };   // must equal sources.py ORIGIN
@@ -78,6 +82,12 @@ const SRC = path.join(CACHE, 'sources.json');
   if (r.code) throw new Error('sources.py failed');
 }
 const sources = readJSON(SRC, {});
+// builds that get an app copy (scripts/v2/app_copy.json: slug -> { triangles, crease_deg, site }); their copies live in $V2_CACHE/export/app
+const APP_COPY = readJSON(path.join(HERE, 'app_copy.json'), {});
+const APP_DIR = path.join(EXPORT, 'app');
+fs.mkdirSync(APP_DIR, { recursive: true });
+const APP_CODE_HASH = sha(fs.readFileSync(path.join(HERE, 'app_copy.mjs'))).slice(0, 16);
+const dirOf = (s) => (APP_COPY[s] ? APP_DIR : EXPORT);
 
 // ── 2. export (only what changed) ────────────────────────────────────────
 const keyOf = (s) => `${sources[s].blend_sha256}:${EXPORTER_HASH}`;
@@ -109,25 +119,47 @@ console.log(`EXPORT ${todo.length} to do (${want.length - todo.length} current),
   await Promise.all(Array.from({ length: Math.min(JOBS, todo.length) }, worker));
 }
 
+// ── 2b. app copies (only the builds named in app_copy.json) ───────────────
+const io = new NodeIO().setLogger(QUIET).registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
+await MeshoptEncoder.ready; await MeshoptSimplifier.ready; await MeshoptDecoder.ready;
+// the app copy of a build is current when it was made from this .blend's export, by this code, with these numbers
+const appKey = (s) => (APP_COPY[s] ? sha(Buffer.from(keyOf(s) + ':' + APP_CODE_HASH + ':' + JSON.stringify(APP_COPY[s]))).slice(0, 16) : '');
+const appState = (s) => { try { return fs.readFileSync(path.join(APP_DIR, `${s}.key`), 'utf8'); } catch { return ''; } };
+const appStats = (s) => readJSON(path.join(APP_DIR, `${s}.json`), null);
+const appMade = [];
+for (const s of placeable.filter((x) => APP_COPY[x] && usable(x) && (!ONLY || ONLY.has(x)))) {
+  if (!FORCE && appState(s) === appKey(s) && fs.existsSync(path.join(APP_DIR, `${s}.near.glb`))) continue;
+  const t0 = Date.now();
+  const st = await makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src: path.join(EXPORT, `${s}.near.glb`), dst: path.join(APP_DIR, `${s}.near.glb`), spec: APP_COPY[s] });
+  fs.writeFileSync(path.join(APP_DIR, `${s}.json`), JSON.stringify(st, null, 1)); fs.writeFileSync(path.join(APP_DIR, `${s}.key`), appKey(s));
+  try { fs.unlinkSync(path.join(EXPORT, `${s}.mass.key`)); } catch {}     // the far mass is made again from the new copy
+  appMade.push(s);
+  console.log(`APPCOPY ${s}: ${st.detailed_tris} -> ${st.app_tris} triangles (target ${APP_COPY[s].triangles}, simplify error ${st.simplify_error}); ground ${st.grading.site_tris_before} -> ${st.grading.site_tris_after}  ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+}
+
 // ── 3. placement check ───────────────────────────────────────────────────
 const PLACE = path.join(CACHE, 'placement.json');
-if (todo.length || !fs.existsSync(PLACE)) {
-  const r = await run(PY, [path.join(HERE, 'check_place.py'), SRC, EXPORT, PLACE, ...todo.filter((s) => !failed[s])]);
-  if (r.code) console.log(r.out); else if (todo.length) console.log(r.out.split('\n').filter((l) => /flags|centre|area|base/.test(l)).join('\n'));
+{
+  const show = (r) => (r.code ? console.log(r.out) : console.log(r.out.split('\n').filter((l) => /flags|centre|area|base/.test(l)).join('\n')));
+  const plain = todo.filter((s) => !failed[s] && !APP_COPY[s]);
+  if (plain.length || !fs.existsSync(PLACE)) show(await run(PY, [path.join(HERE, 'check_place.py'), SRC, EXPORT, PLACE, ...plain]));
+  // an app copy is checked as the app will draw it (its ground graded, not the builder's 4.5 km of terrain)
+  if (appMade.length) show(await run(PY, [path.join(HERE, 'check_place.py'), SRC, APP_DIR, PLACE, ...appMade]));
 }
 const place = readJSON(PLACE, {});
 
 // ── 3b. far masses (lod1): scripts/v2/far_mass.py, only where the near file or the mass code changed ──
 const MASS_HASH = sha(Buffer.concat([fs.readFileSync(path.join(HERE, 'far_mass.py')), fs.readFileSync(path.join(REPO, 'scripts/gltf_far.py'))])).slice(0, 16);
-const massKey = (s) => `${keyOf(s)}:${MASS_HASH}`;
+const massKey = (s) => `${keyOf(s)}:${MASS_HASH}${APP_COPY[s] ? ':app' + appKey(s) : ''}`;
 const massFile = (s) => path.join(EXPORT, `${s}.mass.key`);
 const massState = (s) => { try { return fs.readFileSync(massFile(s), 'utf8'); } catch { return ''; } };
-const hasMass = (s) => massState(s) === massKey(s) + ':ok' && fs.existsSync(path.join(EXPORT, `${s}.mass.glb`));
+const hasMass = (s) => massState(s) === massKey(s) + ':ok' && fs.existsSync(path.join(dirOf(s), `${s}.mass.glb`));
 {
   const need = placeable.filter((s) => exported(s) && (FORCE && todo.includes(s) || !massState(s).startsWith(massKey(s))));
-  for (let i = 0; i < need.length; i += 40) {
-    const chunk = need.slice(i, i + 40);
-    const r = await run(PY, [path.join(HERE, 'far_mass.py'), EXPORT, ...chunk]);
+  const groups = [[EXPORT, need.filter((s) => !APP_COPY[s])], [APP_DIR, need.filter((s) => APP_COPY[s])]];   // an app copy's mass is made from the copy
+  for (const [dir, list] of groups) for (let i = 0; i < list.length; i += 40) {
+    const chunk = list.slice(i, i + 40);
+    const r = await run(PY, [path.join(HERE, 'far_mass.py'), dir, ...chunk]);
     for (const line of r.out.split('\n')) {
       const m = line.match(/^MASS(-FAILED)? (\S+)/);
       if (m) fs.writeFileSync(massFile(m[2]), massKey(m[2]) + (m[1] ? ':failed ' + line.slice(m[0].length).trim().slice(0, 160) : ':ok'));
@@ -138,9 +170,6 @@ const hasMass = (s) => massState(s) === massKey(s) + ':ok' && fs.existsSync(path
 }
 
 // ── 4. tiles ─────────────────────────────────────────────────────────────
-const io = new NodeIO().setLogger(QUIET).registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
-await MeshoptEncoder.ready; await MeshoptSimplifier.ready; await MeshoptDecoder.ready;
-
 const inTiles = placeable.filter((s) => usable(s));
 const tiles = {};
 for (const s of inTiles) (tiles[sources[s].tile] ||= []).push(s);
@@ -149,7 +178,7 @@ for (const t in tiles) tiles[t].sort();
 const isGlass = (m) => m && ((m.getExtras() || {}).v2_kind || 'plain') !== 'plain';
 
 async function buildingDoc(s, lod, idx, part) {
-  const doc = await io.read(path.join(EXPORT, `${s}.${lod === 0 ? 'near' : hasMass(s) ? 'mass' : 'far'}.glb`));
+  const doc = await io.read(path.join(lod === 1 && !hasMass(s) ? EXPORT : dirOf(s), `${s}.${lod === 0 ? 'near' : hasMass(s) ? 'mass' : 'far'}.glb`));
   const root = doc.getRoot(); const buf = root.listBuffers()[0];
   root.listNodes()[0].setName(s).setTranslation([sources[s].x, 0, sources[s].z]);
   for (const mesh of root.listMeshes()) {
@@ -209,7 +238,7 @@ async function buildTile(t, slugs, lod) {
 
 const INV = path.join(OUT, 'inventory.json');
 const prevInv = readJSON(INV, { tiles: {} });
-const tileHash = (t) => sha(JSON.stringify([TILER_HASH, MASS_HASH, tiles[t].map((s) => [s, stateOf(s), sources[s].x, sources[s].z, hasMass(s)])])).slice(0, 16);
+const tileHash = (t) => sha(JSON.stringify([TILER_HASH, MASS_HASH, tiles[t].map((s) => [s, stateOf(s), sources[s].x, sources[s].z, hasMass(s), ...(APP_COPY[s] ? [appKey(s)] : [])])])).slice(0, 16);
 const tileInfo = {};
 let rebuilt = 0;
 for (const t of Object.keys(tiles).sort()) {
@@ -253,6 +282,7 @@ const inventory = {
     if (!reason && !usable(s)) reason = failed[s] ? 'export failed: ' + failed[s] : 'not exported yet';
     return [s, { exported: !reason, reason, model: r.model, kind: r.kind, tile: r.tile || null, blend_sha256: r.blend_sha256 ? r.blend_sha256.slice(0, 16) : null,
       lod1: reason ? null : hasMass(s) ? "mass" : "near without small parts",
+      app_copy: !reason && APP_COPY[s] ? { triangles: (appStats(s) || {}).app_tris, detailed_triangles: (appStats(s) || {}).detailed_tris, target: APP_COPY[s].triangles, simplify_error: (appStats(s) || {}).simplify_error, ground_triangles: (appStats(s) || {}).grading ? [appStats(s).grading.site_tris_before, appStats(s).grading.site_tris_after] : null } : undefined,
       placement: p && !reason ? { height_m: p.height_m, area_ratio: p.area_ratio, centre_off_m: p.centre_off_m, flags: p.flags } : null }];
   })),
   tiles: tileInfo,

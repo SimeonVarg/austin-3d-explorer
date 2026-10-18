@@ -26,12 +26,11 @@
     "hogg-memorial-auditorium",
     "littlefield-house",
     "peter-t-flawn-academic-center",
-    "union-building",
-    "ut-tower-main-building"
+    "union-building"
    ],
    "bytes": [
-    1429028,
-    45744
+    1316688,
+    38884
    ]
   },
   {
@@ -867,8 +866,8 @@
     "west-campus-d4bda8fa"
    ],
    "bytes": [
-    546628,
-    43268
+    546820,
+    43556
    ]
   },
   {
@@ -944,8 +943,8 @@
     "west-campus-flats"
    ],
    "bytes": [
-    360564,
-    26980
+    359400,
+    24868
    ]
   },
   {
@@ -1550,11 +1549,12 @@
    "lod0": "tiles/t_2_0.glb",
    "lod1": "tiles/t_2_0.far.glb",
    "buildings": [
+    "dkr-memorial-stadium",
     "texas-cowboys-pavilion"
    ],
    "bytes": [
-    121988,
-    5284
+    680800,
+    155316
    ]
   },
   {
@@ -1651,6 +1651,24 @@
    "bytes": [
     212692,
     7072
+   ]
+  },
+  {
+   "id": "t_3_2",
+   "bounds": [
+    750,
+    500,
+    1000,
+    750
+   ],
+   "lod0": "tiles/t_3_2.glb",
+   "lod1": "tiles/t_3_2.far.glb",
+   "buildings": [
+    "moody-center"
+   ],
+   "bytes": [
+    1354844,
+    41668
    ]
   },
   {
@@ -2257,6 +2275,24 @@
    "x": -824.199,
    "z": 169.283,
    "top": 6
+  },
+  "dkr-memorial-stadium": {
+   "tile": "t_2_0",
+   "map_ids": [
+    "6b5bbe97",
+    "3dba7cda",
+    "568a1f55",
+    "221b4a6f",
+    "794d90f5",
+    "6671852e",
+    "827e729c",
+    "67e786bb"
+   ],
+   "name": "DKR Memorial Stadium",
+   "model": "opus",
+   "x": 621.216,
+   "z": 228.114,
+   "top": 67.7
   },
   "dobie-twenty21": {
    "tile": "t_-1_1",
@@ -2963,6 +2999,19 @@
    "model": "opus",
    "x": 195.807,
    "z": -280.627,
+   "top": 22.4
+  },
+  "moody-center": {
+   "tile": "t_3_2",
+   "map_ids": [
+    "2b0f20a0",
+    "ba9c090c",
+    "d8b0698a"
+   ],
+   "name": "Moody Center",
+   "model": "opus",
+   "x": 838.179,
+   "z": 560.199,
    "top": 22.4
   },
   "moontower": {
@@ -4364,17 +4413,6 @@
    "z": 334.112,
    "top": 22.9
   },
-  "ut-tower-main-building": {
-   "tile": "t_-1_-1",
-   "map_ids": [
-    "a0af80df"
-   ],
-   "name": "UT Tower and Main Building",
-   "model": "opus",
-   "x": -0.478,
-   "z": -0.509,
-   "top": 95
-  },
   "villas-at-san-gabriel": {
    "tile": "t_-4_-2",
    "map_ids": [
@@ -4735,10 +4773,10 @@
     "7aacc4af"
    ],
    "name": "West Campus block 7aacc4af",
-   "model": "sol",
+   "model": "opus",
    "x": -886.265,
    "z": 157.038,
-   "top": 11.3
+   "top": 12.1
   },
   "west-campus-7e7420aa": {
    "tile": "t_-2_-4",
@@ -4856,10 +4894,10 @@
     "bb4c0263"
    ],
    "name": "West Campus block bb4c0263",
-   "model": "sol",
+   "model": "opus",
    "x": -927.165,
    "z": -37.162,
-   "top": 6
+   "top": 9.6
   },
   "west-campus-c84206c0": {
    "tile": "t_-4_-1",

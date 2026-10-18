@@ -1,11 +1,11 @@
 {
  "about": "Every current best Blender build (BUILDS.json status \"best\") and whether it is in the v2 tiles. Written by scripts/v2/build_tiles.mjs.",
- "built": "2026-10-17T22:24:30.896Z",
+ "built": "2026-10-18T13:17:34.292Z",
  "exporter": "b8707bf422eeb96d",
- "tiler": "b8400f0861a10eb4",
+ "tiler": "65484b79d39c72eb",
  "totals": {
-  "best": 304,
-  "exported": 302
+  "best": 305,
+  "exported": 303
  },
  "buildings": {
   "100-congress": {
@@ -840,6 +840,35 @@
     "area_ratio": 1.031,
     "centre_off_m": 0.02,
     "flags": []
+   }
+  },
+  "dkr-memorial-stadium": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_2_0",
+   "blend_sha256": "735cdf40d952f599",
+   "lod1": "mass",
+   "app_copy": {
+    "triangles": 60090,
+    "detailed_triangles": 165757,
+    "target": 60000,
+    "simplify_error": 0.000338,
+    "ground_triangles": [
+     62320,
+     14337
+    ]
+   },
+   "placement": {
+    "height_m": 67.7,
+    "area_ratio": 1.646,
+    "centre_off_m": 34.94,
+    "flags": [
+     "centre 34.9 m off",
+     "area x1.65",
+     "base at -5.1 m"
+    ]
    }
   },
   "dobie-twenty21": {
@@ -1852,6 +1881,25 @@
     "area_ratio": 1.048,
     "centre_off_m": 0.22,
     "flags": []
+   }
+  },
+  "moody-center": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_3_2",
+   "blend_sha256": "ef4883ff4b96484e",
+   "lod1": "mass",
+   "placement": {
+    "height_m": 22.4,
+    "area_ratio": 1.327,
+    "centre_off_m": 16.43,
+    "flags": [
+     "centre 16.4 m off",
+     "area x1.33",
+     "base at -1.8 m"
+    ]
    }
   },
   "moontower": {
@@ -3865,21 +3913,6 @@
     ]
    }
   },
-  "ut-tower-main-building": {
-   "exported": true,
-   "reason": null,
-   "model": "opus",
-   "kind": "campus",
-   "tile": "t_-1_-1",
-   "blend_sha256": "a7aaf04a4dc8a4e1",
-   "lod1": "mass",
-   "placement": {
-    "height_m": 95,
-    "area_ratio": 1.093,
-    "centre_off_m": 0.93,
-    "flags": []
-   }
-  },
   "villas-at-san-gabriel": {
    "exported": true,
    "reason": null,
@@ -4380,17 +4413,17 @@
   "west-campus-7aacc4af": {
    "exported": true,
    "reason": null,
-   "model": "sol",
+   "model": "opus",
    "kind": "apartment",
    "tile": "t_-4_0",
-   "blend_sha256": "21c9fb74498a7b3b",
+   "blend_sha256": "a0bc7c0f4ccd97af",
    "lod1": "mass",
    "placement": {
-    "height_m": 11.3,
-    "area_ratio": 1.122,
-    "centre_off_m": 0.53,
+    "height_m": 12.1,
+    "area_ratio": 1.175,
+    "centre_off_m": 0.18,
     "flags": [
-     "area x1.12"
+     "area x1.18"
     ]
    }
   },
@@ -4555,15 +4588,15 @@
   "west-campus-bb4c0263": {
    "exported": true,
    "reason": null,
-   "model": "sol",
+   "model": "opus",
    "kind": "apartment",
    "tile": "t_-4_-1",
-   "blend_sha256": "64472297ee28af35",
+   "blend_sha256": "deea2e1d2fc1ac74",
    "lod1": "mass",
    "placement": {
-    "height_m": 6,
-    "area_ratio": 1.021,
-    "centre_off_m": 0.17,
+    "height_m": 9.6,
+    "area_ratio": 0.962,
+    "centre_off_m": 0.53,
     "flags": []
    }
   },
@@ -4826,20 +4859,20 @@
  },
  "tiles": {
   "t_-1_-1": {
-   "hash": "29bf649f90991e7b",
+   "hash": "5ee653884d749598",
    "near": {
-    "bytes": 1429028,
-    "tris": 171506,
+    "bytes": 1316688,
+    "tris": 157037,
     "draws": 2
    },
    "far": {
-    "bytes": 45744,
-    "tris": 3877,
+    "bytes": 38884,
+    "tris": 3208,
     "draws": 1
    }
   },
   "t_-1_-2": {
-   "hash": "cded57f0fc198fe7",
+   "hash": "211d11aeed198634",
    "near": {
     "bytes": 1353680,
     "tris": 166485,
@@ -4852,7 +4885,7 @@
    }
   },
   "t_-1_-3": {
-   "hash": "ba7f248495e8a711",
+   "hash": "c0c1ab1ace609346",
    "near": {
     "bytes": 504216,
     "tris": 56593,
@@ -4865,7 +4898,7 @@
    }
   },
   "t_-1_-4": {
-   "hash": "348432050b0efabd",
+   "hash": "dd8fb9d21b9883d0",
    "near": {
     "bytes": 547168,
     "tris": 58158,
@@ -4878,7 +4911,7 @@
    }
   },
   "t_-1_0": {
-   "hash": "190e070b77685f9b",
+   "hash": "d6a805712093b7ba",
    "near": {
     "bytes": 1010712,
     "tris": 114592,
@@ -4891,7 +4924,7 @@
    }
   },
   "t_-1_1": {
-   "hash": "99a04bbfe78ba98e",
+   "hash": "35f46d093316b1a3",
    "near": {
     "bytes": 580684,
     "tris": 70707,
@@ -4904,7 +4937,7 @@
    }
   },
   "t_-1_10": {
-   "hash": "417e040e711d7b48",
+   "hash": "0e571111acac36b3",
    "near": {
     "bytes": 368300,
     "tris": 36793,
@@ -4917,7 +4950,7 @@
    }
   },
   "t_-1_2": {
-   "hash": "a5910c84f4774b3f",
+   "hash": "1c1e1d5b73c35bdd",
    "near": {
     "bytes": 890004,
     "tris": 100709,
@@ -4930,7 +4963,7 @@
    }
   },
   "t_-1_3": {
-   "hash": "ebf7d041f2b72473",
+   "hash": "5a42b3f980bc1deb",
    "near": {
     "bytes": 77680,
     "tris": 10342,
@@ -4943,7 +4976,7 @@
    }
   },
   "t_-1_4": {
-   "hash": "f63e9f8ee8c2aeb4",
+   "hash": "4c37fd91cf924de4",
    "near": {
     "bytes": 144672,
     "tris": 14064,
@@ -4956,7 +4989,7 @@
    }
   },
   "t_-1_6": {
-   "hash": "12537c1e5fd86cf9",
+   "hash": "0610745f71ba1aa3",
    "near": {
     "bytes": 269468,
     "tris": 25357,
@@ -4969,7 +5002,7 @@
    }
   },
   "t_-1_7": {
-   "hash": "2e20e54e4716191e",
+   "hash": "195ed005b605c81c",
    "near": {
     "bytes": 495540,
     "tris": 51536,
@@ -4982,7 +5015,7 @@
    }
   },
   "t_-1_8": {
-   "hash": "f3b0c137a1422528",
+   "hash": "bea727e0e80c9080",
    "near": {
     "bytes": 61476,
     "tris": 10144,
@@ -4995,7 +5028,7 @@
    }
   },
   "t_-2_-1": {
-   "hash": "799b5773e6b33898",
+   "hash": "5b1ead9bd84757b2",
    "near": {
     "bytes": 1188904,
     "tris": 165571,
@@ -5008,7 +5041,7 @@
    }
   },
   "t_-2_-2": {
-   "hash": "80f003b1da24e19b",
+   "hash": "0a30e9b57c65e8e4",
    "near": {
     "bytes": 787516,
     "tris": 88008,
@@ -5021,7 +5054,7 @@
    }
   },
   "t_-2_-3": {
-   "hash": "6ce4ef2dd0471d89",
+   "hash": "02135085e9c72efc",
    "near": {
     "bytes": 1442152,
     "tris": 175090,
@@ -5034,7 +5067,7 @@
    }
   },
   "t_-2_-4": {
-   "hash": "0edf23e601ad15ff",
+   "hash": "3cbc2f78b7a3d66b",
    "near": {
     "bytes": 501460,
     "tris": 56379,
@@ -5047,7 +5080,7 @@
    }
   },
   "t_-2_-5": {
-   "hash": "72142ce658316293",
+   "hash": "56303ab032da7489",
    "near": {
     "bytes": 230588,
     "tris": 22712,
@@ -5060,7 +5093,7 @@
    }
   },
   "t_-2_0": {
-   "hash": "455cf09cd8c7b688",
+   "hash": "07745e28c404f634",
    "near": {
     "bytes": 1488200,
     "tris": 175672,
@@ -5073,7 +5106,7 @@
    }
   },
   "t_-2_1": {
-   "hash": "8c4cc48b9d197758",
+   "hash": "2283f0c02800ebb1",
    "near": {
     "bytes": 400300,
     "tris": 57235,
@@ -5086,7 +5119,7 @@
    }
   },
   "t_-2_10": {
-   "hash": "4c37084b0f2ec66e",
+   "hash": "5726ecc4fd3d367c",
    "near": {
     "bytes": 293460,
     "tris": 30353,
@@ -5099,7 +5132,7 @@
    }
   },
   "t_-2_2": {
-   "hash": "467485bc9bc3a348",
+   "hash": "013c607fe20a1ece",
    "near": {
     "bytes": 193592,
     "tris": 22196,
@@ -5112,7 +5145,7 @@
    }
   },
   "t_-2_3": {
-   "hash": "02ee2dceb7f5404f",
+   "hash": "7a1746665f0579e4",
    "near": {
     "bytes": 249136,
     "tris": 34562,
@@ -5125,7 +5158,7 @@
    }
   },
   "t_-2_4": {
-   "hash": "9022d75e94b1948b",
+   "hash": "64549a16a52d9f3f",
    "near": {
     "bytes": 174732,
     "tris": 16475,
@@ -5138,7 +5171,7 @@
    }
   },
   "t_-2_5": {
-   "hash": "aee55af54b41659c",
+   "hash": "01eebc790cde204b",
    "near": {
     "bytes": 240792,
     "tris": 24862,
@@ -5151,7 +5184,7 @@
    }
   },
   "t_-2_6": {
-   "hash": "f29196767cf3cb5c",
+   "hash": "f5ca78e5e722cabc",
    "near": {
     "bytes": 168248,
     "tris": 17679,
@@ -5164,7 +5197,7 @@
    }
   },
   "t_-2_7": {
-   "hash": "55b4af534f7f3bc3",
+   "hash": "3d6cd82ff633d2d4",
    "near": {
     "bytes": 937344,
     "tris": 101020,
@@ -5177,7 +5210,7 @@
    }
   },
   "t_-2_8": {
-   "hash": "ddfef3da6d5c1c82",
+   "hash": "c110855fe0a37d11",
    "near": {
     "bytes": 181692,
     "tris": 25072,
@@ -5190,7 +5223,7 @@
    }
   },
   "t_-2_9": {
-   "hash": "95bae1bd1c6e95c1",
+   "hash": "ae78d49c113c3c35",
    "near": {
     "bytes": 782152,
     "tris": 97804,
@@ -5203,7 +5236,7 @@
    }
   },
   "t_-3_-1": {
-   "hash": "96dba1a3c07b9411",
+   "hash": "b7a06ce8a0530507",
    "near": {
     "bytes": 1879512,
     "tris": 241058,
@@ -5216,7 +5249,7 @@
    }
   },
   "t_-3_-2": {
-   "hash": "586564fb4a639cf2",
+   "hash": "c8bfe2cd9002d0bf",
    "near": {
     "bytes": 652224,
     "tris": 76806,
@@ -5229,7 +5262,7 @@
    }
   },
   "t_-3_-3": {
-   "hash": "b6d6f9b96523c44b",
+   "hash": "1387ccbb805b7e9b",
    "near": {
     "bytes": 736476,
     "tris": 84916,
@@ -5242,7 +5275,7 @@
    }
   },
   "t_-3_-4": {
-   "hash": "c0964ce55461296a",
+   "hash": "f7cc51fa73598949",
    "near": {
     "bytes": 701128,
     "tris": 85354,
@@ -5255,7 +5288,7 @@
    }
   },
   "t_-3_0": {
-   "hash": "0c77beee4c962901",
+   "hash": "9fe7e8cf59d4cdec",
    "near": {
     "bytes": 899904,
     "tris": 102950,
@@ -5268,7 +5301,7 @@
    }
   },
   "t_-3_1": {
-   "hash": "10df3de705d3d63b",
+   "hash": "e675eddcd3d4dd5a",
    "near": {
     "bytes": 661044,
     "tris": 73750,
@@ -5281,7 +5314,7 @@
    }
   },
   "t_-3_12": {
-   "hash": "e5779177164a3652",
+   "hash": "b062e3622cb08c94",
    "near": {
     "bytes": 118636,
     "tris": 12268,
@@ -5294,7 +5327,7 @@
    }
   },
   "t_-3_7": {
-   "hash": "f5468d42169cd4d2",
+   "hash": "5f473c5cd534988e",
    "near": {
     "bytes": 52956,
     "tris": 5689,
@@ -5307,7 +5340,7 @@
    }
   },
   "t_-3_8": {
-   "hash": "a7f73c13ff2aeb74",
+   "hash": "e620096513782734",
    "near": {
     "bytes": 382280,
     "tris": 43442,
@@ -5320,7 +5353,7 @@
    }
   },
   "t_-3_9": {
-   "hash": "03a12771882ea0bc",
+   "hash": "12de4c1443b00543",
    "near": {
     "bytes": 808844,
     "tris": 87993,
@@ -5333,20 +5366,20 @@
    }
   },
   "t_-4_-1": {
-   "hash": "e7460ed22ba55e9b",
+   "hash": "8668f15353c46c7d",
    "near": {
-    "bytes": 546628,
-    "tris": 58948,
+    "bytes": 546820,
+    "tris": 58772,
     "draws": 2
    },
    "far": {
-    "bytes": 43268,
-    "tris": 3510,
+    "bytes": 43556,
+    "tris": 3561,
     "draws": 1
    }
   },
   "t_-4_-2": {
-   "hash": "4c98c30385bfc931",
+   "hash": "b8faaa6d004d2f25",
    "near": {
     "bytes": 1401576,
     "tris": 168138,
@@ -5359,7 +5392,7 @@
    }
   },
   "t_-4_-3": {
-   "hash": "be4c6e864af9fe71",
+   "hash": "5add5467a3a7ea79",
    "near": {
     "bytes": 374640,
     "tris": 48136,
@@ -5372,20 +5405,20 @@
    }
   },
   "t_-4_0": {
-   "hash": "91fbbb5891077995",
+   "hash": "ef7edcee07df2281",
    "near": {
-    "bytes": 360564,
-    "tris": 39053,
+    "bytes": 359400,
+    "tris": 38968,
     "draws": 2
    },
    "far": {
-    "bytes": 26980,
-    "tris": 2212,
+    "bytes": 24868,
+    "tris": 2147,
     "draws": 1
    }
   },
   "t_-4_8": {
-   "hash": "65a42c4c1a3255d6",
+   "hash": "ad0507562aba4925",
    "near": {
     "bytes": 305816,
     "tris": 33784,
@@ -5398,7 +5431,7 @@
    }
   },
   "t_-5_-1": {
-   "hash": "3c53c6ec725600dd",
+   "hash": "0d88f7da3dd1b423",
    "near": {
     "bytes": 38300,
     "tris": 3245,
@@ -5411,7 +5444,7 @@
    }
   },
   "t_-5_-2": {
-   "hash": "8fc3fe8c4a835006",
+   "hash": "883ff75aa1a321c8",
    "near": {
     "bytes": 179356,
     "tris": 21125,
@@ -5424,7 +5457,7 @@
    }
   },
   "t_-5_1": {
-   "hash": "2d5276fede0fea10",
+   "hash": "e0b21e70c08697ee",
    "near": {
     "bytes": 130908,
     "tris": 11774,
@@ -5437,7 +5470,7 @@
    }
   },
   "t_-5_7": {
-   "hash": "a33212cb5f6e40fc",
+   "hash": "eccf0e9a2010bc95",
    "near": {
     "bytes": 280736,
     "tris": 33340,
@@ -5450,7 +5483,7 @@
    }
   },
   "t_-5_8": {
-   "hash": "2ebeb95b39b55647",
+   "hash": "feb805f410c7ad02",
    "near": {
     "bytes": 548096,
     "tris": 57256,
@@ -5463,7 +5496,7 @@
    }
   },
   "t_-5_9": {
-   "hash": "050faf368d2597c9",
+   "hash": "0c2ea9250252f52a",
    "near": {
     "bytes": 76712,
     "tris": 10452,
@@ -5476,7 +5509,7 @@
    }
   },
   "t_0_-1": {
-   "hash": "c1c529c94b20edc5",
+   "hash": "c7599e24db6e36dc",
    "near": {
     "bytes": 874068,
     "tris": 107014,
@@ -5489,7 +5522,7 @@
    }
   },
   "t_0_-2": {
-   "hash": "14b75859c1cc7e0d",
+   "hash": "c1715ea71cccd89e",
    "near": {
     "bytes": 1360224,
     "tris": 162129,
@@ -5502,7 +5535,7 @@
    }
   },
   "t_0_-3": {
-   "hash": "47e1a115c21937c2",
+   "hash": "11753e107a384b37",
    "near": {
     "bytes": 189692,
     "tris": 27555,
@@ -5515,7 +5548,7 @@
    }
   },
   "t_0_-4": {
-   "hash": "7d38f73fe9d5600f",
+   "hash": "af89c497ce8f24ae",
    "near": {
     "bytes": 320724,
     "tris": 33461,
@@ -5528,7 +5561,7 @@
    }
   },
   "t_0_-5": {
-   "hash": "c3e0f2189d59d391",
+   "hash": "21eba5ad7dea3398",
    "near": {
     "bytes": 115432,
     "tris": 11143,
@@ -5541,7 +5574,7 @@
    }
   },
   "t_0_0": {
-   "hash": "30235d1ccd1f8250",
+   "hash": "8db7c684e9f4e0ac",
    "near": {
     "bytes": 773476,
     "tris": 88206,
@@ -5554,7 +5587,7 @@
    }
   },
   "t_0_1": {
-   "hash": "1ce0a4339a1c548d",
+   "hash": "2c5ef469f1d0fa95",
    "near": {
     "bytes": 355768,
     "tris": 49376,
@@ -5567,7 +5600,7 @@
    }
   },
   "t_0_10": {
-   "hash": "05ef9dbd30556425",
+   "hash": "f0c688c7b78cc071",
    "near": {
     "bytes": 105032,
     "tris": 14049,
@@ -5580,7 +5613,7 @@
    }
   },
   "t_0_2": {
-   "hash": "4508f889f240e2a6",
+   "hash": "e7b143bd40f61841",
    "near": {
     "bytes": 615608,
     "tris": 81915,
@@ -5593,7 +5626,7 @@
    }
   },
   "t_0_3": {
-   "hash": "532d5d5964e1bc52",
+   "hash": "c41e25f913c1a8db",
    "near": {
     "bytes": 578168,
     "tris": 62898,
@@ -5606,7 +5639,7 @@
    }
   },
   "t_0_4": {
-   "hash": "2588132cbe47dfc0",
+   "hash": "7e8fbe865dfa324e",
    "near": {
     "bytes": 441344,
     "tris": 50521,
@@ -5619,7 +5652,7 @@
    }
   },
   "t_0_9": {
-   "hash": "092cb41bc34989e1",
+   "hash": "1b8a7199ca1da8d0",
    "near": {
     "bytes": 316716,
     "tris": 29200,
@@ -5632,7 +5665,7 @@
    }
   },
   "t_1_-1": {
-   "hash": "bd46269319ed4912",
+   "hash": "26ecf2d235bf6fd4",
    "near": {
     "bytes": 502888,
     "tris": 61558,
@@ -5645,7 +5678,7 @@
    }
   },
   "t_1_-2": {
-   "hash": "6fc99d4b48c51c7c",
+   "hash": "c59a8bda7082b6e3",
    "near": {
     "bytes": 587476,
     "tris": 74768,
@@ -5658,7 +5691,7 @@
    }
   },
   "t_1_-3": {
-   "hash": "f337965124174768",
+   "hash": "a5e53eabe96b24f5",
    "near": {
     "bytes": 296228,
     "tris": 32828,
@@ -5671,7 +5704,7 @@
    }
   },
   "t_1_-4": {
-   "hash": "57fa32fc56551bd2",
+   "hash": "77e162b1f3616187",
    "near": {
     "bytes": 19372,
     "tris": 1222,
@@ -5684,7 +5717,7 @@
    }
   },
   "t_1_-5": {
-   "hash": "ddb8c15f78fe7d33",
+   "hash": "2ab522c01eac0284",
    "near": {
     "bytes": 130152,
     "tris": 12307,
@@ -5697,7 +5730,7 @@
    }
   },
   "t_1_0": {
-   "hash": "e2ae47227fcd75d1",
+   "hash": "ac610e7794b7c137",
    "near": {
     "bytes": 736432,
     "tris": 90535,
@@ -5710,7 +5743,7 @@
    }
   },
   "t_1_1": {
-   "hash": "b10c269ed892c45a",
+   "hash": "eb7f0dde82c47b58",
    "near": {
     "bytes": 818932,
     "tris": 102870,
@@ -5723,7 +5756,7 @@
    }
   },
   "t_1_2": {
-   "hash": "6af51ae25a8411f7",
+   "hash": "8b2fc6c10c71c3a9",
    "near": {
     "bytes": 336364,
     "tris": 35263,
@@ -5736,7 +5769,7 @@
    }
   },
   "t_1_3": {
-   "hash": "8d3891704c3572db",
+   "hash": "51ead69c74e24913",
    "near": {
     "bytes": 330200,
     "tris": 33914,
@@ -5749,7 +5782,7 @@
    }
   },
   "t_2_-1": {
-   "hash": "304991484ff8294c",
+   "hash": "04af7753b84315a0",
    "near": {
     "bytes": 271488,
     "tris": 36904,
@@ -5762,7 +5795,7 @@
    }
   },
   "t_2_-2": {
-   "hash": "67c3300312a88ff9",
+   "hash": "a19b08683145c5f3",
    "near": {
     "bytes": 202248,
     "tris": 21636,
@@ -5775,20 +5808,20 @@
    }
   },
   "t_2_0": {
-   "hash": "fe804de61498bc1f",
+   "hash": "4c7b4367efb3f560",
    "near": {
-    "bytes": 121988,
-    "tris": 11968,
+    "bytes": 680800,
+    "tris": 72058,
     "draws": 2
    },
    "far": {
-    "bytes": 5284,
-    "tris": 131,
+    "bytes": 155316,
+    "tris": 15006,
     "draws": 1
    }
   },
   "t_2_2": {
-   "hash": "268c029286ad664a",
+   "hash": "b8a8043b606d1e61",
    "near": {
     "bytes": 274468,
     "tris": 31882,
@@ -5801,7 +5834,7 @@
    }
   },
   "t_2_3": {
-   "hash": "b2fbb82d5fad7873",
+   "hash": "caf4c912f420b982",
    "near": {
     "bytes": 313464,
     "tris": 32466,
@@ -5814,7 +5847,7 @@
    }
   },
   "t_3_-1": {
-   "hash": "0081051d3c2b6461",
+   "hash": "1e45fdb9f9dec6d4",
    "near": {
     "bytes": 383840,
     "tris": 61118,
@@ -5827,7 +5860,7 @@
    }
   },
   "t_3_-2": {
-   "hash": "29ef46ad52118431",
+   "hash": "7bdb3bb9643a0d11",
    "near": {
     "bytes": 243728,
     "tris": 23370,
@@ -5840,7 +5873,7 @@
    }
   },
   "t_3_0": {
-   "hash": "ac56f80636788b94",
+   "hash": "45906733bccfdd98",
    "near": {
     "bytes": 212692,
     "tris": 29263,
@@ -5852,8 +5885,21 @@
     "draws": 1
    }
   },
+  "t_3_2": {
+   "hash": "af365a06d260845b",
+   "near": {
+    "bytes": 1354844,
+    "tris": 157941,
+    "draws": 2
+   },
+   "far": {
+    "bytes": 41668,
+    "tris": 4064,
+    "draws": 1
+   }
+  },
   "t_3_3": {
-   "hash": "0a99bb26f07df8d3",
+   "hash": "c01144a17ccc4739",
    "near": {
     "bytes": 141968,
     "tris": 13795,

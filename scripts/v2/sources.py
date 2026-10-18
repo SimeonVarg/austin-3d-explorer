@@ -24,7 +24,8 @@ NEARBY_M = 60.0                                 # how far round a build to look 
 TILE_M = 250.0                                  # tiles are squares of this side on the origin's grid
 MODEL_KEY = {'claude-opus-5-5': 'opus', 'gpt-6.1-sol': 'sol', 'claude-sonnet-5-5': 'sonnet'}
 # where each builder's output lives inside a package folder (the newest qualifying .blend wins)
-OUT_DIRS = {'opus': ('out-opus', 'out-opus-*'), 'sonnet': ('out-sonnet', 'out-sonnet-*', 'out-opus-glass', 'detail-sonnet'), 'sol': ('out-sol', 'out-sol-*')}
+# out-v2: the 2026-10-18 DKR Memorial Stadium rebuild (the only package with one) lives there
+OUT_DIRS = {'opus': ('out-opus', 'out-opus-*', 'out-v2'), 'sonnet': ('out-sonnet', 'out-sonnet-*', 'out-opus-glass', 'detail-sonnet'), 'sol': ('out-sol', 'out-sol-*')}
 NOT_A_MODEL = re.compile(r'(_before_|\.before-|^work\.blend$|\.blend\d+$)')
 # the ledger's slug and the package folder's name differ for these (checked by hand, 2026-10-17)
 ALIASES = {'the-venue': 'the-venue-on-guadalupe', 'villas-at-san-gabriel': 'villas-san-gabriel', 'texas-hillel': 'texas-hillel-foundation',
