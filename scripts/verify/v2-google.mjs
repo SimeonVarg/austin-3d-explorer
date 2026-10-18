@@ -189,7 +189,7 @@ async function open(q, { key = null, block = true } = {}) {
   check(st.frameFitMaxM && st.frameFitMaxM.tilesArea < 0.05, `frame map: fit error over the tiles' area ${st.frameFitMaxM?.tilesArea} m (< 0.05)`);
   const vis = await page.evaluate(() => Object.fromEntries(window.__v2.scene.children.filter((o) => o.name).map((o) => [o.name, o.visible])));
   check(vis.city === false, 'Google mode: the map extrusions/roads group is hidden');
-  check(vis['blender-tiles'] !== false && vis.route !== false && vis['google-3d'] === true, `Google mode: Blender tiles, route and Google group stay (${JSON.stringify(vis)})`);
+  check(vis['blender-tiles'] !== false && vis.route !== false && vis['map-layers'] !== false && vis['google-3d'] === true, `Google mode: Blender tiles, our route overlays and Google group stay (${JSON.stringify(vis)})`);
   check(st.hiddenLayers.length >= 2, `Google mode: ${st.hiddenLayers.length} layers hidden (${st.hiddenLayers.join(', ')})`);
   check(await page.locator('#gattr .logo').isVisible(), 'attribution: the Google Maps logo is on screen');
   const logo = await page.locator('#gattr .logo').boundingBox();

@@ -367,7 +367,7 @@ export function install(v2) {
         scene.add(tiles.group);
         Object.assign(S, { tiles, auth, group: tiles.group, on: true });
         hideMaps(true);
-        const route = scene.getObjectByName('route'); if (route) route.position.y = GOOGLE.ROUTE_LIFT_M;
+        for (const n of OVERLAYS) { const o = scene.getObjectByName(n); if (o) o.position.y = GOOGLE.ROUTE_LIFT_M; }
         say('Google 3D: loading the city…');
         redraw();
       } catch (e) {
@@ -384,7 +384,7 @@ export function install(v2) {
     if (S.auth) S.auth.dispose();
     S.tiles = S.auth = S.group = null; S.on = false; S.loaded = 0;
     hideMaps(false);
-    const route = scene.getObjectByName('route'); if (route) route.position.y = 0;
+    for (const n of OVERLAYS) { const o = scene.getObjectByName(n); if (o) o.position.y = 0; }
     U.gMaskOn.value = 0; S.maskSig = '';
     S.anchor = { estimates: [], last: 0, applied: 0, inliers: 0, spread: null }; U.gDy.value = 0;
     redraw();
@@ -392,7 +392,10 @@ export function install(v2) {
   function disable() { teardown(); say(''); }
 
   // ── "no use with non-Google maps": while Google mode is on, every scene layer that is not on this list is hidden ──
-  const keep = (o) => o === S.group || o.name === 'blender-tiles' || o.name === 'route' || o.isLight || o.isLightProbe
+  // kept: Google's group, our Blender models, and our own overlays (the route, and the finder's routes / minutes wash / stops in
+  // 'map-layers'): overlaid geodata is allowed on top of Google's tiles, a separate map is not
+  const OVERLAYS = ['route', 'map-layers'];
+  const keep = (o) => o === S.group || o.name === 'blender-tiles' || OVERLAYS.includes(o.name) || o.isLight || o.isLightProbe
     || o.userData?.googleKeep === true || /sky|haze|dome|sun/i.test(o.name || '') || (o.material && /sky|haze/i.test(o.material.name || ''))
     || (o.type === 'Object3D' && !o.children.length && !o.isMesh);   // light targets
   function hideMaps(on) {

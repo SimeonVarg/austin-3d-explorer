@@ -71,7 +71,9 @@ inside the free cap. Billing must still be enabled. Set a daily quota (below) so
 
 Google's photorealistic mesh everywhere, with our Blender buildings standing in it; where one of our buildings stands,
 Google's own copy of it (and its trees and cars within 2 m) is not drawn above 0.6 m. Far from our loaded tiles Google's
-buildings fill the city. The walking route rides 0.8 m over Google's ground. Not shown in Google mode: OSM roads,
+buildings fill the city. Our own overlays stay and ride 0.8 m over Google's ground: the walking route, and the finder's
+routes, minutes-to-class wash and stops (`map-layers`). Google's logo and credits rise above the page's credits footer,
+so no other attribution overlaps them. Not shown in Google mode: OSM roads,
 sidewalks, plain extrusions, map trees, City aerial ground.
 
 ## Accuracy: how Google's mesh is put on our coordinates
