@@ -732,3 +732,6 @@ window.__v2 = {
     return { frames: frameLog.dts.length, medianFrameMs: median(frameLog.dts), p95FrameMs: pct(frameLog.dts, 0.95), medianRenderCallMs: median(frameLog.cpu), ...this.info() };
   },
 };
+
+// Google mode (v2/google.js): Google's Photorealistic 3D Tiles around the Blender buildings, OFF unless a key is saved in this browser.
+import('./google.js').then((g) => g.install(window.__v2)).catch((e) => console.warn('[v2 google]', e.message));
