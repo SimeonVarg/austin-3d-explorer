@@ -88,7 +88,8 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
       for (let i = 0; i < n - 1; i++) {
         const x0 = c[i * 2], z0 = c[i * 2 + 1], x1 = c[i * 2 + 2], z1 = c[i * 2 + 3];
         const L = Math.hypot(x1 - x0, z1 - z0); if (L < 0.05) continue;
-        const lx = (z1 - z0) / L, lz = -(x1 - x0) / L;   // left of travel = the sidewalk side (the bake puts the road on the right)
+        // the bake stores each curb with the road toward (dz, -dx) of its direction (d = travel), so the sidewalk is toward (-dz, dx)
+        const lx = -(z1 - z0) / L, lz = (x1 - x0) / L;
         // the face, looking toward the road (-left)
         let b = pos.length / 3;
         pos.push(x0, 0, z0, x1, 0, z1, x1, H, z1, x0, H, z0);

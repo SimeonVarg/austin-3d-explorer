@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """v2 street layers, step 2: bake the street furniture into two compact files for v2/street.js.
 
-    python3 scripts/v2/street_bake.py CITY_CACHE
+    python3 scripts/v2/street_bake.py CITY_CACHE [Z19_TILE_CACHE]
+
+With Z19_TILE_CACHE (the City aerial's z19 tiles, as street_trees.py and street_align.py cache them; nothing is fetched), crosswalks
+and curbs are moved onto the paint and the kerb the photograph shows (refine_crosswalk, refine_curb), and the counts report how far:
+that is also the measured offset of the City's records from the photograph. Without it, the records are used as they are.
 
 CITY_CACHE is street_fetch.py's folder. Writes:
   v2/data/street/city.json  City of Austin open data only (Open Data Terms: free and without restriction; credit requested):
       bars     crosswalk bars (continental ladders round the City's crosswalk middle line), stop lines, yield teeth
                as [x, z, angle, length, width] (metres, v2 frame; angle = radians of the bar's long axis from +x toward +z)
       curbs    the street-side edge of every existing sidewalk that meets the curb (back_of_curb = Y), as polylines with the
-               road on the right of travel
+               the road toward (dz, -dx) of each piece's direction d (x east, z south)
       ramps    curb ramps [x, z, angle-to-street, warning pad 0/1]
       signals  traffic-signal poles at the intersection's corners [x, z, angle of the mast arm, arm length (0 = pedestal pole)]
       (no bike-lane posts: the City's bike-facility lines follow the street centreline, not the lane; posts drawn from them stood
@@ -90,8 +94,127 @@ class Grid:
         return best
 
 
+# ── refinement on the City's own 2025 aerial (z19 tiles already cached by street_trees.py / street_align.py; nothing is fetched) ──
+# The City's records give WHERE a crosswalk or a sidewalk is to within a metre or two, not its painted width or the bars' phase, and
+# the sidewalk line is not the curb. Where the photograph shows them clearly, the bake moves them onto the paint and the kerb.
+XW_REFINE = {'band_m': 4.0, 'min_contrast': 0.05, 'width': (2.0, 6.5), 'max_offset': 2.0, 'periods': (0.9, 2.2), 'min_corr': 0.25}
+CURB_REFINE = {'search_m': 3.0, 'min_step': 0.035, 'min_sharp': 2.5}
+# The City's sidewalk lines sit 1-4 m from the kerb in places (Guadalupe at 21st: on the building side of a 5 m sidewalk recorded as
+# 6 ft). A 15 cm kerb face drawn there stands in the middle of the photographed sidewalk, so with the aerial at hand only the curbs
+# found on the photograph are kept.
+CURB_ONLY_SNAPPED = True
+
+
+class OfflineAerial:
+    def __init__(self, cache):
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import street_align as SA
+        self.SA = SA
+        self.A = SA.Aerial(cache)
+        orig = self.A.tile
+
+        def tile(z, x, y):
+            if not os.path.exists(os.path.join(cache, f'{z}_{x}_{y}.jpg')):
+                raise KeyError('not cached')
+            return orig(z, x, y)
+        self.A.tile = tile
+
+    def lum(self, X, Z):
+        import numpy as np
+        return self.SA.lum(self.A.sample(np.asarray(X), np.asarray(Z)))
+
+
+def refine_crosswalk(AE, a, b):
+    """(offset across m, painted width m, [bar centres along the line m] or None, bar width m) or None."""
+    import numpy as np
+    L = seglen(a, b)
+    if L < 3:
+        return None
+    ux, uz = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+    nx, nz = -uz, ux
+    s = np.arange(0.6, L - 0.6, 0.1)
+    t = np.arange(-XW_REFINE['band_m'], XW_REFINE['band_m'] + 1e-9, 0.1)
+    S_, T_ = np.meshgrid(s, t)
+    try:
+        Y = AE.lum(a[0] + ux * S_ + nx * T_, a[1] + uz * S_ + nz * T_)       # rows = t (across), columns = s (along)
+    except KeyError:
+        return None
+    across = np.convolve(Y.mean(1), np.ones(7) / 7, 'same')
+    base = np.median(np.r_[across[:8], across[-8:]])
+    k = int(np.argmax(across[10:-10])) + 10
+    peak = across[k]
+    if peak - base < XW_REFINE['min_contrast']:
+        return None
+    half = base + 0.5 * (peak - base)
+    i0 = k
+    while i0 > 0 and across[i0 - 1] > half:
+        i0 -= 1
+    i1 = k
+    while i1 < len(t) - 1 and across[i1 + 1] > half:
+        i1 += 1
+    W = t[i1] - t[i0]
+    c = (t[i1] + t[i0]) / 2
+    if not (XW_REFINE['width'][0] <= W <= XW_REFINE['width'][1]) or abs(c) > XW_REFINE['max_offset']:
+        return None
+    rows = (t >= c - W / 4) & (t <= c + W / 4)
+    P = np.median(Y[rows], axis=0)
+    if len(P) < 40:                      # under ~4 m of crossing: too few bars to find their phase
+        return (float(c), float(W), None, None)
+    P = P - np.convolve(P, np.ones(21) / 21, 'same')
+    Pc = P - P.mean()
+    best = None
+    for per in np.arange(XW_REFINE['periods'][0], XW_REFINE['periods'][1] + 1e-9, 0.05):
+        for ph in np.arange(0, per, 0.05):
+            w = np.where(((s - ph) % per) < per / 2, 1.0, -1.0)
+            r = float(np.dot(Pc, w) / (np.linalg.norm(Pc) * np.linalg.norm(w) + 1e-9))
+            if not best or r > best[0]:
+                best = (r, per, ph)
+    if best[0] < XW_REFINE['min_corr']:
+        return (float(c), float(W), None, None)
+    r, per, ph = best
+    centres = [ph + per / 4 + k * per for k in range(-2, int(L / per) + 3)]
+    centres = [x for x in centres if 0.4 <= x <= L - 0.4]
+    return (float(c), float(W), centres, per / 2)
+
+
+def refine_curb(AE, pts):
+    """Shift (m, toward the road) that puts the line on the kerb's bright-to-dark step, or None."""
+    import numpy as np
+    P, N = [], []
+    for (x0, z0), (x1, z1) in zip(pts[:-1], pts[1:]):
+        L = seglen((x0, z0), (x1, z1))
+        if L < 1e-6:
+            continue
+        rx, rz = (z1 - z0) / L, -(x1 - x0) / L        # toward the road: (dz, -dx) by the curbs' storage rule
+        for t in np.arange(0, L, 1.0):
+            P.append((x0 + (x1 - x0) * t / L, z0 + (z1 - z0) * t / L))
+            N.append((rx, rz))
+    if len(P) < 7:
+        return None
+    P = np.array(P[2:-2])
+    N = np.array(N[2:-2])
+    sv = np.arange(-CURB_REFINE['search_m'] - 1, CURB_REFINE['search_m'] + 1 + 1e-9, 0.1)
+    try:
+        Y = AE.lum(P[:, 0, None] + N[:, 0, None] * sv, P[:, 1, None] + N[:, 1, None] * sv)
+    except KeyError:
+        return None
+    prof = np.median(Y, axis=0)
+    g = np.convolve(prof, [1, 1, 1, 0, -1, -1, -1], 'same') / 6      # positive where it gets darker toward the road
+    m = np.abs(sv) <= CURB_REFINE['search_m']
+    med, sd = np.median(g[m]), np.std(g[m]) + 1e-9
+    # every clear bright-to-dark step toward the road; the kerb is the one NEAREST the road (a sunlit roof edge or a shaded
+    # building face further back makes a stronger step: measured at Guadalupe and 21st, 2026-10-18)
+    cand = [k for k in range(1, len(sv) - 1) if m[k] and g[k] >= g[k - 1] and g[k] >= g[k + 1]
+            and g[k] >= CURB_REFINE['min_step'] and (g[k] - med) / sd >= CURB_REFINE['min_sharp']]
+    if not cand:
+        return None
+    return float(sv[max(cand)])
+
+
 def main():
     city = sys.argv[1]
+    AE = OfflineAerial(sys.argv[2]) if len(sys.argv) > 2 else None
+    xw_meas, curb_meas = [], []
     os.makedirs(OUT, exist_ok=True)
     J = lambda n: json.load(open(os.path.join(city, n + '.geojson')))['features']
     roads = json.load(open(os.path.join(REPO, 'data', 'roads.geojson')))['features']
@@ -136,11 +259,19 @@ def main():
                 bars.append([(a[0] + b[0]) / 2 + nx * sd * XW_WIDTH / 2, (a[1] + b[1]) / 2 + nz * sd * XW_WIDTH / 2, math.atan2(uz, ux), L, XW_LINE_W])
             n_single += 1
             continue
-        nb = max(1, int((L + BAR_GAP) // (BAR_W + BAR_GAP)))
-        start = (L - (nb * BAR_W + (nb - 1) * BAR_GAP)) / 2
-        for k in range(nb):
-            c = start + k * (BAR_W + BAR_GAP) + BAR_W / 2
-            bars.append([a[0] + ux * c, a[1] + uz * c, math.atan2(nz, nx), XW_WIDTH, BAR_W])
+        ref = refine_crosswalk(AE, a, b) if AE else None
+        off, W, centres, bw = 0.0, XW_WIDTH, None, BAR_W
+        if ref:
+            off, W = ref[0], ref[1]
+            if ref[2]:
+                centres, bw = ref[2], ref[3]
+            xw_meas.append((off, W, bool(ref[2])))
+        if centres is None:
+            nb = max(1, int((L + BAR_GAP) // (BAR_W + BAR_GAP)))
+            start = (L - (nb * BAR_W + (nb - 1) * BAR_GAP)) / 2
+            centres = [start + k * (BAR_W + BAR_GAP) + BAR_W / 2 for k in range(nb)]
+        for c in centres:
+            bars.append([a[0] + ux * c + nx * off, a[1] + uz * c + nz * off, math.atan2(nz, nx), W, bw])
         n_pair += 1
     # ── curbs: the street-side edge of sidewalks that meet the curb ──
     curbs = []
@@ -166,8 +297,21 @@ def main():
                 side = 1 if (hit[1] - x) * nx + (hit[2] - z) * nz > 0 else -1
                 out.append((x + nx * side * w / 2, z + nz * side * w / 2)); sides += side
             if out and len(out) >= 2:
-                # stored with the road on the RIGHT of travel (street.js puts the curb's top on the left, the sidewalk side)
-                curbs.append(out[::-1] if sides > 0 else out); n_curb += 1
+                # stored so the road lies toward (dz, -dx) of each piece (street.js: the face looks that way, the top goes the other)
+                out = out[::-1] if sides > 0 else out
+                sh = refine_curb(AE, out) if AE else None
+                if sh is not None:
+                    curb_meas.append(sh)
+                    moved = []
+                    for k, (x, z) in enumerate(out):
+                        a_ = out[max(0, k - 1)]
+                        b_ = out[min(len(out) - 1, k + 1)]
+                        L_ = seglen(a_, b_) or 1
+                        rx, rz = (b_[1] - a_[1]) / L_, -(b_[0] - a_[0]) / L_      # toward the road: (dz, -dx)
+                        moved.append((x + rx * sh, z + rz * sh))
+                    out = moved
+                if sh is not None or not (AE and CURB_ONLY_SNAPPED):
+                    curbs.append(out); n_curb += 1
 
     # ── curb ramps ──
     ramps = []
@@ -248,7 +392,14 @@ def main():
         'ramps': flat(ramps),
         'signals': flat([[s[0], s[1], s[2], round(s[3], 1)] for s in signals]),
         'counts': {'crosswalks_continental': n_pair, 'crosswalks_transverse': n_single, 'stop_lines': n_stop, 'yield_teeth': n_yield,
-                   'bars': len(bars), 'curbs': n_curb, 'ramps': len(ramps), 'signal_poles': n_sig, 'posts': len(posts)},
+                   'bars': len(bars), 'curbs': n_curb,
+                   'crosswalks_refined_on_aerial': len(xw_meas), 'crosswalk_bar_phase_found': sum(1 for m in xw_meas if m[2]),
+                   'crosswalk_offset_median_abs_m': round(sorted(abs(m[0]) for m in xw_meas)[len(xw_meas) // 2], 2) if xw_meas else None,
+                   'crosswalk_offset_p90_abs_m': round(sorted(abs(m[0]) for m in xw_meas)[int(len(xw_meas) * 0.9)], 2) if xw_meas else None,
+                   'crosswalk_painted_width_median_m': round(sorted(m[1] for m in xw_meas)[len(xw_meas) // 2], 2) if xw_meas else None,
+                   'curbs_snapped_to_kerb': len(curb_meas),
+                   'curb_shift_median_abs_m': round(sorted(abs(v) for v in curb_meas)[len(curb_meas) // 2], 2) if curb_meas else None,
+                   'curb_shift_p90_abs_m': round(sorted(abs(v) for v in curb_meas)[int(len(curb_meas) * 0.9)], 2) if curb_meas else None, 'ramps': len(ramps), 'signal_poles': n_sig, 'posts': len(posts)},
     }
     json.dump(city_out, open(os.path.join(OUT, 'city.json'), 'w'), separators=(',', ':'))
     print(json.dumps(city_out['counts']))
