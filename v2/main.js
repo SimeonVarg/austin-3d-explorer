@@ -10,6 +10,7 @@ import { MapControls } from 'three/addons/controls/MapControls.js';
 import { LOOK, QUALITY } from './look.js';
 import { ORIGIN, setOrigin, toLocal } from './geo.js';
 import { TileStreamer, TILES } from './tiles.js';
+import { MapLite, MarkerLayer, MercatorCoordinate } from './maplite.js';
 
 const params = new URLSearchParams(location.search);
 const PHONE = matchMedia('(max-width: 600px), (pointer: coarse)').matches;
@@ -23,8 +24,22 @@ export const VIEW = {
   MAX_DISTANCE_M: 5200,
   MAX_POLAR_DEG: 80,           // 0 = straight down; never quite to the horizon
   BOUNDS: { minX: -2600, maxX: 2600, minZ: -2000, maxZ: 4200 },   // the camera target stays inside this (campus, West Campus, downtown)
-  START: { target: [-260, 0, 60], distance: 1350, polarDeg: 56, azimuthDeg: 28 },
+  START: { target: [-260, 0, 60], distance: 1350, polarDeg: 56, azimuthDeg: 28 },   // ?intro=0 (the verify scripts), and where the flight stops if it is cut short
   FLY_MS: 1100,
+};
+
+// ── the opening: the old app's loading screen, then the old app's opening flight (js/app.js INTRO, same poses, same timings) ──
+// Poses are MapLibre's (centre, zoom, pitch, bearing); maplite.js turns them into v2's camera with the same framing at the centre.
+export const INTRO = {
+  on: params.get('intro') !== '0',
+  start: { center: [-97.7420, 30.2680], zoom: 16.2,  pitch: 78, bearing: 5 },
+  crest: { center: [-97.7404, 30.2748], zoom: 15.45, pitch: 71, bearing: 3 },
+  end:   { center: [-97.7365, 30.2900], zoom: 16.45, pitch: 74, bearing: 202 },
+  leg1Ms: 6000,      // the rise out of downtown, decelerating into the crest
+  leg2Ms: 6600,      // the run north into campus, the bank, and the long settle
+  minVeilMs: 2500,   // the loading screen stays at least this long, so it is seen, not flashed (v2 loads in a few seconds)
+  maxVeilMs: 30000,  // and lifts by this time whatever is still loading
+  liftMs: 1150,      // the fade (style.css #veil transition)
 };
 
 const $ = (id) => document.getElementById(id);
@@ -70,6 +85,13 @@ function placeCamera({ target, distance, polarDeg, azimuthDeg }) {
   controls.update();
 }
 placeCamera(VIEW.START);
+
+// The old app's modules talk to "the map" (window.__map, maplibregl.Marker): maplite.js answers for v2's camera.
+const map = new MapLite({ camera, controls, canvas, redraw: () => { dirty = true; },
+  limits: { maxPitch: VIEW.MAX_POLAR_DEG, minDistance: VIEW.MIN_DISTANCE_M, maxDistance: VIEW.MAX_DISTANCE_M } });
+const markers = new MarkerLayer(map, $('markers'));
+window.__map = map;
+window.maplibregl = Object.assign(window.maplibregl || {}, { Marker: markers.make(), MercatorCoordinate });
 
 // Keep the target inside the city and on the ground.
 controls.addEventListener('change', () => {
@@ -319,6 +341,7 @@ const cityReady = new Promise((resolve) => {
   const w = new Worker(new URL('./city-worker.js', import.meta.url), { type: 'module' });
   w.onmessage = (ev) => {
     const m = ev.data;
+    if (m.type === 'file') { try { window.loaderData?.(m.url, m.phase); } catch (e) {} return; }
     if (m.type === 'roads') { addRibbons(m.tiles, ORDER.ROADS, city.roads); timings.roads = performance.now() - timings.start; status('Roads in, raising buildings…'); }
     else if (m.type === 'sidewalks') { addRibbons(m.tiles, ORDER.SIDEWALKS, city.sidewalks); timings.sidewalks = performance.now() - timings.start; }
     else if (m.type === 'buildings') { addBuildings(m.tiles); timings.buildings = performance.now() - timings.start; status('Buildings in, planting trees…'); }
@@ -367,6 +390,8 @@ const routeReady = new Promise((resolve) => {
   };
 });
 routeWorker.postMessage({ type: 'init', origin: ORIGIN });
+try { window.loaderGraph?.('start'); } catch (e) {}
+routeReady.then(() => { try { window.loaderGraph?.('done'); } catch (e) {} });
 const requestRoute = (from, to) => new Promise((res) => { const id = ++routeSeq; pending.set(id, res); routeWorker.postMessage({ type: 'route', id, from, to }); });
 
 function ribbonGeometry(path, width) {
@@ -418,7 +443,10 @@ function stepFlight(now) {
   if (k >= 1) flight = null;
   return true;
 }
-controls.addEventListener('start', () => { flight = null; });
+controls.addEventListener('start', () => { flight = null; map.stop(); body.classList.add('moving'); clearTimeout(movingTimer); });
+controls.addEventListener('end', () => { clearTimeout(movingTimer); movingTimer = setTimeout(() => body.classList.remove('moving'), 4000); });
+const body = document.body;
+let movingTimer = 0;
 
 // ── UI ─────────────────────────────────────────────────────────────────
 const aptSel = $('apt'), clsSel = $('cls'), resultEl = $('result');
@@ -432,7 +460,10 @@ async function setupUI() {
   // Riverside complexes, de-duplicated). A home the graph has doors for routes from its doors; the rest from its point.
   const byName = new Map();
   try {
-    const h = await (await fetch(new URL('../data/finder/homes.json', location.href))).json();
+    const hu = new URL('../data/finder/homes.json', location.href).href;
+    try { window.loaderData?.(hu, 'start'); } catch (e) {}
+    const h = await (await fetch(hu)).json();
+    try { window.loaderData?.(hu, 'done'); } catch (e) {}
     const wc = new Map(cat.apartments.map((a) => [a.name, a.doors]));
     for (const home of h.homes || []) {
       const doors = home.wc && wc.get(home.wc);
@@ -496,7 +527,10 @@ resize();
 function frame(now) {
   requestAnimationFrame(frame);
   const flying = stepFlight(now);
-  const moved = controls.update() || flying;
+  const easing = map.step(now);
+  const turned = controls.update();
+  const moved = turned || flying || easing;
+  if (moved) { markers.update(); if (!easing) map.fire('move'); }
   if (frameLog.on && frameLog.orbit) { orbitStep(); }
   if (tiles) tiles.update(now);
   if (!(moved || dirty || frameLog.on)) return;
@@ -505,6 +539,7 @@ function frame(now) {
   dome.position.copy(camera.position);
   const t0 = performance.now();
   renderer.render(scene, camera);
+  if (!frames) { try { window.loaderSceneReady?.(); } catch (e) {} }
   if (frameLog.on) { frameLog.cpu.push(performance.now() - t0); if (frameLog.last) frameLog.dts.push(now - frameLog.last); frameLog.last = now; }
   frames++;
 }
@@ -516,6 +551,64 @@ function orbitStep() {
   off.applyAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(frameLog.degPerFrame));
   camera.position.copy(controls.target).add(off); camera.lookAt(controls.target);
 }
+
+// ── the loading screen (js/loader.js, the old app's, unchanged) and the opening flight ──────────────────────
+// The loading card reads "the map" through these few names (loader.js readings()): the streets and plain city are in, the
+// Blender buildings in view are standing (counted per building), the light is drawn. Every number is v2's own, measured.
+const inViewTiles = () => tiles ? [...tiles.tiles.values()].filter((s) => s.want && s.inView) : [];
+const tilesSettled = () => !!tiles && !!tiles.last && inViewTiles().every((s) => s.have);
+let cityDone = false;
+cityReady.then(() => { cityDone = true; });
+map.tilesLoaded = () => cityDone && tilesSettled();
+window.slopesApartments = {
+  data: { get buildings() { return { length: inViewTiles().reduce((n, s) => n + (s.def.buildings || []).length, 0) }; } },
+  count: { get names() { return { length: inViewTiles().reduce((n, s) => n + (s.have ? (s.def.buildings || []).length : 0), 0) }; } },
+  readyToReveal: () => true,
+};
+window.CityLighting = { get stats() { return { draws: frames > 0 ? 1 : 0, failures: [] }; } };
+
+const introFlight = window.__intro = { flight: null };
+function primeIntro() {
+  const F = introFlight.flight = { state: 'primed', leg: 0, cancelledBy: null };
+  map.jumpTo(INTRO.start);
+  const cancel = (why) => { if (F.state === 'done' || F.state === 'cancelled') return; F.state = 'cancelled'; F.cancelledBy = why; map.stop(); };
+  controls.addEventListener('start', () => cancel('input'));
+  const leg = (n) => {
+    F.leg = n;
+    if (n === 1) map.easeTo({ ...INTRO.crest, duration: INTRO.leg1Ms, essential: true, easing: (t) => 0.5 - 0.5 * Math.cos(Math.PI * t) }, { introLeg: 1 });
+    else map.easeTo({ ...INTRO.end, duration: INTRO.leg2Ms, essential: true, easing: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2) }, { introLeg: 2 });
+  };
+  map.on('moveend', (e) => {
+    if (F.state !== 'flying' || e.introLeg !== F.leg) return;
+    const p = map.pose(), want = F.leg === 1 ? INTRO.crest : INTRO.end;
+    if (Math.abs(p.zoom - want.zoom) > 1e-3) { F.state = 'cancelled'; F.cancelledBy = 'camera moved'; return; }
+    if (F.leg === 1) leg(2); else F.state = 'done';
+  });
+  return { fly: () => { if (F.state === 'primed') { F.state = 'flying'; leg(1); } }, cancel };
+}
+let intro = null;
+function liftVeil(reason) {
+  const veil = $('veil');
+  if (!veil || veil.classList.contains('lift')) return;
+  try { window.loaderDone?.({ reason }); } catch (e) {}
+  timings.reveal = performance.now() - timings.start; timings.revealReason = reason;
+  veil.classList.add('lift');
+  setTimeout(() => veil.remove(), INTRO.liftMs + 200);
+  if (intro) intro.fly();
+}
+function skipIntro() {
+  if (intro) intro.cancel('skipped');
+  const veil = $('veil'); if (veil) veil.remove();
+}
+if (INTRO.on) {
+  intro = primeIntro();
+  const t0 = performance.now();
+  const gate = setInterval(() => {
+    const ms = performance.now() - t0;
+    if (!$('veil')) { clearInterval(gate); return; }
+    if ((map.tilesLoaded() && frames > 0 && ms >= INTRO.minVeilMs) || ms >= INTRO.maxVeilMs) { clearInterval(gate); liftVeil(ms >= INTRO.maxVeilMs ? 'ceiling' : 'ready'); }
+  }, 200);
+} else skipIntro();
 
 Promise.all([cityReady, tilesReady, routeReady]).then(([stats, man]) => {
   timings.ready = performance.now() - timings.start;
@@ -532,7 +625,8 @@ window.__v2 = {
   ready: Promise.all([cityReady, tilesReady, routeReady]),
   tiles: () => tiles && tiles.summary(),
   timings: () => ({ ...timings }),
-  setHidden, placeCamera, flyTo, requestRoute, drawRoute, redraw: () => { dirty = true; },
+  setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
+  intro: () => introFlight.flight && { ...introFlight.flight }, requestRoute, drawRoute, redraw: () => { dirty = true; },
   pickApartment: (name) => { const i = apartments.findIndex((a) => a.name === name); if (i >= 0) { aptSel.value = String(i); return update(true); } },
   pickBuilding: (code) => { const i = buildings.findIndex((b) => b.code === code); if (i >= 0) { clsSel.value = String(i); return update(true); } },
   info: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures,
