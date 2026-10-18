@@ -2,7 +2,7 @@
  * v2-pairs.mjs - the app half of the pair sheets: the live v2 app from the same camera poses as the Blender renders (scripts/v2/blender_pair.py).
  *
  *   VERIFY_GL=hardware VERIFY_URL=https://flyover-utx.vercel.app node scripts/verify/v2-pairs.mjs OUT_DIR [slug ...]
- *   (V2_QUERY='?manifest=./tiles-test/manifest.json' looks at a trial tile set; V2_VIEW=name part; V2_TAG=label for the file; V2_NOSHADOW=1 draws without the shadow map, a diagnosis)
+ *   (V2_QUERY='&manifest=./tiles-test/manifest.json' looks at a trial tile set; V2_VIEW=name part; V2_TAG=label for the file; V2_NOSHADOW=1 draws without the shadow map, a diagnosis)
  *
  * Poses are in scripts/v2/pair_views.json (the build's own frame); here they become the app's frame with manifest.buildings[slug].x/z. The camera is
  * set directly (the orbit controls' own update is switched off for the shot: it would turn the camera back to a target on the ground). 1440x900 at
@@ -20,7 +20,7 @@ const browser = await launch(chromium, { gl: process.env.VERIFY_GL || 'hardware'
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 4 / 3 });
 const page = await ctx.newPage();
 const errs = []; page.on('pageerror', (e) => errs.push(e.message));
-await page.goto(`${BASE.replace(/\/$/, '')}/v2/${process.env.V2_QUERY || ''}`, { waitUntil: 'load', timeout: 120000 });
+await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0${process.env.V2_QUERY || ''}`, { waitUntil: 'load', timeout: 120000 });
 await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 120000 });
 await page.evaluate(() => window.__v2.ready);
 const man = await page.evaluate(() => fetch('./tiles/manifest.json').then((r) => r.json()));
