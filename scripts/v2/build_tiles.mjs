@@ -85,9 +85,11 @@ const sources = readJSON(SRC, {});
 // builds that get an app copy (scripts/v2/app_copy.json: slug -> { triangles, crease_deg, site }); their copies live in $V2_CACHE/export/app
 const APP_COPY = readJSON(path.join(HERE, 'app_copy.json'), {});
 const APP_DIR = path.join(EXPORT, 'app');
-fs.mkdirSync(APP_DIR, { recursive: true });
+const APPMASS_DIR = path.join(EXPORT, 'appmass');     // the app copy without its ground: the far mass is made from it
+fs.mkdirSync(APP_DIR, { recursive: true }); fs.mkdirSync(APPMASS_DIR, { recursive: true });
 const APP_CODE_HASH = sha(fs.readFileSync(path.join(HERE, 'app_copy.mjs'))).slice(0, 16);
 const dirOf = (s) => (APP_COPY[s] ? APP_DIR : EXPORT);
+const massDirOf = (s) => (APP_COPY[s] ? APPMASS_DIR : EXPORT);
 
 // ── 2. export (only what changed) ────────────────────────────────────────
 const keyOf = (s) => `${sources[s].blend_sha256}:${EXPORTER_HASH}`;
@@ -130,7 +132,7 @@ const appMade = [];
 for (const s of placeable.filter((x) => APP_COPY[x] && usable(x) && (!ONLY || ONLY.has(x)))) {
   if (!FORCE && appState(s) === appKey(s) && fs.existsSync(path.join(APP_DIR, `${s}.near.glb`))) continue;
   const t0 = Date.now();
-  const st = await makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src: path.join(EXPORT, `${s}.near.glb`), dst: path.join(APP_DIR, `${s}.near.glb`), spec: APP_COPY[s] });
+  const st = await makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src: path.join(EXPORT, `${s}.near.glb`), dst: path.join(APP_DIR, `${s}.near.glb`), dstMass: path.join(APPMASS_DIR, `${s}.near.glb`), spec: APP_COPY[s] });
   fs.writeFileSync(path.join(APP_DIR, `${s}.json`), JSON.stringify(st, null, 1)); fs.writeFileSync(path.join(APP_DIR, `${s}.key`), appKey(s));
   try { fs.unlinkSync(path.join(EXPORT, `${s}.mass.key`)); } catch {}     // the far mass is made again from the new copy
   appMade.push(s);
@@ -153,10 +155,10 @@ const MASS_HASH = sha(Buffer.concat([fs.readFileSync(path.join(HERE, 'far_mass.p
 const massKey = (s) => `${keyOf(s)}:${MASS_HASH}${APP_COPY[s] ? ':app' + appKey(s) : ''}`;
 const massFile = (s) => path.join(EXPORT, `${s}.mass.key`);
 const massState = (s) => { try { return fs.readFileSync(massFile(s), 'utf8'); } catch { return ''; } };
-const hasMass = (s) => massState(s) === massKey(s) + ':ok' && fs.existsSync(path.join(dirOf(s), `${s}.mass.glb`));
+const hasMass = (s) => massState(s) === massKey(s) + ':ok' && fs.existsSync(path.join(massDirOf(s), `${s}.mass.glb`));
 {
   const need = placeable.filter((s) => exported(s) && (FORCE && todo.includes(s) || !massState(s).startsWith(massKey(s))));
-  const groups = [[EXPORT, need.filter((s) => !APP_COPY[s])], [APP_DIR, need.filter((s) => APP_COPY[s])]];   // an app copy's mass is made from the copy
+  const groups = [[EXPORT, need.filter((s) => !APP_COPY[s])], [APPMASS_DIR, need.filter((s) => APP_COPY[s])]];   // an app copy's mass is made from the copy
   for (const [dir, list] of groups) for (let i = 0; i < list.length; i += 40) {
     const chunk = list.slice(i, i + 40);
     const r = await run(PY, [path.join(HERE, 'far_mass.py'), dir, ...chunk]);
@@ -178,7 +180,7 @@ for (const t in tiles) tiles[t].sort();
 const isGlass = (m) => m && ((m.getExtras() || {}).v2_kind || 'plain') !== 'plain';
 
 async function buildingDoc(s, lod, idx, part) {
-  const doc = await io.read(path.join(lod === 1 && !hasMass(s) ? EXPORT : dirOf(s), `${s}.${lod === 0 ? 'near' : hasMass(s) ? 'mass' : 'far'}.glb`));
+  const doc = await io.read(path.join(lod === 1 ? (hasMass(s) ? massDirOf(s) : EXPORT) : dirOf(s), `${s}.${lod === 0 ? 'near' : hasMass(s) ? 'mass' : 'far'}.glb`));
   const root = doc.getRoot(); const buf = root.listBuffers()[0];
   root.listNodes()[0].setName(s).setTranslation([sources[s].x, 0, sources[s].z]);
   for (const mesh of root.listMeshes()) {

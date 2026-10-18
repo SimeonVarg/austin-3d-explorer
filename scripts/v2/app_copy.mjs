@@ -132,7 +132,7 @@ export function shade(doc, creaseDeg) {
 const triCount = (doc) => prims(doc).reduce((a, p) => a + (p.getIndices() ? p.getIndices().getCount() : p.getAttribute('POSITION').getCount()) / 3, 0);
 
 // src .glb (the full detailed export) -> dst .glb (the app copy); returns the numbers
-export async function makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src, dst, spec }) {
+export async function makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src, dst, dstMass, spec }) {
   const P = spec.site;
   const doc0 = await io.read(src);
   const stats = { detailed_tris: triCount(doc0) };
@@ -160,5 +160,11 @@ export async function makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src, 
   const bin = await io.writeBinary(best.d);
   const tmp = dst + '.tmp'; (await import('node:fs')).writeFileSync(tmp, bin); (await import('node:fs')).renameSync(tmp, dst);
   stats.bytes_uncompressed = bin.byteLength;
+  // the same copy without its ground: lod1 (the far mass) is made from this one, or the mass would take the graded ground for a building
+  if (dstMass) {
+    const d = await io.readBinary(bin); const re = new RegExp(P.site_material, 'i');
+    for (const p of prims(d)) if (isSite(p, re)) { for (const m of d.getRoot().listMeshes()) if (m.listPrimitives().includes(p)) m.removePrimitive(p); p.dispose(); }
+    const fs = await import('node:fs'); fs.writeFileSync(dstMass + '.tmp', await io.writeBinary(d)); fs.renameSync(dstMass + '.tmp', dstMass);
+  }
   return stats;
 }
