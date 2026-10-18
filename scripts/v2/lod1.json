@@ -1,0 +1,4 @@
+{
+  "_about": "Builds with a fine repeat that would shimmer at the default 700 m: the tile that holds them takes its far file (lod1) from this distance (metres). slug -> metres. (An app-copy build sets lod1_m in app_copy.json.)",
+  "health-transformation-building": 400
+}
