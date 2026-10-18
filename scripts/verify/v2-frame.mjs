@@ -39,7 +39,7 @@ for (let rep = 0; rep < REPS; rep++) {
     const page = await ctx.newPage();
     const errs = []; page.on('pageerror', (e) => errs.push(e.message));
     if (arm.cpu > 1) { const c = await ctx.newCDPSession(page); await c.send('Emulation.setCPUThrottlingRate', { rate: arm.cpu }); }
-    await page.goto(`${BASE.replace(/\/$/, '')}/v2/`, { waitUntil: 'load', timeout: 120000 });
+    await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0`, { waitUntil: 'load', timeout: 120000 });
     await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 120000 });
     await page.evaluate(() => window.__v2.ready);
     const man = await page.evaluate(() => fetch('./tiles/manifest.json').then((r) => r.json()));

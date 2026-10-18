@@ -21,7 +21,13 @@ const DEFAULT_HEIGHT_M = 9;       // an outline with no height anywhere
 const MIN_HEIGHT_M = 2.5;
 
 let LOOK = null;
-const getJSON = async (p) => { const r = await fetch(DATA(p)); if (!r.ok) throw new Error(p + ' ' + r.status); return r.json(); };
+// every data file is reported to the page (the loading screen counts them: js/loader.js "Paperwork")
+const getJSON = async (p) => {
+  const url = DATA(p);
+  postMessage({ type: 'file', url, phase: 'start' });
+  try { const r = await fetch(url); if (!r.ok) throw new Error(p + ' ' + r.status); const j = await r.json(); postMessage({ type: 'file', url, phase: 'done' }); return j; }
+  catch (e) { postMessage({ type: 'file', url, phase: 'error' }); throw e; }
+};
 
 // ── colour ─────────────────────────────────────────────────────────────
 function hexToLinear(hex) {
