@@ -223,21 +223,43 @@ const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(...sunRGB.map((v
 sun.castShadow = true;
 const SHADOW_SIZE = PHONE ? LOOK.SHADOW_MAP_SIZE_PHONE : LOOK.SHADOW_MAP_SIZE;
 sun.shadow.mapSize.set(SHADOW_SIZE, SHADOW_SIZE);
-Object.assign(sun.shadow.camera, { left: -LOOK.SHADOW_EXTENT_M, right: LOOK.SHADOW_EXTENT_M, top: LOOK.SHADOW_EXTENT_M, bottom: -LOOK.SHADOW_EXTENT_M, near: 1, far: 4000 });
-sun.shadow.camera.updateProjectionMatrix();
-// a reversed depth buffer flips the sign of the shadow bias (measured: -0.0004 self-shadows every Blender roof when reversed)
-sun.shadow.bias = LOOK.SHADOW_BIAS * (renderer.capabilities.reversedDepthBuffer ? -1 : 1);
-sun.shadow.normalBias = LOOK.SHADOW_NORMAL_BIAS;
 sun.shadow.radius = LOOK.SHADOW_RADIUS;
+// The shadow box's size, fitted to the view (LOOK.SHADOW_FIT): one of a fixed ladder of sizes, chosen with hysteresis.
+const SHADOW_LADDER = [];
+for (let e = LOOK.SHADOW_EXTENT_MIN_M; e < LOOK.SHADOW_EXTENT_MAX_M * 1.001; e *= LOOK.SHADOW_EXTENT_STEP) SHADOW_LADDER.push(e);
+let shadowRung = -1, shadowExtent = 0, shadowStep = 0;
+function setShadowExtent(rung) {
+  shadowRung = rung; shadowExtent = SHADOW_LADDER[rung];
+  const c = sun.shadow.camera, depth = SUN_DISTANCE_M * 2;
+  Object.assign(c, { left: -shadowExtent, right: shadowExtent, top: shadowExtent, bottom: -shadowExtent, near: 1, far: depth });
+  c.updateProjectionMatrix();
+  const texel = (2 * shadowExtent) / SHADOW_SIZE;
+  shadowStep = texel * LOOK.SHADOW_STEP_TEXELS;
+  // a reversed depth buffer flips the sign of the shadow bias (measured: a negative bias self-shadows every Blender roof when reversed)
+  sun.shadow.bias = -(LOOK.SHADOW_BIAS_M / depth) * (renderer.capabilities.reversedDepthBuffer ? -1 : 1);
+  sun.shadow.normalBias = texel * LOOK.SHADOW_NORMAL_BIAS_TEXELS;
+  shadowKey = '';
+}
+function fitShadow() {
+  const want = LOOK.SHADOW_FIT * camera.position.distanceTo(controls.target);
+  const H = LOOK.SHADOW_EXTENT_HYSTERESIS;
+  if (shadowRung >= 0) {
+    const e = SHADOW_LADDER[shadowRung];
+    if (want <= e * (1 + H) && want >= e / LOOK.SHADOW_EXTENT_STEP * (1 - H)) return;   // still inside this rung, with the margin
+  }
+  let r = SHADOW_LADDER.findIndex((e) => e >= want);
+  if (r < 0) r = SHADOW_LADDER.length - 1;
+  if (r !== shadowRung) setShadowExtent(r);
+}
 scene.add(sun, sun.target);
 if (LOOK.HEMI_INTENSITY > 0) scene.add(new THREE.HemisphereLight(LOOK.HEMI_SKY, LOOK.HEMI_GROUND, LOOK.HEMI_INTENSITY));
 
-const SUN_DISTANCE_M = 2000;
+const SUN_DISTANCE_M = 1500;   // the shadow camera stands this far up the sun from the target (covers the tallest tower in the largest box)
 const lightF = sunDir.clone().negate(), lightR = new THREE.Vector3().crossVectors(lightF, new THREE.Vector3(0, 1, 0)).normalize();
 const lightU = new THREE.Vector3().crossVectors(lightR, lightF).normalize();
-const shadowStep = ((2 * LOOK.SHADOW_EXTENT_M) / SHADOW_SIZE) * LOOK.SHADOW_STEP_TEXELS;
 let shadowKey = '';
 function followShadow() {
+  fitShadow();
   // Move the shadow box in whole steps measured in the light's own axes, so every shadow texel stays where it was.
   const t = controls.target;
   const a = Math.round(t.dot(lightR) / shadowStep) * shadowStep, b = Math.round(t.dot(lightU) / shadowStep) * shadowStep;

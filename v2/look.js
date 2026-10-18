@@ -10,7 +10,11 @@ export const LOOK = {
   // The light below is in the old app's absolute units (a sun of ~20), in which the builders' standard WHITE PAINT has an albedo of
   // 0.17 (js/city-sky.js, the soft light's note). Every colour in this file is picked on that scale, so the Blender models and the
   // plain city sit under the same light at exposure 1.
-  TONE_MAPPING: 'neutral',      // 'agx' | 'aces' | 'neutral' | 'none' (neutral = Khronos PBR Neutral: base colours stay true, highlights roll off)
+  // 'none' = Blender's "Standard" view, which the Blender renders (and the old app's light, js/city-sky.js csDisplay) use: exposure,
+  // then the sRGB curve, nothing else. NOT 'neutral': Khronos PBR Neutral subtracts the darkest channel from dark colours (up to
+  // 0.04 linear), which took the red out of every shaded surface: shade under the blue sky came out navy, (34, 64, 96) on pale
+  // concrete where the Blender render of the same light gives a grey-blue. Other choices: 'agx' | 'aces' | 'neutral'.
+  TONE_MAPPING: 'none',
   EXPOSURE: 1.0,
 
   // ── the light: the old app's day sky and Light B, in the same units (js/city-sky.js, TUNE.day / skyGain / sunStrength / LIGHTS.b) ──
@@ -32,13 +36,21 @@ export const LOOK = {
   HEMI_INTENSITY: 0.0,
 
   // ── shadows ──────────────────────────────────────────────────────────
-  SHADOW_MAP_SIZE: 2048,        // desktop
-  SHADOW_MAP_SIZE_PHONE: 1024,
-  SHADOW_EXTENT_M: 450,         // half-width of the square the sun's shadow covers, centred on the camera target
+  SHADOW_MAP_SIZE: 4096,        // desktop
+  SHADOW_MAP_SIZE_PHONE: 2048,
+  // The square the sun's shadow covers is fitted to the view: half-width = FIT x the camera's distance to its target, rounded to the
+  // nearest of a fixed ladder (MIN x STEP^k, up to MAX), so a shadow texel stays about the same size ON SCREEN at every distance
+  // (close views get fine, clean edges; the opening view still has shadows to its horizon). The ladder means the texel size only
+  // changes in whole steps, with HYSTERESIS, never continuously: a zoom changes it once, a pan or a turn never does.
+  SHADOW_FIT: 0.8,
+  SHADOW_EXTENT_MIN_M: 90,
+  SHADOW_EXTENT_MAX_M: 1100,
+  SHADOW_EXTENT_STEP: Math.SQRT2,
+  SHADOW_EXTENT_HYSTERESIS: 0.2,
   SHADOW_STEP_TEXELS: 32,       // the shadow box moves in whole steps of this many shadow texels: it never slides, so it never shimmers
-  SHADOW_BIAS: -0.0004,
-  SHADOW_NORMAL_BIAS: 0.6,
-  SHADOW_RADIUS: 2,             // PCF softness
+  SHADOW_BIAS_M: 0.08,          // depth bias in metres along the sun (converted to the shadow camera's depth range)
+  SHADOW_NORMAL_BIAS_TEXELS: 1.2,   // normal offset in shadow texels (so it shrinks with the texel: no light leaking under thin parts)
+  SHADOW_RADIUS: 1.25,          // PCF softness, in texels
 
   // ── haze / distance ──────────────────────────────────────────────────
   // The old app's day haze (js/sky.js HAZE: DIST.day 3200, MAX.day 0.62): a surface d metres away is MAX x (1 - e^(-d/DIST)) of
