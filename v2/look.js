@@ -74,8 +74,10 @@ export const LOOK = {
   SIDEWALK_WIDTH_M: 2.2,
 
   // ── plain buildings (the extrusions the Blender models replace) ─────
-  BUILDING_WALL: '#7d7a73',     // linear ~0.20: a little above the builders' white paint, so the plain city reads pale
-  BUILDING_ROOF: '#6f6c66',
+  // linear ~0.15 / ~0.12: under the Standard view (#512) the old 0.20 / 0.16 (#7d7a73 / #6f6c66, picked under Neutral's highlight
+  // compression) washed sunlit walls out to near white; these sit just under the builders' white paint (0.17), as a plain wall should
+  BUILDING_WALL: '#6c6a65',
+  BUILDING_ROOF: '#615f5a',
   BUILDING_TINT: 0.25,          // how much of the surveyed wall / roof HUE each extrusion takes (its brightness stays the plain one)
   BUILDING_ROUGHNESS: 0.92,
 
