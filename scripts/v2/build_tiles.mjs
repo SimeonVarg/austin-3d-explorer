@@ -33,7 +33,9 @@ const TILE_M = 250;
 const FAR_SIMPLIFY_RATIO = 0.5;      // lod1 keeps at most this share of triangles...
 const FAR_SIMPLIFY_ERROR = 0.002;    // ...and moves no surface by more than this share of the tile's size (0.002 x ~250 m = 0.5 m)
 const MESHOPT_LEVEL = 'high';     // filter mode (octahedral normals etc.): about a fifth smaller than 'medium', keeps the dense West Campus tile under the phone line
-const QUANT = { quantizePosition: 14, quantizeNormal: 10, quantizeTexcoord: 12 };  // 14 bits over a ~260 m tile = 1.6 cm
+// 14 bits over a ~260 m tile = 1.6 cm; 16 bits = 0.4 cm. At 1.6 cm the builders' layered surfaces (field markings, painted aisles, seat blocks laid
+// 1-3 cm over each other) land on the same step and fight for the pixel: the end zones, lettering and aisle bands were lost that way (2026-10-18).
+const QUANT = { quantizePosition: +(process.env.V2_QUANT_BITS || 16), quantizeNormal: 10, quantizeTexcoord: 12 };
 // A near tile over this is reported. Why 2 MB: a phone on cellular (~5-10 Mbit/s) fetches it in 2-3 s, and its decoded vertex and index
 // buffers (about 3-4x the Meshopt file) stay under ~8 MB of GPU memory, so the dozen or so tiles around the camera fit the phone's budget
 // (the iPhone has already lost the live page twice for memory). Far tiles are a tenth of that.
@@ -41,7 +43,9 @@ const PHONE_TILE_LIMIT_MB = 2.0;
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '../..');
-const OUT = path.join(REPO, 'v2/tiles');
+// V2_TILES_DIR / V2_APP_COPY: a trial run writes v2/<dir>/ (and reads another app_copy json) so a variant can be looked at in the app with ?manifest=./<dir>/manifest.json
+const TILES_DIR = process.env.V2_TILES_DIR || 'tiles';
+const OUT = path.join(REPO, 'v2', TILES_DIR);
 const CACHE = process.env.V2_CACHE || path.join(os.homedir(), 'flyover-private/v2-tiles-cache');
 const EXPORT = path.join(CACHE, 'export');
 const PY = process.env.PY || path.join(os.homedir(), 'miniforge3/envs/utx/bin/python3');
@@ -83,7 +87,7 @@ const SRC = path.join(CACHE, 'sources.json');
 }
 const sources = readJSON(SRC, {});
 // builds that get an app copy (scripts/v2/app_copy.json: slug -> { triangles, crease_deg, site }); their copies live in $V2_CACHE/export/app
-const APP_COPY = readJSON(path.join(HERE, 'app_copy.json'), {});
+const APP_COPY = readJSON(process.env.V2_APP_COPY || path.join(HERE, 'app_copy.json'), {});
 const APP_DIR = path.join(EXPORT, 'app');
 const APPMASS_DIR = path.join(EXPORT, 'appmass');     // the app copy without its ground: the far mass is made from it
 fs.mkdirSync(APP_DIR, { recursive: true }); fs.mkdirSync(APPMASS_DIR, { recursive: true });
@@ -224,6 +228,11 @@ async function partDoc(slugs, lod, part) {
   if (lod === 1) steps.push(weld(), simplify({ simplifier: MeshoptSimplifier, ratio: FAR_SIMPLIFY_RATIO, error: FAR_SIMPLIFY_ERROR }));
   steps.push(palette({ min: 2 }), flatten(), join({ keepNamed: false }), prune());
   await doc.transform(...steps);
+  // The builders' faces are wound either way (Blender draws both sides, so nobody saw it): on 280 of 304 builds some faces that look at the sky are
+  // wound downward, DKR's whole seat rake among them. Drawn single-sided those are culled and the viewer looks through them at what lies beneath
+  // (2026-10-18: DKR's bowl was the concrete under the seats, Moody's roof a hole). The opaque part is drawn double-sided; three flips the normal of
+  // a back face, so the light is right.
+  if (part === 'opaque') for (const mt of doc.getRoot().listMaterials()) mt.setDoubleSided(true);
   for (const m of doc.getRoot().listMeshes()) m.setName(part);
   for (const n of doc.getRoot().listNodes()) n.setName(part);
   return doc;
@@ -281,7 +290,7 @@ const manifest = {
   tiles: Object.keys(tiles).sort().map((t) => {
     const [, i, j] = t.match(/^t_(-?\d+)_(-?\d+)$/).map(Number);
     const l1 = Math.min(...tiles[t].map((b) => (APP_COPY[b] && APP_COPY[b].lod1_m) || Infinity));   // a build with a fine repeat (fins) asks for its far file sooner
-    return { id: t, bounds: [i * TILE_M, j * TILE_M, (i + 1) * TILE_M, (j + 1) * TILE_M], lod0: `tiles/${t}.glb`, lod1: `tiles/${t}.far.glb`, ...(Number.isFinite(l1) ? { lod1_m: l1 } : {}), buildings: tiles[t],
+    return { id: t, bounds: [i * TILE_M, j * TILE_M, (i + 1) * TILE_M, (j + 1) * TILE_M], lod0: `${TILES_DIR}/${t}.glb`, lod1: `${TILES_DIR}/${t}.far.glb`, ...(Number.isFinite(l1) ? { lod1_m: l1 } : {}), buildings: tiles[t],
       bytes: [tileInfo[t].near.bytes, tileInfo[t].far.bytes] };
   }),
   buildings: Object.fromEntries(inTiles.sort().map((s) => [s, { tile: sources[s].tile, map_ids: [...new Set([...sources[s].map_ids, ...((place[s] && place[s].hides) || [])])], name: sources[s].name, model: sources[s].model,
