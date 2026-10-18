@@ -14,7 +14,9 @@ export const LOOK = {
   // then the sRGB curve, nothing else. NOT 'neutral': Khronos PBR Neutral subtracts the darkest channel from dark colours (up to
   // 0.04 linear), which took the red out of every shaded surface: shade under the blue sky came out navy, (34, 64, 96) on pale
   // concrete where the Blender render of the same light gives a grey-blue. Other choices: 'agx' | 'aces' | 'neutral'.
-  TONE_MAPPING: 'none',
+  // 'standard' = the same, with a soft shoulder above TONE_SHOULDER (linear) so sunlit whites roll off instead of clipping flat.
+  TONE_MAPPING: 'standard',
+  TONE_SHOULDER: 0.8,
   EXPOSURE: 1.0,
 
   // ── the light: the old app's day sky and Light B, in the same units (js/city-sky.js, TUNE.day / skyGain / sunStrength / LIGHTS.b) ──
@@ -76,6 +78,27 @@ export const LOOK = {
   BUILDING_ROOF: '#6f6c66',
   BUILDING_TINT: 0.25,          // how much of the surveyed wall / roof HUE each extrusion takes (its brightness stays the plain one)
   BUILDING_ROUGHNESS: 0.92,
+
+  // ── facades on the plain buildings (the old app's look: windows, storeys) ──
+  // Windows are drawn in the shader from each wall's [bay, storey] coordinates (city-worker.js). They are FILTERED, not faded:
+  // each window's coverage is averaged exactly over the pixel's footprint on the wall (a box filter, from the screen derivatives),
+  // so close up a window is a sharp rectangle and far away a wall becomes its true average of glass and wall, with nothing in
+  // between that can flicker in motion (rule 15). Past FADE_PX the remaining ripple is faded to that average.
+  FACADE: {
+    ON: true,
+    BAY_M: 3.4,                 // window bay width (a wall gets round(length / BAY_M) equal bays)
+    MIN_WALL_M: 2.2,            // shorter walls (curved outlines' small steps) get no windows
+    MIN_HEIGHT_M: 5,            // shorter buildings (sheds, canopies) get none
+    STOREYS: [[13, 3.2], [40, 3.4], [1e9, 3.8]],   // [building height up to, storey height]: houses, mid-rises, towers
+    WINDOW_W: 0.52,             // window width, share of the bay (centred)
+    WINDOW_H: 0.5,              // window height, share of the storey
+    SILL: 0.3,                  // sill height, share of the storey
+    GLASS: '#28323c',           // window glass (linear ~0.02): dark, the sky's mirror adds the rest
+    GLASS_ROUGHNESS: 0.25,
+    BAND: 0.07,                 // a slab line at each floor, share of the storey (0 = none)
+    BAND_SHADE: 0.82,           // the slab line's colour = the wall x this
+    FADE_PX: [0.22, 0.45],      // footprint (bays or storeys per pixel) over which the pattern fades to its average: gone before a bay is 2 px
+  },
 
   // ── trees ────────────────────────────────────────────────────────────
   TREE_CROWN: '#33482a',
