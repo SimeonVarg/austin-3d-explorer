@@ -37,3 +37,44 @@ export const GROUND_LOOK = {
   ANISOTROPY: 16,               // capped by the graphics card
   HIDE_RIBBONS: true,           // the photograph has the real roads and paths, so the drawn road/sidewalk bands go once it is in
 };
+
+export const STREET_LOOK = {
+  // ── fades (rule 15: thin things go before they get thinner than a pixel; the aerial carries the same paint beyond) ──
+  FADE: { flat: [260, 380], up: [320, 520] },          // metres from the camera: [full, gone]
+  FADE_PHONE: { flat: [200, 300], up: [240, 400] },
+  // ── paint and curbs ──
+  PAINT: '#a9a8a2',             // road paint as albedo on v2's scale (white paint 0.17 is the builders' wall white; paint reads a step brighter)
+  PAINT_LIFT_M: 0.02,
+  CURB: '#8f8c84',
+  CURB_HEIGHT_M: 0.15,
+  CURB_TOP_M: 0.3,
+  PAD: '#7b3a2c',               // the City's ramps record brick-red or metal warning pads
+  PAD_M: [1.2, 0.6],
+  // ── signals ──
+  SIGNAL_METAL: '#4a4c4d',
+  SIGNAL_HEAD: '#1d1e1f',
+  SIGNAL_POLE_M: 6.4,
+  SIGNAL_ARM_Y_M: 6.0,
+  SIGNAL_HEADS_AT: [0.55, 0.92],   // along the mast arm
+  // ── lamps ──
+  LAMP_METAL: '#3e4143',
+  LAMP_HEAD: '#55595c',
+  LAMP_MAST_M: 9.0,
+  LANTERN_POST_M: 4.0,
+  LANTERN_GLASS: '#d9d2bd',
+};
+
+export const TREE_LOOK = {
+  // v2's own tree look (look.js TREE_*: crown '#33482a', +-12 % lightness, crown = 62 % of the height), kept, with a colour and a shape
+  // per species group. radius = x the baked crown radius; minAspect = the crown is at least this x radius tall.
+  GROUPS: {
+    oak:       { shape: 'round', color: '#33482a', radius: 1.15, crownShare: 0.62, minAspect: 1.1 },   // live oaks: broad, dark
+    broadleaf: { shape: 'round', color: '#3d5530', radius: 1.1, crownShare: 0.66, minAspect: 1.3 },    // elms, pecans, ashes
+    small:     { shape: 'round', color: '#4a5d34', radius: 1.0, crownShare: 0.7, minAspect: 1.4 },     // crape myrtle, redbud, yaupon
+    conifer:   { shape: 'cone', color: '#2c3d2a', radius: 1.0, crownShare: 0.85, minAspect: 2.2 },     // cedars, cypress
+    palm:      { shape: 'round', color: '#4f6436', radius: 0.9, crownShare: 0.22, minAspect: 0.6 },
+  },
+  LIGHTNESS_VARIATION: 0.12,
+  HUE_VARIATION: 0.02,
+  TRUNK: '#3a3027',
+};

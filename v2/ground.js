@@ -13,15 +13,18 @@
 // The photograph is January: long shadows and leaning roofs are in its pixels. The shader lifts the shadows where a baked mask
 // (mask.png: R = the photograph's building shadows, G = round tall buildings) agrees, and only on dark pixels.
 //
-// Hook (main.js): installGround({ THREE, scene, camera, renderer, city, redraw, phone }). Everything else lives in this file.
+// Hook (main.js): installGround({ THREE, scene, camera, renderer, city, redraw, phone }); it also installs street.js (the furniture).
 import { toLocal } from './geo.js';
 import { GROUND_LOOK as G } from './street-look.js';
+import { installStreet } from './street.js';
 
 const params = new URLSearchParams(location.search);
 const DATA = new URL('./data/aerial/', import.meta.url).href;
 
 export function installGround({ THREE, scene, camera, renderer, city, redraw, phone = false }) {
   addCredits();
+  // the street furniture (street.js) comes with the ground, so main.js keeps one hook
+  try { installStreet({ THREE, scene, redraw, phone }); } catch (e) { console.warn('[v2 street]', e.message); }
   if (!G.ON || params.get('aerial') === '0') return null;
 
   const LOD = +(params.get('aeriallod') || (phone ? G.LOD_FACTOR_PHONE : G.LOD_FACTOR));
