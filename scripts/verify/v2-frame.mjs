@@ -11,6 +11,8 @@
  *     780x1688), CPU throttled 4x through CDP (the repo's simulated phone). Views: the opening view, DKR Memorial Stadium close, West Campus.
  *   - one fresh page per (arm, rep); the arms are rotated each rep; every view waits for all tiles to settle, then 1.5 s, then 4 s of orbit
  *     (0.15 degrees a frame). Reported: the MINIMUM over reps of each rep's median interval (and the minimum p95), never one reading.
+ *   - --q "aerial=0|" compares page queries (here: the aerial ground off, then on): every rep runs every variant on a fresh page,
+ *     the order rotated each rep, so the A/B is interleaved. A view waits for the aerial ground too (window.__v2ground) when it is there.
  *   - The v2 app has no graphics auto-detect probe (that is the old app's `cancelGraphicsAutoDetect`), so there is nothing to cancel.
  */
 import { chromium } from 'playwright-core';
@@ -19,6 +21,8 @@ import { launch, BASE, HW_ARGS } from './chrome.mjs';
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i < 0 ? d : (process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : true); };
 const UNCAPPED = process.argv.includes('--uncapped');
 const REPS = +arg('--reps', 3), MS = +arg('--ms', 4000);
+const QARG = arg('--q', '');
+const VARIANTS = (typeof QARG === 'string' ? QARG : '').split('|');
 const ARMS = [
   { name: 'desktop 1440x900@2, CPU x1', w: 1440, h: 900, dpr: 2, cpu: 1, mobile: false },
   { name: 'phone 390x844@3, CPU x4', w: 390, h: 844, dpr: 3, cpu: 4, mobile: true },
@@ -27,6 +31,7 @@ const VIEWS = [
   { name: 'opening view', pose: null },
   { name: 'DKR close', slug: 'dkr-memorial-stadium', distance: 330, polar: 58, azimuth: 235 },
   { name: 'West Campus (The Venue)', slug: 'the-venue', distance: 380, polar: 55, azimuth: 30 },
+  { name: 'street level (Guadalupe at 21st)', xz: [-252, 246], distance: 45, polar: 80, azimuth: 355 },
 ];
 const args = [...HW_ARGS, ...(UNCAPPED ? ['--disable-gpu-vsync', '--disable-frame-rate-limit'] : [])];
 const browser = await launch(chromium, { args, maxMs: 1500000 });
@@ -35,19 +40,26 @@ let renderer = '';
 for (let rep = 0; rep < REPS; rep++) {
   const order = rep % 2 ? [...ARMS].reverse() : ARMS;
   for (const arm of order) {
+   const vorder = VARIANTS.map((_, i) => VARIANTS[(i + rep) % VARIANTS.length]);
+   for (const variant of vorder) {
     const ctx = await browser.newContext({ viewport: { width: arm.w, height: arm.h }, deviceScaleFactor: arm.dpr, isMobile: arm.mobile, hasTouch: arm.mobile });
     const page = await ctx.newPage();
     const errs = []; page.on('pageerror', (e) => errs.push(e.message));
     if (arm.cpu > 1) { const c = await ctx.newCDPSession(page); await c.send('Emulation.setCPUThrottlingRate', { rate: arm.cpu }); }
-    await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0`, { waitUntil: 'load', timeout: 120000 });
+    await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0${variant ? '&' + variant : ''}`, { waitUntil: 'load', timeout: 120000 });
     await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 120000 });
     await page.evaluate(() => window.__v2.ready);
     const man = await page.evaluate(() => fetch('./tiles/manifest.json').then((r) => r.json()));
     if (!renderer) renderer = await page.evaluate(() => { const g = window.__v2.renderer.getContext(); const e = g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER); });
     for (const v of VIEWS) {
       if (v.slug) { const b = man.buildings[v.slug]; await page.evaluate(([x, z, d, p, a]) => window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }), [b.x, b.z, v.distance, v.polar, v.azimuth]); }
+      if (v.xz) await page.evaluate(([x, z, d, p, a]) => window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }), [v.xz[0], v.xz[1], v.distance, v.polar, v.azimuth]);
       let calm = 0; const t0 = Date.now();
-      while (calm < 3 && Date.now() - t0 < 180000) { const s = await page.evaluate(() => window.__v2.tiles()); calm = s && s.loading === 0 ? calm + 1 : 0; await page.waitForTimeout(700); }
+      while (calm < 3 && Date.now() - t0 < 180000) {
+        const s = await page.evaluate(() => { window.__v2.redraw(); const g = window.__v2ground && window.__v2ground.stats(); return { t: window.__v2.tiles(), g }; });
+        const groundCalm = !s.g || s.g.failed || (s.g.index && s.g.missing === 0 && s.g.loading === 0 && s.g.waitingUpload === 0);
+        calm = s.t && s.t.loading === 0 && groundCalm ? calm + 1 : 0; await page.waitForTimeout(700);
+      }
       await page.waitForTimeout(1500);
       const m = await page.evaluate((ms) => window.__v2.measure(ms, 0.15), MS);
       // GPU-synchronous cost: 90 renders, each followed by a 1-pixel read that waits for the GPU (an uncapped rAF only times the CPU's submit rate).
@@ -61,19 +73,20 @@ for (let rep = 0; rep < REPS; rep++) {
         }
         ts.sort((a, b) => a - b); return { median: ts[n >> 1], p95: ts[Math.floor(n * 0.95)] };
       }, 90);
-      (rec[`${arm.name}|${v.name}`] ||= []).push({ sync, median: m.medianFrameMs, p95: m.p95FrameMs, cpu: m.medianRenderCallMs, calls: m.calls, triangles: m.triangles, frames: m.frames, size: m.size });
+      (rec[`${arm.name}|${variant || '(default)'}|${v.name}`] ||= []).push({ sync, median: m.medianFrameMs, p95: m.p95FrameMs, cpu: m.medianRenderCallMs, calls: m.calls, triangles: m.triangles, frames: m.frames, size: m.size });
     }
     if (errs.length) console.log('page errors:', errs.slice(0, 3));
     await ctx.close();
+   }
   }
 }
 await browser.close();
 const f = (x) => (x == null ? 'n/a' : x.toFixed(1));
 console.log(`renderer: ${renderer}`);
 console.log(`instrument: ${UNCAPPED ? 'vsync and frame-rate limit OFF (real cost per frame)' : 'rAF at the 60 Hz cap (16.7 ms floor)'}; ${REPS} reps, arms rotated, ${MS} ms orbit at 0.15 deg/frame, min of per-rep medians`);
-console.log('arm | view | rAF min median ms | rAF min p95 ms | rAF reps (medians) | GPU-synced render min median ms (p95) | draw calls | triangles | canvas');
+console.log('arm | query | view | rAF min median ms | rAF min p95 ms | rAF reps (medians) | GPU-synced render min median ms (p95) | draw calls | triangles | canvas');
 for (const [k, rows] of Object.entries(rec)) {
-  const [arm, view] = k.split('|');
-  console.log(`${arm} | ${view} | ${f(Math.min(...rows.map((r) => r.median)))} | ${f(Math.min(...rows.map((r) => r.p95)))} | ${rows.map((r) => f(r.median)).join(' / ')} | ${f(Math.min(...rows.map((r) => r.sync.median)))} (${f(Math.min(...rows.map((r) => r.sync.p95)))}; reps ${rows.map((r) => f(r.sync.median)).join(' / ')}) | ${rows[0].calls} | ${rows[0].triangles} | ${rows[0].size.join('x')}`);
+  const [arm, variant, view] = k.split('|');
+  console.log(`${arm} | ${variant} | ${view} | ${f(Math.min(...rows.map((r) => r.median)))} | ${f(Math.min(...rows.map((r) => r.p95)))} | ${rows.map((r) => f(r.median)).join(' / ')} | ${f(Math.min(...rows.map((r) => r.sync.median)))} (${f(Math.min(...rows.map((r) => r.sync.p95)))}; reps ${rows.map((r) => f(r.sync.median)).join(' / ')}) | ${rows[0].calls} | ${rows[0].triangles} | ${rows[0].size.join('x')}`);
 }
 if (/swiftshader/i.test(renderer)) { console.log('*FAIL: software renderer'); process.exit(1); }

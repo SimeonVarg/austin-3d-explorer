@@ -1,0 +1,35 @@
+{
+ "about": "Low-zoom City of Austin 2025 aerial for the v2 ground (scripts/v2/street_aerial.py). Not endorsed by the City of Austin.",
+ "source": "City of Austin, Texas: 2025 aerial imagery (6 inch, January 2025)",
+ "licence": "City of Austin Open Data Terms of Use: free and without restriction; credit requested",
+ "live": "https://maps.austintexas.gov/image/rest/services/MapTiled/AerialImagery_WebMercator/MapServer/tile/{z}/{y}/{x}",
+ "scheme": "xyz web mercator, 256 px, files at {z}/{y}/{x}.jpg",
+ "levels": {
+  "13": {
+   "x0": 1869,
+   "x1": 1874,
+   "y0": 3369,
+   "y1": 3375
+  },
+  "15": {
+   "x0": 7483,
+   "x1": 7491,
+   "y0": 13485,
+   "y1": 13494
+  },
+  "16": {
+   "x0": 14971,
+   "x1": 14977,
+   "y0": 26975,
+   "y1": 26985
+  }
+ },
+ "mask": {
+  "file": "mask.png",
+  "x0": -1800,
+  "z0": -1500,
+  "x1": 1401.0,
+  "z1": 3702.0,
+  "about": "R = the photograph's building shadows, G = round tall buildings (leaning roofs); scripts/v2/street_mask.py"
+ }
+}
