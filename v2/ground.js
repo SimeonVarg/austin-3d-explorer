@@ -224,14 +224,22 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
     state.selected = out;
   }
   function show() {
-    const want = new Set();
+    const want = new Set(), keep = new Set();
     const now = performance.now();
     for (const n of state.selected) {
       if (n.state === 'fail-soft' && !LIVE_OFF && now - n.failAt > G.LIVE_PAUSE_MS) n.state = 'none';   // the City's server gets another try
       if (n.state === 'none') { n.state = 'queued'; state.queue.push(n); }
       // draw it if it is in; otherwise its nearest ancestor that is (finer levels draw over coarser ones)
       let a = n;
-      while (a && a.state !== 'ready') a = parentOf(a);
+      while (a && a.state !== 'ready') {
+        // a baked ancestor (z16, z15) is asked for too: it covers the wait for the live tiles, and it is the picture when the City's
+        // server is down (without this the floor was the z13 root, 16 m a pixel: measured with ?aeriallive=0, 2026-10-18)
+        if (a !== n && baked(a.z, a.x, a.y) && (a.state === 'none' || a.state === 'queued')) {
+          if (a.state === 'none') { a.state = 'queued'; state.queue.push(a); }
+          a.d = Math.min(a.d || Infinity, n.d); keep.add(a);
+        }
+        a = parentOf(a);
+      }
       if (a) want.add(a);
     }
     for (const n of state.shown) if (!want.has(n) && n.mesh) n.mesh.visible = false;
@@ -241,7 +249,7 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
     // queued tiles no longer wanted are dropped from the queue (they are asked for again when they are)
     const sel = new Set(state.selected);
     const root0 = state.levels[0];
-    state.queue = state.queue.filter((n) => { if (sel.has(n) || n.z === root0) return true; n.state = 'none'; return false; });
+    state.queue = state.queue.filter((n) => { if (sel.has(n) || keep.has(n) || n.z === root0) return true; n.state = 'none'; return false; });
   }
 
   // ── per frame: scene.onBeforeRender runs at the start of every render of the city, after the camera's matrices are updated and
