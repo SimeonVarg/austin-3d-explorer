@@ -206,7 +206,19 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   // the near layer is street level: off when the camera is high (nothing of it would show, and it saves the draws)
   const prev = scene.onBeforeRender;
   let cam = null;
-  scene.onBeforeRender = function (r, s, c, t) { prev.call(this, r, s, c, t); if (!t) { cam = c; group.visible = c.position.y < N.MAX_CAMERA_Y_M; } };
+  // and a 250 m square whose nearest point is past the fade is not drawn at all (measured: 330 extra draws at street level without this)
+  const cs = new THREE.Vector3();
+  scene.onBeforeRender = function (r, s, c, t) {
+    prev.call(this, r, s, c, t);
+    if (t) return;
+    cam = c; group.visible = c.position.y < N.MAX_CAMERA_Y_M;
+    if (!group.visible) return;
+    for (const m of group.children) {
+      if (m.isInstancedMesh || !m.geometry.boundingSphere) continue;
+      cs.copy(m.geometry.boundingSphere.center);
+      m.visible = cs.distanceTo(c.position) - m.geometry.boundingSphere.radius < FADE[1];
+    }
+  };
 
   const api = { stats: () => ({ ...stats, visible: group.visible }), group };
   window.__v2near = api;
