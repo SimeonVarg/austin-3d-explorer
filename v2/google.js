@@ -515,6 +515,7 @@ export function install(v2) {
   let lastCam = new THREE.Matrix4(), lastAttr = 0;
   function tick(now) {
     requestAnimationFrame(tick);
+    if (now - (S.lastLayout || 0) > 500) { S.lastLayout = now; ui.layout(); }
     if (!S.on || !S.tiles) return;
     camera.updateMatrixWorld();
     const moved = !lastCam.equals(camera.matrixWorld);
@@ -640,8 +641,20 @@ function makeUI({ onKey, onForget, onToggle }) {
     else if (a === 'forget') { open = false; onForget(); }
   });
   root.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'g3d-key') root.querySelector('[data-a="save"]').click(); });
+  // keep clear of the page's own credits footer (#credits): Google's logo and credits must not be overlapped by another
+  // attribution, so the column sits above the footer wherever the two would meet
+  function layout() {
+    const c = document.getElementById('credits');
+    let bottom = '';
+    if (c && c.getClientRects().length && getComputedStyle(c).visibility !== 'hidden') {
+      const r = c.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+      if (r.width && r.left < w.right + 8 && r.right > w.left - 8) bottom = `${Math.ceil(innerHeight - r.top + 4)}px`;
+    }
+    if (wrap.style.bottom !== bottom) wrap.style.bottom = bottom;
+  }
+  addEventListener('resize', layout);
   return {
-    render,
+    render, layout,
     attr(list) { const s = list.length ? list.join('; ') : 'Google'; if (dataEl.textContent !== s) { dataEl.textContent = s; dataEl.title = s; } },
   };
 }

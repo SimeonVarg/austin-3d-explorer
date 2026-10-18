@@ -195,6 +195,13 @@ async function open(q, { key = null, block = true } = {}) {
   const logo = await page.locator('#gattr .logo').boundingBox();
   check(logo && logo.height - 15 >= 16 - 1 && logo.height - 15 <= 19 + 1, `attribution: logo ${logo && (logo.height - 15).toFixed(1)} px high (16 to 19) with its clear space`);
   await page.waitForTimeout(800);
+  // nothing may overlap Google's logo and credits, the page's own credits footer included
+  const clash = await page.evaluate(() => {
+    const c = document.getElementById('credits'); if (!c || !c.getClientRects().length) return 'no footer';
+    const a = c.getBoundingClientRect();
+    return [...document.querySelectorAll('#gattr .logo, #gattr .data')].some((e) => { const b = e.getBoundingClientRect(); return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top; }) ? 'overlap' : 'clear';
+  });
+  check(clash !== 'overlap', `attribution: the page's credits footer does not overlap Google's logo or credits (${clash})`);
   const attrText = await page.locator('#gattr .data').textContent();
   check(/Stand-in tiles; Flyover check|Flyover check; Stand-in tiles/.test(attrText), `attribution: the tiles' own credits shown in one line ("${attrText}")`);
 
