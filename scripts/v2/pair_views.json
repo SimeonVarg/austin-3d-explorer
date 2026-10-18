@@ -1,0 +1,116 @@
+{
+  "_about": "Camera poses for the pair sheets (Blender render of the build's .blend beside the live v2 app, same camera). pos and target are in the BUILD's own frame: metres, x east, y north, z up, origin = the footprint file's origin (the app places the model at manifest.buildings[slug].x/z, y up, z south). fov is the app's vertical 40 degrees.",
+  "fov_deg": 40,
+  "dkr-memorial-stadium": [
+    {
+      "name": "dkr-1-aerial-sw",
+      "pos": [
+        -187.2,
+        68.1,
+        167.1
+      ],
+      "target": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "dkr-2-north-stands-low",
+      "pos": [
+        30,
+        38,
+        17
+      ],
+      "target": [
+        30,
+        -100,
+        10
+      ]
+    },
+    {
+      "name": "dkr-3-field-to-sez",
+      "pos": [
+        30,
+        -38,
+        2.6
+      ],
+      "target": [
+        30,
+        -108,
+        11
+      ]
+    }
+  ],
+  "moody-center": [
+    {
+      "name": "moody-1-aerial-low",
+      "pos": [
+        -118.6,
+        169.3,
+        75.2
+      ],
+      "target": [
+        0,
+        0,
+        8
+      ]
+    }
+  ],
+  "ut-tower-main-building": [
+    {
+      "name": "tower-1-south-mall",
+      "pos": [
+        25,
+        -165,
+        28
+      ],
+      "target": [
+        0,
+        0,
+        48
+      ]
+    }
+  ],
+  "health-transformation-building": [
+    {
+      "name": "htb-1-aerial-sw",
+      "pos": [
+        -115.8,
+        115.8,
+        114.7
+      ],
+      "target": [
+        0,
+        0,
+        15
+      ]
+    },
+    {
+      "name": "htb-2-far-450",
+      "pos": [
+        -275.5,
+        275.5,
+        225
+      ],
+      "target": [
+        0,
+        0,
+        20
+      ]
+    },
+    {
+      "name": "htb-3-far-620",
+      "pos": [
+        -370,
+        370,
+        330
+      ],
+      "target": [
+        0,
+        0,
+        20
+      ]
+    }
+  ]
+}
