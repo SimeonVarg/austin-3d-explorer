@@ -50,7 +50,18 @@ for (let rep = 0; rep < REPS; rep++) {
       while (calm < 3 && Date.now() - t0 < 180000) { const s = await page.evaluate(() => window.__v2.tiles()); calm = s && s.loading === 0 ? calm + 1 : 0; await page.waitForTimeout(700); }
       await page.waitForTimeout(1500);
       const m = await page.evaluate((ms) => window.__v2.measure(ms, 0.15), MS);
-      (rec[`${arm.name}|${v.name}`] ||= []).push({ median: m.medianFrameMs, p95: m.p95FrameMs, cpu: m.medianRenderCallMs, calls: m.calls, triangles: m.triangles, frames: m.frames, size: m.size });
+      // GPU-synchronous cost: 90 renders, each followed by a 1-pixel read that waits for the GPU (an uncapped rAF only times the CPU's submit rate).
+      // The sun's shadow map is not refreshed here (the app refreshes it only in whole texel steps), so this is the steady-state frame.
+      const sync = await page.evaluate((n) => {
+        const { renderer, scene, camera, controls, THREE } = window.__v2; const gl = renderer.getContext(); const px = new Uint8Array(4); const ts = [];
+        const off = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+        for (let i = 0; i < n; i++) {
+          off.copy(camera.position).sub(controls.target).applyAxisAngle(up, THREE.MathUtils.degToRad(0.15)); camera.position.copy(controls.target).add(off); camera.lookAt(controls.target); camera.updateMatrixWorld();
+          const t = performance.now(); renderer.render(scene, camera); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); ts.push(performance.now() - t);
+        }
+        ts.sort((a, b) => a - b); return { median: ts[n >> 1], p95: ts[Math.floor(n * 0.95)] };
+      }, 90);
+      (rec[`${arm.name}|${v.name}`] ||= []).push({ sync, median: m.medianFrameMs, p95: m.p95FrameMs, cpu: m.medianRenderCallMs, calls: m.calls, triangles: m.triangles, frames: m.frames, size: m.size });
     }
     if (errs.length) console.log('page errors:', errs.slice(0, 3));
     await ctx.close();
@@ -60,9 +71,9 @@ await browser.close();
 const f = (x) => (x == null ? 'n/a' : x.toFixed(1));
 console.log(`renderer: ${renderer}`);
 console.log(`instrument: ${UNCAPPED ? 'vsync and frame-rate limit OFF (real cost per frame)' : 'rAF at the 60 Hz cap (16.7 ms floor)'}; ${REPS} reps, arms rotated, ${MS} ms orbit at 0.15 deg/frame, min of per-rep medians`);
-console.log('arm | view | min median ms | min p95 ms | reps (medians) | draw calls | triangles | canvas');
+console.log('arm | view | rAF min median ms | rAF min p95 ms | rAF reps (medians) | GPU-synced render min median ms (p95) | draw calls | triangles | canvas');
 for (const [k, rows] of Object.entries(rec)) {
   const [arm, view] = k.split('|');
-  console.log(`${arm} | ${view} | ${f(Math.min(...rows.map((r) => r.median)))} | ${f(Math.min(...rows.map((r) => r.p95)))} | ${rows.map((r) => f(r.median)).join(' / ')} | ${rows[0].calls} | ${rows[0].triangles} | ${rows[0].size.join('x')}`);
+  console.log(`${arm} | ${view} | ${f(Math.min(...rows.map((r) => r.median)))} | ${f(Math.min(...rows.map((r) => r.p95)))} | ${rows.map((r) => f(r.median)).join(' / ')} | ${f(Math.min(...rows.map((r) => r.sync.median)))} (${f(Math.min(...rows.map((r) => r.sync.p95)))}; reps ${rows.map((r) => f(r.sync.median)).join(' / ')}) | ${rows[0].calls} | ${rows[0].triangles} | ${rows[0].size.join('x')}`);
 }
 if (/swiftshader/i.test(renderer)) { console.log('*FAIL: software renderer'); process.exit(1); }
