@@ -13,6 +13,23 @@ import { TileStreamer, TILES } from './tiles.js';
 import { MapLite, MarkerLayer, MercatorCoordinate } from './maplite.js';
 
 const params = new URLSearchParams(location.search);
+
+// The haze (LOOK.HAZE_*), for every lit material: the old app's exponential day haze instead of three.js's linear fog. three.js
+// mixes fog into the colour AFTER tone mapping and the output encoding, so the haze colour gets the same tone map and encoding
+// here, and the far city meets the sky dome (drawn through the same two steps) at exactly the dome's colour.
+THREE.ShaderChunk.fog_fragment = /* glsl */`
+#ifdef USE_FOG
+  float hazeK = ${LOOK.HAZE_MAX.toFixed(4)} * (1.0 - exp(-vFogDepth / ${LOOK.HAZE_DIST_M.toFixed(1)}));
+  hazeK = mix(hazeK, 1.0, smoothstep(${LOOK.HAZE_EDGE_M[0].toFixed(1)}, ${LOOK.HAZE_EDGE_M[1].toFixed(1)}, vFogDepth));
+  #ifdef TONE_MAPPING
+    vec3 hazeC = toneMapping(fogColor);
+  #else
+    vec3 hazeC = fogColor;
+  #endif
+  hazeC = linearToOutputTexel(vec4(hazeC, 1.0)).rgb;
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, hazeC, hazeK);
+#endif
+`;
 const PHONE = matchMedia('(max-width: 600px), (pointer: coarse)').matches;
 
 // ── camera and controls (not taste: limits that keep the city usable) ──
@@ -114,11 +131,11 @@ const lin255 = (c) => { const k = new THREE.Color().setRGB(c[0] / 255, c[1] / 25
 const STOPS = LOOK.SKY_STOPS.map(([z, c]) => [z, lin255(c)]);
 const sunRGB = LOOK.SUN_STRENGTH.map((v) => v * LOOK.LIGHT_B.sun);
 const sunMax = Math.max(...sunRGB);
-function skyMaterial(scale, below, glow) {
+function skyMaterial(scale, below, glow, stops = STOPS) {
   return new THREE.ShaderMaterial({
     name: 'v2-sky',
     uniforms: {
-      sines: { value: STOPS.map((s) => s[0]) }, cols: { value: STOPS.map((s) => new THREE.Vector3(...s[1])) },
+      sines: { value: stops.map((s) => s[0]) }, cols: { value: stops.map((s) => new THREE.Vector3(...s[1])) },
       scale: { value: new THREE.Vector3(...scale) }, below: { value: new THREE.Vector3(...(below || [0, 0, 0])) },
       sunDir: { value: sunDir }, sunColor: { value: new THREE.Vector3(...sunRGB.map((v) => v / sunMax)) }, glow: { value: glow },
     },
@@ -150,11 +167,14 @@ function skyMaterial(scale, below, glow) {
   });
 }
 const domeScale = [LOOK.SKY_DOME_GAIN, LOOK.SKY_DOME_GAIN, LOOK.SKY_DOME_GAIN];
-const dome = new THREE.Mesh(new THREE.SphereGeometry(VIEW.FAR_M * 0.8, 48, 24), skyMaterial(domeScale, null, LOOK.SKY_SUN_GLOW * LOOK.SKY_DOME_GAIN));
+// The visible dome: below the horizon stop it is the horizon (= the haze colour), not the far land the LIGHT sees there, so the hazed
+// ground meets it without a band (the light keeps the far-land stops: walls still get the dark land's bounce).
+const domeStops = STOPS.map((s, i) => (i < 2 ? [s[0], STOPS[2][1]] : s));
+const dome = new THREE.Mesh(new THREE.SphereGeometry(VIEW.FAR_M * 0.8, 48, 24), skyMaterial(domeScale, null, LOOK.SKY_SUN_GLOW * LOOK.SKY_DOME_GAIN, domeStops));
 dome.renderOrder = -10; dome.frustumCulled = false;
 scene.add(dome);
 // fog = the dome's horizon, in the same (pre tone map) units
-scene.fog = new THREE.Fog(new THREE.Color().setRGB(...STOPS[2][1].map((v) => v * LOOK.SKY_DOME_GAIN), THREE.LinearSRGBColorSpace), LOOK.FOG_NEAR_M, LOOK.FOG_FAR_M);
+scene.fog = new THREE.Fog(new THREE.Color().setRGB(...STOPS[2][1].map((v) => v * LOOK.SKY_DOME_GAIN), THREE.LinearSRGBColorSpace), 1, VIEW.FAR_M);   // near/far unused: see fog_fragment above
 
 // the bounce: the ground (LIGHT_B.ground) lit by the sun and the sky, seen from a wall: radiance = albedo x irradiance / pi
 const skyLightScale = LOOK.SKY_GAIN.map((g) => g * LOOK.LIGHT_B.sky);
@@ -235,7 +255,8 @@ function followShadow() {
 
 // ── ground layers: flat, painted in order (no depth write, so nothing on the ground can z-fight) ──
 const ORDER = { GROUND: 0, ROADS: 1, SIDEWALKS: 2, ROUTE: 3 };
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(14000, 14000).rotateX(-Math.PI / 2),
+// the ground reaches past the far plane in every direction the camera can look from inside VIEW.BOUNDS: its edge is never seen
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(VIEW.FAR_M * 2 + 6000, VIEW.FAR_M * 2 + 6000).rotateX(-Math.PI / 2),
   new THREE.MeshStandardMaterial({ color: LOOK.GROUND, roughness: 1, metalness: 0, depthWrite: false }));
 ground.position.set(0, 0, 1000);
 ground.receiveShadow = true; ground.renderOrder = ORDER.GROUND;
