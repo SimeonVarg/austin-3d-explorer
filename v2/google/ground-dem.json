@@ -1,0 +1,24 @@
+{
+ "about": "Ground height for Google mode (v2/google.js): centimetres of bare-earth ground above the ground at the v2 origin, int16 little-endian, row-major, rows run south (+z) from z0, columns east (+x) from x0, one value per cell centre. NOT Google data. Written by scripts/v2/bake_ground_dem.py.",
+ "source": "StratMap Bexar & Travis Counties Lidar 2021, TxGIO, CC0-1.0",
+ "licence": "CC0-1.0 (public domain)",
+ "x0": -4600.0,
+ "z0": -4000.0,
+ "cell": 8.0,
+ "cols": 1150,
+ "rows": 1300,
+ "scanned_share": 0.7554,
+ "origin": {
+  "lat": 30.28601,
+  "lon": -97.73932,
+  "ground_navd88_m": 179.016,
+  "geoid18_n_m": -25.884,
+  "nad83_to_itrf_dh_m": -1.233,
+  "ground_ellipsoid_itrf_m": 151.899
+ },
+ "datum_notes": "ground_ellipsoid_itrf_m = NAVD88 ground + GEOID18 N (NAD83(2011) ellipsoid height) + the NAD83(2011) -> ITRF2014 height change (NGS 2016 Helmert, epoch 2024.0). Google tiles are in WGS84 ~ ITRF; this is the height Google mode puts at y = 0 before its own ground check.",
+ "range_cm": [
+  -5500,
+  3433
+ ]
+}

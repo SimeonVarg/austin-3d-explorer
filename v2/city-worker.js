@@ -41,11 +41,12 @@ const to8 = (c) => c.map((v) => Math.max(0, Math.min(255, Math.round(v * 255))))
 
 // ── a growable typed buffer set per tile ───────────────────────────────
 class Buf {
-  constructor() { this.pos = []; this.nrm = []; this.col = []; this.idx = []; this.ids = []; this.starts = []; this.counts = []; }
+  constructor() { this.pos = []; this.nrm = []; this.col = []; this.fac = []; this.idx = []; this.ids = []; this.starts = []; this.counts = []; }
   get n() { return this.pos.length / 3; }
   pack(withNormals = true) {
     const o = { pos: new Float32Array(this.pos), col: new Uint8Array(this.col), idx: new Uint32Array(this.idx) };
     if (withNormals) o.nrm = new Int8Array(this.nrm);
+    if (this.fac.length) o.fac = new Float32Array(this.fac);
     if (this.ids.length) { o.ids = this.ids; o.starts = new Uint32Array(this.starts); o.counts = new Uint32Array(this.counts); }
     return o;
   }
@@ -95,7 +96,11 @@ function polysOf(coords) {
 }
 
 // One prism: walls from y0 to y1 for every ring, a flat roof at y1. Indexed; flat normals per wall quad.
-function extrude(buf, rings, y0, y1, wallC, roofC) {
+// Facade coordinates (main.js draws the windows from them): per vertex [bay, storey]. A wall of length L holds
+// n = round(L / bay) equal bays, bay runs 0..n along it; storey = height / the building's storey height. A wall too short for
+// one bay, and every roof, gets [-1, -1]: no windows.
+let FAC_CLASS = 0;
+function extrude(buf, rings, y0, y1, wallC, roofC, storeyM) {
   if (y1 - y0 < 0.05) return;
   for (const r of rings) {
     for (let i = 0; i < r.length; i++) {
@@ -106,6 +111,10 @@ function extrude(buf, rings, y0, y1, wallC, roofC) {
       const b = buf.n;
       buf.pos.push(p[0], y0, p[1], q[0], y0, q[1], q[0], y1, q[1], p[0], y1, p[1]);
       for (let k = 0; k < 4; k++) { buf.nrm.push(nx, 0, nz); buf.col.push(...wallC); }
+      const bays = L >= LOOK.FACADE.MIN_WALL_M ? Math.max(1, Math.round(L / LOOK.FACADE.BAY_M)) : 0;
+      // the building's class rides in the bay coordinate's thousands (the shader splits it off): 1000 x class + bay
+      if (bays && storeyM) { const c = FAC_CLASS * 1000; buf.fac.push(c, y0 / storeyM, c + bays, y0 / storeyM, c + bays, y1 / storeyM, c, y1 / storeyM); }
+      else buf.fac.push(-1, -1, -1, -1, -1, -1, -1, -1);
       // (p0, p1, q0) and (q0, p1, q1): counter-clockwise seen from outside
       buf.idx.push(b, b + 3, b + 1, b + 1, b + 3, b + 2);
     }
@@ -116,7 +125,7 @@ function extrude(buf, rings, y0, y1, wallC, roofC) {
   try { tris = ShapeUtils.triangulateShape(contour, holes); } catch (e) { return; }
   const flat = rings.flat();
   const b = buf.n;
-  for (const p of flat) { buf.pos.push(p[0], y1, p[1]); buf.nrm.push(0, 127, 0); buf.col.push(...roofC); }
+  for (const p of flat) { buf.pos.push(p[0], y1, p[1]); buf.nrm.push(0, 127, 0); buf.col.push(...roofC); buf.fac.push(-1, -1); }
   for (const t of tris) {
     const A = flat[t[0]], B = flat[t[1]], C = flat[t[2]];
     // y of (B-A) x (C-A) = uz*vx - ux*vz; it must be positive (facing up)
@@ -143,7 +152,12 @@ async function buildBuildings() {
     const wallC = to8(wd ? mix(WALL, hueOf(wd, WALL), T) : WALL);
     const roofC = to8(rd ? mix(ROOF, hueOf(rd, ROOF), T) : ROOF);
     const start = buf.n;
-    for (const lv of levels) for (const rings of lv.polys) extrude(buf, rings, lv.y0, lv.y1, wallC, roofC);
+    // the storey height: the class of building by its height (LOOK.FACADE.STOREYS), then stretched so the top is a whole storey
+    const H = Math.max(...levels.map((lv) => lv.y1));
+    let ci = LOOK.FACADE.STOREYS.findIndex((c) => H <= c[0]); if (ci < 0) ci = LOOK.FACADE.STOREYS.length - 1;
+    const cls = LOOK.FACADE.STOREYS[ci]; FAC_CLASS = ci;
+    const storeyM = H >= LOOK.FACADE.MIN_HEIGHT_M ? H / Math.max(1, Math.round(H / cls[1])) : 0;
+    for (const lv of levels) for (const rings of lv.polys) extrude(buf, rings, lv.y0, lv.y1, wallC, roofC, storeyM);
     if (buf.n > start) { buf.ids.push(id); buf.starts.push(start); buf.counts.push(buf.n - start); }
   };
 
@@ -186,7 +200,7 @@ async function buildBuildings() {
   }
 
   const list = [], transfer = [];
-  for (const [key, buf] of out) { const o = buf.pack(); o.key = key; list.push(o); transfer.push(o.pos.buffer, o.nrm.buffer, o.col.buffer, o.idx.buffer, o.starts.buffer, o.counts.buffer); }
+  for (const [key, buf] of out) { const o = buf.pack(); o.key = key; list.push(o); transfer.push(o.pos.buffer, o.nrm.buffer, o.col.buffer, o.fac.buffer, o.idx.buffer, o.starts.buffer, o.counts.buffer); }
   postMessage({ type: 'buildings', tiles: list }, transfer);
   return { campus: nCampus, downtown: nDown, downtownDropped: nDup, lidarHeights: nLidar, tiles: list.length };
 }

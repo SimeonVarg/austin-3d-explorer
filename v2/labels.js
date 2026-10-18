@@ -103,7 +103,7 @@ export class Labels {
 export function blenderItems(manifest) {
   // A name that ends in the map outline's id, "Gabled walk-up (07ebbe8f)", is the builders' description of a building nobody has
   // named: it is not a name, so it gets no label.
-  const working = (n) => /\([0-9a-f]{8}\)\s*$/i.test(String(n));
+  const working = (n) => /\(?\b[0-9a-f]{8}\b\)?\s*$/i.test(String(n)) && /[0-9]/.test(String(n).slice(-8));
   return Object.entries(manifest?.buildings || {}).filter(([, b]) => b.name && !working(b.name))
     .map(([slug, b]) => ({ id: slug, name: b.name, kind: 'blender', x: b.x, z: b.z, y: (b.top || 20) + 4, top: b.top || 0 }));
 }
