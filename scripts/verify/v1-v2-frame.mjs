@@ -16,8 +16,16 @@
  *     v1's 58): the opening flight's landing, DKR close, West Campus. Each waits for the app to settle (v1: map idle; v2: tiles
  *     settled), then 1.5 s, then MS ms turning 0.15 degrees a frame. Reported: the MINIMUM over reps of each rep's median interval.
  */
+import fs from 'node:fs';
 import { chromium } from 'playwright-core';
 import { launch, BASE, HW_ARGS } from './chrome.mjs';
+
+// The AWS GPU runner (scripts/aws-gpu/user-data) stops the machine after 20 minutes with no heartbeat, and it beats only between
+// checks. This one check runs longer than that (two apps, two arms, three reps, run one after another on purpose: timing checks must
+// not share the GPU), so it feeds the heartbeat itself while it works. Elsewhere the file does not exist and this does nothing.
+const HEARTBEAT = '/opt/flyover/heartbeat';
+const beat = setInterval(() => { try { if (fs.existsSync(HEARTBEAT)) { const t = new Date(); fs.utimesSync(HEARTBEAT, t, t); } } catch (e) {} }, 60000);
+beat.unref();
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i < 0 ? d : (process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : true); };
 const UNCAPPED = process.argv.includes('--uncapped');
