@@ -1493,13 +1493,15 @@
    ],
    "lod0": "tiles/t_1_3.glb",
    "lod1": "tiles/t_1_3.far.glb",
+   "lod1_m": 400,
    "buildings": [
     "health-discovery-building",
+    "health-transformation-building",
     "unidentified-ut-878d9137"
    ],
    "bytes": [
-    330428,
-    12388
+    784376,
+    20472
    ]
   },
   {
@@ -2644,6 +2646,18 @@
    "x": 443.865,
    "z": 900.923,
    "top": 42.1
+  },
+  "health-transformation-building": {
+   "tile": "t_1_3",
+   "map_ids": [
+    "866e9c84",
+    "w516282874"
+   ],
+   "name": "Health Transformation Building",
+   "model": "opus",
+   "x": 399.488,
+   "z": 982.276,
+   "top": 45.5
   },
   "hilltop": {
    "tile": "t_-4_-2",

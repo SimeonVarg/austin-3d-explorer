@@ -12,6 +12,12 @@ sc = bpy.context.scene
 sc.render.engine = 'CYCLES'; sc.cycles.samples = samples; sc.cycles.use_denoising = True; sc.cycles.device = 'CPU'
 sc.render.resolution_x = W; sc.render.resolution_y = H; sc.render.resolution_percentage = 100
 sc.render.image_settings.file_format = 'PNG'
+# objects the app draws itself (neighbours, scripts/v2/export_skip.json) are left out of the render too, as they are of the tile
+import re
+_skip = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'export_skip.json'))).get(slug)
+if _skip:
+    for ob in bpy.data.objects:
+        if re.search(_skip, ob.name): ob.hide_render = True
 cam_data = bpy.data.cameras.new('pair_cam'); cam = bpy.data.objects.new('pair_cam', cam_data); sc.collection.objects.link(cam)
 cam_data.sensor_fit = 'VERTICAL'; cam_data.angle_y = math.radians(fov); cam_data.clip_start = 0.3; cam_data.clip_end = 6000
 sc.camera = cam

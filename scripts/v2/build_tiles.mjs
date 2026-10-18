@@ -99,7 +99,12 @@ const massDirOf = (s) => (APP_COPY[s] ? APPMASS_DIR : EXPORT);
 // builds named in frozen.json keep the export already in the cache whatever their .blend does later (a builder may still be saving it): not
 // re-exported, always usable, their key is the one they were exported under
 const FROZEN = readJSON(path.join(HERE, 'frozen.json'), {});
-const keyOf = (s) => (FROZEN[s] ? ((() => { try { return fs.readFileSync(path.join(EXPORT, `${s}.key`), 'utf8'); } catch { return 'frozen'; } })()) : `${sources[s].blend_sha256}:${EXPORTER_HASH}`);
+// objects left out of a build's export (neighbours the app draws itself): export_skip.json, run through blender_export_skip.py; part of the export key
+// builds with a fine repeat (louvre plates, grille blades) that ask for their tile's far file sooner (metres; the default is 700): lod1.json
+const LOD1_M = readJSON(path.join(HERE, 'lod1.json'), {});
+const EXPORT_SKIP = readJSON(path.join(HERE, 'export_skip.json'), {});
+const SKIP_PY = path.join(HERE, 'blender_export_skip.py');
+const keyOf = (s) => (FROZEN[s] ? ((() => { try { return fs.readFileSync(path.join(EXPORT, `${s}.key`), 'utf8'); } catch { return 'frozen'; } })()) : `${sources[s].blend_sha256}:${EXPORTER_HASH}${EXPORT_SKIP[s] ? ':skip' + sha(Buffer.from(EXPORT_SKIP[s])).slice(0, 8) : ''}`);
 const stateFile = (s) => path.join(EXPORT, `${s}.key`);
 const exported = (s) => fs.existsSync(stateFile(s)) && (FROZEN[s] || fs.readFileSync(stateFile(s), 'utf8') === keyOf(s))
   && fs.existsSync(path.join(EXPORT, `${s}.near.glb`)) && fs.existsSync(path.join(EXPORT, `${s}.far.glb`));
@@ -119,7 +124,7 @@ console.log(`EXPORT ${todo.length} to do (${want.length - todo.length} current),
     while (next < todo.length) {
       const s = todo[next++]; const t0 = Date.now();
       const base = path.join(EXPORT, s);
-      const r = await run(BRENDER, ['-b', sources[s].blend, '-P', EXPORTER, '--', `${base}.near.glb`, `${base}.far.glb`, `${base}.json`], `${base}.log`);
+      const r = await run(BRENDER, ['-b', sources[s].blend, '-P', EXPORT_SKIP[s] ? SKIP_PY : EXPORTER, '--', ...(EXPORT_SKIP[s] ? [EXPORT_SKIP[s]] : []), `${base}.near.glb`, `${base}.far.glb`, `${base}.json`], `${base}.log`);
       const ok = r.code === 0 && /V2EXPORT/.test(r.out);
       if (ok) fs.writeFileSync(stateFile(s), keyOf(s)); else failed[s] = (r.out.match(/Error[^\n]*/) || [`exit ${r.code}`])[0].slice(0, 200);
       done++; console.log(`  [${done}/${todo.length}] ${s} ${ok ? 'ok' : 'FAILED ' + failed[s]} ${((Date.now() - t0) / 1000).toFixed(0)} s`);
@@ -289,7 +294,7 @@ const manifest = {
   notes: 'Each tile .glb: one opaque mesh (palette texture, one draw) and in lod0 one glass mesh; EXT_meshopt_compression + KHR_mesh_quantization (use MeshoptDecoder); vertex attribute _BUILDING = index into the tile\'s buildings list; colours are the builds\' linear base colours on the Blender light rig scale (white paint ~0.17).',
   tiles: Object.keys(tiles).sort().map((t) => {
     const [, i, j] = t.match(/^t_(-?\d+)_(-?\d+)$/).map(Number);
-    const l1 = Math.min(...tiles[t].map((b) => (APP_COPY[b] && APP_COPY[b].lod1_m) || Infinity));   // a build with a fine repeat (fins) asks for its far file sooner
+    const l1 = Math.min(...tiles[t].map((b) => (APP_COPY[b] && APP_COPY[b].lod1_m) || LOD1_M[b] || Infinity));   // a build with a fine repeat (fins) asks for its far file sooner
     return { id: t, bounds: [i * TILE_M, j * TILE_M, (i + 1) * TILE_M, (j + 1) * TILE_M], lod0: `${TILES_DIR}/${t}.glb`, lod1: `${TILES_DIR}/${t}.far.glb`, ...(Number.isFinite(l1) ? { lod1_m: l1 } : {}), buildings: tiles[t],
       bytes: [tileInfo[t].near.bytes, tileInfo[t].far.bytes] };
   }),
