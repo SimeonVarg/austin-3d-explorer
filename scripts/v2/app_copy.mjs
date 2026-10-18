@@ -10,7 +10,7 @@
 //   2. SIMPLIFY to a triangle target: meshoptimizer, one error number for the whole build, found by bisection. Detail thinner than the
 //      error disappears first (rails, letters, window frames), which is also what keeps it steady from far away; large forms and the
 //      silhouette stay.
-import { weld, simplify, reorder, prune } from '@gltf-transform/functions';
+import { weld, simplify, simplifyPrimitive, reorder, prune } from '@gltf-transform/functions';
 
 // distance (m) from every grid cell to the nearest occupied cell: two-pass chamfer on a CELL-metre raster
 function distanceField(occ, W, H, cell) {
@@ -201,9 +201,16 @@ export async function makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src, 
   await doc0.transform(weld(), reorder({ encoder: MeshoptEncoder }));
   stats.graded_tris = triCount(doc0);
   const graded = await io.writeBinary(doc0);
+  // reduce: only the materials named are simplified (fine repeats: window frames, rails, lamps); every other surface keeps its triangles whole
+  // (letters, field markings, seat tiers, aisles, signs: the simplifier breaks their shapes and the thin layers laid over a surface)
+  const reduceRe = spec.reduce ? new RegExp(spec.reduce, 'i') : null;
   const trial = async (error) => {
     const d = await io.readBinary(graded);
-    await d.transform(simplify({ simplifier: MeshoptSimplifier, ratio: 0, error }), reorder({ encoder: MeshoptEncoder }));
+    if (!reduceRe) await d.transform(simplify({ simplifier: MeshoptSimplifier, ratio: 0, error }), reorder({ encoder: MeshoptEncoder }));
+    else {
+      for (const p of prims(d)) if (reduceRe.test((p.getMaterial() && p.getMaterial().getName()) || '')) simplifyPrimitive(p, { simplifier: MeshoptSimplifier, ratio: 0, error, lockBorder: false });
+      await d.transform(reorder({ encoder: MeshoptEncoder }));
+    }
     return d;
   };
   // bisection on the error (log scale): the largest error that keeps at least `triangles`

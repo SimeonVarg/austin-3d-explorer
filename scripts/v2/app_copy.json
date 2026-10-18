@@ -1,16 +1,17 @@
 {
-  "_about": "Builds that get a light APP COPY in the v2 tiles, made from the detailed export by scripts/v2/app_copy.mjs (owner rule, CLAUDE.md 2026-10-17: no triangle limit on a build; reduce afterwards). triangles = the target for the copy; crease_deg = edges sharper than this stay hard when the copy is shaded again; site = how the builder's own ground is cut down to the app's flat ground (metres): kept within skirt_m of the building, its height fades to 0 between flat_m and skirt_m, triangles lower than min_m dropped; lift = a material (regex) that lies in the app's ground plane is raised to this height; far_keep = surfaces (material regex) the far file carries besides the mass; lod0_drop = surfaces that are for the far file only; lod1_m = the distance the far file takes over at, for a build with a fine repeat (default 700).",
+  "_about": "Builds that get a light APP COPY in the v2 tiles, made from the detailed export by scripts/v2/app_copy.mjs (owner rule, CLAUDE.md 2026-10-17: no triangle limit on a build; reduce afterwards). triangles = the target for the copy; reduce = only the materials this regex names are simplified (fine repeats), every other surface keeps its triangles whole (letters, markings, seat tiers, aisles, signs), so the target must be above what is kept; crease_deg = edges sharper than this stay hard when the copy is shaded again; site = how the builder's own ground is cut down to the app's flat ground (metres): kept within skirt_m of the building, its height fades to 0 between flat_m and skirt_m, triangles lower than min_m dropped; lift = a material (regex) that lies in the app's ground plane is raised to this height; far_keep = surfaces (material regex) the far file carries besides the mass; far_copy = a far file made from the model itself (parts named in drop left out, simplified to triangles) instead of the mass; lod0_drop = surfaces that are for the far file only; lod1_m = the distance the far file takes over at, for a build with a fine repeat (default 700).",
   "dkr-memorial-stadium": {
-    "triangles": 60000,
+    "triangles": 80000,
     "crease_deg": 35,
     "lift": { "^turf$": 0.01 },
     "far_keep": "^(turf|endzone_orange)$",
+    "reduce": "^(frame_white|frame_dark|rail_metal|steel_silver|steel_green|lamp_head|lamp_grey|mast_grey|mullion_grey|darkpane_tower|darkpane_west|rust_steel|stone_white|precast_white|site_paving|site_grass)$",
     "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 12, "skirt_m": 60, "min_m": 0.15 }
   },
   "moody-center": {
-    "triangles": 70000,
+    "triangles": 85000,
     "crease_deg": 35,
-    "two_sided": "^roof_plateau_white$",
+    "reduce": "^(fin_bronze|reveal_dark|mullion_dark|soffit_joint|wood_soffit.*|rail_dark|steel_rail|lamp_white|pole_head|mesh_panel|slot_dark|louvre_grey|roof_ring_white|fascia_metal|site_paving|board_concrete|street_grade)$",
     "lod0_drop": "^fin_band_far$",
     "far_copy": { "triangles": 7000, "drop": "^(fin_bronze|reveal_dark|mullion_dark|soffit_joint|rail_dark|steel_rail|lamp_white|pole_head|mesh_panel|slot_dark|louvre_grey|door_frame|sign_.*|planting|spandrel_dark)$" },
     "lod1_m": 400,
