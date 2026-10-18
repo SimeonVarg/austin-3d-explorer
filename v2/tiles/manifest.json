@@ -26,11 +26,12 @@
     "hogg-memorial-auditorium",
     "littlefield-house",
     "peter-t-flawn-academic-center",
-    "union-building"
+    "union-building",
+    "ut-tower-main-building"
    ],
    "bytes": [
-    1316688,
-    38884
+    1628600,
+    48304
    ]
   },
   {
@@ -1553,8 +1554,8 @@
     "texas-cowboys-pavilion"
    ],
    "bytes": [
-    680800,
-    117724
+    680692,
+    117936
    ]
   },
   {
@@ -2283,10 +2284,10 @@
     "3dba7cda",
     "568a1f55",
     "221b4a6f",
-    "794d90f5",
     "6671852e",
     "827e729c",
-    "67e786bb"
+    "67e786bb",
+    "9f568aed"
    ],
    "name": "DKR Memorial Stadium",
    "model": "opus",
@@ -4412,6 +4413,17 @@
    "x": 57.923,
    "z": 334.112,
    "top": 22.9
+  },
+  "ut-tower-main-building": {
+   "tile": "t_-1_-1",
+   "map_ids": [
+    "a0af80df"
+   ],
+   "name": "UT Tower + Main Building",
+   "model": "opus",
+   "x": -0.478,
+   "z": -0.509,
+   "top": 96.6
   },
   "villas-at-san-gabriel": {
    "tile": "t_-4_-2",

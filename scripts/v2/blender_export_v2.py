@@ -38,6 +38,9 @@ WELD_M = 0.001
 # flicker. Triangles of these materials lying wholly below GROUND_DROP_BELOW_M are left out (a raised deck or planter stays).
 GROUND_DROP_MAT = re.compile(r'street|sidewalk|pavement|road|kerb|curb|asphalt|crosswalk|lawn|grass|turf|ground|gutter|driveway', re.I)
 GROUND_DROP_BELOW_M = 0.35
+# ...but a playing surface the builder modelled on purpose (DKR's field_turf, a quad at field level) is the building's, not the lot's ground: it stays
+# (the DKR turf was lost here on the first v2 bake, its material being called "turf"). The app copy lifts it a centimetre off the app's ground.
+PLAYING_SURFACE = re.compile(r'^(field|pitch|court|track)_(turf|grass|surface|floor)', re.I)
 # the light rig's ground (a lit plane, sometimes sloped, under the model) is left out whatever its height: by object OR material name
 # a builder's SITE work round the building (paving, plaza, courtyard floor) follows the lot's slope in its own frame; the app lays its own
 # ground, on which such a slab floats or sinks and covers the street. An object so named whose top is lower than SITE_DROP_TOP_M is left out.
@@ -201,7 +204,7 @@ for inst in dg.object_instances:
         mp = mat_props(mat); sel = tm == mi
         if GROUND_MAT.search(mp['name']):
             dropped_ground[0] += int(sel.sum()); continue
-        if GROUND_DROP_MAT.search(mp['name']):
+        if GROUND_DROP_MAT.search(mp['name']) and not PLAYING_SURFACE.search(nm):
             low_ = P[:, :, 2].max(1) < GROUND_DROP_BELOW_M
             dropped_ground[0] += int((sel & low_).sum()); sel = sel & ~low_
             if not sel.any(): continue

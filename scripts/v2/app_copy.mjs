@@ -137,6 +137,16 @@ export async function makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src, 
   const doc0 = await io.read(src);
   const stats = { detailed_tris: triCount(doc0) };
   stats.grading = gradeSite(doc0, P);
+  // lift: a surface that lies exactly in the app's ground plane (a field's turf at y = 0) is raised to a floor height, or it z-fights the ground
+  for (const [mat, y0] of Object.entries(spec.lift || {})) {
+    const re = new RegExp(mat, 'i');
+    for (const p of prims(doc0)) {
+      if (!isSite(p, re)) continue;
+      const pa = p.getAttribute('POSITION'); const A = pa.getArray();
+      for (let i = 1; i < A.length; i += 3) if (A[i] < y0) A[i] = y0;
+      pa.setArray(A);
+    }
+  }
   for (const p of prims(doc0)) p.setAttribute('NORMAL', null);
   await doc0.transform(weld(), reorder({ encoder: MeshoptEncoder }));
   stats.graded_tris = triCount(doc0);

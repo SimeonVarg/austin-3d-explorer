@@ -92,14 +92,17 @@ const dirOf = (s) => (APP_COPY[s] ? APP_DIR : EXPORT);
 const massDirOf = (s) => (APP_COPY[s] ? APPMASS_DIR : EXPORT);
 
 // ── 2. export (only what changed) ────────────────────────────────────────
-const keyOf = (s) => `${sources[s].blend_sha256}:${EXPORTER_HASH}`;
+// builds named in frozen.json keep the export already in the cache whatever their .blend does later (a builder may still be saving it): not
+// re-exported, always usable, their key is the one they were exported under
+const FROZEN = readJSON(path.join(HERE, 'frozen.json'), {});
+const keyOf = (s) => (FROZEN[s] ? ((() => { try { return fs.readFileSync(path.join(EXPORT, `${s}.key`), 'utf8'); } catch { return 'frozen'; } })()) : `${sources[s].blend_sha256}:${EXPORTER_HASH}`);
 const stateFile = (s) => path.join(EXPORT, `${s}.key`);
-const exported = (s) => fs.existsSync(stateFile(s)) && fs.readFileSync(stateFile(s), 'utf8') === keyOf(s)
+const exported = (s) => fs.existsSync(stateFile(s)) && (FROZEN[s] || fs.readFileSync(stateFile(s), 'utf8') === keyOf(s))
   && fs.existsSync(path.join(EXPORT, `${s}.near.glb`)) && fs.existsSync(path.join(EXPORT, `${s}.far.glb`));
 // an export made from the same .blend by an OLDER exporter still serves the tiles until it is redone (so an exporter change, or a
 // partial --only run, never empties a tile)
 const stateOf = (s) => { try { return fs.readFileSync(stateFile(s), 'utf8'); } catch { return ''; } };
-const usable = (s) => stateOf(s).startsWith(sources[s].blend_sha256 + ':')
+const usable = (s) => (FROZEN[s] || stateOf(s).startsWith(sources[s].blend_sha256 + ':'))
   && fs.existsSync(path.join(EXPORT, `${s}.near.glb`)) && fs.existsSync(path.join(EXPORT, `${s}.far.glb`));
 const placeable = Object.keys(sources).filter((s) => !sources[s].skip);
 const want = placeable.filter((s) => !ONLY || ONLY.has(s));
@@ -181,8 +184,18 @@ const isGlass = (m) => m && ((m.getExtras() || {}).v2_kind || 'plain') !== 'plai
 
 async function buildingDoc(s, lod, idx, part) {
   const doc = await io.read(path.join(lod === 1 ? (hasMass(s) ? massDirOf(s) : EXPORT) : dirOf(s), `${s}.${lod === 0 ? 'near' : hasMass(s) ? 'mass' : 'far'}.glb`));
+  // lod1 of an app-copy build also keeps the named surfaces of the copy (a field's turf: the far mass is walls and roofs and has no ground in it)
+  if (lod === 1 && hasMass(s) && APP_COPY[s] && APP_COPY[s].far_keep) {
+    const extra = await io.read(path.join(APP_DIR, `${s}.near.glb`)); const re = new RegExp(APP_COPY[s].far_keep, 'i');
+    for (const m of extra.getRoot().listMeshes()) for (const p of m.listPrimitives()) if (!re.test((p.getMaterial() && p.getMaterial().getName()) || '')) p.dispose();
+    await extra.transform(prune());
+    mergeDocuments(doc, extra);
+    const sc0 = doc.getRoot().listScenes()[0];
+    for (const sc of doc.getRoot().listScenes().slice(1)) { for (const n of sc.listChildren()) sc0.addChild(n); sc.dispose(); }
+    await doc.transform(unpartition(), flatten(), join({ keepNamed: false }));
+  }
   const root = doc.getRoot(); const buf = root.listBuffers()[0];
-  root.listNodes()[0].setName(s).setTranslation([sources[s].x, 0, sources[s].z]);
+  for (const n of root.listNodes()) n.setName(s).setTranslation([sources[s].x, 0, sources[s].z]);   // (every node: a far file that kept a surface of the app copy has two)
   for (const mesh of root.listMeshes()) {
     mesh.setName(s);
     for (const prim of mesh.listPrimitives()) {

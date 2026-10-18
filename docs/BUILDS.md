@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 380 builds of 314 buildings; 117 buildings flagged to retarget.
+Right now: 381 builds of 314 buildings; 116 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -278,6 +278,7 @@ Right now: 380 builds of 314 buildings; 117 buildings flagged to retarget.
 | University Presbyterian Church | Opus 5.5 | 2026-10-14 | unproven | public photo | unreviewed | 14,435 | 56 min, 401k plan tokens |  | yes |
 | University Teaching Center | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 19,958 | 32 min, 305k plan tokens |  |  |
 | UT office block (878d9137) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 14,184 | 31 min, 329k plan tokens |  |  |
+| UT Tower + Main Building | Opus 5.5 | 2026-10-17 | loose | site photographs | unreviewed | 39,221 | 150 min |  |  |
 | Waggener Hall | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 20,433 | 51 min, 436k plan tokens |  |  |
 | Walter Webb Hall | Sol 6.1 | 2026-10-14 | proven | public photo | unreviewed | 14,481 | 37 min, $1.61 |  | yes |
 | Will C. Hogg Building | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 24,386 | 55 min, 420k plan tokens |  |  |
@@ -461,7 +462,6 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **The Block on Pearl (south)**: parked: Earth 3D only; held-out fails (one pick on the wrong edge); massing reads wrong next to Earth; 800 px draft only; not sent
 - **Block on Pearl north (064e7194)**: parked, not sent: very noisy 16-sample draft, mansards and blue walls far too dark, massing reads heavier than Earth; same complex as the parked Pearl south
 - **West Campus block a06cb507**: Opus redo, unfinished: 1 storey fits the scan, but roof render 30-40 px off the views (corner matching wrong); colour checks invalid; next: named corners at 4x
-- **UT Tower and Main Building**: His verdict: bad; Earth 3D where clear photos exist; remake from his photos + public photos running
 
 ### Good test set for a cheaper model
 

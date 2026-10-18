@@ -3,6 +3,8 @@
   "dkr-memorial-stadium": {
     "triangles": 60000,
     "crease_deg": 35,
+    "lift": { "^turf$": 0.01 },
+    "far_keep": "^(turf|endzone_orange)$",
     "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 12, "skirt_m": 60, "min_m": 0.15 }
   }
 }
