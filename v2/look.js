@@ -40,10 +40,14 @@ export const LOOK = {
   SHADOW_NORMAL_BIAS: 0.6,
   SHADOW_RADIUS: 2,             // PCF softness
 
-  // ── fog / distance ───────────────────────────────────────────────────
-  // the fog's colour is the sky's horizon stop (x SKY_DOME_GAIN), so far buildings fade into the sky they stand against
-  FOG_NEAR_M: 1800,
-  FOG_FAR_M: 7000,
+  // ── haze / distance ──────────────────────────────────────────────────
+  // The old app's day haze (js/sky.js HAZE: DIST.day 3200, MAX.day 0.62): a surface d metres away is MAX x (1 - e^(-d/DIST)) of
+  // the way to the haze colour. The haze colour is the sky's horizon stop (x SKY_DOME_GAIN), so far buildings fade into the sky
+  // they stand against. Beyond the city (HAZE_EDGE_M) the haze closes to 1, so the bare ground's far edge melts into the
+  // horizon, and the sky dome below the level line is that same haze colour: no band where the ground ends.
+  HAZE_DIST_M: 3200,
+  HAZE_MAX: 0.62,
+  HAZE_EDGE_M: [8000, 15000],
 
   // ── ground ───────────────────────────────────────────────────────────
   GROUND: '#5c5a52',            // pavement and bare ground, linear ~0.10
