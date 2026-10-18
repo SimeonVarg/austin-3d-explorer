@@ -41,9 +41,18 @@ SUN = [
 ]
 SUN_DEFAULT = (165.0, 35.0)                    # read off the photograph: Frost Bank Tower's shadow runs to bearing ~345 (light from ~165), and mid-January at that azimuth in Austin the sun is ~35 deg up (11:15 local)
 MIN_H = 4.0                                    # lower outlines throw too little shadow to matter
-LEAN_MIN_H = 40.0
-LEAN_FRAC = 0.06
-LEAN_MAX_M = 14.0
+# Leaning buildings (channel G). The photograph is not a true ortho: a building's upper floors are drawn displaced away from the
+# photo's centre, beside the real footprint, and show as a ghost on the ground round the 3D model (owner's lane, 2026-10-18: DKR's
+# seating outside the model's west wall). Read on three buildings on the City aerial with their outlines drawn on it (10 m grid):
+# the UT Tower (97 m) under 2 m (0.02 x h: the frame's centre is near it), DKR's upper west deck (68 m) about 3 m (0.05 x h), Frost
+# Bank Tower (157 m) 10-15 m (about 0.08 x h). So: every Blender model's own footprint (street_footprints.mjs: where its triangles
+# stand) grown by LEAN_FRAC_MODEL x its top, at least LEAN_MIN_MODEL_M; every plain extrusion over LEAN_MIN_H by LEAN_FRAC x height.
+LEAN_MIN_H = 20.0
+LEAN_FRAC = 0.05
+LEAN_MAX_M = 10.0
+LEAN_FRAC_MODEL = 0.1
+LEAN_MIN_MODEL_M = 2.0
+LEAN_MAX_MODEL_M = 16.0
 DARK_LIN = 0.06                                # the fit counts a z16 pixel as shadow below this linear luminance
 FEATHER_PX = 1.0                               # a soft edge, so the mask's own pixels never show
 
@@ -130,6 +139,37 @@ def footprint_raster(blds, grow=None):
     return im
 
 
+def model_lean(path, W, H):
+    """Channel G from the Blender models' real footprints, grown by their lean, max-pooled onto the mask grid."""
+    from scipy import ndimage
+    raw = open(path, 'rb').read()
+    cols, rows = np.frombuffer(raw[:8], np.int32)
+    x0, z0, cell = np.frombuffer(raw[8:20], np.float32)
+    ids = np.frombuffer(raw[20:], np.uint16).reshape(rows, cols)
+    meta = json.load(open(path[:-4] + '.json'))
+    out = np.zeros((rows, cols), np.uint8)
+    objs = ndimage.find_objects(ids)
+    for k, sl in enumerate(objs):
+        if sl is None:
+            continue
+        top = meta['tops'][k] or 10
+        r = min(LEAN_MAX_MODEL_M, max(LEAN_MIN_MODEL_M, LEAN_FRAC_MODEL * top))
+        pad = int(np.ceil(r / cell)) + 1
+        j0, j1 = max(0, sl[0].start - pad), min(rows, sl[0].stop + pad)
+        i0, i1 = max(0, sl[1].start - pad), min(cols, sl[1].stop + pad)
+        sub = ids[j0:j1, i0:i1] == (k + 1)
+        sub = ndimage.binary_closing(sub, iterations=2)
+        dist = ndimage.distance_transform_edt(~sub) * cell
+        out[j0:j1, i0:i1] = np.maximum(out[j0:j1, i0:i1], (dist <= r).astype(np.uint8) * 255)
+    # onto the mask grid (same origin; MASK_M is a whole multiple of the footprint cell)
+    f = int(round(MASK_M / float(cell)))
+    hh, ww = min(H * f, rows), min(W * f, cols)
+    g = out[:hh - hh % f, :ww - ww % f].reshape(hh // f, f, ww // f, f).max(axis=(1, 3))
+    res = np.zeros((H, W), np.uint8)
+    res[:g.shape[0], :g.shape[1]] = g
+    return res
+
+
 def lean_raster(blds):
     W, H = size()
     im = Image.new('L', (W, H), 0)
@@ -206,6 +246,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--fit', action='store_true')
     ap.add_argument('--preview', default=None)
+    ap.add_argument('--footprints', default=None, help='street_footprints.mjs output (.bin), same origin as BOX')
     a = ap.parse_args()
     blds = buildings()
     print(len(blds), 'outlines')
@@ -219,6 +260,8 @@ def main():
         s = np.asarray(shadow_raster(blds, az, el, zband=(reg['z0'], reg['z1'])), np.uint8)
         R = np.maximum(R, s)
     G = np.asarray(lean_raster(blds), np.uint8)
+    if a.footprints:
+        G = np.maximum(G, model_lean(a.footprints, W, H))
     img = Image.merge('RGB', [Image.fromarray(R).filter(ImageFilter.GaussianBlur(FEATHER_PX)),
                               Image.fromarray(G).filter(ImageFilter.GaussianBlur(FEATHER_PX)), Image.new('L', (W, H), 0)])
     # the mask's border must be empty (the shader clamps at the edge)

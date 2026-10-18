@@ -18,8 +18,8 @@ export const GROUND_LOOK = {
   SHADOW_DARK_LIN: [0.02, 0.09], // linear luminance: fully lifted below the first, not at all above the second
   // Leaning roofs: the photograph is not a true ortho, so a tall roof is drawn beside its footprint. Round tall buildings the ground
   // fades toward this plain paving colour (mask channel G).
-  LEAN_PAVING: '#6b6860',
-  LEAN_STRENGTH: 0.5,
+  LEAN_PAVING: '#55534d',       // the plain paving the ground fades to under and round a leaning building (linear ~0.09, the aerial's pavement after GAIN)
+  LEAN_STRENGTH: 0.92,
 
   // ── streaming (not taste: what keeps it sharp and fast) ───────────────
   LOD_FACTOR: 1.6,              // a tile is split when its pixel is bigger than this many screen pixels at its nearest point
