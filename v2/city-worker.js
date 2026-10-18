@@ -152,6 +152,7 @@ async function buildBuildings() {
     if (s && s.h && !s.rv) { h = s.h; nLidar++; }
     h = Math.max(MIN_HEIGHT_M, h || DEFAULT_HEIGHT_M);
     add(p.id, polys, [{ polys, y0: 0, y1: h }], p.wd, p.rd);
+    outlineById.set(String(p.id).slice(0, 8), polys.map((r) => r[0]));
     for (const rings of polys) { const [cx, cz] = centroid(rings[0]); put(cx, cz, rings[0]); for (const q of rings[0]) put(q[0], q[1], rings[0]); }
     nCampus++;
   }
@@ -279,22 +280,34 @@ async function buildSidewalks() {
 }
 
 // Trees: the canopy detected on aerial photographs (crown radius and height per tree), overlapping survey areas de-duplicated.
+// map outlines by the app's id (8 hex), kept for the tree step: no tree is planted under a Blender model's outline
+const outlineById = new Map();
+
 async function buildTrees() {
   const c = await getJSON(SOURCES.trees);
   const seen = new Set(), arr = [];
+  // The canopy was detected from aerial photographs, so it also finds trees on a stadium's field or a courtyard that the Blender model
+  // already shows as it is. Every outline a Blender tile covers (map_ids in tiles/manifest.json) stays free of trees.
+  let covered = [], dropped = 0;
+  try {
+    const man = await (await fetch(new URL('./tiles/manifest.json', self.location.href))).json();
+    const ids = new Set(); for (const b of Object.values(man.buildings || {})) for (const id of b.map_ids || []) ids.add(String(id));
+    for (const id of ids) for (const ring of outlineById.get(id) || []) covered.push(ring);
+  } catch (e) { covered = []; }
   for (const area of Object.values(c)) {
     for (const t of area.trees || []) {
       const k = Math.round(t.lon * 1e5) + ',' + Math.round(t.lat * 1e5);
       if (seen.has(k)) continue;
       seen.add(k);
       const [x, z] = toLocal(t.lon, t.lat);
+      if (covered.some((ring) => pointInRing(x, z, ring))) { dropped++; continue; }
       arr.push(x, z, t.r, t.h, Math.random());
     }
   }
   const data = new Float32Array(arr);
   const n = data.length / 5;
   postMessage({ type: 'trees', data }, [data.buffer]);
-  return { trees: n };
+  return { trees: n, droppedUnderBlenderOutlines: dropped };
 }
 
 onmessage = async (ev) => {
