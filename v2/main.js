@@ -8,9 +8,11 @@
 import * as THREE from 'three';
 import { MapControls } from 'three/addons/controls/MapControls.js';
 import { LOOK, QUALITY } from './look.js';
-import { ORIGIN, setOrigin, toLocal } from './geo.js';
+import { ORIGIN, setOrigin, toLocal, toLonLat } from './geo.js';
 import { TileStreamer, TILES } from './tiles.js';
 import { MapLite, MarkerLayer, MercatorCoordinate } from './maplite.js';
+import { MapLayers } from './map-layers.js';
+import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
 
 const params = new URLSearchParams(location.search);
 
@@ -109,6 +111,7 @@ const map = new MapLite({ camera, controls, canvas, redraw: () => { dirty = true
 const markers = new MarkerLayer(map, $('markers'));
 window.__map = map;
 window.maplibregl = Object.assign(window.maplibregl || {}, { Marker: markers.make(), MercatorCoordinate });
+const mapLayers = new MapLayers({ map, scene, markers, redraw: () => { dirty = true; } });
 
 // Keep the target inside the city and on the ground.
 controls.addEventListener('change', () => {
@@ -496,7 +499,8 @@ const aptSel = $('apt'), clsSel = $('cls'), resultEl = $('result');
 const store = { get(k) { try { return localStorage.getItem('v2.' + k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem('v2.' + k, v); } catch (e) {} } };
 $('fold').addEventListener('click', () => { const p = $('panel'); const f = p.classList.toggle('folded'); $('fold').setAttribute('aria-expanded', String(!f)); $('fold').innerHTML = f ? '+' : '&#8211;'; });
 
-let apartments = [], buildings = [];
+let apartments = [], buildings = [], homesList = [];
+if (params.get('panel') === '1') $('panel').hidden = false;   // v2's first walk planner (the finder replaces it)
 async function setupUI() {
   const cat = await routeReady;
   // apartments: the finder's home catalog (data/finder/homes.json: the 3D apartment models, the walking graph's homes and the East
@@ -506,6 +510,7 @@ async function setupUI() {
     const hu = new URL('../data/finder/homes.json', location.href).href;
     try { window.loaderData?.(hu, 'start'); } catch (e) {}
     const h = await (await fetch(hu)).json();
+    homesList = h.homes || [];
     try { window.loaderData?.(hu, 'done'); } catch (e) {}
     const wc = new Map(cat.apartments.map((a) => [a.name, a.doors]));
     for (const home of h.homes || []) {
@@ -553,7 +558,7 @@ async function update(fly) {
     flyTo([(x0 + x1) / 2, (z0 + z1) / 2 + (PHONE ? span * 0.5 : 0)], span * (PHONE ? 2.6 : 1.7));   // phone: the panel covers the lower third
   }
 }
-setupUI();
+const setupDone = setupUI();
 
 // ── frame loop (renders only when something moved) ────────────────────
 let dirty = true, frames = 0;
@@ -576,6 +581,8 @@ function frame(now) {
   if (moved) { markers.update(); if (!easing) map.fire('move'); }
   if (frameLog.on && frameLog.orbit) { orbitStep(); }
   if (tiles) tiles.update(now);
+  if (moved || mapLayers.dirty) { mapLayers.dirty = false; mapLayers.update(); }
+  labels.update(now);
   if (!(moved || dirty || frameLog.on)) return;
   dirty = false;
   followShadow();
@@ -660,6 +667,48 @@ Promise.all([cityReady, tilesReady, routeReady]).then(([stats, man]) => {
   dirty = true;
 });
 
+// ── names over the city, picking a building, its card ─────────────────────────────────────────────
+const labels = new Labels({ camera, canvas, container: $('markers'), scene, phone: PHONE,
+  pickRoots: () => [cityGroup, ...(tiles ? [tiles.group] : [])], onCard: showCard });
+Promise.all([tilesReady, routeReady, setupDone]).then(([man, cat]) => {
+  labels.add(blenderItems(man));
+  labels.add(homeItems(homesList, man));
+  labels.add(campusItems(cat.buildings, cat.doors));
+});
+const cardEl = $('card');
+function showCard(it) {
+  if (!it) { cardEl.hidden = true; return; }
+  const kind = it.home ? 'Apartment' : it.kind === 'campus' || it.code ? 'UT building' : 'Building';
+  const facts = [];
+  if (it.code) facts.push(it.code);
+  if (it.home?.addr) facts.push(it.home.addr);
+  if (it.top > 3) facts.push(Math.round(it.top) + ' m tall');
+  cardEl.innerHTML = `<p class="k">${kind}</p><h2>${esc(it.name)}</h2>${facts.length ? `<p>${facts.map(esc).join(' · ')}</p>` : ''}` +
+    `<button class="x" type="button" aria-label="Close">×</button><div class="acts">` +
+    (it.home ? `<button class="go" type="button" data-a="walks">Walks to class</button>` : '') +
+    `<button type="button" data-a="fly">Fly closer</button></div>`;
+  cardEl.hidden = false;
+  cardEl.querySelector('.x').onclick = () => labels.close();
+  cardEl.querySelector('[data-a="fly"]').onclick = () => {
+    const [lng, lat] = toLonLat(it.x, it.z);
+    map.easeTo({ center: [lng, lat], zoom: 17.4, pitch: 62, duration: 1400, essential: true });
+  };
+  const w = cardEl.querySelector('[data-a="walks"]');
+  if (w) w.onclick = () => { labels.close(); window.finderOpen?.(); setTimeout(() => window.finderSelect?.(it.home.id), 50); };
+}
+// a click (not a drag) on the city picks the building under it
+let downAt = null;
+canvas.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+canvas.addEventListener('pointerup', (e) => {
+  if (!downAt) return;
+  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y), ms = performance.now() - downAt.t; downAt = null;
+  if (moved < 6 && ms < 500) labels.pick(e.clientX, e.clientY);
+});
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && !cardEl.hidden) labels.close(); });
+
+// the old app's apartment finder (js/finder.js, unchanged), on maplite.js
+import('./finder-boot.js').catch((e) => console.warn('[v2] finder', e.message));
+
 // ── hooks for the verify scripts (read-only, plus a timed orbit) ──────
 const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; };
 const pct = (a, p) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * p))] : null; };
@@ -669,7 +718,9 @@ window.__v2 = {
   tiles: () => tiles && tiles.summary(),
   timings: () => ({ ...timings }),
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
-  intro: () => introFlight.flight && { ...introFlight.flight }, requestRoute, drawRoute, redraw: () => { dirty = true; },
+  intro: () => introFlight.flight && { ...introFlight.flight },
+  labels: () => ({ items: labels.items.length, shown: labels.shown, selected: labels.selected?.name || null }),
+  pick: (x, y) => labels.pick(x, y), openCard: (name) => { const it = labels.items.find((i) => i.name === name); if (it) labels.open(it); return !!it; }, requestRoute, drawRoute, redraw: () => { dirty = true; },
   pickApartment: (name) => { const i = apartments.findIndex((a) => a.name === name); if (i >= 0) { aptSel.value = String(i); return update(true); } },
   pickBuilding: (code) => { const i = buildings.findIndex((b) => b.code === code); if (i >= 0) { clsSel.value = String(i); return update(true); } },
   info: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures,
