@@ -63,12 +63,13 @@ export class TileStreamer {
       const dx = Math.max(x0 - cam.x, 0, cam.x - x1), dz = Math.max(z0 - cam.z, 0, cam.z - z1);
       const d = Math.hypot(dx, dz, Math.max(0, cam.y - TILES.TILE_TOP_M));
       const cur = s.have || s.want;
+      const L1 = s.def.lod1_m || TILES.LOD1_DISTANCE_M;      // (a tile with a fine repeat in it, Moody Center's fins, asks for lod1 sooner)
       let want;
       if (cur && d > TILES.UNLOAD_DISTANCE_M) want = null;
       else if (!cur && d > TILES.LOAD_DISTANCE_M) want = null;
-      else if (cur === 'lod0') want = d > TILES.LOD1_DISTANCE_M * (1 + H) ? 'lod1' : 'lod0';
-      else if (cur === 'lod1') want = d < TILES.LOD1_DISTANCE_M * (1 - H) ? 'lod0' : 'lod1';
-      else want = d > TILES.LOD1_DISTANCE_M ? 'lod1' : 'lod0';
+      else if (cur === 'lod0') want = d > L1 * (1 + H) ? 'lod1' : 'lod0';
+      else if (cur === 'lod1') want = d < L1 * (1 - H) ? 'lod0' : 'lod1';
+      else want = d > L1 ? 'lod1' : 'lod0';
       if (want && !s.def[want]) want = s.def.lod0 ? 'lod0' : (s.def.lod1 ? 'lod1' : null);
       this.box.min.set(x0, 0, z0); this.box.max.set(x1, TILES.TILE_TOP_M, z1);
       const inView = this.frustum.intersectsBox(this.box);

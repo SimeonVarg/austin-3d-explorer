@@ -10,7 +10,7 @@
 //   2. SIMPLIFY to a triangle target: meshoptimizer, one error number for the whole build, found by bisection. Detail thinner than the
 //      error disappears first (rails, letters, window frames), which is also what keeps it steady from far away; large forms and the
 //      silhouette stay.
-import { weld, simplify, reorder } from '@gltf-transform/functions';
+import { weld, simplify, reorder, prune } from '@gltf-transform/functions';
 
 // distance (m) from every grid cell to the nearest occupied cell: two-pass chamfer on a CELL-metre raster
 function distanceField(occ, W, H, cell) {
@@ -129,14 +129,74 @@ export function shade(doc, creaseDeg) {
   }
 }
 
+// two_sided: a surface the builder modelled with its faces wound away from the viewer (Blender draws both sides; the app draws the front only,
+// so a roof wound downward is not drawn at all from above): each triangle of the materials named is added again with the other winding
+export function twoSided(doc, re) {
+  let added = 0;
+  for (const p of prims(doc)) {
+    if (!re.test((p.getMaterial() && p.getMaterial().getName()) || '')) continue;
+    const idx = p.getIndices(), I = idx.getArray(); const O = new Uint32Array(I.length * 2); O.set(I);
+    for (let t = 0; t < I.length; t += 3) { O[I.length + t] = I[t]; O[I.length + t + 1] = I[t + 2]; O[I.length + t + 2] = I[t + 1]; }
+    idx.setArray(O); added += I.length / 3;
+  }
+  return added;
+}
+
 const triCount = (doc) => prims(doc).reduce((a, p) => a + (p.getIndices() ? p.getIndices().getCount() : p.getAttribute('POSITION').getCount()) / 3, 0);
 
 // src .glb (the full detailed export) -> dst .glb (the app copy); returns the numbers
-export async function makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src, dst, dstMass, spec }) {
+export async function makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src, dst, dstMass, dstFarKeep, dstFarCopy, spec }) {
   const P = spec.site;
   const doc0 = await io.read(src);
   const stats = { detailed_tris: triCount(doc0) };
   stats.grading = gradeSite(doc0, P);
+  // lift: a surface that lies exactly in the app's ground plane (a field's turf at y = 0) is raised to a floor height, or it z-fights the ground
+  for (const [mat, y0] of Object.entries(spec.lift || {})) {
+    const re = new RegExp(mat, 'i');
+    for (const p of prims(doc0)) {
+      if (!isSite(p, re)) continue;
+      const pa = p.getAttribute('POSITION'); const A = pa.getArray();
+      for (let i = 1; i < A.length; i += 3) if (A[i] < y0) A[i] = y0;
+      pa.setArray(A);
+    }
+  }
+  // far_keep: surfaces the far (lod1) file carries besides the mass (a field's turf; a distance band that stands in for fins), taken from here
+  // before the copy is simplified; lod0_drop: surfaces that are for the far file only and stay out of the near copy
+  if (spec.far_keep && dstFarKeep) {
+    const fk = await io.readBinary(await io.writeBinary(doc0)); const re = new RegExp(spec.far_keep, 'i');
+    for (const p of prims(fk)) if (!re.test((p.getMaterial() && p.getMaterial().getName()) || '')) { for (const m of fk.getRoot().listMeshes()) if (m.listPrimitives().includes(p)) m.removePrimitive(p); p.dispose(); }
+    await fk.transform(prune());
+    const fsx = await import('node:fs'); fsx.writeFileSync(dstFarKeep + '.tmp', await io.writeBinary(fk)); fsx.renameSync(dstFarKeep + '.tmp', dstFarKeep);
+  }
+  if (spec.lod0_drop) {
+    const re = new RegExp(spec.lod0_drop, 'i');
+    for (const p of prims(doc0)) if (re.test((p.getMaterial() && p.getMaterial().getName()) || '')) { for (const m of doc0.getRoot().listMeshes()) if (m.listPrimitives().includes(p)) m.removePrimitive(p); p.dispose(); }
+  }
+  // far_copy: a far file made from this model instead of the mass (a build whose look is its overhang over a dark facade, which a mass of
+  // walls at the roof edge hides): the thin and fine parts (regex far_copy.drop) taken out, the rest simplified to far_copy.triangles
+  const reduce = async (buf, target, tag) => {
+    const trial = async (error) => { const d = await io.readBinary(buf); await d.transform(simplify({ simplifier: MeshoptSimplifier, ratio: 0, error }), reorder({ encoder: MeshoptEncoder })); return d; };
+    let lo = 1e-5, hi = 0.3, best = null;
+    for (let it = 0; it < 12; it++) {
+      const e = Math.sqrt(lo * hi); const d = await trial(e); const n = triCount(d);
+      if (n >= target) { lo = e; best = { d, n, e }; } else hi = e;
+      if (best && Math.abs(best.n - target) / target < 0.02) break;
+    }
+    if (!best) { const d = await trial(lo); best = { d, n: triCount(d), e: lo }; }
+    return best;
+  };
+  if (spec.far_copy && dstFarCopy) {
+    const fc = await io.readBinary(await io.writeBinary(doc0)); const re = new RegExp(spec.far_copy.drop, 'i'); const fsx = await import('node:fs');
+    for (const p of prims(fc)) if (re.test((p.getMaterial() && p.getMaterial().getName()) || '')) { for (const m of fc.getRoot().listMeshes()) if (m.listPrimitives().includes(p)) m.removePrimitive(p); p.dispose(); }
+    await fc.transform(prune());
+    for (const p of prims(fc)) p.setAttribute('NORMAL', null);
+    await fc.transform(weld(), reorder({ encoder: MeshoptEncoder }));
+    const best = await reduce(await io.writeBinary(fc), spec.far_copy.triangles);
+    if (spec.two_sided) stats.two_sided_far = twoSided(best.d, new RegExp(spec.two_sided, 'i'));
+    shade(best.d, spec.crease_deg || 35); await best.d.transform(weld());
+    fsx.writeFileSync(dstFarCopy + '.tmp', await io.writeBinary(best.d)); fsx.renameSync(dstFarCopy + '.tmp', dstFarCopy);
+    stats.far_copy_tris = best.n;
+  }
   for (const p of prims(doc0)) p.setAttribute('NORMAL', null);
   await doc0.transform(weld(), reorder({ encoder: MeshoptEncoder }));
   stats.graded_tris = triCount(doc0);
@@ -155,6 +215,7 @@ export async function makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src, 
   }
   if (!best) { const d = await trial(lo); best = { d, n: triCount(d), e: lo }; }
   stats.app_tris = best.n; stats.simplify_error = +best.e.toFixed(6);
+  if (spec.two_sided) stats.two_sided_near = twoSided(best.d, new RegExp(spec.two_sided, 'i'));
   shade(best.d, spec.crease_deg || 35);
   await best.d.transform(weld());
   const bin = await io.writeBinary(best.d);

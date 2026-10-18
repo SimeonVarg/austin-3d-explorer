@@ -72,8 +72,9 @@ off there, or a road passes under the building. Not looked at yet; open.
 | texas-cowboys-pavilion | left | on the scan (0.95); trellis and beds are real low parts |
 | texas-memorial-museum | left | on the scan (0.96, shift 2 m); low steps and terraces |
 | west-campus-861304d8 | left | newer than the scan: unverifiable; low parts outside the outline |
-| moody-center (new best build) | left | built after the scan: unverifiable; the outline is smaller than the arena's plan (x1.33, 16 m off) |
-| dkr-memorial-stadium (new best build) | fixed, see the PR | the map ring is the pre-2019 stadium; the 2021 scan (first returns) puts the model within 2 m (plan area 57,695 m2 against 57,276 m2 of scan), the model covers 99 % of the map ring, and no named street runs under it |
+| moody-center (the reviewed 10-18 build, 169,750 triangles; replaces the Earth-only one) | fixed | the roof edge (plan over 12 m, the three map parts 2b0f20a0, ba9c090c, d8b0698a) is 18,637 m2 against the ring's 18,698 (x1.00), centre 0.5 m off, 99 % of the ring covered; the check_place flag (area x1.77, 33 m off) counts the raised plaza walls, steps and signs at 1 m and up, which stand outside the roof-edge ring; built after the 2021 scan, so no scan check |
+| dkr-memorial-stadium (new best build) | fixed | the map ring is the pre-2019 stadium (the builder: east wall 9 m, north 14 m, south 20 m beyond it); the model's plan (ground left out) is 47,303 m2 against the ring's 46,178 (x1.02), covers 77 % of the ring, centre 8.9 m off; against the 2021 scan's first returns: cover 0.86, IoU 0.61, best shift (0, +1) m; no named street under it (nearest centreline 8.2 m, DeLoss Dodds Way) |
+| ut-tower-main-building (new best build, the owner's accepted remake, 39,221 triangles) | fixed | the plan stands on its map outline (centre 0.36 m off, area x1.05, no flag) and on the 2021 scan (cover 0.90, IoU 0.70, best shift 2 m); no app copy: its tile is 1.63 MB, under the 2 MB line |
 
 Omitted builds: **belo** (its ledger row says the name was never confirmed and it is not placed on the map: left) and **speedway** (a stretch
 of road, not a building, no outline: left).

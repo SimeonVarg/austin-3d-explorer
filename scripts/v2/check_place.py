@@ -24,14 +24,22 @@ HIDE_COVER = 0.5       # a map/massing outline whose area the model's footprint 
 
 
 def tris(p):
+    skip_site = os.path.basename(os.path.dirname(os.path.abspath(p))) == 'app'
     b = open(p, 'rb').read(); jl = struct.unpack('<I', b[12:16])[0]; j = json.loads(b[20:20 + jl]); bin0 = 20 + jl + 8; out = []
     def acc(i):
         a = j['accessors'][i]; v = j['bufferViews'][a['bufferView']]; off = bin0 + v.get('byteOffset', 0) + a.get('byteOffset', 0)
         dt = {5126: np.float32, 5125: np.uint32, 5123: np.uint16}[a['componentType']]; k = {'VEC3': 3, 'SCALAR': 1}[a['type']]
-        arr = np.frombuffer(b, dt, a['count'] * k, off)
+        sz = np.dtype(dt).itemsize * k; st = v.get('byteStride') or sz      # (the app copy is written interleaved: honour the stride)
+        if st == sz:
+            arr = np.frombuffer(b, dt, a['count'] * k, off)
+        else:
+            raw = np.frombuffer(b, np.uint8, (a['count'] - 1) * st + sz, off)
+            arr = np.stack([np.frombuffer(raw[q * st: q * st + sz].tobytes(), dt) for q in range(a['count'])]).reshape(-1) if a['count'] < 20000 else \
+                np.ascontiguousarray(np.lib.stride_tricks.as_strided(raw, shape=(a['count'], sz), strides=(st, 1))).view(dt).reshape(-1)
         return arr.reshape(-1, k) if k > 1 else arr
     for m in j['meshes']:
         for pr in m['primitives']:
+            if skip_site and j['materials'][pr['material']]['name'].startswith('site_'): continue     # an app copy's graded ground is not the building
             P = acc(pr['attributes']['POSITION']); I = acc(pr['indices']); out.append(P[I.reshape(-1, 3)])
     return np.concatenate(out) if out else np.zeros((0, 3, 3), np.float32)
 

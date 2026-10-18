@@ -26,6 +26,12 @@ const VIEWS = [
   { name: '4-campus-museum-desktop', ...DESKTOP, slug: 'texas-memorial-museum', distance: 260, polar: 60, azimuth: 150 },
   { name: '5-west-campus-desktop', ...DESKTOP, slug: 'the-venue', distance: 380, polar: 55, azimuth: 30 },
   { name: '6-downtown-phone', ...PHONE, slug: 'frost-bank-tower', distance: 900, polar: 58, azimuth: 300 },
+  // from the South Mall (south of the Tower, looking north), the DKR field close, and Tower and stadium in one frame
+  { name: '7-tower-south-mall-desktop', ...DESKTOP, slug: 'ut-tower-main-building', distance: 400, polar: 77, azimuth: 0 },
+  { name: '8-dkr-green-field-desktop', ...DESKTOP, slug: 'dkr-memorial-stadium', distance: 260, polar: 50, azimuth: 250 },
+  { name: '10-moody-center-desktop', ...DESKTOP, slug: 'moody-center', distance: 260, polar: 52, azimuth: 215 },
+  { name: '11-moody-center-far-desktop', ...DESKTOP, slug: 'moody-center', distance: 900, polar: 55, azimuth: 215 },
+  { name: '9-campus-tower-and-dkr-desktop', ...DESKTOP, xz: [310, 115], distance: 1150, polar: 52, azimuth: 205 },
 ].filter((v) => !ONLY.length || ONLY.some((o) => v.name.includes(o)));
 
 const browser = await launch(chromium, { gl: process.env.VERIFY_GL || 'hardware', maxMs: 600000 });
@@ -42,6 +48,7 @@ for (const v of VIEWS) {
   await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 90000 });
   await page.evaluate(() => window.__v2.ready);
   const man = await page.evaluate(() => fetch('./tiles/manifest.json').then((r) => r.json()));
+  if (v.xz) await page.evaluate(([x, z, d, p, a]) => window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }), [v.xz[0], v.xz[1], v.distance, v.polar, v.azimuth]);
   if (v.slug) {
     const b = man.buildings[v.slug];
     if (!b) throw new Error('no building ' + v.slug + ' in the manifest');

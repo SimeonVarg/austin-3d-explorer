@@ -26,11 +26,12 @@
     "hogg-memorial-auditorium",
     "littlefield-house",
     "peter-t-flawn-academic-center",
-    "union-building"
+    "union-building",
+    "ut-tower-main-building"
    ],
    "bytes": [
-    1316688,
-    38884
+    1628600,
+    48304
    ]
   },
   {
@@ -1553,8 +1554,8 @@
     "texas-cowboys-pavilion"
    ],
    "bytes": [
-    680800,
-    117724
+    680692,
+    117936
    ]
   },
   {
@@ -1663,12 +1664,13 @@
    ],
    "lod0": "tiles/t_3_2.glb",
    "lod1": "tiles/t_3_2.far.glb",
+   "lod1_m": 400,
    "buildings": [
     "moody-center"
    ],
    "bytes": [
-    1349224,
-    43140
+    636208,
+    65168
    ]
   },
   {
@@ -2283,10 +2285,10 @@
     "3dba7cda",
     "568a1f55",
     "221b4a6f",
-    "794d90f5",
     "6671852e",
     "827e729c",
-    "67e786bb"
+    "67e786bb",
+    "9f568aed"
    ],
    "name": "DKR Memorial Stadium",
    "model": "opus",
@@ -3006,13 +3008,14 @@
    "map_ids": [
     "2b0f20a0",
     "ba9c090c",
-    "d8b0698a"
+    "d8b0698a",
+    "2fef595b"
    ],
    "name": "Moody Center",
    "model": "opus",
    "x": 838.179,
    "z": 560.199,
-   "top": 22.4
+   "top": 23.6
   },
   "moontower": {
    "tile": "t_-2_0",
@@ -4412,6 +4415,17 @@
    "x": 57.923,
    "z": 334.112,
    "top": 22.9
+  },
+  "ut-tower-main-building": {
+   "tile": "t_-1_-1",
+   "map_ids": [
+    "a0af80df"
+   ],
+   "name": "UT Tower + Main Building",
+   "model": "opus",
+   "x": -0.478,
+   "z": -0.509,
+   "top": 96.6
   },
   "villas-at-san-gabriel": {
    "tile": "t_-4_-2",
