@@ -1,36 +1,50 @@
+/* v2's chrome in the old app's look (style.css: the warm dark glass, the amber, the system font). Every taste value is a token. */
 :root {
-  --ink: #17202b;
-  --ink-soft: #4a5562;
-  --paper: rgba(255, 255, 255, 0.92);
-  --line: rgba(23, 32, 43, 0.14);
-  --accent: #e0592a;
-  --start: #1f6fd6;
-  --radius: 14px;
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-}
-@media (prefers-color-scheme: dark) {
-  :root { --ink: #eef2f6; --ink-soft: #aab4bf; --paper: rgba(22, 28, 36, 0.9); --line: rgba(255, 255, 255, 0.14); }
+  --glass: rgba(18, 11, 4, .62);           /* style.css #hud */
+  --glass-solid: rgba(17, 10, 3, .84);     /* finder.css --fd-glass */
+  --edge: rgba(255, 190, 90, .18);
+  --ink: #f8ead0;
+  --ink-soft: rgba(248, 234, 208, .64);
+  --title-ink: #f7e6bd;
+  --accent: #ffc663;
+  --route: #e0592a;
+  --radius: 16px;
+  --shadow: 0 10px 34px rgba(0, 0, 0, .42);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --attrib-size: 12px; --attrib-bg: rgba(20, 12, 4, .82); --attrib-ink: rgba(245, 223, 160, .82); --attrib-link: #f5dfa0;
+  --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; overflow: hidden; background: #cfe0ef; font-family: var(--font); color: var(--ink); }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #101b23; font-family: var(--font); color: var(--ink); }
 #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
 
+/* map markers (pins, labels): placed by maplite.js from lng/lat */
+#markers { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+#markers > * { position: absolute; left: 0; top: 0; pointer-events: auto; will-change: transform; }
+
+/* the title pill (style.css #hud) */
+#hud { position: fixed; top: calc(16px + var(--safe-top)); left: 50%; transform: translateX(-50%); z-index: 10;
+  background: var(--glass); backdrop-filter: blur(10px) saturate(1.1); -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  border: 1px solid var(--edge); border-radius: 999px; box-shadow: 0 6px 24px rgba(0, 0, 0, .28);
+  padding: 7px 20px; color: var(--title-ink); text-align: center; pointer-events: none; transition: opacity .5s ease; }
+#hud-title { font-size: 12.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; }
+body.moving #hud { opacity: .35; }
+
 #panel {
-  position: fixed; top: 16px; left: 16px; width: 320px; max-width: calc(100vw - 32px);
-  background: var(--paper); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
-  padding: 12px 14px 14px;
+  position: fixed; top: calc(64px + var(--safe-top)); left: 16px; width: 320px; max-width: calc(100vw - 32px); z-index: 11;
+  background: var(--glass-solid); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--edge); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 14px 16px 16px;
 }
 #panel header { display: flex; align-items: center; justify-content: space-between; }
-#panel h1 { font-size: 16px; margin: 0; letter-spacing: 0.01em; }
-#panel h1 span { color: var(--ink-soft); font-weight: 500; }
+#panel h1 { font-size: 12px; margin: 0; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
 #fold { border: 0; background: transparent; color: var(--ink-soft); font-size: 20px; width: 36px; height: 32px; cursor: pointer; border-radius: 8px; }
-#fold:hover { background: var(--line); }
+#fold:hover { background: rgba(255, 190, 90, .12); }
 #panel.folded #panel-body { display: none; }
 #panel label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-top: 10px; }
 #panel select {
   display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 15px; color: var(--ink);
-  padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: transparent; min-height: 44px;
+  padding: 9px 10px; border-radius: 10px; border: 1px solid var(--edge); background: rgba(255, 190, 90, .06); min-height: 44px;
 }
 #panel select option { color: #17202b; }
 #result { margin-top: 12px; font-size: 15px; }
@@ -39,14 +53,25 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #cfe0ef; fon
 #result .muted { color: var(--ink-soft); font-size: 13px; }
 
 #status {
-  position: fixed; right: 16px; bottom: 16px; font-size: 12px; color: var(--ink-soft);
-  background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; pointer-events: none;
+  position: fixed; right: 16px; bottom: 44px; font-size: 12px; color: var(--ink-soft); z-index: 10;
+  background: var(--glass); border: 1px solid var(--edge); border-radius: 999px; padding: 6px 12px; pointer-events: none;
   transition: opacity 0.6s;
 }
-#status.done { opacity: 0; }
+#status.done, body:has(#veil) #status { opacity: 0; }
+
+/* the map credits (style.css .maplibregl-ctrl-attrib) */
+#credits { position: fixed; right: 10px; bottom: calc(10px + var(--safe-bottom)); z-index: 10; font-size: var(--attrib-size);
+  background: var(--attrib-bg); color: var(--attrib-ink); padding: 3px 10px; border-radius: 12px; }
+#credits a { color: var(--attrib-link); text-decoration: none; }
+#credits a:hover { text-decoration: underline; }
 
 /* phone: the panel becomes a sheet at the bottom */
 @media (max-width: 600px) {
-  #panel { top: auto; bottom: calc(12px + env(safe-area-inset-bottom)); left: 12px; right: 12px; width: auto; max-width: none; }
-  #status { bottom: auto; top: calc(12px + env(safe-area-inset-top)); right: 12px; }
+  :root { --attrib-size: 11px; }
+  #hud { padding: 6px 16px; max-width: calc(100vw - 32px); }
+  #hud-title { font-size: 11px; }
+  #panel { top: auto; bottom: calc(40px + var(--safe-bottom)); left: 12px; right: 12px; width: auto; max-width: none; }
+  #status { bottom: auto; top: calc(56px + var(--safe-top)); right: 12px; }
+  #credits { left: 10px; right: 10px; text-align: center; }
+  #credits .wide { display: none; }
 }

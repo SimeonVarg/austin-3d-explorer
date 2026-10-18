@@ -1,0 +1,46 @@
+/* The loading screen, the old app's own (js/loader.js: the owner-approved Tower drawing and copy), in v2.
+   Every rule after the first block is copied unchanged from style.css: change the look THERE and copy it here, so the two apps
+   keep one loading screen. The v2 differences are in the first block only. */
+/* the old app's global reset (style.css line 5), at zero specificity so the copied rules below win */
+:where(#veil, #veil *, #veil *::before, #veil *::after) { box-sizing: border-box; margin: 0; padding: 0; }
+#veil { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+/* v2 has no "modes" (they are the old app's URL switches): the card keeps its progress and drops the mode picker */
+#veil .load-choice, #mode-launcher, #mode-dialog { display: none !important; }
+
+/* ── copied from style.css ── */
+#veil{position:absolute;inset:0;z-index:60;background:#140c04;display:flex;align-items:center;justify-content:center;
+  transition:opacity 1.15s ease;pointer-events:none}
+#veil.lift{opacity:0}
+#veil-mark{display:flex;flex-direction:column;align-items:center;gap:15px;animation:veil-in 1.2s ease}
+#veil-mark svg{filter:drop-shadow(0 6px 22px rgba(245,166,35,.28))}
+#veil-title{font-size:12px;font-weight:600;letter-spacing:.34em;padding-left:.34em;text-transform:uppercase;
+  color:#f5dfa0;opacity:.85}
+@keyframes veil-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+:root{--load-bg:#101b23;--load-panel:#1b2931;--load-ink:#f6ecdc;--load-muted:#b5bfc0;--load-accent:#f6b85e;--load-border:#3c4a4e;--load-radius:18px;--load-width:1100px}
+#veil.loading-v2{background:radial-gradient(ellipse at 25% 70%,#314148 0,transparent 60%),var(--load-bg);--load-small-min:12px;pointer-events:auto;color:var(--load-ink);overflow:auto}
+#veil.loading-v2.lift{pointer-events:none}
+#load-city{width:min(var(--load-width),92%);display:grid;grid-template-columns:1.3fr 1fr;gap:50px;align-items:center;padding:36px 0}
+.load-eyebrow{font-size:var(--load-small-min);letter-spacing:.23em;color:var(--load-accent);margin-bottom:24px}
+#load-city h1{font-size:clamp(32px,3.6vw,48px);line-height:1.08;max-width:530px;font-weight:600;letter-spacing:-.035em}
+.load-subtitle{font-size:16px;line-height:1.6;color:var(--load-muted);max-width:380px;margin-top:20px}
+.load-caption{font-size:var(--load-small-min);letter-spacing:.12em;color:var(--load-muted)}
+.load-card{padding:28px;border:1px solid var(--load-border);border-radius:var(--load-radius);background:var(--load-panel)}
+.load-heading{display:flex;justify-content:space-between;gap:16px;align-items:center}.load-heading h2{font-size:17px;font-weight:600}#load-percent{color:var(--load-accent);font-variant-numeric:tabular-nums}
+.load-rail{height:5px;background:var(--load-border);border-radius:5px;overflow:hidden;margin:18px 0 12px}.load-rail i{display:block;height:100%;background:var(--load-accent);transform:scaleX(0);transform-origin:left;transition:transform .2s}
+#load-estimate{font-size:12px;color:var(--load-muted);margin-bottom:24px}
+#load-estimate .load-run{display:inline-block}
+#load-estimate .load-odo{display:none}
+#load-estimate.odo .load-odo{display:inline-flex;font-variant-numeric:tabular-nums}
+#load-estimate.odo .load-num{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#load-estimate .load-odo i{display:block;width:1ch;height:1lh;overflow:hidden;font-style:normal}
+#load-estimate .load-odo i::before{display:block;white-space:pre;content:"0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"}
+#load-estimate .load-odo i:first-child::before{content:"\00a0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"}
+#load-stages{display:grid;gap:15px;font-size:12px}#load-stages>div{display:flex;justify-content:space-between;gap:12px}#load-stages>div span:last-child{color:var(--load-muted);text-align:right}
+.load-choice{border-top:1px solid var(--load-border);margin-top:25px;padding-top:22px}.load-choice h3{font-size:16px}.load-choice p{font-size:13px;color:var(--load-muted);line-height:1.5;margin:10px 0 18px}
+#load-modes,.mode-go,.load-retry{border:0;border-radius:9px;background:var(--load-accent);color:#202225;padding:14px 16px;font-weight:650;font-size:14px;cursor:pointer;width:100%}.load-choice small{display:block;font-size:11px;color:var(--load-muted);margin-top:12px;text-align:center}
+#load-city footer{grid-column:1/-1;font-size:var(--load-small-min);color:var(--load-muted);letter-spacing:.06em}
+.load-route{animation:load-route-pulse 2.5s ease-in-out infinite}@keyframes load-route-pulse{50%{opacity:.35}}
+@media(max-width:650px){#load-city{display:flex;flex-direction:column;gap:20px;padding:28px 0;width:90%;margin:auto}.load-eyebrow{margin-bottom:14px}#load-city h1{font-size:32px;max-width:340px}.load-subtitle{font-size:13px;margin-top:12px}.load-story .mvh-stack{max-width:320px;margin-top:0;margin-left:auto;margin-right:auto;--mvh-w:min(100%,320px)}.load-caption{text-align:center}.load-card{width:100%;padding:20px}#load-stages{gap:10px;font-size:11px}#load-estimate{margin-bottom:18px}.load-choice{margin-top:18px;padding-top:16px}.load-choice p{margin:7px 0 12px}#load-city footer{font-size:var(--load-small-min)}.mode-grid{grid-template-columns:1fr}#mode-dialog{padding:18px}.mode-settings{gap:8px}#mode-launcher{right:10px;padding:10px 14px;font-size:12px}}
+@media(prefers-reduced-motion:reduce){.load-route{animation:none}.load-rail i{transition:none}}
+#load-estimate.load-fail{font-size:15px;line-height:1.5;color:var(--load-ink);margin:14px 0 4px}
+@media(prefers-reduced-motion:reduce){#veil-mark{animation:none}}

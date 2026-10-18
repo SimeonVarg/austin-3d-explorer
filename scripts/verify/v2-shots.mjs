@@ -44,7 +44,7 @@ for (const v of VIEWS) {
   page.on('console', (m) => { if (m.type() === 'error') errs.push('[console] ' + m.text()); });
   const failedReq = [];
   page.on('response', (r) => { if (r.status() >= 400) failedReq.push(r.status() + ' ' + r.url()); });
-  await page.goto(`${BASE.replace(/\/$/, '')}/v2/`, { waitUntil: 'load', timeout: 90000 });
+  await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0`, { waitUntil: 'load', timeout: 90000 });
   await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 90000 });
   await page.evaluate(() => window.__v2.ready);
   const man = await page.evaluate(() => fetch('./tiles/manifest.json').then((r) => r.json()));
