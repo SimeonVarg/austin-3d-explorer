@@ -100,6 +100,7 @@ function polysOf(coords) {
 // Facade coordinates (main.js draws the windows from them): per vertex [bay, storey]. A wall of length L holds
 // n = round(L / bay) equal bays, bay runs 0..n along it; storey = height / the building's storey height. A wall too short for
 // one bay, and every roof, gets [-1, -1]: no windows.
+let FAC_CLASS = 0;
 function extrude(buf, rings, y0, y1, wallC, roofC, storeyM) {
   if (y1 - y0 < 0.05) return;
   for (const r of rings) {
@@ -112,7 +113,8 @@ function extrude(buf, rings, y0, y1, wallC, roofC, storeyM) {
       buf.pos.push(p[0], y0, p[1], q[0], y0, q[1], q[0], y1, q[1], p[0], y1, p[1]);
       for (let k = 0; k < 4; k++) { buf.nrm.push(nx, 0, nz); buf.col.push(...wallC); }
       const bays = L >= LOOK.FACADE.MIN_WALL_M ? Math.max(1, Math.round(L / LOOK.FACADE.BAY_M)) : 0;
-      if (bays && storeyM) buf.fac.push(0, y0 / storeyM, bays, y0 / storeyM, bays, y1 / storeyM, 0, y1 / storeyM);
+      // the building's class rides in the bay coordinate's thousands (the shader splits it off): 1000 x class + bay
+      if (bays && storeyM) { const c = FAC_CLASS * 1000; buf.fac.push(c, y0 / storeyM, c + bays, y0 / storeyM, c + bays, y1 / storeyM, c, y1 / storeyM); }
       else buf.fac.push(-1, -1, -1, -1, -1, -1, -1, -1);
       // (p0, p1, q0) and (q0, p1, q1): counter-clockwise seen from outside
       buf.idx.push(b, b + 3, b + 1, b + 1, b + 3, b + 2);
@@ -153,7 +155,8 @@ async function buildBuildings() {
     const start = buf.n;
     // the storey height: the class of building by its height (LOOK.FACADE.STOREYS), then stretched so the top is a whole storey
     const H = Math.max(...levels.map((lv) => lv.y1));
-    const cls = LOOK.FACADE.STOREYS.find((c) => H <= c[0]) || LOOK.FACADE.STOREYS[LOOK.FACADE.STOREYS.length - 1];
+    let ci = LOOK.FACADE.STOREYS.findIndex((c) => H <= c[0]); if (ci < 0) ci = LOOK.FACADE.STOREYS.length - 1;
+    const cls = LOOK.FACADE.STOREYS[ci]; FAC_CLASS = ci;
     const storeyM = H >= LOOK.FACADE.MIN_HEIGHT_M ? H / Math.max(1, Math.round(H / cls[1])) : 0;
     for (const lv of levels) for (const rings of lv.polys) extrude(buf, rings, lv.y0, lv.y1, wallC, roofC, storeyM);
     if (buf.n > start) { buf.ids.push(id); buf.starts.push(start); buf.counts.push(buf.n - start); }

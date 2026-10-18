@@ -89,10 +89,9 @@ export const LOOK = {
     BAY_M: 3.4,                 // window bay width (a wall gets round(length / BAY_M) equal bays)
     MIN_WALL_M: 2.2,            // shorter walls (curved outlines' small steps) get no windows
     MIN_HEIGHT_M: 5,            // shorter buildings (sheds, canopies) get none
-    STOREYS: [[13, 3.2], [40, 3.4], [1e9, 3.8]],   // [building height up to, storey height]: houses, mid-rises, towers
-    WINDOW_W: 0.52,             // window width, share of the bay (centred)
-    WINDOW_H: 0.5,              // window height, share of the storey
-    SILL: 0.3,                  // sill height, share of the storey
+    // by the building's height: [height up to (m), storey height (m), window width (share of the bay, centred),
+    // window height (share of the storey), sill (share of the storey)]: houses, mid-rises, towers (towers read as ribbon glazing)
+    STOREYS: [[13, 3.2, 0.42, 0.45, 0.32], [40, 3.4, 0.55, 0.5, 0.3], [1e9, 3.8, 0.8, 0.62, 0.22]],
     GLASS: '#28323c',           // window glass (linear ~0.02): dark, the sky's mirror adds the rest
     GLASS_ROUGHNESS: 0.25,
     BAND: 0.07,                 // a slab line at each floor, share of the storey (0 = none)

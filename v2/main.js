@@ -323,11 +323,14 @@ float pulseF(float x, float w, float a, float b) {
   return mix(k, b - a, smoothstep(${f(F.FADE_PX[0])}, ${f(F.FADE_PX[1])}, w));
 }`).replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
 if (vFac.x >= 0.0) {
-  vec2 w = fwidth(vFac);
-  float wx = pulseF(vFac.x, w.x, ${f(0.5 - F.WINDOW_W / 2)}, ${f(0.5 + F.WINDOW_W / 2)});
-  float wy = pulseF(vFac.y, w.y, ${f(F.SILL)}, ${f(F.SILL + F.WINDOW_H)});
+  float cls = floor(vFac.x / 1000.0);
+  vec2 fc = vec2(vFac.x - cls * 1000.0, vFac.y);
+  vec2 w = fwidth(fc);
+  vec3 win3 = ${F.STOREYS.map((c, i) => `cls < ${i}.5 ? vec3(${f(c[2])}, ${f(c[3])}, ${f(c[4])}) :`).join(' ')} vec3(0.5);
+  float wx = pulseF(fc.x, w.x, 0.5 - 0.5 * win3.x, 0.5 + 0.5 * win3.x);
+  float wy = pulseF(fc.y, w.y, win3.z, win3.z + win3.y);
   float win = wx * wy;
-  float band = ${F.BAND > 0 ? `pulseF(vFac.y, w.y, 0.0, ${f(F.BAND)})` : '0.0'};
+  float band = ${F.BAND > 0 ? `pulseF(fc.y, w.y, 0.0, ${f(F.BAND)})` : '0.0'};
   diffuseColor.rgb *= mix(1.0, ${f(F.BAND_SHADE)}, band * (1.0 - win));
   diffuseColor.rgb = mix(diffuseColor.rgb, vec3(${f(glass.r)}, ${f(glass.g)}, ${f(glass.b)}), win);
   roughnessFactor = mix(roughnessFactor, ${f(F.GLASS_ROUGHNESS)}, win);
