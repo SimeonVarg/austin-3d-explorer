@@ -78,7 +78,23 @@ try {
 const DPR = Math.min(devicePixelRatio || 1, PHONE ? QUALITY.MAX_PIXEL_RATIO_PHONE : QUALITY.MAX_PIXEL_RATIO);
 renderer.setPixelRatio(DPR);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = { agx: THREE.AgXToneMapping, aces: THREE.ACESFilmicToneMapping, neutral: THREE.NeutralToneMapping, none: THREE.NoToneMapping }[LOOK.TONE_MAPPING] ?? THREE.AgXToneMapping;
+// 'standard': Blender's Standard view (exposure, then the sRGB curve) below LOOK.TONE_SHOULDER, and above it the highlight
+// roll-off of Khronos PBR Neutral, WITHOUT Neutral's dark offset (which subtracts the darkest channel from dark colours and turned
+// every shade navy). Shade and mid-tones are exactly the Blender renders'; a sunlit white roof rolls off instead of clipping flat.
+THREE.ShaderChunk.tonemapping_pars_fragment = THREE.ShaderChunk.tonemapping_pars_fragment.replace('vec3 CustomToneMapping( vec3 color ) { return color; }', `
+vec3 CustomToneMapping( vec3 color ) {
+  const float S = ${LOOK.TONE_SHOULDER.toFixed(4)};
+  const float Desaturation = 0.15;
+  color *= toneMappingExposure;
+  float peak = max( color.r, max( color.g, color.b ) );
+  if ( peak < S ) return color;
+  float d = 1. - S;
+  float newPeak = 1. - d * d / ( peak + d - S );
+  color *= newPeak / peak;
+  float g = 1. - 1. / ( Desaturation * ( peak - newPeak ) + 1. );
+  return mix( color, vec3( newPeak ), g );
+}`);
+renderer.toneMapping = { standard: THREE.CustomToneMapping, agx: THREE.AgXToneMapping, aces: THREE.ACESFilmicToneMapping, neutral: THREE.NeutralToneMapping, none: THREE.NoToneMapping }[LOOK.TONE_MAPPING] ?? THREE.AgXToneMapping;
 renderer.toneMappingExposure = LOOK.EXPOSURE;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -289,6 +305,39 @@ scene.add(ground);
 
 const flatMaterial = () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, depthWrite: false });
 const buildingMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: LOOK.BUILDING_ROUGHNESS, metalness: 0 });
+// The plain buildings' facades (LOOK.FACADE): windows and slab lines from each wall's [bay, storey] coordinates, box-filtered
+// over the pixel's footprint so they are sharp close up and their exact average far away (rule 15: no flicker, and not a blur).
+if (LOOK.FACADE.ON && params.get('facades') !== '0') {
+  const F = LOOK.FACADE, glass = new THREE.Color(F.GLASS);
+  const f = (v) => v.toFixed(5);
+  buildingMaterial.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 fac;\nvarying vec2 vFac;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFac = fac;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying vec2 vFac;
+// the share of [x - w/2, x + w/2] that lies inside the pulses [a, b] of a pattern with period 1 (an exact box filter)
+float pulseI(float x, float a, float b) { return floor(x) * (b - a) + clamp(fract(x), a, b) - a; }
+float pulseF(float x, float w, float a, float b) {
+  w = max(w, 1e-4);
+  float k = (pulseI(x + 0.5 * w, a, b) - pulseI(x - 0.5 * w, a, b)) / w;
+  return mix(k, b - a, smoothstep(${f(F.FADE_PX[0])}, ${f(F.FADE_PX[1])}, w));
+}`).replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+if (vFac.x >= 0.0) {
+  float cls = floor(vFac.x / 1000.0);
+  vec2 fc = vec2(vFac.x - cls * 1000.0, vFac.y);
+  vec2 w = fwidth(fc);
+  vec3 win3 = ${F.STOREYS.map((c, i) => `cls < ${i}.5 ? vec3(${f(c[2])}, ${f(c[3])}, ${f(c[4])}) :`).join(' ')} vec3(0.5);
+  float wx = pulseF(fc.x, w.x, 0.5 - 0.5 * win3.x, 0.5 + 0.5 * win3.x);
+  float wy = pulseF(fc.y, w.y, win3.z, win3.z + win3.y);
+  float win = wx * wy;
+  float band = ${F.BAND > 0 ? `pulseF(fc.y, w.y, 0.0, ${f(F.BAND)})` : '0.0'};
+  diffuseColor.rgb *= mix(1.0, ${f(F.BAND_SHADE)}, band * (1.0 - win));
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(${f(glass.r)}, ${f(glass.g)}, ${f(glass.b)}), win);
+  roughnessFactor = mix(roughnessFactor, ${f(F.GLASS_ROUGHNESS)}, win);
+}`);
+  };
+  buildingMaterial.customProgramCacheKey = () => 'v2-facades';
+}
 
 const city = { buildings: [], byId: new Map(), roads: [], sidewalks: [], trees: null, hidden: new Set(), stats: null };
 const cityGroup = new THREE.Group(); cityGroup.name = 'city';
@@ -299,6 +348,7 @@ function geometryOf(t, normals) {
   g.setAttribute('position', new THREE.BufferAttribute(t.pos, 3));
   if (normals) g.setAttribute('normal', new THREE.BufferAttribute(t.nrm, 3, true));
   g.setAttribute('color', new THREE.BufferAttribute(t.col, 3, true));
+  if (t.fac) g.setAttribute('fac', new THREE.BufferAttribute(t.fac, 2));
   g.setIndex(new THREE.BufferAttribute(t.idx, 1));
   g.computeBoundingSphere(); g.computeBoundingBox();
   return g;
