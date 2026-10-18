@@ -17,7 +17,20 @@
       "dependabot/**": false
     }
   },
+  "rewrites": [
+    {
+      "source": "/v2/aerial-live/:z/:y/:x",
+      "destination": "https://maps.austintexas.gov/image/rest/services/MapTiled/AerialImagery_WebMercator/MapServer/tile/:z/:y/:x"
+    }
+  ],
   "headers": [
+    {
+      "source": "/v2/aerial-live/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" },
+        { "key": "CDN-Cache-Control", "value": "public, max-age=2592000" }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [

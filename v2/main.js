@@ -13,6 +13,7 @@ import { TileStreamer, TILES } from './tiles.js';
 import { MapLite, MarkerLayer, MercatorCoordinate } from './maplite.js';
 import { MapLayers } from './map-layers.js';
 import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
+import { installGround } from './ground.js';
 
 const params = new URLSearchParams(location.search);
 
@@ -293,6 +294,8 @@ const buildingMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, ro
 const city = { buildings: [], byId: new Map(), roads: [], sidewalks: [], trees: null, hidden: new Set(), stats: null };
 const cityGroup = new THREE.Group(); cityGroup.name = 'city';
 scene.add(cityGroup);
+// the City's 2025 aerial on the ground, the street layers and the credits link (ground.js; it hooks scene.onBeforeRender itself)
+installGround({ THREE, scene, camera, renderer, city, redraw: () => { dirty = true; }, phone: PHONE });
 
 function geometryOf(t, normals) {
   const g = new THREE.BufferGeometry();

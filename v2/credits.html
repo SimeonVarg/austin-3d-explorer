@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Credits · Austin 3D Explorer</title>
+  <meta name="description" content="Where the map's data comes from, and the licences it is used under.">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <style>
+    :root { --ink: #17202b; --soft: #4a5562; --paper: #f6f8fa; --line: rgba(23, 32, 43, 0.14); --link: #1f5fb8; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #eef2f6; --soft: #aab4bf; --paper: #141a21; --line: rgba(255, 255, 255, 0.14); --link: #8ab8ff; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+    h1 { font-size: 26px; margin: 0 0 4px; }
+    h2 { font-size: 17px; margin: 28px 0 6px; padding-top: 18px; border-top: 1px solid var(--line); }
+    p, li { color: var(--ink); }
+    .soft { color: var(--soft); font-size: 14px; }
+    a { color: var(--link); }
+    ul { padding-left: 20px; }
+    code { font-size: 13px; }
+  </style>
+</head>
+<body>
+<main>
+  <p class="soft"><a href="./">&larr; Back to the map</a></p>
+  <h1>Credits</h1>
+  <p class="soft">The 3D map is made from open data. Each source is listed with the licence it is used under.</p>
+
+  <h2>OpenStreetMap</h2>
+  <p>Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, data available under the
+    <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a>.</p>
+  <p class="soft">Used for: roads, walking paths, building outlines outside campus, street lamps, some trees. The data files this map
+    downloads that are made from OpenStreetMap are themselves offered under the Open Database License (ODbL 1.0); each one says so in
+    its own header and is kept separate from the City's data.</p>
+
+  <h2>City of Austin</h2>
+  <p>Aerial imagery (January 2025) and street data: City of Austin, Texas. Data retrieved from Data.AustinTexas.gov
+    (<a href="https://data.austintexas.gov">https://data.austintexas.gov</a>) and the City of Austin GIS Data
+    (<a href="https://geohub.austintexas.gov">https://geohub.austintexas.gov</a>). Not endorsed by the City of Austin.</p>
+  <p class="soft">Used for: the ground photograph (the City's 2025 6-inch aerial), sidewalks, curb ramps, crosswalks and stop lines,
+    bike lanes, traffic signals and the street tree inventory. The City offers this data "free and without restriction" under its Open
+    Data Terms of Use and asks for credit; it "cannot vouch for their quality and timeliness". The near ground tiles are loaded from the
+    City's own map server.</p>
+
+  <h2>Texas Geographic Information Office</h2>
+  <p>Terrain and 2021 aerial fallback: Texas Geographic Information Office (TxGIO) StratMap, CC0.</p>
+  <p class="soft">Used for: building heights from the 2021 Travis County lidar (public domain, CC0 1.0).</p>
+
+  <h2>The University of Texas at Austin</h2>
+  <p>Campus building data © The University of Texas at Austin.</p>
+
+  <h2>Software</h2>
+  <p class="soft">Drawn with <a href="https://threejs.org">three.js</a> (MIT licence). The 3D buildings are modelled for this project.</p>
+</main>
+</body>
+</html>
