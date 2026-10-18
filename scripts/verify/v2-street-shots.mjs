@@ -39,6 +39,13 @@ const VIEWS = [
   { name: 'southmall-150m', xz: [0, 150], distance: 300, polar: 60, azimuth: 20 },
   { name: 'downtown-street', xz: [-335, 1997], distance: 45, polar: 80, azimuth: 342 },   // Congress at 6th, looking north to the Capitol
   { name: 'downtown-150m', xz: [-320, 1950], distance: 300, polar: 60, azimuth: 30 },
+  { name: 'speedway-150m', xz: [240, -420], distance: 300, polar: 60, azimuth: 200 },
+  // eye level: a camera 1.8 m up in the street, 40 m before a crossing, looking along the street (compass heading). The app's own
+  // controls stop at 4.3 m (main.js VIEW: 25 m from the target, 80 degrees); these pictures lift that limit for the shot only.
+  { name: 'drag-eye', eye: [-255.5, 285.6, 4.7, 1.8] },          // Guadalupe, looking north to 21st
+  { name: 'speedway-eye', eye: [243.9, -424.5, 184.8, 1.8] },    // Speedway, looking south to Dean Keeton
+  { name: 'congress-eye', eye: [-347.5, 2034.8, 18, 1.8] },      // Congress, looking north to 6th and the Capitol
+  { name: 'wc-eye', eye: [-757.2, -234.2, 94.5, 1.8] },          // West 24th, looking east past Pearl
 ].filter((v) => !ONLY.length || ONLY.some((o) => v.name.includes(o)));
 
 const browser = await launch(chromium, { gl: process.env.VERIFY_GL || 'hardware', maxMs: 900000 });
@@ -54,7 +61,16 @@ for (const v of VIEWS) {
   await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0${Q ? '&' + Q : ''}`, { waitUntil: 'load', timeout: 120000 });
   await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 120000 });
   await page.evaluate(() => window.__v2.ready);
-  await page.evaluate(([x, z, d, p, a]) => window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }), [v.xz[0], v.xz[1], v.distance, v.polar, v.azimuth]);
+  if (v.eye) {
+    await page.evaluate(([x, z, hdg, h]) => {
+      const { controls, THREE } = window.__v2, r = THREE.MathUtils.degToRad(hdg), ahead = 30;
+      controls.minDistance = 1; controls.maxPolarAngle = THREE.MathUtils.degToRad(89.5);
+      window.__v2.placeCamera({ target: [x + Math.sin(r) * ahead, 0, z - Math.cos(r) * ahead], distance: Math.hypot(ahead, h),
+        polarDeg: THREE.MathUtils.radToDeg(Math.atan2(ahead, h)), azimuthDeg: -hdg });
+    }, v.eye);
+  } else {
+    await page.evaluate(([x, z, d, p, a]) => window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }), [v.xz[0], v.xz[1], v.distance, v.polar, v.azimuth]);
+  }
   let calm = 0; const t0 = Date.now(); let g = null;
   while (calm < 3 && Date.now() - t0 < 150000) {
     const s = await page.evaluate(() => { window.__v2.redraw(); return { t: window.__v2.tiles(), g: window.__v2ground ? window.__v2ground.stats() : null }; });

@@ -78,3 +78,40 @@ export const TREE_LOOK = {
   HUE_VARIATION: 0.02,
   TRUNK: '#3a3027',
 };
+
+export const NEAR_LOOK = {
+  // ── street level near the camera (street_near.js) ──
+  FADE: [60, 90],               // metres from the camera: modelled street fully in / gone (the aerial carries the rest)
+  FADE_PHONE: [50, 75],
+  MAX_CAMERA_Y_M: 140,          // above this the near layer is not drawn at all
+  ASPHALT: '#3d3e40',           // albedo on v2's scale (the old road ribbons' tone)
+  ASPHALT_GRAIN: 0.09,          // +- share of brightness, two octaves, faded below a pixel (0.18 read as clouds at eye level)
+  ASPHALT_Y_M: 0.008,
+  PAINT_WHITE: '#a9a8a2',
+  PAINT_YELLOW: '#a8892e',
+  PAINT_Y_M: 0.014,
+  LANE_W_M: 0.12,
+  DASH_M: [3.0, 9.0],           // Austin's 10 ft dash, 30 ft gap
+  GUTTER: '#7d7a72',
+  GUTTER_M: 0.45,
+  GUTTER_Y_M: 0.011,
+  CURB: '#8f8c84',
+  CURB_HEIGHT_M: 0.15,
+  CURB_TOP_M: 0.15,
+  WALK: '#86837b',
+  CONCRETE_GRAIN: 0.08,
+  JOINT_M: 1.52,                // 5 ft slabs
+  JOINT_DARK: 0.35,
+  SIGN_POST: '#8b8d8f',
+  SIGN_POST_M: 3.1,
+  SIGN_TOP_M: 2.75,             // the top panel's top edge
+  SIGN_BLADE_Y_M: 3.05,         // street-name blades sit on top of the post
+  SIGNS: {                      // by kind (street_near.py): w x h metres, colour, shape
+    0: { w: 0.3, h: 0.45, color: '#c8c7c2', shape: 'rect' },
+    1: { w: 0.75, h: 0.75, color: '#8e1d1b', shape: 'octagon' },
+    2: { w: 0.9, h: 0.15, color: '#1f5a36', shape: 'rect' },
+    3: { w: 0.9, h: 0.78, color: '#c8c7c2', shape: 'triangle' },
+    4: { w: 0.75, h: 0.75, color: '#c9a425', shape: 'diamond' },
+    5: { w: 0.6, h: 0.75, color: '#c8c7c2', shape: 'rect' },
+  },
+};

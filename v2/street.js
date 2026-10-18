@@ -78,43 +78,16 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
 
     // ── paint: crosswalk bars, stop lines, yield teeth (one draw) ──
     const bars = unflat(city.bars, 5).map(([x, z, a, L, w]) => [x, z, a, L, 1, w, S.PAINT_LIFT_M]);
-    instanced('paint', flatQuad(), flatMaterial(S.PAINT), bars);
+    const paint = instanced('paint', flatQuad(), flatMaterial(S.PAINT), bars);
+    if (paint) paint.renderOrder = 0.96;   // over street_near.js's asphalt (0.9), with its lane lines
 
-    // ── curbs: a 15 cm face on the road side and a narrow top, merged into one mesh ──
-    const pos = [], nrm = [], idx = [];
-    const H = S.CURB_HEIGHT_M, T = S.CURB_TOP_M;
-    for (const c of city.curbs) {
-      const n = c.length / 2;
-      for (let i = 0; i < n - 1; i++) {
-        const x0 = c[i * 2], z0 = c[i * 2 + 1], x1 = c[i * 2 + 2], z1 = c[i * 2 + 3];
-        const L = Math.hypot(x1 - x0, z1 - z0); if (L < 0.05) continue;
-        // the bake stores each curb with the road toward (dz, -dx) of its direction (d = travel), so the sidewalk is toward (-dz, dx)
-        const lx = -(z1 - z0) / L, lz = (x1 - x0) / L;
-        // the face, looking toward the road (-left)
-        let b = pos.length / 3;
-        pos.push(x0, 0, z0, x1, 0, z1, x1, H, z1, x0, H, z0);
-        for (let k = 0; k < 4; k++) nrm.push(-lx, 0, -lz);
-        idx.push(b, b + 2, b + 1, b, b + 3, b + 2);
-        // the top
-        b = pos.length / 3;
-        pos.push(x0, H, z0, x1, H, z1, x1 + lx * T, H, z1 + lz * T, x0 + lx * T, H, z0 + lz * T);
-        for (let k = 0; k < 4; k++) nrm.push(0, 1, 0);
-        idx.push(b, b + 2, b + 1, b, b + 3, b + 2);
-      }
-    }
-    if (pos.length) {
-      const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-      g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
-      g.setIndex(idx); g.computeBoundingSphere();
-      const m = flatMaterial(S.CURB); m.depthWrite = true; m.side = THREE.DoubleSide;
-      const mesh = new THREE.Mesh(g, m); mesh.receiveShadow = true; mesh.name = 'curbs';
-      group.add(mesh);
-    }
+    // (curbs: street_near.js draws kerbs, gutters and sidewalks near the camera, where a 15 cm step can be seen at all; the snapped
+    //  curbs in city.json are kept for the record and its counts.)
 
     // ── curb ramps with a warning pad ──
     const pads = unflat(city.ramps, 4).filter((r) => r[3]).map(([x, z, a]) => [x + Math.cos(a) * 0.4, z + Math.sin(a) * 0.4, a + Math.PI / 2, S.PAD_M[0], 1, S.PAD_M[1], S.PAINT_LIFT_M]);
-    instanced('ramp pads', flatQuad(), flatMaterial(S.PAD), pads);
+    const padMesh = instanced('ramp pads', flatQuad(), flatMaterial(S.PAD), pads);
+    if (padMesh) padMesh.renderOrder = 0.99;
 
     // ── traffic signals: pole, mast arm, signal heads on the arm, a pedestrian head on every pole ──
     const sig = unflat(city.signals, 4);

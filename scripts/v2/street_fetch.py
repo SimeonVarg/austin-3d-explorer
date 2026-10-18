@@ -13,6 +13,8 @@ marked Public Domain). Nothing here signs in; every request is anonymous and rea
   trees      wrik-xasw  Tree Inventory (Public Domain; species, trunk diameter)
   trees_dt   7aq7-a66u  Downtown Tree Inventory 2013 (Public Domain; species, dbh, height)
   ramps      AGOL TRANSPORTATION_curb_ramps (FeatureServer, the City's own ArcGIS Online)
+  arrows     AGOL Markings_Specialty_Point_Read_Only (lane-use arrows, words, symbols; the portal's 53jy-y8pj)
+  signs      ggnk-3ykn Roadway Sign Assets (Public Domain; MUTCD code, facing)
 """
 import json, os, sys, time, urllib.parse, urllib.request
 
@@ -29,7 +31,9 @@ SETS = {
 }
 AGOL = {
     'ramps': 'https://services.arcgis.com/0L95CJ0VTaxqcmED/ArcGIS/rest/services/TRANSPORTATION_curb_ramps/FeatureServer/0/query',
+    'arrows': 'https://services.arcgis.com/0L95CJ0VTaxqcmED/ArcGIS/rest/services/Markings_Specialty_Point_Read_Only/FeatureServer/0/query',
 }
+SOCRATA_POINTS = {'signs': ('ggnk-3ykn', 'latitude', 'longitude')}   # a table with lat/lon text columns, no geometry column
 UA = 'flyover-v2-bake/1 (City of Austin open data; github.com/SimeonVarg/austin-3d-explorer)'
 PAGE = 20000
 
@@ -71,17 +75,50 @@ def agol(url):
         off += len(page)
 
 
+def socrata_points(id, latc, lonc):
+    """A table with text lat/lon columns -> GeoJSON points in the box."""
+    where = f"{latc} between '{BOX['s']}' and '{BOX['n']}'"
+    rows, off = [], 0
+    while True:
+        q = urllib.parse.urlencode({'$where': where, '$limit': PAGE, '$offset': off, '$order': ':id'})
+        page = get(SOCRATA.format(id=id).replace('.geojson', '.json') + '?' + q)
+        rows += page
+        if len(page) < PAGE:
+            break
+        off += PAGE
+    feats = []
+    for r in rows:
+        try:
+            lat, lon = float(r[latc]), float(r[lonc])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if BOX['s'] <= lat <= BOX['n'] and BOX['w'] <= lon <= BOX['e']:
+            feats.append({'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [lon, lat]}, 'properties': r})
+    return feats
+
+
 def main():
     out = sys.argv[1]
+    only = set(sys.argv[2:])
     os.makedirs(out, exist_ok=True)
-    for name, (id, geom) in SETS.items():
-        f = socrata(id, geom)
+    for name, (id, latc, lonc) in SOCRATA_POINTS.items():
+        if only and name not in only:
+            continue
+        f = socrata_points(id, latc, lonc)
         json.dump({'type': 'FeatureCollection', 'source': id, 'fetched': time.strftime('%Y-%m-%d'), 'features': f}, open(os.path.join(out, name + '.geojson'), 'w'))
         print(name, id, len(f))
     for name, url in AGOL.items():
+        if only and name not in only:
+            continue
         f = agol(url)
         json.dump({'type': 'FeatureCollection', 'source': url, 'fetched': time.strftime('%Y-%m-%d'), 'features': f}, open(os.path.join(out, name + '.geojson'), 'w'))
         print(name, len(f))
+    for name, (id, geom) in SETS.items():
+        if only and name not in only:
+            continue
+        f = socrata(id, geom)
+        json.dump({'type': 'FeatureCollection', 'source': id, 'fetched': time.strftime('%Y-%m-%d'), 'features': f}, open(os.path.join(out, name + '.geojson'), 'w'))
+        print(name, id, len(f))
 
 
 if __name__ == '__main__':
