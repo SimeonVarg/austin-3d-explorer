@@ -29,6 +29,8 @@ const VIEWS = [
   // from the South Mall (south of the Tower, looking north), the DKR field close, and Tower and stadium in one frame
   { name: '7-tower-south-mall-desktop', ...DESKTOP, slug: 'ut-tower-main-building', distance: 400, polar: 77, azimuth: 0 },
   { name: '8-dkr-green-field-desktop', ...DESKTOP, slug: 'dkr-memorial-stadium', distance: 260, polar: 50, azimuth: 250 },
+  { name: '10-moody-center-desktop', ...DESKTOP, slug: 'moody-center', distance: 260, polar: 52, azimuth: 215 },
+  { name: '11-moody-center-far-desktop', ...DESKTOP, slug: 'moody-center', distance: 900, polar: 55, azimuth: 215 },
   { name: '9-campus-tower-and-dkr-desktop', ...DESKTOP, xz: [310, 115], distance: 1150, polar: 52, azimuth: 205 },
 ].filter((v) => !ONLY.length || ONLY.some((o) => v.name.includes(o)));
 

@@ -1664,12 +1664,13 @@
    ],
    "lod0": "tiles/t_3_2.glb",
    "lod1": "tiles/t_3_2.far.glb",
+   "lod1_m": 400,
    "buildings": [
     "moody-center"
    ],
    "bytes": [
-    1349224,
-    43140
+    636208,
+    65168
    ]
   },
   {
@@ -3007,13 +3008,14 @@
    "map_ids": [
     "2b0f20a0",
     "ba9c090c",
-    "d8b0698a"
+    "d8b0698a",
+    "2fef595b"
    ],
    "name": "Moody Center",
    "model": "opus",
    "x": 838.179,
    "z": 560.199,
-   "top": 22.4
+   "top": 23.6
   },
   "moontower": {
    "tile": "t_-2_0",

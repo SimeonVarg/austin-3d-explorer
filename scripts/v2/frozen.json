@@ -1,4 +1,3 @@
 {
-  "_about": "Builds whose export already in the cache is kept as it is (not re-exported when their .blend or the exporter changes). Remove a line to bake that build again.",
-  "moody-center": "owner 2026-10-18: leave it as it is until the reviewed build (moody-center/out-v2) is announced finished"
+  "_about": "Builds whose export already in the cache is kept as it is (not re-exported when their .blend or the exporter changes). Remove a line to bake that build again."
 }

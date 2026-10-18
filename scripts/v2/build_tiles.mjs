@@ -135,7 +135,7 @@ const appMade = [];
 for (const s of placeable.filter((x) => APP_COPY[x] && usable(x) && (!ONLY || ONLY.has(x)))) {
   if (!FORCE && appState(s) === appKey(s) && fs.existsSync(path.join(APP_DIR, `${s}.near.glb`))) continue;
   const t0 = Date.now();
-  const st = await makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src: path.join(EXPORT, `${s}.near.glb`), dst: path.join(APP_DIR, `${s}.near.glb`), dstMass: path.join(APPMASS_DIR, `${s}.near.glb`), spec: APP_COPY[s] });
+  const st = await makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src: path.join(EXPORT, `${s}.near.glb`), dst: path.join(APP_DIR, `${s}.near.glb`), dstMass: path.join(APPMASS_DIR, `${s}.near.glb`), dstFarKeep: path.join(APP_DIR, `${s}.farkeep.glb`), dstFarCopy: path.join(APP_DIR, `${s}.farcopy.glb`), spec: APP_COPY[s] });
   fs.writeFileSync(path.join(APP_DIR, `${s}.json`), JSON.stringify(st, null, 1)); fs.writeFileSync(path.join(APP_DIR, `${s}.key`), appKey(s));
   try { fs.unlinkSync(path.join(EXPORT, `${s}.mass.key`)); } catch {}     // the far mass is made again from the new copy
   appMade.push(s);
@@ -183,12 +183,11 @@ for (const t in tiles) tiles[t].sort();
 const isGlass = (m) => m && ((m.getExtras() || {}).v2_kind || 'plain') !== 'plain';
 
 async function buildingDoc(s, lod, idx, part) {
-  const doc = await io.read(path.join(lod === 1 ? (hasMass(s) ? massDirOf(s) : EXPORT) : dirOf(s), `${s}.${lod === 0 ? 'near' : hasMass(s) ? 'mass' : 'far'}.glb`));
+  const farCopy = lod === 1 && APP_COPY[s] && APP_COPY[s].far_copy;     // a far file made from the app copy itself, not the mass
+  const doc = await io.read(farCopy ? path.join(APP_DIR, `${s}.farcopy.glb`) : path.join(lod === 1 ? (hasMass(s) ? massDirOf(s) : EXPORT) : dirOf(s), `${s}.${lod === 0 ? 'near' : hasMass(s) ? 'mass' : 'far'}.glb`));
   // lod1 of an app-copy build also keeps the named surfaces of the copy (a field's turf: the far mass is walls and roofs and has no ground in it)
-  if (lod === 1 && hasMass(s) && APP_COPY[s] && APP_COPY[s].far_keep) {
-    const extra = await io.read(path.join(APP_DIR, `${s}.near.glb`)); const re = new RegExp(APP_COPY[s].far_keep, 'i');
-    for (const m of extra.getRoot().listMeshes()) for (const p of m.listPrimitives()) if (!re.test((p.getMaterial() && p.getMaterial().getName()) || '')) p.dispose();
-    await extra.transform(prune());
+  if (lod === 1 && !farCopy && hasMass(s) && APP_COPY[s] && APP_COPY[s].far_keep) {
+    const extra = await io.read(path.join(APP_DIR, `${s}.farkeep.glb`));
     mergeDocuments(doc, extra);
     const sc0 = doc.getRoot().listScenes()[0];
     for (const sc of doc.getRoot().listScenes().slice(1)) { for (const n of sc.listChildren()) sc0.addChild(n); sc.dispose(); }
@@ -281,7 +280,8 @@ const manifest = {
   notes: 'Each tile .glb: one opaque mesh (palette texture, one draw) and in lod0 one glass mesh; EXT_meshopt_compression + KHR_mesh_quantization (use MeshoptDecoder); vertex attribute _BUILDING = index into the tile\'s buildings list; colours are the builds\' linear base colours on the Blender light rig scale (white paint ~0.17).',
   tiles: Object.keys(tiles).sort().map((t) => {
     const [, i, j] = t.match(/^t_(-?\d+)_(-?\d+)$/).map(Number);
-    return { id: t, bounds: [i * TILE_M, j * TILE_M, (i + 1) * TILE_M, (j + 1) * TILE_M], lod0: `tiles/${t}.glb`, lod1: `tiles/${t}.far.glb`, buildings: tiles[t],
+    const l1 = Math.min(...tiles[t].map((b) => (APP_COPY[b] && APP_COPY[b].lod1_m) || Infinity));   // a build with a fine repeat (fins) asks for its far file sooner
+    return { id: t, bounds: [i * TILE_M, j * TILE_M, (i + 1) * TILE_M, (j + 1) * TILE_M], lod0: `tiles/${t}.glb`, lod1: `tiles/${t}.far.glb`, ...(Number.isFinite(l1) ? { lod1_m: l1 } : {}), buildings: tiles[t],
       bytes: [tileInfo[t].near.bytes, tileInfo[t].far.bytes] };
   }),
   buildings: Object.fromEntries(inTiles.sort().map((s) => [s, { tile: sources[s].tile, map_ids: [...new Set([...sources[s].map_ids, ...((place[s] && place[s].hides) || [])])], name: sources[s].name, model: sources[s].model,

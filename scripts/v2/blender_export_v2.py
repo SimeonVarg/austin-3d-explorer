@@ -38,6 +38,9 @@ WELD_M = 0.001
 # flicker. Triangles of these materials lying wholly below GROUND_DROP_BELOW_M are left out (a raised deck or planter stays).
 GROUND_DROP_MAT = re.compile(r'street|sidewalk|pavement|road|kerb|curb|asphalt|crosswalk|lawn|grass|turf|ground|gutter|driveway', re.I)
 GROUND_DROP_BELOW_M = 0.35
+# distance bands the builder hid from the render on purpose (Moody Center's finband_far_*: one flat band per fin face, in the fins' mean colour):
+# exported like any object; the app copy takes them out of the near model and keeps them for the far one (scripts/v2/app_copy.json)
+FAR_BAND = re.compile(r'^finband_far_', re.I)
 # ...but a playing surface the builder modelled on purpose (DKR's field_turf, a quad at field level) is the building's, not the lot's ground: it stays
 # (the DKR turf was lost here on the first v2 bake, its material being called "turf"). The app copy lifts it a centimetre off the app's ground.
 PLAYING_SURFACE = re.compile(r'^(field|pitch|court|track)_(turf|grass|surface|floor)', re.I)
@@ -168,7 +171,8 @@ for inst in dg.object_instances:
     if ob.type not in ('MESH', 'CURVE', 'FONT', 'SURFACE', 'META'): continue
     src = inst.parent.original if inst.is_instance and inst.parent else ob.original
     nm = ob.original.name
-    if src.hide_render or (not inst.is_instance and ob.original.hide_render) or SKIP_NAME.search(nm) or SKIP_NAME.search(src.name) \
+    hidden_ = src.hide_render or (not inst.is_instance and ob.original.hide_render)
+    if (hidden_ and not FAR_BAND.search(nm)) or SKIP_NAME.search(nm) or SKIP_NAME.search(src.name) \
             or any(SKIP_COLLECTION.search(c.name) for c in list(src.users_collection) + list(ob.original.users_collection)):
         skipped.append(nm); continue
     try: me = ob.to_mesh()
