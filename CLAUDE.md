@@ -171,6 +171,11 @@ memory and is never written here, in any tracked file, or in a commit message.
     - **One triangle number per building, the same for every model** (his words: *"if I had opus redo the haiku runs,
       it would use the same amount of triangles or give a take a few percent"*). The number, give or take 5 %, is
       written into the building's package, so any builder of that building gets it, and a model comparison is fair.
+    - **No triangle limit on a build; reduce afterwards (owner, 2026-10-17):** *"Please no triangle limit, you should
+      reduce from a more detailed version, instead of trying to make it right with more limitations."* A builder makes
+      the most detailed true model the photographs support. The light copy for the app is a separate later step made
+      FROM that detailed model. The one-number rule above now applies to that reduced copy only, so model comparisons
+      stay fair. Rule 15 still holds for the detailed model.
     - **The gates do not change:** his eye decides; rule 15 (nothing shimmers, blur is not a fix) holds for every
       Blender building; the phone must still run the city; a picture of the app for him is drawn at his screen's
       density and never smaller than the picture it stands beside.
