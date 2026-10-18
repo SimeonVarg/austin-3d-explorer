@@ -280,6 +280,7 @@
   },
   "_tools": "Not checks: no path to a non-zero exit (they photograph or print), or they need inputs only a human supplies (two checkouts, a PNG, a plan file). Running them proves nothing.",
   "tools": {
+    "v2-pairs.mjs": "Manual: the v2 app from the camera poses of the Blender renders (scripts/v2/blender_pair.py); makes pictures, asserts nothing, needs a real GPU.",
     "v2-shots.mjs": "Manual pictures of a v2 URL (hardware GL, tiles settled, blank-frame check); fails on a software renderer, so not a CI verdict.",
     "moire-roof-fps.mjs": "Manual interleaved hardware roof cost comparison; requires an explicit candidate source and does not impose a generic CI timing gate.",
     "moire-roof-study.mjs": "Manual hardware roof comparison; requires explicit output and matched visual review, not a default CI verdict.",
