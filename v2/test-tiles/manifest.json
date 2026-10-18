@@ -1,0 +1,36 @@
+{
+  "origin": {
+    "lat": 30.28601,
+    "lon": -97.73932
+  },
+  "frame": "local metres: x east, y up (metres above the origin ground), z south (three.js); v2/geo.js",
+  "note": "TEST tile set made by v2/tools/make-test-tile.mjs (one Blender build, 26 West). The real set is v2/tiles/manifest.json.",
+  "tiles": [
+    {
+      "id": "t_-2_-3",
+      "bounds": [
+        -500,
+        -750,
+        -250,
+        -500
+      ],
+      "lod0": "test-tiles/tiles/t_-2_-3.glb",
+      "lod1": "test-tiles/tiles/t_-2_-3.far.glb",
+      "buildings": [
+        "26-west"
+      ]
+    }
+  ],
+  "buildings": {
+    "26-west": {
+      "tile": "t_-2_-3",
+      "map_ids": [
+        "9363b194",
+        "38b2cf1c",
+        "23994eaf",
+        "529724dc"
+      ],
+      "name": "26 West"
+    }
+  }
+}

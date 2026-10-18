@@ -238,6 +238,7 @@
   "_laptop_only": "Timing. Frame times on a shared cloud CPU with a software rasteriser measure the runner, not the code (README: 'right for pixel assertions and useless for timing'). These stay on a quiet laptop.",
   "laptop_only": {
     "graphics-parity.mjs": "hardware GL: cold production graphics comparison with explicit source/query arms, exact pixels and repeat-noise control",
+    "v2-frame.mjs": "timing of the v2 app (/v2/): needs a real GPU (it fails on a software renderer); run on the AWS L4 one check at a time (scripts/aws-gpu)",
     "perf-rustpack-suite.mjs": "timing (the AWS A/B for packed vertices and the Rust builder: arms interleaved, desktop and the phone profile, phone-emulation memory)",
     "apts-perf.mjs": "timing",
     "rust-builder-timing.mjs": "timing (the real page, ?rustbuilder=1 against the JS builder, interleaved; wasm-mesh-parity.mjs is its correctness half and runs in CI)",
@@ -279,6 +280,7 @@
   },
   "_tools": "Not checks: no path to a non-zero exit (they photograph or print), or they need inputs only a human supplies (two checkouts, a PNG, a plan file). Running them proves nothing.",
   "tools": {
+    "v2-shots.mjs": "Manual pictures of a v2 URL (hardware GL, tiles settled, blank-frame check); fails on a software renderer, so not a CI verdict.",
     "moire-roof-fps.mjs": "Manual interleaved hardware roof cost comparison; requires an explicit candidate source and does not impose a generic CI timing gate.",
     "moire-roof-study.mjs": "Manual hardware roof comparison; requires explicit output and matched visual review, not a default CI verdict.",
     "perf-frame-profile.mjs": "tool, no verdict (timing or pictures; started by hand or on a cloud runner): scripts/perf wrapper for the AWS GPU runner; measures frame time, no verdict",
