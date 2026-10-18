@@ -62,6 +62,12 @@ export const STREET_LOOK = {
   LAMP_MAST_M: 9.0,
   LANTERN_POST_M: 4.0,
   LANTERN_GLASS: '#d9d2bd',
+  // ── bus stops and benches ──
+  SHELTER_ROOF: '#5b6066',
+  SHELTER_GLASS: '#8fa3ad',
+  SHELTER_FRAME: '#3e4246',
+  BENCH: '#4a4d4f',
+  STOP_FLAG: '#c8c7c2',
 };
 
 export const TREE_LOOK = {

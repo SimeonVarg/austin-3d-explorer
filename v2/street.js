@@ -121,6 +121,22 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
       instanced('lantern posts', cyl(0.06, 0.09, S.LANTERN_POST_M), uprightMaterial(S.LAMP_METAL), lr);
       instanced('lantern heads', box(0.34, 0.55, 0.34, 0, S.LANTERN_POST_M + 0.27, 0), uprightMaterial(S.LANTERN_GLASS, 0.3, 0.0), lr);
     }
+    // ── bus stops and benches (OpenStreetMap): a shelter (roof, back and side glass on posts), a bench, a stop sign post ──
+    if (osm && osm.stops) {
+      const st = unflat(osm.stops, 5), bn = unflat(osm.benches || [], 3);
+      // facing angle = toward the road; a shelter's open side faces it, set 0.8 m back from the stop point
+      const back = (x, z, a, d) => [x - Math.cos(a) * d, z - Math.sin(a) * d];
+      const shel = st.filter((s) => s[3]).map(([x, z, a]) => { const [bx, bz] = back(x, z, a, 0.8); return [bx, bz, a, 1, 1, 1]; });
+      instanced('shelter roofs', box(1.6, 0.08, 3.6, 0, 2.5, 0), uprightMaterial(S.SHELTER_ROOF, 0.5, 0.3), shel);
+      instanced('shelter backs', box(0.04, 1.9, 3.4, -0.75, 1.3, 0), uprightMaterial(S.SHELTER_GLASS, 0.15, 0.0), shel);
+      instanced('shelter posts', box(0.08, 2.5, 3.5, -0.75, 1.25, 0).scale(1, 1, 1), uprightMaterial(S.SHELTER_FRAME, 0.5, 0.4), shel.map(([x, z, a]) => [x, z, a, 1, 1, 0.03]));
+      const seats = [...st.filter((s) => s[4]).map(([x, z, a]) => { const [bx, bz] = back(x, z, a, 1.2); return [bx, bz, a, 1, 1, 1]; }),
+        ...bn.map(([x, z, a]) => [x, z, a, 1, 1, 1])];
+      instanced('bench seats', box(0.45, 0.06, 1.8, 0, 0.45, 0), uprightMaterial(S.BENCH, 0.7, 0.1), seats);
+      instanced('bench backs', box(0.05, 0.4, 1.8, -0.22, 0.75, 0), uprightMaterial(S.BENCH, 0.7, 0.1), seats);
+      instanced('stop poles', cyl(0.04, 0.04, 2.9), uprightMaterial(S.SIGNAL_METAL), st.map(([x, z, a]) => [x, z, a, 1, 1, 1]));
+      instanced('stop flags', box(0.03, 0.45, 0.45, 0, 2.6, 0), uprightMaterial(S.STOP_FLAG, 0.5, 0.1), st.map(([x, z, a]) => [x, z, a + Math.PI / 2, 1, 1, 1]));
+    }
     Object.assign(stats, { ready: true, ...(city.counts || {}), lamps: osm && osm.lamps ? osm.lamps.length / 3 : 0, draws: group.children.length });
     redraw();
   }

@@ -23,7 +23,7 @@ export const LABELS = {
   // At street level (the street lane, 2026-10-18; owner: names "crowd the whole view"): below LOW_CAMERA_M of camera height the
   // names thin out hard: only what is near (LOW_FAR_MIN_M, or LOW_FAR_PER_M per metre of height) or a landmark within
   // LOW_LANDMARK_M, at most LOW_MAX of them, and near names are allowed (LOW_NEAR_M) since that is what a walker reads.
-  LOW_CAMERA_M: 40, LOW_FAR_MIN_M: 130, LOW_FAR_PER_M: 6, LOW_LANDMARK_M: 700, LOW_MAX: 5, LOW_MAX_PHONE: 3, LOW_NEAR_M: 12,
+  LOW_CAMERA_M: 40, LOW_FAR_MIN_M: 130, LOW_FAR_PER_M: 6, LOW_LANDMARK_M: 700, LOW_MAX: 5, LOW_MAX_PHONE: 3, LOW_NEAR_M: 12, LOW_ABOVE_EYE_M: 2,
 };
 
 export class Labels {
@@ -49,12 +49,19 @@ export class Labels {
     const W = this.canvas.clientWidth, H = this.canvas.clientHeight, cam = this.camera.position;
     const low = cam.y < LABELS.LOW_CAMERA_M;
     const lowFar = Math.max(LABELS.LOW_FAR_MIN_M, cam.y * LABELS.LOW_FAR_PER_M);
+    const fwd = this.camera.getWorldDirection(this.fwd || (this.fwd = new THREE.Vector3()));
     const cand = [];
     for (const it of this.items) {
       const d = Math.hypot(it.x - cam.x, it.y - cam.y, it.z - cam.z);
       const landmark = (it.top || 0) >= LABELS.LANDMARK_TOP_M;
       const far = low ? (landmark ? LABELS.LOW_LANDMARK_M : lowFar) : (landmark ? LABELS.FAR_LANDMARK_M : LABELS.FAR_M);
       if (d < (low ? LABELS.LOW_NEAR_M : LABELS.NEAR_M) || d > far) continue;
+      // a name sits over a roof: at street level one whose point is not above the eye lies on the road (some items carry no height)
+      if (low && it.y < cam.y + LABELS.LOW_ABOVE_EYE_M) continue;
+      // behind the camera? (with v2's reversed depth buffer a point behind the eye can project to a z inside [-1, 1] and show
+      // mirrored on the screen: seen at street level on Guadalupe, 2026-10-18, with names of buildings 600 m behind)
+      this.v.set(it.x - cam.x, it.y - cam.y, it.z - cam.z);
+      if (this.v.dot(fwd) <= 0) continue;
       this.v.set(it.x, it.y, it.z).project(this.camera);
       if (this.v.z > 1 || this.v.z < -1 || Math.abs(this.v.x) > 1.05 || Math.abs(this.v.y) > 1.05) continue;
       // nearer first; tall ones a little earlier; a selected one first of all
