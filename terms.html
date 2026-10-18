@@ -49,7 +49,7 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);color:v
   <a class="back" href="./">&larr; Back to the map</a>
 
   <h1 id="terms">Terms of use</h1>
-  <p class="date">Last updated: October 5, 2026</p>
+  <p class="date">Last updated: October 18, 2026</p>
   <nav><a href="#terms">Terms</a><a href="#privacy">Your privacy</a><a href="#credits">Credits</a></nav>
 
   <h2><span class="n">1</span>Who runs this</h2>
@@ -140,6 +140,14 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);color:v
   <h2><span class="n">16</span>Age</h2>
   <p>You must be 13 or older to use the site.</p>
 
+  <h2 id="google"><span class="n">17</span>Google Maps content (Google 3D mode)</h2>
+  <ul>
+    <li>The 3D map at /v2/ has an optional &ldquo;Google 3D&rdquo; mode. It is off unless you paste your own Google Maps Platform API key. In that mode the site includes Google Maps features and content: Google's Photorealistic 3D Tiles, streamed from Google's Map Tiles API.</li>
+    <li>Your use of Google Maps features and content is subject to the then-current versions of the <a href="https://maps.google.com/help/terms_maps/" rel="noopener">Google Maps/Google Earth Additional Terms of Service</a> and the <a href="https://policies.google.com/privacy" rel="noopener">Google Privacy Policy</a>.</li>
+    <li>In that mode your browser requests the tiles directly from Google, with your key, and Google sees your IP address. The key is kept in your browser's local storage only; the site never receives it. &ldquo;Forget key&rdquo; deletes it.</li>
+    <li>On screen, the Google Maps logo and the data credits belong to Google's part of the scene. The highlighted buildings and the walking route are the site's own, not Google's.</li>
+  </ul>
+
   <h1 id="credits">Credits</h1>
   <p class="note">The site stands on this open work. Each item keeps its own licence.</p>
   <div class="credits">
@@ -171,6 +179,7 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);color:v
     <ul>
       <li><a href="https://maplibre.org/" rel="noopener">MapLibre GL JS</a>, the map renderer. <span class="lic">BSD 3-Clause.</span></li>
       <li><a href="https://threejs.org/" rel="noopener">three.js</a>, for the sloped roofs. <span class="lic">MIT.</span></li>
+      <li><a href="https://github.com/NASA-AMMOS/3DTilesRendererJS" rel="noopener">3DTilesRendererJS</a> and the <a href="https://google.github.io/draco/" rel="noopener">Draco</a> decoder, for the optional Google 3D mode. <span class="lic">Apache 2.0.</span></li>
       <li><a href="https://github.com/protomaps/PMTiles" rel="noopener">PMTiles</a>, the map archive format. <span class="lic">BSD 3-Clause.</span></li>
       <li><a href="https://github.com/naptha/tesseract.js" rel="noopener">Tesseract.js</a>, its core and its English model, which read a schedule photo on your device. <span class="lic">Apache 2.0. It includes Leptonica and other open image libraries under their own licences.</span></li>
     </ul>
