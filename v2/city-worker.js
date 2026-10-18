@@ -15,7 +15,6 @@ const SOURCES = {
   downtown: 'outer/downtown_massing.json',
   roads: 'roads.geojson',
   walk: 'walk_graph.json',
-  trees: 'canopy_detected.json',
 };
 const DEFAULT_HEIGHT_M = 9;       // an outline with no height anywhere
 const MIN_HEIGHT_M = 2.5;
@@ -299,36 +298,10 @@ async function buildSidewalks() {
   return { sidewalks: n, tiles: sendRibbons('sidewalks', out) };
 }
 
-// Trees: the canopy detected on aerial photographs (crown radius and height per tree), overlapping survey areas de-duplicated.
-// map outlines by the app's id (8 hex), kept for the tree step: no tree is planted under a Blender model's outline
+// Trees are NOT built here any more: data/canopy_detected.json was detected on Esri World Imagery, which a public product may not
+// use (2026-10-18). v2/trees.js draws trees from the City's inventories and its 2025 aerial (scripts/v2/street_trees.py) instead.
+// The outlines are still kept by id (buildBuildings fills this map).
 const outlineById = new Map();
-
-async function buildTrees() {
-  const c = await getJSON(SOURCES.trees);
-  const seen = new Set(), arr = [];
-  // The canopy was detected from aerial photographs, so it also finds trees on a stadium's field or a courtyard that the Blender model
-  // already shows as it is. Every outline a Blender tile covers (map_ids in tiles/manifest.json) stays free of trees.
-  let covered = [], dropped = 0;
-  try {
-    const man = await (await fetch(new URL('./tiles/manifest.json', self.location.href))).json();
-    const ids = new Set(); for (const b of Object.values(man.buildings || {})) for (const id of b.map_ids || []) ids.add(String(id));
-    for (const id of ids) for (const ring of outlineById.get(id) || []) covered.push(ring);
-  } catch (e) { covered = []; }
-  for (const area of Object.values(c)) {
-    for (const t of area.trees || []) {
-      const k = Math.round(t.lon * 1e5) + ',' + Math.round(t.lat * 1e5);
-      if (seen.has(k)) continue;
-      seen.add(k);
-      const [x, z] = toLocal(t.lon, t.lat);
-      if (covered.some((ring) => pointInRing(x, z, ring))) { dropped++; continue; }
-      arr.push(x, z, t.r, t.h, Math.random());
-    }
-  }
-  const data = new Float32Array(arr);
-  const n = data.length / 5;
-  postMessage({ type: 'trees', data }, [data.buffer]);
-  return { trees: n, droppedUnderBlenderOutlines: dropped };
-}
 
 onmessage = async (ev) => {
   const m = ev.data;
@@ -345,6 +318,5 @@ onmessage = async (ev) => {
   await step('roads', buildRoads);
   await step('buildings', buildBuildings);
   await step('sidewalks', buildSidewalks);
-  await step('trees', buildTrees);
   postMessage({ type: 'done', stats, ms: Math.round(performance.now() - t0) });
 };
