@@ -23,13 +23,15 @@ await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0`, { waitUntil: 'load', t
 await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 600000 });
 await page.evaluate(() => window.__v2.ready);
 let sawFade = 0;
+// settled = the streamer has planned since the camera last moved, nothing loads or fades, and every tile it wants is in
+// (a slow software renderer runs the plan only every few seconds: never call a page settled before its first plan)
 const settle = async () => {
   let calm = 0; const t0 = Date.now();
   while (calm < 3 && Date.now() - t0 < 900000) {
     const s = await page.evaluate(() => { window.__v2.redraw(); return window.__v2.tiles(); });
     if (s.fading) sawFade++;
-    calm = s.loading === 0 && !s.fading ? calm + 1 : 0;
-    await page.waitForTimeout(150);
+    calm = s.planned && s.loaded > 0 && s.loading === 0 && !s.fading && s.wanting === 0 ? calm + 1 : 0;
+    await page.waitForTimeout(calm ? 1000 : 150);
   }
 };
 await settle();

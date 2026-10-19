@@ -106,6 +106,7 @@ export class TileStreamer {
     if (!this.manifest || now - this.last < TILES.UPDATE_EVERY_MS) return;
     this.last = now;
     const all = this.plan();
+    this.plannedFor = this.camera.matrixWorld.elements.join(',');
     // cancel loads that are no longer wanted
     for (const s of all) if (s.job && !s.want) { s.job.ctrl.abort(); s.job.stale = true; s.job = null; this.active--; this.stats.aborted++; }
     // drop what is not wanted
@@ -207,10 +208,14 @@ export class TileStreamer {
   }
 
   summary() {
-    let lod0 = 0, loading = 0, fading = 0;
-    for (const s of this.tiles.values()) { if (s.have === 'lod0' && !(s.fade && s.fade.phase === 'out')) lod0++; if (s.job) loading++; if (s.fade) fading++; }
-    // lod1 stays in the summary (always 0) for the verify scripts that print it
-    return { tiles: this.tiles.size, lod0, lod1: 0, loading, fading, ...this.stats };
+    let lod0 = 0, loading = 0, fading = 0, wanting = 0;
+    for (const s of this.tiles.values()) {
+      if (s.have === 'lod0' && !(s.fade && s.fade.phase === 'out')) lod0++; if (s.job) loading++; if (s.fade) fading++;
+      if (s.want && !s.have && (s.failed || 0) < TILES.MAX_TRIES) wanting++;
+    }
+    // lod1 stays in the summary (always 0) for the verify scripts that print it; planned = the plan ran since the camera last moved
+    const cam = this.camera.matrixWorld.elements.join(',');
+    return { tiles: this.tiles.size, lod0, lod1: 0, loading, fading, wanting, planned: this.plannedFor === cam, ...this.stats };
   }
 }
 
