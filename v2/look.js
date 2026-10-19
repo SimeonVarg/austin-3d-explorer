@@ -136,6 +136,10 @@ export const QUALITY = {
     DOWN_AT: 1.2,               // step down when the median motion frame is slower than this x the target's frame time
     UP_AT: 0.6,                 // step back up in motion when the median frame is faster than this x the target's frame time
     STEP: 0.84,                 // one step = this x the linear scale (about 0.7 x the pixels)
+    // a step down must make the median frame this much faster, or it is undone (0 = off). OFF: measured 2026-10-19 in the opening
+    // flight on the Mac, the view changes too fast for two windows to compare, and it undid steps that helped (66.6 -> 83.4 ms)
+    MIN_GAIN: 0,
+    RELEARN_MS: 8000,           // ...and not tried again for this long
     MIN_SCALE: 0.5,             // never below this x the full pixel ratio (linear)
     MIN_PIXEL_RATIO: 1,         // and never below one canvas pixel per CSS pixel
     WINDOW: 5,                  // motion frames measured after a change before the next decision (their median)

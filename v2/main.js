@@ -856,7 +856,7 @@ const adapt = {
   floor: Math.min(1, Math.max(A.MIN_SCALE, A.MIN_PIXEL_RATIO / DPR)),
   scale: 1,            // the canvas's scale now
   motionScale: 1,      // the scale motion runs at (learned)
-  samples: [], lastDraw: 0, lastMove: 0, changes: 0, movingDraw: false,
+  samples: [], lastDraw: 0, lastMove: 0, changes: 0, movingDraw: false, lastDown: null, learnedFloor: 0, learnedAt: 0,
 };
 function setScale(s) {
   s = THREE.MathUtils.clamp(s, adapt.floor, 1);
@@ -882,7 +882,13 @@ function adaptFrame(now, moved) {
   if (adapt.samples.length < A.WINDOW) return;
   const s = [...adapt.samples].sort((x, y) => x - y), med = s[s.length >> 1];
   adapt.samples = [];
-  if (med > adapt.budgetMs * A.DOWN_AT && adapt.scale > adapt.floor) adapt.motionScale = Math.max(adapt.floor, adapt.scale * A.STEP);
+  // a step down that did not make frames faster (the frame is not bound by its pixels, e.g. the CPU is): undo it, and never go
+  // below that scale for A.RELEARN_MS (softer for nothing is not a trade)
+  const prev = adapt.lastDown; adapt.lastDown = null;
+  if (prev && A.MIN_GAIN > 0 && med > prev.med * A.MIN_GAIN) { adapt.learnedFloor = prev.scale; adapt.learnedAt = now; adapt.motionScale = prev.scale; setScale(prev.scale); return; }
+  if (now - adapt.learnedAt > A.RELEARN_MS) adapt.learnedFloor = 0;
+  const floor = Math.max(adapt.floor, adapt.learnedFloor);
+  if (med > adapt.budgetMs * A.DOWN_AT && adapt.scale > floor + 1e-3) { adapt.lastDown = { scale: adapt.scale, med }; adapt.motionScale = Math.max(floor, adapt.scale * A.STEP); }
   else if (med < adapt.budgetMs * A.UP_AT && adapt.scale < 1) adapt.motionScale = Math.min(1, adapt.scale / A.STEP);
   else return;
   setScale(adapt.motionScale);
@@ -1050,7 +1056,7 @@ window.__v2 = {
   pickBuilding: (code) => { const i = buildings.findIndex((b) => b.code === code); if (i >= 0) { clsSel.value = String(i); return update(true); } },
   info: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures,
     dpr: renderer.getPixelRatio(), size: [renderer.domElement.width, renderer.domElement.height], reversedDepth: renderer.capabilities.reversedDepthBuffer, frames,
-    shadow: { cache: SHADOW_CACHE, ...shadowStats }, adapt: { on: adapt.on, floor: adapt.floor, scale: adapt.scale, motionScale: adapt.motionScale, changes: adapt.changes } }),
+    shadow: { cache: SHADOW_CACHE, ...shadowStats }, adapt: { on: adapt.on, floor: adapt.floor, learnedFloor: adapt.learnedFloor, scale: adapt.scale, motionScale: adapt.motionScale, changes: adapt.changes } }),
   async measure(ms = 4000, degPerFrame = 0.15) {
     Object.assign(frameLog, { on: true, orbit: degPerFrame > 0, degPerFrame, dts: [], cpu: [], scales: [], last: 0 });
     await new Promise((r) => setTimeout(r, ms));
