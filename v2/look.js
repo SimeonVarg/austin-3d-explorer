@@ -53,6 +53,7 @@ export const LOOK = {
   SHADOW_BIAS_M: 0.08,          // depth bias in metres along the sun (converted to the shadow camera's depth range)
   SHADOW_NORMAL_BIAS_TEXELS: 1.2,   // normal offset in shadow texels (so it shrinks with the texel: no light leaking under thin parts)
   SHADOW_RADIUS: 1.25,          // PCF softness, in texels
+  SHADOW_VIEW_CULL_MARGIN_TEXELS: 8,   // a caster is kept in the shadow map if its shadow comes within this many texels of the view
 
   // ── haze / distance ──────────────────────────────────────────────────
   // The old app's day haze (js/sky.js HAZE: DIST.day 3200, MAX.day 0.62): a surface d metres away is MAX x (1 - e^(-d/DIST)) of
@@ -123,6 +124,8 @@ export const QUALITY = {
   // The sun's shadow map is drawn again only when it can change: the light box moved a step, or a shadow caster was added,
   // removed, shown, hidden or reshaped (main.js casterSignature). Same picture; ?shadowcache=0 redraws it on every frame.
   SHADOW_CACHE: true,
+  // ...and holds only the casters whose shadow can reach the view (main.js cullCasters; conservative). ?shadowcull=0 keeps all.
+  SHADOW_VIEW_CULL: true,
   // Adaptive resolution, IN MOTION ONLY: while the camera moves and the measured frame time stays above the target, the canvas
   // draws fewer pixels (the browser scales it up); the moment the camera stops it is back at full sharpness. A GPU that holds the
   // target never leaves full resolution. ?adapt=0 turns it off; ?adaptfps=N sets the target.

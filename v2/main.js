@@ -291,18 +291,50 @@ function casterSignature(root) {
   visit(root);
   return a + ':' + b;
 }
+// Casters whose shadow cannot reach anything on screen are left out of the shadow map (QUALITY.SHADOW_VIEW_CULL). A shadow on a
+// visible point P comes from a caster point Q up the sun from P (P = Q - t * sunDir, P above the ground), so a caster whose
+// bounding sphere, swept down the sun to the ground and widened by a margin for the shadow filter, misses the camera's view
+// cannot shade any visible pixel. The test is conservative; the set it keeps is part of the signature, so a turn that brings a
+// left-out caster's shadow into view redraws the map.
+const SHADOW_VIEW_CULL = SHADOW_CACHE && (params.get('shadowcull') ? params.get('shadowcull') !== '0' : QUALITY.SHADOW_VIEW_CULL);
+const viewFrustum = new THREE.Frustum(), viewPM = new THREE.Matrix4(), sweepBox = new THREE.Box3(), sweepS = new THREE.Sphere(), sweepEnd = new THREE.Vector3();
+const culledCasters = [];
+function cullCasters(root, cam) {
+  viewPM.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+  viewFrustum.setFromProjectionMatrix(viewPM, cam.coordinateSystem, cam.reversedDepth);
+  const margin = (2 * shadowExtent / SHADOW_SIZE) * LOOK.SHADOW_VIEW_CULL_MARGIN_TEXELS;
+  const visit = (o) => {
+    if (!o.visible) return;
+    if (o.castShadow && o.geometry && o.frustumCulled) {
+      const g = o.geometry;
+      if (o.isInstancedMesh) { if (!o.boundingSphere) o.computeBoundingSphere(); sweepS.copy(o.boundingSphere); }   // every instance
+      else { if (!g.boundingSphere) g.computeBoundingSphere(); sweepS.copy(g.boundingSphere); }
+      sweepS.applyMatrix4(o.matrixWorld);
+      const r = sweepS.radius + margin, c = sweepS.center;
+      const k = Math.max(0, c.y + r) / sunDir.y;              // down the sun until below the ground
+      sweepEnd.copy(c).addScaledVector(sunDir, -k);
+      sweepBox.min.set(Math.min(c.x, sweepEnd.x) - r, Math.min(c.y, sweepEnd.y) - r, Math.min(c.z, sweepEnd.z) - r);
+      sweepBox.max.set(Math.max(c.x, sweepEnd.x) + r, Math.max(c.y, sweepEnd.y) + r, Math.max(c.z, sweepEnd.z) + r);
+      if (!viewFrustum.intersectsBox(sweepBox)) { o.castShadow = false; culledCasters.push(o); }
+    }
+    const ch = o.children;
+    for (let i = 0; i < ch.length; i++) visit(ch[i]);
+  };
+  visit(root);
+}
 if (SHADOW_CACHE) {
   const drawShadows = renderer.shadowMap.render;
   let lastSig = '';
   renderer.shadowMap.render = function (lights, s, cam) {
-    if (s === scene) {
-      const t = performance.now();
-      const sig = casterSignature(scene);
-      shadowStats.sigMs += performance.now() - t; shadowStats.frames++;
-      if (sig !== lastSig) { lastSig = sig; sun.shadow.needsUpdate = true; }
-      if (sun.shadow.needsUpdate) shadowStats.redraws++;
-    }
-    return drawShadows.call(this, lights, s, cam);
+    if (s !== scene) return drawShadows.call(this, lights, s, cam);
+    const t = performance.now();
+    if (SHADOW_VIEW_CULL) cullCasters(scene, cam);
+    const sig = casterSignature(scene);
+    shadowStats.sigMs += performance.now() - t; shadowStats.frames++;
+    if (sig !== lastSig) { lastSig = sig; sun.shadow.needsUpdate = true; }
+    if (sun.shadow.needsUpdate) shadowStats.redraws++;
+    try { return drawShadows.call(this, lights, s, cam); }
+    finally { shadowStats.culled = culledCasters.length; for (const o of culledCasters) o.castShadow = true; culledCasters.length = 0; }
   };
 }
 if (LOOK.HEMI_INTENSITY > 0) scene.add(new THREE.HemisphereLight(LOOK.HEMI_SKY, LOOK.HEMI_GROUND, LOOK.HEMI_INTENSITY));
