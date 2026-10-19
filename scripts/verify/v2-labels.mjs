@@ -49,7 +49,8 @@ const r = await page.evaluate(async () => {
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
-  await window.__v2.measure(2500, 0.4);
+  // a slow software renderer (CI) draws a frame every second or so: orbit until enough frames were seen (at most 4 minutes)
+  for (let k = 0; k < 96 && samples.length < 12; k++) await window.__v2.measure(2500, 0.4);
   stop = true;
   let moved = 0;
   for (let i = 1; i < samples.length; i++) for (const k in samples[i].pos) { const a = samples[i - 1].pos[k], b = samples[i].pos[k]; if (a) moved = Math.max(moved, Math.hypot(a[0] - b[0], a[1] - b[1])); }
