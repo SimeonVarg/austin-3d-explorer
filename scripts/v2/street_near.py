@@ -598,8 +598,8 @@ def main():
                  'specialty points, Roadway Sign Assets ggnk-3ykn) and lane lines read from the City of Austin 2025 aerial; road centrelines '
                  'from data/roads.geojson. Not endorsed by the City of Austin.',
         'frame': 'v2/geo.js: x metres east, z metres south of 30.28601, -97.73932',
-        # [kerb offset on the -n side (as a negative number), kerb offset on the +n side, no-kerb flag, x0, z0, ...]
-        'roads': [[round(-r['k'][-1], 2), round(r['k'][1], 2), 1 if r['c'] in NO_CURB_CLASSES else 0] + [r5(v) for p in simplify(r['mid'], 0.03) for v in p] for r in roads],
+        # [kerb offset on the -n side (as a negative number), kerb offset on the +n side, flags (1 no kerb, 2 one-way), x0, z0, ...]
+        'roads': [[round(-r['k'][-1], 2), round(r['k'][1], 2), (1 if r['c'] in NO_CURB_CLASSES else 0) + (2 if r.get('ow') else 0)] + [r5(v) for p in simplify(r['mid'], 0.03) for v in p] for r in roads],
         # [class 0 paving / 1 lawn / 2 mulch / 3 asphalt, inner offset (signed), then x, z, outer offset (signed) per sample along the mid line]
         'fronts': fronts,
         'lanes': lane, 'curbs': curbs, 'walks': walks, 'aprons': aprons, 'arrows': arrows, 'signs': signs,

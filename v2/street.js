@@ -74,7 +74,10 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
   const unflat = (a, n) => { const o = []; for (let i = 0; i + n <= a.length; i += n) o.push(a.slice(i, i + n)); return o; };
 
   async function build() {
-    const [city, osm] = await Promise.all([fetch(DATA + 'city.json').then((r) => r.json()), fetch(DATA + 'osm.json').then((r) => r.json()).catch(() => null)]);
+    const [city, osm, marks] = await Promise.all([fetch(DATA + 'city.json').then((r) => r.json()), fetch(DATA + 'osm.json').then((r) => r.json()).catch(() => null),
+      params.get('surface') !== '0' ? fetch(DATA + 'marks.json').then((r) => (r.ok ? r.json() : null)).catch(() => null) : null]);
+    // crossings, stop bars and ramp pads derived from the one road surface (scripts/v2/street_graph.py) replace the record-by-record ones
+    if (marks) { city.bars = marks.bars; city.ramps = []; for (let i = 0; i + 2 < marks.pads.length; i += 3) city.ramps.push(marks.pads[i], marks.pads[i + 1], marks.pads[i + 2] - Math.PI / 2, 1); }
 
     // ── paint: crosswalk bars, stop lines, yield teeth (one draw) ──
     const bars = unflat(city.bars, 5).map(([x, z, a, L, w]) => [x, z, a, L, 1, w, S.PAINT_LIFT_M]);

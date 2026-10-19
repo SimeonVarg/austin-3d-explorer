@@ -10,6 +10,10 @@ import { NEAR_LOOK as N } from './street-look.js';
 const params = new URLSearchParams(location.search);
 const DATA = new URL('./data/street/near.json', import.meta.url).href;
 const DATA_OSM = new URL('./data/street/near_osm.json', import.meta.url).href;   // lane lines from OSM lane counts (ODbL)
+// One road surface (scripts/v2/street_graph.py): carriageway union with junction fillets; kerbs, sidewalks, frontage and lane lines all
+// derived from it. When it is there it replaces near.json's separately built roads, kerbs, walks, frontage and lanes.
+const SURFACE = new URL('./data/street/surface.json', import.meta.url).href;
+const SURFACE_OSM = new URL('./data/street/surface_osm.json', import.meta.url).href;
 
 export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   if (params.get('near') === '0') return null;
@@ -103,9 +107,27 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   const pairs = (a, from) => { const o = []; for (let i = from; i + 1 < a.length; i += 2) o.push([a[i], a[i + 1]]); return o; };
 
   async function build() {
-    const [d, dOsm] = await Promise.all([fetch(DATA).then((r) => r.json()), fetch(DATA_OSM).then((r) => r.json()).catch(() => null)]);
-    if (dOsm && dOsm.lanes) d.lanes = d.lanes.concat(dOsm.lanes);
+    const useSurface = params.get('surface') !== '0';
+    const [d, dOsm, surf, surfOsm] = await Promise.all([fetch(DATA).then((r) => r.json()), fetch(DATA_OSM).then((r) => r.json()).catch(() => null),
+      useSurface ? fetch(SURFACE).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null,
+      useSurface ? fetch(SURFACE_OSM).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null]);
     const H = N.CURB_HEIGHT_M;
+    if (surf) {
+      // polygons (with holes), triangulated here; frontage classes at sidewalk height, asphalt at road height
+      const poly = (kind, rings, y) => {
+        const toV = (r) => { const o = []; for (let i = 0; i + 1 < r.length; i += 2) o.push(new THREE.Vector2(r[i], r[i + 1])); return o; };
+        const outer = toV(rings[0]), holes = rings.slice(1).map(toV);
+        if (outer.length < 3) return;
+        let tris; try { tris = THREE.ShapeUtils.triangulateShape(outer, holes); } catch (e) { return; }
+        const all = outer.concat(...holes), B = buf(kind, all[0].x, all[0].y), v0 = B.pos.length / 3;
+        for (const p of all) { B.pos.push(p.x, y, p.y); B.nrm.push(0, 1, 0); B.s.push(0); }
+        for (const t of tris) B.idx.push(v0 + t[0], v0 + t[2], v0 + t[1]);   // (x, z) shape -> faces up
+      };
+      for (const r of surf.asphalt) poly('asphalt', r, N.ASPHALT_Y_M);
+      for (const r of surf.walk) poly('walk', r, H);
+      for (const k of ['paving', 'lawn', 'mulch']) for (const r of surf[k] || []) poly(k, r, H - 0.004);
+      d.roads = []; d.fronts = []; d.walks = []; d.curbs = surf.kerbs; d.lanes = surf.lanes.concat((surfOsm && surfOsm.lanes) || []);
+    } else if (dOsm && dOsm.lanes) d.lanes = d.lanes.concat(dOsm.lanes);
     // asphalt, kerb to kerb (the two kerbs are measured per side: street_near.py)
     for (const r of d.roads) { const pts = pairs(r, 3); if (pts.length >= 2) strip('asphalt', pts, r[0], r[1], N.ASPHALT_Y_M); }
     // the rest of the right-of-way to the building face: paving, lawn or mulch as the photograph shows, at sidewalk height
