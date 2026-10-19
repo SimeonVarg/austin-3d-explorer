@@ -254,6 +254,17 @@ goes, and which way it faces. An opening on a corner faces the way the
 photograph shows it (often perpendicular to the main face), not toward the
 camera by default. Count them on every face and corner.
 
+**9n. No big blank face the photographs do not show.** List every flat face
+of the model larger than about 50 m2 (a short script over the .blend does it),
+with its material and which way it faces. Floors, roofs and the field are
+fine. For every WALL-like face, name the photograph that shows a plain wall
+there. Where none does, it is a closing face made for convenience and is
+wrong: the backs and ends of seating decks are usually open (a fascia band, the
+raked underside in shade, raker beams), a deck's end is a sloped edge, not a
+triangle down to the roof. Look at each one from the viewpoints the app is
+seen from, near and far: a closing face that is invisible in the hero render
+can stand in front of the seats from the next camera.
+
 *Checks 9i (roof), 9l (ground) and 9m (openings) are run together, on every
 face, before the final render: the owner's "three checks", meant to be
 holistic.*
@@ -415,3 +426,8 @@ made or sharpened.
   done incorrectly - it puts the gaps facing the camera instead of facing
   perpendicular. This makes 3 checks in total that should be somewhat
   holistic": check 9m, and 9i, 9l and 9m run together.
+- **2026-10-19.** DKR on the live v2 site, close view from the north: two
+  huge blank grey panels (the back wall of the north upper deck, 12 m tall
+  over nothing, and a 344 m2 end wall of the west deck) hid the bowl. The
+  photographs show an open overhang with a light fascia band and raker beams:
+  check 9n.
