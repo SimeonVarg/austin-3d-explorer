@@ -173,6 +173,8 @@ def finish(surface,osm,near,marks,aerial_cache=None):
     if aerial_cache:
         from street_ground_patches import patch_ground,CachedAerial
         patch_ground(surface,near,CachedAerial(str(aerial_cache)))
+    from street_transitions import transitions
+    transitions(surface,near)
     return surface,osm,marks
 
 def main():

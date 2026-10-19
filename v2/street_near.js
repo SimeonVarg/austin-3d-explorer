@@ -89,7 +89,8 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       const p = pts[i], q = pts[i + 1], L = Math.hypot(q[0] - p[0], q[1] - p[1]); if (L < 1e-3) continue;
       const nx = -(q[1] - p[1]) / L, nz = (q[0] - p[0]) / L, v = B.pos.length / 3;
       const px = p[0] + nx * o, pz = p[1] + nz * o, qx = q[0] + nx * o, qz = q[1] + nz * o;
-      B.pos.push(px, y0, pz, qx, y0, qz, qx, y1, qz, px, y1, pz);
+      const hp = typeof y1 === 'function' ? y1(px, pz) : y1, hq = typeof y1 === 'function' ? y1(qx, qz) : y1;
+      B.pos.push(px, y0, pz, qx, y0, qz, qx, hq, qz, px, hp, pz);
       for (let k = 0; k < 4; k++) { B.nrm.push(nx * facing, 0, nz * facing); B.s.push(0); }
       B.idx.push(v, v + 1, v + 2, v, v + 2, v + 3);
     }
@@ -119,6 +120,25 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
     d.signs = safe?.signs || []; d.arrows = safeOsm?.arrows || [];
     const H = N.CURB_HEIGHT_M;
     if (surf) {
+      const walkRows = surf.walk.flatMap((r, i) => surf.walk_panels?.[i] || [r]);
+      const rampCells = new Map();
+      for (const r of surf.walk_ramps || []) {
+        const pts = pairs(r.region[0], 0), xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+        for (let x = Math.floor(Math.min(...xs) / 10); x <= Math.floor(Math.max(...xs) / 10); x++)
+          for (let z = Math.floor(Math.min(...zs) / 10); z <= Math.floor(Math.max(...zs) / 10); z++) {
+            const k = x + ',' + z; if (!rampCells.has(k)) rampCells.set(k, []); rampCells.get(k).push(r);
+          }
+      }
+      const walkHeight = (x, z) => {
+        let height = H;
+        for (const r of rampCells.get(Math.floor(x / 10) + ',' + Math.floor(z / 10)) || []) {
+          const dx = x - r.end[0], dz = z - r.end[1], along = dx * r.inward[0] + dz * r.inward[1];
+          const width = Math.max(...pairs(r.region[0], 0).map(p => Math.abs((p[0] - r.end[0]) * -r.inward[1] + (p[1] - r.end[1]) * r.inward[0])));
+          if (along >= -.2 && along <= r.length_m + .05 && Math.abs(dx * -r.inward[1] + dz * r.inward[0]) <= width + .05)
+            height = Math.min(height, N.FRONT_Y_M + (H - N.FRONT_Y_M) * THREE.MathUtils.clamp(along / r.length_m, 0, 1));
+        }
+        return height;
+      };
       // Polygons with holes: sidewalk slabs are raised; classified frontage stays at ground level.
       const poly = (kind, rings, y) => {
         const toV = (r) => { const o = []; for (let i = 0; i + 1 < r.length; i += 2) o.push(new THREE.Vector2(r[i], r[i + 1])); return o; };
@@ -126,18 +146,23 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
         if (outer.length < 3) return;
         let tris; try { tris = THREE.ShapeUtils.triangulateShape(outer, holes); } catch (e) { return; }
         const all = outer.concat(...holes), B = buf(kind, all[0].x, all[0].y), v0 = B.pos.length / 3;
-        for (const p of all) { B.pos.push(p.x, y, p.y); B.nrm.push(0, 1, 0); B.s.push(0); }
+        for (const p of all) { B.pos.push(p.x, typeof y === 'function' ? y(p.x, p.y) : y, p.y); B.nrm.push(0, 1, 0); B.s.push(0); }
         for (const t of tris) B.idx.push(v0 + t[0], v0 + t[2], v0 + t[1]);   // (x, z) shape -> faces up
       };
       for (const r of surf.asphalt) poly('asphalt', r, N.ASPHALT_Y_M);
-      for (const r of surf.walk) poly('walk', r, H);
+      for (const r of walkRows) poly('walk', r, walkHeight);
       for (const r of surf.kerb_tops || []) poly('curb', r, H + N.CURB_TOP_LIFT_M);
       // Close the complete slab boundary, including driveway ends and courtyard holes. No walls on tile seams.
-      if (surf.solid_edges) for (const [rows, height] of [[surf.walk, H], [surf.kerb_tops || [], H + N.CURB_TOP_LIFT_M]]) {
+      if (surf.solid_edges) for (const [rows, height] of [[walkRows, walkHeight], [surf.kerb_tops || [], H + N.CURB_TOP_LIFT_M]]) {
+        const edges = new Map();
         for (const polygon of rows) for (const ring of polygon) {
           const pts = pairs(ring, 0);
-          if (pts.length >= 3) face('curb', pts.concat([pts[0]]), 0, 0, height, 1);
+          for (let i = 0; i < pts.length; i++) {
+            const a = pts[i], b = pts[(i + 1) % pts.length], ka = a.join(','), kb = b.join(','), key = ka < kb ? ka + '|' + kb : kb + '|' + ka;
+            const edge = edges.get(key); if (edge) edge.count++; else edges.set(key, { a, b, count: 1 });
+          }
         }
+        for (const e of edges.values()) if (e.count === 1 || typeof height !== 'function') face('curb', [e.a, e.b], 0, 0, height, 1);
       }
       for (const k of ['paving', 'lawn', 'mulch']) for (const r of surf[k] || []) poly(k, r, N.FRONT_Y_M);
       d.roads = []; d.fronts = []; d.walks = []; d.curbs = surf.kerbs; d.lanes = surf.lanes.concat((surfOsm && surfOsm.lanes) || []);
@@ -203,6 +228,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       g.setAttribute('normal', new THREE.Float32BufferAttribute(B.nrm, 3));
       g.setAttribute('aS', new THREE.Float32BufferAttribute(B.s, 1));
       g.setIndex(B.idx); g.computeBoundingSphere();
+      if (kind === 'walk' && surf?.walk_ramps?.length) g.computeVertexNormals();
       const m = new THREE.Mesh(g, mats[kind]); m.renderOrder = ORDER[kind]; m.receiveShadow = true; m.name = 'near ' + kind;
       group.add(m); draws++; tris += B.idx.length / 3;
     }

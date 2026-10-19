@@ -18,6 +18,10 @@ def audit_trees(folder):
     from street_trees import outlines
     grid=outlines();buildings=list({tuple(ring) for rs in grid.values() for bb,ring in rs});buildings=[__import__('shapely').geometry.Polygon(r).buffer(0) for r in buildings];bt=STRtree(buildings)
     support=[polygon(r) for k in ('walk','paving','lawn','mulch') for r in surface[k]];st=STRtree(support);out={}
+    caps=unary_union([Point(q).buffer(min(-r[0],r[1])) for r in near['roads'] if not r[2]&1 for q in (pairs(r,3)[0],pairs(r,3)[-1])]);prepare(caps)
+    def unsupported_gap(p):
+        return (road.intersects(p.buffer(.5)) and caps.covers(p) and caps.boundary.distance(p)>1.
+                and not any(support[j].distance(p)<=6. for j in st.query(p.buffer(6.))))
     for name in ('city','osm'):
         td=folder.parent/'trees';raw=json.loads((td/(name+'.json')).read_text());safe=json.loads((td/('safe_'+name+'.json')).read_text());ev=safe['safety']
         original=[raw['trees'][i:i+6] for i in range(0,len(raw['trees']),6)];actual=[safe['trees'][i:i+6] for i in range(0,len(safe['trees']),6)]
@@ -28,7 +32,8 @@ def audit_trees(folder):
         d['bad_index_partition']=int(set(indices)&drops!=set() or set(indices)|drops!=set(range(len(original))) or len(indices)!=len(set(indices)) or len(indices)!=len(actual))
         for i in drops:
             p=Point(original[i][:2])
-            if not deep(p):d['unjustified_drops']+=1
+            seam=i in ev.get('unsupported_road_end_gap_indices',[])
+            if not (unsupported_gap(p) if seam else deep(p)):d['unjustified_drops']+=1
         for i,r in zip(indices,actual):
             old=original[i];p=Point(r[:2]);op=Point(old[:2]);radius=.12+r[2]*.025+.08
             d['deep_road_observations_kept']+=int(deep(op))
