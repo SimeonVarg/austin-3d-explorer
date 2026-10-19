@@ -482,6 +482,7 @@ const tilesReady = (async () => {
   try {
     const t = new TileStreamer({ scene, camera, manifestUrl,
       onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings,
+      prepare: (obj, def) => { if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); },
       onChange: () => { dirty = true; sun.shadow.needsUpdate = true; }, onAnimate: () => { dirty = true; } });
     if (params.get('fade') === '0') t.instant = true;
     const man = await t.load();
@@ -513,7 +514,9 @@ let topsDone = false;
 function applyBlenderTops() {
   if (topsDone || !field.ready || !tiles?.manifest) return;
   topsDone = true;
-  for (const b of Object.values(tiles.manifest.buildings || {})) if (b.map_ids && b.top > 3) field.setTop(b.map_ids, b.top);
+  for (const b of Object.values(tiles.manifest.buildings || {})) if (b.map_ids) field.setTop(b.map_ids, b.top);
+  // Tiles may arrive before the worker's footprints. Cover those too, once the field is ready.
+  for (const s of tiles.tiles.values()) if (s.obj) field.addTile(s.obj, s.def, tiles.manifest.buildings || {});
 }
 
 // ── walking route ──────────────────────────────────────────────────────
