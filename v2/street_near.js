@@ -211,16 +211,18 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   scene.onBeforeRender = function (r, s, c, t) {
     prev.call(this, r, s, c, t);
     if (t) return;
-    cam = c; group.visible = c.position.y < N.MAX_CAMERA_Y_M;
-    if (!group.visible) return;
+    // the group's own visibility belongs to others (Google mode hides every map layer by it): only its children are switched here
+    cam = c; low = c.position.y < N.MAX_CAMERA_Y_M;
     for (const m of group.children) {
-      if (m.isInstancedMesh || !m.geometry.boundingSphere) continue;
+      if (!low) { m.visible = false; continue; }
+      if (m.isInstancedMesh || !m.geometry.boundingSphere) { m.visible = true; continue; }
       cs.copy(m.geometry.boundingSphere.center);
       m.visible = cs.distanceTo(c.position) - m.geometry.boundingSphere.radius < FADE[1];
     }
   };
+  let low = false;
 
-  const api = { stats: () => ({ ...stats, visible: group.visible }), group };
+  const api = { stats: () => ({ ...stats, low }), group };
   window.__v2near = api;
   return api;
 }
