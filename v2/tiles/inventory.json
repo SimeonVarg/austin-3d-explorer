@@ -848,11 +848,11 @@
    "model": "opus",
    "kind": "campus",
    "tile": "t_2_0",
-   "blend_sha256": "735cdf40d952f599",
+   "blend_sha256": "3644c7531b9b0e7a",
    "lod1": "mass",
    "app_copy": {
-    "triangles": 80546,
-    "detailed_triangles": 165759,
+    "triangles": 81144,
+    "detailed_triangles": 166357,
     "target": 80000,
     "simplify_error": 0.000301,
     "ground_triangles": [
@@ -863,7 +863,7 @@
    "placement": {
     "height_m": 67.7,
     "area_ratio": 1.025,
-    "centre_off_m": 8.92,
+    "centre_off_m": 8.91,
     "flags": [
      "centre 8.9 m off",
      "base at -5.6 m"
@@ -4939,9 +4939,9 @@
    }
   },
   "t_-1_-4": {
-   "hash": "ffd17399f43db64f",
+   "hash": "798eb0753dcab2c0",
    "near": {
-    "bytes": 547692,
+    "bytes": 827624,
     "tris": 58158,
     "draws": 2
    },
@@ -5810,9 +5810,9 @@
    }
   },
   "t_1_3": {
-   "hash": "c4a2e162c2c56023",
+   "hash": "f475bbefef7f62b8",
    "near": {
-    "bytes": 784376,
+    "bytes": 1156800,
     "tris": 78818,
     "draws": 2
    },
@@ -5849,10 +5849,10 @@
    }
   },
   "t_2_0": {
-   "hash": "112e84c107800015",
+   "hash": "c03ebb231b072aae",
    "near": {
-    "bytes": 797216,
-    "tris": 92514,
+    "bytes": 1564252,
+    "tris": 93112,
     "draws": 2
    },
    "far": {
@@ -5927,9 +5927,9 @@
    }
   },
   "t_3_2": {
-   "hash": "6f9a4033c67db23f",
+   "hash": "f20fb640c91fb4af",
    "near": {
-    "bytes": 643132,
+    "bytes": 1061780,
     "tris": 85051,
     "draws": 2
    },

@@ -107,7 +107,15 @@ for (let rep = 0; rep < REPS; rep++) {
         scene.traverse((o) => {
           if (o.geometry) { for (const a of Object.values(o.geometry.attributes)) attr(a); attr(o.geometry.index); }
           if (o.isInstancedMesh) { attr(o.instanceMatrix); attr(o.instanceColor); }
-          for (const m of o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []) for (const k in m) { const t = m[k]; if (t && t.isTexture && !seenT.has(t)) { seenT.add(t); const im = t.image || {}; tex += (im.width || 0) * (im.height || 0) * 4 * (t.generateMipmaps !== false ? 4 / 3 : 1); } }
+          // The fine-patch lookup is a shader uniform owned by the tile root, not a material map.
+          // Data textures also carry half/float channels: counting all textures as RGBA8 under-reports them.
+          const texture = (t) => {
+            if (!t?.isTexture || seenT.has(t)) return;
+            seenT.add(t); const im = t.image || {};
+            tex += (im.data?.byteLength || (im.width || 0) * (im.height || 0) * 4) * (t.generateMipmaps !== false ? 4 / 3 : 1);
+          };
+          texture(o.userData.v2FineTexture);
+          for (const m of o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []) for (const k in m) texture(m[k]);
         });
         const t = window.__v2.tiles && window.__v2.tiles();
         return { gpuMB: (geo + tex) / 1048576, geoMB: geo / 1048576, texMB: tex / 1048576, heapMB: performance.memory ? performance.memory.usedJSHeapSize / 1048576 : null,

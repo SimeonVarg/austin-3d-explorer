@@ -1,5 +1,6 @@
 // v2 tiles: every current best Blender build -> streamed 250 m map tiles for the v2 app (v2/tiles/manifest.json).
 //
+//   Trial, no Blender/cache writes or far rebuilds: node scripts/v2/build_tiles.mjs --cached --tiles t_-1_-4,t_2_0,t_3_2,t_1_3
 //   PATH=~/miniforge3/envs/utx/bin:$PATH node scripts/v2/build_tiles.mjs [--only slugA,slugB] [--no-export] [--force] [--jobs 2]
 //
 // Incremental. A building is re-exported only when its .blend's sha256 or the exporter changed; a tile is rebuilt only when the set of
@@ -26,7 +27,7 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, flatten, join, mergeDocuments, meshopt, palette, prune, simplify, unpartition, weld } from '@gltf-transform/functions';
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import { makeAppCopy } from './app_copy.mjs';
-import { fineData } from './fine_repeat.mjs';
+import { fineData, fixVenueCoplanar } from './fine_repeat.mjs';
 
 // ── PARAMETERS ──────────────────────────────────────────────────────────
 const ORIGIN = { lat: 30.28601, lon: -97.73932 };   // must equal sources.py ORIGIN
@@ -55,7 +56,9 @@ const BRENDER = process.env.BRENDER || path.join(os.homedir(), 'Projects/flyover
 const argv = process.argv.slice(2);
 const opt = (k) => { const i = argv.indexOf(k); return i >= 0 ? (argv[i + 1] || '') : null; };
 const ONLY = opt('--only') ? new Set(opt('--only').split(',').filter(Boolean)) : null;
-const NO_EXPORT = argv.includes('--no-export');
+const CACHED = argv.includes('--cached'); // read the private export cache; never rewrite it (bounded tile trial)
+const SELECT_TILES = opt('--tiles') ? new Set(opt('--tiles').split(',').filter(Boolean)) : null;
+const NO_EXPORT = CACHED || argv.includes('--no-export');
 const FORCE = argv.includes('--force');
 const JOBS = +(opt('--jobs') || 2);
 
@@ -81,7 +84,7 @@ const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8'))
 // ── 1. sources ───────────────────────────────────────────────────────────
 fs.mkdirSync(EXPORT, { recursive: true }); fs.mkdirSync(OUT, { recursive: true });
 const SRC = path.join(CACHE, 'sources.json');
-{
+if (!CACHED) {
   const r = await run(PY, [path.join(HERE, 'sources.py'), SRC]);
   process.stdout.write(r.out.split('\n').filter((l) => !l.startsWith('  ORIGIN?')).join('\n') + '\n');
   if (r.code) throw new Error('sources.py failed');
@@ -142,7 +145,7 @@ const appKey = (s) => (APP_COPY[s] ? sha(Buffer.from(keyOf(s) + ':' + APP_CODE_H
 const appState = (s) => { try { return fs.readFileSync(path.join(APP_DIR, `${s}.key`), 'utf8'); } catch { return ''; } };
 const appStats = (s) => readJSON(path.join(APP_DIR, `${s}.json`), null);
 const appMade = [];
-for (const s of placeable.filter((x) => APP_COPY[x] && usable(x) && (!ONLY || ONLY.has(x)))) {
+for (const s of placeable.filter((x) => !CACHED && APP_COPY[x] && usable(x) && (!ONLY || ONLY.has(x)))) {
   if (!FORCE && appState(s) === appKey(s) && fs.existsSync(path.join(APP_DIR, `${s}.near.glb`))) continue;
   const t0 = Date.now();
   const st = await makeAppCopy({ io, MeshoptSimplifier, MeshoptEncoder, src: path.join(EXPORT, `${s}.near.glb`), dst: path.join(APP_DIR, `${s}.near.glb`), dstMass: path.join(APPMASS_DIR, `${s}.near.glb`), dstFarKeep: path.join(APP_DIR, `${s}.farkeep.glb`), dstFarCopy: path.join(APP_DIR, `${s}.farcopy.glb`), spec: APP_COPY[s] });
@@ -157,7 +160,7 @@ const PLACE = path.join(CACHE, 'placement.json');
 {
   const show = (r) => (r.code ? console.log(r.out) : console.log(r.out.split('\n').filter((l) => /flags|centre|area|base/.test(l)).join('\n')));
   const plain = todo.filter((s) => !failed[s] && !APP_COPY[s]);
-  if (plain.length || !fs.existsSync(PLACE)) show(await run(PY, [path.join(HERE, 'check_place.py'), SRC, EXPORT, PLACE, ...plain]));
+  if (!CACHED && (plain.length || !fs.existsSync(PLACE))) show(await run(PY, [path.join(HERE, 'check_place.py'), SRC, EXPORT, PLACE, ...plain]));
   // an app copy is checked as the app will draw it (its ground graded, not the builder's 4.5 km of terrain)
   if (appMade.length) show(await run(PY, [path.join(HERE, 'check_place.py'), SRC, APP_DIR, PLACE, ...appMade]));
 }
@@ -170,7 +173,7 @@ const massFile = (s) => path.join(EXPORT, `${s}.mass.key`);
 const massState = (s) => { try { return fs.readFileSync(massFile(s), 'utf8'); } catch { return ''; } };
 const hasMass = (s) => massState(s) === massKey(s) + ':ok' && fs.existsSync(path.join(massDirOf(s), `${s}.mass.glb`));
 {
-  const need = placeable.filter((s) => exported(s) && (FORCE && todo.includes(s) || !massState(s).startsWith(massKey(s))));
+  const need = placeable.filter((s) => !CACHED && exported(s) && (FORCE && todo.includes(s) || !massState(s).startsWith(massKey(s))));
   const groups = [[EXPORT, need.filter((s) => !APP_COPY[s])], [APPMASS_DIR, need.filter((s) => APP_COPY[s])]];   // an app copy's mass is made from the copy
   for (const [dir, list] of groups) for (let i = 0; i < list.length; i += 40) {
     const chunk = list.slice(i, i + 40);
@@ -203,6 +206,7 @@ async function buildingDoc(s, lod, idx, part) {
     for (const sc of doc.getRoot().listScenes().slice(1)) { for (const n of sc.listChildren()) sc0.addChild(n); sc.dispose(); }
     await doc.transform(unpartition(), flatten(), join({ keepNamed: false }));
   }
+  if (lod === 0) { const repair = fixVenueCoplanar(doc, s); if (repair) console.log('COPLANAR', JSON.stringify(repair)); }
   const root = doc.getRoot(); const buf = root.listBuffers()[0];
   for (const n of root.listNodes()) n.setName(s).setTranslation([sources[s].x, 0, sources[s].z]);   // (every node: a far file that kept a surface of the app copy has two)
   for (const mesh of root.listMeshes()) {
@@ -241,7 +245,6 @@ async function partDoc(slugs, lod, part) {
   if (part === 'opaque') for (const mt of doc.getRoot().listMaterials()) mt.setDoubleSided(true);
   for (const m of doc.getRoot().listMeshes()) m.setName(part);
   for (const n of doc.getRoot().listNodes()) n.setName(part);
-  if (lod === 0) await fineData(doc);           // per palette entry: feature size + its surround's mean colour (fine_repeat.mjs; the app fades fine repeats by footprint)
   return doc;
 }
 
@@ -256,7 +259,8 @@ async function buildTile(t, slugs, lod) {
     await doc.transform(unpartition());
   }
   doc.getRoot().getAsset().generator = 'flyover scripts/v2/build_tiles.mjs (glTF Transform 4.5.0)';
-  doc.getRoot().setExtras({ tile: t, lod, buildings: slugs, building_attribute: '_BUILDING = index into buildings' });
+  doc.getRoot().setExtras({ tile: t, lod, buildings: slugs, building_attribute: lod === 0 ? '_FINE.x = index into buildings; .y = log size; .zw = patch index' : '_BUILDING = index into buildings' });
+  if (lod === 0) console.log('FINE', t, JSON.stringify(await fineData(doc, msg => console.log(`  ${t} ${msg}`)))); // both opaque and glass in the same facade table
   await doc.transform(meshopt({ encoder: MeshoptEncoder, level: MESHOPT_LEVEL, ...QUANT }));
   const bin = await io.writeBinary(doc);
   const file = `${t}${lod === 0 ? '' : '.far'}.glb`;
@@ -268,14 +272,19 @@ async function buildTile(t, slugs, lod) {
 
 const INV = path.join(OUT, 'inventory.json');
 const prevInv = readJSON(INV, { tiles: {} });
+const prevManifest = readJSON(path.join(OUT, 'manifest.json'), null);
+if (SELECT_TILES && (!prevManifest || !Object.keys(prevInv.tiles).length)) throw new Error('--tiles requires an existing manifest and inventory');
+if (SELECT_TILES) for (const t of SELECT_TILES) if (!tiles[t]) throw new Error('unknown tile ' + t);
 const tileHash = (t) => sha(JSON.stringify([TILER_HASH, MASS_HASH, tiles[t].map((s) => [s, stateOf(s), sources[s].x, sources[s].z, hasMass(s), ...(APP_COPY[s] ? [appKey(s)] : [])])])).slice(0, 16);
 const tileInfo = {};
 let rebuilt = 0;
 for (const t of Object.keys(tiles).sort()) {
+  if (SELECT_TILES && !SELECT_TILES.has(t)) { tileInfo[t] = prevInv.tiles[t]; continue; }
+  if (SELECT_TILES && prevManifest.tiles.find(e => e.id === t)?.buildings.join(',') !== tiles[t].join(',')) throw new Error('cached building membership changed: ' + t);
   const h = tileHash(t); const prev = prevInv.tiles[t];
   if (!FORCE && prev && prev.hash === h && fs.existsSync(path.join(OUT, `${t}.glb`)) && fs.existsSync(path.join(OUT, `${t}.far.glb`))) { tileInfo[t] = prev; continue; }
   const t0 = Date.now();
-  const near = await buildTile(t, tiles[t], 0); const far = await buildTile(t, tiles[t], 1);
+  const near = await buildTile(t, tiles[t], 0); const far = SELECT_TILES ? { ...prevInv.tiles[t].far } : await buildTile(t, tiles[t], 1);
   tileInfo[t] = { hash: h, near: { bytes: near.bytes, tris: near.tris, draws: near.draws }, far: { bytes: far.bytes, tris: far.tris, draws: far.draws } };
   rebuilt++;
   console.log(`TILE ${t} ${tiles[t].length} buildings  near ${(near.bytes / 1e6).toFixed(2)} MB ${near.tris} tris ${near.draws} draws  far ${(far.bytes / 1e6).toFixed(2)} MB ${far.tris} tris ${far.draws} draws  ${((Date.now() - t0) / 1000).toFixed(1)} s`);
@@ -283,7 +292,7 @@ for (const t of Object.keys(tiles).sort()) {
 // tiles that no longer hold any building
 for (const f of fs.readdirSync(OUT)) {
   const m = f.match(/^(t_-?\d+_-?\d+)(\.far)?\.glb$/);
-  if (m && !tiles[m[1]]) { fs.unlinkSync(path.join(OUT, f)); console.log('REMOVED', f); }
+  if (!SELECT_TILES && m && !tiles[m[1]]) { fs.unlinkSync(path.join(OUT, f)); console.log('REMOVED', f); }
 }
 
 // ── manifest + inventory (atomic) ────────────────────────────────────────
@@ -293,7 +302,7 @@ const manifest = {
   projection: 'equirectangular round the origin, as v2/geo.js: x = R cos(lat0) (lon - lon0), z = -R (lat - lat0), radians, R = 6378137',
   map_ids: 'ids the app hides extrusions by: the city map\'s 8-hex id or \'w<way>\' (OSM, as in data/outer/downtown_massing.json); the package\'s outlines, any map/massing building whose middle lies inside them, and any whose area the model\'s footprint covers by more than half',
   tile_m: TILE_M,
-  notes: 'Each tile .glb: one opaque mesh (palette texture, one draw) and in lod0 one glass mesh; EXT_meshopt_compression + KHR_mesh_quantization (use MeshoptDecoder); vertex attribute _BUILDING = index into the tile\'s buildings list; colours are the builds\' linear base colours on the Blender light rig scale (white paint ~0.17).',
+  notes: 'Each tile .glb: one opaque mesh (palette texture, one draw) and in lod0 one glass mesh; EXT_meshopt_compression + KHR_mesh_quantization (use MeshoptDecoder); vertex attribute _BUILDING (far/old tiles) or _FINE.x (new near tiles) = index into the tile\'s buildings list; colours are the builds\' linear base colours on the Blender light rig scale (white paint ~0.17).',
   tiles: Object.keys(tiles).sort().map((t) => {
     const [, i, j] = t.match(/^t_(-?\d+)_(-?\d+)$/).map(Number);
     const l1 = Math.min(...tiles[t].map((b) => (APP_COPY[b] && APP_COPY[b].lod1_m) || LOD1_M[b] || Infinity));   // a build with a fine repeat (fins) asks for its far file sooner
@@ -318,8 +327,24 @@ const inventory = {
   })),
   tiles: tileInfo,
 };
-writeAtomic(INV, JSON.stringify(inventory, null, 1));
-writeAtomic(path.join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 1));
+if (SELECT_TILES) {
+  // A trial changes only the chosen near files and their receipts, never unselected tiles, far copies or placement.
+  for (const t of SELECT_TILES) {
+    prevInv.tiles[t] = tileInfo[t];
+    const entry = prevManifest.tiles.find(e => e.id === t);
+    if (entry.buildings.join(',') !== tiles[t].join(',')) throw new Error('cached building membership changed: ' + t);
+    entry.bytes[0] = tileInfo[t].near.bytes;
+    for (const s of tiles[t]) {
+      prevInv.buildings[s] = inventory.buildings[s];
+      prevManifest.buildings[s] = manifest.buildings[s];
+    }
+  }
+  writeAtomic(INV, JSON.stringify(prevInv, null, 1));
+  writeAtomic(path.join(OUT, 'manifest.json'), JSON.stringify(prevManifest, null, 1));
+} else {
+  writeAtomic(INV, JSON.stringify(inventory, null, 1));
+  writeAtomic(path.join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 1));
+}
 const total = Object.values(tileInfo).reduce((a, t) => a + t.near.bytes + t.far.bytes, 0);
 const big = Object.entries(tileInfo).filter(([, t]) => t.near.bytes > PHONE_TILE_LIMIT_MB * 1e6).map(([k]) => k);
 console.log(`DONE ${inTiles.length}/${Object.keys(sources).length} buildings in ${Object.keys(tiles).length} tiles (${rebuilt} rebuilt), ${(total / 1e6).toFixed(2)} MB total${big.length ? '; over ' + PHONE_TILE_LIMIT_MB + ' MB: ' + big.join(', ') : ''}`);

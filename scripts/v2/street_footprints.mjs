@@ -44,14 +44,14 @@ for (const t of man.tiles) {
     const mesh = node.getMesh(); if (!mesh) continue;
     const M = node.getWorldMatrix();
     for (const prim of mesh.listPrimitives()) {
-      const P = prim.getAttribute('POSITION'), B = prim.getAttribute('_BUILDING'), I = prim.getIndices();
+      const P = prim.getAttribute('POSITION'), B = prim.getAttribute('_BUILDING') || prim.getAttribute('_FINE'), I = prim.getIndices();
       if (!P || !B || !I) continue;
       const p = P.getArray(), b = B.getArray(), idx = I.getArray();
       const w = (k) => { const x = p[k * 3], y = p[k * 3 + 1], z = p[k * 3 + 2]; return [M[0] * x + M[4] * y + M[8] * z + M[12], M[1] * x + M[5] * y + M[9] * z + M[13], M[2] * x + M[6] * y + M[10] * z + M[14]]; };
       for (let k = 0; k < idx.length; k += 3) {
         const A = w(idx[k]), Bv = w(idx[k + 1]), C = w(idx[k + 2]);
         if (Math.max(A[1], Bv[1], C[1]) < ABOVE_M) continue;
-        const id = num.get(tileSlugs[Math.round(b[idx[k]])]) || 0;
+        const id = num.get(tileSlugs[Math.round(b[idx[k] * B.getElementSize()])]) || 0;
         if (!id) continue;
         fill(A[0], A[2], Bv[0], Bv[2], C[0], C[2], id); tris++;
       }

@@ -28,52 +28,85 @@ export const TILES = {
 
 const smooth = (k) => k * k * (3 - 2 * k);
 
-// Fine repeats (rule 15: nothing shimmers in motion; blur is not a fix). The tile builder (scripts/v2/fine_repeat.mjs) writes, per
-// palette entry, its feature size and the mean colour of its surround. Each fragment moves its colour toward that mean by how big
-// the feature is ON SCREEN: f = (metres per pixel on this surface, from the screen derivatives) / feature size. Below F0 the
-// surface is drawn exactly as built; above F1 it is its surround's average, which is what a perfect (supersampled) picture shows
-// once the feature is a pixel or two wide. Near views are untouched; only features too fine to be drawn steadily change.
+// Per-vertex fine repeats. Full original geometry remains at every distance. The tile builder measures
+// connected part widths and writes an area mean colour AND normal for each local facade patch.
+// Only subpixel features approach that mean; no screen-space blur and no palette-wide repainting.
 export const FINE = {
-  ON: false,         // OFF: draft (mac/v2-fine-repeat). Colour-only fading capped the gain and repainted big panels; see the PR
-  F0: 0.3,          // features wider than ~3.3 px: exactly as built
-  F1: 0.75,         // features narrower than ~1.3 px: their surround's average colour
+  ON: true,          // trial tiles only; old tiles without _FINE retain their original material
+  F0: 0.3,           // > 3.3 pixels: exactly the original colour and shading
+  F1: 0.85,          // < 1.2 pixels: the patch mean colour and normal
+  TABLE_WIDTH: 1024, // two RGBA half-float texels per patch (colour, world normal)
 };
 
-function fineTexture(fine) {
-  const { w, block, n, entries } = fine;
-  const data = new Float32Array(w * 4);
-  for (let e = 0; e < n; e++) {
-    const en = entries[e]; if (!en) continue;
-    for (let x = e * block; x < (e + 1) * block && x < w; x++) data.set([en[1], en[2], en[3], en[0]], x * 4);
+export function fineTexture(fine) {
+  if (fine?.version !== 2 || !fine.count) return null;
+  const width = FINE.TABLE_WIDTH, height = Math.ceil(fine.count * 2 / width);
+  const data = new Uint16Array(width * height * 4);
+  const binary = atob(fine.table), bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+  const view = new DataView(bytes.buffer);
+  for (let i = 0; i < fine.count; i++) for (let k = 0; k < 6; k++) {
+    let v = view.getUint16(i * 12 + k * 2, true) / 65535;
+    if (k >= 3) v = v * 2 - 1;
+    data[i * 8 + (k < 3 ? k : k + 1)] = THREE.DataUtils.toHalfFloat(v);
   }
-  const t = new THREE.DataTexture(data, w, 1, THREE.RGBAFormat, THREE.FloatType);
-  t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
-  return t;
+  const tex = new THREE.DataTexture(data, width, height, THREE.RGBAFormat, THREE.HalfFloatType);
+  tex.magFilter = tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false; tex.needsUpdate = true;
+  return { tex, size: new THREE.Vector2(width, height), decode: new THREE.Vector2(fine.sizeBase, fine.sizeSteps) };
 }
 
-// a lit tile material reads its entry's (mean, size) from the fine texture and fades toward the mean by footprint
-function fineable(material, tex) {
-  if (!material || !tex || material.userData.v2Fine || !material.map) return;
-  material.userData.v2Fine = tex;
+export function fineable(material, table) {
+  if (!material || !table || material.userData.v2Fine) return;
+  material.userData.v2Fine = true;
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
-    sh.uniforms.uFineTex = { value: tex };
+    sh.uniforms.uFineTex = { value: table.tex };
+    sh.uniforms.uFineTableSize = { value: table.size };
+    sh.uniforms.uFineDecode = { value: table.decode };
     sh.uniforms.uFine = { value: new THREE.Vector2(FINE.F0, FINE.F1) };
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vFineW;')
-      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvFineW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D uFineTex;\nuniform vec2 uFine;\nvarying vec3 vFineW;')
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
+attribute vec4 _fine;
+uniform sampler2D uFineTex;
+uniform vec2 uFineTableSize;
+uniform vec2 uFineDecode;
+varying vec3 vFineW;
+varying vec3 vFineMean;
+varying vec3 vFineNormal;
+varying float vFineSize;
+vec4 fineEntry(float i) {
+  return texture2D(uFineTex, (vec2(mod(i, uFineTableSize.x), floor(i / uFineTableSize.x)) + 0.5) / uFineTableSize);
+}`)
+      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+  vFineW = (modelMatrix * vec4(transformed, 1.0)).xyz;
+  float patch = floor(_fine.z + 0.5) + 256.0 * floor(_fine.w + 0.5);
+  vFineMean = fineEntry(patch * 2.0).rgb;
+  vFineNormal = mat3(viewMatrix) * fineEntry(patch * 2.0 + 1.0).xyz;
+  vFineSize = _fine.y < 0.5 ? 1.0e10 : uFineDecode.x * exp2((_fine.y - 1.0) / uFineDecode.y);`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+uniform vec2 uFine;
+varying vec3 vFineW;
+varying vec3 vFineMean;
+varying vec3 vFineNormal;
+varying float vFineSize;
+float fineK;`)
       .replace('#include <map_fragment>', `#include <map_fragment>
-  {
-    vec4 fineE = texture2D(uFineTex, vec2(vMapUv.x, 0.5));
-    // metres per pixel along this surface: the larger of the two screen directions (a grazing wall is fine across, not along)
-    float mpp = max(length(dFdx(vFineW)), length(dFdy(vFineW)));
-    float k = fineE.a > 0.0 ? smoothstep(uFine.x, uFine.y, mpp / fineE.a) : 0.0;
-    diffuseColor.rgb = mix(diffuseColor.rgb, fineE.rgb, k);
+  float mpp = max(length(dFdx(vFineW)), length(dFdy(vFineW)));
+  fineK = smoothstep(uFine.x, uFine.y, mpp / vFineSize);
+  diffuseColor.rgb = mix(diffuseColor.rgb, vFineMean, fineK);`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+  if (fineK > 0.0) {
+    vec3 patchNormal = normalize(vFineNormal);
+    // Facing belongs to the facade patch, not to each fin triangle's winding. Otherwise
+    // back-facing fin sides flip the mean and recreate the alternating light/dark pattern.
+    #ifdef DOUBLE_SIDED
+      if (dot(patchNormal, vViewPosition) < 0.0) patchNormal = -patchNormal;
+    #endif
+    normal = normalize(mix(normal, patchNormal, fineK));
+    nonPerturbedNormal = normal;
   }`);
   };
   const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
-  material.customProgramCacheKey = () => key() + '|v2-fine';
+  material.customProgramCacheKey = () => key() + '|v2-fine-vertex-2';
   material.needsUpdate = true;
 }
 
@@ -185,13 +218,15 @@ export class TileStreamer {
         const fq = new URLSearchParams(location.search).get('fine');      // ?fine=0 off; ?fine=0.15,0.5 other F0,F1 (to compare)
         const fineOn = FINE.ON && fq !== '0';
         if (fq && fq.includes(',')) { const [a, b] = fq.split(',').map(Number); if (b > a) { FINE.F0 = a; FINE.F1 = b; } }
+        const table = fineOn ? fineTexture(gltf.userData.fine) : null;
+        obj.userData.v2FineTexture = table?.tex;
         obj.traverse((o) => {
           if (!o.isMesh) return;
           o.castShadow = true; o.receiveShadow = true; o.frustumCulled = true;
-          const fine = fineOn && (o.userData.fine || (o.parent && o.parent.userData.fine));
-          const ftex = fine ? (o.parent && o.parent.userData.fineTex) || (o.userData.fineTex ||= fineTexture(fine)) : null;
-          if (ftex && o.parent && o.parent.userData.fine) o.parent.userData.fineTex = ftex;
-          for (const m of Array.isArray(o.material) ? o.material : [o.material]) { fineable(m, ftex); fadeable(m, fade); }
+          for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+            if (o.geometry.getAttribute('_fine')) fineable(m, table);
+            fadeable(m, fade);
+          }
         });
         obj.userData.fade = fade;
         this.prepare(obj, s.def);
@@ -275,12 +310,12 @@ export class TileStreamer {
 }
 
 export function disposeObject(root) {
+  root.userData.v2FineTexture?.dispose();
   root.traverse((o) => {
     if (o.geometry) o.geometry.dispose();
     const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
     for (const m of mats) {
       for (const k in m) { const v = m[k]; if (v && v.isTexture) v.dispose(); }
-      if (m.userData && m.userData.v2Fine && m.userData.v2Fine.isTexture) m.userData.v2Fine.dispose();
       m.dispose();
     }
   });
