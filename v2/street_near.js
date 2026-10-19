@@ -9,6 +9,7 @@ import { NEAR_LOOK as N } from './street-look.js';
 
 const params = new URLSearchParams(location.search);
 const DATA = new URL('./data/street/near.json', import.meta.url).href;
+const DATA_OSM = new URL('./data/street/near_osm.json', import.meta.url).href;   // lane lines from OSM lane counts (ODbL)
 
 export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   if (params.get('near') === '0') return null;
@@ -87,13 +88,32 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       B.idx.push(v, v + 1, v + 2, v, v + 2, v + 3);
     }
   }
+  // a flat strip whose outer edge varies: per point [x, z, outer offset], inner offset constant (offsets along n = (-dz, dx), signed)
+  function stripVar(kind, pts, o0, y) {
+    const B = buf(kind, pts[0][0], pts[0][1]);
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, nx = -(b[1] - a[1]) / L, nz = (b[0] - a[0]) / L;
+      const v = B.pos.length / 3, o1 = pts[i][2];
+      B.pos.push(pts[i][0] + nx * o0, y, pts[i][1] + nz * o0, pts[i][0] + nx * o1, y, pts[i][1] + nz * o1);
+      B.nrm.push(0, 1, 0, 0, 1, 0); B.s.push(0, 0);
+      if (i > 0) B.idx.push(v - 2, v - 1, v, v - 1, v + 1, v);
+    }
+  }
   const pairs = (a, from) => { const o = []; for (let i = from; i + 1 < a.length; i += 2) o.push([a[i], a[i + 1]]); return o; };
 
   async function build() {
-    const d = await (await fetch(DATA)).json();
+    const [d, dOsm] = await Promise.all([fetch(DATA).then((r) => r.json()), fetch(DATA_OSM).then((r) => r.json()).catch(() => null)]);
+    if (dOsm && dOsm.lanes) d.lanes = d.lanes.concat(dOsm.lanes);
     const H = N.CURB_HEIGHT_M;
-    // asphalt
-    for (const r of d.roads) { const pts = pairs(r, 2); if (pts.length >= 2) strip('asphalt', pts, -r[0] / 2, r[0] / 2, N.ASPHALT_Y_M); }
+    // asphalt, kerb to kerb (the two kerbs are measured per side: street_near.py)
+    for (const r of d.roads) { const pts = pairs(r, 3); if (pts.length >= 2) strip('asphalt', pts, r[0], r[1], N.ASPHALT_Y_M); }
+    // the rest of the right-of-way to the building face: paving, lawn or mulch as the photograph shows, at sidewalk height
+    const FRONT = ['paving', 'lawn', 'mulch', 'asphalt'];
+    for (const f of d.fronts || []) {
+      const pts = []; for (let i = 2; i + 2 < f.length; i += 3) pts.push([f[i], f[i + 1], f[i + 2]]);
+      if (pts.length >= 2) stripVar(FRONT[f[0]] || 'paving', pts, f[1], f[0] === 3 ? N.ASPHALT_Y_M : H - 0.004);
+    }
     // lane lines (dashed: only the painted pieces)
     for (const l of d.lanes) {
       const [colour, style, phase, s0] = l, pts = pairs(l, 4), kind = colour ? 'yellow' : 'white';
@@ -132,8 +152,11 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       asphalt: nearMaterial(N.ASPHALT, { grain: N.ASPHALT_GRAIN }), white: nearMaterial(N.PAINT_WHITE), yellow: nearMaterial(N.PAINT_YELLOW),
       gutter: nearMaterial(N.GUTTER, { grain: N.CONCRETE_GRAIN }), curb: nearMaterial(N.CURB, { opaqueDepth: true }),
       walk: nearMaterial(N.WALK, { grain: N.CONCRETE_GRAIN, joints: true, opaqueDepth: true }),
+      paving: nearMaterial(N.FRONT_PAVING, { grain: N.CONCRETE_GRAIN }), lawn: nearMaterial(N.FRONT_LAWN, { grain: N.LAWN_GRAIN }),
+      mulch: nearMaterial(N.FRONT_MULCH, { grain: N.LAWN_GRAIN }),
     };
-    const ORDER = { asphalt: 0.9, gutter: 0.92, white: 0.95, yellow: 0.95, curb: 0.97, walk: 0.98 };
+    mats.curb.side = THREE.DoubleSide; mats.walk.side = THREE.DoubleSide;
+    const ORDER = { asphalt: 0.9, paving: 0.91, lawn: 0.91, mulch: 0.91, gutter: 0.92, white: 0.95, yellow: 0.95, curb: 0.97, walk: 0.98 };
     let draws = 0, tris = 0;
     for (const b of buckets.values()) for (const [kind, B] of Object.entries(b)) {
       if (!B.idx.length) continue;
@@ -143,18 +166,18 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       g.setAttribute('aS', new THREE.Float32BufferAttribute(B.s, 1));
       g.setIndex(B.idx); g.computeBoundingSphere();
       const m = new THREE.Mesh(g, mats[kind]); m.renderOrder = ORDER[kind]; m.receiveShadow = true; m.name = 'near ' + kind;
-      if (kind === 'curb' || kind === 'walk') m.side = THREE.DoubleSide;
       group.add(m); draws++; tris += B.idx.length / 3;
     }
 
     // ── arrows (flat, instanced per kind) and signs (posts and panels, instanced per kind) ──
     const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), S = new THREE.Vector3(1, 1, 1), UP = new THREE.Vector3(0, 1, 0);
-    function inst(name, geo, mat, rows, order) {
+    function inst(name, geo, mat, rows, order, shadow = false) {
       if (!rows.length) return;
       const im = new THREE.InstancedMesh(geo, mat, rows.length);
       rows.forEach(([x, y, z, a, sx = 1, sy = 1, sz = 1], i) => { Q.setFromAxisAngle(UP, -a); M4.compose(P.set(x, y, z), Q, S.set(sx, sy, sz)); im.setMatrixAt(i, M4); });
       im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); im.receiveShadow = true; im.name = name;
       if (order != null) im.renderOrder = order;
+      im.castShadow = shadow;
       group.add(im); draws++;
     }
     const arrowShape = (kind) => {
@@ -188,7 +211,8 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       }
     }
     const signMat = (c) => nearMaterial(c, { opaqueDepth: true, roughness: 0.6 });
-    inst('sign posts', new THREE.CylinderGeometry(0.03, 0.03, N.SIGN_POST_M, 6).translate(0, N.SIGN_POST_M / 2, 0), signMat(N.SIGN_POST), posts);
+    // a post's foot sits in the sidewalk slab (it starts below the slab's top), and it throws a shadow, so it reads as standing
+    inst('sign posts', new THREE.CylinderGeometry(N.SIGN_POST_R_M, N.SIGN_POST_R_M, N.SIGN_POST_M + 0.2, 8).translate(0, N.SIGN_POST_M / 2 - 0.1, 0), signMat(N.SIGN_POST), posts, null, true);
     for (const [k, rows] of panels) {
       const spec = N.SIGNS[k] || N.SIGNS[0];
       let geo;
@@ -196,7 +220,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       else if (spec.shape === 'diamond') geo = new THREE.BoxGeometry(0.02, spec.h / Math.SQRT2, spec.w / Math.SQRT2).rotateX(Math.PI / 4);
       else if (spec.shape === 'triangle') geo = new THREE.CylinderGeometry(spec.w / 1.7, spec.w / 1.7, 0.02, 3).rotateZ(Math.PI / 2).rotateX(Math.PI / 2);
       else geo = new THREE.BoxGeometry(0.02, spec.h, spec.w);
-      inst('signs ' + k, geo, signMat(spec.color), rows);
+      inst('signs ' + k, geo, signMat(spec.color), rows, null, true);
     }
     Object.assign(stats, { ready: true, draws, triangles: tris, ...(d.counts || {}) });
     redraw();

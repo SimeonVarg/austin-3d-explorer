@@ -54,6 +54,7 @@ export const STREET_LOOK = {
   SIGNAL_METAL: '#4a4c4d',
   SIGNAL_HEAD: '#1d1e1f',
   SIGNAL_POLE_M: 6.4,
+  FOOTING: '#8a877f',
   SIGNAL_ARM_Y_M: 6.0,
   SIGNAL_HEADS_AT: [0.55, 0.92],   // along the mast arm
   // ── lamps ──
@@ -110,6 +111,11 @@ export const NEAR_LOOK = {
   JOINT_DARK: 0.35,
   SIGN_POST: '#8b8d8f',
   SIGN_POST_M: 3.1,
+  SIGN_POST_R_M: 0.045,         // 0.03 read as a hairline from 8 m up
+  FRONT_PAVING: '#837f76',      // the right-of-way past the sidewalk: plaza and frontage paving, ...
+  FRONT_LAWN: '#4b5733',        // ... lawn and planting strips, ...
+  FRONT_MULCH: '#4d4034',       // ... mulch and bare soil (classes read off the aerial per 3 m: street_near.py)
+  LAWN_GRAIN: 0.12,
   SIGN_TOP_M: 2.75,             // the top panel's top edge
   SIGN_BLADE_Y_M: 3.05,         // street-name blades sit on top of the post
   SIGNS: {                      // by kind (street_near.py): w x h metres, colour, shape
