@@ -94,10 +94,10 @@ const fly = (page) => page.evaluate(() => window.__v2.fly());
   await step(page, 600);
 
   // limits
-  await page.mouse.move(550, 300); await page.mouse.down(); await page.mouse.move(550, 690, { steps: 20 }); await step(page, 2);
+  await page.mouse.move(550, 200); await page.mouse.down(); await page.mouse.move(550, 600, { steps: 20 }); await step(page, 2);
   await page.mouse.up(); s1 = await step(page, 2);
   check(s1.pitch <= K.PITCH_MAX + 1e-6 && s1.pitch > K.PITCH_MAX - 0.5, `pitch stops at ${s1.pitch.toFixed(2)} (v1 ${K.PITCH_MAX})`);
-  for (let i = 0; i < 4; i++) { await page.mouse.move(550, 690); await page.mouse.down(); await page.mouse.move(550, 10, { steps: 20 }); await step(page, 2); await page.mouse.up(); }
+  for (let i = 0; i < 4; i++) { await page.mouse.move(550, 600); await page.mouse.down(); await page.mouse.move(550, 90, { steps: 20 }); await step(page, 2); await page.mouse.up(); }
   s1 = await step(page, 2);
   check(s1.pitch >= K.PITCH_MIN - 1e-6 && s1.pitch < K.PITCH_MIN + 0.5, `pitch stops at ${s1.pitch.toFixed(2)} looking down (v1 ${K.PITCH_MIN})`);
   // over open ground (no footprint within 12 m), the wheel takes the eye down to the floor
