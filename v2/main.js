@@ -10,6 +10,7 @@ import { FlyControls, CollisionField, FLY } from './flycam.js';
 import { LOOK, QUALITY } from './look.js';
 import { ORIGIN, setOrigin, toLocal, toLonLat } from './geo.js';
 import { TileStreamer, TILES } from './tiles.js';
+import { COVER, objectArrays, outlinesNear } from './covers.js';
 import { MapLite, MarkerLayer, MercatorCoordinate } from './maplite.js';
 import { MapLayers } from './map-layers.js';
 import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
@@ -556,7 +557,7 @@ const cityReady = new Promise((resolve) => {
     if (m.type === 'roads') { addRibbons(m.tiles, ORDER.ROADS, city.roads); timings.roads = performance.now() - timings.start; status('Roads in, raising buildings…'); }
     else if (m.type === 'sidewalks') { addRibbons(m.tiles, ORDER.SIDEWALKS, city.sidewalks); timings.sidewalks = performance.now() - timings.start; }
     else if (m.type === 'buildings') { addBuildings(m.tiles); timings.buildings = performance.now() - timings.start; status('Buildings in, planting trees…'); }
-    else if (m.type === 'collide') { field.setFootprints(m.data); applyBlenderTops(); }
+    else if (m.type === 'collide') { field.setFootprints(m.data); applyBlenderTops(); coverLate(); labels.dirty = true; labels.occGen = (labels.occGen || 0) + 1; }
     else if (m.type === 'trees') { addTrees(m.data); timings.trees = performance.now() - timings.start; }
     else if (m.type === 'log') console.info('[v2 city]', m.msg);
     else if (m.type === 'error') console.error('[v2 city]', m.msg);
@@ -574,8 +575,9 @@ const tilesReady = (async () => {
   try {
     const t = new TileStreamer({ scene, camera, manifestUrl,
       onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings,
-      prepare: (obj, def) => { if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); },
-      onChange: () => { dirty = true; sun.shadow.needsUpdate = true; }, onAnimate: () => { dirty = true; } });
+      // the camera's collision tops from the model (#529), and the plain blocks the model stands over (covers.js)
+      prepare: (obj, def, s) => { if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
+      onChange: () => { dirty = true; sun.shadow.needsUpdate = true; labels.occGen = (labels.occGen || 0) + 1; labels.dirty = true; }, onAnimate: () => { dirty = true; } });
     if (params.get('fade') === '0') t.instant = true;
     const man = await t.load();
     if (man.origin && (Math.abs(man.origin.lat - ORIGIN.lat) > 1e-9 || Math.abs(man.origin.lon - ORIGIN.lon) > 1e-9)) {
@@ -589,6 +591,87 @@ const tilesReady = (async () => {
     return null;
   }
 })();
+
+// A Blender model hides every plain extrusion it stands over, not only the ones its manifest entry lists (covers.js). Measured
+// once when the tile arrives, in a worker (covers-worker.js): the answer usually comes back while the plain extrusions are still
+// fading into the haze, so the extra ones fade and swap with the tile's own (tiles.js reads s.mapIds at every step); one that
+// comes back after the swap hides them at once. A tile that arrives before the city's outlines waits in coverWait.
+// Names whose building is hidden this way are lifted onto the model's top (coverTop, labels.js liftOf).
+if (params.get('cover') === '0') COVER.ON = false;
+const coverWait = new Set(), coverStats = { tiles: 0, ids: 0, workerMs: 0, mainMs: 0 }, coverJobs = new Map(), coverTop = new Map();
+let coverWorker = null, coverSeq = 0;
+function coverOf(obj, def, s) {
+  if (!COVER.ON) return [];
+  if (!field.ready) { coverWait.add(s); return []; }
+  const t0 = performance.now();
+  if (!coverWorker) {
+    coverWorker = new Worker(new URL('./covers-worker.js', import.meta.url), { type: 'module' });
+    coverWorker.onmessage = (ev) => coverDone(ev.data);
+  }
+  const job = ++coverSeq, meshes = objectArrays(obj);
+  coverJobs.set(job, { s, obj });
+  coverWorker.postMessage({ job, meshes, outlines: outlinesNear(field, def.bounds) }, meshes.flatMap((m) => [m.pos.buffer, ...(m.idx ? [m.idx.buffer] : [])]));
+  coverStats.mainMs += performance.now() - t0;
+  return [];
+}
+function coverDone({ job, covered, raster, ms, error }) {
+  const J = coverJobs.get(job); coverJobs.delete(job);
+  if (error) console.warn('[v2 covers]', error);
+  if (!J || J.s.obj !== J.obj) return;                      // the tile was dropped (or loaded again) meanwhile
+  const s = J.s, own = new Set(s.mapIds.flatMap((id) => idKeys(id)));
+  const under = covered.filter((c) => c.share >= COVER.HIDE_SHARE);
+  const extra = under.filter((c) => !idKeys(c.id).some((k) => own.has(k))).map((c) => c.id);
+  coverStats.tiles++; coverStats.ids += extra.length; coverStats.workerMs += ms || 0;
+  for (const c of under) for (const e of field.byId.get(c.id) || []) coverTop.set(e, { top: c.top, id: c.id });
+  if (raster) {                                             // the model's heights, for the names (modelHeightAt)
+    const R = { ...raster, s, obj: J.obj }, G = MODEL_GRID_M;
+    for (let i = Math.floor(R.x0 / G); i <= Math.floor((R.x0 + R.nx * R.C) / G); i++) for (let j = Math.floor(R.z0 / G); j <= Math.floor((R.z0 + R.nz * R.C) / G); j++) {
+      const k = i * 65536 + j, l = (modelGrid.get(k) || []).filter((r) => r.s.obj === r.obj); l.push(R);
+      l.max = Math.max(...l.map((r) => r.top ??= r.h.reduce((m, v) => (v > m ? v : m), 0))); modelGrid.set(k, l);
+    }
+  }
+  labels.dirty = true; labels.occGen = (labels.occGen || 0) + 1;   // the names ask again who hides them
+  if (!extra.length) return;
+  s.mapIds = [...new Set([...s.mapIds, ...extra])];
+  if (J.obj.parent) setHidden(extra, true);                 // already swapped in: hide them now
+}
+const isHiddenId = (id) => idKeys(id).some((k) => city.hidden.has(k));
+// The highest point of a Blender model on screen at (x, z) (0 = none): the names hide behind the models' real shapes, not behind
+// the plain outlines the models replace (labels.js hiddenFrom).
+const MODEL_GRID_M = 256, modelGrid = new Map();
+function modelHeightAt(x, z, above = 0) {
+  const l = modelGrid.get(Math.floor(x / MODEL_GRID_M) * 65536 + Math.floor(z / MODEL_GRID_M));
+  if (!l || !(l.max > above)) return 0;                     // nothing in this 256 m square that tall: the cheap answer
+  let top = 0;
+  for (const R of l) {
+    if (R.s.obj !== R.obj || !R.obj.parent) continue;       // dropped, or not swapped in yet
+    const i = Math.floor((x - R.x0) / R.C), j = Math.floor((z - R.z0) / R.C);
+    if (i >= 0 && j >= 0 && i < R.nx && j < R.nz && R.h[j * R.nx + i] > top) top = R.h[j * R.nx + i];
+  }
+  return top;
+}
+// a plain outline that a Blender model hides does not hide names (the model does, through modelHeightAt)
+function outlineHidden(e) {
+  if (e.mapId === undefined) {                              // tag every outline with its id once (the first key: the full id)
+    for (const [id, list] of field.byId) for (const p of list) p.mapId ??= id;
+    e.mapId ??= null;
+  }
+  return !!e.mapId && isHiddenId(e.mapId);
+}
+function coverLate() {
+  for (const s of coverWait) { coverWait.delete(s); if (s.obj) coverOf(s.obj, s.def, s); }
+}
+// a name's point inside an outline that a Blender model hides: the model's top there (labels.js lifts the name onto it)
+function coverLift(x, z) {
+  if (!coverTop.size || !field.ready) return 0;
+  const B = CollisionField.B;
+  let top = 0;
+  for (const e of field.buckets.get(Math.floor(x / B) * 65536 + Math.floor(z / B)) || []) {
+    const c = coverTop.get(e);
+    if (c && c.top > top && isHiddenId(c.id) && field.touches(e, x, z, 5)) top = c.top;   // only while the model hides it
+  }
+  return top;
+}
 
 // the camera bumps into the trunks of v2's trees (trees.js draws them: one instanced mesh, each matrix = position, radius, height)
 const trunkWait = setInterval(() => {
@@ -909,7 +992,9 @@ Promise.all([cityReady, tilesReady, routeReady]).then(([stats, man]) => {
 
 // ── names over the city, picking a building, its card ─────────────────────────────────────────────
 const labels = new Labels({ camera, canvas, container: $('markers'), scene, phone: PHONE,
-  pickRoots: () => [cityGroup, ...(tiles ? [tiles.group] : [])], onCard: showCard });
+  pickRoots: () => [cityGroup, ...(tiles ? [tiles.group] : [])], onCard: showCard,
+  field, obstacles: () => markers.pinRects(), liftOf: coverLift, modelHeightAt, outlineHidden });   // names hide behind buildings, keep off the finder's pins
+markers.onPins = () => { labels.dirty = true; };
 Promise.all([tilesReady, routeReady, setupDone]).then(([man, cat]) => {
   labels.add(blenderItems(man));
   labels.add(homeItems(homesList, man));
@@ -953,13 +1038,13 @@ import('./finder-boot.js').catch((e) => console.warn('[v2] finder', e.message));
 const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; };
 const pct = (a, p) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * p))] : null; };
 window.__v2 = {
-  THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FLY, fly: () => controls.state(),
+  THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FLY, fly: () => controls.state(), field, COVER, coverStats, tileStreamer: () => tiles,
   ready: Promise.all([cityReady, tilesReady, routeReady]),
   tiles: () => tiles && tiles.summary(),
   timings: () => ({ ...timings }),
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
   intro: () => introFlight.flight && { ...introFlight.flight },
-  labels: () => ({ items: labels.items.length, shown: labels.shown, selected: labels.selected?.name || null }),
+  labels: () => ({ items: labels.items.length, shown: labels.shown, merged: labels.merged || 0, occluded: labels.occludedN || 0, selected: labels.selected?.name || null }),
   pick: (x, y) => labels.pick(x, y), openCard: (name) => { const it = labels.items.find((i) => i.name === name); if (it) labels.open(it); return !!it; }, requestRoute, drawRoute, redraw: () => { dirty = true; },
   pickApartment: (name) => { const i = apartments.findIndex((a) => a.name === name); if (i >= 0) { aptSel.value = String(i); return update(true); } },
   pickBuilding: (code) => { const i = buildings.findIndex((b) => b.code === code); if (i >= 0) { clsSel.value = String(i); return update(true); } },
