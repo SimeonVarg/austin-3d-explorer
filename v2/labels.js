@@ -232,10 +232,10 @@ export class Labels {
     const ownAt = (x, z) => { for (const e of it.own) if (F.touches(e, x, z, 0)) return true; return false; };
     for (let s = step; s < L; s += step) {
       const t = s / L, h = o.y + dy * t;
-      if (h + O.MARGIN_M >= Math.max(F.topsAt, O.MODEL_TOP_M)) continue;
+      if (h + O.MARGIN_M >= Math.max(F.topsAt, O.MODEL_TOP_M)) continue;      // above every outline and every model
       const x = o.x + dx * t, z = o.z + dz * t, k = Math.floor(x / B) * 65536 + Math.floor(z / B);
       // a Blender model's real shape (main.js modelHeightAt), unless it is the name's own building
-      if (this.modelHeightAt && this.modelHeightAt(x, z) > h + O.MARGIN_M && !ownAt(x, z)) return true;
+      if (this.modelHeightAt && this.modelHeightAt(x, z, h + O.MARGIN_M) > h + O.MARGIN_M && !ownAt(x, z)) return true;
       if (!(F.bucketMax.get(k) > h + O.MARGIN_M)) continue;
       for (const e of F.buckets.get(k)) {
         if (e.top <= h + O.MARGIN_M || it.own.has(e) || x < e.minX || x > e.maxX || z < e.minZ || z > e.maxZ) continue;

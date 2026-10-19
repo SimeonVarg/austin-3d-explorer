@@ -532,7 +532,8 @@ function coverDone({ job, covered, raster, ms, error }) {
   if (raster) {                                             // the model's heights, for the names (modelHeightAt)
     const R = { ...raster, s, obj: J.obj }, G = MODEL_GRID_M;
     for (let i = Math.floor(R.x0 / G); i <= Math.floor((R.x0 + R.nx * R.C) / G); i++) for (let j = Math.floor(R.z0 / G); j <= Math.floor((R.z0 + R.nz * R.C) / G); j++) {
-      const k = i * 65536 + j, l = (modelGrid.get(k) || []).filter((r) => r.s.obj === r.obj); l.push(R); modelGrid.set(k, l);
+      const k = i * 65536 + j, l = (modelGrid.get(k) || []).filter((r) => r.s.obj === r.obj); l.push(R);
+      l.max = Math.max(...l.map((r) => r.top ??= r.h.reduce((m, v) => (v > m ? v : m), 0))); modelGrid.set(k, l);
     }
   }
   labels.dirty = true;
@@ -544,9 +545,9 @@ const isHiddenId = (id) => idKeys(id).some((k) => city.hidden.has(k));
 // The highest point of a Blender model on screen at (x, z) (0 = none): the names hide behind the models' real shapes, not behind
 // the plain outlines the models replace (labels.js hiddenFrom).
 const MODEL_GRID_M = 256, modelGrid = new Map();
-function modelHeightAt(x, z) {
+function modelHeightAt(x, z, above = 0) {
   const l = modelGrid.get(Math.floor(x / MODEL_GRID_M) * 65536 + Math.floor(z / MODEL_GRID_M));
-  if (!l) return 0;
+  if (!l || !(l.max > above)) return 0;                     // nothing in this 256 m square that tall: the cheap answer
   let top = 0;
   for (const R of l) {
     if (R.s.obj !== R.obj || !R.obj.parent) continue;       // dropped, or not swapped in yet
