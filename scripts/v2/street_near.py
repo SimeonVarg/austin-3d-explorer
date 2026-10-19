@@ -20,8 +20,8 @@ How each piece is placed (every one is checked against the photograph; counts an
                 a City driveway (vchz-d9ng DRIVEWAY) meets the kerb.
   sidewalks     the City's EXISTING_SIDEWALK lines give which side has a sidewalk, how wide (ft) and whether it meets the curb; the
                 slab is drawn against the kerb (back_of_curb = Y) or past a verge as wide as the City line's distance says.
-  arrows        the City's lane-use arrows (Markings_Specialty_Point, type 2), pointing along the road toward the block's nearer end.
-  signs         the City's Roadway Sign Assets (ggnk-3ykn), one post per asset location, up to three panels by MUTCD code.
+  arrows        raw City lane-use candidates. street_safety.py must validate lane, approach and turn before rendering.
+  signs         raw City sign candidates; street_safety.py snaps or drops posts against the final road and sidewalk surface.
 """
 import json, math, os, sys
 from collections import defaultdict

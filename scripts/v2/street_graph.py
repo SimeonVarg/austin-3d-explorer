@@ -30,7 +30,7 @@ def stage(msg):
 import numpy as np
 from shapely.geometry import LineString, Polygon, MultiPolygon, Point, box, mapping
 from shapely.ops import unary_union
-from shapely import STRtree
+from shapely import STRtree, set_precision, prepare, normalize
 from collections import defaultdict
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -47,6 +47,7 @@ XW = {'width': 3.0, 'bar': 0.6, 'gap': 0.6, 'kerb_keep': 0.3}
 STOP = {'w': 0.6, 'behind_m': 1.2, 'kerb_keep': 0.2}
 TILE_M = 125.0
 SIMPLIFY_M = 0.05
+ISLAND_MAX_M2 = 400.0       # flag small enclosed gaps; no invented plaza inside a road/parking-aisle loop
 NAMED = {'Guadalupe/21st': (-252, 246), 'Guadalupe/24th': (-217, -187), 'Speedway/21st': (241, 255), 'Congress/6th': (-335, 1997),
          'Rio Grande/24th': (-515, -213), 'Lavaca/15th': (-252, 940)}
 
@@ -88,6 +89,38 @@ def lines_of(g):
     return [q for q in getattr(g, 'geoms', []) if q.geom_type == 'LineString']
 
 
+def finalize_quantized(out, marks):
+    """Check the geometry the client actually reads, after clipping, simplification and coordinate rounding."""
+    def read(r):
+        return Polygon(pairs(r[0], 0), [pairs(h, 0) for h in r[1:]])
+    road = unary_union([read(r) for r in out['asphalt']])
+    holes = [Polygon(h) for p in polys(road) for h in p.interiors if Polygon(h).area < ISLAND_MAX_M2]
+    ht = STRtree(holes)
+    for kind in ('paving', 'lawn', 'mulch'):
+        cropped = []
+        for r in out[kind]:
+            p = read(r); hit = ht.query(p)
+            if len(hit):
+                p = p.difference(unary_union([holes[i] for i in hit]))
+            for q in polys(normalize(set_precision(p, 0.05))):
+                if q.area < 0.2: continue
+                cropped.append([[r5(v) for xy in list(rr.coords)[:-1] for v in xy] for rr in [q.exterior] + list(q.interiors)])
+        out[kind] = cropped
+    allowed = road.buffer(0.05); prepare(allowed)
+    kept = []; dropped = 0
+    for i in range(0, len(marks['bars']), 5):
+        x, z, a, L, w = marks['bars'][i:i + 5]
+        u = np.array([math.cos(a), math.sin(a)]); n = np.array([-u[1], u[0]]); c = np.array([x, z])
+        pg = Polygon([c + u * L * s / 2 + n * w * t / 2 for s,t in ((-1,-1),(-1,1),(1,1),(1,-1))])
+        if allowed.covers(pg): kept.extend([x,z,a,L,w])
+        else: dropped += 1
+    marks['bars'] = kept
+    out['checks']['bars_total'] = len(kept) // 5
+    out['checks']['bars_dropped_after_quantization'] = out['checks'].get('bars_dropped_after_quantization', 0) + dropped
+    out['checks']['enclosed_small_spaces_after_quantization'] = len(holes)
+    return out, marks
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('city'); ap.add_argument('tiles'); ap.add_argument('--overlay', default=None)
@@ -103,7 +136,9 @@ def main():
         if len(pts) < 2 or kn + kp < 2:
             continue
         L, R = offset(pts, kp), offset(pts, -kn)
-        poly = Polygon(L + R[::-1]).buffer(0)
+        # Tight service-aisle bends can fold an averaged-offset strip back over its own centreline. GEOS's actual
+        # line buffer preserves coverage there (the service widths are symmetric; they have no measured kerb offsets).
+        poly = LineString(pts).buffer((kn + kp) / 2, cap_style=2) if nokerb else Polygon(L + R[::-1]).buffer(0)
         if poly.is_empty:
             continue
         edges.append({'mid': LineString(pts), 'poly': poly, 'kn': kn, 'kp': kp, 'nokerb': nokerb, 'oneway': oneway})
@@ -144,6 +179,10 @@ def main():
     walks_u = unary_union(walk_polys)
     ring = surface.buffer(WALK_RING_M, join_style=1).difference(surface).intersection(jzone)
     ring = ring.intersection(walks_u.buffer(6.0))          # only where the approaches have sidewalks
+    # A parking aisle is not a kerbed street. Wrapping its boundary produced a raised, round island at Nueces/MLK.
+    # Keep surveyed sidewalk, but never invent a sidewalk round a service-road loop.
+    service_margin = unary_union([e['poly'].buffer(WALK_RING_M + 0.2) for e in edges if e['nokerb']])
+    ring = ring.difference(service_margin)
     sidewalk = unary_union([walks_u, ring]).difference(surface).buffer(0)
     # frontage: near.json's classed runs, minus the surface and the sidewalks
     fclass = defaultdict(list)
@@ -160,7 +199,16 @@ def main():
         if not pg.is_empty:
             fclass[f[0]].append(pg)
     taken = unary_union([surface, sidewalk])
-    fronts = {c: unary_union(v).difference(taken).buffer(0) for c, v in fclass.items()}
+    # A small hole in the road union is not evidence of a plaza. These enclosed spaces include parking spaces between a
+    # street and a service aisle. Leave their unobserved ground to the aerial, instead of filling them with raised paving.
+    islands = [Polygon(h) for p in polys(surface) for h in p.interiors if Polygon(h).area < ISLAND_MAX_M2]
+    island_mask = unary_union(islands)
+    fronts = {c: unary_union(v).difference(taken).difference(island_mask).buffer(0) for c, v in fclass.items()}
+    # Asphalt frontage (parking/drive aprons) can itself enclose a space. Audit the COMPLETE asphalt union too.
+    complete_asphalt = unary_union([surface, fronts.get(3, Polygon())])
+    islands = [Polygon(h) for p in polys(complete_asphalt) for h in p.interiors if Polygon(h).area < ISLAND_MAX_M2]
+    island_mask = unary_union(islands)
+    fronts = {c: g.difference(island_mask).buffer(0) for c, g in fronts.items()}
     stage('sidewalks and frontage')
 
     # lane lines: near.json's (photograph) + near_osm.json's (OSM lane counts), minus every junction and its approach zone
@@ -197,6 +245,8 @@ def main():
         u = np.array([p1.x - p0.x, p1.y - p0.y]); n = np.linalg.norm(u)
         return (u / n if n > 0 else None), best[1]
     bars, pads, crossings = [], [], []
+    pad_dropped = 0
+    prepare(sidewalk)
     xgrid = defaultdict(list); n_crossed = 0
     jtree = STRtree(junctions)
     def jdist(pt):
@@ -255,8 +305,14 @@ def main():
             for k in range(nb):
                 c = p0 + dv * (start + k * per + XW['bar'] / 2)
                 bars.append([c[0], c[1], ang, XW['width'], XW['bar'] * sin_sk])
-            for c in (p0 + dv * 0.6, p1 - dv * 0.6):
-                pads.append([c[0], c[1], math.atan2(dv[1], dv[0])])
+            # Warning tiles belong BEHIND the kerb, on a supported sidewalk, not 0.6 m into traffic.
+            for c in (p0 - dv * 0.9, p1 + dv * 0.9):
+                across = np.array([-dv[1], dv[0]])
+                pg = Polygon([c + dv * 0.6 * i + across * 0.3 * j for i, j in ((-1,-1),(-1,1),(1,1),(1,-1))])
+                if sidewalk.covers(pg):
+                    pads.append([c[0], c[1], math.atan2(dv[1], dv[0])])
+                else:
+                    pad_dropped += 1
     xband = unary_union([c.buffer(XW['width'] / 2, cap_style=2) for c in crossings])
     nstop = 0
     for f in J('markings'):
@@ -334,6 +390,10 @@ def main():
     checks = {'junctions': len(junctions), 'kerb_lines_inside_carriageway': kerb_inside, 'paint_bars_outside_road': paint_out,
               'lane_lines_in_junction_open_area': lane_in_j, 'duplicate_crossings': dup_x, 'sidewalk_on_carriageway_m2': round(walk_on_road, 2),
               'crossings_dropped_for_crossing_another': n_crossed, 'bars_total': len(bars), 'bars_dropped_for_leaving_the_road': n_bars_dropped}
+    checks['enclosed_small_spaces_flagged'] = len(islands)
+    checks['invented_frontage_in_small_enclosed_spaces_m2'] = round(sum(g.intersection(island_mask).area for g in fronts.values()), 2)
+    checks['invented_sidewalk_near_service_edges_m2'] = round(ring.intersection(service_margin).area, 2)
+    checks['unsupported_warning_pads_dropped'] = pad_dropped
     stage('CHECKS ' + json.dumps(checks))
 
     # ── outputs: polygons cut to squares ──
@@ -341,7 +401,8 @@ def main():
     out = {'asphalt': [], 'walk': [], 'paving': [], 'lawn': [], 'mulch': [], 'kerbs': []}
     names = {0: 'paving', 1: 'lawn', 2: 'mulch', 3: 'asphalt'}
     def emit(kind, g):
-        for p in polys(g.simplify(SIMPLIFY_M)):
+        # Rounding vertices individually made 138 asphalt polygons self-intersect. Snap with topology preservation.
+        for p in polys(set_precision(g.simplify(SIMPLIFY_M), 0.05)):
             if p.area < 0.2:
                 continue
             rings = [p.exterior] + list(p.interiors)
@@ -368,15 +429,18 @@ def main():
                     'City of Austin data (Not endorsed by the City of Austin) and the City 2025 aerial; road centrelines from data/roads.geojson.')
     out['frame'] = 'v2/geo.js: x metres east, z metres south of 30.28601, -97.73932'
     out['checks'] = checks
-    json.dump(out, open(os.path.join(DATA, 'surface.json'), 'w'), separators=(',', ':'))
     # OSM-derived lane lines stay in the ODbL file (near_osm.json) but clipped: written as surface_osm.json
     json.dump({'_license': '© OpenStreetMap contributors, ODbL 1.0 (https://opendatacommons.org/licenses/odbl/1-0/). Lane lines from OSM lane '
                            'counts, clipped to the v2 road surface; a derivative database offered under the ODbL.', 'lanes': lanes_osm},
               open(os.path.join(DATA, 'surface_osm.json'), 'w'), separators=(',', ':'))
     R5 = lambda rows: [v for row in rows for v in ([r5(row[0]), r5(row[1])] + [round(q, 3) for q in row[2:]])]
-    json.dump({'about': 'v2 crossings, stop bars and ramp pads derived from the road surface (scripts/v2/street_graph.py), placed by City of '
+    mark_out = {'about': 'v2 crossings, stop bars and ramp pads derived from the road surface (scripts/v2/street_graph.py), placed by City of '
                         'Austin markings (9hak-anfp). Not endorsed by the City of Austin.', 'frame': out['frame'],
-               'bars': R5(bars), 'pads': R5(pads)}, open(os.path.join(DATA, 'marks.json'), 'w'), separators=(',', ':'))
+               'bars': R5(bars), 'pads': R5(pads)}
+    finalize_quantized(out, mark_out)
+    bars = [mark_out['bars'][i:i + 5] for i in range(0, len(mark_out['bars']), 5)]
+    json.dump(out, open(os.path.join(DATA, 'surface.json'), 'w'), separators=(',', ':'))
+    json.dump(mark_out, open(os.path.join(DATA, 'marks.json'), 'w'), separators=(',', ':'))
     for n in ('surface.json', 'surface_osm.json', 'marks.json'):
         print(n, os.path.getsize(os.path.join(DATA, n)))
 

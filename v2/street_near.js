@@ -1,11 +1,12 @@
 // v2 street level near the camera (owner, 2026-10-18: "Can you get street level detail"), from v2/data/street/near.json
 // (scripts/v2/street_near.py): modelled asphalt with the lane lines the photograph shows, kerbs with gutters, sidewalk slabs with
-// joints, driveway aprons, lane-use arrows and street signs. Within NEAR.FADE these replace the aerial photograph on streets; past it
-// they fade out and the photograph (sharp from 150 m up) carries the street. Everything is merged or instanced in 250 m squares.
+// joints, driveway aprons, validated lane-use arrows and street signs. The carriageway is opaque across the entire baked demo area;
+// finer details fade with distance. Everything is merged or instanced; the asphalt is one shared draw.
 //
 // Rule 15: fine detail is procedural only where it is bigger than a pixel (the asphalt grain and the slab joints fade with the
-// screen-space derivative), and nothing here is drawn past NEAR.FADE[1].
+// screen-space derivative). The opaque asphalt stays; fine detail is not drawn past NEAR.FADE[1].
 import { NEAR_LOOK as N } from './street-look.js';
+import { loadSafeStreet } from './street-data.js';
 
 const params = new URLSearchParams(location.search);
 const DATA = new URL('./data/street/near.json', import.meta.url).href;
@@ -23,8 +24,8 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   const stats = { ready: false };
 
   // ── materials: alpha by distance from the camera; optional procedural grain / joints in world space ──
-  function nearMaterial(color, { grain = 0, joints = false, opaqueDepth = false, roughness = 0.95 } = {}) {
-    const m = new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, transparent: true, depthWrite: opaqueDepth,
+  function nearMaterial(color, { grain = 0, joints = false, opaqueDepth = false, roughness = 0.95, permanent = false } = {}) {
+    const m = new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, transparent: !permanent, depthWrite: opaqueDepth || permanent,
       polygonOffset: !opaqueDepth, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
     m.onBeforeCompile = (sh) => {
       sh.vertexShader = sh.vertexShader
@@ -38,7 +39,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
             return mix(mix(nHash(i), nHash(i + vec2(1, 0)), f.x), mix(nHash(i + vec2(0, 1)), nHash(i + vec2(1, 1)), f.x), f.y); }`)
         .replace('#include <alphatest_fragment>', `#include <alphatest_fragment>
           float nd = length(vViewPosition);
-          diffuseColor.a *= 1.0 - smoothstep(${FADE[0].toFixed(1)}, ${FADE[1].toFixed(1)}, nd);
+          ${permanent ? '' : `diffuseColor.a *= 1.0 - smoothstep(${FADE[0].toFixed(1)}, ${FADE[1].toFixed(1)}, nd);`}
           #if ${grain > 0 ? 1 : 0}
             // two octaves of grain, each faded out before its cells get smaller than a pixel (rule 15)
             vec2 gp = vNearW.xz;
@@ -53,7 +54,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
             diffuseColor.rgb *= 1.0 - ${N.JOINT_DARK.toFixed(2)} * jl * (1.0 - smoothstep(0.08, 0.3, jw));
           #endif`);
     };
-    m.customProgramCacheKey = () => `v2-near-${grain}-${joints}-${FADE.join(',')}`;
+    m.customProgramCacheKey = () => `v2-near-${grain}-${joints}-${permanent}-${FADE.join(',')}`;
     return m;
   }
 
@@ -61,7 +62,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   const SQ = 250;
   const buckets = new Map();   // key -> { [kind]: {pos, nrm, s, idx} }
   function buf(kind, x, z) {
-    const k = Math.floor(x / SQ) + ',' + Math.floor(z / SQ);
+    const k = kind === 'asphalt' ? 'all asphalt' : Math.floor(x / SQ) + ',' + Math.floor(z / SQ);
     let b = buckets.get(k); if (!b) buckets.set(k, (b = {}));
     return b[kind] || (b[kind] = { pos: [], nrm: [], s: [], idx: [] });
   }
@@ -108,9 +109,12 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
 
   async function build() {
     const useSurface = params.get('surface') !== '0';
-    const [d, dOsm, surf, surfOsm] = await Promise.all([fetch(DATA).then((r) => r.json()), fetch(DATA_OSM).then((r) => r.json()).catch(() => null),
+    const [d, dOsm, surf, surfOsm, safe, safeOsm] = await Promise.all([fetch(DATA).then((r) => r.json()), fetch(DATA_OSM).then((r) => r.json()).catch(() => null),
       useSurface ? fetch(SURFACE).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null,
-      useSurface ? fetch(SURFACE_OSM).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null]);
+      useSurface ? fetch(SURFACE_OSM).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null,
+      loadSafeStreet('safe'), loadSafeStreet('safe_osm')]);
+    // Fail closed: raw point inventories aren't safe render positions. OSM-derived arrows remain in the ODbL file.
+    d.signs = safe?.signs || []; d.arrows = safeOsm?.arrows || [];
     const H = N.CURB_HEIGHT_M;
     if (surf) {
       // polygons (with holes), triangulated here; frontage classes at sidewalk height, asphalt at road height
@@ -171,7 +175,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       face('curb', pts, width / 2, 0, H, 1); face('curb', pts, -width / 2, 0, H, -1);
     }
     const mats = {
-      asphalt: nearMaterial(N.ASPHALT, { grain: N.ASPHALT_GRAIN }), white: nearMaterial(N.PAINT_WHITE), yellow: nearMaterial(N.PAINT_YELLOW),
+      asphalt: nearMaterial(N.ASPHALT, { grain: N.ASPHALT_GRAIN, permanent: true }), white: nearMaterial(N.PAINT_WHITE), yellow: nearMaterial(N.PAINT_YELLOW),
       gutter: nearMaterial(N.GUTTER, { grain: N.CONCRETE_GRAIN }), curb: nearMaterial(N.CURB, { opaqueDepth: true }),
       walk: nearMaterial(N.WALK, { grain: N.CONCRETE_GRAIN, joints: true, opaqueDepth: true }),
       paving: nearMaterial(N.FRONT_PAVING, { grain: N.CONCRETE_GRAIN }), lawn: nearMaterial(N.FRONT_LAWN, { grain: N.LAWN_GRAIN }),
@@ -218,7 +222,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       return new THREE.ShapeGeometry(shapes).rotateX(-Math.PI / 2);   // shape y -> -z: left of travel stays left
     };
     const byKind = new Map();
-    for (const [x, z, a, k] of d.arrows) { const kk = k <= 4 ? k : 0; (byKind.get(kk) || byKind.set(kk, []).get(kk)).push([x, N.PAINT_Y_M + 0.002, z, a]); }
+    for (const [x, z, a, k] of d.arrows) { if (k < 0 || k > 4) continue; (byKind.get(k) || byKind.set(k, []).get(k)).push([x, N.PAINT_Y_M + 0.002, z, a]); }
     for (const [k, rows] of byKind) inst('arrows ' + k, arrowShape(k), nearMaterial(N.PAINT_WHITE), rows, 0.96);
 
     // signs: a post per location, panels stacked from the top; the face normal looks along the panel's angle
@@ -244,7 +248,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       else geo = new THREE.BoxGeometry(0.02, spec.h, spec.w);
       inst('signs ' + k, geo, signMat(spec.color), rows, null, true);
     }
-    Object.assign(stats, { ready: true, draws, triangles: tris, ...(d.counts || {}) });
+    Object.assign(stats, { ready: true, draws, triangles: tris, ...(d.counts || {}), sign_posts: d.signs.length, arrows: d.arrows.length });
     redraw();
   }
   build().catch((e) => { stats.error = e.message; console.warn('[v2 near]', e.message); });
@@ -257,9 +261,10 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   scene.onBeforeRender = function (r, s, c, t) {
     prev.call(this, r, s, c, t);
     if (t) return;
-    // the group's own visibility belongs to others (Google mode hides every map layer by it): only its children are switched here
+    // Only the children are switched here; callers own the group's visibility.
     cam = c; low = c.position.y < N.MAX_CAMERA_Y_M;
     for (const m of group.children) {
+      if (m.name === 'near asphalt') { m.visible = true; continue; }
       if (!low) { m.visible = false; continue; }
       if (m.isInstancedMesh || !m.geometry.boundingSphere) { m.visible = true; continue; }
       cs.copy(m.geometry.boundingSphere.center);
