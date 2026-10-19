@@ -12,7 +12,7 @@ export const FINE = {
   PATCH_STEP_M: 2,            // shared samples; values interpolate on the ORIGINAL vertices
   PATCH_DEPTH_M: 1.5,         // include recessed windows / projecting fins, exclude opposite walls
   ANCHOR_MIN_M: 3,            // broad nearby facade establishes the repeat's plane (including fin sides)
-  MAX_SIZE_M: 32,             // larger features never filter
+  MAX_SIZE_M: 2,              // plain walls/broad panels keep their exact original colour AND normal
   SIZE_BASE_M: 0.01,
   SIZE_STEPS: 16,             // 16 logarithmic steps per octave, < 4.5% size error
   MAX_PATCHES: 65535,
@@ -241,9 +241,12 @@ export async function fineData(doc, log = () => {}) {
       const sign=dot(t.shadeN,a.n)<-0.01?-1:1;
       for(let k=0;k<3;k++) {col[k]+=w*t.col[k];normal[k]+=w*t.shadeN[k]*sign;}sum+=w;
     }
+    // A candidate anchor can miss the vertex's facade (e.g. at a long part's end).
+    // Never turn an empty neighbourhood into an apparently valid black material.
+    if (!sum) return null;
     const n=Math.hypot(...normal)>1e-7?unit(normal):a.n;
     // U16 linear RGB + signed-normal mapped to U16. Table precision is much finer than the palette PNG.
-    const values=[...(sum?col.map(v=>v/sum):[0,0,0]),...n.map(v=>v*0.5+0.5)];
+    const values=[...col.map(v=>v/sum),...n.map(v=>v*0.5+0.5)];
     if(values.some(v=>v< -1e-6||v>1+1e-6))throw new Error('fine table value outside U16 range');
     const packed=values.map(v=>Math.round(Math.max(0,Math.min(1,v))*65535)),ekey=packed.join(',');
     let id=unique.get(ekey);
@@ -261,6 +264,7 @@ export async function fineData(doc, log = () => {}) {
       const size=rec.areas[i]?rec.sizes[i]/rec.areas[i]:Infinity;
       if(size<FINE.MAX_SIZE_M&&rec.anchor[i]) {
         const id=patch(b,rec.world[i],rec.anchor[i]);
+        if(id===null)continue; // original shading when no supported patch exists
         data[i*4+1]=Math.max(1,Math.min(255,1+Math.ceil(FINE.SIZE_STEPS*Math.log2(size/FINE.SIZE_BASE_M))));
         data[i*4+2]=id&255;data[i*4+3]=id>>8;filterable++;
       }

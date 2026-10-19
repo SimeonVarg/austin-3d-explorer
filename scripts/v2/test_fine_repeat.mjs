@@ -76,3 +76,29 @@ for(const i of [1,2]) {const p=whitePos.getElement(i,[]);p[0]=2.5;whitePos.setEl
 assert.equal(fixVenueCoplanar(repairDoc,'the-venue').coplanar_m2,10);
 for(let i=0;i<slab.length;i++)assert(Math.abs(brickPos.getElement(i,[])[2]-slab[i][2]-FINE.VENUE_RELIEF_M)<1e-7);
 console.log('PASS partial coplanar intersection area');
+
+// Independent area oracle: 25% light wall, 75% dark pane. Every sample clips the
+// two rectangles to the same height, so its mean is known without using the baker.
+const areaDoc = new Document(), ab = areaDoc.createBuffer(), as = areaDoc.createScene();
+for (const [x0, x1, colour] of [[0, 0.5, [0.4, 0.2, 0.1, 1]], [0.5, 2, [0.04, 0.02, 0.01, 1]]]) {
+  const ap = areaDoc.createPrimitive()
+    .setAttribute('POSITION', areaDoc.createAccessor().setType('VEC3').setArray(new Float32Array([x0,0,0,x1,0,0,x1,4,0,x0,4,0])).setBuffer(ab))
+    .setAttribute('_BUILDING', areaDoc.createAccessor().setType('SCALAR').setArray(new Float32Array(4)).setBuffer(ab))
+    .setIndices(areaDoc.createAccessor().setType('SCALAR').setArray(new Uint16Array([0,1,2,0,2,3])).setBuffer(ab))
+    .setMaterial(areaDoc.createMaterial().setBaseColorFactor(colour));
+  as.addChild(areaDoc.createNode().setMesh(areaDoc.createMesh().addPrimitive(ap)));
+}
+await fineData(areaDoc);
+const areaTable = Buffer.from(areaDoc.getRoot().getExtras().fine.table, 'base64');
+for (const am of areaDoc.getRoot().listMeshes()) for (const ap of am.listPrimitives()) {
+  const aa = ap.getAttribute('_FINE');
+  for (let i = 0; i < aa.getCount(); i++) {
+    const a = aa.getElement(i, []), id = a[2] + a[3] * 256;
+    assert(a[1] > 0);
+    for (const [k, expected] of [0.13, 0.065, 0.0325].entries())
+      assert(Math.abs(areaTable.readUInt16LE(id * 12 + k * 2) / 65535 - expected) < 2 / 65535,
+        'patch must be the clipped triangle-area mean in linear RGB');
+  }
+}
+assert.equal(big.getAttribute('_FINE').getElement(0, [])[1], 0, 'plain broad panel must never filter');
+console.log('PASS independent clipped-area colour mean (25/75) and exact broad-panel exclusion');

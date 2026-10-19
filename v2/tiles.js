@@ -36,6 +36,8 @@ export const FINE = {
   F0: 0.3,           // > 3.3 pixels: exactly the original colour and shading
   F1: 0.85,          // < 1.2 pixels: the patch mean colour and normal
   TABLE_WIDTH: 1024, // two RGBA half-float texels per patch (colour, world normal)
+  NEAR_M: 350,       // preserve the complete 100 m building view, including its far side
+  FULL_M: 600,
 };
 
 export function fineTexture(fine) {
@@ -44,14 +46,20 @@ export function fineTexture(fine) {
   const data = new Uint16Array(width * height * 4);
   const binary = atob(fine.table), bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
   const view = new DataView(bytes.buffer);
+  if (bytes.length !== fine.count * 12 || !(fine.sizeBase > 0 && fine.sizeSteps > 0)) throw new Error('Invalid fine table');
   for (let i = 0; i < fine.count; i++) for (let k = 0; k < 6; k++) {
     let v = view.getUint16(i * 12 + k * 2, true) / 65535;
     if (k >= 3) v = v * 2 - 1;
     data[i * 8 + (k < 3 ? k : k + 1)] = THREE.DataUtils.toHalfFloat(v);
   }
+  for (let i = 0; i < fine.count; i++) {
+    // Explicit validity markers: an unbound/failed lookup must retain the original shading.
+    data[i * 8 + 3] = data[i * 8 + 7] = THREE.DataUtils.toHalfFloat(1);
+  }
   const tex = new THREE.DataTexture(data, width, height, THREE.RGBAFormat, THREE.HalfFloatType);
   tex.magFilter = tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false; tex.needsUpdate = true;
-  return { tex, size: new THREE.Vector2(width, height), decode: new THREE.Vector2(fine.sizeBase, fine.sizeSteps) };
+  tex.colorSpace = THREE.NoColorSpace; // table RGB is already linear; normals are signed data
+  return { tex, size: new THREE.Vector2(width, height), decode: new THREE.Vector2(fine.sizeBase, fine.sizeSteps), count: fine.count };
 }
 
 export function fineable(material, table) {
@@ -64,35 +72,48 @@ export function fineable(material, table) {
     sh.uniforms.uFineTableSize = { value: table.size };
     sh.uniforms.uFineDecode = { value: table.decode };
     sh.uniforms.uFine = { value: new THREE.Vector2(FINE.F0, FINE.F1) };
+    sh.uniforms.uFineRange = { value: new THREE.Vector2(FINE.NEAR_M, FINE.FULL_M) };
+    sh.uniforms.uFineCount = { value: table.count };
     sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
 attribute vec4 _fine;
-uniform sampler2D uFineTex;
+uniform highp sampler2D uFineTex;
 uniform vec2 uFineTableSize;
 uniform vec2 uFineDecode;
+uniform float uFineCount;
 varying vec3 vFineW;
 varying vec3 vFineMean;
 varying vec3 vFineNormal;
 varying float vFineSize;
+varying float vFineValid;
 vec4 fineEntry(float i) {
-  return texture2D(uFineTex, (vec2(mod(i, uFineTableSize.x), floor(i / uFineTableSize.x)) + 0.5) / uFineTableSize);
+  // Exact integer texel addressing, independent of sampler LOD and normalized UV precision.
+  return texelFetch(uFineTex, ivec2(int(mod(i, uFineTableSize.x)), int(floor(i / uFineTableSize.x))), 0);
 }`)
       .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
   vFineW = (modelMatrix * vec4(transformed, 1.0)).xyz;
   float patch = floor(_fine.z + 0.5) + 256.0 * floor(_fine.w + 0.5);
-  vFineMean = fineEntry(patch * 2.0).rgb;
-  vFineNormal = mat3(viewMatrix) * fineEntry(patch * 2.0 + 1.0).xyz;
+  vec4 meanEntry = fineEntry(patch * 2.0);
+  vec4 normalEntry = fineEntry(patch * 2.0 + 1.0);
+  vFineMean = meanEntry.rgb;
+  vFineNormal = mat3(viewMatrix) * normalEntry.xyz;
+  vFineValid = patch < uFineCount && uFineDecode.x > 0.0 && uFineDecode.y > 0.0
+    && meanEntry.a > 0.5 && normalEntry.a > 0.5 && dot(normalEntry.xyz, normalEntry.xyz) > 0.5 ? 1.0 : 0.0;
   vFineSize = _fine.y < 0.5 ? 1.0e10 : uFineDecode.x * exp2((_fine.y - 1.0) / uFineDecode.y);`);
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 uniform vec2 uFine;
+uniform vec2 uFineRange;
 varying vec3 vFineW;
 varying vec3 vFineMean;
 varying vec3 vFineNormal;
 varying float vFineSize;
+varying float vFineValid;
 float fineK;`)
       .replace('#include <map_fragment>', `#include <map_fragment>
   float mpp = max(length(dFdx(vFineW)), length(dFdy(vFineW)));
-  fineK = smoothstep(uFine.x, uFine.y, mpp / vFineSize);
-  diffuseColor.rgb = mix(diffuseColor.rgb, vFineMean, fineK);`)
+  fineK = smoothstep(uFine.x, uFine.y, mpp / vFineSize)
+    * smoothstep(uFineRange.x, uFineRange.y, length(vFineW - cameraPosition));
+  if (vFineValid < 0.999) fineK = 0.0;
+  if (fineK > 0.0) diffuseColor.rgb = mix(diffuseColor.rgb, vFineMean, fineK);`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
   if (fineK > 0.0) {
     vec3 patchNormal = normalize(vFineNormal);
@@ -106,7 +127,7 @@ float fineK;`)
   }`);
   };
   const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
-  material.customProgramCacheKey = () => key() + '|v2-fine-vertex-2';
+  material.customProgramCacheKey = () => key() + '|v2-fine-vertex-3';
   material.needsUpdate = true;
 }
 
