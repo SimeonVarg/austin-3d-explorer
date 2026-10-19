@@ -28,6 +28,55 @@ export const TILES = {
 
 const smooth = (k) => k * k * (3 - 2 * k);
 
+// Fine repeats (rule 15: nothing shimmers in motion; blur is not a fix). The tile builder (scripts/v2/fine_repeat.mjs) writes, per
+// palette entry, its feature size and the mean colour of its surround. Each fragment moves its colour toward that mean by how big
+// the feature is ON SCREEN: f = (metres per pixel on this surface, from the screen derivatives) / feature size. Below F0 the
+// surface is drawn exactly as built; above F1 it is its surround's average, which is what a perfect (supersampled) picture shows
+// once the feature is a pixel or two wide. Near views are untouched; only features too fine to be drawn steadily change.
+export const FINE = {
+  ON: false,         // OFF: draft (mac/v2-fine-repeat). Colour-only fading capped the gain and repainted big panels; see the PR
+  F0: 0.3,          // features wider than ~3.3 px: exactly as built
+  F1: 0.75,         // features narrower than ~1.3 px: their surround's average colour
+};
+
+function fineTexture(fine) {
+  const { w, block, n, entries } = fine;
+  const data = new Float32Array(w * 4);
+  for (let e = 0; e < n; e++) {
+    const en = entries[e]; if (!en) continue;
+    for (let x = e * block; x < (e + 1) * block && x < w; x++) data.set([en[1], en[2], en[3], en[0]], x * 4);
+  }
+  const t = new THREE.DataTexture(data, w, 1, THREE.RGBAFormat, THREE.FloatType);
+  t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
+  return t;
+}
+
+// a lit tile material reads its entry's (mean, size) from the fine texture and fades toward the mean by footprint
+function fineable(material, tex) {
+  if (!material || !tex || material.userData.v2Fine || !material.map) return;
+  material.userData.v2Fine = tex;
+  const prev = material.onBeforeCompile;
+  material.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.uniforms.uFineTex = { value: tex };
+    sh.uniforms.uFine = { value: new THREE.Vector2(FINE.F0, FINE.F1) };
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vFineW;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvFineW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D uFineTex;\nuniform vec2 uFine;\nvarying vec3 vFineW;')
+      .replace('#include <map_fragment>', `#include <map_fragment>
+  {
+    vec4 fineE = texture2D(uFineTex, vec2(vMapUv.x, 0.5));
+    // metres per pixel along this surface: the larger of the two screen directions (a grazing wall is fine across, not along)
+    float mpp = max(length(dFdx(vFineW)), length(dFdy(vFineW)));
+    float k = fineE.a > 0.0 ? smoothstep(uFine.x, uFine.y, mpp / fineE.a) : 0.0;
+    diffuseColor.rgb = mix(diffuseColor.rgb, fineE.rgb, k);
+  }`);
+  };
+  const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
+  material.customProgramCacheKey = () => key() + '|v2-fine';
+  material.needsUpdate = true;
+}
+
 // The fade: every lit material of a tile mixes its final colour toward the haze colour (main.js fog_fragment's hazeC) by uFade.
 // One uniform per tile, shared by the tile's materials; the program is shared by every tile (customProgramCacheKey).
 function fadeable(material, uniform) {
@@ -133,10 +182,16 @@ export class TileStreamer {
         const obj = gltf.scene;
         obj.name = s.def.id;
         const fade = { value: 0 };
+        const fq = new URLSearchParams(location.search).get('fine');      // ?fine=0 off; ?fine=0.15,0.5 other F0,F1 (to compare)
+        const fineOn = FINE.ON && fq !== '0';
+        if (fq && fq.includes(',')) { const [a, b] = fq.split(',').map(Number); if (b > a) { FINE.F0 = a; FINE.F1 = b; } }
         obj.traverse((o) => {
           if (!o.isMesh) return;
           o.castShadow = true; o.receiveShadow = true; o.frustumCulled = true;
-          for (const m of Array.isArray(o.material) ? o.material : [o.material]) fadeable(m, fade);
+          const fine = fineOn && (o.userData.fine || (o.parent && o.parent.userData.fine));
+          const ftex = fine ? (o.parent && o.parent.userData.fineTex) || (o.userData.fineTex ||= fineTexture(fine)) : null;
+          if (ftex && o.parent && o.parent.userData.fine) o.parent.userData.fineTex = ftex;
+          for (const m of Array.isArray(o.material) ? o.material : [o.material]) { fineable(m, ftex); fadeable(m, fade); }
         });
         obj.userData.fade = fade;
         this.prepare(obj, s.def);
@@ -225,6 +280,7 @@ export function disposeObject(root) {
     const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
     for (const m of mats) {
       for (const k in m) { const v = m[k]; if (v && v.isTexture) v.dispose(); }
+      if (m.userData && m.userData.v2Fine && m.userData.v2Fine.isTexture) m.userData.v2Fine.dispose();
       m.dispose();
     }
   });
