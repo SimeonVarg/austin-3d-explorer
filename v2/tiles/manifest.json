@@ -1213,6 +1213,7 @@
    ],
    "lod0": "tiles/t_0_1.glb",
    "lod1": "tiles/t_0_1.far.glb",
+   "lod1_m": 400,
    "buildings": [
     "austin-by-ellsworth-kelly",
     "george-i-sanchez-building",

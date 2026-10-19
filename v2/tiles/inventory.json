@@ -1,6 +1,6 @@
 {
  "about": "Every current best Blender build (BUILDS.json status \"best\") and whether it is in the v2 tiles. Written by scripts/v2/build_tiles.mjs.",
- "built": "2026-10-19T22:18:19.703Z",
+ "built": "2026-10-19T22:38:20.002Z",
  "exporter": "c6e22f15bb68004b",
  "tiler": "4203883771b8af48",
  "totals": {
@@ -5656,7 +5656,7 @@
    }
   },
   "t_0_1": {
-   "hash": "03591c0ca2d25efe",
+   "hash": "e87addfb6b1cd2c6",
    "near": {
     "bytes": 506352,
     "tris": 73870,

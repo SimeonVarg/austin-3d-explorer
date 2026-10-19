@@ -12,6 +12,7 @@
     "triangles": 24000,
     "crease_deg": 35,
     "lod0_drop": "^frame_white$",
+    "lod1_m": 400,
     "reduce": "^(stone_pale|stone_band|coping_dark|pent_panel)$",
     "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 12, "skirt_m": 60, "min_m": 0.15 }
   },
