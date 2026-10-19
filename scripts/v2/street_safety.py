@@ -80,13 +80,13 @@ class Placement:
         return None, 'dropped'
 
     def clean(self, records):
-        out = []; counts = collections.Counter(total=len(records))
+        out = []; self.last_source_indices = []; counts = collections.Counter(total=len(records))
         counts['road_before'] = sum(self.road_clear.intersects(Point(r[:2])) for r in records)
         counts['unsupported_before'] = sum(not self.safe(Point(r[:2])) for r in records)
-        for r in records:
+        for source_index,r in enumerate(records):
             q, why = self.snap(r); counts[why] += 1
             if q is not None:
-                out.append(q)
+                out.append(q); self.last_source_indices.append(source_index)
         counts['road_after'] = sum(self.road_clear.intersects(Point(r[:2])) for r in out)
         counts['unsupported_after'] = sum(not self.safe(Point(r[:2])) for r in out)
         assert counts['road_after'] == counts['unsupported_after'] == 0
@@ -201,6 +201,7 @@ def main():
     near, surf, city, osm = (get(n) for n in ('near','surface','city','osm'))
     placement=Placement(surf); counts={}; out={'about':'Validated City of Austin furniture; scripts/v2/street_safety.py. Not endorsed by the City of Austin.'}; out_osm={'_license':LICENSE}
     out['signs'],counts['signs']=placement.clean(near['signs'])
+    out['sign_sources']=placement.last_source_indices[:]
     out['signals'],counts['signals']=placement.clean(rows(city['signals'],4))
     # Infer an inward mast bearing after moving the base: these inputs do not contain observed arm endpoints.
     # Clamp to a modest span; discard an arm whose outer head would not be above the carriageway.

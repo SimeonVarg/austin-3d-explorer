@@ -39,7 +39,8 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
             return mix(mix(nHash(i), nHash(i + vec2(1, 0)), f.x), mix(nHash(i + vec2(0, 1)), nHash(i + vec2(1, 1)), f.x), f.y); }`)
         .replace('#include <alphatest_fragment>', `#include <alphatest_fragment>
           float nd = length(vViewPosition);
-          ${permanent ? '' : `diffuseColor.a *= 1.0 - smoothstep(${FADE[0].toFixed(1)}, ${FADE[1].toFixed(1)}, nd);`}
+          ${permanent ? '' : `diffuseColor.a *= 1.0 - smoothstep(${FADE[0].toFixed(1)}, ${FADE[1].toFixed(1)}, nd);
+          if (diffuseColor.a < 0.01) discard;`}
           #if ${grain > 0 ? 1 : 0}
             // two octaves of grain, each faded out before its cells get smaller than a pixel (rule 15)
             vec2 gp = vNearW.xz;
@@ -109,10 +110,11 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
 
   async function build() {
     const useSurface = params.get('surface') !== '0';
-    const [d, dOsm, surf, surfOsm, safe, safeOsm] = await Promise.all([fetch(DATA).then((r) => r.json()), fetch(DATA_OSM).then((r) => r.json()).catch(() => null),
+    const [d, dOsm, surf, surfOsm, safe, safeOsm, signFaces] = await Promise.all([fetch(DATA).then((r) => r.json()), fetch(DATA_OSM).then((r) => r.json()).catch(() => null),
       useSurface ? fetch(SURFACE).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null,
       useSurface ? fetch(SURFACE_OSM).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null,
-      loadSafeStreet('safe'), loadSafeStreet('safe_osm')]);
+      loadSafeStreet('safe'), loadSafeStreet('safe_osm'),
+      fetch(new URL('./data/street/sign_faces.json', import.meta.url)).then(r => r.ok ? r.json() : null).catch(() => null)]);
     // Fail closed: raw point inventories aren't safe render positions. OSM-derived arrows remain in the ODbL file.
     d.signs = safe?.signs || []; d.arrows = safeOsm?.arrows || [];
     const H = N.CURB_HEIGHT_M;
@@ -129,7 +131,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       };
       for (const r of surf.asphalt) poly('asphalt', r, N.ASPHALT_Y_M);
       for (const r of surf.walk) poly('walk', r, H);
-      for (const k of ['paving', 'lawn', 'mulch']) for (const r of surf[k] || []) poly(k, r, H - 0.004);
+      for (const k of ['paving', 'lawn', 'mulch']) for (const r of surf[k] || []) poly(k, r, N.FRONT_Y_M);
       d.roads = []; d.fronts = []; d.walks = []; d.curbs = surf.kerbs; d.lanes = surf.lanes.concat((surfOsm && surfOsm.lanes) || []);
     } else if (dOsm && dOsm.lanes) d.lanes = d.lanes.concat(dOsm.lanes);
     // asphalt, kerb to kerb (the two kerbs are measured per side: street_near.py)
@@ -226,29 +228,115 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
     for (const [k, rows] of byKind) inst('arrows ' + k, arrowShape(k), nearMaterial(N.PAINT_WHITE), rows, 0.96);
 
     // signs: a post per location, panels stacked from the top; the face normal looks along the panel's angle
-    const posts = [], panels = new Map();
+    const posts = [], panels = new Map(), inkBuckets = new Map();
+    const atlas = signFaces ? await new Promise(resolve => new THREE.TextureLoader().load(new URL('./data/street/sign_glyphs.png',import.meta.url).href,resolve,undefined,()=>resolve(null))) : null;
+    const faceMap = new Map((atlas ? signFaces.records : []).map((r, i) => [JSON.stringify(r), signFaces.faces[i]]));
+    const glyphs = new Map(Object.entries(signFaces?.glyphs || {}));
+    const inkColor = new THREE.Color();
+    function inkPoly(points, triangles, x, z, a, yy, color, uv = null) {
+      const key=Math.floor(x/SQ)+','+Math.floor(z/SQ);
+      if (!inkBuckets.has(key)) inkBuckets.set(key,{pos:[],col:[],uv:[],idx:[]});
+      const ink=inkBuckets.get(key);
+      const start = ink.pos.length / 3, ca = Math.cos(a), sa = Math.sin(a); inkColor.set(color);
+      points.forEach(([u, v], i) => {
+        // Text right is -z when looking at a face whose normal is +x.
+        ink.pos.push(x + ca * N.SIGN_INK_OFFSET_M + sa * u, yy + v, z + sa * N.SIGN_INK_OFFSET_M - ca * u);
+        ink.col.push(inkColor.r, inkColor.g, inkColor.b); ink.uv.push(...(uv ? uv[i] : [-1,-1]));
+      });
+      ink.idx.push(...triangles.map(i => start + i));
+    }
+    function legend(text, spec, k, x, z, a, yy) {
+      const white = k === 1 || k === 2;
+      // White inset rim on stop/blade signs, red rim on the point-down yield sign.
+      let rim;
+      if (k === 1) rim = Array.from({length: 8}, (_,i) => { const q = (i + .5) * Math.PI / 4; return [Math.cos(q) * spec.w / 2, Math.sin(q) * spec.h / 2]; });
+      else if (k === 3) rim = [[-spec.w / 2, spec.h / 2], [spec.w / 2, spec.h / 2], [0, -spec.h / 2]];
+      else rim = [[-spec.w/2,-spec.h/2],[spec.w/2,-spec.h/2],[spec.w/2,spec.h/2],[-spec.w/2,spec.h/2]];
+      const rimWidth = k === 3 ? N.SIGN_YIELD_BORDER_M : N.SIGN_BORDER_M;
+      const sx = 1 - 2 * rimWidth / spec.w, sy = 1 - 2 * rimWidth / spec.h;
+      const outer = rim.map(([u,v])=>[u*N.SIGN_BORDER_INSET,v*N.SIGN_BORDER_INSET]), inner = outer.map(([u,v])=>[u*sx,v*sy]);
+      const points = outer.concat(inner), tris = [];
+      for (let i=0;i<rim.length;i++) { const j=(i+1)%rim.length, n=rim.length; tris.push(i,j,n+i,j,n+j,n+i); }
+      inkPoly(points,tris,x,z,a,yy,k===3?N.SIGN_RED:white?N.SIGN_WHITE:N.SIGN_INK);
+      const widths = text.map(line => [...line].reduce((v,ch) => v+(glyphs.get(ch)?.advance || .5),0));
+      const scale = Math.min(spec.w * (k===3?N.SIGN_YIELD_TEXT_FILL:N.SIGN_TEXT_FILL) / Math.max(...widths,1), spec.h * (k===3?N.SIGN_YIELD_TEXT_HEIGHT:N.SIGN_TEXT_FILL) / (text.length * N.SIGN_LINE_SPACING));
+      text.forEach((line,i) => {
+        let left = -widths[i]*scale/2;
+        const baseline = (text.length-1)*N.SIGN_LINE_SPACING*scale/2 - i*N.SIGN_LINE_SPACING*scale - scale/2 + (k===3?spec.h*N.SIGN_YIELD_TEXT_RISE:0);
+        for (const ch of line) {
+          const g=glyphs.get(ch); if (!g) continue;
+          if (ch !== ' ') {
+            const [x0,y0,x1,y1]=g.bounds,[u0,v0,u1,v1]=g.uv;
+            inkPoly([[x0,y0],[x1,y0],[x1,y1],[x0,y1]].map(([u,v])=>[left+u*scale,baseline+v*scale]),[0,1,2,0,2,3],x,z,a,yy,white?N.SIGN_WHITE:N.SIGN_INK,[[u0,v1],[u1,v1],[u1,v0],[u0,v0]]);
+          }
+          left+=g.advance*scale;
+        }
+      });
+    }
+    let drawnPanels = 0, omittedPanels = 0;
     for (const s of d.signs) {
-      const [x, z, n] = s; posts.push([x, 0, z, 0]);
-      let y = N.SIGN_TOP_M;
+      const [x, z, n] = s, faces = faceMap.get(JSON.stringify(s));
+      if (!faces?.some(Boolean)) { omittedPanels += n; continue; }
+      const stackHeight = faces.reduce((sum,face,i)=>sum+(face && s[3+i*2]!==2 ? (N.SIGNS[s[3+i*2]] || N.SIGNS[0]).h+N.SIGN_STACK_GAP_M : 0),0);
+      const top = Math.max(N.SIGN_TOP_M,N.SIGN_CLEARANCE_M+stackHeight);
+      const bladeY = Math.max(N.SIGN_BLADE_Y_M,top+N.SIGN_BLADE_GAP_M);
+      const poleHeight = Math.max(N.SIGN_POST_M,faces.some((f,i)=>f && s[3+i*2]===2) ? bladeY+.1 : top+.05);
+      posts.push([x, -0.1, z, 0, 1, poleHeight+0.1, 1]);
+      let y = top;
       for (let i = 0; i < n; i++) {
         const k = s[3 + i * 2], a = s[4 + i * 2], spec = N.SIGNS[k] || N.SIGNS[0];
-        const yy = k === 2 ? N.SIGN_BLADE_Y_M : (y -= spec.h + 0.08) + spec.h / 2;
+        if (!faces[i]) { omittedPanels++; continue; }
+        const yy = k === 2 ? bladeY : (y -= spec.h + N.SIGN_STACK_GAP_M) + spec.h / 2;
         (panels.get(k) || panels.set(k, []).get(k)).push([x + Math.cos(a) * 0.06, yy, z + Math.sin(a) * 0.06, a]);
+        legend(faces[i], spec, k, x, z, a, yy); drawnPanels++;
       }
     }
     const signMat = (c) => nearMaterial(c, { opaqueDepth: true, roughness: 0.6 });
     // a post's foot sits in the sidewalk slab (it starts below the slab's top), and it throws a shadow, so it reads as standing
-    inst('sign posts', new THREE.CylinderGeometry(N.SIGN_POST_R_M, N.SIGN_POST_R_M, N.SIGN_POST_M + 0.2, 8).translate(0, N.SIGN_POST_M / 2 - 0.1, 0), signMat(N.SIGN_POST), posts, null, true);
+    inst('sign posts', new THREE.CylinderGeometry(N.SIGN_POST_R_M, N.SIGN_POST_R_M, 1, 8).translate(0, 0.5, 0), signMat(N.SIGN_POST), posts, null, true);
     for (const [k, rows] of panels) {
       const spec = N.SIGNS[k] || N.SIGNS[0];
       let geo;
       if (spec.shape === 'octagon') geo = new THREE.CylinderGeometry(spec.w / 2, spec.w / 2, 0.02, 8).rotateZ(Math.PI / 2).rotateX(Math.PI / 8);
       else if (spec.shape === 'diamond') geo = new THREE.BoxGeometry(0.02, spec.h / Math.SQRT2, spec.w / Math.SQRT2).rotateX(Math.PI / 4);
-      else if (spec.shape === 'triangle') geo = new THREE.CylinderGeometry(spec.w / 1.7, spec.w / 1.7, 0.02, 3).rotateZ(Math.PI / 2).rotateX(Math.PI / 2);
+      else if (spec.shape === 'triangle') {
+        const shape = new THREE.Shape();shape.moveTo(-spec.w/2,spec.h/2);shape.lineTo(spec.w/2,spec.h/2);shape.lineTo(0,-spec.h/2);shape.closePath();
+        geo = new THREE.ShapeGeometry(shape).rotateY(Math.PI/2);
+      }
       else geo = new THREE.BoxGeometry(0.02, spec.h, spec.w);
       inst('signs ' + k, geo, signMat(spec.color), rows, null, true);
     }
-    Object.assign(stats, { ready: true, draws, triangles: tris, ...(d.counts || {}), sign_posts: d.signs.length, arrows: d.arrows.length });
+    // OSM highway=bus_stop supports a BUS marker; no invented route number or operator name.
+    let busPanels = 0;
+    for (let i=0;atlas && i+5<=(safeOsm?.stops.length || 0);i+=5) {
+      const [x,z,angle]=safeOsm.stops.slice(i,i+5), a=angle+Math.PI/2;
+      inkPoly([[-.225,-.225],[.225,-.225],[.225,.225],[-.225,.225]],[0,1,2,0,2,3],x-Math.cos(a)*.065,z-Math.sin(a)*.065,a,2.6,N.SIGNS[0].color);
+      legend(['BUS'],{w:0.45,h:0.45},0,x-Math.cos(a)*0.06,z-Math.sin(a)*0.06,a,2.6); busPanels++;
+    }
+    if (inkBuckets.size) {
+      const mat = nearMaterial('#ffffff',{opaqueDepth:true}); mat.vertexColors=true; mat.side=THREE.DoubleSide;
+      // The one atlas is linear data. Its signed distance is antialiased at the actual screen-pixel width.
+      atlas.flipY=false;atlas.generateMipmaps=false;atlas.minFilter=THREE.LinearFilter;atlas.magFilter=THREE.LinearFilter;
+      const compile=mat.onBeforeCompile;
+      mat.onBeforeCompile=sh=>{
+        compile(sh);sh.uniforms.uSignAtlas={value:atlas};
+        sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec2 aAtlas; varying vec2 vAtlas;').replace('#include <begin_vertex>','#include <begin_vertex>\nvAtlas=aAtlas;');
+        sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform sampler2D uSignAtlas; varying vec2 vAtlas;').replace('#include <alphatest_fragment>',`#include <alphatest_fragment>
+          if(vAtlas.x >= 0.0) { float d=texture2D(uSignAtlas,vAtlas).r;float w=max(fwidth(d),0.002);diffuseColor.a*=smoothstep(0.5-w,0.5+w,d); }
+          if(diffuseColor.a<0.01)discard;`);
+      };
+      mat.customProgramCacheKey=()=> 'v2-sign-distance-atlas';
+      for (const ink of inkBuckets.values()) {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position',new THREE.Float32BufferAttribute(ink.pos,3));
+        geo.setAttribute('color',new THREE.Uint8BufferAttribute(ink.col.map(v=>Math.round(v*255)),3,true));
+        geo.setAttribute('aAtlas',new THREE.Int16BufferAttribute(ink.uv.map(v=>Math.round(v*32767)),2,true));
+        geo.setIndex(ink.idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
+        geo.setAttribute('normal',new THREE.Int8BufferAttribute(Array.from(geo.attributes.normal.array,v=>Math.round(v*127)),3,true));
+        const mesh = new THREE.Mesh(geo,mat);mesh.name='sign legends';mesh.renderOrder=1;group.add(mesh);draws++;
+      }
+    }
+    Object.assign(stats, { ready: true, draws, triangles: tris, sign_panels: drawnPanels, bus_panels: busPanels, omitted_panels: omittedPanels, ...(d.counts || {}), sign_posts: posts.length, arrows: d.arrows.length });
     redraw();
   }
   build().catch((e) => { stats.error = e.message; console.warn('[v2 near]', e.message); });

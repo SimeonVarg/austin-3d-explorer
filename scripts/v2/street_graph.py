@@ -439,6 +439,12 @@ def main():
                'bars': R5(bars), 'pads': R5(pads)}
     finalize_quantized(out, mark_out)
     bars = [mark_out['bars'][i:i + 5] for i in range(0, len(mark_out['bars']), 5)]
+    # Network-wide final cleanup also runs when regenerating from source caches.
+    from street_finish import finish
+    osm_path = os.path.join(DATA, 'surface_osm.json')
+    osm_final = json.load(open(osm_path))
+    finish(out, osm_final, near, mark_out)
+    json.dump(osm_final, open(osm_path, 'w'), separators=(',', ':'))
     json.dump(out, open(os.path.join(DATA, 'surface.json'), 'w'), separators=(',', ':'))
     json.dump(mark_out, open(os.path.join(DATA, 'marks.json'), 'w'), separators=(',', ':'))
     for n in ('surface.json', 'surface_osm.json', 'marks.json'):

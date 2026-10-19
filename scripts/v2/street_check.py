@@ -17,6 +17,7 @@ from shapely.geometry import Point, Polygon, LineString
 from shapely.ops import unary_union
 from shapely import STRtree, prepare
 from street_graph import pairs, loc
+from street_finish import inspect
 
 ROOT=Path(__file__).resolve().parents[2]
 
@@ -148,6 +149,22 @@ def audit(folder):
                               'flags':[{'centre_m':[round(h.centroid.x,2),round(h.centroid.y,2)],'area_m2':round(h.area,2),
                                         'raised_frontage_m2':round(area,2)} for h,area in zip(holes,areas)]}
     stage('islands')
+    result['round2'] = inspect(surface, load('surface_osm'), near, marks)
+    tree_dir = folder.parent/'trees'
+    result['trees'] = {}
+    for source in ('city','osm'):
+        path=tree_dir/(('safe_'+source+'.json') if (tree_dir/('safe_'+source+'.json')).exists() else (source+'.json'))
+        if not path.exists():continue
+        trees=json.loads(path.read_text());rows=chunks(trees['trees'],6)
+        result['trees'][source]={'total':len(rows),'trunk_centres_on_road':sum(road.covers(Point(r[:2])) for r in rows),
+            'trunk_footprints_on_road':sum(road.intersects(Point(r[:2]).buffer(.12+r[2]*.025+.08)) for r in rows)}
+        if 'safety' in trees:
+            ev=trees['safety'];result['trees'][source]['stale']=int(hashlib.sha256((folder/'surface.json').read_bytes()).hexdigest()!=ev['surface_sha256'])
+    if (folder/'sign_faces.json').exists():
+        signs=load('sign_faces');result['sign_faces']=signs['counts']
+        result['sign_faces']['stale']=sum(hashlib.sha256((folder/(n+'.json')).read_bytes()).hexdigest()!=h for n,h in signs['inputs'].items())
+        result['sign_faces']['missing_glyphs']=sum(ch not in signs['glyphs'] for row in signs['faces'] for face in row if face for line in face for ch in line)
+    stage('round2')
     return result
 
 def main():
@@ -165,6 +182,11 @@ def main():
     if d['warning_pads']['on_road'] or d['warning_pads']['unsupported']:errors.append('unsafe warning pads')
     if d['enclosed_spaces']['raised_frontage_m2']>1:errors.append('invented islands')
     if d['road_surface']['uncovered_street_centrelines']:errors.append('road coverage')
+    r2=d['round2']
+    if any(r2[k]['detached_components'] for k in ('paving','lawn','mulch')) or r2['walk_fragments']:errors.append('detached raised fragments')
+    if any(v['nonparallel'] or v['duplicate_white'] for v in r2['lanes'].values()):errors.append('unsafe lane lines')
+    if any(v['trunk_footprints_on_road'] or v.get('stale',0) for v in d['trees'].values()):errors.append('unsafe/stale trees')
+    if not d.get('sign_faces') or any(d['sign_faces'].get(k,0) for k in ('blank_faces_after','stale','missing_glyphs')):errors.append('sign legends')
     if errors:raise SystemExit('FAIL: '+', '.join(errors))
     print('PASS: all street geometry checks')
 if __name__=='__main__':main()

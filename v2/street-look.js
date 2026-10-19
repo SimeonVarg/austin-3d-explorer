@@ -56,6 +56,13 @@ export const STREET_LOOK = {
   SIGNAL_POLE_M: 6.4,
   FOOTING: '#8a877f',
   SIGNAL_ARM_Y_M: 6.0,
+  SIGNAL_HEAD_H_M: 1.1,
+  SIGNAL_HEAD_W_M: 0.36,
+  SIGNAL_HEAD_D_M: 0.26,
+  SIGNAL_HANGER_M: 0.10,
+  SIGNAL_LENS_R_M: 0.1524,       // 12-inch indication, FHWA MUTCD 4D.07
+  SIGNAL_LENS_STEP_M: 0.35,
+  SIGNAL_LENS_COLORS: ['#501b15', '#54421a', '#173e2b'], // unlit lenses; phase is unknown
   SIGNAL_HEADS_AT: [0.55, 0.92],   // along the mast arm
   // ── lamps ──
   LAMP_METAL: '#3e4143',
@@ -112,10 +119,26 @@ export const NEAR_LOOK = {
   SIGN_POST: '#8b8d8f',
   SIGN_POST_M: 3.1,
   SIGN_POST_R_M: 0.045,         // 0.03 read as a hairline from 8 m up
+  FRONT_Y_M: 0.004,           // aerial-classified ground is ground; only surveyed sidewalks have a 15 cm step
   FRONT_PAVING: '#837f76',      // the right-of-way past the sidewalk: plaza and frontage paving, ...
   FRONT_LAWN: '#4b5733',        // ... lawn and planting strips, ...
   FRONT_MULCH: '#4d4034',       // ... mulch and bare soil (classes read off the aerial per 3 m: street_near.py)
   LAWN_GRAIN: 0.12,
+  SIGN_INK_OFFSET_M: 0.075,
+  SIGN_BORDER_INSET: 0.94,
+  SIGN_YIELD_TEXT_HEIGHT: 0.35,
+  SIGN_BLADE_GAP_M: 0.18,
+  SIGN_BORDER_M: 0.012,
+  SIGN_YIELD_BORDER_M: 0.06,
+  SIGN_TEXT_FILL: 0.77,
+  SIGN_LINE_SPACING: 1.2,
+  SIGN_INK: '#17191b',
+  SIGN_WHITE: '#d5d4cf',
+  SIGN_RED: '#8e1d1b',
+  SIGN_YIELD_TEXT_FILL: 0.48,
+  SIGN_YIELD_TEXT_RISE: 0.18,
+  SIGN_CLEARANCE_M: 2.1,
+  SIGN_STACK_GAP_M: 0.08,
   SIGN_TOP_M: 2.75,             // the top panel's top edge
   SIGN_BLADE_Y_M: 3.05,         // street-name blades sit on top of the post
   SIGNS: {                      // by kind (street_near.py): w x h metres, colour, shape

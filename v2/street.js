@@ -109,7 +109,19 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
     for (const [x, z, a, L] of arms) for (const f of S.SIGNAL_HEADS_AT) {
       heads.push([x + Math.cos(a) * L * f, z + Math.sin(a) * L * f, a, 1, 1, 1]); headBase.push([x, z]);
     }
-    instanced('signal heads', box(0.3, 1.05, 0.3, 0, S.SIGNAL_ARM_Y_M - 0.62, 0), uprightMaterial(S.SIGNAL_HEAD, 0.5, 0.1), heads, headBase, { shadow: true });
+    const headY = S.SIGNAL_ARM_Y_M - S.SIGNAL_HANGER_M - S.SIGNAL_HEAD_H_M / 2;
+    instanced('signal heads', box(S.SIGNAL_HEAD_W_M, S.SIGNAL_HEAD_H_M, S.SIGNAL_HEAD_D_M, 0, headY, 0), uprightMaterial(S.SIGNAL_HEAD, 0.5, 0.1), heads, headBase, { shadow: true });
+    instanced('signal hangers', box(0.07, S.SIGNAL_HANGER_M, 0.07, 0, S.SIGNAL_ARM_Y_M - S.SIGNAL_HANGER_M/2, 0), uprightMaterial(S.SIGNAL_METAL), heads, headBase);
+    // Three unlit 12-inch lenses, all in one instanced vertex-colour draw. No invented signal phase.
+    const lensPos=[], lensCol=[], lensIndex=[], color=new THREE.Color();
+    S.SIGNAL_LENS_COLORS.forEach((c,j)=>{
+      color.set(c);const y=headY+(1-j)*S.SIGNAL_LENS_STEP_M, z=S.SIGNAL_HEAD_D_M/2+.003;
+      const start=lensPos.length/3;lensPos.push(0,y,z);lensCol.push(color.r,color.g,color.b);
+      for(let i=0;i<=16;i++) { const a=i*Math.PI/8;lensPos.push(Math.cos(a)*S.SIGNAL_LENS_R_M,y+Math.sin(a)*S.SIGNAL_LENS_R_M,z);lensCol.push(color.r,color.g,color.b);if(i)lensIndex.push(start,start+i,start+i+1); }
+    });
+    const lensGeo=new THREE.BufferGeometry();lensGeo.setAttribute('position',new THREE.Float32BufferAttribute(lensPos,3));lensGeo.setAttribute('color',new THREE.Float32BufferAttribute(lensCol,3));lensGeo.setIndex(lensIndex);lensGeo.computeVertexNormals();
+    const lensMat=uprightMaterial('#ffffff',.3,0);lensMat.vertexColors=true;
+    instanced('signal lenses',lensGeo,lensMat,heads,headBase);
     instanced('pedestrian heads', box(0.36, 0.36, 0.3, 0.2, 2.9, 0), uprightMaterial(S.SIGNAL_HEAD, 0.5, 0.1), poleRows);
 
     // (protected bike lanes: no posts. The City's bike-facility lines follow the street's centreline, not the lane, so posts drawn
@@ -142,7 +154,7 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
       instanced('bench seats', box(0.45, 0.06, 1.8, 0, 0.45, 0), uprightMaterial(S.BENCH, 0.7, 0.1), seats);
       instanced('bench backs', box(0.05, 0.4, 1.8, -0.22, 0.75, 0), uprightMaterial(S.BENCH, 0.7, 0.1), seats);
       instanced('stop poles', cyl(0.04, 0.04, 2.9), uprightMaterial(S.SIGNAL_METAL), st.map(([x, z, a]) => [x, z, a, 1, 1, 1]));
-      instanced('stop flags', box(0.03, 0.45, 0.45, 0, 2.6, 0), uprightMaterial(S.STOP_FLAG, 0.5, 0.1), st.map(([x, z, a]) => [x, z, a + Math.PI / 2, 1, 1, 1]));
+      // The near batch draws the supported BUS face with its legend; a missing atlas leaves no blank flag.
     }
     Object.assign(stats, { ready: true, ...(city.counts || {}), signal_poles: sig.length, lamps: osm && osm.lamps ? osm.lamps.length / 3 : 0, draws: group.children.length });
     redraw();
