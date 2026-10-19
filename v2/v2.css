@@ -85,13 +85,16 @@ body.moving #hud { opacity: .35; }
 
 /* names over the city */
 #labels { position: absolute; inset: 0; pointer-events: none; }
-.v2-label { position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer; border: 0; background: none; padding: 2px 4px;
+/* a name fades in and out (labels.js LABELS.FADE_MS: keep the two durations equal); it is clickable only while shown */
+.v2-label { position: absolute; left: 0; top: 0; pointer-events: none; cursor: pointer; border: 0; background: none; padding: 2px 4px; opacity: 0;
   font: 650 var(--label-size)/1.15 var(--font); color: var(--label-ink); text-align: center; max-width: 170px; white-space: normal;
   text-shadow: 0 0 2px var(--label-halo), 0 0 2px var(--label-halo), 0 0 3px var(--label-halo), 0 0 5px var(--label-halo);
-  transition: opacity .25s; will-change: transform; }
+  transition: opacity .22s ease-out; will-change: transform; }
+.v2-label.on { opacity: 1; pointer-events: auto; }
 .v2-label small { display: block; font-size: var(--label-sub); font-weight: 600; opacity: .8; }
 .v2-label[data-kind="home"] { color: var(--label-home); }
-.v2-label.far { font-size: 11px; opacity: .85; }
+.v2-label.far { font-size: 11px; }
+.v2-label.on.far { opacity: .85; }
 .v2-label[hidden] { display: none; }
 body.moving .v2-label { pointer-events: none; }
 

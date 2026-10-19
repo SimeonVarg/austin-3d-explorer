@@ -2,6 +2,10 @@
 //   - every Blender model by its name (v2/tiles/manifest.json), every apartment the finder knows (data/finder/homes.json), every
 //     UT building the walking graph knows by its code;
 //   - placed over the roof, nearest first, never two on top of each other, at most LABELS.MAX on screen;
+//   - a name moves WITH its building: every name on screen is projected again on every frame the camera moves (cheap: a few
+//     dozen points). Only the choice of WHICH names show (the declutter) runs at most every LAYOUT_MS; a name that leaves that
+//     choice, or comes into it, fades (FADE_MS) instead of popping. (Owner, 2026-10-18: "the names for buildings update every
+//     like 200 miliseconds fix that".)
 //   - a click on a building (or its name) opens a small card: what it is, how tall, and for an apartment its walks to class
 //     (the finder) or, for a UT building, a walk to it.
 // Every look is a token here or in v2.css (.v2-label, #card).
@@ -15,7 +19,9 @@ export const LABELS = {
   LANDMARK_TOP_M: 60,
   PAD_PX: 6,                           // free space kept round each name
   CHAR_PX: 7.2, LINE_PX: 16,           // size estimate of a name, before it is measured
-  UPDATE_MS: 120,                      // at most this often while the camera moves
+  LAYOUT_MS: 120,                      // which names show is decided again at most this often while the camera moves
+  FADE_MS: 220,                        // a name fades in or out over this (v2.css .v2-label transition: keep them equal)
+  EDGE_PX: 2,                          // a shown name whose point leaves the screen by more than this is hidden at once (no fade)
   PICK_RADIUS_M: 45,                   // a click picks the nearest named building within this of the point hit
   CAMPUS_LABEL_Y_M: 18,                // a UT building has no height in the graph: its name sits this high
   HOME_LABEL_Y_M: 24,
@@ -41,15 +47,40 @@ export class Labels {
     this.dirty = true;
   }
   update(now, force = false) {
-    // called every frame: works only when the camera or the list changed, and at most every UPDATE_MS
-    const key = this.camera.matrixWorld.elements.join(',') + this.canvas.clientWidth + 'x' + this.canvas.clientHeight;
-    if (!force && !this.dirty && key === this.key) return;
-    if (!force && now - this.last < LABELS.UPDATE_MS) return;
-    this.last = now; this.dirty = false; this.key = key;
-    const W = this.canvas.clientWidth, H = this.canvas.clientHeight, cam = this.camera.position;
+    // called every frame, before the frame is drawn. The camera's matrices are brought up to date first: the frame loop moves
+    // the camera after the last draw, and projecting with last frame's matrix is exactly a name lagging one frame behind.
+    const cam = this.camera;
+    cam.updateMatrixWorld();
+    const W = this.canvas.clientWidth, H = this.canvas.clientHeight;
+    const key = cam.matrixWorld.elements.join(',') + cam.projectionMatrix.elements[0] + W + 'x' + H;
+    const moved = key !== this.key;
+    this.key = key;
+    if (force || this.dirty || (moved && now - this.last >= LABELS.LAYOUT_MS) || (this.pendingLayout && now - this.last >= LABELS.LAYOUT_MS)) {
+      this.layout(now, W, H);
+      this.pendingLayout = false;
+    } else if (moved) this.pendingLayout = true;     // the last move before a stop gets its layout too
+    if (moved || this.placedNow) this.place(W, H);
+    this.placedNow = false;
+    this.reap(now);
+  }
+
+  // project one item; null when it is behind the camera
+  screenOf(it, W, H) {
+    const cam = this.camera.position;
+    this.v.set(it.x - cam.x, it.y - cam.y, it.z - cam.z);
+    if (this.v.dot(this.fwd) <= 0) return null;
+    this.v.set(it.x, it.y, it.z).project(this.camera);
+    if (this.v.z > 1 || this.v.z < -1) return null;
+    return { x: (this.v.x + 1) / 2 * W, y: (1 - this.v.y) / 2 * H, ndcX: this.v.x, ndcY: this.v.y };
+  }
+
+  // which names show: nearest and tallest first, decluttered (the expensive half; throttled)
+  layout(now, W, H) {
+    this.last = now; this.dirty = false;
+    const cam = this.camera.position;
     const low = cam.y < LABELS.LOW_CAMERA_M;
     const lowFar = Math.max(LABELS.LOW_FAR_MIN_M, cam.y * LABELS.LOW_FAR_PER_M);
-    const fwd = this.camera.getWorldDirection(this.fwd || (this.fwd = new THREE.Vector3()));
+    this.fwd = this.camera.getWorldDirection(this.fwd || (this.fwd = new THREE.Vector3()));
     const cand = [];
     for (const it of this.items) {
       const d = Math.hypot(it.x - cam.x, it.y - cam.y, it.z - cam.z);
@@ -60,16 +91,18 @@ export class Labels {
       if (low && it.y < cam.y + LABELS.LOW_ABOVE_EYE_M) continue;
       // behind the camera? (with v2's reversed depth buffer a point behind the eye can project to a z inside [-1, 1] and show
       // mirrored on the screen: seen at street level on Guadalupe, 2026-10-18, with names of buildings 600 m behind)
-      this.v.set(it.x - cam.x, it.y - cam.y, it.z - cam.z);
-      if (this.v.dot(fwd) <= 0) continue;
-      this.v.set(it.x, it.y, it.z).project(this.camera);
-      if (this.v.z > 1 || this.v.z < -1 || Math.abs(this.v.x) > 1.05 || Math.abs(this.v.y) > 1.05) continue;
+      const p = this.screenOf(it, W, H);
+      if (!p || Math.abs(p.ndcX) > 1.05 || Math.abs(p.ndcY) > 1.05) continue;
       // nearer first; tall ones a little earlier; a selected one first of all
-      cand.push({ it, d, x: (this.v.x + 1) / 2 * W, y: (1 - this.v.y) / 2 * H, score: d / (1 + (it.top || 0) / 80) - (it === this.selected ? 1e9 : 0) });
+      cand.push({ it, d, x: p.x, y: p.y, score: d / (1 + (it.top || 0) / 80) - (it === this.selected ? 1e9 : 0) });
     }
     cand.sort((a, b) => a.score - b.score);
     const placed = [], P = LABELS.PAD_PX;
     const max = low ? (this.phone ? LABELS.LOW_MAX_PHONE : LABELS.LOW_MAX) : (this.phone ? LABELS.MAX_PHONE : LABELS.MAX);
+    // a name already showing keeps its place against a newcomer of nearly the same rank (no flicker between two names)
+    const showing = new Set(this.live ? [...this.live.keys()] : []);
+    cand.forEach((c) => { if (showing.has(c.it)) c.score -= Math.abs(c.score) * 0.15 + 1; });
+    cand.sort((a, b) => a.score - b.score);
     for (const c of cand) {
       if (placed.length >= max) break;
       const w = (c.it.w || c.it.name.length * LABELS.CHAR_PX) + P * 2, h = (c.it.h || LABELS.LINE_PX) + P * 2;
@@ -78,24 +111,64 @@ export class Labels {
       if (placed.some((q) => r[0] < q.r[2] && r[2] > q.r[0] && r[1] < q.r[3] && r[3] > q.r[1])) continue;
       placed.push({ ...c, r });
     }
-    while (this.pool.length < placed.length) {
-      const el = document.createElement('button'); el.type = 'button'; el.className = 'v2-label'; el.tabIndex = -1;
-      el.addEventListener('click', (e) => { e.stopPropagation(); if (el._it) this.open(el._it); });
-      this.layer.append(el); this.pool.push(el);
-    }
-    this.pool.forEach((el, i) => {
-      const p = placed[i];
-      if (!p) { el.hidden = true; el._it = null; return; }
-      el.hidden = false;
-      if (el._it !== p.it) {
+    // the live set: item -> element. New ones get an element and fade in; ones that left fade out (reap() returns them).
+    this.live ||= new Map();
+    const want = new Set(placed.map((p) => p.it));
+    for (const [it, el] of this.live) if (!want.has(it) && el._on) { el._on = false; el._offAt = now; el.classList.remove('on'); }
+    for (const p of placed) {
+      let el = this.live.get(p.it);
+      if (!el) {
+        el = this.pool.pop() || this.makeEl();
         el._it = p.it; el.textContent = p.it.name; el.dataset.kind = p.it.home ? 'home' : p.it.kind;
         if (p.it.sub) { const s = document.createElement('small'); s.textContent = p.it.sub; el.append(s); }
-        const b = el.getBoundingClientRect(); p.it.w = b.width; p.it.h = b.height;
+        el.hidden = false; el.classList.remove('on');
+        if (!p.it.w) { const b = el.getBoundingClientRect(); p.it.w = b.width; p.it.h = b.height; }
+        this.live.set(p.it, el);
+        el._fresh = true;
       }
-      el.classList.toggle('far', p.d > LABELS.FAR_M * 0.6);
-      el.style.transform = `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px) translate(-50%,-100%)`;
-    });
+      el._d = p.d;
+      if (!el._on) { el._on = true; el._offAt = 0; }
+    }
     this.shown = placed.length;
+    this.placedNow = true;
+  }
+
+  makeEl() {
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'v2-label'; el.tabIndex = -1;
+    el.addEventListener('click', (e) => { e.stopPropagation(); if (el._it) this.open(el._it); });
+    this.layer.append(el);
+    return el;
+  }
+
+  // every frame the camera moved: each live name to its building's point on screen (the cheap half)
+  place(W, H) {
+    if (!this.live) return;
+    this.fwd = this.camera.getWorldDirection(this.fwd || (this.fwd = new THREE.Vector3()));
+    const E = LABELS.EDGE_PX;
+    for (const [it, el] of this.live) {
+      const p = this.screenOf(it, W, H);
+      const off = !p || p.x < -E || p.x > W + E || p.y < -E || p.y > H + E;
+      if (off) { el.style.visibility = 'hidden'; continue; }
+      el.style.visibility = '';
+      el.style.transform = `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px) translate(-50%,-100%)`;
+      el.classList.toggle('far', (el._d || 0) > LABELS.FAR_M * 0.6);
+      if (el._fresh) {
+        // first placement: the element starts transparent where it belongs, then fades in on the next style pass
+        el._fresh = false; void el.offsetWidth;
+      }
+      if (el._on) el.classList.add('on');
+    }
+  }
+
+  // names that faded out go back to the pool
+  reap(now) {
+    if (!this.live) return;
+    for (const [it, el] of this.live) {
+      if (el._on || !el._offAt || now - el._offAt < LABELS.FADE_MS + 40) continue;
+      this.live.delete(it);
+      el.hidden = true; el._it = null; el._offAt = 0; el.textContent = ''; el.style.visibility = '';
+      this.pool.push(el);
+    }
   }
   // a click on the canvas: the named building nearest the point the ray hits
   pick(clientX, clientY) {
