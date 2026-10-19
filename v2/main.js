@@ -294,33 +294,42 @@ function casterSignature(root) {
 // Casters whose shadow cannot reach anything on screen are left out of the shadow map (QUALITY.SHADOW_VIEW_CULL). A shadow on a
 // visible point P comes from a caster point Q up the sun from P (P = Q - t * sunDir, P above the ground), so a caster whose
 // bounding sphere, swept down the sun to the ground and widened by a margin for the shadow filter, misses the camera's view
-// cannot shade any visible pixel. The test is conservative; the set it keeps is part of the signature, so a turn that brings a
-// left-out caster's shadow into view redraws the map.
+// cannot shade any visible pixel. The test is conservative. It is one-sided, so turning the camera does not redraw the map on
+// every frame: the map is redrawn when a caster the view NEEDS is not in it (or the box moved, or a caster changed); a caster in
+// the map that the view no longer needs stays until the next redraw (it only shades what is off screen).
 const SHADOW_VIEW_CULL = SHADOW_CACHE && (params.get('shadowcull') ? params.get('shadowcull') !== '0' : QUALITY.SHADOW_VIEW_CULL);
 const viewFrustum = new THREE.Frustum(), viewPM = new THREE.Matrix4(), sweepBox = new THREE.Box3(), sweepS = new THREE.Sphere(), sweepEnd = new THREE.Vector3();
-const culledCasters = [];
-function cullCasters(root, cam) {
+let inMap = new Set();            // the casters drawn into the map now
+const needed = [], notNeeded = [];
+// fills `needed` / `notNeeded` with the visible casters; true when a needed one is not in the map
+function sortCasters(root, cam) {
   viewPM.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
   viewFrustum.setFromProjectionMatrix(viewPM, cam.coordinateSystem, cam.reversedDepth);
   const margin = (2 * shadowExtent / SHADOW_SIZE) * LOOK.SHADOW_VIEW_CULL_MARGIN_TEXELS;
+  let missing = false;
   const visit = (o) => {
     if (!o.visible) return;
-    if (o.castShadow && o.geometry && o.frustumCulled) {
-      const g = o.geometry;
-      if (o.isInstancedMesh) { if (!o.boundingSphere) o.computeBoundingSphere(); sweepS.copy(o.boundingSphere); }   // every instance
-      else { if (!g.boundingSphere) g.computeBoundingSphere(); sweepS.copy(g.boundingSphere); }
-      sweepS.applyMatrix4(o.matrixWorld);
-      const r = sweepS.radius + margin, c = sweepS.center;
-      const k = Math.max(0, c.y + r) / sunDir.y;              // down the sun until below the ground
-      sweepEnd.copy(c).addScaledVector(sunDir, -k);
-      sweepBox.min.set(Math.min(c.x, sweepEnd.x) - r, Math.min(c.y, sweepEnd.y) - r, Math.min(c.z, sweepEnd.z) - r);
-      sweepBox.max.set(Math.max(c.x, sweepEnd.x) + r, Math.max(c.y, sweepEnd.y) + r, Math.max(c.z, sweepEnd.z) + r);
-      if (!viewFrustum.intersectsBox(sweepBox)) { o.castShadow = false; culledCasters.push(o); }
+    if (o.castShadow && o.geometry) {
+      let need = true;
+      if (o.frustumCulled) {
+        const g = o.geometry;
+        if (o.isInstancedMesh) { if (!o.boundingSphere) o.computeBoundingSphere(); sweepS.copy(o.boundingSphere); }   // every instance
+        else { if (!g.boundingSphere) g.computeBoundingSphere(); sweepS.copy(g.boundingSphere); }
+        sweepS.applyMatrix4(o.matrixWorld);
+        const r = sweepS.radius + margin, c = sweepS.center;
+        const k = Math.max(0, c.y + r) / sunDir.y;              // down the sun until below the ground
+        sweepEnd.copy(c).addScaledVector(sunDir, -k);
+        sweepBox.min.set(Math.min(c.x, sweepEnd.x) - r, Math.min(c.y, sweepEnd.y) - r, Math.min(c.z, sweepEnd.z) - r);
+        sweepBox.max.set(Math.max(c.x, sweepEnd.x) + r, Math.max(c.y, sweepEnd.y) + r, Math.max(c.z, sweepEnd.z) + r);
+        need = viewFrustum.intersectsBox(sweepBox);
+      }
+      if (need) { needed.push(o); if (!inMap.has(o)) missing = true; } else notNeeded.push(o);
     }
     const ch = o.children;
     for (let i = 0; i < ch.length; i++) visit(ch[i]);
   };
   visit(root);
+  return missing;
 }
 if (SHADOW_CACHE) {
   const drawShadows = renderer.shadowMap.render;
@@ -328,13 +337,20 @@ if (SHADOW_CACHE) {
   renderer.shadowMap.render = function (lights, s, cam) {
     if (s !== scene) return drawShadows.call(this, lights, s, cam);
     const t = performance.now();
-    if (SHADOW_VIEW_CULL) cullCasters(scene, cam);
     const sig = casterSignature(scene);
-    shadowStats.sigMs += performance.now() - t; shadowStats.frames++;
     if (sig !== lastSig) { lastSig = sig; sun.shadow.needsUpdate = true; }
-    if (sun.shadow.needsUpdate) shadowStats.redraws++;
+    if (SHADOW_VIEW_CULL && sortCasters(scene, cam)) sun.shadow.needsUpdate = true;
+    shadowStats.sigMs += performance.now() - t; shadowStats.frames++;
+    const redraw = sun.shadow.needsUpdate || sun.shadow.autoUpdate;
+    if (redraw) shadowStats.redraws++;
+    if (!redraw || !SHADOW_VIEW_CULL) { needed.length = 0; notNeeded.length = 0; return drawShadows.call(this, lights, s, cam); }
+    for (const o of notNeeded) o.castShadow = false;
     try { return drawShadows.call(this, lights, s, cam); }
-    finally { shadowStats.culled = culledCasters.length; for (const o of culledCasters) o.castShadow = true; culledCasters.length = 0; }
+    finally {
+      for (const o of notNeeded) o.castShadow = true;
+      inMap = new Set(needed); shadowStats.culled = notNeeded.length; shadowStats.kept = needed.length;
+      needed.length = 0; notNeeded.length = 0;
+    }
   };
 }
 if (LOOK.HEMI_INTENSITY > 0) scene.add(new THREE.HemisphereLight(LOOK.HEMI_SKY, LOOK.HEMI_GROUND, LOOK.HEMI_INTENSITY));
@@ -343,11 +359,14 @@ const SUN_DISTANCE_M = 1500;   // the shadow camera stands this far up the sun f
 const lightF = sunDir.clone().negate(), lightR = new THREE.Vector3().crossVectors(lightF, new THREE.Vector3(0, 1, 0)).normalize();
 const lightU = new THREE.Vector3().crossVectors(lightR, lightF).normalize();
 let shadowKey = '';
-function followShadow() {
+// in motion the box may move in bigger steps (LOOK.SHADOW_STEP_TEXELS_MOVING, ?shadowmove=N texels): fewer redraws of the map while
+// the camera travels; the moment it stops the box is placed on the still step again, so a still is the same picture
+const SHADOW_MOVE_MULT = Math.max(1, Math.round((+params.get('shadowmove') || LOOK.SHADOW_STEP_TEXELS_MOVING) / LOOK.SHADOW_STEP_TEXELS));
+function followShadow(moving = false) {
   fitShadow();
   // Move the shadow box in whole steps measured in the light's own axes, so every shadow texel stays where it was.
-  const t = controls.focus;
-  const a = Math.round(t.dot(lightR) / shadowStep) * shadowStep, b = Math.round(t.dot(lightU) / shadowStep) * shadowStep;
+  const t = controls.focus, step = moving ? shadowStep * SHADOW_MOVE_MULT : shadowStep;
+  const a = Math.round(t.dot(lightR) / step) * step, b = Math.round(t.dot(lightU) / step) * step;
   const key = a + ',' + b;
   if (key === shadowKey) return;
   shadowKey = key;
@@ -732,7 +751,7 @@ async function update(fly) {
 const setupDone = setupUI();
 
 // ── frame loop (renders only when something moved) ────────────────────
-let dirty = true, frames = 0;
+let dirty = true, frames = 0, wasMoving = false;
 const frameLog = { on: false, dts: [], cpu: [], scales: [], last: 0 };
 function resize() {
   const w = innerWidth, h = innerHeight;
@@ -796,6 +815,8 @@ function frame(now) {
   const moved = turned || flying || easing;
   const moving = moved || (frameLog.on && frameLog.orbit);   // the verify scripts' timed orbit is camera motion too
   adaptFrame(now, moving);
+  if (!moving && wasMoving && SHADOW_MOVE_MULT > 1) dirty = true;   // the camera stopped: draw the still with the still's shadow box
+  wasMoving = moving;
   if (moved) { markers.update(); if (!easing) map.fire('move'); }
   if (frameLog.on && frameLog.orbit) { orbitStep(); }
   if (tiles) tiles.update(now);
@@ -803,7 +824,7 @@ function frame(now) {
   labels.update(now);
   if (!(moved || dirty || frameLog.on)) return;
   dirty = false;
-  followShadow();
+  followShadow(moving);
   dome.position.copy(camera.position);
   const t0 = performance.now();
   renderer.render(scene, camera);

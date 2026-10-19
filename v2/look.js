@@ -50,6 +50,7 @@ export const LOOK = {
   SHADOW_EXTENT_STEP: Math.SQRT2,
   SHADOW_EXTENT_HYSTERESIS: 0.2,
   SHADOW_STEP_TEXELS: 32,       // the shadow box moves in whole steps of this many shadow texels: it never slides, so it never shimmers
+  SHADOW_STEP_TEXELS_MOVING: 32, // the same in motion (a multiple of SHADOW_STEP_TEXELS; bigger = fewer shadow redraws while moving)
   SHADOW_BIAS_M: 0.08,          // depth bias in metres along the sun (converted to the shadow camera's depth range)
   SHADOW_NORMAL_BIAS_TEXELS: 1.2,   // normal offset in shadow texels (so it shrinks with the texel: no light leaking under thin parts)
   SHADOW_RADIUS: 1.25,          // PCF softness, in texels
