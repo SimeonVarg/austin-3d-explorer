@@ -91,12 +91,12 @@ vec4 fineEntry(float i) {
 }`)
       .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
   vFineW = (modelMatrix * vec4(transformed, 1.0)).xyz;
-  float patch = floor(_fine.z + 0.5) + 256.0 * floor(_fine.w + 0.5);
-  vec4 meanEntry = fineEntry(patch * 2.0);
-  vec4 normalEntry = fineEntry(patch * 2.0 + 1.0);
+  float finePatch = floor(_fine.z + 0.5) + 256.0 * floor(_fine.w + 0.5);
+  vec4 meanEntry = fineEntry(finePatch * 2.0);
+  vec4 normalEntry = fineEntry(finePatch * 2.0 + 1.0);
   vFineMean = meanEntry.rgb;
   vFineNormal = mat3(viewMatrix) * normalEntry.xyz;
-  vFineValid = patch < uFineCount && uFineDecode.x > 0.0 && uFineDecode.y > 0.0
+  vFineValid = finePatch < uFineCount && uFineDecode.x > 0.0 && uFineDecode.y > 0.0
     && meanEntry.a > 0.5 && normalEntry.a > 0.5 && dot(normalEntry.xyz, normalEntry.xyz) > 0.5 ? 1.0 : 0.0;
   vFineSize = _fine.y < 0.5 ? 1.0e10 : uFineDecode.x * exp2((_fine.y - 1.0) / uFineDecode.y);`);
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
