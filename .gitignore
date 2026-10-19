@@ -77,3 +77,4 @@ privacy-circles.json
 # v2 tile builder dependencies (pinned in scripts/v2/package.json)
 scripts/v2/node_modules/
 v2/tiles/*.tmp-*
+/v2-ref-*/
