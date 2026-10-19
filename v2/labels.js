@@ -43,7 +43,7 @@ export const LABELS = {
   // GPU: a march along the ray (about STEPS samples, each STEP_MIN_M to STEP_MAX_M apart), only where the ray is lower than the
   // tallest top in that 32 m square, and only in the throttled layout. The name's own building (its map outlines, or any outline
   // within OWN_M of its point) never hides it; an outline must stand MARGIN_M above the ray.
-  OCCLUDE: { ON: true, STEPS: 200, STEP_MIN_M: 3, STEP_MAX_M: 8, OWN_M: 30, MARGIN_M: 1, MODEL_TOP_M: 255 },
+  OCCLUDE: { ON: true, STEPS: 120, STEP_MIN_M: 3, STEP_MAX_M: 12, OWN_M: 30, MARGIN_M: 1, MODEL_TOP_M: 255, REUSE: 0.02, BUDGET_MS: 3 },
   // A number pin of the finder (maplite.js MarkerLayer) on a name: the name moves up above the pin if there is room, else it hides
   // until the pin moves off it.
   OBSTACLE_GAP_PX: 2,
@@ -154,7 +154,8 @@ export class Labels {
     const obst = this.obstacles ? this.obstacles() : [];
     const hits = (r, list) => list.some((q) => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1]);
     const placedR = [];
-    this.occludedN = 0;
+    this.occludedN = 0; this.occGen ||= 0;
+    const budgetEnd = performance.now() + LABELS.OCCLUDE.BUDGET_MS;
     for (const c of cand) {
       if (placed.length >= max) break;
       // the name's real size BEFORE the overlap test (a name measured only after it was placed could sit on another one until the
@@ -171,7 +172,7 @@ export class Labels {
         r = [r[0], r[1] + dy, r[2], r[3] + dy];
         if (r[1] < 56 || hits(r, obst) || hits(r, placedR)) continue;
       }
-      if (this.hiddenFrom(c.it)) { this.occludedN++; continue; }
+      if (this.hidden(c.it, budgetEnd)) { this.occludedN++; continue; }
       placed.push({ ...c, r, dy }); placedR.push(r);
     }
     // the live set: item -> element. New ones get an element and fade in; ones that left fade out (reap() returns them).
@@ -206,6 +207,17 @@ export class Labels {
     if (it.sub) { const s = document.createElement('small'); s.textContent = it.sub; el.append(s); }
     const b = el.getBoundingClientRect();
     it.w = b.width || it.name.length * LABELS.CHAR_PX; it.h = b.height || LABELS.LINE_PX;
+  }
+
+  // hiddenFrom, kept for a name until the camera has moved REUSE of its distance (or the city's shapes changed: occGen), and
+  // never more than BUDGET_MS of new marches in one layout (past it a name keeps its last answer)
+  hidden(it, budgetEnd) {
+    const O = LABELS.OCCLUDE, c = this.camera.position, C = it.occ;
+    const d = Math.hypot(it.x - c.x, it.y - c.y, it.z - c.z);
+    if (C && C.gen === this.occGen && C.y0 === it.y && (Math.hypot(c.x - C.x, c.y - C.y, c.z - C.z) < O.REUSE * d || performance.now() > budgetEnd)) return C.v;
+    const v = this.hiddenFrom(it);
+    it.occ = { x: c.x, y: c.y, z: c.z, y0: it.y, gen: this.occGen, v };
+    return v;
   }
 
   // true when a building stands between the camera and the name's point (LABELS.OCCLUDE)

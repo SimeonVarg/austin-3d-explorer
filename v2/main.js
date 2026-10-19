@@ -465,7 +465,7 @@ const cityReady = new Promise((resolve) => {
     if (m.type === 'roads') { addRibbons(m.tiles, ORDER.ROADS, city.roads); timings.roads = performance.now() - timings.start; status('Roads in, raising buildings…'); }
     else if (m.type === 'sidewalks') { addRibbons(m.tiles, ORDER.SIDEWALKS, city.sidewalks); timings.sidewalks = performance.now() - timings.start; }
     else if (m.type === 'buildings') { addBuildings(m.tiles); timings.buildings = performance.now() - timings.start; status('Buildings in, planting trees…'); }
-    else if (m.type === 'collide') { field.setFootprints(m.data); applyBlenderTops(); coverLate(); labels.dirty = true; }
+    else if (m.type === 'collide') { field.setFootprints(m.data); applyBlenderTops(); coverLate(); labels.dirty = true; labels.occGen = (labels.occGen || 0) + 1; }
     else if (m.type === 'trees') { addTrees(m.data); timings.trees = performance.now() - timings.start; }
     else if (m.type === 'log') console.info('[v2 city]', m.msg);
     else if (m.type === 'error') console.error('[v2 city]', m.msg);
@@ -483,7 +483,7 @@ const tilesReady = (async () => {
   try {
     const t = new TileStreamer({ scene, camera, manifestUrl,
       onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings, prepare: coverOf,
-      onChange: () => { dirty = true; sun.shadow.needsUpdate = true; }, onAnimate: () => { dirty = true; } });
+      onChange: () => { dirty = true; sun.shadow.needsUpdate = true; labels.occGen = (labels.occGen || 0) + 1; labels.dirty = true; }, onAnimate: () => { dirty = true; } });
     if (params.get('fade') === '0') t.instant = true;
     const man = await t.load();
     if (man.origin && (Math.abs(man.origin.lat - ORIGIN.lat) > 1e-9 || Math.abs(man.origin.lon - ORIGIN.lon) > 1e-9)) {
@@ -536,7 +536,7 @@ function coverDone({ job, covered, raster, ms, error }) {
       l.max = Math.max(...l.map((r) => r.top ??= r.h.reduce((m, v) => (v > m ? v : m), 0))); modelGrid.set(k, l);
     }
   }
-  labels.dirty = true;
+  labels.dirty = true; labels.occGen = (labels.occGen || 0) + 1;   // the names ask again who hides them
   if (!extra.length) return;
   s.mapIds = [...new Set([...s.mapIds, ...extra])];
   if (J.obj.parent) setHidden(extra, true);                 // already swapped in: hide them now
