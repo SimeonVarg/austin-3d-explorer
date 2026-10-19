@@ -414,14 +414,33 @@ def main():
         hit = RG.nearest(x, z)
         kind = 1 if hit and hit[0] < LAMP_ROAD_M and hit[3][2] in ('primary', 'secondary', 'tertiary', 'trunk') else 0
         lamps.append([x, z, kind])
+    # bus stops (shelter / bench as OSM tags them) and benches, each turned to face the nearest road
+    def facing(x, z):
+        hit = RG.nearest(x, z)
+        return math.atan2(hit[2] - z, hit[1] - x) if hit else 0.0
+    stops, benches = [], []
+    for e in json.load(open(os.path.join(REPO, 'data', 'osm_cache', 'furn_transit.json')))['elements']:
+        t = e.get('tags') or {}
+        if e['type'] == 'node' and t.get('highway') == 'bus_stop':
+            x, z = loc(e['lon'], e['lat'])
+            if inbox(x, z):
+                stops.append([x, z, round(facing(x, z), 3), 1 if t.get('shelter') == 'yes' else 0, 1 if t.get('bench') == 'yes' else 0])
+    for e in json.load(open(os.path.join(REPO, 'data', 'osm_cache', 'furniture.json')))['elements']:
+        t = e.get('tags') or {}
+        if e['type'] == 'node' and t.get('amenity') == 'bench':
+            x, z = loc(e['lon'], e['lat'])
+            if inbox(x, z):
+                benches.append([x, z, round(facing(x, z), 3)])
     osm_out = {
         '_license': '© OpenStreetMap contributors, ODbL 1.0 (https://opendatacommons.org/licenses/odbl/1-0/). This file is a derivative database of OpenStreetMap and is offered under the ODbL.',
         'source': 'OpenStreetMap highway=street_lamp nodes, Overpass extract ' + d.get('osm3s', {}).get('timestamp_osm_base', ''),
         'frame': city_out['frame'],
         'lamps': flat(lamps),
+        'stops': flat(stops),       # x, z, facing angle, shelter 0/1, bench 0/1
+        'benches': flat(benches),   # x, z, facing angle
     }
     json.dump(osm_out, open(os.path.join(OUT, 'osm.json'), 'w'), separators=(',', ':'))
-    print('lamps', len(lamps), 'cobra', sum(l[2] for l in lamps))
+    print('lamps', len(lamps), 'cobra', sum(l[2] for l in lamps), 'bus stops', len(stops), 'shelters', sum(st[3] for st in stops), 'benches', len(benches))
     for n in ('city.json', 'osm.json'):
         print(n, os.path.getsize(os.path.join(OUT, n)), 'bytes')
 

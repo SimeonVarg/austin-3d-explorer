@@ -18,8 +18,8 @@ export const GROUND_LOOK = {
   SHADOW_DARK_LIN: [0.02, 0.09], // linear luminance: fully lifted below the first, not at all above the second
   // Leaning roofs: the photograph is not a true ortho, so a tall roof is drawn beside its footprint. Round tall buildings the ground
   // fades toward this plain paving colour (mask channel G).
-  LEAN_PAVING: '#6b6860',
-  LEAN_STRENGTH: 0.5,
+  LEAN_PAVING: '#55534d',       // the plain paving the ground fades to under and round a leaning building (linear ~0.09, the aerial's pavement after GAIN)
+  LEAN_STRENGTH: 0.92,
 
   // ── streaming (not taste: what keeps it sharp and fast) ───────────────
   LOD_FACTOR: 1.6,              // a tile is split when its pixel is bigger than this many screen pixels at its nearest point
@@ -62,6 +62,12 @@ export const STREET_LOOK = {
   LAMP_MAST_M: 9.0,
   LANTERN_POST_M: 4.0,
   LANTERN_GLASS: '#d9d2bd',
+  // ── bus stops and benches ──
+  SHELTER_ROOF: '#5b6066',
+  SHELTER_GLASS: '#8fa3ad',
+  SHELTER_FRAME: '#3e4246',
+  BENCH: '#4a4d4f',
+  STOP_FLAG: '#c8c7c2',
 };
 
 export const TREE_LOOK = {
@@ -77,4 +83,41 @@ export const TREE_LOOK = {
   LIGHTNESS_VARIATION: 0.12,
   HUE_VARIATION: 0.02,
   TRUNK: '#3a3027',
+};
+
+export const NEAR_LOOK = {
+  // ── street level near the camera (street_near.js) ──
+  FADE: [60, 90],               // metres from the camera: modelled street fully in / gone (the aerial carries the rest)
+  FADE_PHONE: [50, 75],
+  MAX_CAMERA_Y_M: 140,          // above this the near layer is not drawn at all
+  ASPHALT: '#3d3e40',           // albedo on v2's scale (the old road ribbons' tone)
+  ASPHALT_GRAIN: 0.09,          // +- share of brightness, two octaves, faded below a pixel (0.18 read as clouds at eye level)
+  ASPHALT_Y_M: 0.008,
+  PAINT_WHITE: '#a9a8a2',
+  PAINT_YELLOW: '#a8892e',
+  PAINT_Y_M: 0.014,
+  LANE_W_M: 0.12,
+  DASH_M: [3.0, 9.0],           // Austin's 10 ft dash, 30 ft gap
+  GUTTER: '#7d7a72',
+  GUTTER_M: 0.45,
+  GUTTER_Y_M: 0.011,
+  CURB: '#8f8c84',
+  CURB_HEIGHT_M: 0.15,
+  CURB_TOP_M: 0.15,
+  WALK: '#86837b',
+  CONCRETE_GRAIN: 0.08,
+  JOINT_M: 1.52,                // 5 ft slabs
+  JOINT_DARK: 0.35,
+  SIGN_POST: '#8b8d8f',
+  SIGN_POST_M: 3.1,
+  SIGN_TOP_M: 2.75,             // the top panel's top edge
+  SIGN_BLADE_Y_M: 3.05,         // street-name blades sit on top of the post
+  SIGNS: {                      // by kind (street_near.py): w x h metres, colour, shape
+    0: { w: 0.3, h: 0.45, color: '#c8c7c2', shape: 'rect' },
+    1: { w: 0.75, h: 0.75, color: '#8e1d1b', shape: 'octagon' },
+    2: { w: 0.9, h: 0.15, color: '#1f5a36', shape: 'rect' },
+    3: { w: 0.9, h: 0.78, color: '#c8c7c2', shape: 'triangle' },
+    4: { w: 0.75, h: 0.75, color: '#c9a425', shape: 'diamond' },
+    5: { w: 0.6, h: 0.75, color: '#c8c7c2', shape: 'rect' },
+  },
 };

@@ -78,43 +78,16 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
 
     // ── paint: crosswalk bars, stop lines, yield teeth (one draw) ──
     const bars = unflat(city.bars, 5).map(([x, z, a, L, w]) => [x, z, a, L, 1, w, S.PAINT_LIFT_M]);
-    instanced('paint', flatQuad(), flatMaterial(S.PAINT), bars);
+    const paint = instanced('paint', flatQuad(), flatMaterial(S.PAINT), bars);
+    if (paint) paint.renderOrder = 0.96;   // over street_near.js's asphalt (0.9), with its lane lines
 
-    // ── curbs: a 15 cm face on the road side and a narrow top, merged into one mesh ──
-    const pos = [], nrm = [], idx = [];
-    const H = S.CURB_HEIGHT_M, T = S.CURB_TOP_M;
-    for (const c of city.curbs) {
-      const n = c.length / 2;
-      for (let i = 0; i < n - 1; i++) {
-        const x0 = c[i * 2], z0 = c[i * 2 + 1], x1 = c[i * 2 + 2], z1 = c[i * 2 + 3];
-        const L = Math.hypot(x1 - x0, z1 - z0); if (L < 0.05) continue;
-        // the bake stores each curb with the road toward (dz, -dx) of its direction (d = travel), so the sidewalk is toward (-dz, dx)
-        const lx = -(z1 - z0) / L, lz = (x1 - x0) / L;
-        // the face, looking toward the road (-left)
-        let b = pos.length / 3;
-        pos.push(x0, 0, z0, x1, 0, z1, x1, H, z1, x0, H, z0);
-        for (let k = 0; k < 4; k++) nrm.push(-lx, 0, -lz);
-        idx.push(b, b + 2, b + 1, b, b + 3, b + 2);
-        // the top
-        b = pos.length / 3;
-        pos.push(x0, H, z0, x1, H, z1, x1 + lx * T, H, z1 + lz * T, x0 + lx * T, H, z0 + lz * T);
-        for (let k = 0; k < 4; k++) nrm.push(0, 1, 0);
-        idx.push(b, b + 2, b + 1, b, b + 3, b + 2);
-      }
-    }
-    if (pos.length) {
-      const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-      g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
-      g.setIndex(idx); g.computeBoundingSphere();
-      const m = flatMaterial(S.CURB); m.depthWrite = true; m.side = THREE.DoubleSide;
-      const mesh = new THREE.Mesh(g, m); mesh.receiveShadow = true; mesh.name = 'curbs';
-      group.add(mesh);
-    }
+    // (curbs: street_near.js draws kerbs, gutters and sidewalks near the camera, where a 15 cm step can be seen at all; the snapped
+    //  curbs in city.json are kept for the record and its counts.)
 
     // ── curb ramps with a warning pad ──
     const pads = unflat(city.ramps, 4).filter((r) => r[3]).map(([x, z, a]) => [x + Math.cos(a) * 0.4, z + Math.sin(a) * 0.4, a + Math.PI / 2, S.PAD_M[0], 1, S.PAD_M[1], S.PAINT_LIFT_M]);
-    instanced('ramp pads', flatQuad(), flatMaterial(S.PAD), pads);
+    const padMesh = instanced('ramp pads', flatQuad(), flatMaterial(S.PAD), pads);
+    if (padMesh) padMesh.renderOrder = 0.99;
 
     // ── traffic signals: pole, mast arm, signal heads on the arm, a pedestrian head on every pole ──
     const sig = unflat(city.signals, 4);
@@ -147,6 +120,22 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
       const lr = lantern.map(([x, z]) => [x, z, 0, 1, 1, 1]);
       instanced('lantern posts', cyl(0.06, 0.09, S.LANTERN_POST_M), uprightMaterial(S.LAMP_METAL), lr);
       instanced('lantern heads', box(0.34, 0.55, 0.34, 0, S.LANTERN_POST_M + 0.27, 0), uprightMaterial(S.LANTERN_GLASS, 0.3, 0.0), lr);
+    }
+    // ── bus stops and benches (OpenStreetMap): a shelter (roof, back and side glass on posts), a bench, a stop sign post ──
+    if (osm && osm.stops) {
+      const st = unflat(osm.stops, 5), bn = unflat(osm.benches || [], 3);
+      // facing angle = toward the road; a shelter's open side faces it, set 0.8 m back from the stop point
+      const back = (x, z, a, d) => [x - Math.cos(a) * d, z - Math.sin(a) * d];
+      const shel = st.filter((s) => s[3]).map(([x, z, a]) => { const [bx, bz] = back(x, z, a, 0.8); return [bx, bz, a, 1, 1, 1]; });
+      instanced('shelter roofs', box(1.6, 0.08, 3.6, 0, 2.5, 0), uprightMaterial(S.SHELTER_ROOF, 0.5, 0.3), shel);
+      instanced('shelter backs', box(0.04, 1.9, 3.4, -0.75, 1.3, 0), uprightMaterial(S.SHELTER_GLASS, 0.15, 0.0), shel);
+      instanced('shelter posts', box(0.08, 2.5, 3.5, -0.75, 1.25, 0).scale(1, 1, 1), uprightMaterial(S.SHELTER_FRAME, 0.5, 0.4), shel.map(([x, z, a]) => [x, z, a, 1, 1, 0.03]));
+      const seats = [...st.filter((s) => s[4]).map(([x, z, a]) => { const [bx, bz] = back(x, z, a, 1.2); return [bx, bz, a, 1, 1, 1]; }),
+        ...bn.map(([x, z, a]) => [x, z, a, 1, 1, 1])];
+      instanced('bench seats', box(0.45, 0.06, 1.8, 0, 0.45, 0), uprightMaterial(S.BENCH, 0.7, 0.1), seats);
+      instanced('bench backs', box(0.05, 0.4, 1.8, -0.22, 0.75, 0), uprightMaterial(S.BENCH, 0.7, 0.1), seats);
+      instanced('stop poles', cyl(0.04, 0.04, 2.9), uprightMaterial(S.SIGNAL_METAL), st.map(([x, z, a]) => [x, z, a, 1, 1, 1]));
+      instanced('stop flags', box(0.03, 0.45, 0.45, 0, 2.6, 0), uprightMaterial(S.STOP_FLAG, 0.5, 0.1), st.map(([x, z, a]) => [x, z, a + Math.PI / 2, 1, 1, 1]));
     }
     Object.assign(stats, { ready: true, ...(city.counts || {}), lamps: osm && osm.lamps ? osm.lamps.length / 3 : 0, draws: group.children.length });
     redraw();
