@@ -1,9 +1,13 @@
 // Streams the Blender-model tiles listed in a manifest (the contract: v2/tiles/manifest.json, built on mac/v2-tiles).
-//   - the nearest tiles in view load first, then the nearest out of view;
+//   - every tile draws its FULL model (lod0) at every distance: there is no swap to a lesser far copy (owner, 2026-10-18:
+//     "get rid of the rule that converts buildings to bad lesser detailed ones when theyre at a distance"). The manifest's lod1
+//     files and per-tile lod1_m are no longer read;
+//   - the nearest tiles in view load first, then the nearest out of view; tiles beyond LOAD_DISTANCE_M are not loaded;
 //   - at most MAX_DECODES loads (fetch + meshopt decode + parse) run at once;
 //   - a load whose tile is no longer wanted is aborted, or thrown away the moment it finishes;
-//   - lod1 (the .far.glb) beyond LOD1_DISTANCE_M, back to lod0 inside it, with LOD_HYSTERESIS so a tile on the line does not flip;
-//   - tiles beyond UNLOAD_DISTANCE_M are removed and their GPU memory freed.
+//   - a tile that arrives FADES in instead of popping (FADE): the plain extrusions it replaces first fade into the haze, then
+//     the model takes their place and fades out of the haze (both opaque, no sorting, no dither: see setFade / the haze mix);
+//   - tiles beyond UNLOAD_DISTANCE_M are removed and their GPU memory freed; three.js frustum-culls every mesh.
 // While a tile is on screen its buildings' map ids are hidden in the plain extrusions (onShow / onHide).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -11,23 +15,47 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 export const TILES = {
   MAX_DECODES: 2,
-  LOD1_DISTANCE_M: 700,        // camera to the tile's nearest edge
-  LOD_HYSTERESIS: 0.15,        // switch to lod1 at 700 x 1.15, back to lod0 at 700 x 0.85
   LOAD_DISTANCE_M: 2600,       // tiles nearer than this are wanted
   UNLOAD_DISTANCE_M: 3200,     // tiles beyond this are dropped (must be > LOAD_DISTANCE_M)
   TILE_TOP_M: 160,             // assumed top of a tile, for the in-view test
-  UPDATE_EVERY_MS: 200,
+  UPDATE_EVERY_MS: 200,        // how often the load plan is made again (the fades run every frame)
   MAX_TRIES: 2,                // a tile that fails this many times is left out (the plain extrusions stay)
+  FADE: {
+    OUT_MS: 350,               // the plain extrusions a tile replaces fade into the haze over this
+    IN_MS: 650,                // then the model fades out of the haze over this
+  },
 };
 
+const smooth = (k) => k * k * (3 - 2 * k);
+
+// The fade: every lit material of a tile mixes its final colour toward the haze colour (main.js fog_fragment's hazeC) by uFade.
+// One uniform per tile, shared by the tile's materials; the program is shared by every tile (customProgramCacheKey).
+function fadeable(material, uniform) {
+  if (!material || material.userData.v2Fade) return;
+  material.userData.v2Fade = true;
+  const prev = material.onBeforeCompile;
+  material.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.uniforms.uFade = uniform;
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uFade;')
+      .replace('#include <fog_fragment>', '#include <fog_fragment>\n#ifdef USE_FOG\n  gl_FragColor.rgb = mix(gl_FragColor.rgb, hazeC, uFade);\n#endif');
+  };
+  const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
+  material.customProgramCacheKey = () => key() + '|v2-fade';
+  material.needsUpdate = true;
+}
+
 export class TileStreamer {
-  constructor({ scene, camera, manifestUrl, onShow, onHide, onChange, prepare }) {
+  constructor({ scene, camera, manifestUrl, onShow, onHide, onChange, onFade, onAnimate, prepare }) {
     this.scene = scene; this.camera = camera; this.url = manifestUrl;
     this.prepare = prepare || (() => {});
     this.onShow = onShow || (() => {}); this.onHide = onHide || (() => {}); this.onChange = onChange || (() => {});
+    this.onFade = onFade || (() => {});          // (mapIds, k): the plain extrusions of these ids at k of the way into the haze
+    this.onAnimate = onAnimate || (() => {});    // a fade moved: draw a frame
     this.group = new THREE.Group(); this.group.name = 'blender-tiles';
     scene.add(this.group);
     this.tiles = new Map();          // id -> state
+    this.fading = new Set();         // states with a fade running
     this.active = 0;
     this.loader = new GLTFLoader();
     try { MeshoptDecoder.useWorkers && MeshoptDecoder.useWorkers(2); } catch (e) {}
@@ -35,6 +63,7 @@ export class TileStreamer {
     this.last = 0;
     this.stats = { loaded: 0, aborted: 0, discarded: 0, disposed: 0, failed: 0, bytes: 0 };
     this.frustum = new THREE.Frustum(); this.m = new THREE.Matrix4(); this.box = new THREE.Box3();
+    this.instant = false;            // true: tiles appear at once (pictures, the verify scripts' settled views)
   }
 
   async load() {
@@ -44,59 +73,54 @@ export class TileStreamer {
     // tile paths in the manifest are relative to the APP (v2/), as in the contract: "lod0": "tiles/t_i_j.glb"
     this.base = new URL('./', import.meta.url).href;
     for (const t of this.manifest.tiles || []) {
+      if (!t.lod0) continue;                                   // a tile with no full model is not drawn (the extrusions stay)
       const mapIds = [];
       for (const slug of t.buildings || []) { const b = this.manifest.buildings?.[slug]; if (b?.map_ids) mapIds.push(...b.map_ids.map(String)); }
-      this.tiles.set(t.id, { def: t, mapIds, want: null, have: null, obj: null, job: null });
+      this.tiles.set(t.id, { def: t, mapIds, want: null, have: null, obj: null, job: null, fade: null });
     }
     return this.manifest;
   }
 
-  // Which lod each tile should have now (null = none), from the camera position.
+  // Which tiles should be loaded now (want = 'lod0' or null), from the camera position.
   plan() {
     const cam = this.camera.position;
+    this.camera.updateMatrixWorld();
     this.m.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
     this.frustum.setFromProjectionMatrix(this.m);
-    const H = TILES.LOD_HYSTERESIS;
     const order = [];
-    for (const [id, s] of this.tiles) {
+    for (const s of this.tiles.values()) {
       const [x0, z0, x1, z1] = s.def.bounds;
       const dx = Math.max(x0 - cam.x, 0, cam.x - x1), dz = Math.max(z0 - cam.z, 0, cam.z - z1);
       const d = Math.hypot(dx, dz, Math.max(0, cam.y - TILES.TILE_TOP_M));
       const cur = s.have || s.want;
-      const L1 = s.def.lod1_m || TILES.LOD1_DISTANCE_M;      // (a tile with a fine repeat in it, Moody Center's fins, asks for lod1 sooner)
-      let want;
-      if (cur && d > TILES.UNLOAD_DISTANCE_M) want = null;
-      else if (!cur && d > TILES.LOAD_DISTANCE_M) want = null;
-      else if (cur === 'lod0') want = d > L1 * (1 + H) ? 'lod1' : 'lod0';
-      else if (cur === 'lod1') want = d < L1 * (1 - H) ? 'lod0' : 'lod1';
-      else want = d > L1 ? 'lod1' : 'lod0';
-      if (want && !s.def[want]) want = s.def.lod0 ? 'lod0' : (s.def.lod1 ? 'lod1' : null);
+      const want = d <= (cur ? TILES.UNLOAD_DISTANCE_M : TILES.LOAD_DISTANCE_M) ? 'lod0' : null;
       this.box.min.set(x0, 0, z0); this.box.max.set(x1, TILES.TILE_TOP_M, z1);
-      const inView = this.frustum.intersectsBox(this.box);
-      s.want = want; s.d = d; s.inView = inView;
+      s.want = want; s.d = d; s.inView = this.frustum.intersectsBox(this.box);
       order.push(s);
     }
     return order;
   }
 
   update(now = performance.now()) {
+    if (this.fading.size) this.stepFades(now);
     if (!this.manifest || now - this.last < TILES.UPDATE_EVERY_MS) return;
     this.last = now;
     const all = this.plan();
-    // cancel loads that are no longer wanted at that lod
-    for (const s of all) if (s.job && s.job.lod !== s.want) { s.job.ctrl.abort(); s.job.stale = true; s.job = null; this.active--; this.stats.aborted++; }
+    this.plannedFor = this.camera.matrixWorld.elements.join(',');
+    // cancel loads that are no longer wanted
+    for (const s of all) if (s.job && !s.want) { s.job.ctrl.abort(); s.job.stale = true; s.job = null; this.active--; this.stats.aborted++; }
     // drop what is not wanted
     for (const s of all) if (!s.want && s.obj) this.drop(s);
     // queue: in view first, then nearest
-    const queue = all.filter((s) => s.want && s.have !== s.want && !s.job && (s.failed || 0) < TILES.MAX_TRIES).sort((a, b) => (b.inView - a.inView) || (a.d - b.d));
+    const queue = all.filter((s) => s.want && !s.have && !s.job && (s.failed || 0) < TILES.MAX_TRIES).sort((a, b) => (b.inView - a.inView) || (a.d - b.d));
     while (this.active < TILES.MAX_DECODES && queue.length) this.start(queue.shift());
   }
 
   start(s) {
-    const lod = s.want, ctrl = new AbortController();
-    const job = { lod, ctrl, stale: false };
+    const ctrl = new AbortController();
+    const job = { ctrl, stale: false };
     s.job = job; this.active++;
-    const url = new URL(s.def[lod], this.base).href;
+    const url = new URL(s.def.lod0, this.base).href;
     (async () => {
       try {
         const r = await fetch(url, { signal: ctrl.signal });
@@ -107,24 +131,74 @@ export class TileStreamer {
         this.stats.bytes += buf.byteLength;
         if (job.stale) { disposeObject(gltf.scene); this.stats.discarded++; return; }
         const obj = gltf.scene;
-        obj.name = s.def.id + ':' + lod;
-        obj.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = true; } });
-        this.prepare(obj, s.def, lod);
-        this.group.add(obj);
-        const had = s.obj;
-        s.obj = obj; s.have = lod;
-        if (had) { this.group.remove(had); disposeObject(had); this.stats.disposed++; } else this.onShow(s.mapIds, s.def);
+        obj.name = s.def.id;
+        const fade = { value: 0 };
+        obj.traverse((o) => {
+          if (!o.isMesh) return;
+          o.castShadow = true; o.receiveShadow = true; o.frustumCulled = true;
+          for (const m of Array.isArray(o.material) ? o.material : [o.material]) fadeable(m, fade);
+        });
+        obj.userData.fade = fade;
+        this.prepare(obj, s.def);
+        s.obj = obj; s.have = 'lod0';
         this.stats.loaded++;
-        this.onChange(this);
+        this.appear(s, performance.now());
       } catch (e) {
-        if (e.name !== 'AbortError') { this.stats.failed++; console.warn('[v2 tiles]', s.def.id, lod, e.message); s.failed = (s.failed || 0) + 1; }
+        if (e.name !== 'AbortError') { this.stats.failed++; console.warn('[v2 tiles]', s.def.id, e.message); s.failed = (s.failed || 0) + 1; }
       } finally {
         if (s.job === job) { s.job = null; this.active--; }
       }
     })();
   }
 
+  // A tile has arrived: its extrusions fade out into the haze (OUT_MS), then the model replaces them and fades in (IN_MS).
+  appear(s, now) {
+    if (this.instant || !(TILES.FADE.OUT_MS + TILES.FADE.IN_MS > 0)) {
+      s.obj.userData.fade.value = 0;
+      this.group.add(s.obj); this.onShow(s.mapIds, s.def); this.onChange(this);
+      return;
+    }
+    s.fade = { phase: 'out', t0: now };
+    this.fading.add(s);
+    this.stepFades(now);
+  }
+
+  stepFades(now) {
+    for (const s of this.fading) {
+      const F = s.fade;
+      if (!F || !s.obj) { this.fading.delete(s); continue; }
+      if (F.phase === 'out') {
+        const k = TILES.FADE.OUT_MS > 0 ? Math.min(1, (now - F.t0) / TILES.FADE.OUT_MS) : 1;
+        this.onFade(s.mapIds, smooth(k));
+        if (k < 1 && !this.instant) continue;
+        // swap: the extrusions are fully in the haze; the model takes their place, fully in the haze, and comes out of it
+        s.obj.userData.fade.value = 1;
+        this.group.add(s.obj);
+        this.onShow(s.mapIds, s.def);
+        this.onFade(s.mapIds, 0);                 // (hidden now; reset so they come back unfaded if the tile is dropped)
+        this.onChange(this);
+        F.phase = 'in'; F.t0 = now;
+      } else {
+        const k = TILES.FADE.IN_MS > 0 ? Math.min(1, (now - F.t0) / TILES.FADE.IN_MS) : 1;
+        s.obj.userData.fade.value = this.instant ? 0 : 1 - smooth(k);
+        if (k >= 1 || this.instant) { s.obj.userData.fade.value = 0; s.fade = null; this.fading.delete(s); }
+      }
+    }
+    this.onAnimate();
+  }
+
+  // Finish every running fade at once (a settled picture, or the loading screen lifting with everything in place).
+  settle() {
+    const was = this.instant; this.instant = true;
+    this.stepFades(performance.now()); this.stepFades(performance.now());
+    this.instant = was;
+  }
+
   drop(s) {
+    if (s.fade) {
+      if (s.fade.phase === 'out') { this.onFade(s.mapIds, 0); s.fade = null; this.fading.delete(s); disposeObject(s.obj); s.obj = null; s.have = null; this.stats.disposed++; return; }
+      s.fade = null; this.fading.delete(s);
+    }
     this.group.remove(s.obj);
     disposeObject(s.obj);
     s.obj = null; s.have = null;
@@ -134,9 +208,14 @@ export class TileStreamer {
   }
 
   summary() {
-    let lod0 = 0, lod1 = 0, loading = 0;
-    for (const s of this.tiles.values()) { if (s.have === 'lod0') lod0++; if (s.have === 'lod1') lod1++; if (s.job) loading++; }
-    return { tiles: this.tiles.size, lod0, lod1, loading, ...this.stats };
+    let lod0 = 0, loading = 0, fading = 0, wanting = 0;
+    for (const s of this.tiles.values()) {
+      if (s.have === 'lod0' && !(s.fade && s.fade.phase === 'out')) lod0++; if (s.job) loading++; if (s.fade) fading++;
+      if (s.want && !s.have && (s.failed || 0) < TILES.MAX_TRIES) wanting++;
+    }
+    // lod1 stays in the summary (always 0) for the verify scripts that print it; planned = the plan ran since the camera last moved
+    const cam = this.camera.matrixWorld.elements.join(',');
+    return { tiles: this.tiles.size, lod0, lod1: 0, loading, fading, wanting, planned: this.plannedFor === cam, ...this.stats };
   }
 }
 

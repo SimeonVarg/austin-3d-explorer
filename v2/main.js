@@ -301,10 +301,21 @@ const flatMaterial = () => new THREE.MeshStandardMaterial({ vertexColors: true, 
 const buildingMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: LOOK.BUILDING_ROUGHNESS, metalness: 0 });
 // The plain buildings' facades (LOOK.FACADE): windows and slab lines from each wall's [bay, storey] coordinates, box-filtered
 // over the pixel's footprint so they are sharp close up and their exact average far away (rule 15: no flicker, and not a blur).
-if (LOOK.FACADE.ON && params.get('facades') !== '0') {
+// A plain building whose Blender model is arriving first fades into the haze (attribute hz, 0..1: tiles.js FADE), so the model
+// that replaces it can come out of the haze instead of popping in.
+const FACADES = LOOK.FACADE.ON && params.get('facades') !== '0';
+buildingMaterial.onBeforeCompile = (sh) => {
+  sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float hz;\nvarying float vHz;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvHz = hz;');
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vHz;')
+    .replace('#include <fog_fragment>', '#include <fog_fragment>\n#ifdef USE_FOG\n  gl_FragColor.rgb = mix(gl_FragColor.rgb, hazeC, vHz);\n#endif');
+  if (FACADES) facadeShader(sh);
+};
+buildingMaterial.customProgramCacheKey = () => 'v2-buildings' + (FACADES ? '-facades' : '');
+function facadeShader(sh) {
   const F = LOOK.FACADE, glass = new THREE.Color(F.GLASS);
   const f = (v) => v.toFixed(5);
-  buildingMaterial.onBeforeCompile = (sh) => {
+  {
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 fac;\nvarying vec2 vFac;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFac = fac;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
@@ -329,8 +340,7 @@ if (vFac.x >= 0.0) {
   diffuseColor.rgb = mix(diffuseColor.rgb, vec3(${f(glass.r)}, ${f(glass.g)}, ${f(glass.b)}), win);
   roughnessFactor = mix(roughnessFactor, ${f(F.GLASS_ROUGHNESS)}, win);
 }`);
-  };
-  buildingMaterial.customProgramCacheKey = () => 'v2-facades';
+  }
 }
 
 const city = { buildings: [], byId: new Map(), roads: [], sidewalks: [], trees: null, hidden: new Set(), stats: null };
@@ -345,6 +355,7 @@ function geometryOf(t, normals) {
   if (normals) g.setAttribute('normal', new THREE.BufferAttribute(t.nrm, 3, true));
   g.setAttribute('color', new THREE.BufferAttribute(t.col, 3, true));
   if (t.fac) g.setAttribute('fac', new THREE.BufferAttribute(t.fac, 2));
+  if (t.fac) g.setAttribute('hz', new THREE.BufferAttribute(new Uint8Array(t.pos.length / 3), 1, true));   // buildings: the haze fade
   g.setIndex(new THREE.BufferAttribute(t.idx, 1));
   g.computeBoundingSphere(); g.computeBoundingBox();
   return g;
@@ -390,6 +401,18 @@ function setHidden(ids, hide, force = false) {
   }
   if (touched.size) { dirty = true; sun.shadow.needsUpdate = true; }
   return touched.size;
+}
+
+// Fade the extrusions with these map ids k (0..1) of the way into the haze (tiles.js: a Blender tile arriving over them).
+function fadeBuildings(ids, k) {
+  const v = Math.round(THREE.MathUtils.clamp(k, 0, 1) * 255);
+  for (const raw of ids) for (const [rec, j] of city.byId.get(String(raw)) || []) {
+    const a = rec.mesh.geometry.attributes.hz; if (!a) continue;
+    const s = rec.starts[j], n = rec.counts[j];
+    if (a.array[s] === v) continue;
+    a.array.fill(v, s, s + n); a.addUpdateRange(s, n); a.needsUpdate = true;
+  }
+  dirty = true;
 }
 
 function addTrees(data) {
@@ -458,8 +481,9 @@ let tiles = null;
 const tilesReady = (async () => {
   try {
     const t = new TileStreamer({ scene, camera, manifestUrl,
-      onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false),
-      onChange: () => { dirty = true; sun.shadow.needsUpdate = true; } });
+      onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings,
+      onChange: () => { dirty = true; sun.shadow.needsUpdate = true; }, onAnimate: () => { dirty = true; } });
+    if (params.get('fade') === '0') t.instant = true;
     const man = await t.load();
     if (man.origin && (Math.abs(man.origin.lat - ORIGIN.lat) > 1e-9 || Math.abs(man.origin.lon - ORIGIN.lon) > 1e-9)) {
       console.warn('[v2 tiles] manifest origin differs from v2/geo.js; using the manifest origin is not supported after the city is built', man.origin);
