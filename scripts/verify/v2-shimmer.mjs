@@ -55,6 +55,9 @@ const VIEWS = [
   { name: 'DKR fins, 1800 m', slug: 'dkr-memorial-stadium', distance: 1800, polar: 77, azimuth: 250 },
   { name: 'West Campus window grids, 900 m', slug: 'the-venue', distance: 900, polar: 75, azimuth: 30 },
 ];
+const STRIP = !!arg('--strip', false);   // --strip: also write every native and truth frame (for a moving picture)
+const EVAL = arg('--eval', '') || '';   // --eval "js": run in the page once it is ready (a diagnosis switch, not a fix)
+const ONLY = arg('--only', '') ? new RegExp(String(arg('--only', '')), 'i') : null;   // --only "1800|Venue": views whose name matches
 const browser = await launch(chromium, { args: HW_ARGS, maxMs: 2400000 });
 const rows = [];
 let renderer = '';
@@ -66,8 +69,10 @@ for (const variant of VARIANTS) {
   await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 120000 });
   await page.evaluate(() => window.__v2.ready);
   if (!renderer) renderer = await page.evaluate(() => { const g = window.__v2.renderer.getContext(); const e = g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER); });
+  if (EVAL) await page.evaluate(EVAL);
   const man = await page.evaluate(() => fetch('./tiles/manifest.json').then((r) => r.json()));
   for (const v of VIEWS) {
+    if (ONLY && !ONLY.test(v.name)) continue;
     const b = man.buildings[v.slug];
     if (!b) { console.log('no building', v.slug); continue; }
     await page.evaluate(([x, z, d, p, a]) => window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }), [b.x, b.z, v.distance, v.polar, v.azimuth]);
@@ -78,7 +83,7 @@ for (const variant of VARIANTS) {
       calm = s.t && s.t.loading === 0 && !s.t.fading && groundCalm ? calm + 1 : 0; await page.waitForTimeout(700);
     }
     await page.waitForTimeout(1200);
-    const r = await page.evaluate(({ frames, SS, slug, top, want }) => {
+    const r = await page.evaluate(({ DEG, keepAll, frames, SS, slug, top, want }) => {
       const { renderer, scene, camera, controls, THREE } = window.__v2;
       const gl = renderer.getContext(), canvas = renderer.domElement, dpr = renderer.getPixelRatio();
       const W = canvas.clientWidth, H = canvas.clientHeight;
@@ -108,9 +113,9 @@ for (const variant of VARIANTS) {
       const blur = (F) => { const o = new Float32Array(F.L.length); for (let y = 0; y < F.h; y++) for (let x = 0; x < F.w; x++) { let a = 0, n = 0; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const xx = x + i, yy = y + j; if (xx < 0 || yy < 0 || xx >= F.w || yy >= F.h) continue; a += F.L[yy * F.w + xx]; n++; } o[y * F.w + x] = a / n; } return o; };
       const mad = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length; };
       const off = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-      let prevN = null, prevT = null, dN = 0, dT = 0, alias = 0, soft = 0, first = null, eN = null, eT = null;
+      let all = null; let prevN = null, prevT = null, dN = 0, dT = 0, alias = 0, soft = 0, first = null, eN = null, eT = null;
       for (let f = 0; f < frames; f++) {
-        if (f) { off.copy(camera.position).sub(controls.target).applyAxisAngle(up, THREE.MathUtils.degToRad(0.15)); camera.position.copy(controls.target).add(off); camera.lookAt(controls.target); }
+        if (f) { off.copy(camera.position).sub(controls.target).applyAxisAngle(up, THREE.MathUtils.degToRad(DEG)); camera.position.copy(controls.target).add(off); camera.lookAt(controls.target); }
         const N = grab(1), T = grab(SS);
         alias += mad(N.L, T.L); soft += mad(blur(T), T.L) - mad(blur(N), N.L);
         if (prevN) {
@@ -119,6 +124,7 @@ for (const variant of VARIANTS) {
           for (let i = 0; i < N.L.length; i++) { eN[i] += Math.abs(N.L[i] - prevN.L[i]); eT[i] += Math.abs(T.L[i] - prevT.L[i]); }
         }
         if (!first) first = { N, T };
+        if (keepAll) (all ||= []).push(N, T);
         prevN = N; prevT = T;
       }
       renderer.setPixelRatio(dpr); renderer.setSize(W, H, false); window.__v2.redraw();
@@ -126,16 +132,22 @@ for (const variant of VARIANTS) {
       const ex = Array.from(eN, (v, i) => (v - eT[i]) / (frames - 1)).sort((a, b) => a - b);
       const hot = ex.filter((v) => v > 6).length / ex.length;
       const png = (F) => { const cv = document.createElement('canvas'); cv.width = F.w; cv.height = F.h; const g = cv.getContext('2d'); const im = g.createImageData(F.w, F.h); for (let y = 0; y < F.h; y++) for (let x = 0; x < F.w; x++) { const v = F.L[(F.h - 1 - y) * F.w + x], o = (y * F.w + x) * 4; im.data[o] = im.data[o + 1] = im.data[o + 2] = v; im.data[o + 3] = 255; } g.putImageData(im, 0, 0); return cv.toDataURL('image/png'); };
-      return { p99: ex[Math.floor(ex.length * 0.99)], hot, region: [x0, y0, rw, rh], shimmer: (dN - dT) / (frames - 1), nativeChange: dN / (frames - 1), truthChange: dT / (frames - 1), alias: alias / frames, soft: soft / frames,
+      const heat = (() => { const w = first.N.w, h = first.N.h, cv = document.createElement('canvas'); cv.width = w; cv.height = h; const g = cv.getContext('2d'); const im = g.createImageData(w, h);
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (h - 1 - y) * w + x, e = (eN[i] - eT[i]) / (frames - 1), v = first.T.L[i] * 0.5, o = (y * w + x) * 4;
+          const k = Math.max(0, Math.min(1, (e - 2) / 10)); im.data[o] = v + (255 - v) * k; im.data[o + 1] = v * (1 - k); im.data[o + 2] = v * (1 - k); im.data[o + 3] = 255; }
+        g.putImageData(im, 0, 0); return cv.toDataURL('image/png'); })();
+      return { strip: all ? all.map(png) : null, pngH: heat, p99: ex[Math.floor(ex.length * 0.99)], hot, region: [x0, y0, rw, rh], shimmer: (dN - dT) / (frames - 1), nativeChange: dN / (frames - 1), truthChange: dT / (frames - 1), alias: alias / frames, soft: soft / frames,
         pngN: png(first.N), pngT: png(first.T), tiles: window.__v2.tiles() };
-    }, { frames: FRAMES, SS, slug: v.slug, top: (b.top || 30) + 2, want: { x: b.x, z: b.z, r: v.slug === 'dkr-memorial-stadium' ? 150 : v.slug === 'moody-center' ? 95 : 45 } });
+    }, { DEG: +arg("--deg", 0.15), keepAll: STRIP, frames: FRAMES, SS, slug: v.slug, top: (b.top || 30) + 2, want: { x: b.x, z: b.z, r: v.slug === 'dkr-memorial-stadium' ? 150 : v.slug === 'moody-center' ? 95 : 45 } });
     if (r.error) { console.log(variant.name, v.name, r.error); continue; }
     if (OUT) {
       fs.mkdirSync(OUT, { recursive: true });
       const slugOf = (s) => s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      for (const [k, u] of [['native', r.pngN], ['truth', r.pngT]]) fs.writeFileSync(path.join(OUT, `${slugOf(variant.name)}--${slugOf(v.name)}--${k}.png`), Buffer.from(u.split(',')[1], 'base64'));
+      for (const [k, u] of [['native', r.pngN], ['truth', r.pngT], ['heat', r.pngH]]) fs.writeFileSync(path.join(OUT, `${slugOf(variant.name)}--${slugOf(v.name)}--${k}.png`), Buffer.from(u.split(',')[1], 'base64'));
     }
-    rows.push({ variant: variant.name, view: v.name, ...r, pngN: undefined, pngT: undefined });
+    if (OUT && r.strip) { const slugOf = (s) => s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, ''); const d = path.join(OUT, `${slugOf(variant.name)}--${slugOf(v.name)}--frames`); fs.mkdirSync(d, { recursive: true });
+      r.strip.forEach((u, i) => fs.writeFileSync(path.join(d, `${String(i >> 1).padStart(3, '0')}-${i & 1 ? 'truth' : 'native'}.png`), Buffer.from(u.split(',')[1], 'base64'))); }
+    rows.push({ variant: variant.name, view: v.name, ...r, strip: undefined, pngN: undefined, pngT: undefined, pngH: undefined });
   }
   await ctx.close();
 }

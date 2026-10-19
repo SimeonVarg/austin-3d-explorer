@@ -26,6 +26,7 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, flatten, join, mergeDocuments, meshopt, palette, prune, simplify, unpartition, weld } from '@gltf-transform/functions';
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import { makeAppCopy } from './app_copy.mjs';
+import { fineData } from './fine_repeat.mjs';
 
 // ── PARAMETERS ──────────────────────────────────────────────────────────
 const ORIGIN = { lat: 30.28601, lon: -97.73932 };   // must equal sources.py ORIGIN
@@ -61,7 +62,7 @@ const JOBS = +(opt('--jobs') || 2);
 const sha = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
 const EXPORTER = path.join(HERE, 'blender_export_v2.py');
 const EXPORTER_HASH = sha(fs.readFileSync(EXPORTER)).slice(0, 16);
-const TILER_HASH = sha(fs.readFileSync(fileURLToPath(import.meta.url))).slice(0, 16);
+const TILER_HASH = sha(Buffer.concat([fs.readFileSync(fileURLToPath(import.meta.url)), fs.readFileSync(path.join(HERE, 'fine_repeat.mjs'))])).slice(0, 16);
 
 function run(cmd, args, logFile) {
   return new Promise((res) => {
@@ -240,6 +241,7 @@ async function partDoc(slugs, lod, part) {
   if (part === 'opaque') for (const mt of doc.getRoot().listMaterials()) mt.setDoubleSided(true);
   for (const m of doc.getRoot().listMeshes()) m.setName(part);
   for (const n of doc.getRoot().listNodes()) n.setName(part);
+  if (lod === 0) await fineData(doc);           // per palette entry: feature size + its surround's mean colour (fine_repeat.mjs; the app fades fine repeats by footprint)
   return doc;
 }
 
