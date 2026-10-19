@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 382 builds of 314 buildings; 116 buildings flagged to retarget.
+Right now: 383 builds of 315 buildings; 117 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -228,6 +228,7 @@ Right now: 382 builds of 314 buildings; 116 buildings flagged to retarget.
 | Jesse H. Jones Communication Center (B) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 16,014 | 28 min, 309k plan tokens |  |  |
 | Jesse H. Jones Hall | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 21,636 | 41 min, 394k plan tokens |  |  |
 | Jester East Hall | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 21,372 | 39 min, 397k plan tokens |  |  |
+| Jester West Hall | Opus 5.5 | 2026-10-19 | loose | mixed | unreviewed | 56,306 | 190 min |  | yes |
 | John B. Connally Center for Justice | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 16,000 | 27 min, 316k plan tokens |  |  |
 | John W. Hargis Hall | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 19,482 | 39 min, 361k plan tokens |  |  |
 | Kinsolving Dormitory | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 24,872 | 34 min, 356k plan tokens |  |  |
@@ -408,6 +409,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Hotel ZaZa**: Earth 3D; 2nd view held-outs all shift one way (~0.44 deg heading), main view 2.3 px; balconies too light; 9k vs 12k
 - **Ion Austin**: after-sunset photograph: colours all miss; roof scale shrunk 11% late (53 to 60 m)
 - **J. T. Patterson Laboratories**: stair tower position inferred, up to 7.3 m off; glass too light
+- **Jester West Hall**: Rebuilt from 10 site photographs + Street View + 2021 scan (Earth type-only); 3 independent reviews (round 3: no major mismatch); app copy 24,494 tri. Gaps: camera loose (held-out 13-16 px), E/N/S faces inferred from Earth, S-wing cross gables simplified.
 - **JW Marriott Austin**: Earth 3D; 3 held-out pass but one only after a model change made after its error was seen, and R_NE sat on the neighbour; white 78.6 m tower inside the outline built too (may be a separate building); 19k vs 34k tri
 - **Littlefield House**: camera unproven on an old small public photo; work render only; heights maybe 5-10 % high
 - **Neill-Cochran House Museum**: Earth 3D; held-outs 15.6-19.7 px (ground barely constrained: no scan-height fit points); east porch inferred
