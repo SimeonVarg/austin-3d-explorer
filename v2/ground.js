@@ -23,7 +23,9 @@ import { installStreetNear } from './street_near.js';
 const params = new URLSearchParams(location.search);
 const DATA = new URL('./data/aerial/', import.meta.url).href;
 
-export function installGround({ THREE, scene, camera, renderer, city, redraw, phone = false }) {
+// lodHeight: the canvas height in pixels the aerial's detail is chosen for (main.js passes the FULL-resolution height, so the
+// adaptive resolution's smaller canvas in motion does not swap the ground's tiles back and forth)
+export function installGround({ THREE, scene, camera, renderer, city, redraw, phone = false, lodHeight = () => renderer.domElement.height }) {
   addCredits();
   // the street furniture (street.js) comes with the ground, so main.js keeps one hook
   try { installStreet({ THREE, scene, redraw, phone }); } catch (e) { console.warn('[v2 street]', e.message); }
@@ -208,7 +210,7 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
   function select() {
     pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     frustum.setFromProjectionMatrix(pm, THREE.WebGLCoordinateSystem, camera.reversedDepth);
-    const H = renderer.domElement.height || 1;
+    const H = lodHeight() || 1;
     const pixAngle = (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)) / H;
     const c = camera.position;
     let lod = LOD, out;
@@ -271,7 +273,7 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
     state.frame++;
     let up = 0;
     while (state.ready.length && up < G.UPLOADS_PER_FRAME) { const [n, img] = state.ready.shift(); if (n.state === 'loading') { upload(n, img); up++; } else if (img.close) img.close(); }
-    const e = camera.matrixWorld.elements, key = e.map((v) => v.toFixed(2)).join(',') + '|' + renderer.domElement.height;
+    const e = camera.matrixWorld.elements, key = e.map((v) => v.toFixed(2)).join(',') + '|' + lodHeight();
     if (up || key !== state.lastKey) { state.lastKey = key; select(); show(); }
     pump();
     if (!state.baseReady && state.roots.length && state.roots.every((n) => n.state === 'ready' || n.state === 'fail')) {

@@ -76,7 +76,6 @@ try {
   throw e;
 }
 const DPR = Math.min(devicePixelRatio || 1, PHONE ? QUALITY.MAX_PIXEL_RATIO_PHONE : QUALITY.MAX_PIXEL_RATIO);
-renderer.setPixelRatio(DPR);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 // 'standard': Blender's Standard view (exposure, then the sRGB curve) below LOOK.TONE_SHOULDER, and above it the highlight
 // roll-off of Khronos PBR Neutral, WITHOUT Neutral's dark offset (which subtracts the darkest channel from dark colours and turned
@@ -265,6 +264,47 @@ function fitShadow() {
   if (r !== shadowRung) setShadowExtent(r);
 }
 scene.add(sun, sun.target);
+
+// The shadow map is drawn again only when it can change (QUALITY.SHADOW_CACHE). three.js's default redraws it on EVERY frame: every
+// caster in the light's box (most of the city's triangles) drawn a second time into a 4096 x 4096 map, for a picture that is the
+// same unless the light box moved (followShadow sets needsUpdate) or a caster changed. A caster change is caught generically, so a
+// layer added later needs no hook: just before three.js would draw the shadow, a signature of every visible shadow-casting mesh
+// (which mesh, its geometry and that geometry's version, its instance count and matrices, where it stands) is compared with the
+// last one, and any difference redraws the map.
+const SHADOW_CACHE = QUALITY.SHADOW_CACHE && params.get('shadowcache') !== '0';
+sun.shadow.autoUpdate = !SHADOW_CACHE;
+const shadowStats = { redraws: 0, frames: 0, sigMs: 0 };
+function casterSignature(root) {
+  let a = 0x811c9dc5, b = 0;
+  const mix = (v) => { a = Math.imul(a ^ (v | 0), 0x01000193); b = (b + Math.imul(v | 0, 0x9e3779b1)) | 0; };
+  const visit = (o) => {
+    if (!o.visible) return;
+    if (o.castShadow && o.geometry) {
+      const g = o.geometry, p = g.attributes.position, e = o.matrixWorld.elements;
+      mix(o.id); mix(g.id); mix(p ? p.version : -1); mix(g.index ? g.index.version : -1); mix(g.drawRange.start); mix(Math.min(g.drawRange.count, 2e9));
+      if (o.isInstancedMesh) { mix(o.count); mix(o.instanceMatrix.version); }
+      mix(e[12] * 256); mix(e[13] * 256); mix(e[14] * 256); mix(e[0] * 4096); mix(e[5] * 4096); mix(e[10] * 4096);
+    }
+    const c = o.children;
+    for (let i = 0; i < c.length; i++) visit(c[i]);
+  };
+  visit(root);
+  return a + ':' + b;
+}
+if (SHADOW_CACHE) {
+  const drawShadows = renderer.shadowMap.render;
+  let lastSig = '';
+  renderer.shadowMap.render = function (lights, s, cam) {
+    if (s === scene) {
+      const t = performance.now();
+      const sig = casterSignature(scene);
+      shadowStats.sigMs += performance.now() - t; shadowStats.frames++;
+      if (sig !== lastSig) { lastSig = sig; sun.shadow.needsUpdate = true; }
+      if (sun.shadow.needsUpdate) shadowStats.redraws++;
+    }
+    return drawShadows.call(this, lights, s, cam);
+  };
+}
 if (LOOK.HEMI_INTENSITY > 0) scene.add(new THREE.HemisphereLight(LOOK.HEMI_SKY, LOOK.HEMI_GROUND, LOOK.HEMI_INTENSITY));
 
 const SUN_DISTANCE_M = 1500;   // the shadow camera stands this far up the sun from the target (covers the tallest tower in the largest box)
@@ -347,7 +387,8 @@ const city = { buildings: [], byId: new Map(), roads: [], sidewalks: [], trees: 
 const cityGroup = new THREE.Group(); cityGroup.name = 'city';
 scene.add(cityGroup);
 // the City's 2025 aerial on the ground, the street layers and the credits link (ground.js; it hooks scene.onBeforeRender itself)
-installGround({ THREE, scene, camera, renderer, city, redraw: () => { dirty = true; }, phone: PHONE });
+installGround({ THREE, scene, camera, renderer, city, redraw: () => { dirty = true; }, phone: PHONE,
+  lodHeight: () => Math.floor(innerHeight * DPR) });
 
 function geometryOf(t, normals) {
   const g = new THREE.BufferGeometry();
@@ -660,12 +701,57 @@ const setupDone = setupUI();
 
 // ── frame loop (renders only when something moved) ────────────────────
 let dirty = true, frames = 0;
-const frameLog = { on: false, dts: [], cpu: [], last: 0 };
+const frameLog = { on: false, dts: [], cpu: [], scales: [], last: 0 };
 function resize() {
   const w = innerWidth, h = innerHeight;
-  renderer.setSize(w, h, false);
+  renderer.setDrawingBufferSize(w, h, DPR * adapt.scale);   // = setPixelRatio + setSize(w, h, false), with one canvas resize
   camera.aspect = w / h; camera.updateProjectionMatrix();
   dirty = true;
+}
+
+// ── adaptive resolution, in motion only (QUALITY.ADAPT) ────────────────
+// While the camera moves, the rAF interval of frames drawn back to back is measured. When its median over A.WINDOW frames is slower
+// than the target, the canvas steps down to fewer pixels; when it is well inside the target it steps back up. The moment the camera
+// has been still for A.STILL_MS the canvas is back at the full pixel ratio and the still is drawn at full sharpness. The scale it
+// settled on is kept for the next motion, so a weak GPU starts the next move already at its scale. On a GPU that holds the target the
+// first decision is "stay", and the canvas never changes.
+const A = QUALITY.ADAPT;
+const adapt = {
+  on: A.ON && params.get('adapt') !== '0',
+  budgetMs: 1000 / (+params.get('adaptfps') || A.TARGET_FPS),
+  floor: Math.min(1, Math.max(A.MIN_SCALE, A.MIN_PIXEL_RATIO / DPR)),
+  scale: 1,            // the canvas's scale now
+  motionScale: 1,      // the scale motion runs at (learned)
+  samples: [], lastDraw: 0, lastMove: 0, changes: 0, movingDraw: false,
+};
+function setScale(s) {
+  s = THREE.MathUtils.clamp(s, adapt.floor, 1);
+  if (Math.abs(s - adapt.scale) < 1e-3) return;
+  adapt.scale = s; adapt.samples = []; adapt.changes++;
+  resize();
+}
+// at the top of every rAF: `moved` = the camera moves in this frame
+function adaptFrame(now, moved) {
+  const prevMovingDraw = adapt.movingDraw;
+  adapt.movingDraw = false;
+  if (!adapt.on || adapt.floor >= 1) return;
+  if (moved) {
+    adapt.lastMove = now;
+    if (adapt.scale !== adapt.motionScale) { setScale(adapt.motionScale); return; }
+  } else {
+    if (adapt.scale < 1 && now - adapt.lastMove > A.STILL_MS) setScale(1);
+    return;
+  }
+  // the interval since the last drawn frame, when that frame was drawn in motion at this scale (it is that frame's cost)
+  if (!prevMovingDraw || now - adapt.lastDraw > 1000) return;
+  adapt.samples.push(now - adapt.lastDraw);
+  if (adapt.samples.length < A.WINDOW) return;
+  const s = [...adapt.samples].sort((x, y) => x - y), med = s[s.length >> 1];
+  adapt.samples = [];
+  if (med > adapt.budgetMs * A.DOWN_AT && adapt.scale > adapt.floor) adapt.motionScale = Math.max(adapt.floor, adapt.scale * A.STEP);
+  else if (med < adapt.budgetMs * A.UP_AT && adapt.scale < 1) adapt.motionScale = Math.min(1, adapt.scale / A.STEP);
+  else return;
+  setScale(adapt.motionScale);
 }
 addEventListener('resize', resize);
 resize();
@@ -676,6 +762,8 @@ function frame(now) {
   const easing = map.step(now);
   const turned = controls.update();
   const moved = turned || flying || easing;
+  const moving = moved || (frameLog.on && frameLog.orbit);   // the verify scripts' timed orbit is camera motion too
+  adaptFrame(now, moving);
   if (moved) { markers.update(); if (!easing) map.fire('move'); }
   if (frameLog.on && frameLog.orbit) { orbitStep(); }
   if (tiles) tiles.update(now);
@@ -687,8 +775,9 @@ function frame(now) {
   dome.position.copy(camera.position);
   const t0 = performance.now();
   renderer.render(scene, camera);
+  adapt.lastDraw = now; adapt.movingDraw = moving;
   if (!frames) { try { window.loaderSceneReady?.(); } catch (e) {} }
-  if (frameLog.on) { frameLog.cpu.push(performance.now() - t0); if (frameLog.last) frameLog.dts.push(now - frameLog.last); frameLog.last = now; }
+  if (frameLog.on) { frameLog.cpu.push(performance.now() - t0); frameLog.scales.push(adapt.scale); if (frameLog.last) frameLog.dts.push(now - frameLog.last); frameLog.last = now; }
   frames++;
 }
 requestAnimationFrame(frame);
@@ -822,11 +911,12 @@ window.__v2 = {
   pickApartment: (name) => { const i = apartments.findIndex((a) => a.name === name); if (i >= 0) { aptSel.value = String(i); return update(true); } },
   pickBuilding: (code) => { const i = buildings.findIndex((b) => b.code === code); if (i >= 0) { clsSel.value = String(i); return update(true); } },
   info: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures,
-    dpr: renderer.getPixelRatio(), size: [renderer.domElement.width, renderer.domElement.height], reversedDepth: renderer.capabilities.reversedDepthBuffer, frames }),
+    dpr: renderer.getPixelRatio(), size: [renderer.domElement.width, renderer.domElement.height], reversedDepth: renderer.capabilities.reversedDepthBuffer, frames,
+    shadow: { cache: SHADOW_CACHE, ...shadowStats }, adapt: { on: adapt.on, floor: adapt.floor, scale: adapt.scale, motionScale: adapt.motionScale, changes: adapt.changes } }),
   async measure(ms = 4000, degPerFrame = 0.15) {
-    Object.assign(frameLog, { on: true, orbit: degPerFrame > 0, degPerFrame, dts: [], cpu: [], last: 0 });
+    Object.assign(frameLog, { on: true, orbit: degPerFrame > 0, degPerFrame, dts: [], cpu: [], scales: [], last: 0 });
     await new Promise((r) => setTimeout(r, ms));
     frameLog.on = false;
-    return { frames: frameLog.dts.length, medianFrameMs: median(frameLog.dts), p95FrameMs: pct(frameLog.dts, 0.95), medianRenderCallMs: median(frameLog.cpu), ...this.info() };
+    return { frames: frameLog.dts.length, medianFrameMs: median(frameLog.dts), p95FrameMs: pct(frameLog.dts, 0.95), medianRenderCallMs: median(frameLog.cpu), medianScale: median(frameLog.scales), ...this.info() };
   },
 };

@@ -120,4 +120,21 @@ export const QUALITY = {
   MAX_PIXEL_RATIO: 2,           // desktop
   MAX_PIXEL_RATIO_PHONE: 2,
   MSAA: true,
+  // The sun's shadow map is drawn again only when it can change: the light box moved a step, or a shadow caster was added,
+  // removed, shown, hidden or reshaped (main.js casterSignature). Same picture; ?shadowcache=0 redraws it on every frame.
+  SHADOW_CACHE: true,
+  // Adaptive resolution, IN MOTION ONLY: while the camera moves and the measured frame time stays above the target, the canvas
+  // draws fewer pixels (the browser scales it up); the moment the camera stops it is back at full sharpness. A GPU that holds the
+  // target never leaves full resolution. ?adapt=0 turns it off; ?adaptfps=N sets the target.
+  ADAPT: {
+    ON: true,
+    TARGET_FPS: 30,             // the floor it defends in motion
+    DOWN_AT: 1.2,               // step down when the median motion frame is slower than this x the target's frame time
+    UP_AT: 0.6,                 // step back up in motion when the median frame is faster than this x the target's frame time
+    STEP: 0.84,                 // one step = this x the linear scale (about 0.7 x the pixels)
+    MIN_SCALE: 0.5,             // never below this x the full pixel ratio (linear)
+    MIN_PIXEL_RATIO: 1,         // and never below one canvas pixel per CSS pixel
+    WINDOW: 5,                  // motion frames measured after a change before the next decision (their median)
+    STILL_MS: 200,              // the camera has not moved for this long: draw at full resolution again
+  },
 };
