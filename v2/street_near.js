@@ -1,11 +1,12 @@
 // v2 street level near the camera (owner, 2026-10-18: "Can you get street level detail"), from v2/data/street/near.json
 // (scripts/v2/street_near.py): modelled asphalt with the lane lines the photograph shows, kerbs with gutters, sidewalk slabs with
-// joints, driveway aprons, lane-use arrows and street signs. Within NEAR.FADE these replace the aerial photograph on streets; past it
-// they fade out and the photograph (sharp from 150 m up) carries the street. Everything is merged or instanced in 250 m squares.
+// joints, driveway aprons, validated lane-use arrows and street signs. The carriageway is opaque across the entire baked demo area;
+// finer details fade with distance. Everything is merged or instanced; the asphalt is one shared draw.
 //
 // Rule 15: fine detail is procedural only where it is bigger than a pixel (the asphalt grain and the slab joints fade with the
-// screen-space derivative), and nothing here is drawn past NEAR.FADE[1].
+// screen-space derivative). The opaque asphalt stays; fine detail is not drawn past NEAR.FADE[1].
 import { NEAR_LOOK as N } from './street-look.js';
+import { loadSafeStreet } from './street-data.js';
 
 const params = new URLSearchParams(location.search);
 const DATA = new URL('./data/street/near.json', import.meta.url).href;
@@ -23,8 +24,8 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   const stats = { ready: false };
 
   // ── materials: alpha by distance from the camera; optional procedural grain / joints in world space ──
-  function nearMaterial(color, { grain = 0, joints = false, opaqueDepth = false, roughness = 0.95 } = {}) {
-    const m = new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, transparent: true, depthWrite: opaqueDepth,
+  function nearMaterial(color, { grain = 0, joints = false, opaqueDepth = false, roughness = 0.95, permanent = false } = {}) {
+    const m = new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, transparent: !permanent, depthWrite: opaqueDepth || permanent,
       polygonOffset: !opaqueDepth, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
     m.onBeforeCompile = (sh) => {
       sh.vertexShader = sh.vertexShader
@@ -38,7 +39,8 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
             return mix(mix(nHash(i), nHash(i + vec2(1, 0)), f.x), mix(nHash(i + vec2(0, 1)), nHash(i + vec2(1, 1)), f.x), f.y); }`)
         .replace('#include <alphatest_fragment>', `#include <alphatest_fragment>
           float nd = length(vViewPosition);
-          diffuseColor.a *= 1.0 - smoothstep(${FADE[0].toFixed(1)}, ${FADE[1].toFixed(1)}, nd);
+          ${permanent ? '' : `diffuseColor.a *= 1.0 - smoothstep(${FADE[0].toFixed(1)}, ${FADE[1].toFixed(1)}, nd);
+          if (diffuseColor.a < 0.01) discard;`}
           #if ${grain > 0 ? 1 : 0}
             // two octaves of grain, each faded out before its cells get smaller than a pixel (rule 15)
             vec2 gp = vNearW.xz;
@@ -53,7 +55,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
             diffuseColor.rgb *= 1.0 - ${N.JOINT_DARK.toFixed(2)} * jl * (1.0 - smoothstep(0.08, 0.3, jw));
           #endif`);
     };
-    m.customProgramCacheKey = () => `v2-near-${grain}-${joints}-${FADE.join(',')}`;
+    m.customProgramCacheKey = () => `v2-near-${grain}-${joints}-${permanent}-${FADE.join(',')}`;
     return m;
   }
 
@@ -61,7 +63,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   const SQ = 250;
   const buckets = new Map();   // key -> { [kind]: {pos, nrm, s, idx} }
   function buf(kind, x, z) {
-    const k = Math.floor(x / SQ) + ',' + Math.floor(z / SQ);
+    const k = kind === 'asphalt' ? 'all asphalt' : Math.floor(x / SQ) + ',' + Math.floor(z / SQ);
     let b = buckets.get(k); if (!b) buckets.set(k, (b = {}));
     return b[kind] || (b[kind] = { pos: [], nrm: [], s: [], idx: [] });
   }
@@ -87,7 +89,8 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       const p = pts[i], q = pts[i + 1], L = Math.hypot(q[0] - p[0], q[1] - p[1]); if (L < 1e-3) continue;
       const nx = -(q[1] - p[1]) / L, nz = (q[0] - p[0]) / L, v = B.pos.length / 3;
       const px = p[0] + nx * o, pz = p[1] + nz * o, qx = q[0] + nx * o, qz = q[1] + nz * o;
-      B.pos.push(px, y0, pz, qx, y0, qz, qx, y1, qz, px, y1, pz);
+      const hp = typeof y1 === 'function' ? y1(px, pz) : y1, hq = typeof y1 === 'function' ? y1(qx, qz) : y1;
+      B.pos.push(px, y0, pz, qx, y0, qz, qx, hq, qz, px, hp, pz);
       for (let k = 0; k < 4; k++) { B.nrm.push(nx * facing, 0, nz * facing); B.s.push(0); }
       B.idx.push(v, v + 1, v + 2, v, v + 2, v + 3);
     }
@@ -108,24 +111,60 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
 
   async function build() {
     const useSurface = params.get('surface') !== '0';
-    const [d, dOsm, surf, surfOsm] = await Promise.all([fetch(DATA).then((r) => r.json()), fetch(DATA_OSM).then((r) => r.json()).catch(() => null),
+    const [d, dOsm, surf, surfOsm, safe, safeOsm, signFaces] = await Promise.all([fetch(DATA).then((r) => r.json()), fetch(DATA_OSM).then((r) => r.json()).catch(() => null),
       useSurface ? fetch(SURFACE).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null,
-      useSurface ? fetch(SURFACE_OSM).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null]);
+      useSurface ? fetch(SURFACE_OSM).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null,
+      loadSafeStreet('safe'), loadSafeStreet('safe_osm'),
+      fetch(new URL('./data/street/sign_faces.json', import.meta.url)).then(r => r.ok ? r.json() : null).catch(() => null)]);
+    // Fail closed: raw point inventories aren't safe render positions. OSM-derived arrows remain in the ODbL file.
+    d.signs = safe?.signs || []; d.arrows = safeOsm?.arrows || [];
     const H = N.CURB_HEIGHT_M;
     if (surf) {
-      // polygons (with holes), triangulated here; frontage classes at sidewalk height, asphalt at road height
+      const walkRows = surf.walk.flatMap((r, i) => surf.walk_panels?.[i] || [r]);
+      const rampCells = new Map();
+      for (const r of surf.walk_ramps || []) {
+        const pts = pairs(r.region[0], 0), xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+        for (let x = Math.floor(Math.min(...xs) / 10); x <= Math.floor(Math.max(...xs) / 10); x++)
+          for (let z = Math.floor(Math.min(...zs) / 10); z <= Math.floor(Math.max(...zs) / 10); z++) {
+            const k = x + ',' + z; if (!rampCells.has(k)) rampCells.set(k, []); rampCells.get(k).push(r);
+          }
+      }
+      const walkHeight = (x, z) => {
+        let height = H;
+        for (const r of rampCells.get(Math.floor(x / 10) + ',' + Math.floor(z / 10)) || []) {
+          const dx = x - r.end[0], dz = z - r.end[1], along = dx * r.inward[0] + dz * r.inward[1];
+          const width = Math.max(...pairs(r.region[0], 0).map(p => Math.abs((p[0] - r.end[0]) * -r.inward[1] + (p[1] - r.end[1]) * r.inward[0])));
+          if (along >= -.2 && along <= r.length_m + .05 && Math.abs(dx * -r.inward[1] + dz * r.inward[0]) <= width + .05)
+            height = Math.min(height, N.FRONT_Y_M + (H - N.FRONT_Y_M) * THREE.MathUtils.clamp(along / r.length_m, 0, 1));
+        }
+        return height;
+      };
+      // Polygons with holes: sidewalk slabs are raised; classified frontage stays at ground level.
       const poly = (kind, rings, y) => {
         const toV = (r) => { const o = []; for (let i = 0; i + 1 < r.length; i += 2) o.push(new THREE.Vector2(r[i], r[i + 1])); return o; };
         const outer = toV(rings[0]), holes = rings.slice(1).map(toV);
         if (outer.length < 3) return;
         let tris; try { tris = THREE.ShapeUtils.triangulateShape(outer, holes); } catch (e) { return; }
         const all = outer.concat(...holes), B = buf(kind, all[0].x, all[0].y), v0 = B.pos.length / 3;
-        for (const p of all) { B.pos.push(p.x, y, p.y); B.nrm.push(0, 1, 0); B.s.push(0); }
+        for (const p of all) { B.pos.push(p.x, typeof y === 'function' ? y(p.x, p.y) : y, p.y); B.nrm.push(0, 1, 0); B.s.push(0); }
         for (const t of tris) B.idx.push(v0 + t[0], v0 + t[2], v0 + t[1]);   // (x, z) shape -> faces up
       };
       for (const r of surf.asphalt) poly('asphalt', r, N.ASPHALT_Y_M);
-      for (const r of surf.walk) poly('walk', r, H);
-      for (const k of ['paving', 'lawn', 'mulch']) for (const r of surf[k] || []) poly(k, r, H - 0.004);
+      for (const r of walkRows) poly('walk', r, walkHeight);
+      for (const r of surf.kerb_tops || []) poly('curb', r, H + N.CURB_TOP_LIFT_M);
+      // Close the complete slab boundary, including driveway ends and courtyard holes. No walls on tile seams.
+      if (surf.solid_edges) for (const [rows, height] of [[walkRows, walkHeight], [surf.kerb_tops || [], H + N.CURB_TOP_LIFT_M]]) {
+        const edges = new Map();
+        for (const polygon of rows) for (const ring of polygon) {
+          const pts = pairs(ring, 0);
+          for (let i = 0; i < pts.length; i++) {
+            const a = pts[i], b = pts[(i + 1) % pts.length], ka = a.join(','), kb = b.join(','), key = ka < kb ? ka + '|' + kb : kb + '|' + ka;
+            const edge = edges.get(key); if (edge) edge.count++; else edges.set(key, { a, b, count: 1 });
+          }
+        }
+        for (const e of edges.values()) if (e.count === 1 || typeof height !== 'function') face('curb', [e.a, e.b], 0, 0, height, 1);
+      }
+      for (const k of ['paving', 'lawn', 'mulch']) for (const r of surf[k] || []) poly(k, r, N.FRONT_Y_M);
       d.roads = []; d.fronts = []; d.walks = []; d.curbs = surf.kerbs; d.lanes = surf.lanes.concat((surfOsm && surfOsm.lanes) || []);
     } else if (dOsm && dOsm.lanes) d.lanes = d.lanes.concat(dOsm.lanes);
     // asphalt, kerb to kerb (the two kerbs are measured per side: street_near.py)
@@ -161,8 +200,10 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
     for (const c of d.curbs) {
       const pts = pairs(c, 0); if (pts.length < 2) continue;
       strip('gutter', pts, -N.GUTTER_M, 0, N.GUTTER_Y_M);
-      face('curb', pts, 0, 0, H, -1);
-      strip('curb', pts, 0, N.CURB_TOP_M, H);
+      if (!surf?.solid_edges) {
+        face('curb', pts, 0, 0, H, -1);
+        strip('curb', pts, 0, N.CURB_TOP_M, H);
+      }
     }
     // sidewalk slabs (centre line, width) with joints, and their two side faces
     for (const w of d.walks) {
@@ -171,7 +212,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       face('curb', pts, width / 2, 0, H, 1); face('curb', pts, -width / 2, 0, H, -1);
     }
     const mats = {
-      asphalt: nearMaterial(N.ASPHALT, { grain: N.ASPHALT_GRAIN }), white: nearMaterial(N.PAINT_WHITE), yellow: nearMaterial(N.PAINT_YELLOW),
+      asphalt: nearMaterial(N.ASPHALT, { grain: N.ASPHALT_GRAIN, permanent: true }), white: nearMaterial(N.PAINT_WHITE), yellow: nearMaterial(N.PAINT_YELLOW),
       gutter: nearMaterial(N.GUTTER, { grain: N.CONCRETE_GRAIN }), curb: nearMaterial(N.CURB, { opaqueDepth: true }),
       walk: nearMaterial(N.WALK, { grain: N.CONCRETE_GRAIN, joints: true, opaqueDepth: true }),
       paving: nearMaterial(N.FRONT_PAVING, { grain: N.CONCRETE_GRAIN }), lawn: nearMaterial(N.FRONT_LAWN, { grain: N.LAWN_GRAIN }),
@@ -187,6 +228,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       g.setAttribute('normal', new THREE.Float32BufferAttribute(B.nrm, 3));
       g.setAttribute('aS', new THREE.Float32BufferAttribute(B.s, 1));
       g.setIndex(B.idx); g.computeBoundingSphere();
+      if (kind === 'walk' && surf?.walk_ramps?.length) g.computeVertexNormals();
       const m = new THREE.Mesh(g, mats[kind]); m.renderOrder = ORDER[kind]; m.receiveShadow = true; m.name = 'near ' + kind;
       group.add(m); draws++; tris += B.idx.length / 3;
     }
@@ -218,33 +260,119 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       return new THREE.ShapeGeometry(shapes).rotateX(-Math.PI / 2);   // shape y -> -z: left of travel stays left
     };
     const byKind = new Map();
-    for (const [x, z, a, k] of d.arrows) { const kk = k <= 4 ? k : 0; (byKind.get(kk) || byKind.set(kk, []).get(kk)).push([x, N.PAINT_Y_M + 0.002, z, a]); }
+    for (const [x, z, a, k] of d.arrows) { if (k < 0 || k > 4) continue; (byKind.get(k) || byKind.set(k, []).get(k)).push([x, N.PAINT_Y_M + 0.002, z, a]); }
     for (const [k, rows] of byKind) inst('arrows ' + k, arrowShape(k), nearMaterial(N.PAINT_WHITE), rows, 0.96);
 
     // signs: a post per location, panels stacked from the top; the face normal looks along the panel's angle
-    const posts = [], panels = new Map();
+    const posts = [], panels = new Map(), inkBuckets = new Map();
+    const atlas = signFaces ? await new Promise(resolve => new THREE.TextureLoader().load(new URL('./data/street/sign_glyphs.png',import.meta.url).href,resolve,undefined,()=>resolve(null))) : null;
+    const faceMap = new Map((atlas ? signFaces.records : []).map((r, i) => [JSON.stringify(r), signFaces.faces[i]]));
+    const glyphs = new Map(Object.entries(signFaces?.glyphs || {}));
+    const inkColor = new THREE.Color();
+    function inkPoly(points, triangles, x, z, a, yy, color, uv = null) {
+      const key=Math.floor(x/SQ)+','+Math.floor(z/SQ);
+      if (!inkBuckets.has(key)) inkBuckets.set(key,{pos:[],col:[],uv:[],idx:[]});
+      const ink=inkBuckets.get(key);
+      const start = ink.pos.length / 3, ca = Math.cos(a), sa = Math.sin(a); inkColor.set(color);
+      points.forEach(([u, v], i) => {
+        // Text right is -z when looking at a face whose normal is +x.
+        ink.pos.push(x + ca * N.SIGN_INK_OFFSET_M + sa * u, yy + v, z + sa * N.SIGN_INK_OFFSET_M - ca * u);
+        ink.col.push(inkColor.r, inkColor.g, inkColor.b); ink.uv.push(...(uv ? uv[i] : [-1,-1]));
+      });
+      ink.idx.push(...triangles.map(i => start + i));
+    }
+    function legend(text, spec, k, x, z, a, yy) {
+      const white = k === 1 || k === 2;
+      // White inset rim on stop/blade signs, red rim on the point-down yield sign.
+      let rim;
+      if (k === 1) rim = Array.from({length: 8}, (_,i) => { const q = (i + .5) * Math.PI / 4; return [Math.cos(q) * spec.w / 2, Math.sin(q) * spec.h / 2]; });
+      else if (k === 3) rim = [[-spec.w / 2, spec.h / 2], [spec.w / 2, spec.h / 2], [0, -spec.h / 2]];
+      else rim = [[-spec.w/2,-spec.h/2],[spec.w/2,-spec.h/2],[spec.w/2,spec.h/2],[-spec.w/2,spec.h/2]];
+      const rimWidth = k === 3 ? N.SIGN_YIELD_BORDER_M : N.SIGN_BORDER_M;
+      const sx = 1 - 2 * rimWidth / spec.w, sy = 1 - 2 * rimWidth / spec.h;
+      const outer = rim.map(([u,v])=>[u*N.SIGN_BORDER_INSET,v*N.SIGN_BORDER_INSET]), inner = outer.map(([u,v])=>[u*sx,v*sy]);
+      const points = outer.concat(inner), tris = [];
+      for (let i=0;i<rim.length;i++) { const j=(i+1)%rim.length, n=rim.length; tris.push(i,j,n+i,j,n+j,n+i); }
+      inkPoly(points,tris,x,z,a,yy,k===3?N.SIGN_RED:white?N.SIGN_WHITE:N.SIGN_INK);
+      const widths = text.map(line => [...line].reduce((v,ch) => v+(glyphs.get(ch)?.advance || .5),0));
+      const scale = Math.min(spec.w * (k===3?N.SIGN_YIELD_TEXT_FILL:N.SIGN_TEXT_FILL) / Math.max(...widths,1), spec.h * (k===3?N.SIGN_YIELD_TEXT_HEIGHT:N.SIGN_TEXT_FILL) / (text.length * N.SIGN_LINE_SPACING));
+      text.forEach((line,i) => {
+        let left = -widths[i]*scale/2;
+        const baseline = (text.length-1)*N.SIGN_LINE_SPACING*scale/2 - i*N.SIGN_LINE_SPACING*scale - scale/2 + (k===3?spec.h*N.SIGN_YIELD_TEXT_RISE:0);
+        for (const ch of line) {
+          const g=glyphs.get(ch); if (!g) continue;
+          if (ch !== ' ') {
+            const [x0,y0,x1,y1]=g.bounds,[u0,v0,u1,v1]=g.uv;
+            inkPoly([[x0,y0],[x1,y0],[x1,y1],[x0,y1]].map(([u,v])=>[left+u*scale,baseline+v*scale]),[0,1,2,0,2,3],x,z,a,yy,white?N.SIGN_WHITE:N.SIGN_INK,[[u0,v1],[u1,v1],[u1,v0],[u0,v0]]);
+          }
+          left+=g.advance*scale;
+        }
+      });
+    }
+    let drawnPanels = 0, omittedPanels = 0;
     for (const s of d.signs) {
-      const [x, z, n] = s; posts.push([x, 0, z, 0]);
-      let y = N.SIGN_TOP_M;
+      const [x, z, n] = s, faces = faceMap.get(JSON.stringify(s));
+      if (!faces?.some(Boolean)) { omittedPanels += n; continue; }
+      const stackHeight = faces.reduce((sum,face,i)=>sum+(face && s[3+i*2]!==2 ? (N.SIGNS[s[3+i*2]] || N.SIGNS[0]).h+N.SIGN_STACK_GAP_M : 0),0);
+      const top = Math.max(N.SIGN_TOP_M,N.SIGN_CLEARANCE_M+stackHeight);
+      const bladeY = Math.max(N.SIGN_BLADE_Y_M,top+N.SIGN_BLADE_GAP_M);
+      const poleHeight = Math.max(N.SIGN_POST_M,faces.some((f,i)=>f && s[3+i*2]===2) ? bladeY+.1 : top+.05);
+      posts.push([x, -0.1, z, 0, 1, poleHeight+0.1, 1]);
+      let y = top;
       for (let i = 0; i < n; i++) {
         const k = s[3 + i * 2], a = s[4 + i * 2], spec = N.SIGNS[k] || N.SIGNS[0];
-        const yy = k === 2 ? N.SIGN_BLADE_Y_M : (y -= spec.h + 0.08) + spec.h / 2;
+        if (!faces[i]) { omittedPanels++; continue; }
+        const yy = k === 2 ? bladeY : (y -= spec.h + N.SIGN_STACK_GAP_M) + spec.h / 2;
         (panels.get(k) || panels.set(k, []).get(k)).push([x + Math.cos(a) * 0.06, yy, z + Math.sin(a) * 0.06, a]);
+        legend(faces[i], spec, k, x, z, a, yy); drawnPanels++;
       }
     }
     const signMat = (c) => nearMaterial(c, { opaqueDepth: true, roughness: 0.6 });
     // a post's foot sits in the sidewalk slab (it starts below the slab's top), and it throws a shadow, so it reads as standing
-    inst('sign posts', new THREE.CylinderGeometry(N.SIGN_POST_R_M, N.SIGN_POST_R_M, N.SIGN_POST_M + 0.2, 8).translate(0, N.SIGN_POST_M / 2 - 0.1, 0), signMat(N.SIGN_POST), posts, null, true);
+    inst('sign posts', new THREE.CylinderGeometry(N.SIGN_POST_R_M, N.SIGN_POST_R_M, 1, 8).translate(0, 0.5, 0), signMat(N.SIGN_POST), posts, null, true);
     for (const [k, rows] of panels) {
       const spec = N.SIGNS[k] || N.SIGNS[0];
       let geo;
       if (spec.shape === 'octagon') geo = new THREE.CylinderGeometry(spec.w / 2, spec.w / 2, 0.02, 8).rotateZ(Math.PI / 2).rotateX(Math.PI / 8);
       else if (spec.shape === 'diamond') geo = new THREE.BoxGeometry(0.02, spec.h / Math.SQRT2, spec.w / Math.SQRT2).rotateX(Math.PI / 4);
-      else if (spec.shape === 'triangle') geo = new THREE.CylinderGeometry(spec.w / 1.7, spec.w / 1.7, 0.02, 3).rotateZ(Math.PI / 2).rotateX(Math.PI / 2);
+      else if (spec.shape === 'triangle') {
+        const shape = new THREE.Shape();shape.moveTo(-spec.w/2,spec.h/2);shape.lineTo(spec.w/2,spec.h/2);shape.lineTo(0,-spec.h/2);shape.closePath();
+        geo = new THREE.ShapeGeometry(shape).rotateY(Math.PI/2);
+      }
       else geo = new THREE.BoxGeometry(0.02, spec.h, spec.w);
       inst('signs ' + k, geo, signMat(spec.color), rows, null, true);
     }
-    Object.assign(stats, { ready: true, draws, triangles: tris, ...(d.counts || {}) });
+    // OSM highway=bus_stop supports a BUS marker; no invented route number or operator name.
+    let busPanels = 0;
+    for (let i=0;atlas && i+5<=(safeOsm?.stops.length || 0);i+=5) {
+      const [x,z,angle]=safeOsm.stops.slice(i,i+5), a=angle+Math.PI/2;
+      inkPoly([[-.225,-.225],[.225,-.225],[.225,.225],[-.225,.225]],[0,1,2,0,2,3],x-Math.cos(a)*.065,z-Math.sin(a)*.065,a,2.6,N.SIGNS[0].color);
+      legend(['BUS'],{w:0.45,h:0.45},0,x-Math.cos(a)*0.06,z-Math.sin(a)*0.06,a,2.6); busPanels++;
+    }
+    if (inkBuckets.size) {
+      const mat = nearMaterial('#ffffff',{opaqueDepth:true}); mat.vertexColors=true; mat.side=THREE.DoubleSide;
+      // The one atlas is linear data. Its signed distance is antialiased at the actual screen-pixel width.
+      atlas.flipY=false;atlas.generateMipmaps=false;atlas.minFilter=THREE.LinearFilter;atlas.magFilter=THREE.LinearFilter;
+      const compile=mat.onBeforeCompile;
+      mat.onBeforeCompile=sh=>{
+        compile(sh);sh.uniforms.uSignAtlas={value:atlas};
+        sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec2 aAtlas; varying vec2 vAtlas;').replace('#include <begin_vertex>','#include <begin_vertex>\nvAtlas=aAtlas;');
+        sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform sampler2D uSignAtlas; varying vec2 vAtlas;').replace('#include <alphatest_fragment>',`#include <alphatest_fragment>
+          if(vAtlas.x >= 0.0) { float d=texture2D(uSignAtlas,vAtlas).r;float w=max(fwidth(d),0.002);diffuseColor.a*=smoothstep(0.5-w,0.5+w,d); }
+          if(diffuseColor.a<0.01)discard;`);
+      };
+      mat.customProgramCacheKey=()=> 'v2-sign-distance-atlas';
+      for (const ink of inkBuckets.values()) {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position',new THREE.Float32BufferAttribute(ink.pos,3));
+        geo.setAttribute('color',new THREE.Uint8BufferAttribute(ink.col.map(v=>Math.round(v*255)),3,true));
+        geo.setAttribute('aAtlas',new THREE.Int16BufferAttribute(ink.uv.map(v=>Math.round(v*32767)),2,true));
+        geo.setIndex(ink.idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
+        geo.setAttribute('normal',new THREE.Int8BufferAttribute(Array.from(geo.attributes.normal.array,v=>Math.round(v*127)),3,true));
+        const mesh = new THREE.Mesh(geo,mat);mesh.name='sign legends';mesh.renderOrder=1;group.add(mesh);draws++;
+      }
+    }
+    Object.assign(stats, { ready: true, draws, triangles: tris, sign_panels: drawnPanels, bus_panels: busPanels, omitted_panels: omittedPanels, ...(d.counts || {}), sign_posts: posts.length, arrows: d.arrows.length });
     redraw();
   }
   build().catch((e) => { stats.error = e.message; console.warn('[v2 near]', e.message); });
@@ -257,9 +385,10 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   scene.onBeforeRender = function (r, s, c, t) {
     prev.call(this, r, s, c, t);
     if (t) return;
-    // the group's own visibility belongs to others (Google mode hides every map layer by it): only its children are switched here
+    // Only the children are switched here; callers own the group's visibility.
     cam = c; low = c.position.y < N.MAX_CAMERA_Y_M;
     for (const m of group.children) {
+      if (m.name === 'near asphalt') { m.visible = true; continue; }
       if (!low) { m.visible = false; continue; }
       if (m.isInstancedMesh || !m.geometry.boundingSphere) { m.visible = true; continue; }
       cs.copy(m.geometry.boundingSphere.center);

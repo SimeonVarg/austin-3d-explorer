@@ -34,7 +34,7 @@ export function installTrees({ THREE, scene, redraw }) {
   };
 
   async function build() {
-    const files = await Promise.all([fetch(DATA + 'city.json').then((r) => r.json()), fetch(DATA + 'osm.json').then((r) => r.json()).catch(() => null)]);
+    const files = await Promise.all([fetch(DATA + 'safe_city.json').then((r) => r.json()), fetch(DATA + 'safe_osm.json').then((r) => r.json()).catch(() => null)]);
     const groups = files[0].groups;
     const rows = groups.map(() => []);
     for (const f of files) {

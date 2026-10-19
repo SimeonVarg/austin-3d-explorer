@@ -5,6 +5,7 @@
 // so each fades out with distance (flat things by alpha, upright things by shrinking to their foot) before it can get thinner than a
 // pixel and flicker; beyond that the aerial photograph shows the same paint, mipmapped.
 import { STREET_LOOK as S } from './street-look.js';
+import { loadSafeStreet } from './street-data.js';
 
 const params = new URLSearchParams(location.search);
 const DATA = new URL('./data/street/', import.meta.url).href;
@@ -74,10 +75,12 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
   const unflat = (a, n) => { const o = []; for (let i = 0; i + n <= a.length; i += n) o.push(a.slice(i, i + n)); return o; };
 
   async function build() {
-    const [city, osm, marks] = await Promise.all([fetch(DATA + 'city.json').then((r) => r.json()), fetch(DATA + 'osm.json').then((r) => r.json()).catch(() => null),
-      params.get('surface') !== '0' ? fetch(DATA + 'marks.json').then((r) => (r.ok ? r.json() : null)).catch(() => null) : null]);
+    const [city, osm, marks, safe] = await Promise.all([fetch(DATA + 'city.json').then((r) => r.json()), loadSafeStreet('safe_osm'),
+      params.get('surface') !== '0' ? fetch(DATA + 'marks.json').then((r) => (r.ok ? r.json() : null)).catch(() => null) : null,
+      loadSafeStreet('safe')]);
+    city.signals = safe?.signals || [];
     // crossings, stop bars and ramp pads derived from the one road surface (scripts/v2/street_graph.py) replace the record-by-record ones
-    if (marks) { city.bars = marks.bars; city.ramps = []; for (let i = 0; i + 2 < marks.pads.length; i += 3) city.ramps.push(marks.pads[i], marks.pads[i + 1], marks.pads[i + 2] - Math.PI / 2, 1); }
+    if (marks) city.bars = marks.bars;
 
     // ── paint: crosswalk bars, stop lines, yield teeth (one draw) ──
     const bars = unflat(city.bars, 5).map(([x, z, a, L, w]) => [x, z, a, L, 1, w, S.PAINT_LIFT_M]);
@@ -88,7 +91,8 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
     //  curbs in city.json are kept for the record and its counts.)
 
     // ── curb ramps with a warning pad ──
-    const pads = unflat(city.ramps, 4).filter((r) => r[3]).map(([x, z, a]) => [x + Math.cos(a) * 0.4, z + Math.sin(a) * 0.4, a + Math.PI / 2, S.PAD_M[0], 1, S.PAD_M[1], S.PAINT_LIFT_M]);
+    const pads = marks ? unflat(marks.pads, 3).map(([x,z,a]) => [x,z,a,S.PAD_M[0],1,S.PAD_M[1],S.CURB_HEIGHT_M + S.PAINT_LIFT_M])
+      : [];  // raw curb-ramp points aren't validated slab positions
     const padMesh = instanced('ramp pads', flatQuad(), flatMaterial(S.PAD), pads);
     if (padMesh) padMesh.renderOrder = 0.99;
 
@@ -105,7 +109,19 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
     for (const [x, z, a, L] of arms) for (const f of S.SIGNAL_HEADS_AT) {
       heads.push([x + Math.cos(a) * L * f, z + Math.sin(a) * L * f, a, 1, 1, 1]); headBase.push([x, z]);
     }
-    instanced('signal heads', box(0.3, 1.05, 0.3, 0, S.SIGNAL_ARM_Y_M - 0.62, 0), uprightMaterial(S.SIGNAL_HEAD, 0.5, 0.1), heads, headBase, { shadow: true });
+    const headY = S.SIGNAL_ARM_Y_M - S.SIGNAL_HANGER_M - S.SIGNAL_HEAD_H_M / 2;
+    instanced('signal heads', box(S.SIGNAL_HEAD_W_M, S.SIGNAL_HEAD_H_M, S.SIGNAL_HEAD_D_M, 0, headY, 0), uprightMaterial(S.SIGNAL_HEAD, 0.5, 0.1), heads, headBase, { shadow: true });
+    instanced('signal hangers', box(0.07, S.SIGNAL_HANGER_M, 0.07, 0, S.SIGNAL_ARM_Y_M - S.SIGNAL_HANGER_M/2, 0), uprightMaterial(S.SIGNAL_METAL), heads, headBase);
+    // Three unlit 12-inch lenses, all in one instanced vertex-colour draw. No invented signal phase.
+    const lensPos=[], lensCol=[], lensIndex=[], color=new THREE.Color();
+    S.SIGNAL_LENS_COLORS.forEach((c,j)=>{
+      color.set(c);const y=headY+(1-j)*S.SIGNAL_LENS_STEP_M, z=S.SIGNAL_HEAD_D_M/2+.003;
+      const start=lensPos.length/3;lensPos.push(0,y,z);lensCol.push(color.r,color.g,color.b);
+      for(let i=0;i<=16;i++) { const a=i*Math.PI/8;lensPos.push(Math.cos(a)*S.SIGNAL_LENS_R_M,y+Math.sin(a)*S.SIGNAL_LENS_R_M,z);lensCol.push(color.r,color.g,color.b);if(i)lensIndex.push(start,start+i,start+i+1); }
+    });
+    const lensGeo=new THREE.BufferGeometry();lensGeo.setAttribute('position',new THREE.Float32BufferAttribute(lensPos,3));lensGeo.setAttribute('color',new THREE.Float32BufferAttribute(lensCol,3));lensGeo.setIndex(lensIndex);lensGeo.computeVertexNormals();
+    const lensMat=uprightMaterial('#ffffff',.3,0);lensMat.vertexColors=true;
+    instanced('signal lenses',lensGeo,lensMat,heads,headBase);
     instanced('pedestrian heads', box(0.36, 0.36, 0.3, 0.2, 2.9, 0), uprightMaterial(S.SIGNAL_HEAD, 0.5, 0.1), poleRows);
 
     // (protected bike lanes: no posts. The City's bike-facility lines follow the street's centreline, not the lane, so posts drawn
@@ -113,12 +129,10 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
 
     // ── street lamps (OpenStreetMap) ──
     if (osm && osm.lamps) {
-      const L = unflat(osm.lamps, 3);
+      const L = unflat(osm.lamps, 3).map((r,i) => [...r, osm.lamp_angles[i]]);
       const cobra = L.filter((l) => l[2] === 1), lantern = L.filter((l) => l[2] === 0);
-      // a cobra head leans out toward the nearest road: no direction in the data, so it faces the direction of the nearest signal-free
-      // street is unknown; a fixed bearing per lamp from its position keeps the field varied without pretending to know
-      const ang = (x, z) => ((Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1) * Math.PI * 2;
-      const cr = cobra.map(([x, z]) => [x, z, ang(x, z), 1, 1, 1]);
+      // The bake points the arm from its validated sidewalk foot toward the road.
+      const cr = cobra.map(([x, z, , a]) => [x, z, a, 1, 1, 1]);
       instanced('lamp masts', cyl(0.09, 0.13, S.LAMP_MAST_M + 0.3, -0.3), uprightMaterial(S.LAMP_METAL), cr, null, { shadow: true });
       instanced('lamp arms', box(1.8, 0.1, 0.1, 0.9, S.LAMP_MAST_M - 0.1, 0), uprightMaterial(S.LAMP_METAL), cr);
       instanced('lamp heads', box(0.7, 0.16, 0.32, 1.85, S.LAMP_MAST_M - 0.18, 0), uprightMaterial(S.LAMP_HEAD, 0.4, 0.3), cr);
@@ -140,9 +154,9 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
       instanced('bench seats', box(0.45, 0.06, 1.8, 0, 0.45, 0), uprightMaterial(S.BENCH, 0.7, 0.1), seats);
       instanced('bench backs', box(0.05, 0.4, 1.8, -0.22, 0.75, 0), uprightMaterial(S.BENCH, 0.7, 0.1), seats);
       instanced('stop poles', cyl(0.04, 0.04, 2.9), uprightMaterial(S.SIGNAL_METAL), st.map(([x, z, a]) => [x, z, a, 1, 1, 1]));
-      instanced('stop flags', box(0.03, 0.45, 0.45, 0, 2.6, 0), uprightMaterial(S.STOP_FLAG, 0.5, 0.1), st.map(([x, z, a]) => [x, z, a + Math.PI / 2, 1, 1, 1]));
+      // The near batch draws the supported BUS face with its legend; a missing atlas leaves no blank flag.
     }
-    Object.assign(stats, { ready: true, ...(city.counts || {}), lamps: osm && osm.lamps ? osm.lamps.length / 3 : 0, draws: group.children.length });
+    Object.assign(stats, { ready: true, ...(city.counts || {}), signal_poles: sig.length, lamps: osm && osm.lamps ? osm.lamps.length / 3 : 0, draws: group.children.length });
     redraw();
   }
   build().catch((e) => { stats.error = e.message; console.warn('[v2 street]', e.message); });
