@@ -17,6 +17,7 @@ globalThis.fetch=async(url)=>{requests.set(url,(requests.get(url)||0)+1);try { c
 const scene=new THREE.Scene();
 const {installStreetNear}=await import(pathToFileURL(base+'/street_near.js'));
 const {installStreet}=await import(pathToFileURL(base+'/street.js'));
+if(process.argv.includes('--break-ground')) {const {NEAR_LOOK}=await import(pathToFileURL(base+'/street-look.js'));NEAR_LOOK.FRONT_Y_M=.15;}
 const near=installStreetNear({THREE,scene,redraw:()=>{},phone:true});const street=installStreet({THREE,scene,redraw:()=>{},phone:true});
 for(let i=0;i<1000 && !(near.stats().ready && street.stats().ready);i++){
  await new Promise(r=>setTimeout(r,10));
@@ -25,6 +26,22 @@ for(let i=0;i<1000 && !(near.stats().ready && street.stats().ready);i++){
 if(!near.stats().ready || !street.stats().ready)throw Error('not ready');
 if(!baseline)for(const [url,n] of requests)if(/\/safe(_osm)?\.json$/.test(new URL(url).pathname) && n!==1)throw Error('duplicate safe inventory fetch');
 if(missingSafe && (near.stats().sign_posts || near.stats().arrows || street.stats().signal_poles || street.stats().lamps))throw Error('raw furniture restored after failed safe fetch');
+// Optional independent geometry audit consumes the mesh triangles the app actually submits.
+const groundArg=process.argv.indexOf('--ground-output');
+if(groundArg>=0) {
+ const ground=[];
+ for(const mesh of near.group.children.filter(m=>['near walk','near curb'].includes(m.name))) {
+  const p=mesh.geometry.attributes.position,idx=mesh.geometry.index;
+  ground.push({name:mesh.name,position:Array.from(p.array),index:Array.from(idx.array)});
+ }
+ fs.writeFileSync(process.argv[groundArg+1],JSON.stringify(ground));
+}
+// Classified paving must remain ground, regardless of its adjacency or evidence metadata.
+if(!baseline)for(const mesh of near.group.children.filter(m=>m.name==='near paving')) {
+ const p=mesh.geometry.attributes.position;
+ for(let i=0;i<p.count;i++)if(p.getY(i)>.005 || p.getY(i)<0)throw Error('raised frontage/ground paving');
+ if(mesh.material.depthWrite)throw Error('ground paving writes depth');
+}
 let signClearance={panels:0,too_low:0,min_bottom_m:Infinity};
 for(const mesh of near.group.children.filter(m=>m.name.startsWith('signs '))) {mesh.geometry.computeBoundingBox();const m=new THREE.Matrix4();for(let i=0;i<mesh.count;i++){mesh.getMatrixAt(i,m);const b=mesh.geometry.boundingBox.clone().applyMatrix4(m);signClearance.panels++;signClearance.min_bottom_m=Math.min(signClearance.min_bottom_m,b.min.y);if(b.min.y<2.1-.001)signClearance.too_low++;}}
 if(!baseline && signClearance.too_low)throw Error('signs below pedestrian clearance '+JSON.stringify(signClearance));

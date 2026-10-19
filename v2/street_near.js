@@ -119,7 +119,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
     d.signs = safe?.signs || []; d.arrows = safeOsm?.arrows || [];
     const H = N.CURB_HEIGHT_M;
     if (surf) {
-      // polygons (with holes), triangulated here; frontage classes at sidewalk height, asphalt at road height
+      // Polygons with holes: sidewalk slabs are raised; classified frontage stays at ground level.
       const poly = (kind, rings, y) => {
         const toV = (r) => { const o = []; for (let i = 0; i + 1 < r.length; i += 2) o.push(new THREE.Vector2(r[i], r[i + 1])); return o; };
         const outer = toV(rings[0]), holes = rings.slice(1).map(toV);
@@ -131,6 +131,14 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       };
       for (const r of surf.asphalt) poly('asphalt', r, N.ASPHALT_Y_M);
       for (const r of surf.walk) poly('walk', r, H);
+      for (const r of surf.kerb_tops || []) poly('curb', r, H + N.CURB_TOP_LIFT_M);
+      // Close the complete slab boundary, including driveway ends and courtyard holes. No walls on tile seams.
+      if (surf.solid_edges) for (const [rows, height] of [[surf.walk, H], [surf.kerb_tops || [], H + N.CURB_TOP_LIFT_M]]) {
+        for (const polygon of rows) for (const ring of polygon) {
+          const pts = pairs(ring, 0);
+          if (pts.length >= 3) face('curb', pts.concat([pts[0]]), 0, 0, height, 1);
+        }
+      }
       for (const k of ['paving', 'lawn', 'mulch']) for (const r of surf[k] || []) poly(k, r, N.FRONT_Y_M);
       d.roads = []; d.fronts = []; d.walks = []; d.curbs = surf.kerbs; d.lanes = surf.lanes.concat((surfOsm && surfOsm.lanes) || []);
     } else if (dOsm && dOsm.lanes) d.lanes = d.lanes.concat(dOsm.lanes);
@@ -167,8 +175,10 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
     for (const c of d.curbs) {
       const pts = pairs(c, 0); if (pts.length < 2) continue;
       strip('gutter', pts, -N.GUTTER_M, 0, N.GUTTER_Y_M);
-      face('curb', pts, 0, 0, H, -1);
-      strip('curb', pts, 0, N.CURB_TOP_M, H);
+      if (!surf?.solid_edges) {
+        face('curb', pts, 0, 0, H, -1);
+        strip('curb', pts, 0, N.CURB_TOP_M, H);
+      }
     }
     // sidewalk slabs (centre line, width) with joints, and their two side faces
     for (const w of d.walks) {

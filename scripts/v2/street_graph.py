@@ -443,7 +443,7 @@ def main():
     from street_finish import finish
     osm_path = os.path.join(DATA, 'surface_osm.json')
     osm_final = json.load(open(osm_path))
-    finish(out, osm_final, near, mark_out)
+    finish(out, osm_final, near, mark_out, aerial_cache=a.tiles)
     json.dump(osm_final, open(osm_path, 'w'), separators=(',', ':'))
     json.dump(out, open(os.path.join(DATA, 'surface.json'), 'w'), separators=(',', ':'))
     json.dump(mark_out, open(os.path.join(DATA, 'marks.json'), 'w'), separators=(',', ':'))

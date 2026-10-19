@@ -112,6 +112,7 @@ export const NEAR_LOOK = {
   CURB: '#8f8c84',
   CURB_HEIGHT_M: 0.15,
   CURB_TOP_M: 0.15,
+  CURB_TOP_LIFT_M: 0.002,       // separate top trim from slab depth; no coplanar surfaces
   WALK: '#86837b',
   CONCRETE_GRAIN: 0.08,
   JOINT_M: 1.52,                // 5 ft slabs

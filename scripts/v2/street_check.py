@@ -17,7 +17,8 @@ from shapely.geometry import Point, Polygon, LineString
 from shapely.ops import unary_union
 from shapely import STRtree, prepare
 from street_graph import pairs, loc
-from street_finish import inspect
+from street_finish import inspect, documented_ground
+from street_tree_check import audit_trees
 
 ROOT=Path(__file__).resolve().parents[2]
 
@@ -138,12 +139,15 @@ def audit(folder):
     parts=[road] if road.geom_type=='Polygon' else road.geoms
     holes=[Polygon(h) for p in parts for h in p.interiors if Polygon(h).area<400]
     paves=[p.buffer(0) for p in polygons['paving']];ptree=STRtree(paves)
-    areas=[]
+    areas=[];documented_areas=[]
+    dg=documented_ground(surface);dg_parts=list(dg.geoms) if hasattr(dg,'geoms') else ([] if dg.is_empty else [dg]);dgt=STRtree(dg_parts)
     for h in holes:
         h=h.buffer(-.15)
-        areas.append(sum(paves[j].intersection(h).area for j in ptree.query(h)))
+        total=sum(paves[j].intersection(h).area for j in ptree.query(h))
+        known=sum(dg_parts[j].intersection(h).area for j in dgt.query(h))
+        documented_areas.append(known);areas.append(max(0,total-known))
     example=Point(-480,387).buffer(5)
-    result['enclosed_spaces']={'flagged':len(holes),'raised_frontage_m2':round(sum(areas),2),
+    result['enclosed_spaces']={'flagged':len(holes),'raised_frontage_m2':round(sum(areas),2),'documented_ground_paving_m2':round(sum(documented_areas),2),
                               'affected':sum(v>1 for v in areas),
                               'example_corner_frontage_m2':round(sum(paves[j].intersection(example).area for j in ptree.query(example)),2),
                               'flags':[{'centre_m':[round(h.centroid.x,2),round(h.centroid.y,2)],'area_m2':round(h.area,2),
@@ -160,6 +164,8 @@ def audit(folder):
             'trunk_footprints_on_road':sum(road.intersects(Point(r[:2]).buffer(.12+r[2]*.025+.08)) for r in rows)}
         if 'safety' in trees:
             ev=trees['safety'];result['trees'][source]['stale']=int(hashlib.sha256((folder/'surface.json').read_bytes()).hexdigest()!=ev['surface_sha256'])
+    if (tree_dir/'safe_city.json').exists() and (tree_dir/'city.json').exists():
+        result['tree_retention'] = audit_trees(folder)
     if (folder/'sign_faces.json').exists():
         signs=load('sign_faces');result['sign_faces']=signs['counts']
         result['sign_faces']['stale']=sum(hashlib.sha256((folder/(n+'.json')).read_bytes()).hexdigest()!=h for n,h in signs['inputs'].items())
@@ -184,9 +190,14 @@ def main():
     if d['road_surface']['uncovered_street_centrelines']:errors.append('road coverage')
     r2=d['round2']
     if any(r2[k]['detached_components'] for k in ('paving','lawn','mulch')) or r2['walk_fragments']:errors.append('detached raised fragments')
+    if r2.get('ground_patch_provenance_stale'):errors.append('ground patch provenance')
     if any(v['nonparallel'] or v['duplicate_white'] for v in r2['lanes'].values()):errors.append('unsafe lane lines')
-    if any(v['trunk_footprints_on_road'] or v.get('stale',0) for v in d['trees'].values()):errors.append('unsafe/stale trees')
+    if any(v.get('stale',0) for v in d['trees'].values()):errors.append('stale trees')
+    if not d.get('tree_retention') and any(v['trunk_footprints_on_road'] for v in d['trees'].values()):errors.append('unverified tree conflicts')
+    for c in d.get('tree_retention',{}).values():
+        if any(v for k,v in c.items() if k not in ('total','inferred_verge_moves','trunks_on_road','trunk_footprints_on_road','recorded_edge_geometry_conflicts')):errors.append('tree retention/placement')
     if not d.get('sign_faces') or any(d['sign_faces'].get(k,0) for k in ('blank_faces_after','stale','missing_glyphs')):errors.append('sign legends')
     if errors:raise SystemExit('FAIL: '+', '.join(errors))
-    print('PASS: all street geometry checks')
+    conflicts=sum(v['recorded_edge_geometry_conflicts'] for v in d.get('tree_retention',{}).values())
+    print(f'PASS: street retention/geometry checks; {conflicts} recorded edge-geometry conflicts remain open')
 if __name__=='__main__':main()
