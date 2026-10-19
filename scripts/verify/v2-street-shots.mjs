@@ -20,6 +20,7 @@ const opt = (k, d) => { const i = argv.indexOf(k); if (i < 0) return d; const v 
 const Q = opt('--q', '');
 const TAG = opt('--tag', '');
 const DPR = +opt('--dpr', 2);
+const PICKS = opt('--picks', '');
 // the output folder: VERIFY_OUT (the AWS GPU runner sets it) or the first argument; the rest name views
 const OUT = process.env.VERIFY_OUT || argv.shift() || 'v2-street-shots';
 const ONLY = argv;
@@ -50,7 +51,10 @@ const VIEWS = [
   { name: 'speedway-eye', eye: [243.9, -424.5, 184.8, 1.8] },    // Speedway, looking south to Dean Keeton
   { name: 'congress-eye', eye: [-347.5, 2034.8, 18, 1.8] },      // Congress, looking north to 6th and the Capitol
   { name: 'wc-eye', eye: [-757.2, -234.2, 94.5, 1.8] },          // West 24th, looking east past Pearl
-].filter((v) => !ONLY.length || ONLY.some((o) => v.name.includes(o)));
+];
+// --picks FILE: {name: [x, z]} junctions (scripts/v2/street_graph.py --overlay writes picks.json): an 8 m view of each, 45 m back
+if (PICKS) for (const [k, [x, z]] of Object.entries(JSON.parse(fs.readFileSync(PICKS, 'utf8')))) VIEWS.push({ name: 'j-' + k.replace(/[^A-Za-z0-9]+/g, '-'), xz: [x, z], distance: 45, polar: 80, azimuth: 160 });
+VIEWS.splice(0, VIEWS.length, ...VIEWS.filter((v) => !ONLY.length || ONLY.some((o) => v.name.includes(o))));
 
 const browser = await launch(chromium, { gl: process.env.VERIFY_GL || 'hardware', maxMs: 900000 });
 const results = [];
