@@ -15,7 +15,7 @@
  *
  * Instrument: 1440x900 at device scale 2, real GPU (the renderer string is printed), one fresh page per view, every view waits for
  * the tiles and the aerial to settle (3 calm polls), then 1.2 s, draws twice and reads the second. Exit 1 when any count is not 0
- * (and the covers check ran). A manual hardware tool, not a CI check.
+ * (and the covers check ran). In CI (env CI set) it runs a light mode: the Tower close-up and the finder only, software GL.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -39,10 +39,16 @@ const VIEWS = [
   { name: 'tower-far', xz: [0, -0.5], distance: 330, polar: 62, azimuth: 200 },
   { name: 'speedway-eye', eye: [243.9, -424.5, 184.8, 1.8] },
   { name: 'finder', start: true, finder: true },
-].filter((v) => !ONLY.length || ONLY.includes(v.name));
+];
+// CI (GitHub's software renderer, 1500 s budget per script): two views that between them run every assertion (covers + names in the
+// Tower close-up, pins + names in the finder); the full 7 views run on a real GPU (locally, or VERIFY_FULL=1)
+const CI_VIEWS = ['tower-near', 'finder'];
+const LIGHT = !!process.env.CI && !process.env.VERIFY_FULL && !ONLY.length;
+VIEWS.splice(0, VIEWS.length, ...VIEWS.filter((v) => (ONLY.length ? ONLY.includes(v.name) : !LIGHT || CI_VIEWS.includes(v.name))));
+console.log(`views: ${VIEWS.map((v) => v.name).join(', ')}${LIGHT ? ' (CI light mode: VERIFY_FULL=1 for all 7)' : ''}`);
 if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 
-const browser = await launch(chromium, { gl: process.env.VERIFY_GL || 'hardware', maxMs: 1500000 });
+const browser = await launch(chromium, { gl: process.env.VERIFY_GL || (process.env.CI ? undefined : 'hardware'), maxMs: LIGHT ? 1300000 : 3000000 });
 const out = [];
 for (const v of VIEWS) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });

@@ -100,7 +100,11 @@ export class CollisionField {
       }
       const e = { rings, top: polyTop[p], minX, maxX, minZ, maxZ, seen: 0 };
       this.polys.push(e);
-      const id = ids[polyId[p]]; (this.byId.get(id) || this.byId.set(id, []).get(id)).push(e);
+      // Campus outlines carry full UUIDs; the tile contract uses their eight-hex prefix.
+      // Keep exact ids too: OSM/City ids must not acquire arbitrary prefix matches.
+      const id = String(ids[polyId[p]]);
+      const keys = /^[0-9a-f]{8}-/i.test(id) ? [id, id.slice(0, 8)] : [id];
+      for (const key of keys) (this.byId.get(key) || this.byId.set(key, []).get(key)).push(e);
       for (let i = Math.floor(minX / B); i <= Math.floor(maxX / B); i++) for (let j = Math.floor(minZ / B); j <= Math.floor(maxZ / B); j++) {
         const k = i * 65536 + j; (this.buckets.get(k) || this.buckets.set(k, []).get(k)).push(e);
       }
@@ -110,10 +114,52 @@ export class CollisionField {
   }
   // a Blender model stands where these outlines are: the camera bumps into the model's top, not the plain extrusion's
   setTop(mapIds, top) {
-    const list = mapIds.flatMap((id) => this.byId.get(String(id)) || []);
-    if (!list.length || !(top > 0)) return;
-    const was = Math.max(...list.map((e) => e.top0 ?? e.top));
-    for (const e of list) { e.top0 ??= e.top; e.top = e.top0 * (top / was); }
+    if (!Number.isFinite(top) || !(top > 0)) return;
+    const list = new Set(mapIds.flatMap((id) => this.byId.get(String(id)) || []));
+    // Every replaced outline is a solid up to the model top, including low wings and
+    // downtown podium levels. Shared outlines take the taller model, in either load order.
+    for (const e of list) { e.modelTop = Math.max(e.modelTop || 0, top); e.top = e.modelTop; }
+  }
+  // A tile can contain a model absent from the plain-building data. Register a conservative
+  // convex footprint from its actual above-ground vertices before it appears. No extra fetch,
+  // no retained mesh data; normal footprints (and their courtyard holes) stay untouched.
+  addTile(root, tile, buildings) {
+    const missing = new Map();
+    (tile.buildings || []).forEach((slug, i) => {
+      const b = buildings[slug];
+      if (b?.map_ids?.length && Number.isFinite(b.top) && b.top > 0 && !b.map_ids.some((id) => this.byId.has(String(id)))) missing.set(i, { b, points: [] });
+    });
+    if (!missing.size) return;
+    root.updateMatrixWorld(true);
+    root.traverse((o) => {
+      const p = o.geometry?.getAttribute('position'), ids = o.geometry?.getAttribute('_building');
+      if (!p || !ids) return;
+      const v = new THREE.Vector3();
+      for (let i = 0; i < p.count; i++) {
+        const entry = missing.get(Math.round(ids.getX(i))); if (!entry) continue;
+        v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld);
+        if (v.y > 0.5) entry.points.push([v.x, v.z]);
+      }
+    });
+    for (const { b, points } of missing.values()) {
+      points.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      const unique = points.filter((p, i) => !i || p[0] !== points[i - 1][0] || p[1] !== points[i - 1][1]);
+      const cross = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+      const half = (pts) => { const h = []; for (const p of pts) { while (h.length > 1 && cross(h[h.length - 2], h[h.length - 1], p) <= 0) h.pop(); h.push(p); } return h.slice(0, -1); };
+      const hull = [...half(unique), ...half(unique.slice().reverse())];
+      if (hull.length < 3) continue;
+      // Reuse the same polygon indexing and exact touch tests as the worker outlines.
+      const f = new CollisionField();
+      f.setFootprints({ coords: new Float32Array(hull.flat()), ringStart: [0, hull.length], polyRing: [0, 1], polyTop: [b.top], polyId: [0], ids: [String(b.map_ids[0])] });
+      const e = f.polys[0];
+      // This field's coords are shared by all rings, so append once and rebase the new ring.
+      const offset = this.coords.length / 2, coords = new Float32Array(this.coords.length + f.coords.length);
+      coords.set(this.coords); coords.set(f.coords, this.coords.length); this.coords = coords;
+      e.rings = e.rings.map(([a, z]) => [a + offset, z + offset]); e.modelTop = b.top;
+      this.polys.push(e);
+      for (const id of b.map_ids) this.byId.set(String(id), [e]);
+      for (const [key, list] of f.buckets) (this.buckets.get(key) || this.buckets.set(key, []).get(key)).push(...list);
+    }
   }
   // trunks: [x, z, radius, top] x n
   setTrunks(list) {

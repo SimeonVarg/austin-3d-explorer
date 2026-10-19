@@ -482,7 +482,9 @@ let tiles = null;
 const tilesReady = (async () => {
   try {
     const t = new TileStreamer({ scene, camera, manifestUrl,
-      onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings, prepare: coverOf,
+      onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings,
+      // the camera's collision tops from the model (#529), and the plain blocks the model stands over (covers.js)
+      prepare: (obj, def, s) => { if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
       onChange: () => { dirty = true; sun.shadow.needsUpdate = true; labels.occGen = (labels.occGen || 0) + 1; labels.dirty = true; }, onAnimate: () => { dirty = true; } });
     if (params.get('fade') === '0') t.instant = true;
     const man = await t.load();
@@ -558,8 +560,11 @@ function modelHeightAt(x, z, above = 0) {
 }
 // a plain outline that a Blender model hides does not hide names (the model does, through modelHeightAt)
 function outlineHidden(e) {
-  if (e.mapId === undefined) for (const [id, list] of field.byId) for (const p of list) p.mapId = id;
-  return isHiddenId(e.mapId);
+  if (e.mapId === undefined) {                              // tag every outline with its id once (the first key: the full id)
+    for (const [id, list] of field.byId) for (const p of list) p.mapId ??= id;
+    e.mapId ??= null;
+  }
+  return !!e.mapId && isHiddenId(e.mapId);
 }
 function coverLate() {
   for (const s of coverWait) { coverWait.delete(s); if (s.obj) coverOf(s.obj, s.def, s); }
@@ -592,7 +597,9 @@ let topsDone = false;
 function applyBlenderTops() {
   if (topsDone || !field.ready || !tiles?.manifest) return;
   topsDone = true;
-  for (const b of Object.values(tiles.manifest.buildings || {})) if (b.map_ids && b.top > 3) field.setTop(b.map_ids, b.top);
+  for (const b of Object.values(tiles.manifest.buildings || {})) if (b.map_ids) field.setTop(b.map_ids, b.top);
+  // Tiles may arrive before the worker's footprints. Cover those too, once the field is ready.
+  for (const s of tiles.tiles.values()) if (s.obj) field.addTile(s.obj, s.def, tiles.manifest.buildings || {});
 }
 
 // ── walking route ──────────────────────────────────────────────────────

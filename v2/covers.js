@@ -85,8 +85,10 @@ export function rasterOf(meshes, C = COVER.CELL_M, minY = COVER.MIN_Y_M) {
 
 // The outlines near a tile, from the collision field, as plain data: [{ id, rings: [[x, z, x, z, ...], ...] }] (outer ring first)
 export function outlinesNear(field, bounds, near = COVER.NEAR_M) {
-  const [bx0, bz0, bx1, bz1] = bounds, C = field.coords, out = [];
+  const [bx0, bz0, bx1, bz1] = bounds, C = field.coords, out = [], seen = new Set();
+  // (a campus outline is listed under its full id and its eight-hex prefix, flycam.js: each outline once, under the first)
   for (const [id, polys] of field.byId) for (const e of polys) {
+    if (seen.has(e)) continue; seen.add(e);
     if (e.maxX < bx0 - near || e.minX > bx1 + near || e.maxZ < bz0 - near || e.minZ > bz1 + near) continue;
     out.push({ id, rings: e.rings.map(([a, b]) => Float64Array.from(C.subarray(a * 2, b * 2))) });
   }

@@ -47,7 +47,9 @@ export const LABELS = {
   // A number pin of the finder (maplite.js MarkerLayer) on a name: the name moves up above the pin if there is room, else it hides
   // until the pin moves off it.
   OBSTACLE_GAP_PX: 2,
-  LIFT_ABOVE_M: 4,                     // a name lifted onto a Blender model's top sits this far above it (as the models' own names)
+  LIFT_ABOVE_M: 4, TOP_BAND_PX: 56, LANDMARK_SLIDE_MIN: 0.35,
+                                       // (a landmark's name slides down to stay on screen: below the title band, at least this share of its height up)
+                    // a name lifted onto a Blender model's top sits this far above it (as the models' own names)
 };
 
 // words of a name, for "is this the same building": lower case, & = and, abbreviations spelt out, initials joined ("T. S." = "ts")
@@ -130,7 +132,11 @@ export class Labels {
     const cand = [];
     for (const it of this.items) {
       // a building a Blender model stands over (main.js coverLift: Bellmont Hall under the DKR stands) has its name on the model's top
-      if (this.liftOf) { it.y0 ??= it.y; const t = this.liftOf(it.x, it.z); it.y = t ? Math.max(it.y0, t + LABELS.LIFT_ABOVE_M) : it.y0; }
+      it.y0 ??= it.y;
+      if (this.liftOf) { const t = this.liftOf(it.x, it.z); it.y = t ? Math.max(it.y0, t + LABELS.LIFT_ABOVE_M) : it.y0; } else it.y = it.y0;
+      // a tall landmark seen close (the Tower from 150 m): its point over the roof is above the screen, so the name slides down
+      // the building to just under the top edge, never lower than LANDMARK_SLIDE_MIN of its height
+      if ((it.top || 0) >= LABELS.LANDMARK_TOP_M) this.slideDown(it, W, H);
       const d = Math.hypot(it.x - cam.x, it.y - cam.y, it.z - cam.z);
       const landmark = (it.top || 0) >= LABELS.LANDMARK_TOP_M;
       const far = low ? (landmark ? LABELS.LOW_LANDMARK_M : lowFar) : (landmark ? LABELS.FAR_LANDMARK_M : LABELS.FAR_M);
@@ -194,6 +200,18 @@ export class Labels {
     }
     this.shown = placed.length;
     this.placedNow = true;
+  }
+
+  slideDown(it, W, H) {
+    const minY = LABELS.TOP_BAND_PX + (it.h || LABELS.LINE_PX * 2) + LABELS.PAD_PX * 2;
+    const at = (y) => { const s = it.y; it.y = y; const p = this.screenOf(it, W, H); it.y = s; return p; };
+    const p = at(it.y);
+    if (p && p.y >= minY) return;                           // on screen already
+    let lo = it.top * LABELS.LANDMARK_SLIDE_MIN, hi = it.y;
+    const q = at(lo);
+    if (!q || q.y < minY || q.y > H || q.x < 0 || q.x > W) return;   // even its lower part is off screen: leave it
+    for (let k = 0; k < 8; k++) { const m = (lo + hi) / 2, r = at(m); if (r && r.y >= minY) lo = m; else hi = m; }
+    it.y = lo;
   }
 
   // a name's size on screen, once (a hidden copy of the name element; the size is kept on the item)
