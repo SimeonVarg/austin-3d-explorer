@@ -139,7 +139,7 @@ export class TileStreamer {
           for (const m of Array.isArray(o.material) ? o.material : [o.material]) fadeable(m, fade);
         });
         obj.userData.fade = fade;
-        this.prepare(obj, s.def);
+        this.prepare(obj, s.def, s);   // (s: main.js adds to s.mapIds the plain extrusions this model stands over, covers.js)
         s.obj = obj; s.have = 'lod0';
         this.stats.loaded++;
         this.appear(s, performance.now());

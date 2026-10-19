@@ -25,6 +25,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #101b23; fon
 /* map markers (pins, labels): placed by maplite.js from lng/lat */
 #markers { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
 #markers > * { position: absolute; left: 0; top: 0; pointer-events: auto; will-change: transform; }
+/* a finder pin that touches a better-ranked one (maplite.js MarkerLayer.declutter) */
+#markers > .v2-covered { opacity: 0; pointer-events: none; transition: opacity .15s ease-out; }
 
 /* the title pill (style.css #hud) */
 #hud { position: fixed; top: calc(16px + var(--safe-top)); left: 50%; transform: translateX(-50%); z-index: 10;
