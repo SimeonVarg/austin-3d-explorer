@@ -10,6 +10,7 @@ import { FlyControls, CollisionField, FLY } from './flycam.js';
 import { LOOK, QUALITY } from './look.js';
 import { ORIGIN, setOrigin, toLocal, toLonLat } from './geo.js';
 import { TileStreamer, TILES } from './tiles.js';
+import { COVER, objectArrays, outlinesNear } from './covers.js';
 import { MapLite, MarkerLayer, MercatorCoordinate } from './maplite.js';
 import { MapLayers } from './map-layers.js';
 import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
@@ -76,7 +77,6 @@ try {
   throw e;
 }
 const DPR = Math.min(devicePixelRatio || 1, PHONE ? QUALITY.MAX_PIXEL_RATIO_PHONE : QUALITY.MAX_PIXEL_RATIO);
-renderer.setPixelRatio(DPR);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 // 'standard': Blender's Standard view (exposure, then the sRGB curve) below LOOK.TONE_SHOULDER, and above it the highlight
 // roll-off of Khronos PBR Neutral, WITHOUT Neutral's dark offset (which subtracts the darkest channel from dark colours and turned
@@ -265,17 +265,109 @@ function fitShadow() {
   if (r !== shadowRung) setShadowExtent(r);
 }
 scene.add(sun, sun.target);
+
+// The shadow map is drawn again only when it can change (QUALITY.SHADOW_CACHE). three.js's default redraws it on EVERY frame: every
+// caster in the light's box (most of the city's triangles) drawn a second time into a 4096 x 4096 map, for a picture that is the
+// same unless the light box moved (followShadow sets needsUpdate) or a caster changed. A caster change is caught generically, so a
+// layer added later needs no hook: just before three.js would draw the shadow, a signature of every visible shadow-casting mesh
+// (which mesh, its geometry and that geometry's version, its instance count and matrices, where it stands) is compared with the
+// last one, and any difference redraws the map.
+const SHADOW_CACHE = QUALITY.SHADOW_CACHE && params.get('shadowcache') !== '0';
+sun.shadow.autoUpdate = !SHADOW_CACHE;
+const shadowStats = { redraws: 0, frames: 0, sigMs: 0 };
+function casterSignature(root) {
+  let a = 0x811c9dc5, b = 0;
+  const mix = (v) => { a = Math.imul(a ^ (v | 0), 0x01000193); b = (b + Math.imul(v | 0, 0x9e3779b1)) | 0; };
+  const visit = (o) => {
+    if (!o.visible) return;
+    if (o.castShadow && o.geometry) {
+      const g = o.geometry, p = g.attributes.position, e = o.matrixWorld.elements;
+      mix(o.id); mix(g.id); mix(p ? p.version : -1); mix(g.index ? g.index.version : -1); mix(g.drawRange.start); mix(Math.min(g.drawRange.count, 2e9));
+      if (o.isInstancedMesh) { mix(o.count); mix(o.instanceMatrix.version); }
+      mix(e[12] * 256); mix(e[13] * 256); mix(e[14] * 256); mix(e[0] * 4096); mix(e[5] * 4096); mix(e[10] * 4096);
+    }
+    const c = o.children;
+    for (let i = 0; i < c.length; i++) visit(c[i]);
+  };
+  visit(root);
+  return a + ':' + b;
+}
+// Casters whose shadow cannot reach anything on screen are left out of the shadow map (QUALITY.SHADOW_VIEW_CULL). A shadow on a
+// visible point P comes from a caster point Q up the sun from P (P = Q - t * sunDir, P above the ground), so a caster whose
+// bounding sphere, swept down the sun to the ground and widened by a margin for the shadow filter, misses the camera's view
+// cannot shade any visible pixel. The test is conservative. It is one-sided, so turning the camera does not redraw the map on
+// every frame: the map is redrawn when a caster the view NEEDS is not in it (or the box moved, or a caster changed); a caster in
+// the map that the view no longer needs stays until the next redraw (it only shades what is off screen).
+const SHADOW_VIEW_CULL = SHADOW_CACHE && (params.get('shadowcull') ? params.get('shadowcull') !== '0' : QUALITY.SHADOW_VIEW_CULL);
+const viewFrustum = new THREE.Frustum(), viewPM = new THREE.Matrix4(), sweepBox = new THREE.Box3(), sweepS = new THREE.Sphere(), sweepEnd = new THREE.Vector3();
+let inMap = new Set();            // the casters drawn into the map now
+const needed = [], notNeeded = [];
+// fills `needed` / `notNeeded` with the visible casters; true when a needed one is not in the map
+function sortCasters(root, cam) {
+  viewPM.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+  viewFrustum.setFromProjectionMatrix(viewPM, cam.coordinateSystem, cam.reversedDepth);
+  const margin = (2 * shadowExtent / SHADOW_SIZE) * LOOK.SHADOW_VIEW_CULL_MARGIN_TEXELS;
+  let missing = false;
+  const visit = (o) => {
+    if (!o.visible) return;
+    if (o.castShadow && o.geometry) {
+      let need = true;
+      if (o.frustumCulled) {
+        const g = o.geometry;
+        if (o.isInstancedMesh) { if (!o.boundingSphere) o.computeBoundingSphere(); sweepS.copy(o.boundingSphere); }   // every instance
+        else { if (!g.boundingSphere) g.computeBoundingSphere(); sweepS.copy(g.boundingSphere); }
+        sweepS.applyMatrix4(o.matrixWorld);
+        const r = sweepS.radius + margin, c = sweepS.center;
+        const k = Math.max(0, c.y + r) / sunDir.y;              // down the sun until below the ground
+        sweepEnd.copy(c).addScaledVector(sunDir, -k);
+        sweepBox.min.set(Math.min(c.x, sweepEnd.x) - r, Math.min(c.y, sweepEnd.y) - r, Math.min(c.z, sweepEnd.z) - r);
+        sweepBox.max.set(Math.max(c.x, sweepEnd.x) + r, Math.max(c.y, sweepEnd.y) + r, Math.max(c.z, sweepEnd.z) + r);
+        need = viewFrustum.intersectsBox(sweepBox);
+      }
+      if (need) { needed.push(o); if (!inMap.has(o)) missing = true; } else notNeeded.push(o);
+    }
+    const ch = o.children;
+    for (let i = 0; i < ch.length; i++) visit(ch[i]);
+  };
+  visit(root);
+  return missing;
+}
+if (SHADOW_CACHE) {
+  const drawShadows = renderer.shadowMap.render;
+  let lastSig = '';
+  renderer.shadowMap.render = function (lights, s, cam) {
+    if (s !== scene) return drawShadows.call(this, lights, s, cam);
+    const t = performance.now();
+    const sig = casterSignature(scene);
+    if (sig !== lastSig) { lastSig = sig; sun.shadow.needsUpdate = true; }
+    if (SHADOW_VIEW_CULL && sortCasters(scene, cam)) sun.shadow.needsUpdate = true;
+    shadowStats.sigMs += performance.now() - t; shadowStats.frames++;
+    const redraw = sun.shadow.needsUpdate || sun.shadow.autoUpdate;
+    if (redraw) shadowStats.redraws++;
+    if (!redraw || !SHADOW_VIEW_CULL) { needed.length = 0; notNeeded.length = 0; return drawShadows.call(this, lights, s, cam); }
+    for (const o of notNeeded) o.castShadow = false;
+    try { return drawShadows.call(this, lights, s, cam); }
+    finally {
+      for (const o of notNeeded) o.castShadow = true;
+      inMap = new Set(needed); shadowStats.culled = notNeeded.length; shadowStats.kept = needed.length;
+      needed.length = 0; notNeeded.length = 0;
+    }
+  };
+}
 if (LOOK.HEMI_INTENSITY > 0) scene.add(new THREE.HemisphereLight(LOOK.HEMI_SKY, LOOK.HEMI_GROUND, LOOK.HEMI_INTENSITY));
 
 const SUN_DISTANCE_M = 1500;   // the shadow camera stands this far up the sun from the target (covers the tallest tower in the largest box)
 const lightF = sunDir.clone().negate(), lightR = new THREE.Vector3().crossVectors(lightF, new THREE.Vector3(0, 1, 0)).normalize();
 const lightU = new THREE.Vector3().crossVectors(lightR, lightF).normalize();
 let shadowKey = '';
-function followShadow() {
+// in motion the box may move in bigger steps (LOOK.SHADOW_STEP_TEXELS_MOVING, ?shadowmove=N texels): fewer redraws of the map while
+// the camera travels; the moment it stops the box is placed on the still step again, so a still is the same picture
+const SHADOW_MOVE_MULT = Math.max(1, Math.round((+params.get('shadowmove') || LOOK.SHADOW_STEP_TEXELS_MOVING) / LOOK.SHADOW_STEP_TEXELS));
+function followShadow(moving = false) {
   fitShadow();
   // Move the shadow box in whole steps measured in the light's own axes, so every shadow texel stays where it was.
-  const t = controls.focus;
-  const a = Math.round(t.dot(lightR) / shadowStep) * shadowStep, b = Math.round(t.dot(lightU) / shadowStep) * shadowStep;
+  const t = controls.focus, step = moving ? shadowStep * SHADOW_MOVE_MULT : shadowStep;
+  const a = Math.round(t.dot(lightR) / step) * step, b = Math.round(t.dot(lightU) / step) * step;
   const key = a + ',' + b;
   if (key === shadowKey) return;
   shadowKey = key;
@@ -347,7 +439,8 @@ const city = { buildings: [], byId: new Map(), roads: [], sidewalks: [], trees: 
 const cityGroup = new THREE.Group(); cityGroup.name = 'city';
 scene.add(cityGroup);
 // the City's 2025 aerial on the ground, the street layers and the credits link (ground.js; it hooks scene.onBeforeRender itself)
-installGround({ THREE, scene, camera, renderer, city, redraw: () => { dirty = true; }, phone: PHONE });
+installGround({ THREE, scene, camera, renderer, city, redraw: () => { dirty = true; }, phone: PHONE,
+  lodHeight: () => Math.floor(innerHeight * DPR) });
 
 function geometryOf(t, normals) {
   const g = new THREE.BufferGeometry();
@@ -464,7 +557,7 @@ const cityReady = new Promise((resolve) => {
     if (m.type === 'roads') { addRibbons(m.tiles, ORDER.ROADS, city.roads); timings.roads = performance.now() - timings.start; status('Roads in, raising buildings…'); }
     else if (m.type === 'sidewalks') { addRibbons(m.tiles, ORDER.SIDEWALKS, city.sidewalks); timings.sidewalks = performance.now() - timings.start; }
     else if (m.type === 'buildings') { addBuildings(m.tiles); timings.buildings = performance.now() - timings.start; status('Buildings in, planting trees…'); }
-    else if (m.type === 'collide') { field.setFootprints(m.data); applyBlenderTops(); }
+    else if (m.type === 'collide') { field.setFootprints(m.data); applyBlenderTops(); coverLate(); labels.dirty = true; labels.occGen = (labels.occGen || 0) + 1; }
     else if (m.type === 'trees') { addTrees(m.data); timings.trees = performance.now() - timings.start; }
     else if (m.type === 'log') console.info('[v2 city]', m.msg);
     else if (m.type === 'error') console.error('[v2 city]', m.msg);
@@ -482,8 +575,9 @@ const tilesReady = (async () => {
   try {
     const t = new TileStreamer({ scene, camera, manifestUrl,
       onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings,
-      prepare: (obj, def) => { if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); },
-      onChange: () => { dirty = true; sun.shadow.needsUpdate = true; }, onAnimate: () => { dirty = true; } });
+      // the camera's collision tops from the model (#529), and the plain blocks the model stands over (covers.js)
+      prepare: (obj, def, s) => { if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
+      onChange: () => { dirty = true; sun.shadow.needsUpdate = true; labels.occGen = (labels.occGen || 0) + 1; labels.dirty = true; }, onAnimate: () => { dirty = true; } });
     if (params.get('fade') === '0') t.instant = true;
     const man = await t.load();
     if (man.origin && (Math.abs(man.origin.lat - ORIGIN.lat) > 1e-9 || Math.abs(man.origin.lon - ORIGIN.lon) > 1e-9)) {
@@ -497,6 +591,87 @@ const tilesReady = (async () => {
     return null;
   }
 })();
+
+// A Blender model hides every plain extrusion it stands over, not only the ones its manifest entry lists (covers.js). Measured
+// once when the tile arrives, in a worker (covers-worker.js): the answer usually comes back while the plain extrusions are still
+// fading into the haze, so the extra ones fade and swap with the tile's own (tiles.js reads s.mapIds at every step); one that
+// comes back after the swap hides them at once. A tile that arrives before the city's outlines waits in coverWait.
+// Names whose building is hidden this way are lifted onto the model's top (coverTop, labels.js liftOf).
+if (params.get('cover') === '0') COVER.ON = false;
+const coverWait = new Set(), coverStats = { tiles: 0, ids: 0, workerMs: 0, mainMs: 0 }, coverJobs = new Map(), coverTop = new Map();
+let coverWorker = null, coverSeq = 0;
+function coverOf(obj, def, s) {
+  if (!COVER.ON) return [];
+  if (!field.ready) { coverWait.add(s); return []; }
+  const t0 = performance.now();
+  if (!coverWorker) {
+    coverWorker = new Worker(new URL('./covers-worker.js', import.meta.url), { type: 'module' });
+    coverWorker.onmessage = (ev) => coverDone(ev.data);
+  }
+  const job = ++coverSeq, meshes = objectArrays(obj);
+  coverJobs.set(job, { s, obj });
+  coverWorker.postMessage({ job, meshes, outlines: outlinesNear(field, def.bounds) }, meshes.flatMap((m) => [m.pos.buffer, ...(m.idx ? [m.idx.buffer] : [])]));
+  coverStats.mainMs += performance.now() - t0;
+  return [];
+}
+function coverDone({ job, covered, raster, ms, error }) {
+  const J = coverJobs.get(job); coverJobs.delete(job);
+  if (error) console.warn('[v2 covers]', error);
+  if (!J || J.s.obj !== J.obj) return;                      // the tile was dropped (or loaded again) meanwhile
+  const s = J.s, own = new Set(s.mapIds.flatMap((id) => idKeys(id)));
+  const under = covered.filter((c) => c.share >= COVER.HIDE_SHARE);
+  const extra = under.filter((c) => !idKeys(c.id).some((k) => own.has(k))).map((c) => c.id);
+  coverStats.tiles++; coverStats.ids += extra.length; coverStats.workerMs += ms || 0;
+  for (const c of under) for (const e of field.byId.get(c.id) || []) coverTop.set(e, { top: c.top, id: c.id });
+  if (raster) {                                             // the model's heights, for the names (modelHeightAt)
+    const R = { ...raster, s, obj: J.obj }, G = MODEL_GRID_M;
+    for (let i = Math.floor(R.x0 / G); i <= Math.floor((R.x0 + R.nx * R.C) / G); i++) for (let j = Math.floor(R.z0 / G); j <= Math.floor((R.z0 + R.nz * R.C) / G); j++) {
+      const k = i * 65536 + j, l = (modelGrid.get(k) || []).filter((r) => r.s.obj === r.obj); l.push(R);
+      l.max = Math.max(...l.map((r) => r.top ??= r.h.reduce((m, v) => (v > m ? v : m), 0))); modelGrid.set(k, l);
+    }
+  }
+  labels.dirty = true; labels.occGen = (labels.occGen || 0) + 1;   // the names ask again who hides them
+  if (!extra.length) return;
+  s.mapIds = [...new Set([...s.mapIds, ...extra])];
+  if (J.obj.parent) setHidden(extra, true);                 // already swapped in: hide them now
+}
+const isHiddenId = (id) => idKeys(id).some((k) => city.hidden.has(k));
+// The highest point of a Blender model on screen at (x, z) (0 = none): the names hide behind the models' real shapes, not behind
+// the plain outlines the models replace (labels.js hiddenFrom).
+const MODEL_GRID_M = 256, modelGrid = new Map();
+function modelHeightAt(x, z, above = 0) {
+  const l = modelGrid.get(Math.floor(x / MODEL_GRID_M) * 65536 + Math.floor(z / MODEL_GRID_M));
+  if (!l || !(l.max > above)) return 0;                     // nothing in this 256 m square that tall: the cheap answer
+  let top = 0;
+  for (const R of l) {
+    if (R.s.obj !== R.obj || !R.obj.parent) continue;       // dropped, or not swapped in yet
+    const i = Math.floor((x - R.x0) / R.C), j = Math.floor((z - R.z0) / R.C);
+    if (i >= 0 && j >= 0 && i < R.nx && j < R.nz && R.h[j * R.nx + i] > top) top = R.h[j * R.nx + i];
+  }
+  return top;
+}
+// a plain outline that a Blender model hides does not hide names (the model does, through modelHeightAt)
+function outlineHidden(e) {
+  if (e.mapId === undefined) {                              // tag every outline with its id once (the first key: the full id)
+    for (const [id, list] of field.byId) for (const p of list) p.mapId ??= id;
+    e.mapId ??= null;
+  }
+  return !!e.mapId && isHiddenId(e.mapId);
+}
+function coverLate() {
+  for (const s of coverWait) { coverWait.delete(s); if (s.obj) coverOf(s.obj, s.def, s); }
+}
+// a name's point inside an outline that a Blender model hides: the model's top there (labels.js lifts the name onto it)
+function coverLift(x, z) {
+  if (!coverTop.size || !field.ready) return 0;
+  const B = CollisionField.B;
+  let top = 0;
+  for (const e of field.buckets.get(Math.floor(x / B) * 65536 + Math.floor(z / B)) || []) {
+    const c = coverTop.get(e);
+    if (c && c.top > top && isHiddenId(c.id) && field.touches(e, x, z, 5)) top = c.top;   // only while the model hides it
+  }
+  return top;
+}
 
 // the camera bumps into the trunks of v2's trees (trees.js draws them: one instanced mesh, each matrix = position, radius, height)
 const trunkWait = setInterval(() => {
@@ -659,13 +834,64 @@ async function update(fly) {
 const setupDone = setupUI();
 
 // ── frame loop (renders only when something moved) ────────────────────
-let dirty = true, frames = 0;
-const frameLog = { on: false, dts: [], cpu: [], last: 0 };
+let dirty = true, frames = 0, wasMoving = false;
+const frameLog = { on: false, dts: [], cpu: [], scales: [], last: 0 };
 function resize() {
   const w = innerWidth, h = innerHeight;
-  renderer.setSize(w, h, false);
+  renderer.setDrawingBufferSize(w, h, DPR * adapt.scale);   // = setPixelRatio + setSize(w, h, false), with one canvas resize
   camera.aspect = w / h; camera.updateProjectionMatrix();
   dirty = true;
+}
+
+// ── adaptive resolution, in motion only (QUALITY.ADAPT) ────────────────
+// While the camera moves, the rAF interval of frames drawn back to back is measured. When its median over A.WINDOW frames is slower
+// than the target, the canvas steps down to fewer pixels; when it is well inside the target it steps back up. The moment the camera
+// has been still for A.STILL_MS the canvas is back at the full pixel ratio and the still is drawn at full sharpness. The scale it
+// settled on is kept for the next motion, so a weak GPU starts the next move already at its scale. On a GPU that holds the target the
+// first decision is "stay", and the canvas never changes.
+const A = QUALITY.ADAPT;
+const adapt = {
+  on: A.ON && params.get('adapt') !== '0',
+  budgetMs: 1000 / (+params.get('adaptfps') || A.TARGET_FPS),
+  floor: Math.min(1, Math.max(A.MIN_SCALE, A.MIN_PIXEL_RATIO / DPR)),
+  scale: 1,            // the canvas's scale now
+  motionScale: 1,      // the scale motion runs at (learned)
+  samples: [], lastDraw: 0, lastMove: 0, changes: 0, movingDraw: false, lastDown: null, learnedFloor: 0, learnedAt: 0,
+};
+function setScale(s) {
+  s = THREE.MathUtils.clamp(s, adapt.floor, 1);
+  if (Math.abs(s - adapt.scale) < 1e-3) return;
+  adapt.scale = s; adapt.samples = []; adapt.changes++;
+  resize();
+}
+// at the top of every rAF: `moved` = the camera moves in this frame
+function adaptFrame(now, moved) {
+  const prevMovingDraw = adapt.movingDraw;
+  adapt.movingDraw = false;
+  if (!adapt.on || adapt.floor >= 1) return;
+  if (moved) {
+    adapt.lastMove = now;
+    if (adapt.scale !== adapt.motionScale) { setScale(adapt.motionScale); return; }
+  } else {
+    if (adapt.scale < 1 && now - adapt.lastMove > A.STILL_MS) setScale(1);
+    return;
+  }
+  // the interval since the last drawn frame, when that frame was drawn in motion at this scale (it is that frame's cost)
+  if (!prevMovingDraw || now - adapt.lastDraw > 1000) return;
+  adapt.samples.push(now - adapt.lastDraw);
+  if (adapt.samples.length < A.WINDOW) return;
+  const s = [...adapt.samples].sort((x, y) => x - y), med = s[s.length >> 1];
+  adapt.samples = [];
+  // a step down that did not make frames faster (the frame is not bound by its pixels, e.g. the CPU is): undo it, and never go
+  // below that scale for A.RELEARN_MS (softer for nothing is not a trade)
+  const prev = adapt.lastDown; adapt.lastDown = null;
+  if (prev && A.MIN_GAIN > 0 && med > prev.med * A.MIN_GAIN) { adapt.learnedFloor = prev.scale; adapt.learnedAt = now; adapt.motionScale = prev.scale; setScale(prev.scale); return; }
+  if (now - adapt.learnedAt > A.RELEARN_MS) adapt.learnedFloor = 0;
+  const floor = Math.max(adapt.floor, adapt.learnedFloor);
+  if (med > adapt.budgetMs * A.DOWN_AT && adapt.scale > floor + 1e-3) { adapt.lastDown = { scale: adapt.scale, med }; adapt.motionScale = Math.max(floor, adapt.scale * A.STEP); }
+  else if (med < adapt.budgetMs * A.UP_AT && adapt.scale < 1) adapt.motionScale = Math.min(1, adapt.scale / A.STEP);
+  else return;
+  setScale(adapt.motionScale);
 }
 addEventListener('resize', resize);
 resize();
@@ -676,6 +902,10 @@ function frame(now) {
   const easing = map.step(now);
   const turned = controls.update();
   const moved = turned || flying || easing;
+  const moving = moved || (frameLog.on && frameLog.orbit);   // the verify scripts' timed orbit is camera motion too
+  adaptFrame(now, moving);
+  if (!moving && wasMoving && SHADOW_MOVE_MULT > 1) dirty = true;   // the camera stopped: draw the still with the still's shadow box
+  wasMoving = moving;
   if (moved) { markers.update(); if (!easing) map.fire('move'); }
   if (frameLog.on && frameLog.orbit) { orbitStep(); }
   if (tiles) tiles.update(now);
@@ -683,12 +913,13 @@ function frame(now) {
   labels.update(now);
   if (!(moved || dirty || frameLog.on)) return;
   dirty = false;
-  followShadow();
+  followShadow(moving);
   dome.position.copy(camera.position);
   const t0 = performance.now();
   renderer.render(scene, camera);
+  adapt.lastDraw = now; adapt.movingDraw = moving;
   if (!frames) { try { window.loaderSceneReady?.(); } catch (e) {} }
-  if (frameLog.on) { frameLog.cpu.push(performance.now() - t0); if (frameLog.last) frameLog.dts.push(now - frameLog.last); frameLog.last = now; }
+  if (frameLog.on) { frameLog.cpu.push(performance.now() - t0); frameLog.scales.push(adapt.scale); if (frameLog.last) frameLog.dts.push(now - frameLog.last); frameLog.last = now; }
   frames++;
 }
 requestAnimationFrame(frame);
@@ -767,7 +998,9 @@ Promise.all([cityReady, tilesReady, routeReady]).then(([stats, man]) => {
 
 // ── names over the city, picking a building, its card ─────────────────────────────────────────────
 const labels = new Labels({ camera, canvas, container: $('markers'), scene, phone: PHONE,
-  pickRoots: () => [cityGroup, ...(tiles ? [tiles.group] : [])], onCard: showCard });
+  pickRoots: () => [cityGroup, ...(tiles ? [tiles.group] : [])], onCard: showCard,
+  field, obstacles: () => markers.pinRects(), liftOf: coverLift, modelHeightAt, outlineHidden });   // names hide behind buildings, keep off the finder's pins
+markers.onPins = () => { labels.dirty = true; };
 Promise.all([tilesReady, routeReady, setupDone]).then(([man, cat]) => {
   labels.add(blenderItems(man));
   labels.add(homeItems(homesList, man));
@@ -811,22 +1044,23 @@ import('./finder-boot.js').catch((e) => console.warn('[v2] finder', e.message));
 const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; };
 const pct = (a, p) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * p))] : null; };
 window.__v2 = {
-  THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FLY, fly: () => controls.state(),
+  THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FLY, fly: () => controls.state(), field, COVER, coverStats, tileStreamer: () => tiles,
   ready: Promise.all([cityReady, tilesReady, routeReady]),
   tiles: () => tiles && tiles.summary(),
   timings: () => ({ ...timings }),
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
   intro: () => introFlight.flight && { ...introFlight.flight },
-  labels: () => ({ items: labels.items.length, shown: labels.shown, selected: labels.selected?.name || null }),
+  labels: () => ({ items: labels.items.length, shown: labels.shown, merged: labels.merged || 0, occluded: labels.occludedN || 0, selected: labels.selected?.name || null }),
   pick: (x, y) => labels.pick(x, y), openCard: (name) => { const it = labels.items.find((i) => i.name === name); if (it) labels.open(it); return !!it; }, requestRoute, drawRoute, redraw: () => { dirty = true; },
   pickApartment: (name) => { const i = apartments.findIndex((a) => a.name === name); if (i >= 0) { aptSel.value = String(i); return update(true); } },
   pickBuilding: (code) => { const i = buildings.findIndex((b) => b.code === code); if (i >= 0) { clsSel.value = String(i); return update(true); } },
   info: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures,
-    dpr: renderer.getPixelRatio(), size: [renderer.domElement.width, renderer.domElement.height], reversedDepth: renderer.capabilities.reversedDepthBuffer, frames }),
+    dpr: renderer.getPixelRatio(), size: [renderer.domElement.width, renderer.domElement.height], reversedDepth: renderer.capabilities.reversedDepthBuffer, frames,
+    shadow: { cache: SHADOW_CACHE, ...shadowStats }, adapt: { on: adapt.on, floor: adapt.floor, learnedFloor: adapt.learnedFloor, scale: adapt.scale, motionScale: adapt.motionScale, changes: adapt.changes } }),
   async measure(ms = 4000, degPerFrame = 0.15) {
-    Object.assign(frameLog, { on: true, orbit: degPerFrame > 0, degPerFrame, dts: [], cpu: [], last: 0 });
+    Object.assign(frameLog, { on: true, orbit: degPerFrame > 0, degPerFrame, dts: [], cpu: [], scales: [], last: 0 });
     await new Promise((r) => setTimeout(r, ms));
     frameLog.on = false;
-    return { frames: frameLog.dts.length, medianFrameMs: median(frameLog.dts), p95FrameMs: pct(frameLog.dts, 0.95), medianRenderCallMs: median(frameLog.cpu), ...this.info() };
+    return { frames: frameLog.dts.length, medianFrameMs: median(frameLog.dts), p95FrameMs: pct(frameLog.dts, 0.95), medianRenderCallMs: median(frameLog.cpu), medianScale: median(frameLog.scales), ...this.info() };
   },
 };

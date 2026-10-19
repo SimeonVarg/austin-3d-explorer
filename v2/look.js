@@ -50,9 +50,11 @@ export const LOOK = {
   SHADOW_EXTENT_STEP: Math.SQRT2,
   SHADOW_EXTENT_HYSTERESIS: 0.2,
   SHADOW_STEP_TEXELS: 32,       // the shadow box moves in whole steps of this many shadow texels: it never slides, so it never shimmers
+  SHADOW_STEP_TEXELS_MOVING: 32, // the same in motion (a multiple of SHADOW_STEP_TEXELS; bigger = fewer shadow redraws while moving)
   SHADOW_BIAS_M: 0.08,          // depth bias in metres along the sun (converted to the shadow camera's depth range)
   SHADOW_NORMAL_BIAS_TEXELS: 1.2,   // normal offset in shadow texels (so it shrinks with the texel: no light leaking under thin parts)
   SHADOW_RADIUS: 1.25,          // PCF softness, in texels
+  SHADOW_VIEW_CULL_MARGIN_TEXELS: 8,   // a caster is kept in the shadow map if its shadow comes within this many texels of the view
 
   // ── haze / distance ──────────────────────────────────────────────────
   // The old app's day haze (js/sky.js HAZE: DIST.day 3200, MAX.day 0.62): a surface d metres away is MAX x (1 - e^(-d/DIST)) of
@@ -120,4 +122,27 @@ export const QUALITY = {
   MAX_PIXEL_RATIO: 2,           // desktop
   MAX_PIXEL_RATIO_PHONE: 2,
   MSAA: true,
+  // The sun's shadow map is drawn again only when it can change: the light box moved a step, or a shadow caster was added,
+  // removed, shown, hidden or reshaped (main.js casterSignature). Same picture; ?shadowcache=0 redraws it on every frame.
+  SHADOW_CACHE: true,
+  // ...and holds only the casters whose shadow can reach the view (main.js cullCasters; conservative). ?shadowcull=0 keeps all.
+  SHADOW_VIEW_CULL: true,
+  // Adaptive resolution, IN MOTION ONLY: while the camera moves and the measured frame time stays above the target, the canvas
+  // draws fewer pixels (the browser scales it up); the moment the camera stops it is back at full sharpness. A GPU that holds the
+  // target never leaves full resolution. ?adapt=0 turns it off; ?adaptfps=N sets the target.
+  ADAPT: {
+    ON: true,
+    TARGET_FPS: 30,             // the floor it defends in motion
+    DOWN_AT: 1.2,               // step down when the median motion frame is slower than this x the target's frame time
+    UP_AT: 0.6,                 // step back up in motion when the median frame is faster than this x the target's frame time
+    STEP: 0.84,                 // one step = this x the linear scale (about 0.7 x the pixels)
+    // a step down must make the median frame this much faster, or it is undone (0 = off). OFF: measured 2026-10-19 in the opening
+    // flight on the Mac, the view changes too fast for two windows to compare, and it undid steps that helped (66.6 -> 83.4 ms)
+    MIN_GAIN: 0,
+    RELEARN_MS: 8000,           // ...and not tried again for this long
+    MIN_SCALE: 0.5,             // never below this x the full pixel ratio (linear)
+    MIN_PIXEL_RATIO: 1,         // and never below one canvas pixel per CSS pixel
+    WINDOW: 5,                  // motion frames measured after a change before the next decision (their median)
+    STILL_MS: 200,              // the camera has not moved for this long: draw at full resolution again
+  },
 };
