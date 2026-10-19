@@ -16,5 +16,12 @@
     "far_copy": { "triangles": 7000, "drop": "^(fin_bronze|reveal_dark|mullion_dark|soffit_joint|rail_dark|steel_rail|lamp_white|pole_head|mesh_panel|slot_dark|louvre_grey|door_frame|sign_.*|planting|spandrel_dark)$" },
     "lod1_m": 400,
     "site": { "site_material": "^street_grade$", "cell_m": 2, "flat_m": 12, "skirt_m": 60, "min_m": 0.15 }
+  },
+  "batts-mezes-benedict-halls": {
+    "triangles": 28000,
+    "crease_deg": 35,
+    "reduce": "^(reveal_stone|roof_fascia|soffit_paint|steps_granite|pergola_timber|rail_infill|site_.*)$",
+    "lod0_drop": "^(frame_white|rail_white|bracket_ochre|quoin_stone|downspout_brown)$",
+    "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 6, "skirt_m": 20, "min_m": 0.6 }
   }
 }

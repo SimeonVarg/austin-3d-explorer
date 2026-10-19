@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 382 builds of 314 buildings; 116 buildings flagged to retarget.
+Right now: 383 builds of 315 buildings; 116 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -185,6 +185,7 @@ Right now: 382 builds of 314 buildings; 116 buildings flagged to retarget.
 | Austin Technology Incubator | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 491 | 32 min, 366k plan tokens |  | yes |
 | Bass Concert Hall | Opus 5.5 | 2026-10-14 | unproven | public photo | unreviewed | 23,880 | 49 min, 431k plan tokens |  | yes |
 | Battle Hall | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 20,068 | 33 min, 376k plan tokens |  |  |
+| Batts, Mezes and Benedict Halls | Opus 5.5 | 2026-10-19 | loose | public photo | unreviewed | 65,485 | 185 min |  |  |
 | Bernard and Audre Rapoport Building | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 13,583 | 35 min, 336k plan tokens |  |  |
 | Biological Laboratories | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 19,935 | 52 min, 415k plan tokens |  |  |
 | Biomedical Engineering Building | Opus 5.5 | 2026-10-14 | loose | public photo | unreviewed | 24,046 | 47 min, 407k plan tokens |  | yes |
