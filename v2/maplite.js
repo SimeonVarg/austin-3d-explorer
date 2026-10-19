@@ -182,7 +182,7 @@ export class MarkerLayer {
       getLngLat() { return this._ll; }
       getElement() { return this._el; }
       addTo() { if (!this._on) { this._on = true; layer.container.append(this._el); layer.list.add(this); layer.place(this); } return this; }
-      remove() { this._on = false; this._el.remove(); layer.list.delete(this); return this; }
+      remove() { this._on = false; this._el.remove(); layer.list.delete(this); layer.soon(); return this; }
       setOffset(o) { this._offset = o; return this; }
     };
   }
@@ -190,9 +190,48 @@ export class MarkerLayer {
     if (!m._ll) return;
     const p = this.map.project(m._ll);
     const tx = { center: '-50%,-50%', bottom: '-50%,-100%', top: '-50%,0', left: '0,-50%', right: '-100%,-50%' }[m._anchor] || '-50%,-50%';
-    if (p.behind) { m._el.style.display = 'none'; return; }
+    if (p.behind) { m._el.style.display = 'none'; m._at = null; return; }
     m._el.style.display = '';
-    m._el.style.transform = `translate(${(p.x + m._offset[0]).toFixed(1)}px,${(p.y + m._offset[1]).toFixed(1)}px) translate(${tx})`;
+    m._at = [p.x + m._offset[0], p.y + m._offset[1]];
+    m._el.style.transform = `translate(${m._at[0].toFixed(1)}px,${m._at[1].toFixed(1)}px) translate(${tx})`;
+    this.soon();
   }
-  update() { for (const m of this.list) this.place(m); }
+  soon() { if (!this.dq) this.dq = requestAnimationFrame(() => { this.dq = 0; this.declutter(); }); }
+  update() { for (const m of this.list) this.place(m); this.declutter(); }
+
+  // The finder's number pins never sit on each other (2026-10-19 demo walk: 25 hidden behind 29, 20/21/15 stacked): a pin that
+  // touches a better-ranked one hides (PIN.COVERED_CLASS) until the camera separates them. The selected and the hovered pin always
+  // show. pinRects() hands the shown pins to the names (labels.js), which then keep off them.
+  pinList() {
+    const out = [];
+    for (const m of this.list) {
+      const el = m._el;
+      if (!el.classList.contains(PIN.CLASS) || !m._at || el.style.display === 'none' || el.style.visibility === 'hidden') continue;
+      const cls = el.className.replace(' ' + PIN.COVERED_CLASS, '');
+      if (m._cls !== cls || !m._box) {            // the pin's size, measured again only when its classes change (selected, hovered)
+        const b = el.querySelector(PIN.HEAD) || el, inner = b !== el;     // the round head, placed inside the (positioned) pin
+        m._box = { w: el.offsetWidth, h: el.offsetHeight, bx: inner ? b.offsetLeft : 0, by: inner ? b.offsetTop : 0, bw: b.offsetWidth, bh: b.offsetHeight };
+        m._cls = cls;
+      }
+      const B = m._box, x0 = m._at[0] - B.w / 2 + B.bx, y0 = m._at[1] - B.h + B.by;      // anchor 'bottom' (the finder's pins)
+      const top = el.classList.contains('sel') || el.classList.contains('hot');
+      out.push({ m, r: [x0, y0, x0 + B.bw, y0 + B.bh], rank: top ? -1 : (parseInt(el.textContent, 10) || 1e6) });
+    }
+    return out.sort((a, b) => a.rank - b.rank);
+  }
+  declutter() {
+    const pins = this.pinList(), shown = [], P = PIN.PAD_PX;
+    for (const p of pins) {
+      const r = p.r, off = shown.some((q) => r[0] - P < q[2] && r[2] + P > q[0] && r[1] - P < q[3] && r[3] + P > q[1]);
+      p.m._el.classList.toggle(PIN.COVERED_CLASS, off && p.rank >= 0);
+      if (!off || p.rank < 0) shown.push(r);
+    }
+    // the names lay out again when the set of pins changed (not when they only slid with the camera: that is a layout anyway)
+    this.shownPins = shown;
+    const sig = pins.length + ':' + shown.length;
+    if (sig !== this.pinSig) { this.pinSig = sig; this.onPins?.(); }
+  }
+  pinRects() { return this.shownPins || []; }
 }
+
+export const PIN = { CLASS: 'fd-pinwrap', HEAD: '.fd-pin', COVERED_CLASS: 'v2-covered', PAD_PX: 1 };
