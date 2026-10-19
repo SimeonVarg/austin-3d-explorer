@@ -146,7 +146,17 @@ async function buildBuildings() {
   const GRID = 50, grid = new Map();
   const put = (x, z, v) => { const k = Math.floor(x / GRID) + ',' + Math.floor(z / GRID); (grid.get(k) || grid.set(k, []).get(k)).push(v); };
 
+  // the camera's collision footprints (flycam.js CollisionField): every level of every building, outer ring + holes, with its top
+  const CO = { coords: [], ringStart: [0], polyRing: [0], polyTop: [], polyId: [], ids: [], idIndex: new Map() };
+  const collide = (id, levels) => {
+    let k = CO.idIndex.get(id); if (k == null) { k = CO.ids.length; CO.ids.push(id); CO.idIndex.set(id, k); }
+    for (const lv of levels) for (const rings of lv.polys) {
+      for (const r of rings) { for (const p of r) CO.coords.push(p[0], p[1]); CO.ringStart.push(CO.coords.length / 2); }
+      CO.polyRing.push(CO.ringStart.length - 1); CO.polyTop.push(lv.y1); CO.polyId.push(k);
+    }
+  };
   const add = (id, polys, levels, wd, rd) => {
+    collide(String(id), levels);
     const [cx, cz] = centroid(polys[0][0]);
     const buf = tiles(out, keyOf(cx, cz));
     const wallC = to8(wd ? mix(WALL, hueOf(wd, WALL), T) : WALL);
@@ -202,6 +212,9 @@ async function buildBuildings() {
   const list = [], transfer = [];
   for (const [key, buf] of out) { const o = buf.pack(); o.key = key; list.push(o); transfer.push(o.pos.buffer, o.nrm.buffer, o.col.buffer, o.fac.buffer, o.idx.buffer, o.starts.buffer, o.counts.buffer); }
   postMessage({ type: 'buildings', tiles: list }, transfer);
+  const co = { coords: new Float32Array(CO.coords), ringStart: new Uint32Array(CO.ringStart), polyRing: new Uint32Array(CO.polyRing),
+    polyTop: new Float32Array(CO.polyTop), polyId: new Uint32Array(CO.polyId), ids: CO.ids };
+  postMessage({ type: 'collide', data: co }, [co.coords.buffer, co.ringStart.buffer, co.polyRing.buffer, co.polyTop.buffer, co.polyId.buffer]);
   return { campus: nCampus, downtown: nDown, downtownDropped: nDup, lidarHeights: nLidar, tiles: list.length };
 }
 

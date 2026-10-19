@@ -6,7 +6,7 @@
 // GROUND NOTE: the repo has no elevation model, so the ground is flat at y = 0 (the old app's ground is flat too).
 // Every height here is metres above that plane, as in the tile contract.
 import * as THREE from 'three';
-import { MapControls } from 'three/addons/controls/MapControls.js';
+import { FlyControls, CollisionField, FLY } from './flycam.js';
 import { LOOK, QUALITY } from './look.js';
 import { ORIGIN, setOrigin, toLocal, toLonLat } from './geo.js';
 import { TileStreamer, TILES } from './tiles.js';
@@ -35,15 +35,14 @@ THREE.ShaderChunk.fog_fragment = /* glsl */`
 `;
 const PHONE = matchMedia('(max-width: 600px), (pointer: coarse)').matches;
 
-// ── camera and controls (not taste: limits that keep the city usable) ──
+// ── camera and controls (not taste: limits that keep the city usable). The controls are v1's flycam (flycam.js, FLY). ──
 export const VIEW = {
   FOV_DEG: 40,
-  NEAR_M: 1.5,
+  NEAR_M: 1.5,                 // the near plane at height; flycam.js lowers it with the eye (FLY.NEAR_PER_M)
   FAR_M: 16000,
-  MIN_DISTANCE_M: 25,
+  MIN_DISTANCE_M: 25,          // flyTo (the ?panel=1 planner) keeps at least 4x this from its target
   MAX_DISTANCE_M: 5200,
-  MAX_POLAR_DEG: 80,           // 0 = straight down; never quite to the horizon
-  BOUNDS: { minX: -2600, maxX: 2600, minZ: -2000, maxZ: 4200 },   // the camera target stays inside this (campus, West Campus, downtown)
+  BOUNDS: { minX: -2600, maxX: 2600, minZ: -2000, maxZ: 4200 },   // the camera's eye stays inside this (campus, West Campus, downtown)
   START: { target: [-260, 0, 60], distance: 1350, polarDeg: 56, azimuthDeg: 28 },   // ?intro=0 (the verify scripts), and where the flight stops if it is cut short
   FLY_MS: 1100,
 };
@@ -103,40 +102,34 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(VIEW.FOV_DEG, 1, VIEW.NEAR_M, VIEW.FAR_M);
 
-const controls = new MapControls(camera, canvas);
-controls.enableDamping = true;
-controls.dampingFactor = 0.12;
-controls.screenSpacePanning = false;             // pan slides along the ground, like a map
-controls.minDistance = VIEW.MIN_DISTANCE_M;
-controls.maxDistance = VIEW.MAX_DISTANCE_M;
-controls.maxPolarAngle = THREE.MathUtils.degToRad(VIEW.MAX_POLAR_DEG);
-controls.zoomToCursor = true;
-controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+// The camera bumps into the buildings and trunks (flycam.js CollisionField: filled from the city worker, the Blender tops, the trees).
+const field = new CollisionField();
+const controls = new FlyControls(camera, canvas, {
+  bounds: VIEW.BOUNDS, field,
+  isEasing: () => !!(map && map.isEasing()) || !!flight,
+  home: (ms) => map.easeTo({ ...INTRO.end, duration: ms, essential: true }),
+  joystick: { zone: $('joystick-zone'), base: $('joystick-base'), knob: $('joystick-knob') },
+});
 
 function placeCamera({ target, distance, polarDeg, azimuthDeg }) {
   const p = THREE.MathUtils.degToRad(polarDeg), a = THREE.MathUtils.degToRad(azimuthDeg);
-  controls.target.set(...target);
   camera.position.set(target[0] + distance * Math.sin(p) * Math.sin(a), target[1] + distance * Math.cos(p), target[2] + distance * Math.sin(p) * Math.cos(a));
-  camera.lookAt(controls.target);
-  controls.update();
+  camera.lookAt(...target);
+  camera.updateMatrixWorld();
+  controls.syncFromCamera();
 }
-placeCamera(VIEW.START);
 
 // The old app's modules talk to "the map" (window.__map, maplibregl.Marker): maplite.js answers for v2's camera.
+// (the flights start from wherever the flycam is: its whole pitch range and down to its 1.7 m eye, so a flight never jumps first)
 const map = new MapLite({ camera, controls, canvas, redraw: () => { dirty = true; },
-  limits: { maxPitch: VIEW.MAX_POLAR_DEG, minDistance: VIEW.MIN_DISTANCE_M, maxDistance: VIEW.MAX_DISTANCE_M } });
+  limits: { maxPitch: FLY.PITCH_MAX, minDistance: 1, maxDistance: VIEW.MAX_DISTANCE_M } });
+placeCamera(VIEW.START);
 const markers = new MarkerLayer(map, $('markers'));
 window.__map = map;
 window.maplibregl = Object.assign(window.maplibregl || {}, { Marker: markers.make(), MercatorCoordinate });
 const mapLayers = new MapLayers({ map, scene, markers, redraw: () => { dirty = true; } });
 
-// Keep the target inside the city and on the ground.
-controls.addEventListener('change', () => {
-  const t = controls.target, B = VIEW.BOUNDS;
-  const cx = THREE.MathUtils.clamp(t.x, B.minX, B.maxX), cz = THREE.MathUtils.clamp(t.z, B.minZ, B.maxZ);
-  if (cx !== t.x || cz !== t.z || t.y !== 0) { const d = new THREE.Vector3(cx - t.x, -t.y, cz - t.z); t.add(d); camera.position.add(d); }
-  dirty = true;
-});
+controls.addEventListener('change', () => { dirty = true; });
 
 // ── sky: one shader for the visible dome AND the environment light ─────
 const sunDir = (() => {
@@ -261,7 +254,7 @@ function setShadowExtent(rung) {
   shadowKey = '';
 }
 function fitShadow() {
-  const want = LOOK.SHADOW_FIT * camera.position.distanceTo(controls.target);
+  const want = LOOK.SHADOW_FIT * camera.position.distanceTo(controls.focus);
   const H = LOOK.SHADOW_EXTENT_HYSTERESIS;
   if (shadowRung >= 0) {
     const e = SHADOW_LADDER[shadowRung];
@@ -281,7 +274,7 @@ let shadowKey = '';
 function followShadow() {
   fitShadow();
   // Move the shadow box in whole steps measured in the light's own axes, so every shadow texel stays where it was.
-  const t = controls.target;
+  const t = controls.focus;
   const a = Math.round(t.dot(lightR) / shadowStep) * shadowStep, b = Math.round(t.dot(lightU) / shadowStep) * shadowStep;
   const key = a + ',' + b;
   if (key === shadowKey) return;
@@ -443,6 +436,10 @@ function addTrees(data) {
     c.setHSL(hsl.h, hsl.s, THREE.MathUtils.clamp(hsl.l * (1 + (v - 0.5) * 2 * LOOK.TREE_CROWN_VARIATION), 0, 1)); crowns.setColorAt(i, c);
   }
   for (const m of [crowns, trunks]) { m.castShadow = true; m.receiveShadow = true; m.computeBoundingSphere(); cityGroup.add(m); }
+  // the camera bumps into the trunks (flycam.js; v1 does the same below 12 m)
+  const tr = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) { const r = data[i * 5 + 2], h = data[i * 5 + 3], ch = Math.max(r * 1.2, h * LOOK.TREE_CROWN_SHARE); tr.set([data[i * 5], data[i * 5 + 1], 0.12 + r * 0.025, Math.max(0.5, h - ch * 0.8)], i * 4); }
+  field.setTrunks(tr);
   city.trees = { crowns, trunks, n };
 }
 function mergeToSmooth(g) {
@@ -467,6 +464,7 @@ const cityReady = new Promise((resolve) => {
     if (m.type === 'roads') { addRibbons(m.tiles, ORDER.ROADS, city.roads); timings.roads = performance.now() - timings.start; status('Roads in, raising buildings…'); }
     else if (m.type === 'sidewalks') { addRibbons(m.tiles, ORDER.SIDEWALKS, city.sidewalks); timings.sidewalks = performance.now() - timings.start; }
     else if (m.type === 'buildings') { addBuildings(m.tiles); timings.buildings = performance.now() - timings.start; status('Buildings in, planting trees…'); }
+    else if (m.type === 'collide') { field.setFootprints(m.data); applyBlenderTops(); }
     else if (m.type === 'trees') { addTrees(m.data); timings.trees = performance.now() - timings.start; }
     else if (m.type === 'log') console.info('[v2 city]', m.msg);
     else if (m.type === 'error') console.error('[v2 city]', m.msg);
@@ -491,12 +489,32 @@ const tilesReady = (async () => {
       console.warn('[v2 tiles] manifest origin differs from v2/geo.js; using the manifest origin is not supported after the city is built', man.origin);
     }
     tiles = t;
+    applyBlenderTops();
     return t.manifest;
   } catch (e) {
     console.info('[v2 tiles] no Blender tile manifest at', manifestUrl, '-', e.message);
     return null;
   }
 })();
+
+// the camera bumps into the trunks of v2's trees (trees.js draws them: one instanced mesh, each matrix = position, radius, height)
+const trunkWait = setInterval(() => {
+  const T = window.__v2trees; if (!T) return;
+  const st = T.stats(); if (st.error) { clearInterval(trunkWait); return; } if (!st.ready) return;
+  clearInterval(trunkWait);
+  const m = T.group.children.find((o) => o.name === 'trunks'); if (!m) return;
+  const e = m.instanceMatrix.array, n = m.count, out = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) { const o = i * 16; out.set([e[o + 12], e[o + 14], e[o], e[o + 5]], i * 4); }
+  field.setTrunks(out);
+}, 500);
+
+// the camera bumps into a Blender model's own top where it replaces plain buildings (once both the footprints and the manifest are in)
+let topsDone = false;
+function applyBlenderTops() {
+  if (topsDone || !field.ready || !tiles?.manifest) return;
+  topsDone = true;
+  for (const b of Object.values(tiles.manifest.buildings || {})) if (b.map_ids && b.top > 3) field.setTop(b.map_ids, b.top);
+}
 
 // ── walking route ──────────────────────────────────────────────────────
 const routeWorker = new Worker(new URL('./route-worker.js', import.meta.url), { type: 'module' });
@@ -790,7 +808,7 @@ import('./finder-boot.js').catch((e) => console.warn('[v2] finder', e.message));
 const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; };
 const pct = (a, p) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * p))] : null; };
 window.__v2 = {
-  THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES,
+  THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FLY, fly: () => controls.state(),
   ready: Promise.all([cityReady, tilesReady, routeReady]),
   tiles: () => tiles && tiles.summary(),
   timings: () => ({ ...timings }),

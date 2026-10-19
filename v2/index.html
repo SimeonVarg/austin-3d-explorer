@@ -59,6 +59,16 @@
     </div>
   </section>
 
+  <!-- the old app's controls (v2/flycam.js): the hint, and on touch screens the joystick (BOOST is added by flycam.js).
+       The look is the old app's own (../style.css #controls-hint, #joystick-zone). -->
+  <div id="controls-hint">
+    <span class="desktop-hint">WASD move &nbsp;|&nbsp; drag to look &nbsp;|&nbsp; Q/E or wheel for altitude &nbsp;|&nbsp; Shift boost &nbsp;|&nbsp; R reset</span>
+    <span class="mobile-hint">Joystick to move &nbsp;|&nbsp; BOOST to sprint &nbsp;|&nbsp; swipe to look &nbsp;|&nbsp; two fingers for altitude</span>
+  </div>
+  <div id="joystick-zone">
+    <div id="joystick-base"><div id="joystick-knob"></div></div>
+  </div>
+
   <div id="status" aria-live="polite">Loading the city…</div>
   <footer id="credits"><a href="../terms.html" target="_blank" rel="noopener">Terms</a> | <a href="./credits.html" target="_blank" rel="noopener">Credits</a> | Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors<span class="wide">, <a href="./credits.html" target="_blank" rel="noopener">City of Austin</a> open data</span></footer>
   <noscript>This 3D map needs JavaScript and WebGL 2.</noscript>
