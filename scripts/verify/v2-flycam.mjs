@@ -37,6 +37,8 @@ async function open(ctxOpts) {
   await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 300000 });
   await page.evaluate(() => window.__v2.ready);
   await page.waitForFunction(() => window.__v2.fly().field.ready, null, { timeout: 300000 });
+  // the drags must land on the canvas: a clickable building name or the credits under the pointer would take the press
+  await page.addStyleTag({ content: '#labels, #credits { display: none !important; }' });
   // the manual clock: __step(n) advances the controls n frames of 1/60 s
   await page.evaluate(() => {
     const c = window.__v2.controls; let t = 1e7; c.clock = () => t; c.lastTs = null; c.update();
