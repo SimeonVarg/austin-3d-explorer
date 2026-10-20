@@ -1,11 +1,11 @@
 {
  "about": "Every current best Blender build (BUILDS.json status \"best\") and whether it is in the v2 tiles. Written by scripts/v2/build_tiles.mjs.",
- "built": "2026-10-20T01:27:21.782Z",
+ "built": "2026-10-20T18:24:42.099Z",
  "exporter": "c6e22f15bb68004b",
  "tiler": "4203883771b8af48",
  "totals": {
-  "best": 309,
-  "exported": 307
+  "best": 310,
+  "exported": 308
  },
  "buildings": {
   "100-congress": {
@@ -481,7 +481,7 @@
     "triangles": 28016,
     "detailed_triangles": 58462,
     "target": 28000,
-    "simplify_error": 1.4e-05,
+    "simplify_error": 0.000014,
     "ground_triangles": [
      7361,
      2333
@@ -675,6 +675,33 @@
     "area_ratio": 1.014,
     "centre_off_m": 0.23,
     "flags": []
+   }
+  },
+  "calhoun-hall": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_-1_0",
+   "blend_sha256": "d16116d633d38c5b",
+   "lod1": "mass",
+   "app_copy": {
+    "triangles": 17026,
+    "detailed_triangles": 31015,
+    "target": 17000,
+    "simplify_error": 0.000034,
+    "ground_triangles": [
+     3151,
+     440
+    ]
+   },
+   "placement": {
+    "height_m": 20.6,
+    "area_ratio": 1.019,
+    "centre_off_m": 0.04,
+    "flags": [
+     "base at -3.7 m"
+    ]
    }
   },
   "cambridge-tower": {
@@ -5017,15 +5044,15 @@
    }
   },
   "t_-1_0": {
-   "hash": "430c34ece88f46a1",
+   "hash": "a4ae77ff54bca7b1",
    "near": {
-    "bytes": 1004884,
-    "tris": 114592,
+    "bytes": 1158044,
+    "tris": 131618,
     "draws": 2
    },
    "far": {
-    "bytes": 20928,
-    "tris": 1480,
+    "bytes": 27200,
+    "tris": 2051,
     "draws": 1
    }
   },

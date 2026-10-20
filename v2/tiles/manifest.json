@@ -114,6 +114,7 @@
    "lod1": "tiles/t_-1_0.far.glb",
    "buildings": [
     "battle-hall",
+    "calhoun-hall",
     "goldsmith-hall",
     "harry-ransom-center",
     "homer-rainey-hall",
@@ -121,8 +122,8 @@
     "sutton-hall"
    ],
    "bytes": [
-    1004884,
-    20928
+    1158044,
+    27200
    ]
   },
   {
@@ -2159,6 +2160,17 @@
    "x": 77.973,
    "z": -322.369,
    "top": 26.9
+  },
+  "calhoun-hall": {
+   "tile": "t_-1_0",
+   "map_ids": [
+    "53d48f5f"
+   ],
+   "name": "Calhoun Hall",
+   "model": "opus",
+   "x": -88.714,
+   "z": 165.968,
+   "top": 20.6
   },
   "cambridge-tower": {
    "tile": "t_-1_2",
@@ -4340,7 +4352,7 @@
    "map_ids": [
     "eaca344c"
    ],
-   "name": "West Campus block with \u03a3\u03a7 letters (eaca344c)",
+   "name": "West Campus block with ΣΧ letters (eaca344c)",
    "model": "opus",
    "x": -269.769,
    "z": -705.699,
