@@ -36,6 +36,10 @@ const smooth = (k) => k * k * (3 - 2 * k);
 // attribute draw as before.
 const AO_STRENGTH = { value: LOOK.AO.STRENGTH };
 const AO_FAR = { value: new THREE.Vector4(...LOOK.AO.FAR_PX_M) };
+// the canvas's adaptive scale (main.js, in motion only): the AO steps are chosen by the FULL-resolution pixel, so they do not move when
+// the canvas drops to fewer pixels in motion and comes back when it stops
+const AO_SCALE = { value: 1 };
+export function setAOPixelScale(s) { AO_SCALE.value = s; }
 const AO_SHOW = typeof location !== 'undefined' && new URLSearchParams(location.search).get('aoshow') === '1';   // diagnosis: draw the baked AO itself
 function fadeable(material, uniform, ao) {
   if (!material || material.userData.v2Fade) return;
@@ -48,16 +52,16 @@ function fadeable(material, uniform, ao) {
       .replace('#include <fog_fragment>', '#include <fog_fragment>\n#ifdef USE_FOG\n  gl_FragColor.rgb = mix(gl_FragColor.rgb, hazeC, uFade);\n#endif');
     if (ao) {
       sh.uniforms.uAOStrength = AO_STRENGTH;
-      sh.uniforms.uAOFar = AO_FAR;
+      sh.uniforms.uAOFar = AO_FAR; sh.uniforms.uAOScale = AO_SCALE;
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 _ao;\nvarying float vV2AO;\nvarying float vV2AOF;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvV2AO = _ao.x;\nvV2AOF = _ao.y;');
       if (AO_SHOW) sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  gl_FragColor = vec4(vec3(v2aoSeen), 1.0);');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vV2AO;\nvarying float vV2AOF;\nuniform float uAOStrength;\nuniform vec4 uAOFar;\nfloat v2aoSeen = 1.0;')
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vV2AO;\nvarying float vV2AOF;\nuniform float uAOStrength;\nuniform vec4 uAOFar;\nuniform float uAOScale;\nfloat v2aoSeen = 1.0;')
         .replace('#include <aomap_fragment>', `#include <aomap_fragment>
   {
     // near: the AO of each face; as a pixel grows (metres per pixel, uAOFar.xy) the far AO (the same box-filtered over a few metres),
     // and as it grows on (uAOFar.zw) none: far off, the city draws as it did before the AO
-    float v2px = max(length(dFdx(vViewPosition)), length(dFdy(vViewPosition)));
+    float v2px = max(length(dFdx(vViewPosition)), length(dFdy(vViewPosition))) * uAOScale;
     float v2raw = mix(mix(vV2AO, vV2AOF, smoothstep(uAOFar.x, uAOFar.y, v2px)), 1.0, smoothstep(uAOFar.z, uAOFar.w, v2px));
     v2aoSeen = v2raw;
     float v2ao = clamp(mix(1.0, v2raw, uAOStrength), 0.0, 1.0);
