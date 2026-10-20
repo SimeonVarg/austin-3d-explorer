@@ -1214,16 +1214,18 @@
    ],
    "lod0": "tiles/t_0_1.glb",
    "lod1": "tiles/t_0_1.far.glb",
+   "lod1_m": 400,
    "buildings": [
     "austin-by-ellsworth-kelly",
     "george-i-sanchez-building",
+    "jester-west-hall",
     "pcl-library",
     "texas-alpha-phi",
     "university-teaching-center"
    ],
    "bytes": [
-    346288,
-    68884
+    506352,
+    76304
    ]
   },
   {
@@ -2837,6 +2839,17 @@
    "x": 328.107,
    "z": 410.902,
    "top": 36.6
+  },
+  "jester-west-hall": {
+   "tile": "t_0_1",
+   "map_ids": [
+    "165236c4"
+   ],
+   "name": "Jester West Hall",
+   "model": "opus",
+   "x": 240.752,
+   "z": 430.433,
+   "top": 52
   },
   "john-b-connally-center-for-justice": {
    "tile": "t_3_-1",
