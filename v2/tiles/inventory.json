@@ -1,6 +1,6 @@
 {
  "about": "Every current best Blender build (BUILDS.json status \"best\") and whether it is in the v2 tiles. Written by scripts/v2/build_tiles.mjs.",
- "built": "2026-10-20T01:02:46.653Z",
+ "built": "2026-10-20T01:27:21.782Z",
  "exporter": "c6e22f15bb68004b",
  "tiler": "4203883771b8af48",
  "totals": {
@@ -4000,12 +4000,22 @@
    "model": "opus",
    "kind": "campus",
    "tile": "t_-1_-1",
-   "blend_sha256": "c6693dfe685ee8d7",
+   "blend_sha256": "c06bd85d8d67f2cc",
    "lod1": "mass",
+   "app_copy": {
+    "triangles": 39972,
+    "detailed_triangles": 45691,
+    "target": 39221,
+    "simplify_error": 0.000479,
+    "ground_triangles": [
+     0,
+     0
+    ]
+   },
    "placement": {
-    "height_m": 96.6,
-    "area_ratio": 1.051,
-    "centre_off_m": 0.36,
+    "height_m": 98.9,
+    "area_ratio": 1.037,
+    "centre_off_m": 0.64,
     "flags": []
    }
   },
@@ -4955,15 +4965,15 @@
  },
  "tiles": {
   "t_-1_-1": {
-   "hash": "61b965d670f68eaf",
+   "hash": "efeeec70cf3e9096",
    "near": {
-    "bytes": 1617856,
-    "tris": 196258,
+    "bytes": 1618680,
+    "tris": 197009,
     "draws": 2
    },
    "far": {
-    "bytes": 48444,
-    "tris": 3979,
+    "bytes": 48244,
+    "tris": 4024,
     "draws": 1
    }
   },

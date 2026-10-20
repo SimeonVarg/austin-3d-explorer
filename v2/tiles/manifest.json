@@ -30,8 +30,8 @@
     "ut-tower-main-building"
    ],
    "bytes": [
-    1617856,
-    48444
+    1618680,
+    48244
    ]
   },
   {
@@ -4340,7 +4340,7 @@
    "map_ids": [
     "eaca344c"
    ],
-   "name": "West Campus block with ΣΧ letters (eaca344c)",
+   "name": "West Campus block with \u03a3\u03a7 letters (eaca344c)",
    "model": "opus",
    "x": -269.769,
    "z": -705.699,
@@ -4466,7 +4466,7 @@
    "model": "opus",
    "x": -0.478,
    "z": -0.509,
-   "top": 96.6
+   "top": 98.9
   },
   "villas-at-san-gabriel": {
    "tile": "t_-4_-2",
