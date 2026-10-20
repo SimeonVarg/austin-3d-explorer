@@ -49,8 +49,8 @@ function fadeable(material, uniform, ao) {
     if (ao) {
       sh.uniforms.uAOStrength = AO_STRENGTH;
       sh.uniforms.uAOFar = AO_FAR;
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float _ao;\nattribute float _aof;\nvarying float vV2AO;\nvarying float vV2AOF;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvV2AO = _ao;\nvV2AOF = _aof;');
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 _ao;\nvarying float vV2AO;\nvarying float vV2AOF;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvV2AO = _ao.x;\nvV2AOF = _ao.y;');
       if (AO_SHOW) sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  gl_FragColor = vec4(vec3(v2aoSeen), 1.0);');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vV2AO;\nvarying float vV2AOF;\nuniform float uAOStrength;\nuniform vec4 uAOFar;\nfloat v2aoSeen = 1.0;')
         .replace('#include <aomap_fragment>', `#include <aomap_fragment>
@@ -170,8 +170,8 @@ export class TileStreamer {
           if (!o.isMesh) return;
           o.castShadow = true; o.receiveShadow = true; o.frustumCulled = true;
           if (shadowDepth) o.customDepthMaterial = shadowDepth;
-          const ao = LOOK.AO.ON && !!o.geometry.attributes._ao && !!o.geometry.attributes._aof;
-          if (!ao) { if (o.geometry.attributes._ao) o.geometry.deleteAttribute('_ao'); if (o.geometry.attributes._aof) o.geometry.deleteAttribute('_aof'); }
+          const ao = LOOK.AO.ON && !!o.geometry.attributes._ao && o.geometry.attributes._ao.itemSize === 2;
+          if (!ao && o.geometry.attributes._ao) o.geometry.deleteAttribute('_ao');
           for (const m of Array.isArray(o.material) ? o.material : [o.material]) fadeable(m, fade, ao);
         });
         obj.userData.fade = fade;

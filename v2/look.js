@@ -66,7 +66,7 @@ export const LOOK = {
   // It multiplies the INDIRECT light only (the sky and the ground's bounce, and what glass mirrors); the sun is the shadow map's.
   // Recesses, reveals, the inside of loggias and arcades, the joints of pilasters and cornices get their contact darkening. Baked into
   // the geometry, so it is the same in every frame (rule 15). ?ao=0 or ?light=old = off.
-  // FAR_PX_M: from the 1st to the 2nd size of a pixel on the surface (metres), the AO of each face gives way to the far AO (_AOF:
+  // FAR_PX_M: from the 1st to the 2nd size of a pixel on the surface (metres), the AO of each face gives way to the far AO (_AO's second value:
   // the same AO box-filtered over 3 m); from the 3rd to the 4th the AO fades out. Per-face AO on fins and slots finer than a pixel
   // flickered in motion (DKR fins at 1800 m: shimmer 0.63 without AO, 0.80 with it; 0.75 with the far AO alone; rule 15).
   AO: { ON: true, STRENGTH: 1.0, FAR_PX_M: [0.06, 0.18, 0.35, 0.9] },

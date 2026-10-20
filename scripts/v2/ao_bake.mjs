@@ -1,4 +1,4 @@
-// Ambient occlusion baked per vertex into a v2 tile (vertex attribute _AO, 0..1, one byte): how much of the sky and the bounce a
+// Ambient occlusion baked per vertex into a v2 tile (vertex attribute _AO, VEC2 of bytes: near, far): how much of the sky and the bounce a
 // point of a Blender model can see past the tile's own nearby geometry. The app multiplies it into the INDIRECT light only (sky and
 // bounce, v2/look.js AO); the sun keeps the shadow map. It is part of the geometry, so it cannot flicker in motion (rule 15).
 //
@@ -29,7 +29,7 @@ export const AO = {
   SIDE_SAMPLES: 2,        // samples measured on both sides of a face before the open side is chosen
   SAMPLES_MAX: 32,        // ...within these
   LEVELS: 256,            // AO steps stored in the byte (measured 2026-10-20: 64 or 32 steps save under 2 % of the file, not worth the steps)
-  FAR_RADIUS_M: 3.0,      // the far AO (_AOF) is the AO averaged over this radius
+  FAR_RADIUS_M: 3.0,      // the far AO (_AO's second value) is the AO averaged over this radius
   GROUND_M: 0.6,          // level faces lower than this are the site ground: not occluders (they still get their own AO)
 };
 
@@ -281,10 +281,9 @@ export function bakeAO(doc, P = AO) {
     for (let t = 0; t < T; t++) { const f = faceAO.get(faceOf[t]), w = area[t] + 1e-9; for (let k = 0; k < 3; k++) { const v = I[t * 3 + k]; vs[v] += f * w; vw[v] += w; } }
     const u8 = new Uint8Array(nv);
     for (let v = 0; v < nv; v++) { const a = vw[v] > 0 ? vs[v] / vw[v] : 1; u8[v] = q8(a); sum += a; cnt++; }
-    p.prim.setAttribute('_AO', doc.createAccessor().setType('SCALAR').setArray(u8).setNormalized(true).setBuffer(buf));
-    // _AOF, the FAR AO: the same AO averaged over FAR_RADIUS_M round the vertex (by area, weight falling to 0 at the radius). Seen from
+    // The FAR AO (_AO's second value): the same AO averaged over FAR_RADIUS_M round the vertex (by area, weight falling to 0 at the radius). Seen from
     // far, a pixel covers several fins or slots, and per-face AO makes their sub-pixel contrast flicker in motion (measured: DKR fins
-    // at 1800 m, shimmer 0.63 -> 0.80). The app moves from _AO to _AOF as a pixel grows (LOOK.AO.FAR_PX_M): the far AO is the near
+    // at 1800 m, shimmer 0.63 -> 0.80). The app moves from the near to the far AO as a pixel grows (LOOK.AO.FAR_PX_M): the far AO is the near
     // one box-filtered over a few metres, so the building keeps its darker loggias and courts without the fine stripes.
     const R = P.FAR_RADIUS_M, cell = R, grid = new Map(), cen = new Float64Array(T * 3), tao = new Float64Array(T);
     for (let t = 0; t < T; t++) {
@@ -306,7 +305,9 @@ export function bakeAO(doc, P = AO) {
       }
       f8[v] = q8(w > 0 ? s / w : 1);
     }
-    p.prim.setAttribute('_AOF', doc.createAccessor().setType('SCALAR').setArray(f8).setNormalized(true).setBuffer(buf));
+    // one VEC2 attribute (near, far): two 1-byte attributes each take a 4-byte vertex stride on the GPU (measured: +66 MB over the city)
+    const both = new Uint8Array(nv * 2); for (let v = 0; v < nv; v++) { both[v * 2] = u8[v]; both[v * 2 + 1] = f8[v]; }
+    p.prim.setAttribute('_AO', doc.createAccessor().setType('VEC2').setArray(both).setNormalized(true).setBuffer(buf));
   }
   return { vertices: cnt, triangles: nt, triangles_before: nt, faces, samples, meanAO: cnt ? sum / cnt : 1 };
 }
@@ -349,7 +350,7 @@ if (isMainThread && process.argv[1] && path.resolve(process.argv[1]) === SELF) {
     const t0 = Date.now(), f = path.join(workerData.dir, file);
     const before = fs.statSync(f).size;
     const doc = await io.read(f);
-    for (const m of doc.getRoot().listMeshes()) for (const p of m.listPrimitives()) { if (p.getAttribute('_AO')) p.setAttribute('_AO', null); if (p.getAttribute('_AOF')) p.setAttribute('_AOF', null); }
+    for (const m of doc.getRoot().listMeshes()) for (const p of m.listPrimitives()) if (p.getAttribute('_AO')) p.setAttribute('_AO', null);
     await doc.transform(dequantize());
     const st = bakeAO(doc);
     await doc.transform(meshopt({ encoder: MeshoptEncoder, level: MESHOPT_LEVEL, ...QUANT }));
