@@ -265,6 +265,15 @@ triangle down to the roof. Look at each one from the viewpoints the app is
 seen from, near and far: a closing face that is invisible in the hero render
 can stand in front of the seats from the next camera.
 
+**9o. Every entrance is found and built, inside the outline or not.** Before the final, list every
+entrance and every attached part (porch, canopy, arcade, stairs, ramp, link bridge, entrance block)
+from three sources: every photograph and Street View frame of the building, the OpenStreetMap
+`entrance=*` nodes within about 12 m of the outline, and the laser scan just outside each wall (a low
+return of 3-12 m beside a wall is usually a porch or an entrance block). Build each one, or give a
+photograph or scan reason in writing (for example: it stands inside another building's outline). The
+map outline is data, not a limit on the evidence: a part that a photograph shows attached to the
+building belongs to it even where the outline leaves it out.
+
 *Checks 9i (roof), 9l (ground) and 9m (openings) are run together, on every
 face, before the final render: the owner's "three checks", meant to be
 holistic.*
@@ -431,3 +440,6 @@ made or sharpened.
   over nothing, and a 344 m2 end wall of the west deck) hid the bowl. The
   photographs show an open overhang with a light fascia band and raker beams:
   check 9n.
+- **2026-10-19.** Jester West Hall went live without its Brazos St porch. The build's coverage list
+  had marked a photographed entrance block "not built: outside the outline". His words: "I don't see
+  the Brazos entrance" (the same class as the DKR south-east entrance on 10/17): check 9o.
