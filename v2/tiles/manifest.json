@@ -1192,6 +1192,7 @@
    "lod0": "tiles/t_0_0.glb",
    "lod1": "tiles/t_0_0.far.glb",
    "buildings": [
+    "batts-mezes-benedict-halls",
     "bernard-and-audre-rapoport-building",
     "garrison-hall",
     "graduate-school-of-business",
@@ -1199,8 +1200,8 @@
     "waggener-hall"
    ],
    "bytes": [
-    771832,
-    22892
+    978064,
+    30092
    ]
   },
   {
@@ -2023,6 +2024,19 @@
    "x": -99.782,
    "z": 64.553,
    "top": 19.7
+  },
+  "batts-mezes-benedict-halls": {
+   "tile": "t_0_0",
+   "map_ids": [
+    "9b936434",
+    "b9eac672",
+    "6d07e23b"
+   ],
+   "name": "Batts, Mezes and Benedict Halls",
+   "model": "opus",
+   "x": 40.264,
+   "z": 185.306,
+   "top": 23.1
   },
   "bernard-and-audre-rapoport-building": {
    "tile": "t_0_0",
