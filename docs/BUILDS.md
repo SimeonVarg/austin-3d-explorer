@@ -185,7 +185,7 @@ Right now: 384 builds of 316 buildings; 117 buildings flagged to retarget.
 | Austin Technology Incubator | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 491 | 32 min, 366k plan tokens |  | yes |
 | Bass Concert Hall | Opus 5.5 | 2026-10-14 | unproven | public photo | unreviewed | 23,880 | 49 min, 431k plan tokens |  | yes |
 | Battle Hall | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 20,068 | 33 min, 376k plan tokens |  |  |
-| Batts, Mezes and Benedict Halls | Opus 5.5 | 2026-10-19 | loose | public photo | unreviewed | 65,485 | 185 min |  |  |
+| Batts, Mezes and Benedict Halls | Opus 5.5 | 2026-10-19 | loose | public photo | unreviewed | 66,047 | 230 min |  |  |
 | Bernard and Audre Rapoport Building | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 13,583 | 35 min, 336k plan tokens |  |  |
 | Biological Laboratories | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 19,935 | 52 min, 415k plan tokens |  |  |
 | Biomedical Engineering Building | Opus 5.5 | 2026-10-14 | loose | public photo | unreviewed | 24,046 | 47 min, 407k plan tokens |  | yes |
