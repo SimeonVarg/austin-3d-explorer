@@ -1,11 +1,11 @@
 {
  "about": "Every current best Blender build (BUILDS.json status \"best\") and whether it is in the v2 tiles. Written by scripts/v2/build_tiles.mjs.",
- "built": "2026-10-19T22:51:41.834Z",
+ "built": "2026-10-20T00:13:56.150Z",
  "exporter": "c6e22f15bb68004b",
  "tiler": "4203883771b8af48",
  "totals": {
-  "best": 308,
-  "exported": 306
+  "best": 309,
+  "exported": 307
  },
  "buildings": {
   "100-congress": {
@@ -475,22 +475,22 @@
    "model": "opus",
    "kind": "campus",
    "tile": "t_0_0",
-   "blend_sha256": "76b089183f01b116",
+   "blend_sha256": "570fe962f9625f88",
    "lod1": "mass",
    "app_copy": {
-    "triangles": 27918,
-    "detailed_triangles": 57900,
+    "triangles": 28016,
+    "detailed_triangles": 58462,
     "target": 28000,
-    "simplify_error": 1e-05,
+    "simplify_error": 1.4e-05,
     "ground_triangles": [
      7361,
-     2330
+     2333
     ]
    },
    "placement": {
     "height_m": 23.1,
     "area_ratio": 1.062,
-    "centre_off_m": 0.83,
+    "centre_off_m": 0.82,
     "flags": [
      "base at -3.1 m"
     ]
@@ -5642,15 +5642,15 @@
    }
   },
   "t_0_0": {
-   "hash": "f39345cafbce4403",
+   "hash": "f8321613a0ef7506",
    "near": {
-    "bytes": 975900,
-    "tris": 116124,
+    "bytes": 978064,
+    "tris": 116222,
     "draws": 2
    },
    "far": {
-    "bytes": 30212,
-    "tris": 2491,
+    "bytes": 30092,
+    "tris": 2493,
     "draws": 1
    }
   },
