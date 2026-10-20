@@ -12,6 +12,7 @@
   "run": {
     "moire-frame-filter.mjs": {"est_s": 10},
     "v2-demo-checks.mjs": {"est_s": 700, "timeout_s": 1500},
+    "v2-light.mjs": {"est_s": 300, "timeout_s": 1200},
     "analytics-check.mjs": {"est_s": 60},
     "apartment-area-filter.mjs": {"est_s": 10},
     "apartment-areas.mjs": {"est_s": 10},

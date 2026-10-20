@@ -12,7 +12,7 @@
 //                                      (site ground graded onto the app's flat ground, simplified to a triangle number). The detailed export stays;
 //                                      the placement check, the far mass and the tile all read the copy.
 //   4. here                            per tile, with glTF Transform: dedup -> palette -> flatten -> join, glass apart from the rest,
-//                                      then Meshopt (reorder + quantize + EXT_meshopt_compression). lod1 (far): weld -> simplify first.
+//                                      ambient occlusion per vertex (ao_bake.mjs, near tiles), then Meshopt (reorder + quantize + EXT_meshopt_compression). lod1 (far): weld -> simplify first.
 // The export cache (per-building .glb, state) lives OUTSIDE the repo: $V2_CACHE (default ~/flyover-private/v2-tiles-cache).
 import fs from 'node:fs';
 import os from 'node:os';
@@ -26,16 +26,15 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, flatten, join, mergeDocuments, meshopt, palette, prune, simplify, unpartition, weld } from '@gltf-transform/functions';
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import { makeAppCopy } from './app_copy.mjs';
+import { MESHOPT_LEVEL, QUANT } from './tile_encoding.mjs';
+import { bakeAO } from './ao_bake.mjs';
 
 // ── PARAMETERS ──────────────────────────────────────────────────────────
 const ORIGIN = { lat: 30.28601, lon: -97.73932 };   // must equal sources.py ORIGIN
 const TILE_M = 250;
 const FAR_SIMPLIFY_RATIO = 0.5;      // lod1 keeps at most this share of triangles...
 const FAR_SIMPLIFY_ERROR = 0.002;    // ...and moves no surface by more than this share of the tile's size (0.002 x ~250 m = 0.5 m)
-const MESHOPT_LEVEL = 'high';     // filter mode (octahedral normals etc.): about a fifth smaller than 'medium', keeps the dense West Campus tile under the phone line
-// 14 bits over a ~260 m tile = 1.6 cm; 16 bits = 0.4 cm. At 1.6 cm the builders' layered surfaces (field markings, painted aisles, seat blocks laid
-// 1-3 cm over each other) land on the same step and fight for the pixel: the end zones, lettering and aisle bands were lost that way (2026-10-18).
-const QUANT = { quantizePosition: +(process.env.V2_QUANT_BITS || 16), quantizeNormal: 10, quantizeTexcoord: 12 };
+// MESHOPT_LEVEL and QUANT (16-bit positions: the builders' layered surfaces) live in tile_encoding.mjs, shared with ao_bake.mjs
 // A near tile over this is reported. Why 2 MB: a phone on cellular (~5-10 Mbit/s) fetches it in 2-3 s, and its decoded vertex and index
 // buffers (about 3-4x the Meshopt file) stay under ~8 MB of GPU memory, so the dozen or so tiles around the camera fit the phone's budget
 // (the iPhone has already lost the live page twice for memory). Far tiles are a tenth of that.
@@ -61,7 +60,7 @@ const JOBS = +(opt('--jobs') || 2);
 const sha = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
 const EXPORTER = path.join(HERE, 'blender_export_v2.py');
 const EXPORTER_HASH = sha(fs.readFileSync(EXPORTER)).slice(0, 16);
-const TILER_HASH = sha(fs.readFileSync(fileURLToPath(import.meta.url))).slice(0, 16);
+const TILER_HASH = sha(Buffer.concat(['build_tiles.mjs', 'ao_bake.mjs', 'tile_encoding.mjs'].map((f) => fs.readFileSync(path.join(HERE, f))))).slice(0, 16);   // (a change to the AO bake rebuilds the tiles)
 
 function run(cmd, args, logFile) {
   return new Promise((res) => {
@@ -253,6 +252,8 @@ async function buildTile(t, slugs, lod) {
     for (const sc of doc.getRoot().listScenes()) { if (sc === scene) continue; for (const n of sc.listChildren()) scene.addChild(n); sc.dispose(); }
     await doc.transform(unpartition());
   }
+  // near tiles: ambient occlusion per vertex from the tile's own geometry (ao_bake.mjs; the app multiplies it into the sky and bounce light)
+  if (lod === 0) bakeAO(doc);
   doc.getRoot().getAsset().generator = 'flyover scripts/v2/build_tiles.mjs (glTF Transform 4.5.0)';
   doc.getRoot().setExtras({ tile: t, lod, buildings: slugs, building_attribute: '_BUILDING = index into buildings' });
   await doc.transform(meshopt({ encoder: MeshoptEncoder, level: MESHOPT_LEVEL, ...QUANT }));

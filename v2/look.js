@@ -55,6 +55,21 @@ export const LOOK = {
   SHADOW_NORMAL_BIAS_TEXELS: 1.2,   // normal offset in shadow texels (so it shrinks with the texel: no light leaking under thin parts)
   SHADOW_RADIUS: 1.25,          // PCF softness, in texels
   SHADOW_VIEW_CULL_MARGIN_TEXELS: 8,   // a caster is kept in the shadow map if its shadow comes within this many texels of the view
+  // Slope-scaled depth offset of the Blender models in the shadow map (glPolygonOffset factor; 0 = off). The models are drawn double-sided
+  // (their faces are wound either way, tiles.js), so a lit face also stands in the map and is compared with ITSELF; a narrow lit part (a
+  // band, a sill, a pillar) shares its shadow texels with its own top and sides and fell in its own shadow in diagonal stripes ("acne":
+  // Jester's cream bands drawn as grey streaks, porch pillars striped as if see-through, 2026-10-20). 4 clears every view tried down to
+  // the 0.35 m texel of a 720 m shadow box; 2 still streaks. ?light=old = 0.
+  SHADOW_SLOPE_BIAS: 4,
+
+  // ── ambient occlusion of the Blender models (baked per vertex by scripts/v2/ao_bake.mjs, attribute _AO) ──
+  // It multiplies the INDIRECT light only (the sky and the ground's bounce, and what glass mirrors); the sun is the shadow map's.
+  // Recesses, reveals, the inside of loggias and arcades, the joints of pilasters and cornices get their contact darkening. Baked into
+  // the geometry, so it is the same in every frame (rule 15). ?ao=0 or ?light=old = off.
+  // FAR_PX_M: from the 1st to the 2nd size of a pixel on the surface (metres), the AO of each face gives way to the far AO (_AOF:
+  // the same AO box-filtered over 3 m); from the 3rd to the 4th the AO fades out. Per-face AO on fins and slots finer than a pixel
+  // flickered in motion (DKR fins at 1800 m: shimmer 0.63 without AO, 0.80 with it; 0.75 with the far AO alone; rule 15).
+  AO: { ON: true, STRENGTH: 1.0, FAR_PX_M: [0.06, 0.18, 0.35, 0.9] },
 
   // ── haze / distance ──────────────────────────────────────────────────
   // The old app's day haze (js/sky.js HAZE: DIST.day 3200, MAX.day 0.62): a surface d metres away is MAX x (1 - e^(-d/DIST)) of
@@ -116,6 +131,14 @@ export const LOOK = {
   DOOR_START: '#1f6fd6',
   DOOR_END: '#e0592a',
 };
+
+// ?light=old shows the light as it was before 2026-10-20 (no baked AO, no shadow slope offset), for a before/after in one app.
+const Q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
+export const LIGHT_OLD = Q.get('light') === 'old';
+if (LIGHT_OLD) { LOOK.SHADOW_SLOPE_BIAS = 0; LOOK.AO.ON = false; }
+if (Q.get('ao') === '0') LOOK.AO.ON = false;
+if (Q.get('ao') && Q.get('ao') !== '0') LOOK.AO.STRENGTH = +Q.get('ao');
+if (Q.get('aofar')) LOOK.AO.FAR_PX_M = Q.get('aofar').split(',').map(Number);   // e.g. ?aofar=0.06,0.18,0.35,0.9
 
 // Speed knobs that change the picture (kept here so a phone/desktop difference is visible in one file).
 export const QUALITY = {
