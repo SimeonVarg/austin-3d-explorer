@@ -1088,6 +1088,7 @@
       "lod0": "tiles/t_0_-1.glb",
       "lod1": "tiles/t_0_-1.far.glb",
       "buildings": [
+        "faulkner-nano-science-and-technology",
         "mary-e-gearing-hall",
         "norman-hackerman-building",
         "pharmacy-building",
@@ -1096,8 +1097,8 @@
         "will-c-hogg-building"
       ],
       "bytes": [
-        1123620,
-        36684
+        1151172,
+        38416
       ]
     },
     {
@@ -1337,15 +1338,17 @@
       ],
       "lod0": "tiles/t_1_-1.glb",
       "lod1": "tiles/t_1_-1.far.glb",
+      "lod1_m": 450,
       "buildings": [
         "gary-l-thomas-energy-engineering-building",
         "gates-dell-complex",
+        "hal-c-weaver-power-plant",
         "j-t-patterson-laboratories-building",
         "odonnell-building"
       ],
       "bytes": [
-        622684,
-        30736
+        731364,
+        40896
       ]
     },
     {
