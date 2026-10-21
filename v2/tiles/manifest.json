@@ -1565,6 +1565,24 @@
    ]
   },
   {
+   "id": "t_2_1",
+   "bounds": [
+    500,
+    250,
+    750,
+    500
+   ],
+   "lod0": "tiles/t_2_1.glb",
+   "lod1": "tiles/t_2_1.far.glb",
+   "buildings": [
+    "moncrief-neuhaus-athletic-center"
+   ],
+   "bytes": [
+    39960,
+    8756
+   ]
+  },
+  {
    "id": "t_2_2",
    "bounds": [
     500,
@@ -3055,6 +3073,18 @@
    "x": 195.807,
    "z": -280.627,
    "top": 22.4
+  },
+  "moncrief-neuhaus-athletic-center": {
+   "tile": "t_2_1",
+   "map_ids": [
+    "3fb4507f",
+    "ec129b99"
+   ],
+   "name": "Moncrief-Neuhaus Athletic Center",
+   "model": "opus",
+   "x": 637.384,
+   "z": 404.833,
+   "top": 15.6
   },
   "moody-center": {
    "tile": "t_3_2",
