@@ -202,7 +202,7 @@ Right now: 387 builds of 318 buildings; 117 buildings flagged to retarget.
 | Collections Deposit Library | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 506 | 29 min, 347k plan tokens |  |  |
 | Dealey Center for New Media | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,912 | 36 min, 360k plan tokens |  |  |
 | DKR Memorial Stadium | Opus 5.5 | 2026-10-18 | loose | mixed | unreviewed | 191,151 | 556 min |  |  |
-| E. P. Schoch Building | Opus 5.5 | 2026-10-21 | proven | mixed | unreviewed | 12,561 | 110 min |  |  |
+| E. P. Schoch Building | Opus 5.5 | 2026-10-21 | proven | mixed | unreviewed | 12,605 | 130 min |  |  |
 | Edgar A. Smith Building | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 8,068 | 55 min, 461k plan tokens |  |  |
 | Employees Retirement System of Texas | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 17,829 | 44 min, 363k plan tokens |  |  |
 | Engineering Education and Research Center | Opus 5.5 | 2026-10-16 | proven | mixed | unreviewed | 23,912 | 44 min, 404k plan tokens |  |  |
