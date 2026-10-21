@@ -4,8 +4,8 @@
  "exporter": "c6e22f15bb68004b",
  "tiler": "4203883771b8af48",
  "totals": {
-  "best": 310,
-  "exported": 308
+  "best": 311,
+  "exported": 309
  },
  "buildings": {
   "100-congress": {
@@ -1979,6 +1979,33 @@
     "area_ratio": 1.048,
     "centre_off_m": 0.22,
     "flags": []
+   }
+  },
+  "moncrief-neuhaus-athletic-center": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_2_1",
+   "blend_sha256": "878dde4b679f86f1",
+   "lod1": "mass",
+   "app_copy": {
+    "triangles": 2826,
+    "detailed_triangles": 12392,
+    "target": 3300,
+    "simplify_error": 0.00001,
+    "ground_triangles": [
+     0,
+     0
+    ]
+   },
+   "placement": {
+    "height_m": 15.6,
+    "area_ratio": 0.988,
+    "centre_off_m": 1.91,
+    "flags": [
+     "base at -4.0 m"
+    ]
    }
   },
   "moody-center": {
@@ -5950,6 +5977,19 @@
    "far": {
     "bytes": 117096,
     "tris": 10595,
+    "draws": 1
+   }
+  },
+  "t_2_1": {
+   "hash": "40264534b5da393b",
+   "near": {
+    "bytes": 39960,
+    "tris": 2826,
+    "draws": 2
+   },
+   "far": {
+    "bytes": 8756,
+    "tris": 434,
     "draws": 1
    }
   },

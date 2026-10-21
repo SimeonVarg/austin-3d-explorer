@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 386 builds of 317 buildings; 117 buildings flagged to retarget.
+Right now: 387 builds of 318 buildings; 118 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -241,6 +241,7 @@ Right now: 386 builds of 317 buildings; 117 buildings flagged to retarget.
 | Mary E. Gearing Hall | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 26,811 | 62 min, 464k plan tokens |  |  |
 | McCombs School of Business | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 25,031 | 52 min, 452k plan tokens |  |  |
 | Moffett Molecular Biology | Opus 5.5 | 2026-10-13 |  | site photographs | best | 26,391 | 45 min, 370k plan tokens | "Make the X dots a bit more prominent" |  |
+| Moncrief-Neuhaus Athletic Center | Opus 5.5 | 2026-10-21 | loose | mixed | unreviewed | 12,392 | 120 min |  | yes |
 | Moody Center | Opus 5.5 | 2026-10-18 | loose | mixed | unreviewed | 169,750 | 400 min |  |  |
 | Music Recital Hall | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 21,256 | 51 min, 398k plan tokens |  |  |
 | Neural Molecular Science Building | Opus 5.5 | 2026-10-15 | proven | mixed | unreviewed | 21,790 | 59 min, 448k plan tokens |  |  |
@@ -414,6 +415,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Jester West Hall**: Rebuilt from 10 site photographs + Street View + 2021 scan (Earth type-only); entrances added after the owner's note (Brazos St porch, W entrance block, W link storefront, 3 doors from OpenStreetMap); 4 independent reviews; app copy 24,116 tri. Gaps: cameras loose, E/N/S faces inferred from Earth, S-wing cross gables simplified.
 - **JW Marriott Austin**: Earth 3D; 3 held-out pass but one only after a model change made after its error was seen, and R_NE sat on the neighbour; white 78.6 m tower inside the outline built too (may be a separate building); 19k vs 34k tri
 - **Littlefield House**: camera unproven on an old small public photo; work render only; heights maybe 5-10 % high
+- **Moncrief-Neuhaus Athletic Center**: Full-detail build: the hall with its two clay-tile roofs and tile edge, the rooftop practice field on the 7.1 m deck, the north-east entrance block (outside the map outline, built because the scan and Earth show it), and the stepped west face from the 2021 scan and Street View; it meets the stadium model's south end with no gap. Earth cameras check out (roof outlines line up within 0-3 px in all four views); Street View cameras not solved (used for content only). Gaps: south-face windows inferred (trees), shaded walls dark, the donor-name sign placed from a 2012 photo, the stadium model's guessed entry pavilion pokes 0.3-0.5 m through the hall roof (stadium lane).
 - **Neill-Cochran House Museum**: Earth 3D; held-outs 15.6-19.7 px (ground barely constrained: no scan-height fit points); east porch inferred
 - **Norman Hackerman Building**: overcast photo: colour gate failed 2 of 10, sun set by hand; wall 3.5 m off the outline
 - **North Campus block 21fe5c30**: Earth 3D; 2 of 3 held-out fail (oak hides corners); plain stucco block, 2.8k tri vs 13k target; roof hue fixed (grey)
