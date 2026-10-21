@@ -2318,6 +2318,21 @@
     "flags": []
    }
   },
+  "pharmacy-building": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-1",
+   "blend_sha256": "4dbb4dc047f15479",
+   "lod1": "mass",
+   "placement": {
+    "height_m": 20.8,
+    "area_ratio": 1.069,
+    "centre_off_m": 0.88,
+    "flags": []
+   }
+  },
   "physics-math-astronomy": {
    "exported": true,
    "reason": null,
@@ -5721,15 +5736,15 @@
    }
   },
   "t_0_-1": {
-   "hash": "c2ede6bf5c9c1968",
+   "hash": "042b9b9047b46bee",
    "near": {
-    "bytes": 1082572,
-    "tris": 107014,
+    "bytes": 1123620,
+    "tris": 115525,
     "draws": 2
    },
    "far": {
-    "bytes": 29892,
-    "tris": 2193,
+    "bytes": 36684,
+    "tris": 2835,
     "draws": 1
    }
   },

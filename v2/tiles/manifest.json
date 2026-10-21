@@ -1090,13 +1090,14 @@
    "buildings": [
     "mary-e-gearing-hall",
     "norman-hackerman-building",
+    "pharmacy-building",
     "robert-a-welch-hall",
     "t-s-painter-hall",
     "will-c-hogg-building"
    ],
    "bytes": [
-    1082572,
-    29892
+    1123620,
+    36684
    ]
   },
   {
@@ -3289,6 +3290,17 @@
    "x": -116.036,
    "z": -38.565,
    "top": 23
+  },
+  "pharmacy-building": {
+   "tile": "t_0_-1",
+   "map_ids": [
+    "0050926a"
+   ],
+   "name": "Pharmacy Building",
+   "model": "opus",
+   "x": 71.31,
+   "z": -240.516,
+   "top": 20.8
   },
   "physics-math-astronomy": {
    "tile": "t_1_-2",

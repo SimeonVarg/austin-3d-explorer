@@ -395,5 +395,46 @@
         5.0
       ]
     }
+  ],
+  "pharmacy-building": [
+    {
+      "name": "pharmacy-1-aerial-nw",
+      "pos": [
+        -170.0,
+        150.0,
+        120.0
+      ],
+      "target": [
+        0.0,
+        0.0,
+        10.0
+      ]
+    },
+    {
+      "name": "pharmacy-2-west-gap",
+      "pos": [
+        -44.0,
+        1.5,
+        7.5
+      ],
+      "target": [
+        2.0,
+        1.0,
+        9.5
+      ]
+    },
+    {
+      "name": "pharmacy-3-aerial-se",
+      "pos": [
+        160.0,
+        -170.0,
+        120.0
+      ],
+      "target": [
+        0.0,
+        -5.0,
+        10.0
+      ]
+    }
   ]
 }
