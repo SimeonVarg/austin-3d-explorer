@@ -5,6 +5,8 @@ Short on purpose. Last rebuilt 2026-10-04 from `git log origin/main`, `gh pr lis
 there is left out. **History is not here any more:** it moved, byte for byte, to
 `docs/journal/` (index: `docs/JOURNAL.md`). Do not append history to this file.
 
+**Demo today (2026-10-21):** what works, the safe demo path and what to avoid for the v2 CEO call are in `docs/demo-2026-10-21.md` (the live re-check after #538 could not finish: this Mac's route to Vercel crawled; check the demo network first).
+
 ## What the app is
 
 A 3D map of Austin and the UT campus in the browser. Plain static HTML, CSS and
