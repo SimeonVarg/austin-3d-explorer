@@ -240,6 +240,7 @@ Right now: 393 builds of 324 buildings; 119 buildings flagged to retarget.
 | Kinsolving Dormitory | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 24,872 | 34 min, 356k plan tokens |  |  |
 | Larry R. Faulkner Nano Science and Technology Building | Opus 5.5 | 2026-10-21 | Earth: fit 4 roof corners max 5.8 px, 2 held-outs 7.6/4.3 px (<3 held-outs: loose); owner photo camera unsolved (held-out 46 px) |  | unreviewed | 3,698 | 90 min |  |  |
 | LBJ Presidential Library | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 13,602 | 40 min, 375k plan tokens |  |  |
+| Larry R. Faulkner Nano Science and Technology Building | Opus 5.5 | 2026-10-21 | loose | mixed | 6.5 (reviewer) | 3,698 | lean run |  |  |
 | Lee and Joe Jamail Texas Swimming Center | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 13,916 | 34 min, 359k plan tokens |  |  |
 | Littlefield Dormitory | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 22,020 | 30 min, 348k plan tokens |  |  |
 | Littlefield House | Opus 5.5 | 2026-10-14 | unproven | public photo | unreviewed | 23,294 | 42 min, 413k plan tokens |  | yes |
