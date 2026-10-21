@@ -1,7 +1,7 @@
 /**
  * v2-shimmer.mjs - how much fine detail on the Blender buildings flickers in motion, measured against a supersampled truth.
  *
- *   VERIFY_GL=hardware VERIFY_URL=http://127.0.0.1:8099 node scripts/verify/v2-shimmer.mjs [--refs "main|."] [--q "a=1|"] [--frames 24] [--ss 3] [--out dir]
+ *   VERIFY_GL=hardware VERIFY_URL=http://127.0.0.1:8099 node scripts/verify/v2-shimmer.mjs [--refs "main|."] [--q "a=1|"] [--frames 24] [--ss 3] [--out dir] [--views "name part;name part"]
  *
  * Rule 15 (CLAUDE.md): nothing may shimmer in motion, and blur is not a fix. The fine repeats on the Blender buildings (Moody
  * Center's fins, the Health Transformation Building's louvres and grilles, DKR's fins, window grids) are geometry finer than a pixel
@@ -54,7 +54,7 @@ const VIEWS = [
   { name: 'DKR fins, 1000 m', slug: 'dkr-memorial-stadium', distance: 1000, polar: 74, azimuth: 250 },
   { name: 'DKR fins, 1800 m', slug: 'dkr-memorial-stadium', distance: 1800, polar: 77, azimuth: 250 },
   { name: 'West Campus window grids, 900 m', slug: 'the-venue', distance: 900, polar: 75, azimuth: 30 },
-];
+].filter((v) => !arg("--views", "") || String(arg("--views", "")).split(";").some((s) => v.name.includes(s)));   // --views "Moody Center fins, 650;DKR fins, 1000" = only these
 const browser = await launch(chromium, { args: HW_ARGS, maxMs: 2400000 });
 const rows = [];
 let renderer = '';

@@ -12,6 +12,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { LOOK } from './look.js';
 
 export const TILES = {
   MAX_DECODES: 2,
@@ -30,7 +31,17 @@ const smooth = (k) => k * k * (3 - 2 * k);
 
 // The fade: every lit material of a tile mixes its final colour toward the haze colour (main.js fog_fragment's hazeC) by uFade.
 // One uniform per tile, shared by the tile's materials; the program is shared by every tile (customProgramCacheKey).
-function fadeable(material, uniform) {
+// The baked ambient occlusion (vertex attribute _AO, scripts/v2/ao_bake.mjs; LOOK.AO): multiplies the indirect light only, as
+// three.js's own aoMap does (diffuse sky + bounce, and the specular occlusion of what the surface mirrors). Tiles without the
+// attribute draw as before.
+const AO_STRENGTH = { value: LOOK.AO.STRENGTH };
+const AO_FAR = { value: new THREE.Vector4(...LOOK.AO.FAR_PX_M) };
+// the canvas's adaptive scale (main.js, in motion only): the AO steps are chosen by the FULL-resolution pixel, so they do not move when
+// the canvas drops to fewer pixels in motion and comes back when it stops
+const AO_SCALE = { value: 1 };
+export function setAOPixelScale(s) { AO_SCALE.value = s; }
+const AO_SHOW = typeof location !== 'undefined' && new URLSearchParams(location.search).get('aoshow') === '1';   // diagnosis: draw the baked AO itself
+function fadeable(material, uniform, ao) {
   if (!material || material.userData.v2Fade) return;
   material.userData.v2Fade = true;
   const prev = material.onBeforeCompile;
@@ -39,11 +50,37 @@ function fadeable(material, uniform) {
     sh.uniforms.uFade = uniform;
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uFade;')
       .replace('#include <fog_fragment>', '#include <fog_fragment>\n#ifdef USE_FOG\n  gl_FragColor.rgb = mix(gl_FragColor.rgb, hazeC, uFade);\n#endif');
+    if (ao) {
+      sh.uniforms.uAOStrength = AO_STRENGTH;
+      sh.uniforms.uAOFar = AO_FAR; sh.uniforms.uAOScale = AO_SCALE;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 _ao;\nvarying float vV2AO;\nvarying float vV2AOF;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvV2AO = _ao.x;\nvV2AOF = _ao.y;');
+      if (AO_SHOW) sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  gl_FragColor = vec4(vec3(v2aoSeen), 1.0);');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vV2AO;\nvarying float vV2AOF;\nuniform float uAOStrength;\nuniform vec4 uAOFar;\nuniform float uAOScale;\nfloat v2aoSeen = 1.0;')
+        .replace('#include <aomap_fragment>', `#include <aomap_fragment>
+  {
+    // near: the AO of each face; as a pixel grows (metres per pixel, uAOFar.xy) the far AO (the same box-filtered over a few metres),
+    // and as it grows on (uAOFar.zw) none: far off, the city draws as it did before the AO
+    float v2px = max(length(dFdx(vViewPosition)), length(dFdy(vViewPosition))) * uAOScale;
+    float v2raw = mix(mix(vV2AO, vV2AOF, smoothstep(uAOFar.x, uAOFar.y, v2px)), 1.0, smoothstep(uAOFar.z, uAOFar.w, v2px));
+    v2aoSeen = v2raw;
+    float v2ao = clamp(mix(1.0, v2raw, uAOStrength), 0.0, 1.0);
+    reflectedLight.indirectDiffuse *= v2ao;
+    #if defined( USE_ENVMAP ) && defined( STANDARD )
+      float v2dotNV = saturate( dot( geometryNormal, geometryViewDir ) );
+      reflectedLight.indirectSpecular *= computeSpecularOcclusion( v2dotNV, v2ao, material.roughness );
+    #endif
+  }`);
+    }
   };
   const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
-  material.customProgramCacheKey = () => key() + '|v2-fade';
+  material.customProgramCacheKey = () => key() + '|v2-fade' + (ao ? '|v2-ao' : '');
   material.needsUpdate = true;
 }
+// The models' shadow-map depth, pushed away from the sun by their slope (LOOK.SHADOW_SLOPE_BIAS): no self-shadow stripes on lit faces.
+// (three.js flips the factor's sign itself under a reversed depth buffer.)
+const shadowDepth = LOOK.SHADOW_SLOPE_BIAS > 0
+  ? new THREE.MeshDepthMaterial({ polygonOffset: true, polygonOffsetFactor: LOOK.SHADOW_SLOPE_BIAS, polygonOffsetUnits: 0 }) : null;
 
 export class TileStreamer {
   constructor({ scene, camera, manifestUrl, onShow, onHide, onChange, onFade, onAnimate, prepare }) {
@@ -136,7 +173,10 @@ export class TileStreamer {
         obj.traverse((o) => {
           if (!o.isMesh) return;
           o.castShadow = true; o.receiveShadow = true; o.frustumCulled = true;
-          for (const m of Array.isArray(o.material) ? o.material : [o.material]) fadeable(m, fade);
+          if (shadowDepth) o.customDepthMaterial = shadowDepth;
+          const ao = LOOK.AO.ON && !!o.geometry.attributes._ao && o.geometry.attributes._ao.itemSize === 2;
+          if (!ao && o.geometry.attributes._ao) o.geometry.deleteAttribute('_ao');
+          for (const m of Array.isArray(o.material) ? o.material : [o.material]) fadeable(m, fade, ao);
         });
         obj.userData.fade = fade;
         this.prepare(obj, s.def, s);   // (s: main.js adds to s.mapIds the plain extrusions this model stands over, covers.js)

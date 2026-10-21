@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { FlyControls, CollisionField, FLY } from './flycam.js';
 import { LOOK, QUALITY } from './look.js';
 import { ORIGIN, setOrigin, toLocal, toLonLat } from './geo.js';
-import { TileStreamer, TILES } from './tiles.js';
+import { TileStreamer, TILES, setAOPixelScale } from './tiles.js';
 import { COVER, objectArrays, outlinesNear } from './covers.js';
 import { MapLite, MarkerLayer, MercatorCoordinate } from './maplite.js';
 import { MapLayers } from './map-layers.js';
@@ -839,6 +839,7 @@ const frameLog = { on: false, dts: [], cpu: [], scales: [], last: 0 };
 function resize() {
   const w = innerWidth, h = innerHeight;
   renderer.setDrawingBufferSize(w, h, DPR * adapt.scale);   // = setPixelRatio + setSize(w, h, false), with one canvas resize
+  setAOPixelScale(adapt.scale);   // (the AO's near/far steps follow the full-resolution pixel)
   camera.aspect = w / h; camera.updateProjectionMatrix();
   dirty = true;
 }
