@@ -251,6 +251,7 @@ Right now: 386 builds of 317 buildings; 117 buildings flagged to retarget.
 | Patton Hall | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 22,941 | 35 min, 402k plan tokens |  |  |
 | PCL Library | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 3,148 | 48 min, 397k plan tokens |  |  |
 | Peter T. Flawn Academic Center | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 32,445 | 55 min, 426k plan tokens |  |  |
+| Pharmacy Building | Opus 5.5 | 2026-10-21 | loose | mixed | unreviewed | 8,511 | lean run |  |  |
 | Physics, Math and Astronomy | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 7,180 | 45 min, 383k plan tokens |  |  |
 | Powers Student Activity Center | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 22,905 | 40 min, 399k plan tokens |  |  |
 | Prather Hall | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 12,786 | 31 min, 354k plan tokens |  |  |
