@@ -1440,11 +1440,12 @@
     "gregory-gym",
     "jackson-geological-sciences-building",
     "patton-hall",
-    "powers-student-activity-center"
+    "powers-student-activity-center",
+    "winship-drama-building"
    ],
    "bytes": [
-    957992,
-    34648
+    988524,
+    41488
    ]
   },
   {
@@ -5185,6 +5186,17 @@
    "x": -820.513,
    "z": -479.281,
    "top": 29
+  },
+  "winship-drama-building": {
+   "tile": "t_1_0",
+   "map_ids": [
+    "d8b0fdb8"
+   ],
+   "name": "F. Loren Winship Drama Building",
+   "model": "opus",
+   "x": 475.24,
+   "z": 18.262,
+   "top": 26.4
   }
  }
 }

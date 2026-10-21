@@ -111,5 +111,18 @@
       "skirt_m": 20,
       "min_m": 0.6
     }
+  },
+  "winship-drama-building": {
+    "triangles": 7000,
+    "crease_deg": 35,
+    "reduce": "^(stair_concrete|site_.*)$",
+    "lod0_drop": "^(frame_bronze|door_bronze|marquee_lamp|louvre_grey|skylight_frame|sign_letters_white|roof_hatch)$",
+    "site": {
+      "site_material": "^site_",
+      "cell_m": 2,
+      "flat_m": 6,
+      "skirt_m": 20,
+      "min_m": 0.6
+    }
   }
 }
