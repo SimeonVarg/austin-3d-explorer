@@ -5015,6 +5015,31 @@
     "centre_off_m": 1.36,
     "flags": []
    }
+  },
+  "winship-drama-building": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_0",
+   "blend_sha256": "8ef5869a04b44267",
+   "lod1": "mass",
+   "app_copy": {
+    "triangles": 2766,
+    "detailed_triangles": 8474,
+    "target": 7000,
+    "simplify_error": 0.00001,
+    "ground_triangles": [
+     0,
+     0
+    ]
+   },
+   "placement": {
+    "height_m": 26.4,
+    "area_ratio": 1.052,
+    "centre_off_m": 0.7,
+    "flags": []
+   }
   }
  },
  "tiles": {
@@ -5890,15 +5915,15 @@
    }
   },
   "t_1_0": {
-   "hash": "6b0dedd1f3d54990",
+   "hash": "0000000000000000",
    "near": {
-    "bytes": 957992,
-    "tris": 98967,
+    "bytes": 988524,
+    "tris": 101733,
     "draws": 3
    },
    "far": {
-    "bytes": 34648,
-    "tris": 2856,
+    "bytes": 41488,
+    "tris": 3344,
     "draws": 1
    }
   },
