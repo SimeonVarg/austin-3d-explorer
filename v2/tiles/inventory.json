@@ -4,8 +4,8 @@
  "exporter": "c6e22f15bb68004b",
  "tiler": "4203883771b8af48",
  "totals": {
-  "best": 310,
-  "exported": 308
+  "best": 311,
+  "exported": 309
  },
  "buildings": {
   "100-congress": {
@@ -952,6 +952,33 @@
     "area_ratio": 1.064,
     "centre_off_m": 1.41,
     "flags": []
+   }
+  },
+  "e-p-schoch-building": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_0",
+   "blend_sha256": "dea75f7b03701ec2",
+   "lod1": "mass",
+   "app_copy": {
+    "triangles": 8384,
+    "detailed_triangles": 12561,
+    "target": 12000,
+    "simplify_error": 0.00001,
+    "ground_triangles": [
+     0,
+     0
+    ]
+   },
+   "placement": {
+    "height_m": 18.8,
+    "area_ratio": 1.024,
+    "centre_off_m": 0.15,
+    "flags": [
+     "base at -1.6 m"
+    ]
    }
   },
   "edgar-a-smith-building": {
@@ -5863,15 +5890,15 @@
    }
   },
   "t_1_0": {
-   "hash": "f10b0c7929f74bb7",
+   "hash": "e70ce775bb180e12",
    "near": {
-    "bytes": 894640,
-    "tris": 90535,
+    "bytes": 957288,
+    "tris": 98919,
     "draws": 3
    },
    "far": {
-    "bytes": 32788,
-    "tris": 2692,
+    "bytes": 34608,
+    "tris": 2854,
     "draws": 1
    }
   },

@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 386 builds of 317 buildings; 117 buildings flagged to retarget.
+Right now: 387 builds of 318 buildings; 117 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -202,6 +202,7 @@ Right now: 386 builds of 317 buildings; 117 buildings flagged to retarget.
 | Collections Deposit Library | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 506 | 29 min, 347k plan tokens |  |  |
 | Dealey Center for New Media | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,912 | 36 min, 360k plan tokens |  |  |
 | DKR Memorial Stadium | Opus 5.5 | 2026-10-18 | loose | mixed | unreviewed | 191,151 | 556 min |  |  |
+| E. P. Schoch Building | Opus 5.5 | 2026-10-21 | proven | mixed | unreviewed | 12,561 | 110 min |  |  |
 | Edgar A. Smith Building | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 8,068 | 55 min, 461k plan tokens |  |  |
 | Employees Retirement System of Texas | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 17,829 | 44 min, 363k plan tokens |  |  |
 | Engineering Education and Research Center | Opus 5.5 | 2026-10-16 | proven | mixed | unreviewed | 23,912 | 44 min, 404k plan tokens |  |  |
