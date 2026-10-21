@@ -4,8 +4,8 @@
  "exporter": "c6e22f15bb68004b",
  "tiler": "4203883771b8af48",
  "totals": {
-  "best": 311,
-  "exported": 309
+  "best": 312,
+  "exported": 310
  },
  "buildings": {
   "100-congress": {
@@ -5003,6 +5003,23 @@
     "centre_off_m": 1.36,
     "flags": []
    }
+  },
+  "faulkner-nano-science-and-technology": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_0_-1",
+   "blend_sha256": "7d7f29ed82b6b1a1",
+   "lod1": "mass",
+   "placement": {
+    "height_m": 40.3,
+    "area_ratio": 1.132,
+    "centre_off_m": 1.37,
+    "flags": [
+     "area x1.13"
+    ]
+   }
   }
  },
  "tiles": {
@@ -5657,15 +5674,15 @@
    }
   },
   "t_0_-1": {
-   "hash": "042b9b9047b46bee",
+   "hash": "68325cce92cf3573",
    "near": {
-    "bytes": 1123620,
-    "tris": 115525,
+    "bytes": 1151172,
+    "tris": 119223,
     "draws": 2
    },
    "far": {
-    "bytes": 36684,
-    "tris": 2835,
+    "bytes": 38416,
+    "tris": 2968,
     "draws": 1
    }
   },

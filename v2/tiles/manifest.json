@@ -1088,6 +1088,7 @@
    "lod0": "tiles/t_0_-1.glb",
    "lod1": "tiles/t_0_-1.far.glb",
    "buildings": [
+    "faulkner-nano-science-and-technology",
     "mary-e-gearing-hall",
     "norman-hackerman-building",
     "pharmacy-building",
@@ -1096,8 +1097,8 @@
     "will-c-hogg-building"
    ],
    "bytes": [
-    1123620,
-    36684
+    1151172,
+    38416
    ]
   },
   {
@@ -4364,7 +4365,7 @@
    "map_ids": [
     "eaca344c"
    ],
-   "name": "West Campus block with ΣΧ letters (eaca344c)",
+   "name": "West Campus block with \u03a3\u03a7 letters (eaca344c)",
    "model": "opus",
    "x": -269.769,
    "z": -705.699,
@@ -5155,6 +5156,17 @@
    "x": -820.513,
    "z": -479.281,
    "top": 29
+  },
+  "faulkner-nano-science-and-technology": {
+   "tile": "t_0_-1",
+   "map_ids": [
+    "f22aa720"
+   ],
+   "name": "Larry R. Faulkner Nano Science and Technology Building",
+   "model": "opus",
+   "x": 131.315,
+   "z": -206.471,
+   "top": 40.3
   }
  }
 }
