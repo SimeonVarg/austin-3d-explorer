@@ -233,5 +233,11 @@
         8.0
       ]
     }
+  ],
+  "hal-c-weaver-power-plant": [
+    { "name": "weaver-1-aerial-sw", "pos": [-150.0, -180.0, 120.0], "target": [10.0, -20.0, 10.0] },
+    { "name": "weaver-2-aerial-ne", "pos": [180.0, 140.0, 120.0], "target": [10.0, -20.0, 10.0] },
+    { "name": "weaver-3-north-front", "pos": [25.0, 75.0, 2.5], "target": [20.0, 20.0, 10.0] },
+    { "name": "weaver-4-cooling-towers", "pos": [120.0, -110.0, 40.0], "target": [60.0, -20.0, 6.0] }
   ]
 }

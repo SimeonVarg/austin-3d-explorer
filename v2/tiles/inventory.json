@@ -4,8 +4,8 @@
  "exporter": "c6e22f15bb68004b",
  "tiler": "4203883771b8af48",
  "totals": {
-  "best": 310,
-  "exported": 308
+  "best": 311,
+  "exported": 309
  },
  "buildings": {
   "100-congress": {
@@ -1323,6 +1323,35 @@
     "area_ratio": 1.018,
     "centre_off_m": 1.29,
     "flags": []
+   }
+  },
+  "hal-c-weaver-power-plant": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_-1",
+   "blend_sha256": "722c96058f58c8f2",
+   "lod1": "mass",
+   "app_copy": {
+    "triangles": 12145,
+    "detailed_triangles": 13469,
+    "target": 12000,
+    "simplify_error": 0.016818,
+    "ground_triangles": [
+     0,
+     0
+    ]
+   },
+   "placement": {
+    "height_m": 62.6,
+    "area_ratio": 1.303,
+    "centre_off_m": 13.56,
+    "flags": [
+     "centre 13.6 m off",
+     "area x1.30",
+     "base at -2.4 m"
+    ]
    }
   },
   "hampton-inn-and-suites-austin": {

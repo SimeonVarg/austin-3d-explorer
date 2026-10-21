@@ -1336,15 +1336,17 @@
    ],
    "lod0": "tiles/t_1_-1.glb",
    "lod1": "tiles/t_1_-1.far.glb",
+   "lod1_m": 450,
    "buildings": [
     "gary-l-thomas-energy-engineering-building",
     "gates-dell-complex",
+    "hal-c-weaver-power-plant",
     "j-t-patterson-laboratories-building",
     "odonnell-building"
    ],
    "bytes": [
-    622684,
-    30736
+    731364,
+    40896
    ]
   },
   {
@@ -2606,6 +2608,22 @@
    "x": 283.657,
    "z": 214.589,
    "top": 26.7
+  },
+  "hal-c-weaver-power-plant": {
+   "tile": "t_1_-1",
+   "map_ids": [
+    "ae258d0e",
+    "189af4b3",
+    "25af6aca",
+    "6bda068a",
+    "78c08f46",
+    "169c58ce"
+   ],
+   "name": "Hal C. Weaver Power Plant",
+   "model": "opus",
+   "x": 385.359,
+   "z": -85.485,
+   "top": 62.6
   },
   "hampton-inn-and-suites-austin": {
    "tile": "t_-1_2",

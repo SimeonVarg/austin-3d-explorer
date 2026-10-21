@@ -44,5 +44,13 @@
     "reduce": "^(reveal_stone|roof_fascia|soffit_paint|steps_granite|arch_infill|site_.*)$",
     "lod0_drop": "^(frame_white|rail_dark|rail_infill|bracket_ochre|quoin_stone|urn_stone|lamp_dark|downspout_dark)$",
     "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 6, "skirt_m": 20, "min_m": 0.6 }
+  },
+  "hal-c-weaver-power-plant": {
+    "triangles": 12000,
+    "crease_deg": 35,
+    "reduce": "^(roof_membrane|equip_grey|site_.*)$",
+    "lod0_drop": "^(frame_dark|skylight_rib)$",
+    "lod1_m": 450,
+    "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 6, "skirt_m": 20, "min_m": 0.6 }
   }
 }
