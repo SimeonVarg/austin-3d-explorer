@@ -1435,6 +1435,7 @@
    "lod0": "tiles/t_1_0.glb",
    "lod1": "tiles/t_1_0.far.glb",
    "buildings": [
+    "e-p-schoch-building",
     "etter-harbin-alumni-center",
     "gregory-gym",
     "jackson-geological-sciences-building",
@@ -1442,8 +1443,8 @@
     "powers-student-activity-center"
    ],
    "bytes": [
-    894640,
-    32788
+    957992,
+    34648
    ]
   },
   {
@@ -2365,6 +2366,17 @@
    "x": -234.269,
    "z": 1995.951,
    "top": 28.4
+  },
+  "e-p-schoch-building": {
+   "tile": "t_1_0",
+   "map_ids": [
+    "9c76ca1d"
+   ],
+   "name": "E. P. Schoch Building",
+   "model": "opus",
+   "x": 254.886,
+   "z": 24.96,
+   "top": 18.8
   },
   "edgar-a-smith-building": {
    "tile": "t_0_2",

@@ -3,10 +3,18 @@
   "dkr-memorial-stadium": {
     "triangles": 80000,
     "crease_deg": 35,
-    "lift": { "^turf$": 0.01 },
+    "lift": {
+      "^turf$": 0.01
+    },
     "far_keep": "^(turf|endzone_orange)$",
     "reduce": "^(frame_white|frame_dark|rail_metal|steel_silver|steel_green|lamp_head|lamp_grey|mast_grey|mullion_grey|darkpane_tower|darkpane_west|rust_steel|stone_white|precast_white|site_paving|site_grass)$",
-    "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 12, "skirt_m": 60, "min_m": 0.15 }
+    "site": {
+      "site_material": "^site_",
+      "cell_m": 2,
+      "flat_m": 12,
+      "skirt_m": 60,
+      "min_m": 0.15
+    }
   },
   "jester-west-hall": {
     "triangles": 24000,
@@ -14,42 +22,94 @@
     "lod0_drop": "^frame_white$",
     "lod1_m": 400,
     "reduce": "^(stone_pale|stone_band|coping_dark|pent_panel)$",
-    "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 12, "skirt_m": 60, "min_m": 0.15 }
+    "site": {
+      "site_material": "^site_",
+      "cell_m": 2,
+      "flat_m": 12,
+      "skirt_m": 60,
+      "min_m": 0.15
+    }
   },
   "moody-center": {
     "triangles": 85000,
     "crease_deg": 35,
     "reduce": "^(fin_bronze|reveal_dark|mullion_dark|soffit_joint|wood_soffit.*|rail_dark|steel_rail|lamp_white|pole_head|mesh_panel|slot_dark|louvre_grey|roof_ring_white|fascia_metal|site_paving|board_concrete|street_grade)$",
     "lod0_drop": "^fin_band_far$",
-    "far_copy": { "triangles": 7000, "drop": "^(fin_bronze|reveal_dark|mullion_dark|soffit_joint|rail_dark|steel_rail|lamp_white|pole_head|mesh_panel|slot_dark|louvre_grey|door_frame|sign_.*|planting|spandrel_dark)$" },
+    "far_copy": {
+      "triangles": 7000,
+      "drop": "^(fin_bronze|reveal_dark|mullion_dark|soffit_joint|rail_dark|steel_rail|lamp_white|pole_head|mesh_panel|slot_dark|louvre_grey|door_frame|sign_.*|planting|spandrel_dark)$"
+    },
     "lod1_m": 400,
-    "site": { "site_material": "^street_grade$", "cell_m": 2, "flat_m": 12, "skirt_m": 60, "min_m": 0.15 }
+    "site": {
+      "site_material": "^street_grade$",
+      "cell_m": 2,
+      "flat_m": 12,
+      "skirt_m": 60,
+      "min_m": 0.15
+    }
   },
   "batts-mezes-benedict-halls": {
     "triangles": 28000,
     "crease_deg": 35,
     "reduce": "^(reveal_stone|roof_fascia|soffit_paint|steps_granite|pergola_timber|rail_infill|site_.*)$",
     "lod0_drop": "^(frame_white|rail_white|bracket_ochre|quoin_stone|downspout_brown)$",
-    "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 6, "skirt_m": 20, "min_m": 0.6 }
+    "site": {
+      "site_material": "^site_",
+      "cell_m": 2,
+      "flat_m": 6,
+      "skirt_m": 20,
+      "min_m": 0.6
+    }
   },
   "ut-tower-main-building": {
     "triangles": 39221,
     "crease_deg": 35,
     "reduce": "^(trim_limestone|trim_limestone_tower|metal_rail|iron_balcony|gold_leaf)$",
-    "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 12, "skirt_m": 60, "min_m": 0.15 }
+    "site": {
+      "site_material": "^site_",
+      "cell_m": 2,
+      "flat_m": 12,
+      "skirt_m": 60,
+      "min_m": 0.15
+    }
   },
   "calhoun-hall": {
     "triangles": 17000,
     "crease_deg": 35,
     "reduce": "^(reveal_stone|roof_fascia|soffit_paint|steps_granite|arch_infill|site_.*)$",
     "lod0_drop": "^(frame_white|rail_dark|rail_infill|bracket_ochre|quoin_stone|urn_stone|lamp_dark|downspout_dark)$",
-    "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 6, "skirt_m": 20, "min_m": 0.6 }
+    "site": {
+      "site_material": "^site_",
+      "cell_m": 2,
+      "flat_m": 6,
+      "skirt_m": 20,
+      "min_m": 0.6
+    }
   },
   "moncrief-neuhaus-athletic-center": {
     "triangles": 3300,
     "crease_deg": 35,
     "reduce": "^(reveal_stone|coping|concrete_base)$",
     "lod0_drop": "^(frame_white|frame_dark|rail_white|rail_infill|sign_bronze|field_lines)$",
-    "site": { "site_material": "^site_", "cell_m": 2, "flat_m": 6, "skirt_m": 20, "min_m": 0.6 }
+    "site": {
+      "site_material": "^site_",
+      "cell_m": 2,
+      "flat_m": 6,
+      "skirt_m": 20,
+      "min_m": 0.6
+    }
+  },
+  "e-p-schoch-building": {
+    "triangles": 12000,
+    "crease_deg": 35,
+    "reduce": "^(reveal_stone|soffit_paint|steps_stone|bin_concrete|planter_soil|site_.*)$",
+    "lod0_drop": "^(frame_steel|rail_dark|rail_grey|rail_infill|bracket_stone|downpipe_bronze|skylight_rib|louvre_dark)$",
+    "site": {
+      "site_material": "^site_",
+      "cell_m": 2,
+      "flat_m": 6,
+      "skirt_m": 20,
+      "min_m": 0.6
+    }
   }
 }

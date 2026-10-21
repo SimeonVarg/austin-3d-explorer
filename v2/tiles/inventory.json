@@ -954,6 +954,33 @@
     "flags": []
    }
   },
+  "e-p-schoch-building": {
+   "exported": true,
+   "reason": null,
+   "model": "opus",
+   "kind": "campus",
+   "tile": "t_1_0",
+   "blend_sha256": "474fec73ef7d2880",
+   "lod1": "mass",
+   "app_copy": {
+    "triangles": 8432,
+    "detailed_triangles": 12605,
+    "target": 12000,
+    "simplify_error": 0.00001,
+    "ground_triangles": [
+     0,
+     0
+    ]
+   },
+   "placement": {
+    "height_m": 18.8,
+    "area_ratio": 1.025,
+    "centre_off_m": 0.15,
+    "flags": [
+     "base at -1.6 m"
+    ]
+   }
+  },
   "edgar-a-smith-building": {
    "exported": true,
    "reason": null,
@@ -5890,15 +5917,15 @@
    }
   },
   "t_1_0": {
-   "hash": "f10b0c7929f74bb7",
+   "hash": "6b0dedd1f3d54990",
    "near": {
-    "bytes": 894640,
-    "tris": 90535,
+    "bytes": 957992,
+    "tris": 98967,
     "draws": 3
    },
    "far": {
-    "bytes": 32788,
-    "tris": 2692,
+    "bytes": 34648,
+    "tris": 2856,
     "draws": 1
    }
   },
