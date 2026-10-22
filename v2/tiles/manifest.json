@@ -1462,16 +1462,18 @@
       ],
       "lod0": "tiles/t_1_1.glb",
       "lod1": "tiles/t_1_1.far.glb",
+      "lod1_m": 400,
       "buildings": [
         "brackenridge-hall-dormitory",
         "jester-east-hall",
+        "moore-hill-dormitory",
         "prather-hall",
         "roberts-hall",
         "san-jacinto-hall"
       ],
       "bytes": [
-        991576,
-        31772
+        1034720,
+        37500
       ]
     },
     {
@@ -4410,7 +4412,7 @@
       "map_ids": [
         "eaca344c"
       ],
-      "name": "West Campus block with \u03a3\u03a7 letters (eaca344c)",
+      "name": "West Campus block with ΣΧ letters (eaca344c)",
       "model": "opus",
       "x": -269.769,
       "z": -705.699,
@@ -5239,6 +5241,17 @@
       "x": 385.359,
       "z": -85.485,
       "top": 62.6
+    },
+    "moore-hill-dormitory": {
+      "tile": "t_1_1",
+      "map_ids": [
+        "a352e0fd"
+      ],
+      "name": "Moore-Hill Dormitory",
+      "model": "opus",
+      "x": 371.005,
+      "z": 266.448,
+      "top": 17
     }
   }
 }

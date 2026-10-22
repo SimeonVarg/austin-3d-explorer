@@ -490,5 +490,46 @@
         6.0
       ]
     }
+  ],
+  "moore-hill-dormitory": [
+    {
+      "name": "moore-hill-1-aerial-se",
+      "pos": [
+        170.0,
+        -170.0,
+        120.0
+      ],
+      "target": [
+        5.0,
+        -5.0,
+        8.0
+      ]
+    },
+    {
+      "name": "moore-hill-2-street-sw",
+      "pos": [
+        -70.0,
+        -55.0,
+        10.0
+      ],
+      "target": [
+        -5.0,
+        -12.0,
+        8.0
+      ]
+    },
+    {
+      "name": "moore-hill-3-aerial-nw",
+      "pos": [
+        -160.0,
+        170.0,
+        120.0
+      ],
+      "target": [
+        5.0,
+        5.0,
+        8.0
+      ]
+    }
   ]
 }
