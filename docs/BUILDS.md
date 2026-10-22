@@ -247,6 +247,7 @@ Right now: 393 builds of 324 buildings; 119 buildings flagged to retarget.
 | McCombs School of Business | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 25,031 | 52 min, 452k plan tokens |  |  |
 | Moffett Molecular Biology | Opus 5.5 | 2026-10-13 |  | site photographs | best | 26,391 | 45 min, 370k plan tokens | "Make the X dots a bit more prominent" |  |
 | Moncrief-Neuhaus Athletic Center | Opus 5.5 | 2026-10-21 | loose | Street View | unreviewed | 12,392 | 100 min |  | yes |
+| Moore-Hill Dormitory | Opus 5.5 | 2026-10-21 | loose | mixed | unreviewed | 4,386 | 30 min |  |  |
 | Moody Center | Opus 5.5 | 2026-10-18 | loose | mixed | unreviewed | 169,750 | 400 min |  |  |
 | Music Recital Hall | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 21,256 | 51 min, 398k plan tokens |  |  |
 | Neural Molecular Science Building | Opus 5.5 | 2026-10-15 | proven | mixed | unreviewed | 21,790 | 59 min, 448k plan tokens |  |  |
@@ -423,6 +424,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **JW Marriott Austin**: Earth 3D; 3 held-out pass but one only after a model change made after its error was seen, and R_NE sat on the neighbour; white 78.6 m tower inside the outline built too (may be a separate building); 19k vs 34k tri
 - **Littlefield House**: camera unproven on an old small public photo; work render only; heights maybe 5-10 % high
 - **Moncrief-Neuhaus Athletic Center**: Full-detail build (quality contract): hall + two clay-tile mono-pitch roofs + NW tile mansard + rooftop practice turf on the 7.1 m podium + NE entrance block (attached, outside the outline) + west face A/B/C from the 2021 scan and Street View; joins DKR's SEZ face (0.2 m tuck). Earth URL cameras: held-out red-roof silhouettes align within 0-3 px in all 4 views; Street View cameras unsolved (content only). Gaps: south face windows inferred (trees), shaded walls dark (light B), donor sign place inferred from the 2012 photo, DKR's inferred entry pavilion pokes 0.3-0.5 m through the hall roof (DKR lane).
+- **Moore-Hill Dormitory**: Small quality-contract build from 2 public UT Housing drone photos + 4 Earth 3D views + 2021 scan: 5-storey main bar (tile-edged flat roof, frieze band with grilles, belt course, cast-stone pilasters), 4-storey east block with glass stair tower, 4-storey north stem + crossbar, hip-roofed pavilion, low west block; 7 entrances (4 OSM + 3 photo); roof ladders. Gaps: camera loose (two west-end held-outs mislabelled), window rhythm read evenly in groups, colour gate unchecked (photo cameras unsolved), one flat ground.
 - **Neill-Cochran House Museum**: Earth 3D; held-outs 15.6-19.7 px (ground barely constrained: no scan-height fit points); east porch inferred
 - **Norman Hackerman Building**: overcast photo: colour gate failed 2 of 10, sun set by hand; wall 3.5 m off the outline
 - **North Campus block 21fe5c30**: Earth 3D; 2 of 3 held-out fail (oak hides corners); plain stucco block, 2.8k tri vs 13k target; roof hue fixed (grey)

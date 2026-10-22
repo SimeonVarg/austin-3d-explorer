@@ -4,8 +4,8 @@
   "exporter": "c6e22f15bb68004b",
   "tiler": "4203883771b8af48",
   "totals": {
-    "best": 311,
-    "exported": 309
+    "best": 312,
+    "exported": 310
   },
   "buildings": {
     "100-congress": {
@@ -5128,6 +5128,21 @@
           "base at -2.4 m"
         ]
       }
+    },
+    "moore-hill-dormitory": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "campus",
+      "tile": "t_1_1",
+      "blend_sha256": "4f7c3eaa6a7e8bdd",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 17,
+        "area_ratio": 1.018,
+        "centre_off_m": 1.1,
+        "flags": []
+      }
     }
   },
   "tiles": {
@@ -6016,15 +6031,15 @@
       }
     },
     "t_1_1": {
-      "hash": "c6e45eeea437ac97",
+      "hash": "9ac50d9642fe93fb",
       "near": {
-        "bytes": 991576,
-        "tris": 102870,
+        "bytes": 1034720,
+        "tris": 107256,
         "draws": 2
       },
       "far": {
-        "bytes": 31772,
-        "tris": 2487,
+        "bytes": 37500,
+        "tris": 2859,
         "draws": 1
       }
     },
