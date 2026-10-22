@@ -6,7 +6,7 @@ This is that list. One row per BUILD of a Blender building: a building can have 
 
 **How the retarget flag is set.** Yes when the best build is by a weaker or cheaper model than Opus 5.5; or the owner scored it under 8; or it has a known open fault (camera not proven, scale or outline off by more than about 3 m or 10%, a part missing or only inferred, name unconfirmed, whole-build colour gate failed, too many triangles for the phone); or there is no finished build yet. A fault that every build has (glass a little light, far sides inferred) does not count. Colour faults from before the standard light (2026-10-12, evening) count only when the whole build missed.
 
-Right now: 386 builds of 317 buildings; 117 buildings flagged to retarget.
+Right now: 393 builds of 324 buildings; 119 buildings flagged to retarget.
 
 ## Apartments and West Campus: best build of each building
 
@@ -202,12 +202,14 @@ Right now: 386 builds of 317 buildings; 117 buildings flagged to retarget.
 | Collections Deposit Library | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 506 | 29 min, 347k plan tokens |  |  |
 | Dealey Center for New Media | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,912 | 36 min, 360k plan tokens |  |  |
 | DKR Memorial Stadium | Opus 5.5 | 2026-10-18 | loose | mixed | unreviewed | 191,151 | 556 min |  |  |
+| E. P. Schoch Building | Opus 5.5 | 2026-10-21 | proven | mixed | unreviewed | 12,605 | 130 min |  |  |
 | Edgar A. Smith Building | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 8,068 | 55 min, 461k plan tokens |  |  |
 | Employees Retirement System of Texas | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 17,829 | 44 min, 363k plan tokens |  |  |
 | Engineering Education and Research Center | Opus 5.5 | 2026-10-16 | proven | mixed | unreviewed | 23,912 | 44 min, 404k plan tokens |  |  |
 | Engineering Teaching Center II | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 22,022 | 52 min, 451k plan tokens |  | yes |
 | Ernest Cockrell Jr. Hall | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 9,594 | 60 min, 473k plan tokens |  |  |
 | Etter-Harbin Alumni Center | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 13,650 | 45 min, 396k plan tokens |  |  |
+| F. Loren Winship Drama Building | Opus 5.5 | 2026-10-21 | loose | mixed | unreviewed | 8,474 | 95 min |  |  |
 | Gabled courtyard complex (dd0139ea) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 11,190 | 33 min, 369k plan tokens |  |  |
 | Garrison Hall | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 22,002 | 61 min, 361k plan tokens |  |  |
 | Gary L. Thomas Energy Engineering Building | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 21,104 | 41 min, 367k plan tokens |  |  |
@@ -219,8 +221,10 @@ Right now: 386 builds of 317 buildings; 117 buildings flagged to retarget.
 | Gordon-White Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 19,646 | 37 min, 382k plan tokens |  |  |
 | Graduate School of Business | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 7,240 | 52 min, 437k plan tokens |  |  |
 | Gregory Gymnasium | Opus 5.5 | 2026-10-12 |  | site photographs | best | 7,334 | 79 min | "Nice" |  |
+| Hal C. Weaver Power Plant | Opus 5.5 | 2026-10-21 | proven | mixed | unreviewed | 13,469 | 65 min |  | yes |
 | Harry Ransom Center | Opus 5.5 | 2026-10-15 | proven | public photo | unreviewed | 18,100 | 57 min, 416k plan tokens |  |  |
 | Health Discovery Building | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 22,780 | 55 min, 406k plan tokens |  |  |
+| Health Transformation Building | Opus 5.5 | 2026-10-18 | loose | mixed | unreviewed | 53,004 | 300 min |  |  |
 | Historic brick hall 77b9403c | Opus 5.5 | 2026-10-17 | proven | Earth 3D | unreviewed | 11,551 | 52 min, 325k plan tokens |  |  |
 | Hogg Memorial Auditorium | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 17,813 | 52 min, 458k plan tokens |  |  |
 | Homer Rainey Hall | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 15,891 | 39 min, 394k plan tokens |  |  |
@@ -234,6 +238,7 @@ Right now: 386 builds of 317 buildings; 117 buildings flagged to retarget.
 | John B. Connally Center for Justice | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 16,000 | 27 min, 316k plan tokens |  |  |
 | John W. Hargis Hall | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 19,482 | 39 min, 361k plan tokens |  |  |
 | Kinsolving Dormitory | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 24,872 | 34 min, 356k plan tokens |  |  |
+| Larry R. Faulkner Nano Science and Technology Building | Opus 5.5 | 2026-10-21 | Earth: fit 4 roof corners max 5.8 px, 2 held-outs 7.6/4.3 px (<3 held-outs: loose); owner photo camera unsolved (held-out 46 px) |  | unreviewed | 3,698 | 90 min |  |  |
 | LBJ Presidential Library | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 13,602 | 40 min, 375k plan tokens |  |  |
 | Lee and Joe Jamail Texas Swimming Center | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 13,916 | 34 min, 359k plan tokens |  |  |
 | Littlefield Dormitory | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 22,020 | 30 min, 348k plan tokens |  |  |
@@ -241,6 +246,7 @@ Right now: 386 builds of 317 buildings; 117 buildings flagged to retarget.
 | Mary E. Gearing Hall | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 26,811 | 62 min, 464k plan tokens |  |  |
 | McCombs School of Business | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 25,031 | 52 min, 452k plan tokens |  |  |
 | Moffett Molecular Biology | Opus 5.5 | 2026-10-13 |  | site photographs | best | 26,391 | 45 min, 370k plan tokens | "Make the X dots a bit more prominent" |  |
+| Moncrief-Neuhaus Athletic Center | Opus 5.5 | 2026-10-21 | loose | Street View | unreviewed | 12,392 | 100 min |  | yes |
 | Moody Center | Opus 5.5 | 2026-10-18 | loose | mixed | unreviewed | 169,750 | 400 min |  |  |
 | Music Recital Hall | Opus 5.5 | 2026-10-15 |  | public photo | unreviewed | 21,256 | 51 min, 398k plan tokens |  |  |
 | Neural Molecular Science Building | Opus 5.5 | 2026-10-15 | proven | mixed | unreviewed | 21,790 | 59 min, 448k plan tokens |  |  |
@@ -251,6 +257,7 @@ Right now: 386 builds of 317 buildings; 117 buildings flagged to retarget.
 | Patton Hall | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 22,941 | 35 min, 402k plan tokens |  |  |
 | PCL Library | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 3,148 | 48 min, 397k plan tokens |  |  |
 | Peter T. Flawn Academic Center | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 32,445 | 55 min, 426k plan tokens |  |  |
+| Pharmacy Building | Opus 5.5 | 2026-10-21 | loose | mixed | unreviewed | 8,511 |  |  |  |
 | Physics, Math and Astronomy | Opus 5.5 | 2026-10-13 |  | site photographs | unreviewed | 7,180 | 45 min, 383k plan tokens |  |  |
 | Powers Student Activity Center | Opus 5.5 | 2026-10-14 | proven | public photo | unreviewed | 22,905 | 40 min, 399k plan tokens |  |  |
 | Prather Hall | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 12,786 | 31 min, 354k plan tokens |  |  |
@@ -406,14 +413,16 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **George I. Sanchez Building**: camera unproven on a far photograph; roof 22.0 m vs scan 19.1 m; a public picture may give a better camera
 - **Goodall Wooten House**: dusk photos only (lamp light): wall colour guessed; columns unfluted; roof balustrade missing; sides and back not seen
 - **GrandMarc Austin** (score 8.3): scored 8.3 but storey count in doubt (scan roof height unread); 48k triangles
+- **Hal C. Weaver Power Plant**: Full-detail build (quality contract) of the three-outline group PPL + Expansion + Annex, plus Cooling Towers 1 and 2 and 6 pipe-rack runs (lead's ask), from 4 Earth corner views (URL cameras, nothing fitted; roof corners within 4-8 px by eye at 4x, chimney top within 4 px in all views), the 2021 scan (every roof level, stacks, ground), site photographs 25c3d21f (N front) and 10 UT public photos (N front, gable door, Expansion loading door + sign 'HAL C. WEAVER', Annex pilasters). 142 named panes. Review 1: 6/10 (masses right, walls generic); majors fixed after it. Retarget: whole-build colour gate fails (Earth faces disagree), walls simpler than photos, Chilling Station 6 not built (own outline), loading-door face unresolved.
 - **Hampton Inn and Suites Austin (campus)**: camera unproven (21 px at a frame-edge corner; lens bend likely); work render; deck furniture missing
 - **Hanover Brazos Street**: Earth 3D; first PROVEN camera under the camera/shape split (main-roof held-outs 2.45/6.53/5.84 px, fit 0.35 px); post-scan tower, height from storey count; red podium inferred
 - **Hotel ZaZa**: Earth 3D; 2nd view held-outs all shift one way (~0.44 deg heading), main view 2.3 px; balconies too light; 9k vs 12k
 - **Ion Austin**: after-sunset photograph: colours all miss; roof scale shrunk 11% late (53 to 60 m)
 - **J. T. Patterson Laboratories**: stair tower position inferred, up to 7.3 m off; glass too light
-- **Jester West Hall**: Rebuilt from 10 site photographs + Street View + 2021 scan (Earth type-only); entrances added after the owner's note (Brazos St porch, W entrance block, W link storefront, 3 doors from OpenStreetMap); 4 independent reviews; app copy 24,116 tri. Gaps: cameras loose, E/N/S faces inferred from Earth, S-wing cross gables simplified.
+- **Jester West Hall**: Rebuilt from 10 site photographs + Street View + 2021 scan (Earth type-only); entrances added after the owner's note (Brazos St porch, W entrance block, W link storefront, 3 OSM doors); 4 independent reviews; app copy 24,116 tri. Gaps: cameras loose, E/N/S faces inferred from Earth, S-wing cross gables simplified.
 - **JW Marriott Austin**: Earth 3D; 3 held-out pass but one only after a model change made after its error was seen, and R_NE sat on the neighbour; white 78.6 m tower inside the outline built too (may be a separate building); 19k vs 34k tri
 - **Littlefield House**: camera unproven on an old small public photo; work render only; heights maybe 5-10 % high
+- **Moncrief-Neuhaus Athletic Center**: Full-detail build (quality contract): hall + two clay-tile mono-pitch roofs + NW tile mansard + rooftop practice turf on the 7.1 m podium + NE entrance block (attached, outside the outline) + west face A/B/C from the 2021 scan and Street View; joins DKR's SEZ face (0.2 m tuck). Earth URL cameras: held-out red-roof silhouettes align within 0-3 px in all 4 views; Street View cameras unsolved (content only). Gaps: south face windows inferred (trees), shaded walls dark (light B), donor sign place inferred from the 2012 photo, DKR's inferred entry pavilion pokes 0.3-0.5 m through the hall roof (DKR lane).
 - **Neill-Cochran House Museum**: Earth 3D; held-outs 15.6-19.7 px (ground barely constrained: no scan-height fit points); east porch inferred
 - **Norman Hackerman Building**: overcast photo: colour gate failed 2 of 10, sun set by hand; wall 3.5 m off the outline
 - **North Campus block 21fe5c30**: Earth 3D; 2 of 3 held-out fail (oak hides corners); plain stucco block, 2.8k tri vs 13k target; roof hue fixed (grey)
@@ -469,7 +478,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 
 ### Good test set for a cheaper model
 
-Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Cream court block with 11 chimneys (04f1466e) (3,215 tri); Gabled walk-up (07ebbe8f) (1,228 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Hardin House (3,749 tri); Lark Austin (6,292 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Solar-roof hall (63e601e8) (2,042 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Diplomat (2,154 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); West Campus block 2779329b (2,491 tri); West Campus block 73d1d197 (3,084 tri); West Campus block 7aacc4af (3,118 tri); West Campus block bb4c0263 (2,500 tri); West Campus brick bar 8d78646f (3,352 tri); White block on stilts (5b56cd35) (7,064 tri).
+Small Opus builds (8,000 triangles or fewer) with no open fault: a new cheap model can be tried on these first, at the same triangle number, and compared blind against the Opus build. Collections Deposit Library (506 tri); Cream court block with 11 chimneys (04f1466e) (3,215 tri); Gabled walk-up (07ebbe8f) (1,228 tri); Graduate School of Business (7,240 tri); Gregory Gymnasium (7,334 tri); Hardin House (3,749 tri); Lark Austin (6,292 tri); Larry R. Faulkner Nano Science and Technology Building (3,698 tri); PCL Library (3,148 tri); Physics, Math and Astronomy (7,180 tri); Signature 1909 (6,953 tri); Skyloft Austin (6,016 tri); Solar-roof hall (63e601e8) (2,042 tri); Stone hall with dormer gables (297fcc8d) (1,236 tri); Stone hall with loggia (768ae01e) (4,785 tri); The Diplomat (2,154 tri); The Venue on Guadalupe (3,631 tri); Torre Student Living (6,744 tri); West Campus block 2779329b (2,491 tri); West Campus block 73d1d197 (3,084 tri); West Campus block 7aacc4af (3,118 tri); West Campus block bb4c0263 (2,500 tri); West Campus brick bar 8d78646f (3,352 tri); White block on stilts (5b56cd35) (7,064 tri).
 
 ## All other builds
 

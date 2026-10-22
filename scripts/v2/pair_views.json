@@ -233,5 +233,262 @@
         8.0
       ]
     }
+  ],
+  "moncrief-neuhaus-athletic-center": [
+    {
+      "name": "moncrief-1-aerial-sw",
+      "pos": [
+        -120.0,
+        -130.0,
+        90.0
+      ],
+      "target": [
+        0.0,
+        -10.0,
+        8.0
+      ]
+    },
+    {
+      "name": "moncrief-2-aerial-se",
+      "pos": [
+        130.0,
+        -130.0,
+        90.0
+      ],
+      "target": [
+        0.0,
+        -10.0,
+        8.0
+      ]
+    },
+    {
+      "name": "moncrief-3-west-face-san-jacinto",
+      "pos": [
+        -75.0,
+        -19.0,
+        -2.4
+      ],
+      "target": [
+        -44.0,
+        -5.0,
+        4.0
+      ]
+    },
+    {
+      "name": "moncrief-4-east-lot-sign",
+      "pos": [
+        57.0,
+        2.0,
+        8.7
+      ],
+      "target": [
+        38.0,
+        -2.0,
+        8.6
+      ]
+    }
+  ],
+  "e-p-schoch-building": [
+    {
+      "name": "schoch-1-aerial-se",
+      "pos": [
+        95.0,
+        -85.0,
+        70.0
+      ],
+      "target": [
+        0.0,
+        -2.0,
+        8.0
+      ]
+    },
+    {
+      "name": "schoch-2-aerial-nw",
+      "pos": [
+        -95.0,
+        85.0,
+        70.0
+      ],
+      "target": [
+        0.0,
+        -2.0,
+        8.0
+      ]
+    },
+    {
+      "name": "schoch-3-east-face",
+      "pos": [
+        42.0,
+        -24.0,
+        2.5
+      ],
+      "target": [
+        27.0,
+        -2.0,
+        7.0
+      ]
+    },
+    {
+      "name": "schoch-4-west-face",
+      "pos": [
+        -62.0,
+        -32.0,
+        24.0
+      ],
+      "target": [
+        -28.0,
+        -2.0,
+        6.0
+      ]
+    }
+  ],
+  "winship-drama-building": [
+    {
+      "name": "winship-1-aerial-se",
+      "pos": [
+        110.0,
+        -110.0,
+        80.0
+      ],
+      "target": [
+        -8.0,
+        8.0,
+        6.0
+      ]
+    },
+    {
+      "name": "winship-2-aerial-nw",
+      "pos": [
+        -120.0,
+        110.0,
+        80.0
+      ],
+      "target": [
+        -8.0,
+        8.0,
+        6.0
+      ]
+    },
+    {
+      "name": "winship-3-south-entrance",
+      "pos": [
+        0.0,
+        -48.0,
+        2.0
+      ],
+      "target": [
+        -3.0,
+        -22.0,
+        5.0
+      ]
+    },
+    {
+      "name": "winship-4-east-face",
+      "pos": [
+        70.0,
+        5.0,
+        3.0
+      ],
+      "target": [
+        30.0,
+        10.0,
+        5.0
+      ]
+    }
+  ],
+  "pharmacy-building": [
+    {
+      "name": "pharmacy-1-aerial-nw",
+      "pos": [
+        -170.0,
+        150.0,
+        120.0
+      ],
+      "target": [
+        0.0,
+        0.0,
+        10.0
+      ]
+    },
+    {
+      "name": "pharmacy-2-west-gap",
+      "pos": [
+        -44.0,
+        1.5,
+        7.5
+      ],
+      "target": [
+        2.0,
+        1.0,
+        9.5
+      ]
+    },
+    {
+      "name": "pharmacy-3-aerial-se",
+      "pos": [
+        160.0,
+        -170.0,
+        120.0
+      ],
+      "target": [
+        0.0,
+        -5.0,
+        10.0
+      ]
+    }
+  ],
+  "hal-c-weaver-power-plant": [
+    {
+      "name": "weaver-1-aerial-sw",
+      "pos": [
+        -150.0,
+        -180.0,
+        120.0
+      ],
+      "target": [
+        10.0,
+        -20.0,
+        10.0
+      ]
+    },
+    {
+      "name": "weaver-2-aerial-ne",
+      "pos": [
+        180.0,
+        140.0,
+        120.0
+      ],
+      "target": [
+        10.0,
+        -20.0,
+        10.0
+      ]
+    },
+    {
+      "name": "weaver-3-north-front",
+      "pos": [
+        25.0,
+        75.0,
+        2.5
+      ],
+      "target": [
+        20.0,
+        20.0,
+        10.0
+      ]
+    },
+    {
+      "name": "weaver-4-cooling-towers",
+      "pos": [
+        120.0,
+        -110.0,
+        40.0
+      ],
+      "target": [
+        60.0,
+        -20.0,
+        6.0
+      ]
+    }
   ]
 }
