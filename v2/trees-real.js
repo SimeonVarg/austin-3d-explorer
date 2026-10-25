@@ -2,7 +2,7 @@
 // the layered see-through cards were both too pale and most of the trees' cost. Each crown is now the tree's own leaf clusters (k-means of
 // its cards) drawn as opaque round clumps: near 44 clumps + the full trunk, mid 18 clumps + a plain trunk, far the impostor quads with
 // their atlas drawn at load from the mid clumps. Opaque: no alpha test, no layers, nothing to sparkle; the leaf mottling on the surface
-// is faded out below ~2 pixels a cycle (rule 15). Look values: street-look.js TREE_REAL_LOOK (SOLID_*, CLUMP_*, AO_*, LEAF_NOISE*).
+// is baked per vertex, smooth between them (no pixel cost, nothing to sparkle: rule 15). Look values: street-look.js TREE_REAL_LOOK (SOLID_*, CLUMP_*, AO_*, LEAF_NOISE*).
 //
 // The tree library (default; ?trees=balls for v2's old balls) (v2/data/trees-real/, made offline by tools/trees/gen with EZ-Tree, MIT) in place of v2's one ball or
 // cone per tree. Same tree list (City inventories + the aerial's crowns, positions/size/group from trees.js), each tree drawn by
@@ -144,6 +144,12 @@ function trimCards(THREE, geo, oct) {
 // ── solid crowns: the tree's leaf cards (4 vertices each, tools/trees/gen.js) grouped into K clusters (k-means, deterministic), each
 // drawn as one opaque round clump. The crown keeps the tree's own shape and mass; nothing in it is see-through, nothing alpha-tested.
 // Per vertex: a normal between the clump's own and the crown's outward one, and the crown's inner darkness as the vertex colour.
+const vhash = (x, y, z) => { let h = Math.imul(x | 0, 0x8da6b343) ^ Math.imul(y | 0, 0xd8163841) ^ Math.imul(z | 0, 0xcb1ab31f); h = Math.imul(h ^ (h >>> 13), 0x85ebca6b); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+function vnoise(x, y, z) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z), f = (t) => t * t * (3 - 2 * t), u = f(x - xi), v = f(y - yi), w = f(z - zi);
+  const l = (a, b, t) => a + (b - a) * t, h = (i, j, k) => vhash(xi + i, yi + j, zi + k);
+  return l(l(l(h(0, 0, 0), h(1, 0, 0), u), l(h(0, 1, 0), h(1, 1, 0), u), v), l(l(h(0, 0, 1), h(1, 0, 1), u), l(h(0, 1, 1), h(1, 1, 1), u), v), w);
+}
 function clumpGeometry(THREE, cards, info, K, detail, grow) {
   const pos = cards.attributes.position, nc = Math.floor(pos.count / 4), P = new Float32Array(nc * 3), E = new Float32Array(nc);
   for (let q = 0; q < nc; q++) {
@@ -191,7 +197,10 @@ function clumpGeometry(THREE, cards, info, K, detail, grow) {
       const b = L.CLUMP_NORMAL_CROWN; let nx = sx * (1 - b) + ox * b, ny = sy * (1 - b) + oy * b, nz = sz * (1 - b) + oz * b; const nl = Math.hypot(nx, ny, nz) || 1;
       outP.push(x, y, z); outN.push(nx / nl, ny / nl, nz / nl);
       const t = Math.min(1, Math.max(0, (Math.hypot(x - c[0], (y - c[1]) * 0.8, z - c[2]) / rs - a0) / (a1 - a0))), ao = L.AO_INNER + (1 - L.AO_INNER) * t * t * (3 - 2 * t);
-      outC.push(ao, ao, ao);
+      // leaf mottling baked per vertex (value noise of the position): smooth between vertices, so it costs no pixel work and
+      // cannot sparkle; a clump's vertices are ~1/40 of the tree apart, about the size of a leaf cluster
+      const nz = 1 + 2 * L.LEAF_NOISE * (vnoise(x * L.LEAF_NOISE_SCALE, y * L.LEAF_NOISE_SCALE, z * L.LEAF_NOISE_SCALE) - 0.5);
+      outC.push(ao * nz, ao * nz, ao * nz);
     }
   }
   const g = new THREE.BufferGeometry();
@@ -209,6 +218,16 @@ function trunkCylinder(THREE, trunkGeo, top) {
   r0 = Math.max(0.008, Math.min(0.05, r0 || 0.02));
   const g = new THREE.CylinderGeometry(r0 * 0.6, r0, top, 7, 1, true).translate(0, top / 2, 0); g.deleteAttribute('uv');
   return g;
+}
+// three's icosahedron is one vertex per face corner (60 for 20 faces); welded it is 12. The shadow proxy is drawn for EVERY tree
+// (100k since the scan placed them) into the sun's shadow map: measured 2026-10-25, the unwelded proxy cost ~20 ms a street frame.
+function welded(THREE, g) {
+  const p = g.attributes.position, map = new Map(), P = [], I = [];
+  for (let v = 0; v < p.count; v++) {
+    const k = p.getX(v).toFixed(4) + ',' + p.getY(v).toFixed(4) + ',' + p.getZ(v).toFixed(4);
+    let j = map.get(k); if (j === undefined) { j = P.length / 3; map.set(k, j); P.push(p.getX(v), p.getY(v), p.getZ(v)); } I.push(j);
+  }
+  const o = new THREE.BufferGeometry(); o.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); o.setIndex(I); o.computeVertexNormals(); return o;
 }
 const cards0 = (byName) => byName['v0_leaves_near'].geometry;
 const imageOf = (url) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('image ' + url)); i.src = url; });
@@ -307,26 +326,17 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
     m.onBeforeCompile = (sh) => {
       if (far) sh.uniforms.uFar = farU;
       sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
-        ${far ? 'attribute float aMidY; uniform vec2 uFar;' : 'attribute float aFade;'} varying float vFadeV; varying vec3 vLeafP;`)
+        ${far ? 'attribute float aMidY; uniform vec2 uFar;' : 'attribute float aFade;'} varying float vFadeV;`)
         .replace('#include <begin_vertex>', `#include <begin_vertex>
-        vLeafP = position * ${L.LEAF_NOISE_SCALE.toFixed(3)};
         ${far ? `{ vec3 cw = (modelMatrix * instanceMatrix * vec4(0., 0., 0., 1.)).xyz; vFadeV = smoothstep(uFar.x - uFar.y, uFar.x + uFar.y, distance(cameraPosition, vec3(cw.x, aMidY, cw.z))); }` : 'vFadeV = aFade;'}`);
       if (far) sh.vertexShader = sh.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>
         if (vFadeV <= 0.004) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);`);
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-        varying float vFadeV; varying vec3 vLeafP;
+        varying float vFadeV;
         float v2h3(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
         float v2vn(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
           return mix(mix(mix(v2h3(i), v2h3(i + vec3(1., 0., 0.)), f.x), mix(v2h3(i + vec3(0., 1., 0.)), v2h3(i + vec3(1., 1., 0.)), f.x), f.y),
                      mix(mix(v2h3(i + vec3(0., 0., 1.)), v2h3(i + vec3(1., 0., 1.)), f.x), mix(v2h3(i + vec3(0., 1., 1.)), v2h3(i + vec3(1., 1., 1.)), f.x), f.y), f.z); }`)
-        .replace('#include <color_fragment>', `#include <color_fragment>
-        { // leaf clusters on the crown's surface: two octaves of value noise, each faded where its cycle is under ~2 pixels (rule 15)
-          float lf = 0.0;
-          for (int o = 0; o < 2; o++) { float fq = o == 0 ? 1.0 : 2.31; vec3 p = vLeafP * fq; vec3 fw = fwidth(p);
-            float k = 1.0 - smoothstep(${L.LEAF_NOISE_FADE[0].toFixed(3)}, ${L.LEAF_NOISE_FADE[1].toFixed(3)}, max(fw.x, max(fw.y, fw.z)));
-            lf += k * (v2vn(p) - 0.5) * (o == 0 ? 1.0 : 0.6); }
-          diffuseColor.rgb *= max(0.0, 1.0 + ${(2 * L.LEAF_NOISE).toFixed(3)} * lf);
-        }`)
         .replace('#include <alphatest_fragment>', dither ? `{ vec2 q = floor(gl_FragCoord.xy); float hh = fract(52.9829189 * fract(dot(q, vec2(0.06711056, 0.00583715)))); if (hh >= vFadeV) discard; }` : '');
       sh.fragmentShader = sh.fragmentShader.replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
         material.specularColor *= ${L.SOLID_SPECULAR.toFixed(4)}; material.specularColorBlended = mix(material.specularColor, diffuseColor.rgb, metalnessFactor); material.specularF90 = ${L.SOLID_SPECULAR.toFixed(4)};`);
@@ -515,7 +525,7 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
   // shadow proxy: one 20-triangle crown per tree stands in for the sun's shadow (drawn into the shadow map only; no colour, no depth)
   let proxy = null;
   if (L.SHADOW_PROXY) {
-    proxy = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }), N);
+    proxy = new THREE.InstancedMesh(welded(THREE, new THREE.IcosahedronGeometry(1, 0)), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }), N);
     const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), S = new THREE.Vector3();
     for (let i = 0; i < N; i++) {
       const sc = manifest.species[speciesNames[SP[i]]].variants[VAR[i]];

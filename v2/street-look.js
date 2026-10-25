@@ -145,10 +145,10 @@ export const TREE_REAL_LOOK = {
   SOLID_GAIN: 1.1,
   SOLID_SAT: 0.8,
   LEAF_NOISE: 0.38,             // leaf-cluster darkening on the crown's surface (0 = smooth)
-  LEAF_NOISE_SCALE: 22,         // its frequency per tree height (a 10 m tree: clusters about 0.45 m) ...
-  LEAF_NOISE_FADE: [0.3, 0.7],  // ... faded out where a cycle is under ~2 pixels (fwidth), so it never sparkles in motion (rule 15)
+  LEAF_NOISE_SCALE: 22,         // its frequency per tree height (a 10 m tree: clusters about 0.45 m); baked per vertex (no pixel cost,
+                                // nothing to sparkle in motion: rule 15). The per-pixel version cost ~10 ms inside the South Mall's crowns.
   IMPOSTOR_EL_BLEND: false,     // the far crowns blend the two nearest elevation rows (4 atlas taps) or take the nearest (2): speed
-  IMPOSTOR_MIN_PX: 1.5,         // a far crown less than this many pixels across is not drawn (0 = all): the horizon's 100k crowns
+  IMPOSTOR_MIN_PX: 2.0,         // a far crown less than this many pixels across is not drawn (0 = all): the horizon's 100k crowns
   SOLID_SPECULAR: 0.3,          // leaves have a little sheen in the sun
 };
 
