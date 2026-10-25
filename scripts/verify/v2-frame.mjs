@@ -65,7 +65,8 @@ const VIEWS = [
   { name: 'Drag 300 m (trees)', xz: [-235, 30], distance: 300, polar: 60, azimuth: 250 },
 ].filter((v) => !process.env.V2_FRAME_VIEWS || process.env.V2_FRAME_VIEWS.split(/[|;]/).some((k) => v.name.includes(k)));   // V2_FRAME_VIEWS="opening|street level" (or ';')
 const args = [...HW_ARGS, ...(UNCAPPED ? ['--disable-gpu-vsync', '--disable-frame-rate-limit'] : [])];
-const browser = await launch(chromium, { args, maxMs: 1500000 });
+// VERIFY_MAX_MS raises the watchdog for a long run (2 arms x 3 views x 2 versions x 3 reps did not fit in 25 min on the Mac)
+const browser = await launch(chromium, { args, maxMs: +process.env.VERIFY_MAX_MS || 1500000 });
 const rec = {};   // `${arm}|${view}` -> [{median,p95,calls,triangles}]
 let renderer = '';
 for (let rep = 0; rep < REPS; rep++) {
@@ -119,6 +120,8 @@ for (let rep = 0; rep < REPS; rep++) {
           lod: t ? `${t.lod0}/${t.lod1 || 0}` : '' };
       });
       (rec[`${arm.name}|${variant.name}|${v.name}`] ||= []).push({ sync, mem, median: m.medianFrameMs, p95: m.p95FrameMs, cpu: m.medianRenderCallMs, calls: m.calls, triangles: m.triangles, frames: m.frames, size: m.size });
+      // one line per measurement as it lands, so a run cut short by its watchdog still leaves its numbers
+      console.log(`rep ${rep + 1} | ${arm.name} | ${variant.name} | ${v.name} | rAF median ${m.medianFrameMs.toFixed(2)} ms, p95 ${m.p95FrameMs.toFixed(2)} | sync ${sync.median.toFixed(1)} ms | calls ${m.calls} | tris ${m.triangles} | ${m.size.join('x')}`);
     }
     if (errs.length) console.log('page errors:', errs.slice(0, 3));
     await ctx.close();
