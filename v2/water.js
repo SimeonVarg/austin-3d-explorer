@@ -21,7 +21,7 @@ const num = (k, d) => (Q.get(k) != null && Q.get(k) !== '' ? +Q.get(k) : d);
 
 export const WATER = {
   // ── the water body: what comes up out of the water (linear, in the app's light units; the sky's horizon is ~2.5 here) ──
-  // Calibrated on the owner's Mount Bonnell photograph (Lake Austin, 11:48, late October): steep-ish views read deep navy-teal.
+  // Fitted on the owner's midday photograph of Lake Austin from Mount Bonnell (docs/v2-water.md): it reads deep navy-teal.
   BODY: [0.052, 0.095, 0.122],
   F0: 0.02,                       // water's reflectance straight on (n = 1.33)
   // The mirror's strength. Fitted, not physical: with 1.0 the far water came out brighter than the photo and the near water
@@ -52,6 +52,9 @@ export const WATER = {
   // the view cone (a pond behind the towers, the lake 2 km off), views with no visible water paid for it.
   MIRROR_FAR_M: 1500,
   MIRROR_FAR_M_PHONE: 900,
+  // ...and only for bodies at least this big (the two lakes and the river below the dam): ponds and creek reaches near campus sat
+  // inside the view cone, hidden behind buildings, and switched the pass on in views that show no water at all. They mirror the sky.
+  MIRROR_MIN_BODY_M2: 100000,
   ANIMATE_FAR_M: 3000,
   REFLECT_GROUPS: ['city', 'blender-tiles', 'trees'],   // the scene's top-level groups the mirror shows (plus the sky)            // the app keeps redrawing (moving water) only while water in view is nearer than this
   LIFT_M: 0.03,                   // the surface sits this far over the flat ground (under the roads: bridges stay on top)
@@ -126,7 +129,7 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
       for (const t of tris) idx.push(base + t[0], base + t[2], base + t[1]);
     }
     if (!idx.length) continue;
-    (levels.get(lv) || levels.set(lv, { pos: [], idx: [], pieces: [] }).get(lv)).pieces.push({ pos, idx });
+    (levels.get(lv) || levels.set(lv, { pos: [], idx: [], pieces: [] }).get(lv)).pieces.push({ pos, idx, body: f.properties.body_m2 || f.properties.area_m2 });
   }
 
   const normalMap = normalTexture(THREE, WATER.NORMAL_PX, WATER.WAVES, WATER.WAVE_SPREAD_DEG);
@@ -242,7 +245,7 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
       m.userData.noReflect = true;
       m.updateMatrixWorld();
       plane.spheres = plane.spheres || [];
-      plane.spheres.push(g.boundingSphere.clone().applyMatrix4(m.matrixWorld));
+      if (P.body >= WATER.MIRROR_MIN_BODY_M2) plane.spheres.push(g.boundingSphere.clone().applyMatrix4(m.matrixWorld));
       group.add(m);
     }
     scene.add(group);
