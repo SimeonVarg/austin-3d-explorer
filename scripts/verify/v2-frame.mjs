@@ -60,7 +60,8 @@ const VIEWS = [
   { name: 'West Campus (The Venue)', slug: 'the-venue', distance: 380, polar: 55, azimuth: 30 },
   { name: 'street level (Guadalupe at 21st)', xz: [-252, 246], distance: 45, polar: 80, azimuth: 355 },
   { name: 'DKR from 2 km', slug: 'dkr-memorial-stadium', distance: 2000, polar: 72, azimuth: 200 },
-];
+  { name: 'The Independent close', slug: 'the-independent', distance: 420, polar: 72, azimuth: 20 },
+].filter((v) => !process.env.V2_FRAME_VIEWS || process.env.V2_FRAME_VIEWS.split('|').some((k) => v.name.includes(k)));
 const args = [...HW_ARGS, ...(UNCAPPED ? ['--disable-gpu-vsync', '--disable-frame-rate-limit'] : [])];
 const browser = await launch(chromium, { args, maxMs: 1500000 });
 const rec = {};   // `${arm}|${view}` -> [{median,p95,calls,triangles}]

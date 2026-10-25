@@ -15,8 +15,12 @@ import { MapLite, MarkerLayer, MercatorCoordinate } from './maplite.js';
 import { MapLayers } from './map-layers.js';
 import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
 import { installGround } from './ground.js';
+import { exactPrepare, exactProbe, exactState } from './exact-pilot.js';
 
 const params = new URLSearchParams(location.search);
+// exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
+if (params.get('sunaz')) LOOK.SUN_AZIMUTH_DEG = +params.get('sunaz');
+if (params.get('sunel')) LOOK.SUN_ELEVATION_DEG = +params.get('sunel');
 
 // The haze (LOOK.HAZE_*), for every lit material: the old app's exponential day haze instead of three.js's linear fog. three.js
 // mixes fog into the colour AFTER tone mapping and the output encoding, so the haze colour gets the same tone map and encoding
@@ -576,7 +580,7 @@ const tilesReady = (async () => {
     const t = new TileStreamer({ scene, camera, manifestUrl,
       onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings,
       // the camera's collision tops from the model (#529), and the plain blocks the model stands over (covers.js)
-      prepare: (obj, def, s) => { if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
+      prepare: (obj, def, s) => { exactPrepare(obj, def); if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
       onChange: () => { dirty = true; sun.shadow.needsUpdate = true; labels.occGen = (labels.occGen || 0) + 1; labels.dirty = true; }, onAnimate: () => { dirty = true; } });
     if (params.get('fade') === '0') t.instant = true;
     const man = await t.load();
@@ -1048,6 +1052,7 @@ window.__v2 = {
   THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FLY, fly: () => controls.state(), field, COVER, coverStats, tileStreamer: () => tiles,
   ready: Promise.all([cityReady, tilesReady, routeReady]),
   tiles: () => tiles && tiles.summary(),
+  exactProbe: () => { const ms = exactProbe(renderer, scene); dirty = true; return ms; }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs }),
   timings: () => ({ ...timings }),
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
   intro: () => introFlight.flight && { ...introFlight.flight },
