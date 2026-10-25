@@ -105,7 +105,7 @@ function photoAt(Ph, d) {
 // Set the moment-dependent numbers: the rotation, the scale (Light B's units) and the colour fit to the photo.
 //   M: sky.js buildMoment's result; sunAtEl(el) -> the app's sun (rgb, light units) at that elevation; LIGHT: the lighting sky / dome
 //   modelLevelE: the model sky's light on a level surface (rgb, LIGHT units) at the moment; photoExposure: the moment's camera exposure
-export function placeRealSky(R, M, sunAtEl, LIGHT, modelLevelE, photoExposure) {
+export function placeRealSky(R, M, sunAtEl, LIGHT, modelLevelE, photoExposure, slopeMax = Infinity) {
   const S = R.S, D2R = Math.PI / 180, s = S.sun || S.glow;
   R.uSun = s ? s.u : 0.5; R.azSun = M.az * D2R;
   R.white = S.white;
@@ -142,7 +142,9 @@ export function placeRealSky(R, M, sunAtEl, LIGHT, modelLevelE, photoExposure) {
       for (let k = 0; k < 3; k++) {
         let sy = 0, sxy = 0; for (const [e, l] of rows) { sy += l[k]; sxy += (e - el0) * l[k]; }
         const den = n * sxx - sx * sx;
-        b[k] = den > 1e-12 ? (n * sxy - sx * sy) / den : 0; a[k] = (sy - b[k] * sx) / n;
+        b[k] = den > 1e-12 ? (n * sxy - sx * sy) / den : 0;
+        b[k] = Math.max(-slopeMax, Math.min(slopeMax, b[k]));   // a sky unlike his along the height must not be bent into a band
+        a[k] = (sy - b[k] * sx) / n;
       }
       R.fit = { a, b, el0, elMin: els[Math.floor(n * 0.02)], elMax: els[Math.floor(n * 0.98)], n };
     }

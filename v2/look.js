@@ -62,7 +62,8 @@ export const LOOK = {
     // a real captured sky (v2/sky-real.js, ?sky=NAME or a moment's "sky"): FOG_SINE = the height (sine) at which the haze colour is read
     // all round; DISC_GLOW = the app's sun disc drawn on it (the HDRI keeps its own halo; its disc is painted out by sky_bake.py)
     // LIGHT_SAT: x Light B's own sky -> light saturation (main.js lightDesat); 1 = exactly Light B's relation
-    REAL: { FOG_SINE: 0.02, DISC_GLOW: 0.25, LIGHT_SAT: 1 },
+    // FIT_SLOPE_MAX: the most the colour fit of a library sky to his photo may change per radian of height (log units)
+    REAL: { FOG_SINE: 0.02, DISC_GLOW: 0.25, LIGHT_SAT: 1, FIT_SLOPE_MAX: 3 },
   },
 
   // ── hemisphere fill (off by default: the environment carries sky and bounce) ──

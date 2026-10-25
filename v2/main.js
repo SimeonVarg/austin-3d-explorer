@@ -485,7 +485,7 @@ function applyMoment(spec) {
   if (R) {
     setAnisotropy(R, renderer);
     const sunAtEl = (el) => { const T = sunTransmittance(el, M.haze); return M.sunB.map((v, c) => (M.ref.T[c] > 0 ? (v * T[c]) / M.ref.T[c] : 0)); };
-    placeRealSky(R, M, sunAtEl, M.ref.LIGHT, levelE(skyVals), M.exposure);
+    placeRealSky(R, M, sunAtEl, M.ref.LIGHT, levelE(skyVals), M.exposure, LOOK.MOMENT.REAL.FIT_SLOPE_MAX);
     skyVals = dirs.map((d) => (d[1] >= -0.01 ? realAt(R, [d[0], Math.max(d[1], 0), d[2]]) : null));
   }
   // The LIGHT a real sky casts is the visible sky with Light B's own chroma relation: Light B lights with its sky stops x SKY_GAIN
