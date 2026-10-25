@@ -58,6 +58,8 @@ export const LOOK = {
     GROUND_MAX_M: 600,           // ...the ground point looked at is at most this far from the face
     GROUND_TAPS: 5,              // ...shadow taps per face: 1 along the look, the rest on a ring GROUND_SPREAD around it (1 = one tap)
     GROUND_SPREAD: 1.0,          // (1.0 = 45 degrees off the look)
+    GROUND_LIT_DOWN: 4,          // ...the taps read a ground-lit map this many times smaller than the shadow map (each texel = the share of
+                                 // DOWN x DOWN shadow-map texels whose ground is in sun; speed only: 1 = the shadow map's own texels)
     MIN_LIGHT_EL: 2,             // the sun light's direction (for its shadows) stays this many degrees up after sunset; its strength is 0
     // a real captured sky (v2/sky-real.js, ?sky=NAME or a moment's "sky"): FOG_SINE = the height (sine) at which the haze colour is read
     // all round; DISC_GLOW = the app's sun disc drawn on it (the HDRI keeps its own halo; its disc is painted out by sky_bake.py)

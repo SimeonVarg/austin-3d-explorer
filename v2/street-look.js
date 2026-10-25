@@ -113,9 +113,15 @@ export const TREE_REAL_LOOK = {
   ALPHA_CUT: 0.5,              // alpha test (smoothstep over the pixel's own alpha slope when MSAA is on: alpha to coverage)
   SHADE_JITTER: 0.14,           // +- brightness per tree (from the inventory's shade byte)
   CROWN_STRETCH: [0.78, 1.38],  // the model's crown width may stretch to the inventory's crown radius by this much (x)
-  IMPOSTOR_UP_NORMAL: 0.6,      // how far the far crowns' lighting normal leans toward the sky (0 = faces the camera)
+  IMPOSTOR_UP_NORMAL: 0.6,      // how far the far crowns' lighting normal leans toward the sky (0 = faces the camera), when IMPOSTOR_SPHERE < 1
+  IMPOSTOR_SPHERE: 1,           // the far crowns lit with their crown's sphere normals, as the mid cards are (1), or the flat normal above (0)
+  IMPOSTOR_SHADOW: true,        // the far crowns take the sun's shadow (looked up on their crown's sphere), as the mid cards do
+  IMPOSTOR_UP_BIAS: 0.28,      // the mid cards' normals lean up by this (tools/trees: outward + 0.28 up); the far crowns copy it
   FAR_VARIANTS: 2,
-  FRUSTUM_MARGIN: 0.16,         // a tree this many radians outside the view is still drawn (a quick turn does not show holes)
+  TRIM_CARDS: true,             // each leaf card cut to the octagon around everything its texture can draw (speed only, the same picture)
+  TRIM_LEVELS: 4,               // ...over mip levels 0..this (deeper levels: a card a few pixels wide, where fill costs nothing)
+  GRID_M: 64,                  // the per-frame update finds the near and mid trees through squares this size (speed only, no look)
+  FRUSTUM_MARGIN: 0.16,       // a tree this many radians outside the view is still drawn (a quick turn does not show holes)
   RECEIVE_SHADOW: true,         // the cards and trunks take the sun's shadow (?treeshadow=0 turns it off for a test)
   SHADOW_PROXY: true,           // one 20-triangle crown per tree casts the sun's shadow (the cards and impostors cast none)
   SHADOW_PROXY_SHRINK: 0.8,

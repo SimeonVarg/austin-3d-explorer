@@ -24,6 +24,9 @@ if (params.get('treespec')) L.SPECULAR = +params.get('treespec');
 if (params.get('trunkgain')) L.TRUNK_GAIN = +params.get('trunkgain');
 if (params.get('treenear')) L.NEAR_TO_MID_M = params.get('treenear').split(',').map(Number);
 if (params.get('treefar')) L.MID_TO_FAR_M = params.get('treefar').split(',').map(Number);
+if (params.get('treetrim')) L.TRIM_CARDS = params.get('treetrim') !== '0';   // A/B of the trimmed cards (speed only)
+if (params.get('impsphere')) L.IMPOSTOR_SPHERE = +params.get('impsphere');            // 0: the far crowns' old flat normal (A/B)
+if (params.get('impshadow')) L.IMPOSTOR_SHADOW = params.get('impshadow') !== '0';
 const HASH =(a) => { let h = Math.imul(a | 0, 0x9E3779B1); h ^= h >>> 15; h = Math.imul(h, 0x85EBCA6B); h ^= h >>> 13; return (h >>> 0) / 4294967296; };
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -67,7 +70,64 @@ function coverageTexture(THREE, img, cut, anisotropy) {
   }
   const t = new THREE.DataTexture(mips[0].data, w, h, THREE.RGBAFormat); t.mipmaps = mips; t.generateMipmaps = false;
   t.colorSpace = THREE.SRGBColorSpace; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.anisotropy = anisotropy; t.flipY = false; t.needsUpdate = true;
+  t.userData.trim = trimOctagon(mips);
   return t;
+}
+
+// Speed (2026-10-25): a leaf card's texture is 80 % empty (alpha under the cut), and the empty part still rasterises and runs the
+// shader before it is thrown away; the cards' fill was most of the trees' cost (65 to 120 ms of a street frame on the Mac). So each
+// card is cut down to the octagon that holds every texel with ANY alpha at mip levels 0..TRIM_LEVELS (each texel taken whole, plus
+// one texel for the bilinear filter): nothing the card can draw at those levels is cut, so the picture is the same. (Deeper levels
+// are used only where a card is a few pixels wide.) Returns 8 [u, v] corners, counter-clockwise, in the GLB's uv frame.
+function trimOctagon(mips) {
+  const D = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]].map(([x, y]) => { const l = Math.hypot(x, y); return [x / l, y / l]; });
+  const s = D.map(() => -Infinity);
+  for (let k = 0; k <= Math.min(L.TRIM_LEVELS, mips.length - 1); k++) {
+    const { data, width: W, height: H } = mips[k];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (data[(y * W + x) * 4 + 3] <= 0) continue;
+      for (const [cx, cy] of [[x - 1, y - 1], [x + 2, y - 1], [x - 1, y + 2], [x + 2, y + 2]]) {
+        const u = cx / W, v = cy / H;
+        for (let d = 0; d < 8; d++) { const p = D[d][0] * u + D[d][1] * v; if (p > s[d]) s[d] = p; }
+      }
+    }
+  }
+  // the octagon = the 8 half-planes' corners (consecutive supporting lines meet), clamped to the card
+  const out = [];
+  for (let d = 0; d < 8; d++) {
+    const a = D[d], b = D[(d + 1) % 8], det = a[0] * b[1] - a[1] * b[0];
+    const u = (s[d] * b[1] - s[(d + 1) % 8] * a[1]) / det, v = (a[0] * s[(d + 1) % 8] - b[0] * s[d]) / det;
+    out.push([Math.min(1, Math.max(0, u)), Math.min(1, Math.max(0, v))]);
+  }
+  return out;
+}
+// one card (4 corners at uv (0,0) (1,0) (1,1) (0,1), any order) -> the octagon, every attribute interpolated over the card (bilinear)
+function trimCards(THREE, geo, oct) {
+  const pos = geo.attributes.position, uv = geo.attributes.uv, col = geo.attributes.color, n = pos.count, idx = geo.index.array;
+  const quads = idx.length / 6;
+  for (let q = 0; q < quads; q++) {   // the GLB's cards are 4 vertices each, indexed v, v+1, v+2, v, v+2, v+3 (tools/trees/gen.js)
+    const v = idx[q * 6]; if (idx[q * 6 + 1] !== v + 1 || idx[q * 6 + 2] !== v + 2 || idx[q * 6 + 5] !== v + 3) return null;
+  }
+  const P = new Float32Array(quads * 8 * 3), U = new Float32Array(quads * 8 * 2), C = col ? new Float32Array(quads * 8 * col.itemSize) : null, I = new Uint32Array(quads * 18);
+  for (let q = 0; q < quads; q++) {
+    const v0 = idx[q * 6], corner = {};   // corner['00'] = vertex at uv (0,0), ...
+    for (let k = 0; k < 4; k++) corner[Math.round(uv.getX(v0 + k)) + '' + Math.round(uv.getY(v0 + k))] = v0 + k;
+    const c00 = corner['00'], c10 = corner['10'], c11 = corner['11'], c01 = corner['01'];
+    if ([c00, c10, c11, c01].some((x) => x === undefined)) return null;
+    const lerp = (attr, comp, u, w) => { const g = (i) => attr.getComponent(i, comp); return (g(c00) * (1 - u) + g(c10) * u) * (1 - w) + (g(c01) * (1 - u) + g(c11) * u) * w; };
+    for (let k = 0; k < 8; k++) {
+      const [u, w] = oct[k], o = q * 8 + k;
+      for (let c = 0; c < 3; c++) P[o * 3 + c] = lerp(pos, c, u, w);
+      U[o * 2] = u; U[o * 2 + 1] = w;
+      if (C) for (let c = 0; c < col.itemSize; c++) C[o * col.itemSize + c] = lerp(col, c, u, w);
+    }
+    for (let k = 0; k < 6; k++) { I[q * 18 + k * 3] = q * 8; I[q * 18 + k * 3 + 1] = q * 8 + k + 1; I[q * 18 + k * 3 + 2] = q * 8 + k + 2; }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setAttribute('uv', new THREE.BufferAttribute(U, 2));
+  if (C) g.setAttribute('color', new THREE.BufferAttribute(C, col.itemSize));
+  g.setIndex(new THREE.BufferAttribute(I, 1));
+  return g;
 }
 
 const imageOf = (url) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('image ' + url)); i.src = url; });
@@ -77,7 +137,7 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
   const manifest = await fetch(DATA + 'manifest.json').then((r) => r.json());
   const msaa = !!(renderer && renderer.capabilities && renderer.getContext().getContextAttributes().antialias);
   const aniso = renderer ? Math.min(8, renderer.capabilities.getMaxAnisotropy()) : 4;
-  const [D1, W1] = phone ? L.NEAR_TO_MID_M_PHONE : L.NEAR_TO_MID_M, [D2, W2] = phone ? L.MID_TO_FAR_M_PHONE : L.MID_TO_FAR_M;
+  let [D1, W1] = phone ? L.NEAR_TO_MID_M_PHONE : L.NEAR_TO_MID_M, [D2, W2] = phone ? L.MID_TO_FAR_M_PHONE : L.MID_TO_FAR_M;
 
   // ── the tree list: flat arrays; species and variant are fixed per tree (a tree never changes form) ──
   let N = 0; for (const r of rows) N += r.length;
@@ -133,19 +193,27 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vFadeV;')
       .replace('#include <alphatest_fragment>', alphaChunk(duv, lod));
   };
+  // MeshStandardMaterial (cheaper than Physical) with Physical's specularIntensity = L.SPECULAR, exactly: at IOR 1.5 Physical's F0 is
+  // 0.04 x the intensity and its F90 the intensity, so the same two numbers are set after Standard's own (F0 0.04, F90 1)
+  const specShader = (sh) => {
+    sh.fragmentShader = sh.fragmentShader.replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
+    material.specularColor *= ${L.SPECULAR.toFixed(4)}; material.specularColorBlended = mix(material.specularColor, diffuseColor.rgb, metalnessFactor); material.specularF90 = ${L.SPECULAR.toFixed(4)};`);
+  };
   const leafMaterial = (sp, kind, mid = false) => {
     const col = leafTint(sp);
-    const m = new THREE.MeshPhysicalMaterial({ specularIntensity: L.SPECULAR, map: (mid ? leafTexesMid : leafTexes)[kind], color: col, vertexColors: true, side: THREE.DoubleSide, alphaTest: L.ALPHA_CUT, alphaToCoverage: msaa, roughness: L.LEAF_ROUGHNESS, metalness: 0 });
+    const m = new THREE.MeshStandardMaterial({ map: (mid ? leafTexesMid : leafTexes)[kind], color: col, vertexColors: true, side: THREE.DoubleSide, alphaTest: L.ALPHA_CUT, alphaToCoverage: msaa, roughness: L.LEAF_ROUGHNESS, metalness: 0 });
     m.onBeforeCompile = (sh) => {
-      fadeShader(sh, false, mid ? 'vMapUv * 512.0' : 'vMapUv * 512.0', mid ? [-99, -98] : undefined);
+      fadeShader(sh, false, mid ? 'vMapUv * 512.0' : 'vMapUv * 512.0', mid ? [-99, -98] : undefined); specShader(sh);
       // the cards' normals are the crown's own (outward + up): do not flip them on the back face
       sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', THREE.ShaderChunk.normal_fragment_begin.replace('normal *= faceDirection;', ''));
     };
     m.customProgramCacheKey = () => 'v2-treecard' + msaa + mid; return m;
   };
+  // (Tried 2026-10-25 and dropped: a depth-only pre-pass of the cards, so only the front card of a pixel is lit. The pre-pass alone
+  // cost about what it saved, ~50 ms at the South Mall: the cards' cost is their layers of alpha-tested coverage, not their lighting.)
   const trunkMaterial = (sp) => {
-    const m = new THREE.MeshPhysicalMaterial({ specularIntensity: L.SPECULAR, color: new THREE.Color(manifest.species[sp].trunk).multiplyScalar(L.TRUNK_GAIN), roughness: 1, metalness: 0, alphaToCoverage: msaa });
-    m.onBeforeCompile = (sh) => fadeShader(sh, false);
+    const m = new THREE.MeshStandardMaterial({ color: new THREE.Color(manifest.species[sp].trunk).multiplyScalar(L.TRUNK_GAIN), roughness: 1, metalness: 0, alphaToCoverage: msaa });
+    m.onBeforeCompile = (sh) => { fadeShader(sh, false); specShader(sh); };
     m.customProgramCacheKey = () => 'v2-treetrunk' + msaa; return m;
   };
 
@@ -155,20 +223,27 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
   quad.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
   quad.setIndex([0, 1, 2, 0, 2, 3]);
   const EL = manifest.el, AZ = manifest.az, VFAR = L.FAR_VARIANTS, ROWS = VFAR * EL.length;
+  const farU = { value: new THREE.Vector2(D2, W2) };   // the mid -> far band, shared by every impostor material (setBands moves it)
   const impostorMaterial = (sp, atlas) => {
-    const U = { uAtlas: { value: atlas }, uUpN: { value: L.IMPOSTOR_UP_NORMAL }, uEl: { value: new Float32Array(EL.map((e) => e * Math.PI / 180)) } };
-    const m = new THREE.MeshPhysicalMaterial({ specularIntensity: L.SPECULAR, color: leafTint(sp), roughness: L.LEAF_ROUGHNESS, metalness: 0, alphaTest: L.ALPHA_CUT, alphaToCoverage: msaa });
+    // the crown's sphere inside the quad: its radius as a share of the quad's half size (the variants' mean crownR / (rs x 1.03))
+    const vs = manifest.species[sp].variants, crownK = vs.reduce((a, v) => a + v.crownR / (v.rs * 1.03), 0) / vs.length;
+    const U = { uAtlas: { value: atlas }, uUpN: { value: L.IMPOSTOR_UP_NORMAL }, uEl: { value: new Float32Array(EL.map((e) => e * Math.PI / 180)) },
+      uCrownK: { value: crownK }, uSphere: { value: L.IMPOSTOR_SPHERE }, uFar: farU };
+    const m = new THREE.MeshStandardMaterial({ color: leafTint(sp), roughness: L.LEAF_ROUGHNESS, metalness: 0, alphaTest: L.ALPHA_CUT, alphaToCoverage: msaa });
     m.onBeforeCompile = (sh) => {
-      Object.assign(sh.uniforms, U);
+      Object.assign(sh.uniforms, U); specShader(sh);
       sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
-        attribute vec4 aImp; varying float vFadeV; varying vec3 vToCam; varying vec2 vQ; varying float vVar; uniform float uUpN;`)
+        attribute vec4 aImp; varying float vFadeV; varying vec3 vToCam; varying vec2 vQ; varying float vVar; uniform float uUpN; varying vec4 vImpC; uniform vec2 uFar;`)
         .replace('#include <begin_vertex>', `#include <begin_vertex>
-        vFadeV = aImp.x; vVar = aImp.y; vQ = position.xy * 0.5 + 0.5;
+        vVar = aImp.y; vQ = position.xy * 0.5 + 0.5;
         { vec3 cw = (modelMatrix * instanceMatrix * vec4(0.,0.,0.,1.)).xyz; vec3 tc = cameraPosition - cw; float az = atan(tc.x, tc.z) - aImp.z;
-          float el = asin(clamp(tc.y / max(length(tc), 1e-3), -1., 1.)); vToCam = vec3(az, el, 0.); }`)
+          // the far share: the same smoothstep of the same distance (to the tree's mid-height point) as the near and mid bands use on the CPU
+          vFadeV = smoothstep(uFar.x - uFar.y, uFar.x + uFar.y, distance(cameraPosition, vec3(cw.x, aImp.x, cw.z)));
+          float el = asin(clamp(tc.y / max(length(tc), 1e-3), -1., 1.)); vToCam = vec3(az, el, 0.); vImpC = vec4(cw, length(instanceMatrix[0].xyz)); }`)
         .replace('#include <defaultnormal_vertex>', `vec3 transformedNormal = normalize(mix(vec3(0.,0.,1.), normalize(mat3(viewMatrix) * vec3(0.,1.,0.)), uUpN));`)
         .replace('#include <project_vertex>', `vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(0.,0.,0.,1.);
-        mvPosition.xy += position.xy * length(instanceMatrix[0].xyz); gl_Position = projectionMatrix * mvPosition;`);
+        mvPosition.xy += position.xy * length(instanceMatrix[0].xyz); gl_Position = projectionMatrix * mvPosition;
+        if (vFadeV <= 0.004) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);   // no far share (the near / mid bands draw it): the quad collapses outside the view`);
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
         varying float vFadeV; varying vec3 vToCam; varying vec2 vQ; varying float vVar; uniform sampler2D uAtlas; uniform float uEl[${EL.length}];
         const float AZN = ${AZ.toFixed(1)}; const float ROWS = ${ROWS.toFixed(1)};
@@ -190,7 +265,27 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
           vec4 sampledDiffuseColor = mix(mix(c00, c10, ta), mix(c01, c11, ta), te);
           diffuseColor *= sampledDiffuseColor;
         }`)
-        .replace('#include <alphatest_fragment>', alphaChunk('vQ * 96.0', L.ALPHA_LOD_FAR));
+        .replace('#include <alphatest_fragment>', alphaChunk('vQ * 96.0', L.ALPHA_LOD_FAR))
+        // Lit like the mid crown it replaces (no pop at the hand-over, rule 15): the cards' normals point out from the crown's middle
+        // (+ IMPOSTOR_UP_BIAS up), so the quad gets the normals of the crown's sphere as seen from the camera; and the cards take the
+        // sun's shadow (buildings', and the crown's own proxy on its far side), so the quad looks its shadow up on that sphere's surface.
+        .replace('#include <common>', `#include <common>
+        varying vec4 vImpC; uniform float uCrownK, uSphere; vec3 v2ImpP; vec3 v2ImpN;`)
+        .replace('#include <shadowmap_pars_fragment>', `#include <shadowmap_pars_fragment>
+        #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0 && !defined( V2_DSM )
+        uniform mat4 directionalShadowMatrix[ NUM_DIR_LIGHT_SHADOWS ];
+        #endif`)
+        .replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>
+        {
+          vec2 q2 = (vQ * 2.0 - 1.0) / uCrownK; float r2 = dot(q2, q2);
+          vec3 nS = vec3(q2 * (r2 > 1.0 ? inversesqrt(r2) : 1.0), sqrt(max(0.0, 1.0 - r2)));
+          v2ImpN = (vec4(nS, 0.0) * viewMatrix).xyz;
+          v2ImpP = vImpC.xyz + v2ImpN * vImpC.w * uCrownK;
+          vec3 upV = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+          normal = normalize(mix(normal, normalize(nS + ${L.IMPOSTOR_UP_BIAS.toFixed(3)} * upV), uSphere));
+        }`)
+        .replace('#include <lights_fragment_begin>', THREE.ShaderChunk.lights_fragment_begin.replace('vDirectionalShadowCoord[ i ] ) : 1.0;',
+          `directionalShadowMatrix[ i ] * vec4( v2ImpP + v2ImpN * directionalLightShadow.shadowNormalBias, 1.0 ) ) : 1.0;`));
     };
     m.customProgramCacheKey = () => 'v2-treeimp' + msaa; return m;
   };
@@ -213,8 +308,9 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
     const leafM = leafMaterial(sp, info.leafCard), leafMMid = leafMaterial(sp, info.leafCard, true), trunkM = trunkMaterial(sp);
     buckets[si] = info.variants.map((vinfo, vi) => {
       const c = vinfo.centre, cap = capVar[si][vi];
-      const prep = (o, leaf) => {
-        const geo = o.geometry.clone();     // clone: each InstancedMesh gets its own instanced fade attribute
+      const prep = (o, leaf, trim) => {
+        // a copy: each InstancedMesh gets its own instanced fade attribute (leaf cards: cut down to their octagon, a new geometry)
+        const geo = (leaf && trim && L.TRIM_CARDS && trimCards(THREE, o.geometry, trim)) || o.geometry.clone();
         const pos = geo.attributes.position;
         if (leaf) {   // outward + up normals from the crown's centre (the soft round shading; flat cards would flicker)
           const n = new Float32Array(pos.count * 3);
@@ -226,14 +322,17 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
         } else geo.computeVertexNormals();
         return geo;
       };
-      const mk = (leafName, trunkName, lm) => ({ leaf: mkInst(prep(byName[`v${vi}_${leafName}`], true), lm, cap, 'aFade'), trunk: mkInst(prep(byName[`v${vi}_${trunkName}`], false), trunkM, cap, 'aFade') });
-      return { near: mk('leaves_near', 'trunk', leafM), mid: mk('leaves_mid', 'trunk_mid', leafMMid), info: vinfo };
+      const mk = (leafName, trunkName, lm, mid) => {
+        const leaf = mkInst(prep(byName[`v${vi}_${leafName}`], true, (mid ? leafTexesMid : leafTexes)[info.leafCard].userData.trim), lm, cap, 'aFade');
+        return { leaf, trunk: mkInst(prep(byName[`v${vi}_${trunkName}`], false), trunkM, cap, 'aFade') };
+      };
+      return { near: mk('leaves_near', 'trunk', leafM, false), mid: mk('leaves_mid', 'trunk_mid', leafMMid, true), info: vinfo };
     });
     // far: the atlas
     const atlasImg = await imageOf(DATA + info.atlas);
     const at = new THREE.Texture(atlasImg); at.colorSpace = THREE.SRGBColorSpace; at.generateMipmaps = true; at.minFilter = THREE.LinearMipmapLinearFilter; at.magFilter = THREE.LinearFilter; at.anisotropy = aniso; at.flipY = true; at.needsUpdate = true;
     const imp = new THREE.InstancedMesh(quad.clone(), impostorMaterial(sp, at), Math.max(1, capSp[si]));
-    imp.count = 0; imp.frustumCulled = false; imp.castShadow = false; imp.receiveShadow = false; imp.visible = false; imp.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    imp.count = 0; imp.frustumCulled = false; imp.castShadow = false; imp.receiveShadow = L.RECEIVE_SHADOW && L.IMPOSTOR_SHADOW; imp.visible = false; imp.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     const ia = new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, capSp[si]) * 4), 4); ia.setUsage(THREE.DynamicDrawUsage); imp.geometry.setAttribute('aImp', ia); imp.impAttr = ia;
     imp.setColorAt(0, new THREE.Color(1, 1, 1)); imp.instanceColor.setUsage(THREE.DynamicDrawUsage);
     root.add(imp); far[si] = imp;
@@ -268,17 +367,46 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
   const JIT = L.SHADE_JITTER;
   // upload only the instances in use (the buffers are sized for every tree of the bucket)
   const up = (a, n) => { a.clearUpdateRanges(); a.addUpdateRange(0, n * a.itemSize); a.needsUpdate = true; };
+  const crownK = (i, info) => Math.min(L.CROWN_STRETCH[1], Math.max(L.CROWN_STRETCH[0], R[i] / (H[i] * info.crownR)));
+  // The far band is STATIC: every tree's quad is written once; its fade is the same smoothstep of the same distance (the tree's
+  // mid-height point, aImp.x) worked out in the vertex shader, and a quad with no far share collapses there. The per-frame update below
+  // then only visits the trees near enough for the near and mid bands, found through a grid (GRID_M squares).
+  {
+    const n = speciesNames.map(() => 0);
+    for (let i = 0; i < N; i++) {
+      const si = SP[i], vi = VAR[i], info = buckets[si][vi].info, h = H[i], kx = crownK(i, info), f = far[si], j = n[si]++;
+      const sz = info.rs * 1.03 * h * (1 + kx) * 0.5;
+      writeM(f.instanceMatrix.array, j * 16, X[i], info.centre[1] * h, Z[i], 1, 0, sz, sz, sz);
+      const ia = f.impAttr.array; ia[j * 4] = h * 0.5; ia[j * 4 + 1] = vi % VFAR; ia[j * 4 + 2] = YAW[i]; ia[j * 4 + 3] = 0;
+      const shade = 1 + (V[i] - 0.5) * 2 * JIT; f.instanceColor.array[j * 3] = f.instanceColor.array[j * 3 + 1] = f.instanceColor.array[j * 3 + 2] = shade;
+    }
+    for (let si = 0; si < far.length; si++) {
+      const f = far[si]; f.count = n[si]; f.visible = n[si] > 0;
+      for (const a of [f.instanceMatrix, f.instanceColor, f.impAttr]) { a.setUsage(THREE.StaticDrawUsage); a.needsUpdate = true; }
+    }
+  }
+  const G = L.GRID_M, gx0 = Math.floor(Math.min(...X) / G), gz0 = Math.floor(Math.min(...Z) / G);
+  const GW = Math.floor(Math.max(...X) / G) - gx0 + 1, GH = Math.floor(Math.max(...Z) / G) - gz0 + 1;
+  const cellStart = new Int32Array(GW * GH + 1), cellTrees = new Int32Array(N);
+  { const cell = new Int32Array(N); for (let i = 0; i < N; i++) { cell[i] = (Math.floor(Z[i] / G) - gz0) * GW + Math.floor(X[i] / G) - gx0; cellStart[cell[i] + 1]++; }
+    for (let c = 0; c < GW * GH; c++) cellStart[c + 1] += cellStart[c];
+    const fill = cellStart.slice(0, GW * GH); for (let i = 0; i < N; i++) cellTrees[fill[cell[i]]++] = i; }
+  let maxH = 0; for (let i = 0; i < N; i++) maxH = Math.max(maxH, H[i]);
   function update(camera) {
     const t0 = performance.now();
     camera.updateMatrixWorld();
     pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); frustum.setFromProjectionMatrix(pm, camera.coordinateSystem, camera.reversedDepth);
     const cp = camera.position;
     for (const vs of buckets) for (const b of vs) { b.near.leaf.count = b.near.trunk.count = b.mid.leaf.count = b.mid.trunk.count = 0; }
-    for (const f of far) f.count = 0;
-    let nN = 0, nM = 0, nF = 0;
+    farU.value.set(D2, W2);
+    let nN = 0, nM = 0;
     const cx = cp.x, cy = cp.y, cz = cp.z;
-    for (let i = 0; i < N; i++) {
-      const h = H[i], x = X[i], z = Z[i];
+    // only trees closer than the far band's end can have a near or mid share: the grid squares within that reach (in plan)
+    const reach = D2 + W2, dyMin = Math.max(0, cy - maxH * 0.5);
+    const cxs = Math.max(0, Math.floor((cx - reach) / G) - gx0), cxe = Math.min(GW - 1, Math.floor((cx + reach) / G) - gx0);
+    const czs = Math.max(0, Math.floor((cz - reach) / G) - gz0), cze = Math.min(GH - 1, Math.floor((cz + reach) / G) - gz0);
+    for (let gzI = czs; gzI <= cze && dyMin < reach; gzI++) for (let gxI = cxs; gxI <= cxe; gxI++) for (let t = cellStart[gzI * GW + gxI], te = cellStart[gzI * GW + gxI + 1]; t < te; t++) {
+      const i = cellTrees[t], h = H[i], x = X[i], z = Z[i];
       const dx = x - cx, dz = z - cz, dy = h * 0.5 - cy, d = Math.sqrt(dx * dx + dy * dy + dz * dz);
       const rad = Math.max(R[i] * 1.4, h * 0.6) + d * L.FRUSTUM_MARGIN;
       let out = false;
@@ -286,9 +414,10 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
       if (out) continue;
       const a = d <= D1 - W1 ? 0 : (d >= D1 + W1 ? 1 : smooth(D1 - W1, D1 + W1, d));
       const b = d <= D2 - W2 ? 0 : (d >= D2 + W2 ? 1 : smooth(D2 - W2, D2 + W2, d));
-      const fn = 1 - a, fm = a * (1 - b), ff = b;
+      const fn = 1 - a, fm = a * (1 - b);
+      if (fn <= 0.004 && fm <= 0.004) continue;
       const si = SP[i], vi = VAR[i], yaw = YAW[i], c = Math.cos(yaw), s = Math.sin(yaw);
-      const info = buckets[si][vi].info, kx = Math.min(L.CROWN_STRETCH[1], Math.max(L.CROWN_STRETCH[0], R[i] / (h * info.crownR))), shade = 1 + (V[i] - 0.5) * 2 * JIT;
+      const info = buckets[si][vi].info, kx = crownK(i, info), shade = 1 + (V[i] - 0.5) * 2 * JIT;
       if (fn > 0.004 || fm > 0.004) {
         const bk = buckets[si][vi];
         if (fn > 0.004) {
@@ -306,13 +435,6 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
           nM++;
         }
       }
-      if (ff > 0.004) {
-        const f = far[si], j = farN[si]++, sz = info.rs * 1.03 * h * (1 + kx) * 0.5;
-        writeM(f.instanceMatrix.array, j * 16, x, info.centre[1] * h, z, 1, 0, sz, sz, sz);
-        const ia = f.impAttr.array; ia[j * 4] = ff; ia[j * 4 + 1] = vi % VFAR; ia[j * 4 + 2] = yaw; ia[j * 4 + 3] = 0;
-        f.instanceColor.array[j * 3] = f.instanceColor.array[j * 3 + 1] = f.instanceColor.array[j * 3 + 2] = shade;
-        nF++;
-      }
     }
     for (let si = 0; si < buckets.length; si++) {
       for (let vi = 0; vi < buckets[si].length; vi++) {
@@ -322,9 +444,8 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
         }
         nearN[si][vi] = 0; midN[si][vi] = 0;
       }
-      const f = far[si]; f.count = farN[si]; f.visible = f.count > 0; if (f.count) { up(f.instanceMatrix, f.count); up(f.instanceColor, f.count); up(f.impAttr, f.count); } farN[si] = 0;
     }
-    stats.near = nN; stats.mid = nM; stats.far = nF; stats.updates++; stats.ms = performance.now() - t0;
+    stats.near = nN; stats.mid = nM; stats.far = N; stats.updates++; stats.ms = performance.now() - t0;
   }
   // the ticker: an invisible one-triangle mesh drawn first; its onBeforeRender runs the update with the camera that is drawing
   const ticker = new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0.001, 0, 0.001, 0, 0], 3)), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
@@ -336,8 +457,11 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
     lastKey = key; dirty = false; update(camera);
   };
   group.add(ticker);
-  Object.assign(stats, { ready: true, species: speciesNames, bands: { D1, W1, D2, W2 } });
-  window.__v2treesReal = { stats: () => ({ ...stats }), update, root, proxy, buckets, far, force: () => { dirty = true; } };
+  const area = (o) => o.reduce((a, p, i) => a + p[0] * o[(i + 1) % o.length][1] - o[(i + 1) % o.length][0] * p[1], 0) / 2;
+  Object.assign(stats, { ready: true, species: speciesNames, bands: { D1, W1, D2, W2 }, trim: L.TRIM_CARDS ? Object.fromEntries([...Object.entries(leafTexes).map(([k, t]) => [k, +area(t.userData.trim).toFixed(3)]), ...Object.entries(leafTexesMid).map(([k, t]) => ['mid ' + k, +area(t.userData.trim).toFixed(3)])]) : null });
+  window.__v2treesReal = { stats: () => ({ ...stats }), update, root, proxy, buckets, far, leafTexes, leafTexesMid, force: () => { dirty = true; },
+    // the distance bands inside the page (A/B in one load, rule 13): [near->mid centre, half-width], [mid->far centre, half-width]
+    setBands: (a, b) => { if (a) [D1, W1] = a; if (b) [D2, W2] = b; stats.bands = { D1, W1, D2, W2 }; dirty = true; redraw(); } };
   redraw();
   return window.__v2treesReal;
 }

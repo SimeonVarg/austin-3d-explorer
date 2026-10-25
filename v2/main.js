@@ -75,13 +75,66 @@ let REAL_SKY = null;
 // ring around it: a face 150 m up sees a wide patch of ground) take the sun's share out where that ground is in shadow:
 // irradiance -= (shadowed share) x ground albedo x the sun's irradiance on the ground x the ground's share of the face's view ((1 - n.y) / 2).
 const GROUND_SHADE = (MOMENT && LOOK.MOMENT.GROUND_SHADE && params.get('groundshade') !== '0') || params.get('groundshade') === '1';
+// Speed (2026-10-25): the taps read the GROUND-LIT map, not the shadow map. Five taps a pixel spread over hundreds of metres of a
+// 4096 x 4096 depth map missed the cache on every one and cost 40 to 50 ms a frame on the Mac (+40 %). The ground-lit map is the same
+// depth test done once per shadow-map redraw, at the ground's own depth for every texel (the ground point under a shadow-map texel is
+// fixed), averaged over LOOK.MOMENT.GROUND_LIT_DOWN^2 texels of the shadow map into one texel of a map that many times smaller: the
+// taps then read a small, cached map in the same coordinates. ?groundlit=0: the taps read the shadow map as before (A/B).
+const GROUND_LIT = GROUND_SHADE && params.get('groundlit') !== '0';
+const groundLit = { rt: null, white: null, bake: null, bakes: 0 };
+if (GROUND_LIT) {
+  groundLit.white = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1); groundLit.white.needsUpdate = true;
+  // the uniform must be in every lit material's own uniforms when its program is made (three copies them from ShaderLib); each material
+  // then gets the baked map just before it draws (Material.onBeforeRender, below)
+  for (const id of ['standard', 'physical', 'lambert', 'phong', 'toon']) if (THREE.ShaderLib[id]) THREE.ShaderLib[id].uniforms.v2GroundLit = { value: groundLit.white };
+  THREE.Material.prototype.onBeforeRender = function (r) {
+    if (!groundLit.rt) return;
+    const u = r.properties.get(this).uniforms;
+    if (u && u.v2GroundLit && u.v2GroundLit.value !== groundLit.rt.texture) u.v2GroundLit.value = groundLit.rt.texture;
+  };
+}
 if (GROUND_SHADE) {
   THREE.ShaderChunk.shadowmap_pars_fragment += `
 #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0 && defined( SHADOWMAP_TYPE_PCF )
 uniform mat4 directionalShadowMatrix[ NUM_DIR_LIGHT_SHADOWS ];
 #define V2_GROUND_SHADE 1
+#define V2_DSM 1
+${GROUND_LIT ? 'uniform sampler2D v2GroundLit;' : ''}
 #endif`;
-  THREE.ShaderChunk.lights_fragment_maps = `
+  // The same taps, cheaper (GROUND_LIT): unrolled, no normalize per tap (the ring's rays are v2d + SPREAD x a unit vector at right
+  // angles to it, so every one is sqrt(1 + SPREAD^2) long: the tests and the 600 m clamp take that length as a constant), and the
+  // ground point goes straight to the map's (orthographic, affine) coordinates. Same ground points, same weights as below.
+  const GT = LOOK.MOMENT.GROUND_TAPS, GS = +LOOK.MOMENT.GROUND_SPREAD, GM = +LOOK.MOMENT.GROUND_MAX_M || 600, fx = (v) => (+v).toFixed(6);
+  const tapsLit = Array.from({ length: GT }, (_, i) => {
+    const c = i ? Math.cos((i - 1) * Math.PI / 2) : 0, s = i ? Math.sin((i - 1) * Math.PI / 2) : 0, L = i ? Math.hypot(1, GS) : 1;
+    const r = i ? `v2d + ${fx(GS * c)} * v2t1 + ${fx(GS * s)} * v2t2` : 'v2d';
+    return `
+    { vec3 v2r = ${r};
+      if ( v2r.y < ${fx(-0.05 * L)} ) {
+        vec2 v2s = v2sp + min( v2p.y / -v2r.y, ${fx(GM / L)} ) * ( v2M[ 0 ].xy * v2r.x + v2M[ 2 ].xy * v2r.z );
+        v2dark += 1.0 - ( ( v2s.x >= 0.0 && v2s.x <= 1.0 && v2s.y >= 0.0 && v2s.y <= 1.0 ) ? textureLod( v2GroundLit, v2s, 0.0 ).r : 1.0 ); v2n0 += 1.0;
+      } }`;
+  }).join('');
+  THREE.ShaderChunk.lights_fragment_maps = GROUND_LIT ? `
+#if defined( V2_GROUND_SHADE ) && defined( RE_IndirectDiffuse ) && NUM_DIR_LIGHTS > 0
+{
+  vec3 v2n = inverseTransformDirection( geometryNormal, viewMatrix );
+  vec3 v2p = cameraPosition + ( vec4( geometryPosition, 0.0 ) * viewMatrix ).xyz;
+  float v2w = 0.5 * ( 1.0 - v2n.y );
+  if ( v2w > 0.02 && v2p.y > 0.2 ) {
+    vec3 v2d = normalize( v2n - vec3( 0.0, 1.0, 0.0 ) );
+    vec3 v2t1 = normalize( cross( v2d, abs( v2d.y ) > 0.9 ? vec3( 1.0, 0.0, 0.0 ) : vec3( 0.0, 1.0, 0.0 ) ) ), v2t2 = cross( v2d, v2t1 );
+    mat4 v2M = directionalShadowMatrix[ 0 ];
+    vec2 v2sp = v2M[ 0 ].xy * v2p.x + v2M[ 2 ].xy * v2p.z + v2M[ 3 ].xy;
+    float v2dark = 0.0, v2n0 = 0.0;${tapsLit}
+    v2dark /= max( v2n0, 1.0 );
+    vec3 v2up = ( viewMatrix * vec4( 0.0, 1.0, 0.0, 0.0 ) ).xyz;
+    vec3 v2sunG = directionalLights[ 0 ].color * max( dot( directionalLights[ 0 ].direction, v2up ), 0.0 );
+    irradiance = max( irradiance - v2dark * ${(+LOOK.MOMENT.GROUND_ALBEDO).toFixed(4)} * v2sunG * v2w, vec3( 0.0 ) );
+  }
+}
+#endif
+` + THREE.ShaderChunk.lights_fragment_maps : `
 #if defined( V2_GROUND_SHADE ) && defined( RE_IndirectDiffuse ) && NUM_DIR_LIGHTS > 0
 {
   vec3 v2n = inverseTransformDirection( geometryNormal, viewMatrix );
@@ -101,8 +154,9 @@ uniform mat4 directionalShadowMatrix[ NUM_DIR_LIGHT_SHADOWS ];
       vec4 v2s = directionalShadowMatrix[ 0 ] * vec4( v2g, 1.0 );
       v2s.xyz /= v2s.w;
       float v2lit = 1.0;
-      if ( v2s.x >= 0.0 && v2s.x <= 1.0 && v2s.y >= 0.0 && v2s.y <= 1.0 && v2s.z <= 1.0 )
-        v2lit = texture( directionalShadowMap[ 0 ], vec3( v2s.xy, v2s.z + directionalLightShadows[ 0 ].shadowBias ) );
+      ${GROUND_LIT ? `if ( v2s.x >= 0.0 && v2s.x <= 1.0 && v2s.y >= 0.0 && v2s.y <= 1.0 )
+        v2lit = texture( v2GroundLit, v2s.xy ).r;` : `if ( v2s.x >= 0.0 && v2s.x <= 1.0 && v2s.y >= 0.0 && v2s.y <= 1.0 && v2s.z <= 1.0 )
+        v2lit = texture( directionalShadowMap[ 0 ], vec3( v2s.xy, v2s.z + directionalLightShadows[ 0 ].shadowBias ) );`}
       v2dark += 1.0 - v2lit; v2n0 += 1.0;
     }
     v2dark /= max( v2n0, 1.0 );
@@ -660,15 +714,62 @@ if (SHADOW_CACHE) {
     shadowStats.sigMs += performance.now() - t; shadowStats.frames++;
     const redraw = sun.shadow.needsUpdate || sun.shadow.autoUpdate;
     if (redraw) shadowStats.redraws++;
-    if (!redraw || !SHADOW_VIEW_CULL) { needed.length = 0; notNeeded.length = 0; return drawShadows.call(this, lights, s, cam); }
+    if (!redraw || !SHADOW_VIEW_CULL) { needed.length = 0; notNeeded.length = 0; drawShadows.call(this, lights, s, cam); if (redraw) bakeGroundLit(); return; }
     for (const o of notNeeded) o.castShadow = false;
-    try { return drawShadows.call(this, lights, s, cam); }
+    try { drawShadows.call(this, lights, s, cam); }
     finally {
       for (const o of notNeeded) o.castShadow = true;
       inMap = new Set(needed); shadowStats.culled = notNeeded.length; shadowStats.kept = needed.length;
       needed.length = 0; notNeeded.length = 0;
     }
+    bakeGroundLit();
   };
+} else if (GROUND_LIT) {
+  const drawShadows = renderer.shadowMap.render;
+  renderer.shadowMap.render = function (lights, s, cam) { drawShadows.call(this, lights, s, cam); if (s === scene) bakeGroundLit(); };
+}
+// The ground-lit map (GROUND_LIT, above): for each of its texels, the share of GROUND_LIT_DOWN^2 shadow-map texels whose ground point
+// (y = 0) the sun reaches - the same depth test as the taps made (shadowBias included), at the ground's depth under each texel.
+function bakeGroundLit() {
+  if (!GROUND_LIT || !sun.shadow.map || !sun.shadow.map.depthTexture) return;
+  const K = Math.max(1, LOOK.MOMENT.GROUND_LIT_DOWN | 0), n = Math.max(1, Math.round(SHADOW_SIZE / K));
+  if (!groundLit.rt) {
+    groundLit.rt = new THREE.WebGLRenderTarget(n, n, { depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false });
+    groundLit.rt.texture.name = 'v2 ground lit';
+    const mat = new THREE.ShaderMaterial({
+      name: 'v2-ground-lit-bake',
+      uniforms: { uSM: { value: null }, uInv: { value: new THREE.Matrix4() }, uBias: { value: 0 } },
+      vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+      fragmentShader: /* glsl */`
+        uniform sampler2DShadow uSM; uniform mat4 uInv; uniform float uBias; varying vec2 vUv;
+        void main() {
+          float lit = 0.0;
+          for (int j = 0; j < ${K}; j++) for (int i = 0; i < ${K}; i++) {
+            // a shadow-map texel's centre, and the depth (0..1) at which its light ray meets the ground
+            vec2 st = vUv + (vec2(float(i), float(j)) + 0.5 - ${(K / 2).toFixed(1)}) / ${SHADOW_SIZE.toFixed(1)};
+            float y0 = (uInv * vec4(st, 0.0, 1.0)).y, y1 = (uInv * vec4(st, 1.0, 1.0)).y, zg = y0 / (y0 - y1);
+            lit += zg <= 1.0 ? texture(uSM, vec3(st, zg + uBias)) : 1.0;
+          }
+          lit /= ${(K * K).toFixed(1)};
+          gl_FragColor = vec4(lit, lit, lit, 1.0);
+        }`,
+      depthTest: false, depthWrite: false,
+    });
+    groundLit.bake = { scene: new THREE.Scene(), cam: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), mat };
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat); q.frustumCulled = false; groundLit.bake.scene.add(q);
+  }
+  const { scene: bs, cam: bc, mat } = groundLit.bake;
+  mat.uniforms.uSM.value = sun.shadow.map.depthTexture;
+  mat.uniforms.uInv.value.copy(sun.shadow.matrix).invert();   // shadow uv/depth -> world (orthographic: affine)
+  mat.uniforms.uBias.value = sun.shadow.bias;
+  const rt0 = renderer.getRenderTarget(), auto = renderer.autoClear, sh = renderer.shadowMap.autoUpdate;
+  renderer.shadowMap.autoUpdate = false; renderer.autoClear = false;
+  renderer.setRenderTarget(groundLit.rt);
+  const real = renderer.shadowMap.enabled; renderer.shadowMap.enabled = false;
+  renderer.render(bs, bc);
+  renderer.shadowMap.enabled = real;
+  renderer.setRenderTarget(rt0); renderer.autoClear = auto; renderer.shadowMap.autoUpdate = sh;
+  groundLit.bakes++;
 }
 if (LOOK.HEMI_INTENSITY > 0) scene.add(new THREE.HemisphereLight(LOOK.HEMI_SKY, LOOK.HEMI_GROUND, LOOK.HEMI_INTENSITY));
 
@@ -1409,7 +1510,7 @@ window.__v2 = {
     const u = dome.material.uniforms ? dome.material.uniforms.scale.value : new THREE.Vector3(), was = u.clone();   // (?skykey: no uniforms)
     if (LOOK.PROBE_MIRROR_SKY) u.set(...mirrorScale);
     const ms = exactProbe(renderer, scene); u.copy(was); dirty = true; return ms;
-  }, glass: () => ({ ...glassState }), glassReal: (k, fp) => { setGlassReal(k); if (fp) setGlassFootprintScale(fp); dirty = true; }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs, probeYs: exactState.probeYs }),
+  }, groundLit: () => ({ on: GROUND_LIT, bakes: groundLit.bakes, size: groundLit.rt ? groundLit.rt.width : 0 }), glass: () => ({ ...glassState }), glassReal: (k, fp) => { setGlassReal(k); if (fp) setGlassFootprintScale(fp); dirty = true; }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs, probeYs: exactState.probeYs }),
   timings: () => ({ ...timings }),
   // the moment (sky.js): its numbers, and a change of its haze / clouds / exposure inside the page (the sun's direction stays)
   moment: () => (momentNow ? { name: MOMENT.name || null, az: momentNow.az, el: momentNow.el, haze: momentNow.haze, cover: momentNow.C.COVER,
