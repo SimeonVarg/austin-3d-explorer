@@ -41,6 +41,9 @@ export const WATER = {
   SHININESS: 900,                 // sharpness of one glint close up...
   SHININESS_FAR: 60,              // ...widening to this where one pixel covers many ripples (no pixel sparkle: rule 15)
   SHINE_FAR_M: [60, 1400],        // over this distance range
+  // (Measured 2026-10-24, a 0.05-degree-a-frame pan at street level with the waves frozen: pixels of the water that flip back and
+  // forth 0.2 % without glitter, 1.0 % with this lobe. A slope-filtered Cox-Munk glint (LEAN mapping) was tried and flipped 4-8 %:
+  // its glints saturate into hard-edged blobs. ?waterglitter=0 turns the glitter off.)
   // ── the reflection pass ──
   RES: 0.5,                       // the mirror's resolution, a share of the canvas (desktop)
   RES_PHONE: 0.35,
