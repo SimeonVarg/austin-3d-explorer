@@ -53,7 +53,7 @@ const VARIANTS = REFS.flatMap((r) => QS.map((q) => ({ ...r, q, name: [REFS.lengt
 const ARMS = [
   { name: 'desktop 1440x900@2, CPU x1', w: 1440, h: 900, dpr: 2, cpu: 1, mobile: false },
   { name: 'phone 390x844@3, CPU x4', w: 390, h: 844, dpr: 3, cpu: 4, mobile: true },
-];
+].filter((a) => !process.env.V2_FRAME_ARMS || process.env.V2_FRAME_ARMS.split('|').some((k) => a.name.includes(k)));   // e.g. V2_FRAME_ARMS=desktop
 const VIEWS = [
   { name: 'opening view', pose: null },
   { name: 'DKR close', slug: 'dkr-memorial-stadium', distance: 330, polar: 58, azimuth: 235 },

@@ -5,6 +5,7 @@
  *   VERIFY_GL=hardware VERIFY_URL=http://127.0.0.1:8473 node scripts/verify/v2-exact.mjs CAMERA.json OUT.png [query] [ox oz]
  *   CAMERA.json: { "K": 3x3 at size [w,h], "R_world_to_cam": 3x3, "position_m": [x,y,z], "standard_size": [w,h] } in a local frame
  *   (x east, y north, z up) whose origin sits at app (ox, 0, oz). query: extra URL query, e.g. "&manifest=./tiles-exact/manifest.json".
+ *   V2_DIR=folder loads another copy of the app beside v2/ (e.g. a merge of two branches extracted to v2-ref-x/), default v2.
  *   EXACT_NEAR=m clips everything nearer than m metres (foreground trees and street objects; the building comparison only).
  *   The viewport is w/2 x h/2 at device scale 2, so the picture is exactly w x h. If the page has exact tiles, their local reflection
  *   probe is rendered after the tiles settle. Prints the app's draw stats and the probe time.
@@ -27,7 +28,7 @@ const ctx = await browser.newContext({ viewport: { width: w / 2, height: h / 2 }
 const page = await ctx.newPage();
 const errs = []; page.on('pageerror', (e) => errs.push(e.message));
 page.on('console', (m) => { if (/exact|tiles\]/.test(m.text())) console.log('[page]', m.text()); });
-await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0&fade=0${query}`, { waitUntil: 'load', timeout: 180000 });
+await page.goto(`${BASE.replace(/\/$/, '')}/${process.env.V2_DIR || 'v2'}/?intro=0&fade=0${query}`, { waitUntil: 'load', timeout: 180000 });
 await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 180000 });
 await page.evaluate(() => { window.cancelGraphicsAutoDetect?.(); return window.__v2.ready; });
 const place = () => page.evaluate(([pos, right, up, back, fov, nearM]) => {
