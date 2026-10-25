@@ -26,7 +26,7 @@ const EXACT = {
   // A stack of probes up the building, blended by height, each looked up through a sphere around it (parallax), so a pane low on the
   // tower mirrors the neighbour across the street as seen from ITS height, not from the probe's (2026-10-25, IMG_1778: the lower panes
   // mirror a dark tower and its skyline; one probe at 120 m saw over it, so the app showed sky there). manifest "exact.probes" overrides.
-  PROBES: 4,                // probes, evenly up the building's height (1 = the old single probe at "probe")
+  PROBES: +(typeof location !== 'undefined' && new URLSearchParams(location.search).get('probes')) || 4,   // probes, evenly up the building (?probes=1: the old single probe)
   PROBE_R_M: 160,           // the parallax sphere: about how far the neighbours are (m)
 };
 const MAXP = 4;
