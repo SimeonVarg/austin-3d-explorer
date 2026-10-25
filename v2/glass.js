@@ -32,10 +32,11 @@ const Q = typeof location === 'undefined' ? new URLSearchParams() : new URLSearc
 export const GLASS_REFLECT = Q.get('glassreflect') !== '0';
 export const GLASS_REAL = {
   ON: Q.get('glassreal') !== '0',
-  // 2026-10-25, his photo at 17:07: neighbouring panes mirror pieces of cloud that are offset by a good part of a cloud, so the panes
-  // differ by about a degree, not half of one (0.45 / 0.9 before: the clouds came back nearly whole across a storey)
-  TILT_DEG: GLASS_REFLECT ? 1.0 : 0.45,   // per-pane tilt of the reflection normal, the spread (each of two axes, a uniform -1..1 times this)
-  BOW_DEG: GLASS_REFLECT ? 1.5 : 0.9,     // per-pane bow: how far the normal turns at the pane's edge vs its middle (sign random per pane)
+  // 2026-10-25, measured at his photo's camera: in his glass one cloud runs on across many panes, offset a little at each mullion. The
+  // BOW is what smeared it: a pane whose normal turns 0.9 deg to its edge squeezes ~4 deg of sky into one pane, so every pane showed a
+  // smooth average of the sky (the "flat gradient"); with the bow at 0.2 the cloud carries across the panes and the tilt breaks it.
+  TILT_DEG: GLASS_REFLECT ? 0.6 : 0.45,   // per-pane tilt of the reflection normal, the spread (each of two axes, a uniform -1..1 times this)
+  BOW_DEG: GLASS_REFLECT ? 0.2 : 0.9,     // per-pane bow: how far the normal turns at the pane's edge vs its middle (sign random per pane)
   ROUGH_VAR: 0.35,         // per-pane roughness, x (1 +- this)
   SPEC_VAR: 0.12,          // per-pane reflection strength (coating), x (1 +- this)
   ROOM_VAR: 0.4,           // per-pane room brightness, x (1 +- this)

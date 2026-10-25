@@ -28,7 +28,24 @@ const EXACT = {
   // mirror a dark tower and its skyline; one probe at 120 m saw over it, so the app showed sky there). manifest "exact.probes" overrides.
   PROBES: +(typeof location !== 'undefined' && new URLSearchParams(location.search).get('probes')) || 4,   // probes, evenly up the building (?probes=1: the old single probe)
   PROBE_R_M: 160,           // the parallax sphere: about how far the neighbours are (m)
+  // The SKY in the glass read straight from the sky's own texture, sharp, not from the probe (2026-10-25). A flat mirror shows the sky
+  // at the camera's own angular scale (his camera: 0.02 deg a pixel); a 256 px probe face is 0.35 deg a texel, so every cloud came back
+  // smeared over ~17 pixels. The probe still gives the neighbours: where the probe sees sky (it matches a sky-only probe read the same
+  // way) the sharp sky replaces it. COV_REL: how far the probe must differ from the sky-only probe (share of its brightness) to count
+  // as a neighbour; ROUGH: [full, none] glass roughness for the sharp sky. ?skydirect=0 = off.
+  SKY_DIRECT: (typeof location === 'undefined' || (new URLSearchParams(location.search).get('skydirect') !== '0' && new URLSearchParams(location.search).get('glassreflect') !== '0')),
+  COV_REL: 0.3, SKY_ROUGH: [0.08, 0.2],
 };
+// the sharp sky: realSkyGLSL + its uniforms (sky-real.js), kept as stable {value} holders so compiled glass follows a sky change
+const SKY = { glsl: null, defines: '', U: {} };
+export function setSkyDirect(glsl, uniforms, defines) {
+  if (!EXACT.SKY_DIRECT) return;
+  const key = Object.keys(defines || {}).sort().join(',');
+  const recompile = !SKY.glsl || key !== SKY.key;
+  SKY.glsl = glsl; SKY.key = key; SKY.defines = Object.keys(defines || {}).map((k) => `#define ${k} ${defines[k]}`).join('\n');
+  for (const [k, u] of Object.entries(uniforms)) { if (SKY.U[k]) SKY.U[k].value = u.value; else SKY.U[k] = { value: u.value }; }
+  if (recompile) for (const t of exactState.tiles) for (const m of t.glass) m.needsUpdate = true;
+}
 const MAXP = 4;
 export const exactState = { tiles: [], probe: null, probeMs: null, hidden: 0 };
 
@@ -86,7 +103,7 @@ function tuneGlass(obj, def) {
 function stackUniforms(def) {
   if (def._stackU) return def._stackU;
   def._stackU = { v2ProbeY: { value: new Float32Array(MAXP) }, v2ProbeXZ: { value: new THREE.Vector2() }, v2ProbeR: { value: EXACT.PROBE_R_M },
-    v2ProbeN: { value: 0 } };
+    v2ProbeN: { value: 0 }, v2ProbeSky: { value: null } };
   for (let k = 0; k < MAXP; k++) def._stackU['v2Probe' + k] = { value: null };
   return def._stackU;
 }
@@ -96,6 +113,8 @@ function probeStack(m, def) {
     if (prev) prev(sh, r);
     if (!U.v2ProbeN.value) return;
     Object.assign(sh.uniforms, U);
+    const direct = !!(SKY.glsl && U.v2ProbeSky.value);
+    if (direct) Object.assign(sh.uniforms, SKY.U);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vV2W;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvV2W = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     const decl = Array.from({ length: MAXP }, (_, k) => `uniform sampler2D v2Probe${k};`).join('\n');
@@ -103,26 +122,39 @@ function probeStack(m, def) {
       if (v2ProbeN > ${k}) { float wk = max(0.0, 1.0 - abs(y - v2ProbeY[${k}]) / sp); if (wk > 0.0) {
         vec3 o = vV2W - vec3(v2ProbeXZ.x, v2ProbeY[${k}], v2ProbeXZ.y); float b = dot(o, d), c = dot(o, o) - v2ProbeR * v2ProbeR;
         vec3 dir = normalize(o + d * (-b + sqrt(max(b * b - c, 0.0))));
-        acc += wk * textureCubeUV(v2Probe${k}, envMapRotation * dir, rough).rgb; ws += wk; } }`).join('');
+        acc += wk * textureCubeUV(v2Probe${k}, envMapRotation * dir, rough).rgb;${'${DIRECT}'}
+        ws += wk; } }`).join('');
+    const tapsD = taps.split('${DIRECT}').join(direct ? '\n        accS += wk * textureCubeUV(v2ProbeSky, envMapRotation * dir, rough).rgb;' : '');
     const pars = THREE.ShaderChunk.envmap_physical_pars_fragment.replace(
       'vec4 envMapColor = textureCubeUV( envMap, envMapRotation * reflectVec, roughness );',
       'vec4 envMapColor = vec4(v2ProbeStack(reflectVec, roughness), 1.0);');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 varying vec3 vV2W;
 uniform float v2ProbeY[${MAXP}]; uniform vec2 v2ProbeXZ; uniform float v2ProbeR; uniform int v2ProbeN;
-${decl}`).replace('#include <envmap_physical_pars_fragment>', `#ifdef ENVMAP_TYPE_CUBE_UV
+${decl}
+${direct ? `uniform sampler2D v2ProbeSky; uniform vec3 v2SkyScale, v2SkySunDir, v2SkySunCol; uniform float v2SkyGlow;
+${SKY.defines}
+${SKY.glsl}` : ''}`).replace('#include <envmap_physical_pars_fragment>', `#ifdef ENVMAP_TYPE_CUBE_UV
 // the probes above and below this point, blended by height (hat weights), each through its parallax sphere
 vec3 v2ProbeStack(vec3 d, float rough) {
   float sp = v2ProbeN > 1 ? max(v2ProbeY[1] - v2ProbeY[0], 1.0) : 1e6;
   float y = clamp(vV2W.y, v2ProbeY[0], v2ProbeY[v2ProbeN - 1]);
-  vec3 acc = vec3(0.0); float ws = 0.0;${taps}
-  return acc / max(ws, 1e-4);
+  vec3 acc = vec3(0.0), accS = vec3(0.0); float ws = 0.0;${direct ? `
+  // the sky in direction d, sharp (as the dome draws it, at the mirror's scale)
+  vec3 sd = v2real(d) * v2SkyScale + v2SkySunCol * v2SkyGlow * pow(max(dot(d, v2SkySunDir), 0.0), 600.0) * 4.0;` : ''}${tapsD}
+  acc /= max(ws, 1e-4);${direct ? `
+  accS /= max(ws, 1e-4);
+  // where the probe sees only sky it equals the sky-only probe: there the sharp sky replaces it; where it sees a neighbour it stays
+  float cov = clamp(length(acc - accS) / (dot(accS, vec3(0.3333)) * ${(+EXACT.COV_REL).toFixed(4)} + 1e-4), 0.0, 1.0);
+  float wsh = (1.0 - smoothstep(${(+EXACT.SKY_ROUGH[0]).toFixed(4)}, ${(+EXACT.SKY_ROUGH[1]).toFixed(4)}, rough)) * smoothstep(-0.02, 0.03, d.y);
+  acc += (1.0 - cov) * wsh * (sd - accS);` : ''}
+  return acc;
 }
 #endif
 ${pars}`);
   };
   const key = m.customProgramCacheKey ? m.customProgramCacheKey.bind(m) : () => '';
-  m.customProgramCacheKey = () => key() + '|v2-probe-stack' + (U.v2ProbeN.value ? U.v2ProbeN.value : 0);
+  m.customProgramCacheKey = () => key() + '|v2-probe-stack' + (U.v2ProbeN.value ? U.v2ProbeN.value : 0) + (SKY.glsl && U.v2ProbeSky.value ? '|sky:' + SKY.key : '');
 }
 
 export function exactPrepare(obj, def) {
@@ -133,7 +165,8 @@ export function exactPrepare(obj, def) {
 }
 
 // Render the local probe for every exact tile (call when the surroundings have loaded). Returns the time it took.
-export function exactProbe(renderer, scene) {
+// skyObjs: the objects that are the sky (the dome); the sky-only probe draws them alone
+export function exactProbe(renderer, scene, skyObjs = null) {
   const t0 = performance.now();
   const pmrem = new THREE.PMREMGenerator(renderer);
   for (const t of exactState.tiles) {
@@ -154,16 +187,32 @@ export function exactProbe(renderer, scene) {
       envs.push(pmrem.fromCubemap(rt.texture).texture);
       rt.dispose();
     }
+    // the sky-only probe (one is enough: the sky is at infinity), drawn and read exactly as the others, for the sharp sky (SKY_DIRECT)
+    let skyEnv = null;
+    if (EXACT.SKY_DIRECT && skyObjs && SKY.glsl && envs.length > 1) {
+      const off = [];
+      scene.traverse((o) => { if (o !== scene && o.visible && !skyObjs.includes(o) && !o.isLight && !o.isCamera && (o.isMesh || o.isLine || o.isPoints || o.isSprite || o.isInstancedMesh)) { o.visible = false; off.push(o); } });
+      const rt = new THREE.WebGLCubeRenderTarget(size, { type: THREE.HalfFloatType, generateMipmaps: false });
+      const cam = new THREE.CubeCamera(EXACT.PROBE_NEAR_M, EXACT.PROBE_FAR_M, rt);
+      cam.position.set(c[0], ys[0], c[2]);
+      scene.add(cam); cam.update(renderer, scene); scene.remove(cam);
+      skyEnv = pmrem.fromCubemap(rt.texture).texture;
+      rt.dispose();
+      for (const o of off) o.visible = true;
+    }
     renderer.shadowMap.autoUpdate = sh; t.obj.visible = vis;
     for (const e of t.envs || []) e.dispose();
-    t.envs = envs; t.env = envs[0];
+    if (t.skyEnv) t.skyEnv.dispose();
+    t.envs = envs; t.env = envs[0]; t.skyEnv = skyEnv;
     const U = stackUniforms(t.def);
+    const hadSky = !!U.v2ProbeSky.value; U.v2ProbeSky.value = skyEnv;
     U.v2ProbeN.value = envs.length > 1 ? envs.length : 0;
     ys.forEach((y, k) => { U.v2ProbeY.value[k] = y; });
     U.v2ProbeXZ.value.set(c[0], c[2]);
     if (t.def.exact.probeR) U.v2ProbeR.value = t.def.exact.probeR;
     for (let k = 0; k < MAXP; k++) U['v2Probe' + k].value = envs[Math.min(k, envs.length - 1)];
     for (const m of t.glass) { m.envMap = envs[0]; m.needsUpdate = true; }
+    exactState.skyDirect = !!skyEnv; void hadSky;
     exactState.probeYs = ys.map((y) => Math.round(y));
   }
   pmrem.dispose();

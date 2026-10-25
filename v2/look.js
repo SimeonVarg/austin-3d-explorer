@@ -75,7 +75,7 @@ export const LOOK = {
       // PHOTO_DEG: no cloud within [0] degrees of the photo's middle, all beyond [1] (inside his view his sky is the evidence)
       // EL_DEG: no cloud below [0] degrees up, all above [1] (the cloud HDRI's horizon is a solid band of far cloud and haze: as a
       // bright ring all round it would light every wall's shade, which his photo does not show)
-      CLOUDS: { COVER: 1, ALPHA: [0.68, 0.85], GAIN: 1, AZ_DEG: 0, PHOTO_DEG: [30, 45], EL_DEG: [8, 18] } },
+      CLOUDS: { COVER: 1, ALPHA: [0.5, 0.7], GAIN: 1.2, AZ_DEG: 0, PHOTO_DEG: [30, 45], EL_DEG: [8, 18] } },
   },
 
   // ── hemisphere fill (off by default: the environment carries sky and bounce) ──

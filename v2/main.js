@@ -15,7 +15,7 @@ import { MapLite, MarkerLayer, MercatorCoordinate } from './maplite.js';
 import { MapLayers } from './map-layers.js';
 import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
 import { installGround } from './ground.js';
-import { exactPrepare, exactProbe, exactState } from './exact-pilot.js';
+import { exactPrepare, exactProbe, exactState, setSkyDirect } from './exact-pilot.js';
 import { austinToUtc, sunPosition, buildMoment, momentSky, cloudGLSL, nightGLSL, SKY_TABLE, sunTransmittance } from './sky.js';
 import { loadRealSky, placeRealSky, realAt, realSkyGLSL, realSkyUniforms, setAnisotropy } from './sky-real.js';
 import { glassPrepare, glassState, setGlassReal, setGlassFootprintScale, setGlassTilt, GLASS_REFLECT } from './glass.js';
@@ -568,6 +568,13 @@ function applyMoment(spec) {
   const mat = R ? (sc, below, glow) => realMaterial(R, M, sc, below, glow) : (sc, below, glow) => momentMaterial(M, sc, below, glow);
   dome.material = SKY_KEY ? skyKeyMaterial() : mat(domeScale, fog.map((v) => v * LOOK.SKY_DOME_GAIN), (R ? LOOK.MOMENT.REAL.DISC_GLOW : LOOK.MOMENT.SKY_GLOW) * LOOK.SKY_DOME_GAIN);
   old.dispose();
+  // the sharp sky for the exact glass (exact-pilot.js SKY_DIRECT): the same sky as the dome, at the mirror's scale, read per pixel
+  if (R) {
+    const sMax = Math.max(...M.sunRGB, 1e-9);
+    setSkyDirect(realSkyGLSL, { ...realSkyUniforms(R), v2SkyScale: { value: new THREE.Vector3(...mirrorScale) }, v2SkySunDir: { value: new THREE.Vector3(...M.sunDir) },
+      v2SkySunCol: { value: new THREE.Vector3(...M.sunRGB.map((v) => (sMax > 1e-6 ? v / sMax : 0))) }, v2SkyGlow: { value: M.el > 0 ? LOOK.MOMENT.REAL.DISC_GLOW * LOOK.SKY_DOME_GAIN : 0 } },
+    { ...(R.photo ? { R_PHOTO: 1 } : {}), ...(R.cloud && R.cloud.on ? { R_CLOUD: 1 } : {}) });
+  }
   if (scene.environment) scene.environment.dispose();
   scene.environment = envFrom(mat(mirrorScale, groundMirror, 0));
   const sh = new THREE.SphericalHarmonics3(), basis = new Array(9).fill(0), v = new THREE.Vector3(), add = new THREE.Vector3();
@@ -1513,7 +1520,7 @@ window.__v2 = {
     // mirror sees: the visible dome is drawn x SKY_DOME_GAIN, so it is switched to the mirror's scale for the probe's six faces
     const u = dome.material.uniforms ? dome.material.uniforms.scale.value : new THREE.Vector3(), was = u.clone();   // (?skykey: no uniforms)
     if (LOOK.PROBE_MIRROR_SKY) u.set(...mirrorScale);
-    const ms = exactProbe(renderer, scene); u.copy(was); dirty = true; return ms;
+    const ms = exactProbe(renderer, scene, [dome]); u.copy(was); dirty = true; return ms;
   }, groundLit: () => ({ on: GROUND_LIT, bakes: groundLit.bakes, size: groundLit.rt ? groundLit.rt.width : 0 }), glass: () => ({ ...glassState }), glassReal: (k, fp) => { setGlassReal(k); if (fp) setGlassFootprintScale(fp); dirty = true; }, glassTilt: (t, b) => { setGlassTilt(t, b); dirty = true; }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs, probeYs: exactState.probeYs }),
   timings: () => ({ ...timings }),
   // the moment (sky.js): its numbers, and a change of its haze / clouds / exposure inside the page (the sun's direction stays)
