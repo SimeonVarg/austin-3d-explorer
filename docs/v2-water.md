@@ -64,4 +64,22 @@ The lookout is about 3.3 km west and 4 km north of v2's origin; the camera's lim
 
 ## Speed
 
-See the pull request for the numbers (this Mac and the AWS L4, `v2-frame.mjs --water --q "|water=1"`, minimum of 3).
+AWS L4 (NVIDIA L4), `v2-frame.mjs --uncapped --reps 3 --water --q "|water=1"`, minimum of 3 interleaved reps, frame interval
+with vsync off (the page's real cost per frame), desktop 2880x1800:
+
+| View | Water off | Water on |
+|---|---|---|
+| opening view | 4.1 ms | 4.1 ms |
+| street level, Guadalupe at 21st | 3.5 ms | 3.7 ms |
+| DKR close / West Campus | 2.5 / 2.2 ms | 2.6 / 2.4 ms |
+| street level on Lady Bird Lake's shore | 3.5 ms | 5.6 ms (+60 %) |
+| Lady Bird Lake from 75 m | 3.3 ms | 6.2 ms |
+
+Every desktop case holds 60 Hz many times over. Where the lake is in view the mirror pass costs about half a frame more;
+that is over the ~10 % asked for, and the reason phones get no mirror by default: on the L4's phone profile (CPU 4x) the
+pass took the lake shore from 11.4 to 22.1 ms, past 60 Hz. A still camera reuses the mirror, so the extra cost is paid
+only while the camera moves. Without water in view the layer costs nothing measurable.
+
+Motion (rule 15): a 0.05-degree-a-frame pan at street level with the waves frozen, share of water pixels that flip back
+and forth: 0.55 % without the sun's glitter, 1.3 % with it; the trees and sky above the shore read 1.6 % by the same
+measure and the bare aerial 0 %. `?waterglitter=0` turns the glitter off.
