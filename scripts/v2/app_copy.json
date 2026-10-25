@@ -138,5 +138,21 @@
       "skirt_m": 20,
       "min_m": 0.6
     }
+  },
+  "butterfly-bridge": {
+    "triangles": 9000,
+    "crease_deg": 35,
+    "reduce": "^(bb_rib_paint|bb_deck_concrete)$",
+    "far_copy": {
+      "triangles": 1500,
+      "drop": "^(bb_cable|bb_steel_socket|bb_rail_steel|bb_rail_mesh)$"
+    },
+    "site": {
+      "site_material": "^site_",
+      "cell_m": 2,
+      "flat_m": 12,
+      "skirt_m": 60,
+      "min_m": 0.15
+    }
   }
 }

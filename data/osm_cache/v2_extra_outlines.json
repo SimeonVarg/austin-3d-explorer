@@ -104,6 +104,37 @@
      ]
     ]
    ]
+  },
+  {
+   "id": "w353040169",
+   "t": {
+    "bridge": "yes",
+    "bridge:name": "Butterfly Bridge",
+    "highway": "residential",
+    "name": "West 2nd Street",
+    "layer": "1"
+   },
+   "g": [
+    [
+     [
+      -97.7504366,
+      30.2661511
+     ],
+     [
+      -97.751008,
+      30.2663123
+     ],
+     [
+      -97.7510797,
+      30.2661227
+     ],
+     [
+      -97.7505082,
+      30.2659616
+     ]
+    ]
+   ],
+   "derived": "not an OSM polygon: the deck outline drawn round OSM way 353040169 (a line) with the walkway widths of the 2021 laser scan, so the Blender build of the bridge can be placed (scripts/v2/sources.py)"
   }
  ]
 }

@@ -4,8 +4,8 @@
   "exporter": "c6e22f15bb68004b",
   "tiler": "4203883771b8af48",
   "totals": {
-    "best": 312,
-    "exported": 310
+    "best": 313,
+    "exported": 311
   },
   "buildings": {
     "100-congress": {
@@ -5143,6 +5143,34 @@
         "centre_off_m": 1.1,
         "flags": []
       }
+    },
+    "butterfly-bridge": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "street",
+      "tile": "t_-5_8",
+      "blend_sha256": "97bf61a1a8db3287",
+      "lod1": "near without small parts",
+      "app_copy": {
+        "triangles": 3608,
+        "detailed_triangles": 4904,
+        "target": 9000,
+        "simplify_error": 1e-05,
+        "ground_triangles": [
+          0,
+          0
+        ]
+      },
+      "placement": {
+        "height_m": 10.4,
+        "area_ratio": 0.121,
+        "centre_off_m": 0.51,
+        "flags": [
+          "area x0.12",
+          "base at -1.7 m"
+        ]
+      }
     }
   },
   "tiles": {
@@ -5771,15 +5799,15 @@
       }
     },
     "t_-5_8": {
-      "hash": "e62e5678e4ffb6fa",
+      "hash": "b583ed9853909ff6",
       "near": {
-        "bytes": 664796,
-        "tris": 57256,
+        "bytes": 686164,
+        "tris": 60864,
         "draws": 2
       },
       "far": {
-        "bytes": 11504,
-        "tris": 624,
+        "bytes": 24464,
+        "tris": 1850,
         "draws": 1
       }
     },
