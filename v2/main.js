@@ -15,8 +15,12 @@ import { MapLite, MarkerLayer, MercatorCoordinate } from './maplite.js';
 import { MapLayers } from './map-layers.js';
 import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
 import { installGround } from './ground.js';
+import { exactPrepare, exactProbe, exactState } from './exact-pilot.js';
 
 const params = new URLSearchParams(location.search);
+// exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
+if (params.get('sunaz')) LOOK.SUN_AZIMUTH_DEG = +params.get('sunaz');
+if (params.get('sunel')) LOOK.SUN_ELEVATION_DEG = +params.get('sunel');
 
 // The haze (LOOK.HAZE_*), for every lit material: the old app's exponential day haze instead of three.js's linear fog. three.js
 // mixes fog into the colour AFTER tone mapping and the output encoding, so the haze colour gets the same tone map and encoding
@@ -253,8 +257,44 @@ function setShadowExtent(rung) {
   sun.shadow.normalBias = texel * LOOK.SHADOW_NORMAL_BIAS_TEXELS;
   shadowKey = '';
 }
+// The point the shadow box follows (LOOK.SHADOW_AIM). The flycam's focus is a GROUND point at most FOCUS_PITCH_DEG's lead ahead: at a
+// person's eye height that is ~10 m in front of the feet, so the box (90 m at that distance) never reached a tower 200 m away, and the
+// tower drew with no sun shadow at all: lit loggias, lit undersides of its overhangs (measured at the owner's photo IMG_1778's
+// camera, 2026-10-25: balcony recesses 127 grey in the app, 51 in Blender under the same light). With the aim, the box follows the
+// first building (the collision field: plain extrusions and Blender tops) or ground that the middle of the view meets, and is sized by
+// its distance, ONLY when that is farther than the flycam's focus: a view that looks down at the ground (every aerial) keeps its box
+// exactly as before; a view that looks out over the city gets a box that reaches what it looks at. The box still moves only in whole
+// texels and changes size only in whole rungs, with hysteresis (rule 15).
+const shadowAim = { p: new THREE.Vector3(), dir: new THREE.Vector3(), q: new THREE.Vector3(), key: '', hit: false, ms: 0 };
+function shadowFocus() {
+  const A = LOOK.SHADOW_AIM;
+  if (!A.ON || !field.ready) return controls.focus;
+  const e = camera.matrixWorld.elements, key = e[12] + ',' + e[13] + ',' + e[14] + ',' + e[8] + ',' + e[9] + ',' + e[10];
+  const pick = () => (shadowAim.hit && camera.position.distanceTo(shadowAim.p) > camera.position.distanceTo(controls.focus) ? shadowAim.p : controls.focus);
+  if (key === shadowAim.key) return pick();
+  const t0 = performance.now();
+  shadowAim.key = key;
+  const o = camera.position, d = camera.getWorldDirection(shadowAim.dir), q = shadowAim.q;
+  // only a hit FARTHER than the focus is used, and every building stands on the ground: a ray that reaches the ground no farther than
+  // the focus (every view looking down: all the aerials) needs no march at all; above the tallest top the march starts at that height
+  const toGround = o.y > 0 && d.y < 0 ? o.y / -d.y : Infinity;
+  let t = A.START_M, hit = false;
+  if (toGround <= o.distanceTo(controls.focus) || (o.y > A.TOP_M && d.y >= 0)) t = Infinity;
+  else if (o.y > A.TOP_M) t = Math.max(t, (o.y - A.TOP_M) / -d.y);
+  while (t < A.MAX_M) {
+    q.copy(o).addScaledVector(d, t);
+    if (o.y > 0 && q.y <= 0) { q.copy(o).addScaledVector(d, o.y / Math.max(1e-6, -d.y)); hit = true; break; }
+    const h = field.heightIn(q.x, q.z, 0);
+    if (h > 0 && q.y < h) { hit = true; break; }
+    t += Math.max(A.STEP_M, t * A.STEP_GROW);
+  }
+  shadowAim.hit = hit;
+  if (hit) shadowAim.p.copy(q);
+  shadowAim.ms = performance.now() - t0;
+  return pick();
+}
 function fitShadow() {
-  const want = LOOK.SHADOW_FIT * camera.position.distanceTo(controls.focus);
+  const want = LOOK.SHADOW_FIT * camera.position.distanceTo(shadowFocus());
   const H = LOOK.SHADOW_EXTENT_HYSTERESIS;
   if (shadowRung >= 0) {
     const e = SHADOW_LADDER[shadowRung];
@@ -265,6 +305,7 @@ function fitShadow() {
   if (r !== shadowRung) setShadowExtent(r);
 }
 scene.add(sun, sun.target);
+if (params.get('sun') === '0') sun.intensity = 0;   // diagnosis: the indirect light alone
 
 // The shadow map is drawn again only when it can change (QUALITY.SHADOW_CACHE). three.js's default redraws it on EVERY frame: every
 // caster in the light's box (most of the city's triangles) drawn a second time into a 4096 x 4096 map, for a picture that is the
@@ -366,7 +407,7 @@ const SHADOW_MOVE_MULT = Math.max(1, Math.round((+params.get('shadowmove') || LO
 function followShadow(moving = false) {
   fitShadow();
   // Move the shadow box in whole steps measured in the light's own axes, so every shadow texel stays where it was.
-  const t = controls.focus, step = moving ? shadowStep * SHADOW_MOVE_MULT : shadowStep;
+  const t = shadowFocus(), step = moving ? shadowStep * SHADOW_MOVE_MULT : shadowStep;
   const a = Math.round(t.dot(lightR) / step) * step, b = Math.round(t.dot(lightU) / step) * step;
   const key = a + ',' + b;
   if (key === shadowKey) return;
@@ -576,7 +617,7 @@ const tilesReady = (async () => {
     const t = new TileStreamer({ scene, camera, manifestUrl,
       onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings,
       // the camera's collision tops from the model (#529), and the plain blocks the model stands over (covers.js)
-      prepare: (obj, def, s) => { if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
+      prepare: (obj, def, s) => { exactPrepare(obj, def); if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
       onChange: () => { dirty = true; sun.shadow.needsUpdate = true; labels.occGen = (labels.occGen || 0) + 1; labels.dirty = true; }, onAnimate: () => { dirty = true; } });
     if (params.get('fade') === '0') t.instant = true;
     const man = await t.load();
@@ -1048,6 +1089,13 @@ window.__v2 = {
   THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FLY, fly: () => controls.state(), field, COVER, coverStats, tileStreamer: () => tiles,
   ready: Promise.all([cityReady, tilesReady, routeReady]),
   tiles: () => tiles && tiles.summary(),
+  exactProbe: () => {
+    // what a local probe sees of the sky must be the MIRROR sky (LOOK.LIGHT_B.mirror x the stops), as the environment map every other
+    // mirror sees: the visible dome is drawn x SKY_DOME_GAIN, so it is switched to the mirror's scale for the probe's six faces
+    const u = dome.material.uniforms.scale.value, was = u.clone();
+    if (LOOK.PROBE_MIRROR_SKY) u.set(...mirrorScale);
+    const ms = exactProbe(renderer, scene); u.copy(was); dirty = true; return ms;
+  }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs }),
   timings: () => ({ ...timings }),
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
   intro: () => introFlight.flight && { ...introFlight.flight },
@@ -1057,7 +1105,7 @@ window.__v2 = {
   pickBuilding: (code) => { const i = buildings.findIndex((b) => b.code === code); if (i >= 0) { clsSel.value = String(i); return update(true); } },
   info: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures,
     dpr: renderer.getPixelRatio(), size: [renderer.domElement.width, renderer.domElement.height], reversedDepth: renderer.capabilities.reversedDepthBuffer, frames,
-    shadow: { cache: SHADOW_CACHE, ...shadowStats }, adapt: { on: adapt.on, floor: adapt.floor, learnedFloor: adapt.learnedFloor, scale: adapt.scale, motionScale: adapt.motionScale, changes: adapt.changes } }),
+    shadow: { cache: SHADOW_CACHE, ...shadowStats, extent: shadowExtent, aim: LOOK.SHADOW_AIM.ON && shadowFocus() === shadowAim.p, aimMs: +shadowAim.ms.toFixed(3) }, adapt: { on: adapt.on, floor: adapt.floor, learnedFloor: adapt.learnedFloor, scale: adapt.scale, motionScale: adapt.motionScale, changes: adapt.changes } }),
   async measure(ms = 4000, degPerFrame = 0.15) {
     Object.assign(frameLog, { on: true, orbit: degPerFrame > 0, degPerFrame, dts: [], cpu: [], scales: [], last: 0 });
     await new Promise((r) => setTimeout(r, ms));

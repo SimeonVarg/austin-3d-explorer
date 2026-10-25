@@ -28,6 +28,9 @@ export const LOOK = {
   SUN_STRENGTH: [23.65, 21.64, 18.95],   // linear, measured on site photographs (before LIGHT_B.sun)
   GROUND_MIRROR: [0.024, 0.041, 0.058],  // what glass sees below the level line
   SKY_SUN_GLOW: 0.25,           // the sun's halo in the visible sky dome
+  // a local reflection probe (exact-pilot.js) sees the sky at the mirror's scale (LIGHT_B.mirror), as the environment map does; false = the
+  // visible dome's scale (the pilot's first probe, 1.6x darker sky in its glass than the Blender rig's mirrors). ?probemirror=0 = false
+  PROBE_MIRROR_SKY: true,
   SKY_DOME_GAIN: 1.0,           // the visible sky (and the fog, which is its horizon) = the stops x this, then tone mapped like the city
   SUN_AZIMUTH_DEG: 215,         // compass bearing the light COMES FROM (215 = south-west, afternoon)
   SUN_ELEVATION_DEG: 48,
@@ -45,6 +48,10 @@ export const LOOK = {
   // (close views get fine, clean edges; the opening view still has shadows to its horizon). The ladder means the texel size only
   // changes in whole steps, with HYSTERESIS, never continuously: a zoom changes it once, a pan or a turn never does.
   SHADOW_FIT: 0.8,
+  // ...and centred on what the middle of the view looks at: the first building or ground the view's centre ray meets within MAX_M
+  // (main.js shadowFocus) when that lies FARTHER than the flycam's focus (aerials looking down keep their box as before). Without it a street-level view of a tower left the tower outside the
+  // box: no sun shadow on it at all (2026-10-25, the owner's photo IMG_1778). ?shadowaim=0 = off.
+  SHADOW_AIM: { ON: true, START_M: 2, STEP_M: 2, STEP_GROW: 0.04, MAX_M: 3000, TOP_M: 350 },   // TOP_M: above every building top
   SHADOW_EXTENT_MIN_M: 90,
   SHADOW_EXTENT_MAX_M: 1100,
   SHADOW_EXTENT_STEP: Math.SQRT2,
@@ -137,6 +144,8 @@ const Q = typeof location !== 'undefined' ? new URLSearchParams(location.search)
 export const LIGHT_OLD = Q.get('light') === 'old';
 if (LIGHT_OLD) { LOOK.SHADOW_SLOPE_BIAS = 0; LOOK.AO.ON = false; }
 if (Q.get('ao') === '0') LOOK.AO.ON = false;
+if (Q.get('shadowaim') === '0') LOOK.SHADOW_AIM.ON = false;
+if (Q.get('probemirror') === '0') LOOK.PROBE_MIRROR_SKY = false;
 if (Q.get('ao') && Q.get('ao') !== '0') LOOK.AO.STRENGTH = +Q.get('ao');
 if (Q.get('aofar')) LOOK.AO.FAR_PX_M = Q.get('aofar').split(',').map(Number);   // e.g. ?aofar=0.06,0.18,0.35,0.9
 
