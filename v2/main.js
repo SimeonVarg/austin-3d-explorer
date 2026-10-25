@@ -18,6 +18,7 @@ import { installGround } from './ground.js';
 import { exactPrepare, exactProbe, exactState } from './exact-pilot.js';
 import { austinToUtc, sunPosition, buildMoment, momentSky, cloudGLSL, nightGLSL, SKY_TABLE, sunTransmittance } from './sky.js';
 import { loadRealSky, placeRealSky, realAt, realSkyGLSL, realSkyUniforms, setAnisotropy } from './sky-real.js';
+import { glassPrepare, glassState, setGlassReal, setGlassFootprintScale } from './glass.js';
 
 const params = new URLSearchParams(location.search);
 // exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
@@ -930,7 +931,7 @@ const tilesReady = (async () => {
     const t = new TileStreamer({ scene, camera, manifestUrl,
       onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings,
       // the camera's collision tops from the model (#529), and the plain blocks the model stands over (covers.js)
-      prepare: (obj, def, s) => { exactPrepare(obj, def); nightGlass(obj); if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
+      prepare: (obj, def, s) => { exactPrepare(obj, def); glassPrepare(obj); nightGlass(obj); if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
       onChange: () => { dirty = true; sun.shadow.needsUpdate = true; labels.occGen = (labels.occGen || 0) + 1; labels.dirty = true; }, onAnimate: () => { dirty = true; } });
     if (params.get('fade') === '0') t.instant = true;
     const man = await t.load();
@@ -1408,7 +1409,7 @@ window.__v2 = {
     const u = dome.material.uniforms ? dome.material.uniforms.scale.value : new THREE.Vector3(), was = u.clone();   // (?skykey: no uniforms)
     if (LOOK.PROBE_MIRROR_SKY) u.set(...mirrorScale);
     const ms = exactProbe(renderer, scene); u.copy(was); dirty = true; return ms;
-  }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs }),
+  }, glass: () => ({ ...glassState }), glassReal: (k, fp) => { setGlassReal(k); if (fp) setGlassFootprintScale(fp); dirty = true; }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs, probeYs: exactState.probeYs }),
   timings: () => ({ ...timings }),
   // the moment (sky.js): its numbers, and a change of its haze / clouds / exposure inside the page (the sun's direction stays)
   moment: () => (momentNow ? { name: MOMENT.name || null, az: momentNow.az, el: momentNow.el, haze: momentNow.haze, cover: momentNow.C.COVER,
