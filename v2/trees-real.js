@@ -199,8 +199,8 @@ function clumpGeometry(THREE, cards, info, K, detail, grow) {
       const t = Math.min(1, Math.max(0, (Math.hypot(x - c[0], (y - c[1]) * 0.8, z - c[2]) / rs - a0) / (a1 - a0))), ao = L.AO_INNER + (1 - L.AO_INNER) * t * t * (3 - 2 * t);
       // leaf mottling baked per vertex (value noise of the position): smooth between vertices, so it costs no pixel work and
       // cannot sparkle; a clump's vertices are ~1/40 of the tree apart, about the size of a leaf cluster
-      const nz = 1 + 2 * L.LEAF_NOISE * (vnoise(x * L.LEAF_NOISE_SCALE, y * L.LEAF_NOISE_SCALE, z * L.LEAF_NOISE_SCALE) - 0.5);
-      outC.push(ao * nz, ao * nz, ao * nz);
+      const mot = 1 + 2 * L.LEAF_NOISE * (vnoise(x * L.LEAF_NOISE_SCALE, y * L.LEAF_NOISE_SCALE, z * L.LEAF_NOISE_SCALE) - 0.5);
+      outC.push(ao * mot, ao * mot, ao * mot);
     }
   }
   const g = new THREE.BufferGeometry();
