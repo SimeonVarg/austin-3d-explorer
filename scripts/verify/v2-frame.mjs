@@ -53,7 +53,7 @@ const VARIANTS = REFS.flatMap((r) => QS.map((q) => ({ ...r, q, name: [REFS.lengt
 const ARMS = [
   { name: 'desktop 1440x900@2, CPU x1', w: 1440, h: 900, dpr: 2, cpu: 1, mobile: false },
   { name: 'phone 390x844@3, CPU x4', w: 390, h: 844, dpr: 3, cpu: 4, mobile: true },
-];
+].filter((a) => !process.env.V2_FRAME_ARMS || process.env.V2_FRAME_ARMS.split(/[|;]/).some((k) => a.name.includes(k)));   // e.g. V2_FRAME_ARMS=desktop
 const VIEWS = [
   { name: 'opening view', pose: null },
   { name: 'DKR close', slug: 'dkr-memorial-stadium', distance: 330, polar: 58, azimuth: 235 },
@@ -61,9 +61,12 @@ const VIEWS = [
   { name: 'street level (Guadalupe at 21st)', xz: [-252, 246], distance: 45, polar: 80, azimuth: 355 },
   { name: 'DKR from 2 km', slug: 'dkr-memorial-stadium', distance: 2000, polar: 72, azimuth: 200 },
   { name: 'The Independent close', slug: 'the-independent', distance: 420, polar: 72, azimuth: 20 },
-].filter((v) => !process.env.V2_FRAME_VIEWS || process.env.V2_FRAME_VIEWS.split('|').some((k) => v.name.includes(k)));
+  { name: 'South Mall street (trees)', xz: [0, 110], distance: 50, polar: 80, azimuth: 0 },
+  { name: 'Drag 300 m (trees)', xz: [-235, 30], distance: 300, polar: 60, azimuth: 250 },
+].filter((v) => !process.env.V2_FRAME_VIEWS || process.env.V2_FRAME_VIEWS.split(/[|;]/).some((k) => v.name.includes(k)));   // V2_FRAME_VIEWS="opening|street level" (or ';')
 const args = [...HW_ARGS, ...(UNCAPPED ? ['--disable-gpu-vsync', '--disable-frame-rate-limit'] : [])];
-const browser = await launch(chromium, { args, maxMs: 1500000 });
+// VERIFY_MAX_MS raises the watchdog for a long run (2 arms x 3 views x 2 versions x 3 reps did not fit in 25 min on the Mac)
+const browser = await launch(chromium, { args, maxMs: +process.env.VERIFY_MAX_MS || 1500000 });
 const rec = {};   // `${arm}|${view}` -> [{median,p95,calls,triangles}]
 let renderer = '';
 for (let rep = 0; rep < REPS; rep++) {
@@ -89,6 +92,8 @@ for (let rep = 0; rep < REPS; rep++) {
         const groundCalm = !s.g || s.g.failed || (s.g.index && s.g.missing === 0 && s.g.loading === 0 && s.g.waitingUpload === 0);
         calm = s.t && s.t.loading === 0 && groundCalm ? calm + 1 : 0; await page.waitForTimeout(700);
       }
+      // a trial manifest with an exact tile: render its local probes once (as v2-exact.mjs does), so its glass is measured as drawn
+      await page.evaluate(() => { const e = window.__v2.exact && window.__v2.exact(); if (e && e.tiles && e.probeMs == null) window.__v2.exactProbe(); });
       await page.waitForTimeout(1500);
       const m = await page.evaluate((ms) => window.__v2.measure(ms, 0.15), MS);
       // GPU-synchronous cost: 90 renders, each followed by a 1-pixel read that waits for the GPU (an uncapped rAF only times the CPU's submit rate).
@@ -115,6 +120,8 @@ for (let rep = 0; rep < REPS; rep++) {
           lod: t ? `${t.lod0}/${t.lod1 || 0}` : '' };
       });
       (rec[`${arm.name}|${variant.name}|${v.name}`] ||= []).push({ sync, mem, median: m.medianFrameMs, p95: m.p95FrameMs, cpu: m.medianRenderCallMs, calls: m.calls, triangles: m.triangles, frames: m.frames, size: m.size });
+      // one line per measurement as it lands, so a run cut short by its watchdog still leaves its numbers
+      console.log(`rep ${rep + 1} | ${arm.name} | ${variant.name} | ${v.name} | rAF median ${m.medianFrameMs.toFixed(2)} ms, p95 ${m.p95FrameMs.toFixed(2)} | sync ${sync.median.toFixed(1)} ms | calls ${m.calls} | tris ${m.triangles} | ${m.size.join('x')}`);
     }
     if (errs.length) console.log('page errors:', errs.slice(0, 3));
     await ctx.close();

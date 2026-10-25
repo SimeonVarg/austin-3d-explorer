@@ -16,11 +16,158 @@ import { MapLayers } from './map-layers.js';
 import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
 import { installGround } from './ground.js';
 import { exactPrepare, exactProbe, exactState } from './exact-pilot.js';
+import { austinToUtc, sunPosition, buildMoment, momentSky, cloudGLSL, nightGLSL, SKY_TABLE, sunTransmittance } from './sky.js';
+import { loadRealSky, placeRealSky, realAt, realSkyGLSL, realSkyUniforms, setAnisotropy } from './sky-real.js';
+import { glassPrepare, glassState, setGlassReal, setGlassFootprintScale } from './glass.js';
 
 const params = new URLSearchParams(location.search);
 // exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
 if (params.get('sunaz')) LOOK.SUN_AZIMUTH_DEG = +params.get('sunaz');
 if (params.get('sunel')) LOOK.SUN_ELEVATION_DEG = +params.get('sunel');
+
+// The sky of a moment (sky.js): ?moment=2026-10-24T17:07 (Austin's clock) or ?moment=IMG_1778 (v2/data/moments.json), with optional
+// &haze= &cover= &exposure= &sun= overrides. Without ?moment nothing below runs and the light is Light B as before.
+let MOMENT = null;
+if (params.get('moment')) {
+  try {
+    const m = params.get('moment');
+    let spec;
+    if (/^\d{4}-\d\d-\d\d/.test(m)) spec = { time: m };
+    else {
+      const all = await (await fetch(new URL('./data/moments.json', import.meta.url))).json();
+      if (!all.moments[m]) throw new Error('no moment named ' + m);
+      spec = { name: m, ...all.moments[m] };
+    }
+    for (const k of ['haze', 'cover', 'exposure', 'sun', 'ms', 'sat']) if (params.get(k)) spec[k] = +params.get(k);
+    if (params.get('wb')) { const [r, b] = params.get('wb').split(',').map(Number); spec.wb = [r, 1, b]; }   // ?wb=1.1,0.9: the camera's white balance
+    spec.utcMs = austinToUtc(spec.time);
+    if (!Number.isFinite(spec.utcMs)) throw new Error('cannot read the time ' + spec.time);
+    const p = sunPosition(spec.utcMs, ORIGIN.lat, ORIGIN.lon);
+    spec.az = params.get('sunaz') ? LOOK.SUN_AZIMUTH_DEG : p.az;
+    spec.el = params.get('sunel') ? LOOK.SUN_ELEVATION_DEG : p.el;
+    // the light's direction (shadows) never goes below LOOK.MOMENT.MIN_LIGHT_EL: after sunset the sun's strength is 0 anyway (sky.js)
+    LOOK.SUN_AZIMUTH_DEG = spec.az; LOOK.SUN_ELEVATION_DEG = Math.max(spec.el, LOOK.MOMENT.MIN_LIGHT_EL);
+    MOMENT = spec;
+  } catch (e) { console.warn('[v2 moment]', e.message); }
+}
+// A real captured sky (sky-real.js): ?sky=NAME (v2/data/sky/skies.json), or the sky a moment preset names ("sky", and "photo" for
+// the owner's photo's own sky). ?sky=NAME without a moment: Light B's sun azimuth, the HDRI's own sun elevation (so the light
+// agrees with the sky it shows). ?sky=param: the parametric sky of #551 for a moment preset that names a real one.
+let REAL_SKY = null;
+{
+  const want = params.get('sky') || (MOMENT && MOMENT.sky) || null;
+  if (want && want !== 'param') {
+    try {
+      const photo = MOMENT && MOMENT.photo && !params.get('sky') ? MOMENT.photo : (params.get('skyphoto') || null);
+      REAL_SKY = await loadRealSky(want, photo, null);
+      if (!MOMENT) {
+        const s = REAL_SKY.S.sun || REAL_SKY.S.glow;
+        MOMENT = { name: 'sky:' + want, az: LOOK.SUN_AZIMUTH_DEG, el: s ? (s.sun_el_deg ?? s.el_deg) : LOOK.SUN_ELEVATION_DEG };
+        for (const k of ['haze', 'exposure', 'sun', 'ms', 'sat']) if (params.get(k)) MOMENT[k] = +params.get(k);
+        LOOK.SUN_ELEVATION_DEG = Math.max(MOMENT.el, LOOK.MOMENT.MIN_LIGHT_EL);
+      }
+    } catch (e) { console.warn('[v2 sky-real]', e.message); REAL_SKY = null; }
+  }
+}
+// PR #550's cause 4, with a moment (or ?groundshade=1): the ground's bounce assumed sunlit ground everywhere, so a face looking at ground
+// in a building's own shadow (a tower's east side at 17:07, its shadow ~560 m long) got the sun's share of the bounce anyway. Shadow-map
+// taps at the ground points the face looks at (one halfway between its normal and straight down, LOOK.MOMENT.GROUND_TAPS - 1 more on a
+// ring around it: a face 150 m up sees a wide patch of ground) take the sun's share out where that ground is in shadow:
+// irradiance -= (shadowed share) x ground albedo x the sun's irradiance on the ground x the ground's share of the face's view ((1 - n.y) / 2).
+const GROUND_SHADE = (MOMENT && LOOK.MOMENT.GROUND_SHADE && params.get('groundshade') !== '0') || params.get('groundshade') === '1';
+// Speed (2026-10-25): the taps read the GROUND-LIT map, not the shadow map. Five taps a pixel spread over hundreds of metres of a
+// 4096 x 4096 depth map missed the cache on every one and cost 40 to 50 ms a frame on the Mac (+40 %). The ground-lit map is the same
+// depth test done once per shadow-map redraw, at the ground's own depth for every texel (the ground point under a shadow-map texel is
+// fixed), averaged over LOOK.MOMENT.GROUND_LIT_DOWN^2 texels of the shadow map into one texel of a map that many times smaller: the
+// taps then read a small, cached map in the same coordinates. ?groundlit=0: the taps read the shadow map as before (A/B).
+const GROUND_LIT = GROUND_SHADE && params.get('groundlit') !== '0';
+const groundLit = { rt: null, white: null, bake: null, bakes: 0 };
+if (GROUND_LIT) {
+  groundLit.white = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1); groundLit.white.needsUpdate = true;
+  // the uniform must be in every lit material's own uniforms when its program is made (three copies them from ShaderLib); each material
+  // then gets the baked map just before it draws (Material.onBeforeRender, below)
+  for (const id of ['standard', 'physical', 'lambert', 'phong', 'toon']) if (THREE.ShaderLib[id]) THREE.ShaderLib[id].uniforms.v2GroundLit = { value: groundLit.white };
+  THREE.Material.prototype.onBeforeRender = function (r) {
+    if (!groundLit.rt) return;
+    const u = r.properties.get(this).uniforms;
+    if (u && u.v2GroundLit && u.v2GroundLit.value !== groundLit.rt.texture) u.v2GroundLit.value = groundLit.rt.texture;
+  };
+}
+if (GROUND_SHADE) {
+  THREE.ShaderChunk.shadowmap_pars_fragment += `
+#if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0 && defined( SHADOWMAP_TYPE_PCF )
+uniform mat4 directionalShadowMatrix[ NUM_DIR_LIGHT_SHADOWS ];
+#define V2_GROUND_SHADE 1
+#define V2_DSM 1
+${GROUND_LIT ? 'uniform sampler2D v2GroundLit;' : ''}
+#endif`;
+  // The same taps, cheaper (GROUND_LIT): unrolled, no normalize per tap (the ring's rays are v2d + SPREAD x a unit vector at right
+  // angles to it, so every one is sqrt(1 + SPREAD^2) long: the tests and the 600 m clamp take that length as a constant), and the
+  // ground point goes straight to the map's (orthographic, affine) coordinates. Same ground points, same weights as below.
+  const GT = LOOK.MOMENT.GROUND_TAPS, GS = +LOOK.MOMENT.GROUND_SPREAD, GM = +LOOK.MOMENT.GROUND_MAX_M || 600, fx = (v) => (+v).toFixed(6);
+  const tapsLit = Array.from({ length: GT }, (_, i) => {
+    const c = i ? Math.cos((i - 1) * Math.PI / 2) : 0, s = i ? Math.sin((i - 1) * Math.PI / 2) : 0, L = i ? Math.hypot(1, GS) : 1;
+    const r = i ? `v2d + ${fx(GS * c)} * v2t1 + ${fx(GS * s)} * v2t2` : 'v2d';
+    return `
+    { vec3 v2r = ${r};
+      if ( v2r.y < ${fx(-0.05 * L)} ) {
+        vec2 v2s = v2sp + min( v2p.y / -v2r.y, ${fx(GM / L)} ) * ( v2M[ 0 ].xy * v2r.x + v2M[ 2 ].xy * v2r.z );
+        v2dark += 1.0 - ( ( v2s.x >= 0.0 && v2s.x <= 1.0 && v2s.y >= 0.0 && v2s.y <= 1.0 ) ? textureLod( v2GroundLit, v2s, 0.0 ).r : 1.0 ); v2n0 += 1.0;
+      } }`;
+  }).join('');
+  THREE.ShaderChunk.lights_fragment_maps = GROUND_LIT ? `
+#if defined( V2_GROUND_SHADE ) && defined( RE_IndirectDiffuse ) && NUM_DIR_LIGHTS > 0
+{
+  vec3 v2n = inverseTransformDirection( geometryNormal, viewMatrix );
+  vec3 v2p = cameraPosition + ( vec4( geometryPosition, 0.0 ) * viewMatrix ).xyz;
+  float v2w = 0.5 * ( 1.0 - v2n.y );
+  if ( v2w > 0.02 && v2p.y > 0.2 ) {
+    vec3 v2d = normalize( v2n - vec3( 0.0, 1.0, 0.0 ) );
+    vec3 v2t1 = normalize( cross( v2d, abs( v2d.y ) > 0.9 ? vec3( 1.0, 0.0, 0.0 ) : vec3( 0.0, 1.0, 0.0 ) ) ), v2t2 = cross( v2d, v2t1 );
+    mat4 v2M = directionalShadowMatrix[ 0 ];
+    vec2 v2sp = v2M[ 0 ].xy * v2p.x + v2M[ 2 ].xy * v2p.z + v2M[ 3 ].xy;
+    float v2dark = 0.0, v2n0 = 0.0;${tapsLit}
+    v2dark /= max( v2n0, 1.0 );
+    vec3 v2up = ( viewMatrix * vec4( 0.0, 1.0, 0.0, 0.0 ) ).xyz;
+    vec3 v2sunG = directionalLights[ 0 ].color * max( dot( directionalLights[ 0 ].direction, v2up ), 0.0 );
+    irradiance = max( irradiance - v2dark * ${(+LOOK.MOMENT.GROUND_ALBEDO).toFixed(4)} * v2sunG * v2w, vec3( 0.0 ) );
+  }
+}
+#endif
+` + THREE.ShaderChunk.lights_fragment_maps : `
+#if defined( V2_GROUND_SHADE ) && defined( RE_IndirectDiffuse ) && NUM_DIR_LIGHTS > 0
+{
+  vec3 v2n = inverseTransformDirection( geometryNormal, viewMatrix );
+  vec3 v2p = cameraPosition + ( vec4( geometryPosition, 0.0 ) * viewMatrix ).xyz;
+  float v2w = 0.5 * ( 1.0 - v2n.y );
+  if ( v2w > 0.02 && v2p.y > 0.2 ) {
+    vec3 v2d = normalize( v2n - vec3( 0.0, 1.0, 0.0 ) );
+    vec3 v2t1 = normalize( cross( v2d, abs( v2d.y ) > 0.9 ? vec3( 1.0, 0.0, 0.0 ) : vec3( 0.0, 1.0, 0.0 ) ) ), v2t2 = cross( v2d, v2t1 );
+    float v2dark = 0.0, v2n0 = 0.0;
+    for ( int v2i = 0; v2i < ${LOOK.MOMENT.GROUND_TAPS}; v2i ++ ) {
+      // the first tap looks along v2d; the others on a ring GROUND_SPREAD around it (the ground a high face sees is wide)
+      float v2a = float( v2i - 1 ) * 1.5707963;
+      vec3 v2r = v2i == 0 ? v2d : normalize( v2d + ${(+LOOK.MOMENT.GROUND_SPREAD).toFixed(3)} * ( cos( v2a ) * v2t1 + sin( v2a ) * v2t2 ) );
+      if ( v2r.y > -0.05 ) continue;
+      vec3 v2g = v2p + v2r * min( v2p.y / -v2r.y, ${(+LOOK.MOMENT.GROUND_MAX_M || 600).toFixed(1)} );
+      v2g.y = 0.0;
+      vec4 v2s = directionalShadowMatrix[ 0 ] * vec4( v2g, 1.0 );
+      v2s.xyz /= v2s.w;
+      float v2lit = 1.0;
+      ${GROUND_LIT ? `if ( v2s.x >= 0.0 && v2s.x <= 1.0 && v2s.y >= 0.0 && v2s.y <= 1.0 )
+        v2lit = texture( v2GroundLit, v2s.xy ).r;` : `if ( v2s.x >= 0.0 && v2s.x <= 1.0 && v2s.y >= 0.0 && v2s.y <= 1.0 && v2s.z <= 1.0 )
+        v2lit = texture( directionalShadowMap[ 0 ], vec3( v2s.xy, v2s.z + directionalLightShadows[ 0 ].shadowBias ) );`}
+      v2dark += 1.0 - v2lit; v2n0 += 1.0;
+    }
+    v2dark /= max( v2n0, 1.0 );
+    vec3 v2up = ( viewMatrix * vec4( 0.0, 1.0, 0.0, 0.0 ) ).xyz;
+    vec3 v2sunG = directionalLights[ 0 ].color * max( dot( directionalLights[ 0 ].direction, v2up ), 0.0 );
+    irradiance = max( irradiance - v2dark * ${(+LOOK.MOMENT.GROUND_ALBEDO).toFixed(4)} * v2sunG * v2w, vec3( 0.0 ) );
+  }
+}
+#endif
+` + THREE.ShaderChunk.lights_fragment_maps;
+}
 
 // The haze (LOOK.HAZE_*), for every lit material: the old app's exponential day haze instead of three.js's linear fog. three.js
 // mixes fog into the colour AFTER tone mapping and the output encoding, so the haze colour gets the same tone map and encoding
@@ -89,7 +236,8 @@ THREE.ShaderChunk.tonemapping_pars_fragment = THREE.ShaderChunk.tonemapping_pars
 vec3 CustomToneMapping( vec3 color ) {
   const float S = ${LOOK.TONE_SHOULDER.toFixed(4)};
   const float Desaturation = 0.15;
-  color *= toneMappingExposure;
+  color *= toneMappingExposure;${MOMENT && (MOMENT.sat ?? 1) !== 1 ? `
+  color = max(mix(vec3(dot(color, vec3(0.2126, 0.7152, 0.0722))), color, ${(+MOMENT.sat).toFixed(4)}), 0.0);   // the photo camera's saturation (moment)` : ''}
   float peak = max( color.r, max( color.g, color.b ) );
   if ( peak < S ) return color;
   float d = 1. - S;
@@ -305,6 +453,187 @@ function fitShadow() {
   if (r !== shadowRung) setShadowExtent(r);
 }
 scene.add(sun, sun.target);
+
+// ── the sky of a moment (sky.js; only with ?moment) ─────────────────────
+// It replaces, in the same units and the same roles: the visible dome (+ clouds + the sun's halo), the fog (the sky at the horizon),
+// the mirror environment (x LIGHT_B.mirror), the diffuse light probe ((the lighting sky x SKY_GAIN x LIGHT_B.sky + the bounce) - the
+// mirror sky), the ground's bounce (the moment's sun on the ground + its sky, x LIGHT_B.ground) and the sun's colour and strength.
+let momentNow = null, momentTex = null;
+function momentMaterial(M, scale, below, glow) {
+  const C = M.C, N = M.night, sMax = Math.max(...M.sunRGB, 1e-9);
+  return new THREE.ShaderMaterial({
+    name: 'v2-moment-sky',
+    uniforms: {
+      tab: { value: momentTex }, scale: { value: new THREE.Vector3(...scale) }, below: { value: new THREE.Vector3(...(below || [0, 0, 0])) },
+      sunDir: { value: new THREE.Vector3(...M.sunDir) }, sunXZ: { value: new THREE.Vector2(...M.sunXZ) }, glow: { value: glow },
+      sunColor: { value: new THREE.Vector3(...M.sunRGB.map((v) => (sMax > 1e-6 ? v / sMax : 0))) },
+      cA: { value: new THREE.Vector4(C.ALT_M / C.SIZE_M, C.T, C.SOFT, C.MIN_SIN) },
+      cB: { value: new THREE.Vector4(C.OFFSET[0] / C.SIZE_M, C.OFFSET[1] / C.SIZE_M, C.OCTAVES, 0) }, cH: { value: new THREE.Vector2(...C.HORIZON) },
+      cSun: { value: new THREE.Vector3(...M.sunCloud) }, cK: { value: new THREE.Vector4(C.SUN, C.SILVER, C.G, C.AMBIENT) },
+      cK2: { value: new THREE.Vector2(C.BASE_DARK, C.OPACITY) }, skyMean: { value: new THREE.Vector3(...M.skyMean) },
+      nightK: { value: M.nightK }, nZen: { value: new THREE.Vector3(...N.ZENITH) }, nGlow: { value: new THREE.Vector3(...N.GLOW) }, nGS: { value: N.GLOW_SINE },
+    },
+    defines: { NPHI: SKY_TABLE.NPHI.toFixed(1), NEL: SKY_TABLE.NEL.toFixed(1), HAS_BELOW: below ? 1 : 0 },
+    vertexShader: /* glsl */`
+      varying vec3 vDir;
+      void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: /* glsl */`
+      uniform sampler2D tab; uniform vec3 scale, below, sunDir, sunColor, cSun, skyMean, nZen, nGlow; uniform vec2 sunXZ, cH, cK2;
+      uniform vec4 cA, cB, cK; uniform float glow, nightK, nGS;
+      varying vec3 vDir;
+      const float V2PI = 3.141592653589793;
+      ${cloudGLSL}
+      ${nightGLSL}
+      void main() {
+        vec3 d = normalize(vDir);
+        float h = length(d.xz);
+        float cphi = h > 1e-5 ? clamp(dot(d.xz / h, sunXZ), -1.0, 1.0) : 1.0;
+        vec2 uv = vec2(sqrt(acos(cphi) / V2PI), sqrt(asin(clamp(d.y, 0.0, 1.0)) / (0.5 * V2PI)));
+        uv = uv * (vec2(NPHI, NEL) - 1.0) / vec2(NPHI, NEL) + 0.5 / vec2(NPHI, NEL);
+        vec3 c = texture2D(tab, uv).rgb + v2night(d, nightK, nZen, nGlow, nGS);
+        float den = v2cloud(d, cA, cB, cH);
+        if (den > 0.0) {
+          float mu = dot(d, sunDir), g = cK.z;
+          float hg = (1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * mu, 1.5) / (4.0 * V2PI);
+          vec3 cc = cSun * (cK.x + cK.y * hg) * (1.0 - cK2.x * den) + cK.w * skyMean;
+          c = mix(c, cc, den * cK2.y);
+        }
+        c *= scale;
+        #if HAS_BELOW
+        if (d.y < -0.01) c = below;
+        #endif
+        float s = max(dot(d, normalize(sunDir)), 0.0);
+        c += sunColor * glow * (pow(s, 24.0) * 0.5 + pow(s, 600.0) * 4.0);
+        gl_FragColor = vec4(c, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+    side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
+  });
+}
+// the sky in direction d, as one of the three uses sees it (JS, for the probe): 'light' | 'mirror'
+function applyMoment(spec) {
+  const M = buildMoment(spec, LOOK, ORIGIN, lin255);
+  momentNow = M;
+  // the sky table -> a half-float texture (linear, so the dome interpolates it)
+  const { NPHI, NEL } = SKY_TABLE, half = new Uint16Array(M.tab.length);
+  for (let i = 0; i < half.length; i++) half[i] = THREE.DataUtils.toHalfFloat(Math.min(M.tab[i], 65000));
+  if (momentTex) momentTex.dispose();
+  momentTex = new THREE.DataTexture(half, NPHI, NEL, THREE.RGBAFormat, THREE.HalfFloatType);
+  momentTex.minFilter = momentTex.magFilter = THREE.LinearFilter; momentTex.wrapS = momentTex.wrapT = THREE.ClampToEdgeWrapping;
+  momentTex.needsUpdate = true;
+  // the sun
+  const sMax = Math.max(...M.sunRGB);
+  if (sMax > 1e-6) sun.color.setRGB(...M.sunRGB.map((v) => v / sMax), THREE.LinearSRGBColorSpace);
+  sun.intensity = sMax;
+  sun.castShadow = sMax > 1e-6;
+  // integrals over the sky (JS): the lighting sky's irradiance on a level surface, the fog colour (the sky just above the horizon, all round)
+  const dirs = [], NT = 32, NP = 64;
+  for (let j = 0; j < NT; j++) for (let i = 0; i < NP; i++) {
+    const th = ((j + 0.5) / NT) * Math.PI, ph = ((i + 0.5) / NP) * 2 * Math.PI;
+    dirs.push([Math.sin(th) * Math.cos(ph), Math.cos(th), Math.sin(th) * Math.sin(ph), Math.sin(th) * (Math.PI / NT) * ((2 * Math.PI) / NP)]);
+  }
+  let skyVals = dirs.map((d) => (d[1] >= -0.01 ? momentSky(M, [d[0], Math.max(d[1], 0), d[2]]) : null));
+  const levelE = (vals) => { const E = [0, 0, 0]; dirs.forEach((d, k) => { if (d[1] > 0) for (let c = 0; c < 3; c++) E[c] += vals[k][c] * M.ref.LIGHT * d[1] * d[3]; }); return E; };
+  // a real captured sky (sky-real.js) replaces the model sky in every use; the model only calibrates it (Light B's units)
+  const R = REAL_SKY;
+  if (R) {
+    setAnisotropy(R, renderer);
+    const sunAtEl = (el) => { const T = sunTransmittance(el, M.haze); return M.sunB.map((v, c) => (M.ref.T[c] > 0 ? (v * T[c]) / M.ref.T[c] : 0)); };
+    placeRealSky(R, M, sunAtEl, M.ref.LIGHT, levelE(skyVals), M.exposure, LOOK.MOMENT.REAL.FIT_SLOPE_MAX);
+    skyVals = dirs.map((d) => (d[1] >= -0.01 ? realAt(R, [d[0], Math.max(d[1], 0), d[2]]) : null));
+  }
+  // The LIGHT a real sky casts is the visible sky with Light B's own chroma relation: Light B lights with its sky stops x SKY_GAIN
+  // (per channel), a much paler light than the deep blue it shows (a camera's sky is far more saturated than the sky's light). One
+  // number s, fitted so that toward-grey(stops irradiance, s) has the colour of (stops x SKY_GAIN): the same s applied to a real sky
+  // turns Light B's own sky into Light B's own light exactly, keeps white clouds white and a sunset's warm light warm.
+  const sB = R ? lightDesat() : 1;
+  const toLight = (v) => { if (sB === 1) return v.map((x) => x * M.ref.LIGHT); const l = 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; return v.map((x) => (l + LOOK.MOMENT.REAL.LIGHT_SAT * sB * (x - l)) * M.ref.LIGHT); };
+  const lightVals = skyVals.map((v) => v && toLight(v));
+  const skyAtM = R ? (d) => realAt(R, d) : (d) => momentSky(M, d);
+  const Esky = levelE(lightVals.map((v) => v && v.map((x) => x / M.ref.LIGHT)));
+  const sinEl = Math.max(0, Math.sin(THREE.MathUtils.degToRad(M.el)));
+  const groundE = M.sunRGB.map((v, c) => v * sinEl + Esky[c]);
+  const bounceM = groundE.map((e) => (LOOK.LIGHT_B.ground * e) / Math.PI);
+  const groundEB = sunRGB.map((v, c) => v * Math.sin(THREE.MathUtils.degToRad(LOOK.MOMENT.REF.EL)) + Math.PI * 0.5 * (zenithAvg[c] + STOPS[3][1][c] * skyLightScale[c]));
+  const groundMirror = LOOK.GROUND_MIRROR.map((v, c) => v * groundE[c] / groundEB[c]);
+  const fog = [0, 0, 0];
+  for (let i = 0; i < 64; i++) { const a = (i / 64) * 2 * Math.PI, s = skyAtM([Math.cos(a) * 0.9998, LOOK.MOMENT.REAL.FOG_SINE, Math.sin(a) * 0.9998]); for (let c = 0; c < 3; c++) fog[c] += s[c] / 64; }
+  scene.fog.color.setRGB(...fog.map((v) => v * LOOK.SKY_DOME_GAIN), THREE.LinearSRGBColorSpace);
+  // the visible dome (its horizon below the level line = the fog), the mirror environment, the diffuse probe
+  const old = dome.material;
+  const mat = R ? (sc, below, glow) => realMaterial(R, M, sc, below, glow) : (sc, below, glow) => momentMaterial(M, sc, below, glow);
+  dome.material = SKY_KEY ? skyKeyMaterial() : mat(domeScale, fog.map((v) => v * LOOK.SKY_DOME_GAIN), (R ? LOOK.MOMENT.REAL.DISC_GLOW : LOOK.MOMENT.SKY_GLOW) * LOOK.SKY_DOME_GAIN);
+  old.dispose();
+  if (scene.environment) scene.environment.dispose();
+  scene.environment = envFrom(mat(mirrorScale, groundMirror, 0));
+  const sh = new THREE.SphericalHarmonics3(), basis = new Array(9).fill(0), v = new THREE.Vector3(), add = new THREE.Vector3();
+  dirs.forEach((d, k) => {
+    const S = skyVals[k];
+    const L = S ? lightVals[k] : bounceM, Mi = S ? S.map((x) => x * LOOK.LIGHT_B.mirror) : groundMirror;
+    THREE.SphericalHarmonics3.getBasisAt(v.set(d[0], d[1], d[2]), basis);
+    add.set(Math.max(0, L[0] - Mi[0]), Math.max(0, L[1] - Mi[1]), Math.max(0, L[2] - Mi[2]));
+    for (let b = 0; b < 9; b++) sh.coefficients[b].addScaledVector(add, basis[b] * d[3]);
+  });
+  diffuseProbe.sh.copy(sh);
+  renderer.toneMappingExposure = LOOK.EXPOSURE * M.exposure;
+  sun.shadow.needsUpdate = true;   // (the caller redraws: at load the frame loop is not set up yet)
+  return { az: M.az, el: M.el, haze: M.haze, sunRGB: M.sunRGB, groundE, bounce: bounceM, fog, cover: M.C.COVER, exposure: M.exposure, nightK: M.nightK,
+    real: R ? { name: R.name, calib: R.calib, k: R.k, fit: R.fit, photo: !!R.photo, photoScale: R.photo ? R.photo.scale : null, Esky, lightSat: sB * LOOK.MOMENT.REAL.LIGHT_SAT } : null };
+}
+// Light B's sky -> light chroma relation (see applyMoment): s with grey(E) + s (E - grey(E)) ~ the colour of E x SKY_GAIN, over the stops' irradiance
+let lightDesatS = null;
+function lightDesat() {
+  if (lightDesatS != null) return lightDesatS;
+  const E = [0, 0, 0], Eg = [0, 0, 0], NT = 32, NP = 64;
+  for (let j = 0; j < NT; j++) for (let i = 0; i < NP; i++) {
+    const th = ((j + 0.5) / NT) * (Math.PI / 2), w = Math.cos(th) * Math.sin(th);
+    const a = skyAt(Math.cos(th), [1, 1, 1]), b = skyAt(Math.cos(th), skyLightScale);
+    for (let c = 0; c < 3; c++) { E[c] += a[c] * w; Eg[c] += b[c] * w; }
+  }
+  const lum = (v) => 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2], l = lum(E), t = Eg.map((v) => (v * l) / lum(Eg));
+  let num = 0, den = 0; for (let c = 0; c < 3; c++) { num += (t[c] - l) * (E[c] - l); den += (E[c] - l) ** 2; }
+  lightDesatS = den > 0 ? num / den : 1;
+  return lightDesatS;
+}
+// ?skykey=1 (verification only): the visible dome drawn flat magenta, so a picture of the app shows exactly where it draws sky
+const SKY_KEY = params.get('skykey') === '1';
+function skyKeyMaterial() { return new THREE.MeshBasicMaterial({ color: 0xff00ff, side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false, toneMapped: false }); }
+// the real sky (sky-real.js) as the dome / the mirror environment: the same roles and units as momentMaterial; glow = the sun's DISC
+// only (the HDRI holds its own halo)
+function realMaterial(R, M, scale, below, glow) {
+  const sMax = Math.max(...M.sunRGB, 1e-9);
+  return new THREE.ShaderMaterial({
+    name: 'v2-real-sky',
+    uniforms: {
+      ...realSkyUniforms(R), scale: { value: new THREE.Vector3(...scale) }, below: { value: new THREE.Vector3(...(below || [0, 0, 0])) },
+      sunDir: { value: new THREE.Vector3(...M.sunDir) }, glow: { value: M.el > 0 ? glow : 0 },
+      sunColor: { value: new THREE.Vector3(...M.sunRGB.map((v) => (sMax > 1e-6 ? v / sMax : 0))) },
+    },
+    defines: { HAS_BELOW: below ? 1 : 0, ...(R.photo ? { R_PHOTO: 1 } : {}) },
+    vertexShader: /* glsl */`
+      varying vec3 vDir;
+      void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: /* glsl */`
+      uniform vec3 scale, below, sunDir, sunColor; uniform float glow;
+      varying vec3 vDir;
+      ${realSkyGLSL}
+      void main() {
+        vec3 d = normalize(vDir);
+        vec3 c = v2real(d) * scale;
+        #if HAS_BELOW
+        if (d.y < -0.01) c = below;
+        #endif
+        float s = max(dot(d, normalize(sunDir)), 0.0);
+        c += sunColor * glow * pow(s, 600.0) * 4.0;
+        gl_FragColor = vec4(c, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+    side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
+  });
+}
+if (MOMENT) applyMoment(MOMENT);
 if (params.get('sun') === '0') sun.intensity = 0;   // diagnosis: the indirect light alone
 
 // The shadow map is drawn again only when it can change (QUALITY.SHADOW_CACHE). three.js's default redraws it on EVERY frame: every
@@ -385,15 +714,63 @@ if (SHADOW_CACHE) {
     shadowStats.sigMs += performance.now() - t; shadowStats.frames++;
     const redraw = sun.shadow.needsUpdate || sun.shadow.autoUpdate;
     if (redraw) shadowStats.redraws++;
-    if (!redraw || !SHADOW_VIEW_CULL) { needed.length = 0; notNeeded.length = 0; return drawShadows.call(this, lights, s, cam); }
+    if (!redraw || !SHADOW_VIEW_CULL) { needed.length = 0; notNeeded.length = 0; drawShadows.call(this, lights, s, cam); if (redraw) bakeGroundLit(); return; }
     for (const o of notNeeded) o.castShadow = false;
-    try { return drawShadows.call(this, lights, s, cam); }
+    try { drawShadows.call(this, lights, s, cam); }
     finally {
       for (const o of notNeeded) o.castShadow = true;
       inMap = new Set(needed); shadowStats.culled = notNeeded.length; shadowStats.kept = needed.length;
       needed.length = 0; notNeeded.length = 0;
     }
+    bakeGroundLit();
   };
+} else if (GROUND_LIT) {
+  const drawShadows = renderer.shadowMap.render;
+  renderer.shadowMap.render = function (lights, s, cam) { drawShadows.call(this, lights, s, cam); if (s === scene) bakeGroundLit(); };
+}
+// The ground-lit map (GROUND_LIT, above): for each of its texels, the share of GROUND_LIT_DOWN^2 shadow-map texels whose ground point
+// (y = 0) the sun reaches - the same depth test as the taps made (shadowBias included), at the ground's depth under each texel.
+function bakeGroundLit() {
+  if (!GROUND_LIT || !sun.shadow.map || !sun.shadow.map.depthTexture) return;
+  const K = Math.max(1, LOOK.MOMENT.GROUND_LIT_DOWN | 0), n = Math.max(1, Math.round(SHADOW_SIZE / K));
+  if (!groundLit.rt) {
+    groundLit.rt = new THREE.WebGLRenderTarget(n, n, { depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false });
+    groundLit.rt.texture.name = 'v2 ground lit';
+    const mat = new THREE.ShaderMaterial({
+      name: 'v2-ground-lit-bake',
+      uniforms: { uSM: { value: null }, uInv: { value: new THREE.Matrix4() }, uBias: { value: 0 } },
+      vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+      fragmentShader: /* glsl */`
+        uniform sampler2DShadow uSM; uniform mat4 uInv; uniform float uBias; varying vec2 vUv;
+        void main() {
+          float lit = 0.0;
+          for (int j = 0; j < ${K}; j++) for (int i = 0; i < ${K}; i++) {
+            // a shadow-map texel's centre, and the depth (0..1) at which its light ray meets the ground
+            vec2 st = vUv + (vec2(float(i), float(j)) + 0.5 - ${(K / 2).toFixed(1)}) / ${SHADOW_SIZE.toFixed(1)};
+            float y0 = (uInv * vec4(st, 0.0, 1.0)).y, y1 = (uInv * vec4(st, 1.0, 1.0)).y, zg = y0 / (y0 - y1);
+            lit += zg <= 1.0 ? texture(uSM, vec3(st, zg + uBias)) : 1.0;
+          }
+          lit /= ${(K * K).toFixed(1)};
+          gl_FragColor = vec4(lit, lit, lit, 1.0);
+        }`,
+      depthTest: false, depthWrite: false,
+    });
+    groundLit.bake = { scene: new THREE.Scene(), cam: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), mat };
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat); q.frustumCulled = false; groundLit.bake.scene.add(q);
+  }
+  const { scene: bs, cam: bc, mat } = groundLit.bake;
+  mat.uniforms.uSM.value = sun.shadow.map.depthTexture;
+  mat.uniforms.uInv.value.copy(sun.shadow.matrix).invert();   // shadow uv/depth -> world (orthographic: affine)
+  mat.uniforms.uBias.value = sun.shadow.bias;
+  const rt0 = renderer.getRenderTarget(), face0 = renderer.getActiveCubeFace(), mip0 = renderer.getActiveMipmapLevel(), auto = renderer.autoClear, sh = renderer.shadowMap.autoUpdate;
+  renderer.shadowMap.autoUpdate = false; renderer.autoClear = false;
+  renderer.setRenderTarget(groundLit.rt);
+  const real = renderer.shadowMap.enabled; renderer.shadowMap.enabled = false;
+  renderer.render(bs, bc);
+  renderer.shadowMap.enabled = real;
+  renderer.setRenderTarget(rt0, face0, mip0);   // (a cube camera draws its six faces through here: keep its face)
+  renderer.autoClear = auto; renderer.shadowMap.autoUpdate = sh;
+  groundLit.bakes++;
 }
 if (LOOK.HEMI_INTENSITY > 0) scene.add(new THREE.HemisphereLight(LOOK.HEMI_SKY, LOOK.HEMI_GROUND, LOOK.HEMI_INTENSITY));
 
@@ -445,6 +822,45 @@ buildingMaterial.onBeforeCompile = (sh) => {
   if (FACADES) facadeShader(sh);
 };
 buildingMaterial.customProgramCacheKey = () => 'v2-buildings' + (FACADES ? '-facades' : '');
+// After dusk under a moment (first pass): a share of the windows lit (LOOK.MOMENT.NIGHT), one random choice per window cell, faded to
+// the lit share as the cell nears the pixel's footprint (the facade's own FADE_PX), so far walls glow evenly instead of flickering.
+function nightWindowsGLSL(cell, footprint, cover, f) {
+  const N = momentNow && momentNow.nightK > 0 ? momentNow.night : null;
+  if (!N) return '';
+  const k = momentNow.nightK, W = N.WINDOWS.map((v, c) => v * k * momentNow.wb[c]);
+  return `
+  {
+    float v2h = fract(sin(dot(${cell}, vec2(12.9898, 78.233))) * 43758.5453);
+    float v2lit = mix(step(${f(1 - N.LIT_SHARE)}, v2h), ${f(N.LIT_SHARE)}, smoothstep(${f(LOOK.FACADE.FADE_PX[0])}, ${f(LOOK.FACADE.FADE_PX[1])}, ${footprint}));
+    totalEmissiveRadiance += vec3(${W.map((v) => v.toExponential(4)).join(', ')}) * ${cover} * v2lit;
+  }`;
+}
+// ...and the Blender tiles' glass (material extras v2_kind "glass"): a cell of NIGHT.CELL_M (storey x bay) on the wall, from the
+// world position (no per-pane ids in the merged tiles yet)
+function nightGlass(obj) {
+  if (!(momentNow && momentNow.nightK > 0)) return;
+  obj.traverse((o) => {
+    if (!o.isMesh) return;
+    for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+      if (!m || m.userData.v2Night || !(m.userData.v2_kind === 'glass' || /^glass/.test(m.name || ''))) continue;
+      m.userData.v2Night = true;
+      const prev = m.onBeforeCompile, C = momentNow.night.CELL_M, f = (v) => v.toFixed(5);
+      m.onBeforeCompile = (sh, r) => {
+        prev && prev.call(m, sh, r);
+        sh.fragmentShader = sh.fragmentShader.replace('#include <lights_fragment_begin>', `
+  {
+    vec3 v2wp = cameraPosition + ( vec4( -vViewPosition, 0.0 ) * viewMatrix ).xyz;
+    vec2 v2c = vec2( ( v2wp.x + v2wp.z ) / ${f(C[1])}, v2wp.y / ${f(C[0])} );
+    vec2 v2w = fwidth( v2c );${nightWindowsGLSL('floor(v2c)', 'max(v2w.x, v2w.y)', '1.0', f)}
+  }
+#include <lights_fragment_begin>`);
+      };
+      const key = m.customProgramCacheKey ? m.customProgramCacheKey.bind(m) : () => '';
+      m.customProgramCacheKey = () => key() + '|v2-night';
+      m.needsUpdate = true;
+    }
+  });
+}
 function facadeShader(sh) {
   const F = LOOK.FACADE, glass = new THREE.Color(F.GLASS);
   const f = (v) => v.toFixed(5);
@@ -471,7 +887,7 @@ if (vFac.x >= 0.0) {
   float band = ${F.BAND > 0 ? `pulseF(fc.y, w.y, 0.0, ${f(F.BAND)})` : '0.0'};
   diffuseColor.rgb *= mix(1.0, ${f(F.BAND_SHADE)}, band * (1.0 - win));
   diffuseColor.rgb = mix(diffuseColor.rgb, vec3(${f(glass.r)}, ${f(glass.g)}, ${f(glass.b)}), win);
-  roughnessFactor = mix(roughnessFactor, ${f(F.GLASS_ROUGHNESS)}, win);
+  roughnessFactor = mix(roughnessFactor, ${f(F.GLASS_ROUGHNESS)}, win);${nightWindowsGLSL('floor(fc) + vec2(cls * 7.13, 0.0)', 'max(w.x, w.y)', 'win', f)}
 }`);
   }
 }
@@ -617,7 +1033,7 @@ const tilesReady = (async () => {
     const t = new TileStreamer({ scene, camera, manifestUrl,
       onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings,
       // the camera's collision tops from the model (#529), and the plain blocks the model stands over (covers.js)
-      prepare: (obj, def, s) => { exactPrepare(obj, def); if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
+      prepare: (obj, def, s) => { exactPrepare(obj, def); glassPrepare(obj); nightGlass(obj); if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
       onChange: () => { dirty = true; sun.shadow.needsUpdate = true; labels.occGen = (labels.occGen || 0) + 1; labels.dirty = true; }, onAnimate: () => { dirty = true; } });
     if (params.get('fade') === '0') t.instant = true;
     const man = await t.load();
@@ -1092,11 +1508,27 @@ window.__v2 = {
   exactProbe: () => {
     // what a local probe sees of the sky must be the MIRROR sky (LOOK.LIGHT_B.mirror x the stops), as the environment map every other
     // mirror sees: the visible dome is drawn x SKY_DOME_GAIN, so it is switched to the mirror's scale for the probe's six faces
-    const u = dome.material.uniforms.scale.value, was = u.clone();
+    const u = dome.material.uniforms ? dome.material.uniforms.scale.value : new THREE.Vector3(), was = u.clone();   // (?skykey: no uniforms)
     if (LOOK.PROBE_MIRROR_SKY) u.set(...mirrorScale);
     const ms = exactProbe(renderer, scene); u.copy(was); dirty = true; return ms;
-  }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs }),
+  }, groundLit: () => ({ on: GROUND_LIT, bakes: groundLit.bakes, size: groundLit.rt ? groundLit.rt.width : 0 }), glass: () => ({ ...glassState }), glassReal: (k, fp) => { setGlassReal(k); if (fp) setGlassFootprintScale(fp); dirty = true; }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs, probeYs: exactState.probeYs }),
   timings: () => ({ ...timings }),
+  // the moment (sky.js): its numbers, and a change of its haze / clouds / exposure inside the page (the sun's direction stays)
+  moment: () => (momentNow ? { name: MOMENT.name || null, az: momentNow.az, el: momentNow.el, haze: momentNow.haze, cover: momentNow.C.COVER,
+    exposure: momentNow.exposure, wb: momentNow.wb, ms: momentNow.ms, sunRGB: momentNow.sunRGB, nightK: momentNow.nightK, groundShade: GROUND_SHADE,
+    real: REAL_SKY ? { name: REAL_SKY.name, calib: REAL_SKY.calib, k: REAL_SKY.k, fit: REAL_SKY.fit, photo: !!REAL_SKY.photo } : null } : null),
+  setMoment: (o = {}) => {
+    if (!MOMENT) return null;
+    Object.assign(MOMENT, o, { clouds: { ...(MOMENT.clouds || {}), ...(o.clouds || {}) } });
+    const r = applyMoment(MOMENT); dirty = true; return r;
+  },
+  // swap the real sky inside the page (rule 13: load once, test many); keeps the moment's photo sky. 'param' = the parametric sky
+  setSky: async (name, photo) => {
+    if (!MOMENT) return null;
+    const ph = photo === undefined || photo === '__keep' ? (REAL_SKY && REAL_SKY.photo ? MOMENT.photo : null) : photo;
+    REAL_SKY = name && name !== 'param' ? await loadRealSky(name, ph, renderer) : null;
+    const r = applyMoment(MOMENT); dirty = true; return r;
+  },
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
   intro: () => introFlight.flight && { ...introFlight.flight },
   labels: () => ({ items: labels.items.length, shown: labels.shown, merged: labels.merged || 0, occluded: labels.occludedN || 0, selected: labels.selected?.name || null }),

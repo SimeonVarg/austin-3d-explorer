@@ -93,6 +93,40 @@ export const TREE_LOOK = {
   TRUNK: '#3a3027',
 };
 
+// ?trees=real (v2/trees-real.js): a library of Austin tree forms (EZ-Tree, MIT) drawn in three distance bands. Colours come from the
+// owner's photographs (data/trees-real/manifest.json: median of masked leaf and trunk pixels); GAIN turns a photograph's colour into
+// v2's albedo scale (the aerial's GROUND_LOOK.GAIN does the same for pavement, 0.34). Repo rule 11: change a line, reload.
+export const TREE_REAL_LOOK = {
+  // distance bands in metres from the camera: [centre of the near -> mid crossfade, half-width of it], same for mid -> far
+  NEAR_TO_MID_M: [62, 7], MID_TO_FAR_M: [190, 22],
+  NEAR_TO_MID_M_PHONE: [35, 9], MID_TO_FAR_M_PHONE: [130, 30],
+  LEAF_LIT_MIX: 0.45,           // 0 = the photograph's middle leaf colour, 1 = its lit leaves
+  LEAF_SAT: 1.5,                // x saturation
+  LEAF_GAIN: 0.62,             // x the photograph's lit-leaf colour (linear): the app's sun and sky then light it
+  TRUNK_GAIN: 0.4,
+  LEAF_ROUGHNESS: 0.92,
+  SPECULAR: 0.1,                // the leaf and bark specular (three: 1 = the default 4 % mirror; sky-lit dark leaves went silver at 1)
+  ALPHA_LOD: [1.0, 3.0],        // log2(texels per pixel) over which the sharpened alpha edge gives way to plain coverage (no flicker, rule 15)
+  ALPHA_LOD_FAR: [-0.5, 1.0],   // the same for the far crowns' atlas (96 px a view): plain coverage from about one texel a pixel
+  MID_CARD_DOWN: 2,             // the mid cards' texture is the card shrunk this many times (leaf shapes merged into soft clumps)
+  IMPOSTOR_MIN_LOD: 1.0,        // the far crowns never sample the atlas finer than this mip (log2): the detail is under a pixel there
+  ALPHA_CUT: 0.5,              // alpha test (smoothstep over the pixel's own alpha slope when MSAA is on: alpha to coverage)
+  SHADE_JITTER: 0.14,           // +- brightness per tree (from the inventory's shade byte)
+  CROWN_STRETCH: [0.78, 1.38],  // the model's crown width may stretch to the inventory's crown radius by this much (x)
+  IMPOSTOR_UP_NORMAL: 0.6,      // how far the far crowns' lighting normal leans toward the sky (0 = faces the camera), when IMPOSTOR_SPHERE < 1
+  IMPOSTOR_SPHERE: 1,           // the far crowns lit with their crown's sphere normals, as the mid cards are (1), or the flat normal above (0)
+  IMPOSTOR_SHADOW: true,        // the far crowns take the sun's shadow (looked up on their crown's sphere), as the mid cards do
+  IMPOSTOR_UP_BIAS: 0.28,      // the mid cards' normals lean up by this (tools/trees: outward + 0.28 up); the far crowns copy it
+  FAR_VARIANTS: 2,
+  TRIM_CARDS: true,             // each leaf card cut to the octagon around everything its texture can draw (speed only, the same picture)
+  TRIM_LEVELS: 4,               // ...over mip levels 0..this (deeper levels: a card a few pixels wide, where fill costs nothing)
+  GRID_M: 64,                  // the per-frame update finds the near and mid trees through squares this size (speed only, no look)
+  FRUSTUM_MARGIN: 0.16,       // a tree this many radians outside the view is still drawn (a quick turn does not show holes)
+  RECEIVE_SHADOW: true,         // the cards and trunks take the sun's shadow (?treeshadow=0 turns it off for a test)
+  SHADOW_PROXY: true,           // one 20-triangle crown per tree casts the sun's shadow (the cards and impostors cast none)
+  SHADOW_PROXY_SHRINK: 0.8,
+};
+
 export const NEAR_LOOK = {
   // ── street level near the camera (street_near.js) ──
   FADE: [60, 90],               // metres from the camera: modelled street fully in / gone (the aerial carries the rest)

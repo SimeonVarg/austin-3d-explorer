@@ -29,7 +29,7 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
   addCredits();
   // the street furniture (street.js) comes with the ground, so main.js keeps one hook
   try { installStreet({ THREE, scene, redraw, phone }); } catch (e) { console.warn('[v2 street]', e.message); }
-  try { installTrees({ THREE, scene, redraw }); } catch (e) { console.warn('[v2 trees]', e.message); }
+  try { installTrees({ THREE, scene, redraw, renderer, phone }); } catch (e) { console.warn('[v2 trees]', e.message); }
   try { installStreetNear({ THREE, scene, redraw, phone }); } catch (e) { console.warn('[v2 near]', e.message); }
   if (!G.ON || params.get('aerial') === '0') return null;
 
