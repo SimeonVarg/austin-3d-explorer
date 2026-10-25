@@ -16,7 +16,7 @@ import { MapLayers } from './map-layers.js';
 import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
 import { installGround } from './ground.js';
 import { exactPrepare, exactProbe, exactState } from './exact-pilot.js';
-import { glassPrepare, glassState } from './glass.js';
+import { glassPrepare, glassState, setGlassReal, setGlassFootprintScale } from './glass.js';
 
 const params = new URLSearchParams(location.search);
 // exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
@@ -1096,7 +1096,7 @@ window.__v2 = {
     const u = dome.material.uniforms.scale.value, was = u.clone();
     if (LOOK.PROBE_MIRROR_SKY) u.set(...mirrorScale);
     const ms = exactProbe(renderer, scene); u.copy(was); dirty = true; return ms;
-  }, glass: () => ({ ...glassState }), exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs, probeYs: exactState.probeYs }),
+  }, glass: () => ({ ...glassState }), glassReal: (k, fp) => { setGlassReal(k); if (fp) setGlassFootprintScale(fp); dirty = true; }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs, probeYs: exactState.probeYs }),
   timings: () => ({ ...timings }),
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
   intro: () => introFlight.flight && { ...introFlight.flight },

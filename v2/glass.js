@@ -33,9 +33,9 @@ export const GLASS_REAL = {
   BOW_DEG: 0.9,            // per-pane bow: how far the normal turns at the pane's edge vs its middle (sign random per pane)
   ROUGH_VAR: 0.35,         // per-pane roughness, x (1 +- this)
   SPEC_VAR: 0.12,          // per-pane reflection strength (coating), x (1 +- this)
-  ROOM_VAR: 0.55,          // per-pane room brightness, x (1 +- this)
-  BLINDS_SHARE: 0.22,      // share of panes with blinds part down
-  BLINDS_COLOR: [0.20, 0.19, 0.17], // blinds, linear albedo (seen through the glass's tint)
+  ROOM_VAR: 0.4,           // per-pane room brightness, x (1 +- this)
+  BLINDS_SHARE: 0.15,      // share of panes with blinds part down
+  BLINDS_COLOR: [0.12, 0.12, 0.115], // blinds, linear albedo (neutral: a tinted glass colour must not tint them pink or green)
   BLINDS_DOWN: [0.15, 0.85],        // how far down the blinds come, share of the pane height (uniform in this range)
   // fades by the pane's size on screen (its smaller side, in pixels): [gone below, full above]
   VAR_PX: [3, 7],          // tilt, coating, room
@@ -95,6 +95,13 @@ export function paneIds(geo, mat) {
 }
 
 const f = (x) => Number(x).toFixed(5);
+// strength of the whole per-pane look, at run time (1 = on; 0 = the glass as before, for A/B in one page load)
+const GLASS_K = { value: 1 };
+export function setGlassReal(k) { GLASS_K.value = k; }
+// measuring only (v2-glass-shimmer.mjs): a supersampled TRUTH frame multiplies the pixel footprint by its supersampling factor, so
+// the fades decide exactly as in the native frame and the truth is the same picture, sampled finely
+const GLASS_FP = { value: 1 };
+export function setGlassFootprintScale(s) { GLASS_FP.value = s; }
 const K = GLASS_REAL;
 const DEG = Math.PI / 180;
 
@@ -105,6 +112,7 @@ export function realGlass(material) {
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
+    sh.uniforms.v2GlassK = GLASS_K; sh.uniforms.v2GlassFp = GLASS_FP;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nattribute vec4 v2pane;\nattribute vec2 v2paneS;\nvarying vec3 vPaneOff;\nvarying vec3 vPaneSeed;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPaneOff = (modelViewMatrix * vec4(v2pane.xyz, 0.0)).xyz;\nvPaneSeed = vec3(v2pane.w, v2paneS);');
@@ -112,6 +120,8 @@ export function realGlass(material) {
       .replace('#include <common>', `#include <common>
 varying vec3 vPaneOff;
 varying vec3 vPaneSeed;
+uniform float v2GlassK;
+uniform float v2GlassFp;
 float v2SpecVar = 1.0;
 // four numbers in [0, 1) from the pane's seed (per pane, constant: nothing here changes from frame to frame)
 vec4 v2paneRand(float s) { return fract(sin(vec4(s * 91.317 + 0.13, s * 47.731 + 1.37, s * 13.137 + 2.71, s * 71.917 + 4.13)) * 43758.5453); }
@@ -120,10 +130,10 @@ vec4 v2paneRand2(float s) { return fract(sin(vec4(s * 29.771 + 5.31, s * 63.113 
   if (vPaneSeed.x >= 0.0) {
     vec4 pr = v2paneRand(vPaneSeed.x), pr2 = v2paneRand2(vPaneSeed.x);
     // the pane's size on screen: its smaller side over the pixel's footprint (metres per pixel)
-    float v2fp = max(length(dFdx(vViewPosition)), length(dFdy(vViewPosition)));
+    float v2fp = max(length(dFdx(vViewPosition)), length(dFdy(vViewPosition))) * v2GlassFp;
     float v2px = 2.0 * min(vPaneSeed.y, vPaneSeed.z) / max(v2fp, 1e-5);
-    float vf = smoothstep(${f(K.VAR_PX[0])}, ${f(K.VAR_PX[1])}, v2px);
-    float bf = smoothstep(${f(K.BOW_PX[0])}, ${f(K.BOW_PX[1])}, v2px);
+    float vf = smoothstep(${f(K.VAR_PX[0])}, ${f(K.VAR_PX[1])}, v2px) * v2GlassK;
+    float bf = smoothstep(${f(K.BOW_PX[0])}, ${f(K.BOW_PX[1])}, v2px) * v2GlassK;
     // the pane's plane: across (level) and up, in view space
     vec3 v2up = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
     vec3 t1 = cross(v2up, normal); float t1l = length(t1);
@@ -136,8 +146,8 @@ vec4 v2paneRand2(float s) { return fract(sin(vec4(s * 29.771 + 5.31, s * 63.113 
       // the room behind: darker or lighter per pane; some panes with blinds part down (a band from the top)
       float room = 1.0 + (pr2.x * 2.0 - 1.0) * ${f(K.ROOM_VAR)};
       float down = mix(${f(K.BLINDS_DOWN[0])}, ${f(K.BLINDS_DOWN[1])}, pr2.y);
-      float blinds = (pr2.z < ${f(K.BLINDS_SHARE)} && w > 1.0 - 2.0 * down) ? 1.0 : 0.0;
-      vec3 roomC = mix(diffuseColor.rgb * room, vec3(${f(K.BLINDS_COLOR[0])}, ${f(K.BLINDS_COLOR[1])}, ${f(K.BLINDS_COLOR[2])}) * max(diffuseColor.rgb / max(max(diffuseColor.r, diffuseColor.g), max(diffuseColor.b, 1e-4)), 0.6), blinds);
+      float blinds = (pr2.z < ${f(K.BLINDS_SHARE)} && w > 1.0 - 2.0 * down) ? bf : 0.0;   // an edge inside the pane: it goes with the bow
+      vec3 roomC = mix(diffuseColor.rgb * room, vec3(${f(K.BLINDS_COLOR[0])}, ${f(K.BLINDS_COLOR[1])}, ${f(K.BLINDS_COLOR[2])}), blinds);
       // far away: the expected room (blinds share x their colour + the rest x the plain room), so the wall's average stays put
       diffuseColor.rgb = mix(diffuseColor.rgb, roomC, vf);
       roughnessFactor = clamp(roughnessFactor * (1.0 + (pr2.w * 2.0 - 1.0) * ${f(K.ROUGH_VAR)} * vf), 0.0, 1.0);

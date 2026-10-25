@@ -137,7 +137,7 @@ export function exactProbe(renderer, scene) {
   const t0 = performance.now();
   const pmrem = new THREE.PMREMGenerator(renderer);
   for (const t of exactState.tiles) {
-    const size = t.def.exact.probeSize || EXACT.PROBE_SIZE;
+    const size = +(typeof location !== 'undefined' && new URLSearchParams(location.search).get('probesize')) || t.def.exact.probeSize || EXACT.PROBE_SIZE;
     const c = t.def.exact.probe;
     // heights: evenly up the building (the middle of each of N equal bands), or the manifest's list
     const box = new THREE.Box3().setFromObject(t.obj);

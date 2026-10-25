@@ -89,6 +89,8 @@ for (let rep = 0; rep < REPS; rep++) {
         const groundCalm = !s.g || s.g.failed || (s.g.index && s.g.missing === 0 && s.g.loading === 0 && s.g.waitingUpload === 0);
         calm = s.t && s.t.loading === 0 && groundCalm ? calm + 1 : 0; await page.waitForTimeout(700);
       }
+      // a trial manifest with an exact tile: render its local probes once (as v2-exact.mjs does), so its glass is measured as drawn
+      await page.evaluate(() => { const e = window.__v2.exact && window.__v2.exact(); if (e && e.tiles && e.probeMs == null) window.__v2.exactProbe(); });
       await page.waitForTimeout(1500);
       const m = await page.evaluate((ms) => window.__v2.measure(ms, 0.15), MS);
       // GPU-synchronous cost: 90 renders, each followed by a 1-pixel read that waits for the GPU (an uncapped rAF only times the CPU's submit rate).
