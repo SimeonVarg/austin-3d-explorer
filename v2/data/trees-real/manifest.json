@@ -1,0 +1,361 @@
+{
+ "generator": "EZ-Tree 1.1.0 (MIT) via tools/trees/gen",
+ "cell": 96,
+ "az": 8,
+ "el": [
+  8,
+  32,
+  56,
+  84
+ ],
+ "species": {
+  "live_oak": {
+   "leaf": {
+    "shaded": "#161912",
+    "mid": "#30322a",
+    "sunlit": "#55574e"
+   },
+   "trunk": "#3a4447",
+   "source": {
+    "leaf": "IMG_1789 live_oak_street",
+    "trunk": "IMG_1789 trunk_street_oak",
+    "note": ""
+   },
+   "leafCard": "broad.png",
+   "atlas": "live_oak_atlas.png",
+   "glb": "live_oak.glb",
+   "variants": [
+    {
+     "crownR": 0.5486,
+     "centre": [
+      -0.0004,
+      0.475,
+      0.0494
+     ],
+     "rs": 0.745,
+     "height": 78.49845123291016,
+     "tri": {
+      "trunk": 4296,
+      "trunkMid": 1633,
+      "near": 4608,
+      "mid": 1736
+     }
+    },
+    {
+     "crownR": 0.5707,
+     "centre": [
+      0.0207,
+      0.4707,
+      -0.0489
+     ],
+     "rs": 0.7894,
+     "height": 76.71912574768066,
+     "tri": {
+      "trunk": 4296,
+      "trunkMid": 1633,
+      "near": 4608,
+      "mid": 1664
+     }
+    },
+    {
+     "crownR": 0.6126,
+     "centre": [
+      -0.0679,
+      0.4938,
+      -0.0513
+     ],
+     "rs": 0.9204,
+     "height": 70.0289363861084,
+     "tri": {
+      "trunk": 4296,
+      "trunkMid": 1633,
+      "near": 4608,
+      "mid": 1708
+     }
+    }
+   ]
+  },
+  "cedar_elm": {
+   "leaf": {
+    "shaded": "#0e1309",
+    "mid": "#22281b",
+    "sunlit": "#484e41"
+   },
+   "trunk": "#3a4447",
+   "source": {
+    "leaf": "IMG_1778 dark_backlit",
+    "trunk": "IMG_1789 trunk_street_oak",
+    "note": "IMG_1778 bottom-right crown (the dark backlit deciduous tree)"
+   },
+   "leafCard": "broad.png",
+   "atlas": "cedar_elm_atlas.png",
+   "glb": "cedar_elm.glb",
+   "variants": [
+    {
+     "crownR": 0.3937,
+     "centre": [
+      0.021,
+      0.4632,
+      -0.0032
+     ],
+     "rs": 0.6296,
+     "height": 67.1449966430664,
+     "tri": {
+      "trunk": 3720,
+      "trunkMid": 1414,
+      "near": 3840,
+      "mid": 1356
+     }
+    },
+    {
+     "crownR": 0.404,
+     "centre": [
+      -0.0055,
+      0.549,
+      -0.0855
+     ],
+     "rs": 0.6361,
+     "height": 64.13463592529297,
+     "tri": {
+      "trunk": 3720,
+      "trunkMid": 1414,
+      "near": 3840,
+      "mid": 1316
+     }
+    },
+    {
+     "crownR": 0.3627,
+     "centre": [
+      -0.0334,
+      0.4996,
+      -0.0514
+     ],
+     "rs": 0.5211,
+     "height": 68.2694091796875,
+     "tri": {
+      "trunk": 3720,
+      "trunkMid": 1414,
+      "near": 3840,
+      "mid": 1324
+     }
+    }
+   ]
+  },
+  "pecan": {
+   "leaf": {
+    "shaded": "#303420",
+    "mid": "#51543a",
+    "sunlit": "#7d825a"
+   },
+   "trunk": "#3a4447",
+   "source": {
+    "leaf": "IMG_1779 sunlit_leafy",
+    "trunk": "IMG_1789 trunk_street_oak",
+    "note": "IMG_1779 sunlit leafy tree by the library"
+   },
+   "leafCard": "broad.png",
+   "atlas": "pecan_atlas.png",
+   "glb": "pecan.glb",
+   "variants": [
+    {
+     "crownR": 0.3926,
+     "centre": [
+      0.0061,
+      0.5016,
+      0.0191
+     ],
+     "rs": 0.5737,
+     "height": 85.7857666015625,
+     "tri": {
+      "trunk": 3276,
+      "trunkMid": 1245,
+      "near": 3360,
+      "mid": 1172
+     }
+    },
+    {
+     "crownR": 0.4173,
+     "centre": [
+      -0.0381,
+      0.5084,
+      -0.0408
+     ],
+     "rs": 0.6386,
+     "height": 84.59242248535156,
+     "tri": {
+      "trunk": 3276,
+      "trunkMid": 1245,
+      "near": 3360,
+      "mid": 1172
+     }
+    },
+    {
+     "crownR": 0.3832,
+     "centre": [
+      0.0262,
+      0.4976,
+      -0.0006
+     ],
+     "rs": 0.6221,
+     "height": 92.12695217132568,
+     "tri": {
+      "trunk": 3276,
+      "trunkMid": 1245,
+      "near": 3360,
+      "mid": 1196
+     }
+    }
+   ]
+  },
+  "crape_myrtle": {
+   "leaf": {
+    "shaded": "#303420",
+    "mid": "#51543a",
+    "sunlit": "#7d825a"
+   },
+   "trunk": "#3a4447",
+   "source": {
+    "leaf": "IMG_1779 sunlit_leafy",
+    "trunk": "IMG_1789 trunk_street_oak",
+    "note": "borrowed from IMG_1779: no crape myrtle in the photographs"
+   },
+   "leafCard": "broad.png",
+   "atlas": "crape_myrtle_atlas.png",
+   "glb": "crape_myrtle.glb",
+   "variants": [
+    {
+     "crownR": 0.4064,
+     "centre": [
+      0.0908,
+      0.5615,
+      0.0038
+     ],
+     "rs": 0.6107,
+     "height": 38.93136978149414,
+     "tri": {
+      "trunk": 3188,
+      "trunkMid": 1212,
+      "near": 3920,
+      "mid": 1504
+     }
+    },
+    {
+     "crownR": 0.4273,
+     "centre": [
+      0.0441,
+      0.5271,
+      0.0205
+     ],
+     "rs": 0.6977,
+     "height": 42.32305145263672,
+     "tri": {
+      "trunk": 3188,
+      "trunkMid": 1212,
+      "near": 3920,
+      "mid": 1480
+     }
+    }
+   ]
+  },
+  "bald_cypress": {
+   "leaf": {
+    "shaded": "#313210",
+    "mid": "#626234",
+    "sunlit": "#96965c"
+   },
+   "trunk": "#766f5f",
+   "source": {
+    "leaf": "IMG_1762 live_oak_lake",
+    "trunk": "IMG_1759 trunk_juniper",
+    "note": "borrowed from the lake-side crowns of IMG_1762: no bald cypress in the photographs"
+   },
+   "leafCard": "spray.png",
+   "atlas": "bald_cypress_atlas.png",
+   "glb": "bald_cypress.glb",
+   "variants": [
+    {
+     "crownR": 0.2351,
+     "centre": [
+      -0.0183,
+      0.5759,
+      -0.0446
+     ],
+     "rs": 0.5799,
+     "height": 55.553890228271484,
+     "tri": {
+      "trunk": 2240,
+      "trunkMid": 852,
+      "near": 3600,
+      "mid": 1220
+     }
+    },
+    {
+     "crownR": 0.2106,
+     "centre": [
+      0.0111,
+      0.5727,
+      0.0087
+     ],
+     "rs": 0.5737,
+     "height": 55.15813446044922,
+     "tri": {
+      "trunk": 2240,
+      "trunkMid": 852,
+      "near": 3600,
+      "mid": 1336
+     }
+    }
+   ]
+  },
+  "ashe_juniper": {
+   "leaf": {
+    "shaded": "#2f310f",
+    "mid": "#636639",
+    "sunlit": "#939662"
+   },
+   "trunk": "#766f5f",
+   "source": {
+    "leaf": "IMG_1759 juniper_slope",
+    "trunk": "IMG_1759 trunk_juniper",
+    "note": ""
+   },
+   "leafCard": "spray.png",
+   "atlas": "ashe_juniper_atlas.png",
+   "glb": "ashe_juniper.glb",
+   "variants": [
+    {
+     "crownR": 0.3673,
+     "centre": [
+      -0.0407,
+      0.4971,
+      -0.0374
+     ],
+     "rs": 0.6263,
+     "height": 31.858497619628906,
+     "tri": {
+      "trunk": 2472,
+      "trunkMid": 940,
+      "near": 3600,
+      "mid": 1340
+     }
+    },
+    {
+     "crownR": 0.3993,
+     "centre": [
+      0.0632,
+      0.519,
+      0.0497
+     ],
+     "rs": 0.6868,
+     "height": 31.88263714313507,
+     "tri": {
+      "trunk": 2472,
+      "trunkMid": 940,
+      "near": 3600,
+      "mid": 1272
+     }
+    }
+   ]
+  }
+ }
+}

@@ -53,7 +53,7 @@ const VARIANTS = REFS.flatMap((r) => QS.map((q) => ({ ...r, q, name: [REFS.lengt
 const ARMS = [
   { name: 'desktop 1440x900@2, CPU x1', w: 1440, h: 900, dpr: 2, cpu: 1, mobile: false },
   { name: 'phone 390x844@3, CPU x4', w: 390, h: 844, dpr: 3, cpu: 4, mobile: true },
-].filter((a) => !process.env.V2_FRAME_ARMS || process.env.V2_FRAME_ARMS.split('|').some((k) => a.name.includes(k)));   // e.g. V2_FRAME_ARMS=desktop
+].filter((a) => !process.env.V2_FRAME_ARMS || process.env.V2_FRAME_ARMS.split(/[|;]/).some((k) => a.name.includes(k)));   // e.g. V2_FRAME_ARMS=desktop
 const VIEWS = [
   { name: 'opening view', pose: null },
   { name: 'DKR close', slug: 'dkr-memorial-stadium', distance: 330, polar: 58, azimuth: 235 },
@@ -61,7 +61,9 @@ const VIEWS = [
   { name: 'street level (Guadalupe at 21st)', xz: [-252, 246], distance: 45, polar: 80, azimuth: 355 },
   { name: 'DKR from 2 km', slug: 'dkr-memorial-stadium', distance: 2000, polar: 72, azimuth: 200 },
   { name: 'The Independent close', slug: 'the-independent', distance: 420, polar: 72, azimuth: 20 },
-].filter((v) => !process.env.V2_FRAME_VIEWS || process.env.V2_FRAME_VIEWS.split('|').some((k) => v.name.includes(k)));
+  { name: 'South Mall street (trees)', xz: [0, 110], distance: 50, polar: 80, azimuth: 0 },
+  { name: 'Drag 300 m (trees)', xz: [-235, 30], distance: 300, polar: 60, azimuth: 250 },
+].filter((v) => !process.env.V2_FRAME_VIEWS || process.env.V2_FRAME_VIEWS.split(/[|;]/).some((k) => v.name.includes(k)));   // V2_FRAME_VIEWS="opening|street level" (or ';')
 const args = [...HW_ARGS, ...(UNCAPPED ? ['--disable-gpu-vsync', '--disable-frame-rate-limit'] : [])];
 const browser = await launch(chromium, { args, maxMs: 1500000 });
 const rec = {};   // `${arm}|${view}` -> [{median,p95,calls,triangles}]
