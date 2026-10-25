@@ -22,12 +22,12 @@ const num = (k, d) => (Q.get(k) != null && Q.get(k) !== '' ? +Q.get(k) : d);
 export const WATER = {
   // ── the water body: what comes up out of the water (linear, in the app's light units; the sky's horizon is ~2.5 here) ──
   // Calibrated on the owner's Mount Bonnell photograph (Lake Austin, 11:48, late October): steep-ish views read deep navy-teal.
-  BODY: [0.048, 0.090, 0.116],
+  BODY: [0.052, 0.095, 0.122],
   F0: 0.02,                       // water's reflectance straight on (n = 1.33)
   // The mirror's strength. Fitted, not physical: with 1.0 the far water came out brighter than the photo and the near water
   // darker (his photo's lake is nearly one tone from 300 m to 160 m: (68, 95, 116) sRGB); ripples steeper than the normal maps
   // and the photo's clouds (the app's sky has none) are what this stands in for.
-  REFLECT_GAIN: 0.54,
+  REFLECT_GAIN: 0.48,
   // ── the wrinkles: [scale in metres per repeat, direction in degrees (compass, the way the ripples travel), speed m/s, strength] ──
   // Austin's usual wind is from the south: the main wind waves travel north. Speeds are about 0.6 x the deep-water phase speed.
   LAYERS: [[6.5, 10, 2.0, 0.6], [2.2, 340, 1.2, 0.35], [23, 30, 3.0, 0.4]],
@@ -46,7 +46,13 @@ export const WATER = {
   RES_PHONE: 0.35,
   MAX_PX: 1280,                   // and never wider than this
   MSAA: 4,                        // multisampling of the mirror (desktop; 0 on the phone): no stair-stepped reflected edges
-  REFLECT_FAR_M: 6000,            // the mirror camera draws to this distance
+  REFLECT_FAR_M: 2500,            // the mirror camera draws to this distance (the far shore's trees and towers; past it, haze)
+  // The mirror pass runs only while some water in view is nearer than this; farther water mirrors the sky alone (computed, no
+  // pass), blending over the last quarter of the distance. Measured 2026-10-24: with the pass on whenever ANY piece of water was in
+  // the view cone (a pond behind the towers, the lake 2 km off), views with no visible water paid for it.
+  MIRROR_FAR_M: 1500,
+  MIRROR_FAR_M_PHONE: 900,
+  ANIMATE_FAR_M: 3000,            // the app keeps redrawing (moving water) only while water in view is nearer than this
   LIFT_M: 0.03,                   // the surface sits this far over the flat ground (under the roads: bridges stay on top)
   RENDER_ORDER: 0.8,              // over the aerial ground (0.5-0.7), under the modelled asphalt (0.9) and the roads (1)
   ANIMATE: true,                  // the water moves (the app redraws every frame while water is in view)
@@ -133,7 +139,6 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
   });
 
   const planes = [];
-  let frameId = 0;
   for (const [lv, L] of levels) {
     const size = new THREE.Vector2();
     const rt = new THREE.WebGLRenderTarget(16, 16, { type: THREE.HalfFloatType, samples: phone ? 0 : WATER.MSAA, depthBuffer: true });
@@ -148,11 +153,13 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
       glitter: { value: WATER.GLITTER }, shine: { value: new THREE.Vector2(WATER.SHININESS, WATER.SHININESS_FAR) },
       shineFar: { value: new THREE.Vector2(...WATER.SHINE_FAR_M) },
       sunDir: { value: sunDir }, sunCol: { value: sunCol },
+      mirrorOn: { value: 0 }, mirrorFar: { value: phone ? WATER.MIRROR_FAR_M_PHONE : WATER.MIRROR_FAR_M },
+      skySines: { value: dome.material.uniforms.sines.value }, skyCols: { value: dome.material.uniforms.cols.value }, skyScale: { value: dome.material.uniforms.scale.value },
       lScale: { value: layers.map((l) => l.scale) }, lDir: { value: layers.map((l) => l.dir) }, lSpeed: { value: layers.map((l) => l.speed) }, lAmp: { value: layers.map((l) => l.amp) },
     };
     const mat = new THREE.ShaderMaterial({
       name: 'v2-water', uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {}]), fog: true, depthWrite: false, side: THREE.DoubleSide,   // the pieces' winding is whatever the triangulation gave; the camera is always above
-      defines: { NL: layers.length, DEBUG: { refl: 1, fresnel: 2 }[Q.get('waterdebug')] || 0 },
+      defines: { NL: layers.length, NS: dome.material.uniforms.sines.value.length, DEBUG: { refl: 1, fresnel: 2 }[Q.get('waterdebug')] || 0 },
       vertexShader: /* glsl */`
         uniform mat4 textureMatrix;
         varying vec4 vRefl; varying vec3 vWorld;
@@ -171,6 +178,12 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
         uniform vec3 body, sunDir, sunCol;
         uniform vec2 distort, shine, shineFar;
         uniform float lScale[NL], lSpeed[NL], lAmp[NL]; uniform vec2 lDir[NL];
+        uniform float mirrorOn, mirrorFar; uniform float skySines[NS]; uniform vec3 skyCols[NS], skyScale;
+        vec3 skyAt(vec3 d) {      // the visible dome's sky (main.js skyMaterial, without the sun's halo): what far water mirrors
+          vec3 c = skyCols[0];
+          for (int i = 1; i < NS; i++) if (d.y > skySines[i - 1]) c = mix(skyCols[i - 1], skyCols[i], clamp((d.y - skySines[i - 1]) / (skySines[i] - skySines[i - 1]), 0.0, 1.0));
+          return c * skyScale;
+        }
         varying vec4 vRefl; varying vec3 vWorld;
         #include <common>
         #include <fog_pars_fragment>
@@ -193,12 +206,14 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
           vec3 nv = (viewMatrix * vec4(N.x, 0.0, N.z, 0.0)).xyz;
           float nearK = smoothstep(0.0, distortNear, dist);
           vec2 ruv = vRefl.xy / vRefl.w + vec2(nv.x, nv.y) * distort * nearK;
-          vec3 refl = texture2D(tReflect, ruv).rgb;
+          vec3 R = reflect(-V, N);
+          float mk = mirrorOn * (1.0 - smoothstep(mirrorFar * 0.75, mirrorFar, dist));
+          vec3 refl = skyAt(R);
+          if (mk > 0.0) refl = mix(refl, texture2D(tReflect, ruv).rgb, mk);
           float cosT = clamp(dot(N, V), 0.0, 1.0);
           float F = f0 + (1.0 - f0) * pow(1.0 - cosT, 5.0);
           vec3 col = mix(body, refl * reflGain, F);
           // the sun's glitter: a Phong lobe on the wrinkled normal, wider where a pixel covers many ripples
-          vec3 R = reflect(-V, N);
           float sh = mix(shine.x, shine.y, smoothstep(shineFar.x, shineFar.y, dist));
           float g = pow(max(dot(R, sunDir), 0.0), sh) * (sh + 2.0) / 8.0;
           col += sunCol * glitter * g * F;
@@ -215,8 +230,7 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
     });
     Object.assign(mat.uniforms, U);
     const group = new THREE.Group(); group.name = 'water level ' + lv;
-    let lastFrame = -1;
-    const plane = { level: lv, group, rt, mirrorCam, textureMatrix, mat, size, drawnAt: -1 };
+    const plane = { level: lv, group, rt, mirrorCam, textureMatrix, mat, size, drawnAt: -1, near: Infinity };
     for (const P of L.pieces) {
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(P.pos, 3));
@@ -225,12 +239,9 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
       const m = new THREE.Mesh(g, mat);
       m.position.y = lv + WATER.LIFT_M; m.renderOrder = WATER.RENDER_ORDER; m.name = 'water';
       m.userData.noReflect = true;
-      // the mirror is drawn once a frame, by the first piece of this level that the camera does not cull
-      m.onBeforeRender = (r, s, cam) => {
-        if (cam !== camera || frameId === lastFrame) return;
-        lastFrame = frameId; plane.drawnAt = performance.now();
-        drawMirror(plane, cam);
-      };
+      m.updateMatrixWorld();
+      plane.spheres = plane.spheres || [];
+      plane.spheres.push(g.boundingSphere.clone().applyMatrix4(m.matrixWorld));
       group.add(m);
     }
     scene.add(group);
@@ -307,18 +318,39 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
     stats.passes++; stats.ms += performance.now() - t0; stats.w = w; stats.h = h;
   }
 
+  // ── once per render of the city (scene.onBeforeRender: also the verify scripts' direct renders): which water is in view and how
+  // near; the mirror pass when some is near enough. Runs before three.js builds its render lists, so the pass nests safely.
+  const frustum = new THREE.Frustum(), pv = new THREE.Matrix4();
+  const prevHook = scene.onBeforeRender;
+  scene.onBeforeRender = function (r, s, cam, target) {
+    prevHook.call(this, r, s, cam, target);
+    if (cam !== camera || target) return;
+    pv.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(pv, THREE.WebGLCoordinateSystem, cam.reversedDepth);
+    camPos.setFromMatrixPosition(cam.matrixWorld);
+    const far = phone ? WATER.MIRROR_FAR_M_PHONE : WATER.MIRROR_FAR_M;
+    for (const P of planes) {
+      let near = Infinity;
+      for (const sp of P.spheres) if (frustum.intersectsSphere(sp)) near = Math.min(near, Math.max(0, sp.center.distanceTo(camPos) - sp.radius));
+      P.near = near;
+      const on = near < far;
+      P.mat.uniforms.mirrorOn.value = on ? 1 : 0;
+      if (on) { drawMirror(P, cam); P.drawnAt = performance.now(); }
+      if (near < WATER.ANIMATE_FAR_M) P.seenAt = performance.now();
+    }
+  };
+
   const t0 = performance.now();
   let fixedTime = null;
   const api = {
-    WATER, planes, stats,
+    WATER, planes, stats, near: () => planes.map((P) => P.near),
     // called by main.js every frame before rendering; returns true while water is in view and moving (main.js keeps redrawing)
     update(now) {
-      frameId++;
       for (const P of planes) {
         P.mat.uniforms.time.value = fixedTime != null ? fixedTime : WATER.ANIMATE ? (now - t0) / 1000 : 0;
         sunDir.copy(sun.position).sub(sun.target.position).normalize();
       }
-      return WATER.ANIMATE && fixedTime == null && planes.some((P) => now - P.drawnAt < 250);
+      return WATER.ANIMATE && fixedTime == null && planes.some((P) => now - (P.seenAt || -1e9) < 250);
     },
     setTime(sec) { fixedTime = sec; },     // the verify scripts: a fixed instant (null = run the clock)
     tag,
