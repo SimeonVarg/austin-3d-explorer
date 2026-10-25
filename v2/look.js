@@ -35,6 +35,32 @@ export const LOOK = {
   SUN_AZIMUTH_DEG: 215,         // compass bearing the light COMES FROM (215 = south-west, afternoon)
   SUN_ELEVATION_DEG: 48,
 
+  // ── the sky of a moment (v2/sky.js; ONLY with ?moment=..., the default above is unchanged) ──
+  // ?moment=2026-10-24T17:07 (Austin's clock) or ?moment=IMG_1778 (a preset in v2/data/moments.json); &haze= &cover= &exposure= override.
+  MOMENT: {
+    REF: { AZ: 215, EL: 48, HAZE: 1 },   // the calibration: at this sun and haze, with no clouds, the model's sky and sun ARE Light B's
+    HAZE: 1,                     // aerosols, 1 = optical depth 0.1 at 550 nm
+    MULTI_SCATTER: 0.0,          // share of the sky's mean added for light scattered more than once (0 = single scattering)
+    SKY_GLOW: 0.25,              // the sun's halo in the visible dome (as SKY_SUN_GLOW)
+    // the cloud layer: a plane at ALT_M, features SIZE_M across, COVER = the share of the sky covered (0 = clear), SOFT = edge softness
+    // in noise units, lit by the moment's sun (SUN, SILVER = forward-scattering halo toward the sun, G its sharpness) and sky (AMBIENT),
+    // BASE_DARK = how much darker the thick parts are; HORIZON: the sines over which clouds fade into the haze near the horizon
+    CLOUDS: { ALT_M: 1800, SIZE_M: 1100, COVER: 0, SOFT: 0.1, OCTAVES: 6, OFFSET: [0, 0], MIN_SIN: 0.03, HORIZON: [0.01, 0.07],
+              SUN: 0.55, SILVER: 2.5, G: 0.6, AMBIENT: 0.9, BASE_DARK: 0.45, OPACITY: 1.0 },
+    // after dusk: what single scattering leaves out (airglow + the city's light on the haze), dome units, faded in as the sun sinks
+    // from FROM_EL[1] to FROM_EL[0] degrees; GLOW falls off with the sine of the height as e^(-sine / GLOW_SINE)
+    // (a night photo is exposed ~10^4 x a day one: IMG_1855 1/9 s ISO 800 vs IMG_1778 1/7143 s ISO 64, so these are tiny in day units)
+    NIGHT: { FROM_EL: [-8, -2], ZENITH: [2e-6, 3e-6, 8e-6], GLOW: [2.5e-5, 1.6e-5, 1.0e-5], GLOW_SINE: 0.12,
+             // lit windows (first pass): radiance in the same units, the share of windows lit, and the Blender glass's cell (storey, bay, m)
+             WINDOWS: [2.0e-4, 1.5e-4, 0.9e-4], LIT_SHARE: 0.45, CELL_M: [3.3, 3.0] },
+    GROUND_SHADE: true,          // the ground a face looks at, in the shadow of the sun, gives no sun bounce (PR #550 cause 4)
+    GROUND_ALBEDO: 0.32,         // = LIGHT_B.ground
+    GROUND_MAX_M: 600,           // ...the ground point looked at is at most this far from the face
+    GROUND_TAPS: 5,              // ...shadow taps per face: 1 along the look, the rest on a ring GROUND_SPREAD around it (1 = one tap)
+    GROUND_SPREAD: 1.0,          // (1.0 = 45 degrees off the look)
+    MIN_LIGHT_EL: 2,             // the sun light's direction (for its shadows) stays this many degrees up after sunset; its strength is 0
+  },
+
   // ── hemisphere fill (off by default: the environment carries sky and bounce) ──
   HEMI_SKY: '#dfe9f5',
   HEMI_GROUND: '#b8ae98',
