@@ -591,13 +591,16 @@
       "model": "opus",
       "kind": "street",
       "tile": "t_-5_9",
-      "blend_sha256": "6aa2bc02822252d2",
+      "blend_sha256": "89c58d532e48c433",
       "lod1": "mass",
       "placement": {
-        "height_m": 182.5,
-        "area_ratio": 1.003,
-        "centre_off_m": 0.03,
-        "flags": []
+        "height_m": 174.8,
+        "area_ratio": 1.163,
+        "centre_off_m": 0.68,
+        "flags": [
+          "area x1.16",
+          "base at -3.5 m"
+        ]
       }
     },
     "block-on-25th-east": {
@@ -5784,15 +5787,15 @@
       }
     },
     "t_-5_9": {
-      "hash": "74b0694f6b457a19",
+      "hash": "2ba7e3824090d66e",
       "near": {
-        "bytes": 83936,
-        "tris": 10452,
+        "bytes": 318896,
+        "tris": 29621,
         "draws": 2
       },
       "far": {
-        "bytes": 21300,
-        "tris": 1420,
+        "bytes": 23760,
+        "tris": 1468,
         "draws": 1
       }
     },

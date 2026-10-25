@@ -1069,12 +1069,13 @@
       ],
       "lod0": "tiles/t_-5_9.glb",
       "lod1": "tiles/t_-5_9.far.glb",
+      "lod1_m": 400,
       "buildings": [
         "block-185"
       ],
       "bytes": [
-        83936,
-        21300
+        318896,
+        23760
       ]
     },
     {
@@ -2130,7 +2131,7 @@
       "model": "opus",
       "x": -1068.72,
       "z": 2279.796,
-      "top": 182.5
+      "top": 174.8
     },
     "block-on-25th-east": {
       "tile": "t_-3_-2",
@@ -4412,7 +4413,7 @@
       "map_ids": [
         "eaca344c"
       ],
-      "name": "West Campus block with ΣΧ letters (eaca344c)",
+      "name": "West Campus block with \u03a3\u03a7 letters (eaca344c)",
       "model": "opus",
       "x": -269.769,
       "z": -705.699,
