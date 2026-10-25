@@ -325,11 +325,14 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
     dome.updateMatrixWorld();
     holdShadows(true);
     const prevAuto = renderer.shadowMap.autoUpdate; renderer.shadowMap.autoUpdate = false;
+    // the main render updated every matrix just before this hook: a second walk of the scene's 3,000+ objects is half the
+    // pass's CPU time (measured 0.5 of 1.1 ms on the owner's Mac)
+    const prevMwu = scene.matrixWorldAutoUpdate; scene.matrixWorldAutoUpdate = false;
     try {
       renderer.setRenderTarget(P.rt);
       renderer.render(scene, mc);
     } finally {
-      holdShadows(false); renderer.shadowMap.autoUpdate = prevAuto;
+      holdShadows(false); renderer.shadowMap.autoUpdate = prevAuto; scene.matrixWorldAutoUpdate = prevMwu;
       dome.position.copy(domePos); dome.scale.setScalar(domeScale); dome.updateMatrixWorld();
       renderer.xr.enabled = prevXr;
       renderer.setRenderTarget(prevTarget);
