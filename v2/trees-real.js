@@ -1,10 +1,10 @@
-// SOLID CROWNS (2026-10-25, the default; ?treesolid=0 for the cards below): the owner's photographs show dense, near-black crowns, and
+// SOLID CROWNS (2026-10-25, with ?trees=real; ?treesolid=0 for the cards below): the owner's photographs show dense, near-black crowns, and
 // the layered see-through cards were both too pale and most of the trees' cost. Each crown is now the tree's own leaf clusters (k-means of
 // its cards) drawn as opaque round clumps: near 44 clumps + the full trunk, mid 18 clumps + a plain trunk, far the impostor quads with
 // their atlas drawn at load from the mid clumps. Opaque: no alpha test, no layers, nothing to sparkle; the leaf mottling on the surface
 // is baked per vertex, smooth between them (no pixel cost, nothing to sparkle: rule 15). Look values: street-look.js TREE_REAL_LOOK (SOLID_*, CLUMP_*, AO_*, LEAF_NOISE*).
 //
-// The tree library (default; ?trees=balls for v2's old balls) (v2/data/trees-real/, made offline by tools/trees/gen with EZ-Tree, MIT) in place of v2's one ball or
+// The tree library (?trees=real; the app default is still the balls: street-look.js TREE_LOOK.DEFAULT_MODE) (v2/data/trees-real/, made offline by tools/trees/gen with EZ-Tree, MIT) in place of v2's one ball or
 // cone per tree. Same tree list (City inventories + the aerial's crowns, positions/size/group from trees.js), each tree drawn by
 // distance:
 //   near  (< ~55 m)   trunk + branches + leaf-clump cards, alpha-to-coverage (alpha test smoothed over the pixel's own slope)

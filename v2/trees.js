@@ -11,11 +11,11 @@ const DATA = new URL('./data/trees/', import.meta.url).href;
 
 export function installTrees({ THREE, scene, redraw, renderer, phone = false }) {
   if (params.get('trees') === '0') return null;
-  // the tree library (trees-real.js: solid crowns from the tree's own leaf clusters) by default; ?trees=balls for one ball or cone a tree
+  // ?trees=real: the tree library (trees-real.js: solid crowns from the tree's own leaf clusters); ?trees=balls: one ball or cone a tree
   const REAL = (params.get('trees') || T.DEFAULT_MODE) === 'real';
-  // positions: one tree per crown of the 2021 laser scan (scripts/v2/street_trees_lidar.py) by default; ?treesrc=city for the City
+  // positions: one tree per crown of the 2021 laser scan (scripts/v2/street_trees_lidar.py) with the real trees; ?treesrc=city for the City
   // inventories + the aerial's crowns + OSM (street_trees.py), which put trees where the owner's photographs have none
-  const SRC = params.get('treesrc') || T.DEFAULT_SOURCE;
+  const SRC = params.get('treesrc') || T.DEFAULT_SOURCE[REAL ? 'real' : 'balls'];
   const group = new THREE.Group(); group.name = 'trees';
   scene.add(group);
   const stats = { ready: false };

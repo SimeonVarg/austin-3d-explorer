@@ -79,8 +79,12 @@ export const STREET_LOOK = {
 };
 
 export const TREE_LOOK = {
-  DEFAULT_MODE: 'real',         // 'real': the tree library's solid crowns (trees-real.js); 'balls': one ball or cone a tree (?trees=balls)
-  DEFAULT_SOURCE: 'lidar',      // 'lidar': a tree per crown of the 2021 laser scan; 'city': the inventories + aerial + OSM (?treesrc=city)
+  // 'real' (?trees=real): the tree library's solid crowns (trees-real.js); 'balls' (?trees=balls): one ball or cone a tree.
+  // Stays 'balls' until the solid crowns are within 1.3x of it everywhere: 2026-10-25 on the Mac they were 1.12-1.26x except inside the
+  // South Mall's crowns on desktop (1.35x). Flip this one value to make them the default.
+  DEFAULT_MODE: 'balls',
+  // positions: 'lidar' = a tree per crown of the 2021 laser scan (102,922), 'city' = the inventories + aerial + OSM (24,919). ?treesrc=
+  DEFAULT_SOURCE: { real: 'lidar', balls: 'city' },   // the balls stay on the old list: 100k balls (and their shadows) were not measured
   // v2's own tree look (look.js TREE_*: crown '#33482a', +-12 % lightness, crown = 62 % of the height), kept, with a colour and a shape
   // per species group. radius = x the baked crown radius; minAspect = the crown is at least this x radius tall.
   GROUPS: {
