@@ -15,10 +15,10 @@ import { MapLite, MarkerLayer, MercatorCoordinate } from './maplite.js';
 import { MapLayers } from './map-layers.js';
 import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
 import { installGround } from './ground.js';
-import { exactPrepare, exactProbe, exactState, setSkyDirect } from './exact-pilot.js';
+import { exactPrepare, exactProbe, exactState } from './exact-pilot.js';
 import { austinToUtc, sunPosition, buildMoment, momentSky, cloudGLSL, nightGLSL, SKY_TABLE, sunTransmittance } from './sky.js';
 import { loadRealSky, placeRealSky, realAt, realSkyGLSL, realSkyUniforms, setAnisotropy } from './sky-real.js';
-import { glassPrepare, glassState, setGlassReal, setGlassFootprintScale, setGlassTilt, GLASS_REFLECT } from './glass.js';
+import { glassPrepare, glassState, setGlassReal, setGlassFootprintScale, setGlassTilt, GLASS_REFLECT, setSkyDirect } from './glass.js';
 
 const params = new URLSearchParams(location.search);
 // exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
@@ -546,13 +546,17 @@ function applyMoment(spec) {
     placeRealSky(R, M, sunAtEl, M.ref.LIGHT, levelE(skyVals), M.exposure, LOOK.MOMENT.REAL.FIT_SLOPE_MAX, params.get('skyfitfade') === '0' || !GLASS_REFLECT ? null : LOOK.MOMENT.REAL.FIT_FADE_DEG, LOOK.MOMENT.REAL.CLOUDS);
     skyVals = dirs.map((d) => (d[1] >= -0.01 ? realAt(R, [d[0], Math.max(d[1], 0), d[2]]) : null));
   }
+  // the sky the LIGHT is made from: the cloud layer counts by CLOUDS.LIGHT (the moment's light was fitted to his photo before there
+  // were clouds; the layer is there to be SEEN and mirrored); the mirror (below) keeps all of it
+  const cK = R && R.cloud && R.cloud.on ? +(LOOK.MOMENT.REAL.CLOUDS.LIGHT ?? 1) : 1;
+  const skyValsL = cK === 1 ? skyVals : dirs.map((d) => (d[1] >= -0.01 ? realAt(R, [d[0], Math.max(d[1], 0), d[2]], cK) : null));
   // The LIGHT a real sky casts is the visible sky with Light B's own chroma relation: Light B lights with its sky stops x SKY_GAIN
   // (per channel), a much paler light than the deep blue it shows (a camera's sky is far more saturated than the sky's light). One
   // number s, fitted so that toward-grey(stops irradiance, s) has the colour of (stops x SKY_GAIN): the same s applied to a real sky
   // turns Light B's own sky into Light B's own light exactly, keeps white clouds white and a sunset's warm light warm.
   const sB = R ? lightDesat() : 1;
   const toLight = (v) => { if (sB === 1) return v.map((x) => x * M.ref.LIGHT); const l = 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; return v.map((x) => (l + LOOK.MOMENT.REAL.LIGHT_SAT * sB * (x - l)) * M.ref.LIGHT); };
-  const lightVals = skyVals.map((v) => v && toLight(v));
+  const lightVals = skyValsL.map((v) => v && toLight(v));
   const skyAtM = R ? (d) => realAt(R, d) : (d) => momentSky(M, d);
   const Esky = levelE(lightVals.map((v) => v && v.map((x) => x / M.ref.LIGHT)));
   const sinEl = Math.max(0, Math.sin(THREE.MathUtils.degToRad(M.el)));

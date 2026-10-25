@@ -126,10 +126,11 @@ export function cloudAt(R, d) {
   return [...c.map((v, k) => v * C.white * C.k * C.gain * g[k]), a * a * (3 - 2 * a) * C.cover * cloudPhotoWeight(R, d) * sstep(C.elS[0], C.elS[1], d[1])];
 }
 // with the photo where it has sky
-export function realAt(R, d) {
+// cloudK: how much of the cloud layer counts (1 = all; the LIGHT a moment casts uses CLOUDS.LIGHT, see main.js applyMoment)
+export function realAt(R, d, cloudK = 1) {
   let c = hdriAt(R, d);
   const cl = cloudAt(R, d);
-  if (cl) c = c.map((v, k) => v * (1 - cl[3]) + cl[k] * cl[3]);
+  if (cl) { const a = cl[3] * cloudK; c = c.map((v, k) => v * (1 - a) + cl[k] * a); }
   if (!R.photo) return c;
   const p = photoAt(R.photo, d);
   if (!p || p[3] <= 0) return c;
@@ -167,7 +168,7 @@ export function placeRealSky(R, M, sunAtEl, LIGHT, modelLevelE, photoExposure, s
     C.uSun = cs ? cs.u : 0.5; C.white = C.S.white;
     C.k = C.S.sun && C.S.sun.E_rgb[1] > 0 ? lum(sunAtEl(C.S.sun.el_deg)) / lum(C.S.sun.E_rgb) / LIGHT : lum(modelLevelE) / Math.max(1e-12, lum(C.S.E_sky_level_rgb)) / LIGHT;
     if (clouds) Object.assign(C, { cover: clouds.COVER, alpha: clouds.ALPHA, gain: clouds.GAIN, uOff: (clouds.AZ_DEG || 0) / 360,
-      elS: (clouds.EL_DEG || [0, 0.01]).map((e) => Math.sin(e * D2R)) });
+      elS: (clouds.EL_DEG || [0, 0.01]).map((e) => Math.sin(e * D2R)), blur: Math.max(0, clouds.ALPHA_LOD || 0) });
   }
   R.fade = null; R.photoDir = null; R.cfade = null;
   R.sunDir = M.sunDir ? [...M.sunDir] : null;
@@ -217,7 +218,7 @@ uniform sampler2D rTex; uniform float rU0, rBase; uniform vec3 rLogA, rGainB; un
 uniform sampler2D pTex; uniform mat3 pM; uniform float pScale, pGamma; uniform vec3 rPDir, rSunD; uniform vec2 rFade, rCFade;
 #endif
 #ifdef R_CLOUD
-uniform sampler2D cTex; uniform float cU0, cBase, cCover; uniform vec2 cAlpha, cEl;
+uniform sampler2D cTex; uniform float cU0, cBase, cCover, cBlur; uniform vec2 cAlpha, cEl;
 #endif
 vec3 v2real(vec3 d) {
   float el = asin(clamp(d.y, 0.0, 1.0));
@@ -238,7 +239,12 @@ vec3 v2real(vec3 d) {
   {
     vec2 cuv = vec2(cU0 + az * 0.15915494, uv.y);
     vec3 cc = textureGrad(cTex, vec2(fract(cuv.x), cuv.y), dx, dy).rgb;
-    float ca = smoothstep(cAlpha.x, cAlpha.y, min(cc.r, min(cc.g, cc.b)) / max(max(cc.r, max(cc.g, cc.b)), 1e-5)) * cCover * smoothstep(cEl.x, cEl.y, d.y);
+    // the cloud/sky decision from a coarser level of the texture (at least mip cBlur): a threshold on the fine texture draws contour
+    // lines inside the clouds (where their own shading dips in whiteness); the cloud's look stays sharp from the fine colour
+    vec2 cts = vec2(textureSize(cTex, 0));
+    float clod = log2(max(max(length(dx * cts), length(dy * cts)), 1.0));
+    vec3 cb = textureLod(cTex, vec2(fract(cuv.x), cuv.y), max(clod, cBlur)).rgb;
+    float ca = smoothstep(cAlpha.x, cAlpha.y, min(cb.r, min(cb.g, cb.b)) / max(max(cb.r, max(cb.g, cb.b)), 1e-5)) * cCover * smoothstep(cEl.x, cEl.y, d.y);
 #ifdef R_PHOTO
     if (rCFade.x > rCFade.y) ca *= 1.0 - smoothstep(rCFade.y, rCFade.x, dot(d, rPDir));
 #endif
@@ -265,7 +271,7 @@ export function realSkyUniforms(R) {
     rGainB: { value: new THREE.Vector3(...R.fit.b) }, rFit: { value: new THREE.Vector3(R.fit.el0, R.fit.elMin, R.fit.elMax) },
   };
   if (R.cloud && R.cloud.on) Object.assign(u, { cTex: { value: R.cloud.tex }, cU0: { value: R.cloud.uSun + R.cloud.uOff - R.azSun / (2 * Math.PI) },
-    cBase: { value: R.cloud.white * R.cloud.k * R.cloud.gain }, cCover: { value: R.cloud.cover }, cAlpha: { value: new THREE.Vector2(...R.cloud.alpha) }, cEl: { value: new THREE.Vector2(...R.cloud.elS) } });
+    cBase: { value: R.cloud.white * R.cloud.k * R.cloud.gain }, cCover: { value: R.cloud.cover }, cAlpha: { value: new THREE.Vector2(...R.cloud.alpha) }, cEl: { value: new THREE.Vector2(...R.cloud.elS) }, cBlur: { value: R.cloud.blur } });
   if (R.photo) Object.assign(u, { pTex: { value: R.photo.tex }, pM: { value: R.photo.M }, pScale: { value: R.photo.scale }, pGamma: { value: R.photo.P.gamma || 1 },
     rPDir: { value: new THREE.Vector3(...R.photoDir) }, rSunD: { value: new THREE.Vector3(...(R.sunDir || [0, 1, 0])) },
     rFade: { value: new THREE.Vector2(...(R.fade || [0, 0])) }, rCFade: { value: new THREE.Vector2(...(R.cfade || [0, 0])) } });

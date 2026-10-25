@@ -35,7 +35,7 @@ export const GLASS_REAL = {
   // 2026-10-25, measured at his photo's camera: in his glass one cloud runs on across many panes, offset a little at each mullion. The
   // BOW is what smeared it: a pane whose normal turns 0.9 deg to its edge squeezes ~4 deg of sky into one pane, so every pane showed a
   // smooth average of the sky (the "flat gradient"); with the bow at 0.2 the cloud carries across the panes and the tilt breaks it.
-  TILT_DEG: GLASS_REFLECT ? 0.6 : 0.45,   // per-pane tilt of the reflection normal, the spread (each of two axes, a uniform -1..1 times this)
+  TILT_DEG: GLASS_REFLECT ? 1.2 : 0.45,   // per-pane tilt of the reflection normal, the spread (each of two axes, a uniform -1..1 times this)
   BOW_DEG: GLASS_REFLECT ? 0.2 : 0.9,     // per-pane bow: how far the normal turns at the pane's edge vs its middle (sign random per pane)
   ROUGH_VAR: 0.35,         // per-pane roughness, x (1 +- this)
   SPEC_VAR: 0.12,          // per-pane reflection strength (coating), x (1 +- this)
@@ -47,7 +47,31 @@ export const GLASS_REAL = {
   VAR_PX: [3, 7],          // tilt, coating, room
   BOW_PX: [10, 24],        // the bow varies inside a pane, so it goes first
   MAX_PANE_M: 12,          // islands bigger than this (a whole glazed wall in one piece) get no per-pane look
+  // The SKY in every glass read straight from the sky's own texture, sharp, not from a PMREM map (2026-10-25). A flat mirror shows the
+  // sky at the camera's own angular scale (0.02 deg a pixel at the owner's street photo); a 256 px environment face is 0.35 deg a texel,
+  // so every cloud came back smeared over ~17 pixels. Only with a real sky (a moment that names one); mip-filtered by the reflection's
+  // own derivatives, so far glass gets the sky's average, not its noise (rule 15). SKY_ROUGH: [full, none] roughness for the sharp sky.
+  // ?skydirect=0 (or ?glassreflect=0) = off.
+  SKY_DIRECT: GLASS_REFLECT && Q.get('skydirect') !== '0',
+  SKY_ROUGH: [0.08, 0.2],
 };
+// the sharp sky: realSkyGLSL + its uniforms (sky-real.js, set by main.js for the moment's sky), as stable {value} holders so compiled
+// glass follows a change of sky; every patched glass material is kept to recompile when the sky's defines change
+export const SKY = { glsl: null, defines: '', key: '', U: {} };
+const glassMats = new Set();
+export function setSkyDirect(glsl, uniforms, defines) {
+  if (!GLASS_REAL.SKY_DIRECT) return;
+  const key = Object.keys(defines || {}).sort().join(',');
+  const recompile = !SKY.glsl || key !== SKY.key;
+  SKY.glsl = glsl; SKY.key = key; SKY.defines = Object.keys(defines || {}).map((k) => `#define ${k} ${defines[k]}`).join('\n');
+  for (const [k, u] of Object.entries(uniforms)) { if (SKY.U[k]) SKY.U[k].value = u.value; else SKY.U[k] = { value: u.value }; }
+  if (recompile) for (const m of glassMats) m.needsUpdate = true;
+}
+// the sharp sky's GLSL (after realSkyGLSL): sd = the sky in direction d as the dome draws it, at the mirror's scale
+const SKY_DECL = `uniform vec3 v2SkyScale, v2SkySunDir, v2SkySunCol; uniform float v2SkyGlow;`;
+export const SKY_FN = `vec3 v2SharpSky(vec3 d) { return v2real(d) * v2SkyScale + v2SkySunCol * v2SkyGlow * pow(max(dot(d, v2SkySunDir), 0.0), 600.0) * 4.0; }
+float v2SharpW(vec3 d, float rough) { return (1.0 - smoothstep(${(+GLASS_REAL.SKY_ROUGH[0]).toFixed(4)}, ${(+GLASS_REAL.SKY_ROUGH[1]).toFixed(4)}, rough)) * smoothstep(-0.02, 0.03, d.y); }`;
+export function skyHeader() { return `${SKY_DECL}\n${SKY.defines}\n${SKY.glsl}\n${SKY_FN}`; }
 
 // the pane look of a pane middle: one seed in [0, 1) from its position (rounded to 5 cm, so tiny export differences cannot move it)
 function seedOf(x, y, z) {
@@ -119,9 +143,19 @@ GLASS_TB.value = new THREE.Vector2(K.TILT_DEG * DEG, K.BOW_DEG * DEG);
 export function realGlass(material) {
   if (!K.ON || !material || material.userData.v2GlassReal) return;
   material.userData.v2GlassReal = true;
+  glassMats.add(material);
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
+    // the sharp sky for glass that mirrors the environment map (the sky alone); glass with a local probe stack (exact-pilot.js) has
+    // already replaced this chunk and does it there, with its neighbours
+    if (SKY.glsl && !material.envMap && sh.fragmentShader.includes('#include <envmap_physical_pars_fragment>')) {
+      Object.assign(sh.uniforms, SKY.U);
+      const pars = THREE.ShaderChunk.envmap_physical_pars_fragment.replace(
+        'vec4 envMapColor = textureCubeUV( envMap, envMapRotation * reflectVec, roughness );',
+        'vec4 envMapColor = textureCubeUV( envMap, envMapRotation * reflectVec, roughness );\n\t\tenvMapColor.rgb = mix( envMapColor.rgb, v2SharpSky( reflectVec ), v2SharpW( reflectVec, roughness ) );');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + skyHeader()).replace('#include <envmap_physical_pars_fragment>', pars);
+    }
     sh.uniforms.v2GlassK = GLASS_K; sh.uniforms.v2GlassFp = GLASS_FP; sh.uniforms.v2GlassTB = GLASS_TB;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nattribute vec4 v2pane;\nattribute vec2 v2paneS;\nvarying vec3 vPaneOff;\nvarying vec3 vPaneSeed;')
@@ -168,7 +202,7 @@ vec4 v2paneRand2(float s) { return fract(sin(vec4(s * 29.771 + 5.31, s * 63.113 
       .replace('#include <aomap_fragment>', `reflectedLight.indirectSpecular *= v2SpecVar;\n#include <aomap_fragment>`);
   };
   const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
-  material.customProgramCacheKey = () => key() + '|v2-glass-real';
+  material.customProgramCacheKey = () => key() + '|v2-glass-real' + (SKY.glsl && !material.envMap ? '|sky:' + SKY.key : '');
   material.needsUpdate = true;
 }
 

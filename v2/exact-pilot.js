@@ -16,6 +16,7 @@
 //   tile entry  "exact": { "probe": [x, y, z], "probeSize": 256, "glass": { "f0": 0.36, "rough": 0.03, "envIntensity": 1 } }
 //   tile entry  "exactHide": [index, ...]      // _building values to drop from that (shared) tile
 import * as THREE from 'three';
+import { SKY, GLASS_REAL } from './glass.js';
 
 const EXACT = {
   PROBE_SIZE: 256,          // cube face size of the local probe (px)
@@ -28,24 +29,11 @@ const EXACT = {
   // mirror a dark tower and its skyline; one probe at 120 m saw over it, so the app showed sky there). manifest "exact.probes" overrides.
   PROBES: +(typeof location !== 'undefined' && new URLSearchParams(location.search).get('probes')) || 4,   // probes, evenly up the building (?probes=1: the old single probe)
   PROBE_R_M: 160,           // the parallax sphere: about how far the neighbours are (m)
-  // The SKY in the glass read straight from the sky's own texture, sharp, not from the probe (2026-10-25). A flat mirror shows the sky
-  // at the camera's own angular scale (his camera: 0.02 deg a pixel); a 256 px probe face is 0.35 deg a texel, so every cloud came back
-  // smeared over ~17 pixels. The probe still gives the neighbours: where the probe sees sky (it matches a sky-only probe read the same
-  // way) the sharp sky replaces it. COV_REL: how far the probe must differ from the sky-only probe (share of its brightness) to count
-  // as a neighbour; ROUGH: [full, none] glass roughness for the sharp sky. ?skydirect=0 = off.
-  SKY_DIRECT: (typeof location === 'undefined' || (new URLSearchParams(location.search).get('skydirect') !== '0' && new URLSearchParams(location.search).get('glassreflect') !== '0')),
-  COV_REL: 0.3, SKY_ROUGH: [0.08, 0.2],
+  // The probe still gives the neighbours; the sky in the glass is read sharp (glass.js SKY): where this probe sees sky (it matches a
+  // sky-only probe read the same way) the sharp sky replaces it. COV_REL: how far the probe must differ from the sky-only probe (share
+  // of its brightness) to count as a neighbour.
+  COV_REL: 0.3,
 };
-// the sharp sky: realSkyGLSL + its uniforms (sky-real.js), kept as stable {value} holders so compiled glass follows a sky change
-const SKY = { glsl: null, defines: '', U: {} };
-export function setSkyDirect(glsl, uniforms, defines) {
-  if (!EXACT.SKY_DIRECT) return;
-  const key = Object.keys(defines || {}).sort().join(',');
-  const recompile = !SKY.glsl || key !== SKY.key;
-  SKY.glsl = glsl; SKY.key = key; SKY.defines = Object.keys(defines || {}).map((k) => `#define ${k} ${defines[k]}`).join('\n');
-  for (const [k, u] of Object.entries(uniforms)) { if (SKY.U[k]) SKY.U[k].value = u.value; else SKY.U[k] = { value: u.value }; }
-  if (recompile) for (const t of exactState.tiles) for (const m of t.glass) m.needsUpdate = true;
-}
 const MAXP = 4;
 export const exactState = { tiles: [], probe: null, probeMs: null, hidden: 0 };
 
@@ -146,7 +134,7 @@ vec3 v2ProbeStack(vec3 d, float rough) {
   accS /= max(ws, 1e-4);
   // where the probe sees only sky it equals the sky-only probe: there the sharp sky replaces it; where it sees a neighbour it stays
   float cov = clamp(length(acc - accS) / (dot(accS, vec3(0.3333)) * ${(+EXACT.COV_REL).toFixed(4)} + 1e-4), 0.0, 1.0);
-  float wsh = (1.0 - smoothstep(${(+EXACT.SKY_ROUGH[0]).toFixed(4)}, ${(+EXACT.SKY_ROUGH[1]).toFixed(4)}, rough)) * smoothstep(-0.02, 0.03, d.y);
+  float wsh = (1.0 - smoothstep(${(+GLASS_REAL.SKY_ROUGH[0]).toFixed(4)}, ${(+GLASS_REAL.SKY_ROUGH[1]).toFixed(4)}, rough)) * smoothstep(-0.02, 0.03, d.y);
   acc += (1.0 - cov) * wsh * (sd - accS);` : ''}
   return acc;
 }
@@ -187,9 +175,9 @@ export function exactProbe(renderer, scene, skyObjs = null) {
       envs.push(pmrem.fromCubemap(rt.texture).texture);
       rt.dispose();
     }
-    // the sky-only probe (one is enough: the sky is at infinity), drawn and read exactly as the others, for the sharp sky (SKY_DIRECT)
+    // the sky-only probe (one is enough: the sky is at infinity), drawn and read exactly as the others, for the sharp sky (glass.js SKY)
     let skyEnv = null;
-    if (EXACT.SKY_DIRECT && skyObjs && SKY.glsl && envs.length > 1) {
+    if (GLASS_REAL.SKY_DIRECT && skyObjs && SKY.glsl && envs.length > 1) {
       const off = [];
       scene.traverse((o) => { if (o !== scene && o.visible && !skyObjs.includes(o) && !o.isLight && !o.isCamera && (o.isMesh || o.isLine || o.isPoints || o.isSprite || o.isInstancedMesh)) { o.visible = false; off.push(o); } });
       const rt = new THREE.WebGLCubeRenderTarget(size, { type: THREE.HalfFloatType, generateMipmaps: false });
