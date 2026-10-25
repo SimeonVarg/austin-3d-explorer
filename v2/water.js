@@ -55,6 +55,12 @@ export const WATER = {
   // the view cone (a pond behind the towers, the lake 2 km off), views with no visible water paid for it.
   MIRROR_FAR_M: 1500,
   MIRROR_FAR_M_PHONE: 900,
+  // Phones get no mirror pass by default (the sky mirror, waves and glitter stay): on the AWS L4's phone profile (CPU 4x) the pass
+  // took the lake-shore frame from 9 to 24 ms, past 60 Hz. ?watermirror=1 forces it on, ?watermirror=0 off everywhere.
+  MIRROR_ON_PHONE: false,
+  // A still camera sees the same mirror image (only the waves move, and they move it in the shader): the pass is redrawn only when
+  // the camera moved, or every this many frames while it is still (tiles fading in, the trees arriving).
+  MIRROR_STILL_EVERY: 30,
   // ...and only for bodies at least this big (the two lakes and the river below the dam): ponds and creek reaches near campus sat
   // inside the view cone, hidden behind buildings, and switched the pass on in views that show no water at all. They mirror the sky.
   MIRROR_MIN_BODY_M2: 100000,
@@ -75,6 +81,8 @@ WATER.RES = num('waterres', WATER.RES);
 WATER.GLITTER = num('waterglitter', WATER.GLITTER);
 if (Q.get('waterstill') === '1') WATER.ANIMATE = false;
 
+if (Q.get('watermirror') === '1') WATER.MIRROR_ON_PHONE = true;
+const MIRROR_OFF = Q.get('watermirror') === '0';
 const REFLECT_LAYER = 7;
 
 // A tileable field of slopes (x, z) from WATER.WAVES integer-wavenumber waves (so it repeats exactly), steeper waves short. Seeded:
@@ -341,9 +349,17 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
       let near = Infinity;
       for (const sp of P.spheres) if (frustum.intersectsSphere(sp)) near = Math.min(near, Math.max(0, sp.center.distanceTo(camPos) - sp.radius));
       P.near = near;
-      const on = near < far;
+      const on = near < far && !MIRROR_OFF && (!phone || WATER.MIRROR_ON_PHONE);
       P.mat.uniforms.mirrorOn.value = on ? 1 : 0;
-      if (on) { drawMirror(P, cam); P.drawnAt = performance.now(); }
+      if (on) {
+        // redraw only if the camera moved (or the mirror was off, or it has been still for a while)
+        const same = P.wasOn && P.lastView && P.lastView.equals(cam.matrixWorld) && P.lastProj.equals(cam.projectionMatrix) && ++P.stillFrames < WATER.MIRROR_STILL_EVERY;
+        if (!same) {
+          drawMirror(P, cam); P.drawnAt = performance.now(); P.stillFrames = 0;
+          (P.lastView ||= new THREE.Matrix4()).copy(cam.matrixWorld); (P.lastProj ||= new THREE.Matrix4()).copy(cam.projectionMatrix);
+        }
+      }
+      P.wasOn = on;
       if (near < WATER.ANIMATE_FAR_M) P.seenAt = performance.now();
     }
   };
