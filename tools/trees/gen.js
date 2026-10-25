@@ -53,14 +53,18 @@ const SPECIES = {
 
 // ── leaf-clump card textures (neutral grey, alpha): the card holds a CLUSTER, so a few cards make a crown ──────────────────
 function leafCanvas(kind, seed) {
-  const N = 256, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d'); const R = mulberry(seed);
+  const N = kind === 'broad' ? 512 : 256, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d'); const R = mulberry(seed);
   const grey = (lo, hi) => { const v = Math.round(lo + R() * (hi - lo)); return `rgb(${v},${v},${v})`; };
   if (kind === 'broad') {
-    for (let i = 0; i < 52; i++) {
-      const a = R() * 6.283, r = Math.sqrt(R()) * 96, x = N / 2 + Math.cos(a) * r, y = N / 2 + Math.sin(a) * r * 0.92;
-      const L = 24 + R() * 22, W = 10 + R() * 8, rot = R() * 6.283;
-      g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = grey(150, 255);
-      g.beginPath(); g.ellipse(0, 0, L / 2, W / 2, 0, 0, 6.283); g.fill(); g.restore();
+    // a card is ~2 m across at 512 px (1 px = 0.4 cm): live-oak / elm leaves are 3-7 cm, so 8-16 px long, in sprigs of 6-9 leaves
+    for (let c = 0; c < 135; c++) {
+      const a = R() * 6.283, r = Math.sqrt(R()) * 215, cx = N / 2 + Math.cos(a) * r, cy = N / 2 + Math.sin(a) * r * 0.92, dir = R() * 6.283, n = 6 + Math.floor(R() * 4);
+      for (let k = 0; k < n; k++) {
+        const t = (k / n - 0.4) * 34, lx = cx + Math.cos(dir) * t + (R() - 0.5) * 14, ly = cy + Math.sin(dir) * t + (R() - 0.5) * 14;
+        const L = 12 + R() * 8, Wd = 5 + R() * 4, rot = dir + (R() - 0.5) * 2.4;
+        g.save(); g.translate(lx, ly); g.rotate(rot); g.fillStyle = grey(150, 255);
+        g.beginPath(); g.ellipse(0, 0, L / 2, Wd / 2, 0, 0, 6.283); g.fill(); g.restore();
+      }
     }
   } else {   // feathery sprays of scale leaves / needles
     g.lineCap = 'round';

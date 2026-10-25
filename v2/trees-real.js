@@ -137,7 +137,7 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
     const col = leafTint(sp);
     const m = new THREE.MeshPhysicalMaterial({ specularIntensity: L.SPECULAR, map: (mid ? leafTexesMid : leafTexes)[kind], color: col, vertexColors: true, side: THREE.DoubleSide, alphaTest: L.ALPHA_CUT, alphaToCoverage: msaa, roughness: L.LEAF_ROUGHNESS, metalness: 0 });
     m.onBeforeCompile = (sh) => {
-      fadeShader(sh, false, mid ? 'vMapUv * 256.0' : 'vMapUv * 256.0', mid ? [-99, -98] : undefined);
+      fadeShader(sh, false, mid ? 'vMapUv * 512.0' : 'vMapUv * 512.0', mid ? [-99, -98] : undefined);
       // the cards' normals are the crown's own (outward + up): do not flip them on the back face
       sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', THREE.ShaderChunk.normal_fragment_begin.replace('normal *= faceDirection;', ''));
     };
@@ -266,6 +266,8 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
     arr[o + 12] = x; arr[o + 13] = y; arr[o + 14] = z; arr[o + 15] = 1;
   };
   const JIT = L.SHADE_JITTER;
+  // upload only the instances in use (the buffers are sized for every tree of the bucket)
+  const up = (a, n) => { a.clearUpdateRanges(); a.addUpdateRange(0, n * a.itemSize); a.needsUpdate = true; };
   function update(camera) {
     const t0 = performance.now();
     camera.updateMatrixWorld();
@@ -316,11 +318,11 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
       for (let vi = 0; vi < buckets[si].length; vi++) {
         const bk = buckets[si][vi];
         for (const [meshes, cnt] of [[bk.near, nearN[si][vi]], [bk.mid, midN[si][vi]]]) {
-          for (const m of [meshes.leaf, meshes.trunk]) { m.count = cnt; m.visible = cnt > 0; if (cnt) { m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; m.fadeAttr.needsUpdate = true; } }
+          for (const m of [meshes.leaf, meshes.trunk]) { m.count = cnt; m.visible = cnt > 0; if (cnt) { up(m.instanceMatrix, cnt); up(m.instanceColor, cnt); up(m.fadeAttr, cnt); } }
         }
         nearN[si][vi] = 0; midN[si][vi] = 0;
       }
-      const f = far[si]; f.count = farN[si]; f.visible = f.count > 0; if (f.count) { f.instanceMatrix.needsUpdate = true; f.instanceColor.needsUpdate = true; f.impAttr.needsUpdate = true; } farN[si] = 0;
+      const f = far[si]; f.count = farN[si]; f.visible = f.count > 0; if (f.count) { up(f.instanceMatrix, f.count); up(f.instanceColor, f.count); up(f.impAttr, f.count); } farN[si] = 0;
     }
     stats.near = nN; stats.mid = nM; stats.far = nF; stats.updates++; stats.ms = performance.now() - t0;
   }
