@@ -22,7 +22,7 @@ const num = (k, d) => (Q.get(k) != null && Q.get(k) !== '' ? +Q.get(k) : d);
 export const WATER = {
   // ── the water body: what comes up out of the water (linear, in the app's light units; the sky's horizon is ~2.5 here) ──
   // Fitted on the owner's midday photograph of Lake Austin from Mount Bonnell (docs/v2-water.md): it reads deep navy-teal.
-  BODY: [0.052, 0.095, 0.122],
+  BODY: [0.050, 0.092, 0.118],
   F0: 0.02,                       // water's reflectance straight on (n = 1.33)
   // The mirror's strength. Fitted, not physical: with 1.0 the far water came out brighter than the photo and the near water
   // darker (his photo's lake is nearly one tone from 300 m to 160 m: (68, 95, 116) sRGB); ripples steeper than the normal maps
@@ -218,9 +218,12 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
           s *= slope;
           vec3 N = normalize(vec3(-s.x, 1.0, -s.y));
           // the mirror, wrinkled: the slope seen on the screen moves the image, more along the view than across it (streaks)
-          vec3 nv = (viewMatrix * vec4(N.x, 0.0, N.z, 0.0)).xyz;
+          // across the screen: the slope along the camera's right; up the screen: the slope along the view (a facet tilted toward the
+          // eye lifts the reflected ray), which is the one that tears bright points into tall streaks
+          vec2 rgt = normalize(vec2(viewMatrix[0][0], viewMatrix[2][0]) + 1e-5);
+          vec2 fwd = vec2(-rgt.y, rgt.x);
           float nearK = smoothstep(0.0, distortNear, dist);
-          vec2 ruv = vRefl.xy / vRefl.w + vec2(nv.x, nv.y) * distort * nearK;
+          vec2 ruv = vRefl.xy / vRefl.w + vec2(dot(s, rgt), dot(s, fwd)) * distort * nearK;
           vec3 R = reflect(-V, N);
           float mk = mirrorOn * (1.0 - smoothstep(mirrorFar * 0.75, mirrorFar, dist));
           vec3 refl = skyAt(R);
