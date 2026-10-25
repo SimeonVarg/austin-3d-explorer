@@ -1,0 +1,22 @@
+{
+  "_about": "Parts of one Blender model that stand up through ANOTHER model's roof, hidden in the built tiles by scripts/v2/clip_tiles.mjs (pipeline stage 5, run after build_tiles.mjs: `node scripts/v2/clip_tiles.mjs`). The Blender builds themselves are not touched. Found by scripts/verify/v2-tile-pokes.mjs (it prints a clip entry for every poke it finds). clips[]: slug = the model the part belongs to, over = the model whose roof it crosses, tile = the tile file (lod0 only: the far mass has none of these), seed = a corner of the part, box = [x0,y0,z0,x1,y1,z1] world metres round it (the check's bounding box); the triangles of `slug` inside the box that are joined to the seed corner are dropped, tris = how many triangles that is (the stage refuses to run if the box now holds a different number: the model changed, look again), why = what the part is. known[]: pokes the check lists but nobody has decided on (a hidden part would leave a hole; the owner or the next builder decides); the check fails on any poke that is in neither list.",
+  "clips": [
+    {
+      "slug": "dkr-memorial-stadium",
+      "over": "moncrief-neuhaus-athletic-center",
+      "tile": "t_2_0",
+      "seed": [616.666, 12.317, 377.398],
+      "box": [615.72, 10.16, 377.35, 650.6, 12.51, 391.19],
+      "tris": 10,
+      "why": "DKR's guessed entry-pavilion canopy: a 34 m x 11 m slab sloping from 12.4 m down to 10.2 m. Over Moncrief-Neuhaus's hall roof (12.0-12.4 m) its upper face stands 0.3-0.5 m above the roof and drew as a tan patch on the red roof (aerials, 2026-10-24). Nothing of it is a photographed part of either building; the slab is inside Moncrief's volume where the roof is."
+    }
+  ],
+  "known": [
+    {
+      "slug": "icon",
+      "over": "villas-on-nueces",
+      "tile": "t_-2_0",
+      "why": "Icon's podium roof (19.9 m) stands up to 1.1 m above Villas on Nueces's roof where the two models overlap by about 40 m x 30 m. v2/tiles/inventory.md already flags icon (tower parts up to 86 m outside its outline: a possible offset). Hiding the podium roof would leave a hole; the placement of Icon is the question, not the roof."
+    }
+  ]
+}

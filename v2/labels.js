@@ -38,6 +38,13 @@ export const LABELS = {
   SAME_M: 150, SAME_MIN_WORDS: 2,
   SAME_ABBR: { bldg: 'building', ctr: 'center', cntr: 'center', educ: 'education', conf: 'conference', univ: 'university', lab: 'laboratory', labs: 'laboratories', st: 'street', ave: 'avenue', tx: 'texas' },
   SAME_SKIP: ['the', 'and', 'of', 'at', 'for'],
+  // ...and one building, one name by its FOOTPRINT, whatever the words (2026-10-24: "Moore-Hill Dormitory" over "Moore-Hill
+  // Residence Hall (MHD)": the model carries the map's name, the walking graph the university's, and no word rule can know that
+  // "dormitory" is "residence hall"). A UT building's doors each sit on the wall of the map outline they belong to: when at least
+  // FOOT_SHARE of its doors lie within FOOT_DOOR_M of an outline a Blender model (or an apartment's model) owns, it is that
+  // building. A model that several UT buildings land on (the DKR stands hold Bellmont Hall, the end-zone buildings) is a complex,
+  // not one building: nothing merges there. Two Blender models never merge (two models are two buildings).
+  FOOT_DOOR_M: 10, FOOT_SHARE: 0.75,
   // A name shows only when its point can be seen: a building between the camera and the name hides it (names of buildings behind
   // the Tower were drawn on its shaft). Tested on the camera's collision outlines and tops (flycam.js CollisionField), not on the
   // GPU: a march along the ray (about STEPS samples, each STEP_MIN_M to STEP_MAX_M apart), only where the ray is lower than the
@@ -66,6 +73,8 @@ function words(name) {
   }
   return out.filter((x) => !LABELS.SAME_SKIP.includes(x));
 }
+const GENERIC = ['hall', 'building', 'center', 'house', 'home', 'residence', 'dormitory', 'university'];
+function sharesWord(a, b) { const B = words(b); return words(a).some((x) => x.length >= 3 && !GENERIC.includes(x) && B.includes(x)); }
 export function sameBuilding(a, b) {
   if (Math.hypot(a.x - b.x, a.z - b.z) > LABELS.SAME_M) return false;
   let A = words(a.name), B = words(b.name);
@@ -74,6 +83,97 @@ export function sameBuilding(a, b) {
   if (A.length < LABELS.SAME_MIN_WORDS) return false;
   const initials = B.map((x) => x[0]).join('');
   return A.every((x) => B.some((y) => y === x || (x.length >= 3 && y.startsWith(x))) || (x.length >= 3 && !/[aeiou]/.test(x) && initials.includes(x)));
+}
+
+// `list` into `items`: a name already there (same text, or sameBuilding) takes the newcomer's code, address and home instead of a
+// second name. Returns how many were merged.
+function absorb(o, it) { o.home ||= it.home; o.code ||= it.code; o.sub ||= it.sub; if (!o.ids?.length) o.ids = it.ids; if (!o.doors?.length) o.doors = it.doors; }
+export function mergeNames(items, list) {
+  let n = 0;
+  for (const it of list) {
+    const o = items.find((i) => i.name.toLowerCase() === it.name.toLowerCase() || sameBuilding(i, it));
+    if (o) { absorb(o, it); n++; continue; }
+    items.push(it);
+  }
+  return n;
+}
+
+// The map outlines (CollisionField entries) a Blender model or an apartment's model owns, by its map ids.
+export function ownOutlines(it, F) {
+  const s = new Set();
+  for (const id of it.ids || []) for (const e of F.byId.get(String(id)) || []) s.add(e);
+  return s;
+}
+// metres from a point to an outline's outer ring (0 inside it)
+function outlineDist(F, e, x, z) {
+  const C = F.coords, [a0, b0] = e.rings[0];
+  let inside = false, best = Infinity;
+  for (let a = a0, b = b0 - 1; a < b0; b = a++) {
+    const px = C[a * 2], pz = C[a * 2 + 1], qx = C[b * 2], qz = C[b * 2 + 1], dx = qx - px, dz = qz - pz;
+    const L2 = dx * dx + dz * dz, t = L2 ? Math.max(0, Math.min(1, ((x - px) * dx + (z - pz) * dz) / L2)) : 0;
+    const d = Math.hypot(x - px - t * dx, z - pz - t * dz); if (d < best) best = d;
+    if ((pz > z) !== (qz > z) && x < (qx - px) * (z - pz) / (qz - pz) + px) inside = !inside;
+  }
+  return inside ? 0 : best;
+}
+// the outline nearest a point, within LABELS.FOOT_DOOR_M; null over open ground
+export function nearestOutline(F, x, z) {
+  const B = F.constructor.B || 32, R = LABELS.FOOT_DOOR_M, seen = new Set();
+  let best = null, bd = R;
+  for (let i = Math.floor((x - R) / B); i <= Math.floor((x + R) / B); i++) for (let j = Math.floor((z - R) / B); j <= Math.floor((z + R) / B); j++) {
+    for (const e of F.buckets.get(i * 65536 + j) || []) {
+      if (seen.has(e)) continue; seen.add(e);
+      if (x + R < e.minX || x - R > e.maxX || z + R < e.minZ || z - R > e.maxZ) continue;
+      const d = outlineDist(F, e, x, z); if (d <= bd) { bd = d; best = e; }
+    }
+  }
+  return best;
+}
+
+// Which pairs of names are one building by footprint. `twins` = [[kept, dropped]] (the model-owned name is kept, the UT building's
+// code and address go to it); `complexes` = pairs a model and a UT building share most of but that cannot be told apart 1 to 1
+// (a model several UT buildings land on: kept as two names). Pure: reads `items` and the CollisionField, changes nothing.
+export function footprintTwins(items, F) {
+  const owners = items.filter((i) => i.kind !== 'campus' && i.ids?.length).map((it) => ({ it, own: ownOutlines(it, F) })).filter((o) => o.own.size);
+  const camp = items.filter((i) => i.kind === 'campus' && i.doors?.length);
+  const hits = [];                                           // [owner, campus item, share of its doors on the owner's outlines]
+  for (const c of camp) {
+    const near = c.doors.map((d) => nearestOutline(F, d[0], d[1]));
+    for (const o of owners) {
+      const n = near.filter((e) => e && o.own.has(e)).length;
+      if (n) hits.push([o, c, n / c.doors.length]);
+    }
+  }
+  const strong = hits.filter((h) => h[2] >= LABELS.FOOT_SHARE);
+  const count = (key, v) => strong.filter((h) => h[key] === v).length;
+  const twins = [], complexes = [];
+  for (const h of strong) {
+    const [m, c] = [h[0].it, h[1]];
+    // a model that already took a UT code by its words takes a second building only if the two names have a word in common
+    // ("Dealey Center for New Media" and "Belo Center For New Media"; not "Hal C. Weaver Power Plant" and "Utm Cooling Tower 2")
+    const another = m.code && m.code !== c.code && !sharesWord(m.name, c.name);
+    if (count(0, h[0]) === 1 && count(1, h[1]) === 1 && !another) twins.push([m, c]);
+    else complexes.push([m, c]);
+  }
+  // a model and an apartment on the same model (a home's ids ARE the model's): one building, the model's name stays
+  for (let a = 0; a < owners.length; a++) for (let b = a + 1; b < owners.length; b++) {
+    const A = owners[a], B = owners[b];
+    if (A.it.kind === 'blender' && B.it.kind === 'blender') continue;
+    if (A.it.kind !== 'blender' && B.it.kind !== 'blender') continue;
+    const shared = [...A.own].filter((e) => B.own.has(e)).length;
+    if (shared / Math.min(A.own.size, B.own.size) >= LABELS.FOOT_SHARE) { const [keep, drop] = A.it.kind === 'blender' ? [A.it, B.it] : [B.it, A.it]; if (!twins.some((t) => t[1] === drop)) twins.push([keep, drop]); }
+  }
+  return { twins, complexes };
+}
+
+// footprintTwins applied: the dropped name leaves `items`, its code, address and home go to the kept one. Returns the twins.
+export function mergeFootprints(items, F) {
+  const { twins } = footprintTwins(items, F);
+  for (const [keep, drop] of twins) {
+    absorb(keep, drop); items.splice(items.indexOf(drop), 1);
+    if (drop.kind === 'home' && drop.name !== keep.name) { keep.name = drop.name; keep.w = 0; }   // an apartment is called by its own name, not the model's address
+  }
+  return twins;
 }
 
 export class Labels {
@@ -87,12 +187,22 @@ export class Labels {
   // [{ id, name, sub, kind, x, z, y, top, home, code }]
   add(list) {
     this.merged ||= 0;
-    for (const it of list) {
-      const o = this.items.find((i) => i.name.toLowerCase() === it.name.toLowerCase() || sameBuilding(i, it));
-      if (o) { o.home ||= it.home; o.code ||= it.code; o.sub ||= it.sub; if (!o.ids?.length) o.ids = it.ids; this.merged++; continue; }
-      this.items.push(it);
-    }
+    this.merged += mergeNames(this.items, list);
     this.dirty = true;
+  }
+  // The footprint rule needs the map outlines, which can arrive after the names: asked again in every layout, it runs only when
+  // the outlines or the names changed.
+  mergeFootprints() {
+    const F = this.field;
+    if (!F?.ready) return;
+    const key = F.polys.length + ':' + this.items.length;
+    if (key === this.footKey) return;
+    this.footKey = key;
+    const twins = mergeFootprints(this.items, F);
+    if (!twins.length) return;
+    this.merged = (this.merged || 0) + twins.length;
+    for (const [keep, drop] of twins) if (this.selected === drop) this.selected = keep;
+    this.footKey = F.polys.length + ':' + this.items.length;
   }
   update(now, force = false) {
     // called every frame, before the frame is drawn. The camera's matrices are brought up to date first: the frame loop moves
@@ -125,6 +235,7 @@ export class Labels {
   // which names show: nearest and tallest first, decluttered (the expensive half; throttled)
   layout(now, W, H) {
     this.last = now; this.dirty = false;
+    this.mergeFootprints();
     const cam = this.camera.position;
     const low = cam.y < LABELS.LOW_CAMERA_M;
     const lowFar = Math.max(LABELS.LOW_FAR_MIN_M, cam.y * LABELS.LOW_FAR_PER_M);
@@ -349,6 +460,6 @@ export function campusItems(buildings, doors) {
   return buildings.filter((b) => b.doors.length).map((b) => {
     let x = 0, z = 0; for (const d of b.doors) { x += doors[d][0]; z += doors[d][1]; }
     x /= b.doors.length; z /= b.doors.length;
-    return { id: b.code, name: b.name, sub: b.code, kind: 'campus', code: b.code, x, z, y: LABELS.CAMPUS_LABEL_Y_M, top: 0 };
+    return { id: b.code, name: b.name, sub: b.code, kind: 'campus', code: b.code, x, z, y: LABELS.CAMPUS_LABEL_Y_M, top: 0, doors: b.doors.map((d) => doors[d]) };
   });
 }
