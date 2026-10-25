@@ -107,6 +107,7 @@ const setFam = (fam, vis) => page.evaluate(([fam, vis]) => {
 console.log(`smear2 rep=${REP} url=${BASE}/${URLQ}`);
 await page.goto(BASE + '/' + URLQ, { timeout: 180000 });
 await page.waitForFunction(() => window.__liftAt != null, null, { timeout: 180000, polling: 20 });
+await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
 
 // 1. Does it decay with the camera held still?
 await shoot('A-t0000');
