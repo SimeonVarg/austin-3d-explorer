@@ -78,3 +78,6 @@ privacy-circles.json
 scripts/v2/node_modules/
 v2/tiles/*.tmp-*
 /v2-ref-*/
+tools/trees/node_modules/
+tools/trees/colours.json
+tools/trees/out/

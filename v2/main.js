@@ -17,6 +17,9 @@ import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
 import { installGround } from './ground.js';
 
 const params = new URLSearchParams(location.search);
+// exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
+if (params.get('sunaz')) LOOK.SUN_AZIMUTH_DEG = +params.get('sunaz');
+if (params.get('sunel')) LOOK.SUN_ELEVATION_DEG = +params.get('sunel');
 
 // The haze (LOOK.HAZE_*), for every lit material: the old app's exponential day haze instead of three.js's linear fog. three.js
 // mixes fog into the colour AFTER tone mapping and the output encoding, so the haze colour gets the same tone map and encoding

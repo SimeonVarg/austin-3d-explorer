@@ -9,8 +9,9 @@ import { TREE_LOOK as T } from './street-look.js';
 const params = new URLSearchParams(location.search);
 const DATA = new URL('./data/trees/', import.meta.url).href;
 
-export function installTrees({ THREE, scene, redraw }) {
+export function installTrees({ THREE, scene, redraw, renderer, phone = false }) {
   if (params.get('trees') === '0') return null;
+  const REAL = params.get('trees') === 'real';   // the tree library (trees-real.js) instead of one ball or cone per tree
   const group = new THREE.Group(); group.name = 'trees';
   scene.add(group);
   const stats = { ready: false };
@@ -57,7 +58,7 @@ export function installTrees({ THREE, scene, redraw }) {
         c.setHSL(hsl.h + (v - 0.5) * T.HUE_VARIATION, hsl.s, THREE.MathUtils.clamp(hsl.l * (1 + (v - 0.5) * 2 * T.LIGHTNESS_VARIATION), 0, 1));
         crowns.setColorAt(i, c);
       });
-      crowns.castShadow = true; crowns.receiveShadow = true; crowns.computeBoundingSphere(); crowns.name = 'crowns ' + name;
+      crowns.castShadow = true; crowns.receiveShadow = true; crowns.computeBoundingSphere(); crowns.name = 'crowns ' + name; crowns.visible = !REAL;
       group.add(crowns);
       stats[name] = list.length;
     });
@@ -67,9 +68,13 @@ export function installTrees({ THREE, scene, redraw }) {
       const tr = 0.12 + r * 0.025;
       M.compose(P.set(x, 0, z), Q, S.set(tr, Math.max(0.5, h - ch * 0.8), tr)); trunks.setMatrixAt(i, M);
     });
-    trunks.castShadow = true; trunks.receiveShadow = true; trunks.computeBoundingSphere(); trunks.name = 'trunks';
+    trunks.castShadow = true; trunks.receiveShadow = true; trunks.computeBoundingSphere(); trunks.name = 'trunks'; trunks.visible = !REAL;   // (the camera's trunk collision still reads its matrices)
     group.add(trunks);
     Object.assign(stats, { ready: true, total: trunkAll.length, osm: files[1] ? files[1].trees.length / 6 : 0 });
+    if (REAL) {
+      try { const m = await import('./trees-real.js'); await m.installRealTrees({ THREE, scene, group, redraw, rows, groups, phone, renderer }); stats.real = true; }
+      catch (e) { stats.realError = e.message; console.warn('[v2 trees real]', e.message); group.children.forEach((o) => { if (o.name !== 'tree ticker') o.visible = true; }); }   // fall back to the balls
+    }
     redraw();
   }
   build().catch((e) => { stats.error = e.message; console.warn('[v2 trees]', e.message); });

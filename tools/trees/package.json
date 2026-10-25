@@ -1,0 +1,7 @@
+{
+  "name": "v2-tree-library-generator",
+  "private": true,
+  "type": "module",
+  "description": "Offline generator of v2/data/trees-real (EZ-Tree, MIT). node gen.mjs writes the GLBs, leaf cards, impostor atlases and manifest.",
+  "dependencies": { "@dgreenheck/ez-tree": "1.1.0", "three": "0.186.0", "playwright-core": "^1.49.0" }
+}

@@ -60,7 +60,12 @@ const VIEWS = [
   { name: 'West Campus (The Venue)', slug: 'the-venue', distance: 380, polar: 55, azimuth: 30 },
   { name: 'street level (Guadalupe at 21st)', xz: [-252, 246], distance: 45, polar: 80, azimuth: 355 },
   { name: 'DKR from 2 km', slug: 'dkr-memorial-stadium', distance: 2000, polar: 72, azimuth: 200 },
+  { name: 'South Mall street (trees)', xz: [0, 110], distance: 50, polar: 80, azimuth: 0 },
+  { name: 'Drag 300 m (trees)', xz: [-235, 30], distance: 300, polar: 60, azimuth: 250 },
 ];
+// V2_FRAME_VIEWS="opening;street level" keeps only the views whose name contains one of these; V2_FRAME_ARMS="desktop" the same for arms
+if (process.env.V2_FRAME_VIEWS) { const keep = process.env.V2_FRAME_VIEWS.split(';'); VIEWS.splice(0, VIEWS.length, ...VIEWS.filter((v) => keep.some((k) => v.name.includes(k)))); }
+if (process.env.V2_FRAME_ARMS) { const keep = process.env.V2_FRAME_ARMS.split(';'); ARMS.splice(0, ARMS.length, ...ARMS.filter((a) => keep.some((k) => a.name.includes(k)))); }
 const args = [...HW_ARGS, ...(UNCAPPED ? ['--disable-gpu-vsync', '--disable-frame-rate-limit'] : [])];
 const browser = await launch(chromium, { args, maxMs: 1500000 });
 const rec = {};   // `${arm}|${view}` -> [{median,p95,calls,triangles}]
