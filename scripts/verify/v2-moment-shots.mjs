@@ -50,7 +50,10 @@ while (calm < 3 && Date.now() - t0 < 180000) { const s = await page.evaluate(() 
 const hasExact = await page.evaluate(() => (window.__v2.exact ? window.__v2.exact().tiles : 0));
 const done = new Set();
 async function shoot(name, s) {
-  const r = await page.evaluate((o) => window.__v2.setMoment(o), s);
+  // "sky": a real sky (v2/data/sky/skies.json) or "param", swapped in the page; "skyphoto": null = without the owner's photo sky
+  if (s.sky) await page.evaluate(([n, p]) => window.__v2.setSky(n, p), [s.sky, 'skyphoto' in s ? s.skyphoto : '__keep']);
+  const { sky, skyphoto, ...rest } = s; void sky; void skyphoto;
+  const r = await page.evaluate((o) => window.__v2.setMoment(o), rest);
   let probeMs = null;
   if (hasExact) { probeMs = await page.evaluate(() => window.__v2.exactProbe()); await place(); }
   await page.evaluate(() => window.__v2.redraw());

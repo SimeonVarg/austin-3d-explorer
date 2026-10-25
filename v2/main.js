@@ -16,7 +16,8 @@ import { MapLayers } from './map-layers.js';
 import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
 import { installGround } from './ground.js';
 import { exactPrepare, exactProbe, exactState } from './exact-pilot.js';
-import { austinToUtc, sunPosition, buildMoment, momentSky, cloudGLSL, nightGLSL, SKY_TABLE } from './sky.js';
+import { austinToUtc, sunPosition, buildMoment, momentSky, cloudGLSL, nightGLSL, SKY_TABLE, sunTransmittance } from './sky.js';
+import { loadRealSky, placeRealSky, realAt, realSkyGLSL, realSkyUniforms, setAnisotropy } from './sky-real.js';
 
 const params = new URLSearchParams(location.search);
 // exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
@@ -47,6 +48,25 @@ if (params.get('moment')) {
     LOOK.SUN_AZIMUTH_DEG = spec.az; LOOK.SUN_ELEVATION_DEG = Math.max(spec.el, LOOK.MOMENT.MIN_LIGHT_EL);
     MOMENT = spec;
   } catch (e) { console.warn('[v2 moment]', e.message); }
+}
+// A real captured sky (sky-real.js): ?sky=NAME (v2/data/sky/skies.json), or the sky a moment preset names ("sky", and "photo" for
+// the owner's photo's own sky). ?sky=NAME without a moment: Light B's sun azimuth, the HDRI's own sun elevation (so the light
+// agrees with the sky it shows). ?sky=param: the parametric sky of #551 for a moment preset that names a real one.
+let REAL_SKY = null;
+{
+  const want = params.get('sky') || (MOMENT && MOMENT.sky) || null;
+  if (want && want !== 'param') {
+    try {
+      const photo = MOMENT && MOMENT.photo && !params.get('sky') ? MOMENT.photo : (params.get('skyphoto') || null);
+      REAL_SKY = await loadRealSky(want, photo, null);
+      if (!MOMENT) {
+        const s = REAL_SKY.S.sun || REAL_SKY.S.glow;
+        MOMENT = { name: 'sky:' + want, az: LOOK.SUN_AZIMUTH_DEG, el: s ? (s.sun_el_deg ?? s.el_deg) : LOOK.SUN_ELEVATION_DEG };
+        for (const k of ['haze', 'exposure', 'sun', 'ms', 'sat']) if (params.get(k)) MOMENT[k] = +params.get(k);
+        LOOK.SUN_ELEVATION_DEG = Math.max(MOMENT.el, LOOK.MOMENT.MIN_LIGHT_EL);
+      }
+    } catch (e) { console.warn('[v2 sky-real]', e.message); REAL_SKY = null; }
+  }
 }
 // PR #550's cause 4, with a moment (or ?groundshade=1): the ground's bounce assumed sunlit ground everywhere, so a face looking at ground
 // in a building's own shadow (a tower's east side at 17:07, its shadow ~560 m long) got the sun's share of the bounce anyway. Shadow-map
@@ -458,27 +478,44 @@ function applyMoment(spec) {
     const th = ((j + 0.5) / NT) * Math.PI, ph = ((i + 0.5) / NP) * 2 * Math.PI;
     dirs.push([Math.sin(th) * Math.cos(ph), Math.cos(th), Math.sin(th) * Math.sin(ph), Math.sin(th) * (Math.PI / NT) * ((2 * Math.PI) / NP)]);
   }
-  const skyVals = dirs.map((d) => (d[1] >= -0.01 ? momentSky(M, [d[0], Math.max(d[1], 0), d[2]]) : null));
-  const Esky = [0, 0, 0];
-  dirs.forEach((d, k) => { if (d[1] > 0) for (let c = 0; c < 3; c++) Esky[c] += skyVals[k][c] * M.ref.LIGHT * d[1] * d[3]; });
+  let skyVals = dirs.map((d) => (d[1] >= -0.01 ? momentSky(M, [d[0], Math.max(d[1], 0), d[2]]) : null));
+  const levelE = (vals) => { const E = [0, 0, 0]; dirs.forEach((d, k) => { if (d[1] > 0) for (let c = 0; c < 3; c++) E[c] += vals[k][c] * M.ref.LIGHT * d[1] * d[3]; }); return E; };
+  // a real captured sky (sky-real.js) replaces the model sky in every use; the model only calibrates it (Light B's units)
+  const R = REAL_SKY;
+  if (R) {
+    setAnisotropy(R, renderer);
+    const sunAtEl = (el) => { const T = sunTransmittance(el, M.haze); return M.sunB.map((v, c) => (M.ref.T[c] > 0 ? (v * T[c]) / M.ref.T[c] : 0)); };
+    placeRealSky(R, M, sunAtEl, M.ref.LIGHT, levelE(skyVals), M.exposure, LOOK.MOMENT.REAL.FIT_SLOPE_MAX);
+    skyVals = dirs.map((d) => (d[1] >= -0.01 ? realAt(R, [d[0], Math.max(d[1], 0), d[2]]) : null));
+  }
+  // The LIGHT a real sky casts is the visible sky with Light B's own chroma relation: Light B lights with its sky stops x SKY_GAIN
+  // (per channel), a much paler light than the deep blue it shows (a camera's sky is far more saturated than the sky's light). One
+  // number s, fitted so that toward-grey(stops irradiance, s) has the colour of (stops x SKY_GAIN): the same s applied to a real sky
+  // turns Light B's own sky into Light B's own light exactly, keeps white clouds white and a sunset's warm light warm.
+  const sB = R ? lightDesat() : 1;
+  const toLight = (v) => { if (sB === 1) return v.map((x) => x * M.ref.LIGHT); const l = 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; return v.map((x) => (l + LOOK.MOMENT.REAL.LIGHT_SAT * sB * (x - l)) * M.ref.LIGHT); };
+  const lightVals = skyVals.map((v) => v && toLight(v));
+  const skyAtM = R ? (d) => realAt(R, d) : (d) => momentSky(M, d);
+  const Esky = levelE(lightVals.map((v) => v && v.map((x) => x / M.ref.LIGHT)));
   const sinEl = Math.max(0, Math.sin(THREE.MathUtils.degToRad(M.el)));
   const groundE = M.sunRGB.map((v, c) => v * sinEl + Esky[c]);
   const bounceM = groundE.map((e) => (LOOK.LIGHT_B.ground * e) / Math.PI);
   const groundEB = sunRGB.map((v, c) => v * Math.sin(THREE.MathUtils.degToRad(LOOK.MOMENT.REF.EL)) + Math.PI * 0.5 * (zenithAvg[c] + STOPS[3][1][c] * skyLightScale[c]));
   const groundMirror = LOOK.GROUND_MIRROR.map((v, c) => v * groundE[c] / groundEB[c]);
   const fog = [0, 0, 0];
-  for (let i = 0; i < 64; i++) { const a = (i / 64) * 2 * Math.PI, s = momentSky(M, [Math.cos(a) * 0.9998, 0.02, Math.sin(a) * 0.9998]); for (let c = 0; c < 3; c++) fog[c] += s[c] / 64; }
+  for (let i = 0; i < 64; i++) { const a = (i / 64) * 2 * Math.PI, s = skyAtM([Math.cos(a) * 0.9998, LOOK.MOMENT.REAL.FOG_SINE, Math.sin(a) * 0.9998]); for (let c = 0; c < 3; c++) fog[c] += s[c] / 64; }
   scene.fog.color.setRGB(...fog.map((v) => v * LOOK.SKY_DOME_GAIN), THREE.LinearSRGBColorSpace);
   // the visible dome (its horizon below the level line = the fog), the mirror environment, the diffuse probe
   const old = dome.material;
-  dome.material = momentMaterial(M, domeScale, fog.map((v) => v * LOOK.SKY_DOME_GAIN), LOOK.MOMENT.SKY_GLOW * LOOK.SKY_DOME_GAIN);
+  const mat = R ? (sc, below, glow) => realMaterial(R, M, sc, below, glow) : (sc, below, glow) => momentMaterial(M, sc, below, glow);
+  dome.material = SKY_KEY ? skyKeyMaterial() : mat(domeScale, fog.map((v) => v * LOOK.SKY_DOME_GAIN), (R ? LOOK.MOMENT.REAL.DISC_GLOW : LOOK.MOMENT.SKY_GLOW) * LOOK.SKY_DOME_GAIN);
   old.dispose();
   if (scene.environment) scene.environment.dispose();
-  scene.environment = envFrom(momentMaterial(M, mirrorScale, groundMirror, 0));
+  scene.environment = envFrom(mat(mirrorScale, groundMirror, 0));
   const sh = new THREE.SphericalHarmonics3(), basis = new Array(9).fill(0), v = new THREE.Vector3(), add = new THREE.Vector3();
   dirs.forEach((d, k) => {
     const S = skyVals[k];
-    const L = S ? S.map((x, c) => x * M.ref.LIGHT) : bounceM, Mi = S ? S.map((x) => x * LOOK.LIGHT_B.mirror) : groundMirror;
+    const L = S ? lightVals[k] : bounceM, Mi = S ? S.map((x) => x * LOOK.LIGHT_B.mirror) : groundMirror;
     THREE.SphericalHarmonics3.getBasisAt(v.set(d[0], d[1], d[2]), basis);
     add.set(Math.max(0, L[0] - Mi[0]), Math.max(0, L[1] - Mi[1]), Math.max(0, L[2] - Mi[2]));
     for (let b = 0; b < 9; b++) sh.coefficients[b].addScaledVector(add, basis[b] * d[3]);
@@ -486,7 +523,60 @@ function applyMoment(spec) {
   diffuseProbe.sh.copy(sh);
   renderer.toneMappingExposure = LOOK.EXPOSURE * M.exposure;
   sun.shadow.needsUpdate = true;   // (the caller redraws: at load the frame loop is not set up yet)
-  return { az: M.az, el: M.el, haze: M.haze, sunRGB: M.sunRGB, groundE, bounce: bounceM, fog, cover: M.C.COVER, exposure: M.exposure, nightK: M.nightK };
+  return { az: M.az, el: M.el, haze: M.haze, sunRGB: M.sunRGB, groundE, bounce: bounceM, fog, cover: M.C.COVER, exposure: M.exposure, nightK: M.nightK,
+    real: R ? { name: R.name, calib: R.calib, k: R.k, fit: R.fit, photo: !!R.photo, photoScale: R.photo ? R.photo.scale : null, Esky, lightSat: sB * LOOK.MOMENT.REAL.LIGHT_SAT } : null };
+}
+// Light B's sky -> light chroma relation (see applyMoment): s with grey(E) + s (E - grey(E)) ~ the colour of E x SKY_GAIN, over the stops' irradiance
+let lightDesatS = null;
+function lightDesat() {
+  if (lightDesatS != null) return lightDesatS;
+  const E = [0, 0, 0], Eg = [0, 0, 0], NT = 32, NP = 64;
+  for (let j = 0; j < NT; j++) for (let i = 0; i < NP; i++) {
+    const th = ((j + 0.5) / NT) * (Math.PI / 2), w = Math.cos(th) * Math.sin(th);
+    const a = skyAt(Math.cos(th), [1, 1, 1]), b = skyAt(Math.cos(th), skyLightScale);
+    for (let c = 0; c < 3; c++) { E[c] += a[c] * w; Eg[c] += b[c] * w; }
+  }
+  const lum = (v) => 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2], l = lum(E), t = Eg.map((v) => (v * l) / lum(Eg));
+  let num = 0, den = 0; for (let c = 0; c < 3; c++) { num += (t[c] - l) * (E[c] - l); den += (E[c] - l) ** 2; }
+  lightDesatS = den > 0 ? num / den : 1;
+  return lightDesatS;
+}
+// ?skykey=1 (verification only): the visible dome drawn flat magenta, so a picture of the app shows exactly where it draws sky
+const SKY_KEY = params.get('skykey') === '1';
+function skyKeyMaterial() { return new THREE.MeshBasicMaterial({ color: 0xff00ff, side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false, toneMapped: false }); }
+// the real sky (sky-real.js) as the dome / the mirror environment: the same roles and units as momentMaterial; glow = the sun's DISC
+// only (the HDRI holds its own halo)
+function realMaterial(R, M, scale, below, glow) {
+  const sMax = Math.max(...M.sunRGB, 1e-9);
+  return new THREE.ShaderMaterial({
+    name: 'v2-real-sky',
+    uniforms: {
+      ...realSkyUniforms(R), scale: { value: new THREE.Vector3(...scale) }, below: { value: new THREE.Vector3(...(below || [0, 0, 0])) },
+      sunDir: { value: new THREE.Vector3(...M.sunDir) }, glow: { value: M.el > 0 ? glow : 0 },
+      sunColor: { value: new THREE.Vector3(...M.sunRGB.map((v) => (sMax > 1e-6 ? v / sMax : 0))) },
+    },
+    defines: { HAS_BELOW: below ? 1 : 0, ...(R.photo ? { R_PHOTO: 1 } : {}) },
+    vertexShader: /* glsl */`
+      varying vec3 vDir;
+      void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: /* glsl */`
+      uniform vec3 scale, below, sunDir, sunColor; uniform float glow;
+      varying vec3 vDir;
+      ${realSkyGLSL}
+      void main() {
+        vec3 d = normalize(vDir);
+        vec3 c = v2real(d) * scale;
+        #if HAS_BELOW
+        if (d.y < -0.01) c = below;
+        #endif
+        float s = max(dot(d, normalize(sunDir)), 0.0);
+        c += sunColor * glow * pow(s, 600.0) * 4.0;
+        gl_FragColor = vec4(c, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+    side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
+  });
 }
 if (MOMENT) applyMoment(MOMENT);
 if (params.get('sun') === '0') sun.intensity = 0;   // diagnosis: the indirect light alone
@@ -1315,17 +1405,25 @@ window.__v2 = {
   exactProbe: () => {
     // what a local probe sees of the sky must be the MIRROR sky (LOOK.LIGHT_B.mirror x the stops), as the environment map every other
     // mirror sees: the visible dome is drawn x SKY_DOME_GAIN, so it is switched to the mirror's scale for the probe's six faces
-    const u = dome.material.uniforms.scale.value, was = u.clone();
+    const u = dome.material.uniforms ? dome.material.uniforms.scale.value : new THREE.Vector3(), was = u.clone();   // (?skykey: no uniforms)
     if (LOOK.PROBE_MIRROR_SKY) u.set(...mirrorScale);
     const ms = exactProbe(renderer, scene); u.copy(was); dirty = true; return ms;
   }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs }),
   timings: () => ({ ...timings }),
   // the moment (sky.js): its numbers, and a change of its haze / clouds / exposure inside the page (the sun's direction stays)
   moment: () => (momentNow ? { name: MOMENT.name || null, az: momentNow.az, el: momentNow.el, haze: momentNow.haze, cover: momentNow.C.COVER,
-    exposure: momentNow.exposure, wb: momentNow.wb, ms: momentNow.ms, sunRGB: momentNow.sunRGB, nightK: momentNow.nightK, groundShade: GROUND_SHADE } : null),
+    exposure: momentNow.exposure, wb: momentNow.wb, ms: momentNow.ms, sunRGB: momentNow.sunRGB, nightK: momentNow.nightK, groundShade: GROUND_SHADE,
+    real: REAL_SKY ? { name: REAL_SKY.name, calib: REAL_SKY.calib, k: REAL_SKY.k, fit: REAL_SKY.fit, photo: !!REAL_SKY.photo } : null } : null),
   setMoment: (o = {}) => {
     if (!MOMENT) return null;
     Object.assign(MOMENT, o, { clouds: { ...(MOMENT.clouds || {}), ...(o.clouds || {}) } });
+    const r = applyMoment(MOMENT); dirty = true; return r;
+  },
+  // swap the real sky inside the page (rule 13: load once, test many); keeps the moment's photo sky. 'param' = the parametric sky
+  setSky: async (name, photo) => {
+    if (!MOMENT) return null;
+    const ph = photo === undefined || photo === '__keep' ? (REAL_SKY && REAL_SKY.photo ? MOMENT.photo : null) : photo;
+    REAL_SKY = name && name !== 'param' ? await loadRealSky(name, ph, renderer) : null;
     const r = applyMoment(MOMENT); dirty = true; return r;
   },
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
