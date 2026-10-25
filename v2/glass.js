@@ -27,10 +27,15 @@
 // Every value below is a taste value (rule 11): one line to change it. ?glassreal=0 turns it all off.
 import * as THREE from 'three';
 
+const Q = typeof location === 'undefined' ? new URLSearchParams() : new URLSearchParams(location.search);
+// ?glassreflect=0: the reflection pass of 2026-10-25 off (here: the tilt and bow as before; main.js: no cloud layer, the sky fit as before)
+export const GLASS_REFLECT = Q.get('glassreflect') !== '0';
 export const GLASS_REAL = {
-  ON: typeof location === 'undefined' || new URLSearchParams(location.search).get('glassreal') !== '0',
-  TILT_DEG: 0.45,          // per-pane tilt of the reflection normal, the spread (each of two axes, a uniform -1..1 times this)
-  BOW_DEG: 0.9,            // per-pane bow: how far the normal turns at the pane's edge vs its middle (sign random per pane)
+  ON: Q.get('glassreal') !== '0',
+  // 2026-10-25, his photo at 17:07: neighbouring panes mirror pieces of cloud that are offset by a good part of a cloud, so the panes
+  // differ by about a degree, not half of one (0.45 / 0.9 before: the clouds came back nearly whole across a storey)
+  TILT_DEG: GLASS_REFLECT ? 1.0 : 0.45,   // per-pane tilt of the reflection normal, the spread (each of two axes, a uniform -1..1 times this)
+  BOW_DEG: GLASS_REFLECT ? 1.5 : 0.9,     // per-pane bow: how far the normal turns at the pane's edge vs its middle (sign random per pane)
   ROUGH_VAR: 0.35,         // per-pane roughness, x (1 +- this)
   SPEC_VAR: 0.12,          // per-pane reflection strength (coating), x (1 +- this)
   ROOM_VAR: 0.4,           // per-pane room brightness, x (1 +- this)
@@ -101,9 +106,13 @@ export function setGlassReal(k) { GLASS_K.value = k; }
 // measuring only (v2-glass-shimmer.mjs): a supersampled TRUTH frame multiplies the pixel footprint by its supersampling factor, so
 // the fades decide exactly as in the native frame and the truth is the same picture, sampled finely
 const GLASS_FP = { value: 1 };
+// tilt and bow (radians) as uniforms, so an A/B can change them inside one page load (window.__v2.glassTilt)
+const GLASS_TB = { value: null };
+export function setGlassTilt(tiltDeg, bowDeg) { GLASS_TB.value.set(tiltDeg * Math.PI / 180, bowDeg * Math.PI / 180); }
 export function setGlassFootprintScale(s) { GLASS_FP.value = s; }
 const K = GLASS_REAL;
 const DEG = Math.PI / 180;
+GLASS_TB.value = new THREE.Vector2(K.TILT_DEG * DEG, K.BOW_DEG * DEG);
 
 // patch a glass material (MeshStandardMaterial or MeshPhysicalMaterial; chains any onBeforeCompile already on it)
 export function realGlass(material) {
@@ -112,7 +121,7 @@ export function realGlass(material) {
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
-    sh.uniforms.v2GlassK = GLASS_K; sh.uniforms.v2GlassFp = GLASS_FP;
+    sh.uniforms.v2GlassK = GLASS_K; sh.uniforms.v2GlassFp = GLASS_FP; sh.uniforms.v2GlassTB = GLASS_TB;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nattribute vec4 v2pane;\nattribute vec2 v2paneS;\nvarying vec3 vPaneOff;\nvarying vec3 vPaneSeed;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPaneOff = (modelViewMatrix * vec4(v2pane.xyz, 0.0)).xyz;\nvPaneSeed = vec3(v2pane.w, v2paneS);');
@@ -122,6 +131,7 @@ varying vec3 vPaneOff;
 varying vec3 vPaneSeed;
 uniform float v2GlassK;
 uniform float v2GlassFp;
+uniform vec2 v2GlassTB;
 float v2SpecVar = 1.0;
 // four numbers in [0, 1) from the pane's seed (per pane, constant: nothing here changes from frame to frame)
 vec4 v2paneRand(float s) { return fract(sin(vec4(s * 91.317 + 0.13, s * 47.731 + 1.37, s * 13.137 + 2.71, s * 71.917 + 4.13)) * 43758.5453); }
@@ -141,7 +151,7 @@ vec4 v2paneRand2(float s) { return fract(sin(vec4(s * 29.771 + 5.31, s * 63.113 
       t1 /= t1l; vec3 t2 = cross(normal, t1);
       float u = clamp(dot(vPaneOff, t1) / vPaneSeed.y, -1.0, 1.0), w = clamp(dot(vPaneOff, t2) / vPaneSeed.z, -1.0, 1.0);
       float bowSign = pr.z < 0.5 ? -1.0 : 1.0;
-      vec2 tilt = (pr.xy * 2.0 - 1.0) * ${f(K.TILT_DEG * DEG)} * vf + vec2(u, w) * bowSign * ${f(K.BOW_DEG * DEG)} * (0.5 + pr.w) * bf;
+      vec2 tilt = (pr.xy * 2.0 - 1.0) * v2GlassTB.x * vf + vec2(u, w) * bowSign * v2GlassTB.y * (0.5 + pr.w) * bf;
       normal = normalize(normal + t1 * tilt.x + t2 * tilt.y);
       // the room behind: darker or lighter per pane; some panes with blinds part down (a band from the top)
       float room = 1.0 + (pr2.x * 2.0 - 1.0) * ${f(K.ROOM_VAR)};

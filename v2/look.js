@@ -65,7 +65,17 @@ export const LOOK = {
     // all round; DISC_GLOW = the app's sun disc drawn on it (the HDRI keeps its own halo; its disc is painted out by sky_bake.py)
     // LIGHT_SAT: x Light B's own sky -> light saturation (main.js lightDesat); 1 = exactly Light B's relation
     // FIT_SLOPE_MAX: the most the colour fit of a library sky to his photo may change per radian of height (log units)
-    REAL: { FOG_SINE: 0.02, DISC_GLOW: 0.25, LIGHT_SAT: 1, FIT_SLOPE_MAX: 3 },
+    REAL: { FOG_SINE: 0.02, DISC_GLOW: 0.25, LIGHT_SAT: 1, FIT_SLOPE_MAX: 3,
+      // the colour of the photo's sky fit holds for sky as far from the sun as his photo's sky: gone within [0] degrees of the sun,
+      // full beyond [1] (round the sun the HDRI keeps its own pale colour). ?skyfitfade=0 = the whole dome, as before
+      FIT_FADE_DEG: [30, 75],
+      // the cloud layer (a moment's "cloudSky", or ?cloudsky=NAME): how much of the cloud HDRI's cloud is laid over the sky (0 = none),
+      // the whiteness that counts as cloud [none below, full above], the clouds' brightness, and the layer turned about the vertical
+      // (degrees, from where the cloud HDRI's own sun would put it)
+      // PHOTO_DEG: no cloud within [0] degrees of the photo's middle, all beyond [1] (inside his view his sky is the evidence)
+      // EL_DEG: no cloud below [0] degrees up, all above [1] (the cloud HDRI's horizon is a solid band of far cloud and haze: as a
+      // bright ring all round it would light every wall's shade, which his photo does not show)
+      CLOUDS: { COVER: 1, ALPHA: [0.68, 0.85], GAIN: 1, AZ_DEG: 0, PHOTO_DEG: [30, 45], EL_DEG: [8, 18] } },
   },
 
   // ── hemisphere fill (off by default: the environment carries sky and bounce) ──

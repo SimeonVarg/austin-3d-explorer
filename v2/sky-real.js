@@ -43,15 +43,23 @@ function loadTex(url, renderer) {
 // (then setAnisotropy later)
 export function setAnisotropy(R, renderer) {
   const a = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-  for (const t of [R.tex, R.photo && R.photo.tex]) if (t && t.anisotropy !== a) { t.anisotropy = a; t.needsUpdate = true; }
+  for (const t of [R.tex, R.photo && R.photo.tex, R.cloud && R.cloud.tex]) if (t && t.anisotropy !== a) { t.anisotropy = a; t.needsUpdate = true; }
 }
-export async function loadRealSky(name, photo, renderer) {
+// clouds: another sky of the library whose CLOUDS are laid over this one (a cloud layer), or null; see placeRealSky / cloudAt
+export async function loadRealSky(name, photo, renderer, clouds = null) {
   const all = await (await fetch(new URL('skies.json', BASE))).json();
   const S = all.skies[name];
   if (!S) throw new Error('no sky named ' + name + ' (v2/data/sky/skies.json: ' + Object.keys(all.skies).join(', ') + ')');
   const tex = await loadTex(new URL(S.file, BASE).href, renderer);
   tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.ClampToEdgeWrapping;
-  const R = { name, S, tex, grid: readback(tex.image, 256, 64), photo: null };
+  const R = { name, S, tex, grid: readback(tex.image, 256, 64), photo: null, cloud: null };
+  if (clouds && all.skies[clouds] && clouds !== name) {
+    try {
+      const CS = all.skies[clouds], ctex = await loadTex(new URL(CS.file, BASE).href, renderer);
+      ctex.wrapS = THREE.RepeatWrapping; ctex.wrapT = THREE.ClampToEdgeWrapping;
+      R.cloud = { name: clouds, S: CS, tex: ctex, grid: readback(ctex.image, 512, 128) };
+    } catch (e) { console.warn('[v2 sky-real] no cloud layer', clouds, e.message); }
+  }
   if (photo) {
     try {
       const P = await (await fetch(new URL('photo-' + photo + '.json', BASE))).json();
@@ -74,19 +82,54 @@ function gridAt(G, u, v) {   // bilinear, u wraps, v clamps; v = 0 at the horizo
   const at = (xx, yy, k) => G.px[(yy * G.w + xx) * 4 + k];
   return [0, 1, 2].map((k) => (at(X0, y0, k) * (1 - fx) + at(X1, y0, k) * fx) * (1 - fy) + (at(X0, y1, k) * (1 - fx) + at(X1, y1, k) * fx) * fy);
 }
-export function gainAt(R, elRad) {
+// The fit's colour is evidence only for sky as far from the sun as the photo's sky (2026-10-25). A clear sky's colour depends on the
+// height (which the fit follows) AND on the angle to the sun: round the sun it is pale and white, far from it deep blue. His photo
+// looks away from the sun, so its colour applied to the whole dome turned the pale sky round the sun (behind him, what his south
+// glass mirrors) deep blue, and white clouds blue. So: the fit's colour holds beyond fade[1] degrees from the sun, is gone within
+// fade[0]; its brightness holds everywhere (the photo camera's exposure).
+const sstep = (a, b, x) => { const t = THREE.MathUtils.clamp((x - a) / Math.max(1e-6, b - a), 0, 1); return t * t * (3 - 2 * t); };
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+export function fitWeight(R, d) {
+  if (!R.fade || !R.sunDir) return 1;
+  return 1 - sstep(R.fade[1], R.fade[0], dot3(d, R.sunDir));   // fade = cosines of [gone within, full beyond]
+}
+// the cloud layer gives way to the photo inside the photo's view (where the photo is the evidence; near its edges the photo's sky
+// mask leaves gaps round the building, which must not fill with clouds): none within cfade[0] of its middle, all beyond cfade[1]
+function cloudPhotoWeight(R, d) {
+  if (!R.cfade || !R.photoDir) return 1;
+  return 1 - sstep(R.cfade[1], R.cfade[0], dot3(d, R.photoDir));
+}
+// w < 1 fades the fit's COLOUR only; its brightness (the photo camera's exposure vs the HDRI's) holds over the whole dome
+export function gainAt(R, elRad, w = 1) {
   const e = THREE.MathUtils.clamp(elRad, R.fit.elMin, R.fit.elMax) - R.fit.el0;
-  return [0, 1, 2].map((c) => Math.exp(R.fit.a[c] + R.fit.b[c] * e));
+  const lg = [0, 1, 2].map((c) => R.fit.a[c] + R.fit.b[c] * e), L = LUM[0] * lg[0] + LUM[1] * lg[1] + LUM[2] * lg[2];
+  return lg.map((g) => Math.exp(L + w * (g - L)));
 }
 // the HDRI (without the photo) in dome units, in direction d (app frame: x east, y up, z south)
 export function hdriAt(R, d) {
   const el = Math.asin(THREE.MathUtils.clamp(d[1], 0, 1)), az = Math.atan2(d[0], -d[2]);
-  const c = gridAt(R.grid, columnOf(R, az), el / (Math.PI / 2)), g = gainAt(R, el);
+  const c = gridAt(R.grid, columnOf(R, az), el / (Math.PI / 2)), g = gainAt(R, el, fitWeight(R, d));
   return c.map((v, k) => v * R.white * R.k * g[k]);
+}
+// The cloud layer (2026-10-25): the clouds of a second HDRI laid over this sky, so a clear sky with the right sun (golden_hour at 19
+// degrees) can carry the scattered cumulus of the day. A pixel of the cloud HDRI is cloud by its whiteness (min/max of its linear
+// rgb: the blue sky is ~0.35, cloud ~0.8; ALPHA = [none below, full above]); the cloud's own radiance is kept, on the cloud sky's own
+// calibration (its sun = the app's sun model at its elevation) and the fit's brightness. It is the SKY, so the dome, every mirror
+// and the light all see the same clouds. cfg: LOOK.MOMENT.REAL.CLOUDS.
+export function cloudAt(R, d) {
+  const C = R.cloud;
+  if (!C || !C.on) return null;
+  const el = Math.asin(THREE.MathUtils.clamp(d[1], 0, 1)), az = Math.atan2(d[0], -d[2]);
+  const c = gridAt(C.grid, C.uSun + (az - R.azSun) / (2 * Math.PI) + C.uOff, el / (Math.PI / 2));
+  const a = THREE.MathUtils.clamp((Math.min(...c) / Math.max(...c, 1e-6) - C.alpha[0]) / (C.alpha[1] - C.alpha[0]), 0, 1);
+  const g = gainAt(R, el, 0);
+  return [...c.map((v, k) => v * C.white * C.k * C.gain * g[k]), a * a * (3 - 2 * a) * C.cover * cloudPhotoWeight(R, d) * sstep(C.elS[0], C.elS[1], d[1])];
 }
 // with the photo where it has sky
 export function realAt(R, d) {
-  const c = hdriAt(R, d);
+  let c = hdriAt(R, d);
+  const cl = cloudAt(R, d);
+  if (cl) c = c.map((v, k) => v * (1 - cl[3]) + cl[k] * cl[3]);
   if (!R.photo) return c;
   const p = photoAt(R.photo, d);
   if (!p || p[3] <= 0) return c;
@@ -105,7 +148,9 @@ function photoAt(Ph, d) {
 // Set the moment-dependent numbers: the rotation, the scale (Light B's units) and the colour fit to the photo.
 //   M: sky.js buildMoment's result; sunAtEl(el) -> the app's sun (rgb, light units) at that elevation; LIGHT: the lighting sky / dome
 //   modelLevelE: the model sky's light on a level surface (rgb, LIGHT units) at the moment; photoExposure: the moment's camera exposure
-export function placeRealSky(R, M, sunAtEl, LIGHT, modelLevelE, photoExposure, slopeMax = Infinity) {
+//   fadeDeg: [gone within, full beyond] degrees from the sun for the colour of the fit (null: the whole dome, as before)
+//   clouds: { COVER, ALPHA, GAIN, AZ_DEG, PHOTO_DEG } for the cloud layer (null: none)
+export function placeRealSky(R, M, sunAtEl, LIGHT, modelLevelE, photoExposure, slopeMax = Infinity, fadeDeg = null, clouds = null) {
   const S = R.S, D2R = Math.PI / 180, s = S.sun || S.glow;
   R.uSun = s ? s.u : 0.5; R.azSun = M.az * D2R;
   R.white = S.white;
@@ -116,7 +161,21 @@ export function placeRealSky(R, M, sunAtEl, LIGHT, modelLevelE, photoExposure, s
   } else {
     R.k = lum(modelLevelE) / Math.max(1e-12, lum(S.E_sky_level_rgb)) / LIGHT; R.calib = 'sky';
   }
+  if (R.cloud) {
+    const C = R.cloud, cs = C.S.sun || C.S.glow;
+    C.on = !!(clouds && clouds.COVER > 0);
+    C.uSun = cs ? cs.u : 0.5; C.white = C.S.white;
+    C.k = C.S.sun && C.S.sun.E_rgb[1] > 0 ? lum(sunAtEl(C.S.sun.el_deg)) / lum(C.S.sun.E_rgb) / LIGHT : lum(modelLevelE) / Math.max(1e-12, lum(C.S.E_sky_level_rgb)) / LIGHT;
+    if (clouds) Object.assign(C, { cover: clouds.COVER, alpha: clouds.ALPHA, gain: clouds.GAIN, uOff: (clouds.AZ_DEG || 0) / 360,
+      elS: (clouds.EL_DEG || [0, 0.01]).map((e) => Math.sin(e * D2R)) });
+  }
+  R.fade = null; R.photoDir = null; R.cfade = null;
+  R.sunDir = M.sunDir ? [...M.sunDir] : null;
   if (R.photo) {
+    const mi = R.photo.P.Minv, pd = [0, 1, 2].map((r) => mi[r][0] * 0.5 + mi[r][1] * 0.5 + mi[r][2]), pn = Math.hypot(...pd);
+    R.photoDir = pd.map((t) => t / pn);
+    if (fadeDeg && R.sunDir) R.fade = [Math.cos(fadeDeg[0] * D2R), Math.cos(fadeDeg[1] * D2R)];
+    if (clouds && clouds.PHOTO_DEG) R.cfade = [Math.cos(clouds.PHOTO_DEG[0] * D2R), Math.cos(clouds.PHOTO_DEG[1] * D2R)];
     // the photo's sky in dome units = its pixels / (the camera's exposure when it was baked) x (that exposure / now)
     R.photo.scale = R.photo.P.scale * (R.photo.P.exposure / photoExposure);
     // the colour fit: log(photo / HDRI) per channel = a + b (el - el0), over the photo's sky (alpha > 0.9), least squares
@@ -153,9 +212,12 @@ export function placeRealSky(R, M, sunAtEl, LIGHT, modelLevelE, photoExposure, s
 }
 
 export const realSkyGLSL = /* glsl */`
-uniform sampler2D rTex; uniform float rU0; uniform vec3 rGain0, rGainB; uniform vec3 rFit;   // rFit: el0, elMin, elMax
+uniform sampler2D rTex; uniform float rU0, rBase; uniform vec3 rLogA, rGainB; uniform vec3 rFit;   // rFit: el0, elMin, elMax
 #ifdef R_PHOTO
-uniform sampler2D pTex; uniform mat3 pM; uniform float pScale, pGamma;
+uniform sampler2D pTex; uniform mat3 pM; uniform float pScale, pGamma; uniform vec3 rPDir, rSunD; uniform vec2 rFade, rCFade;
+#endif
+#ifdef R_CLOUD
+uniform sampler2D cTex; uniform float cU0, cBase, cCover; uniform vec2 cAlpha, cEl;
 #endif
 vec3 v2real(vec3 d) {
   float el = asin(clamp(d.y, 0.0, 1.0));
@@ -166,7 +228,23 @@ vec3 v2real(vec3 d) {
   dx.x -= floor(dx.x + 0.5); dy.x -= floor(dy.x + 0.5);
   vec3 c = textureGrad(rTex, vec2(fract(uv.x), uv.y), dx, dy).rgb;
   float e = clamp(el, rFit.y, rFit.z) - rFit.x;
-  c *= rGain0 * exp(rGainB * e);
+  float fw = 1.0;
+#ifdef R_PHOTO
+  if (rFade.x > rFade.y) fw = 1.0 - smoothstep(rFade.y, rFade.x, dot(d, rSunD));
+#endif
+  vec3 lg = rLogA + rGainB * e; float lgL = dot(lg, vec3(0.2126, 0.7152, 0.0722));
+  c *= rBase * exp(lgL + fw * (lg - lgL));   // the fit's colour fades near the sun; its brightness holds
+#ifdef R_CLOUD
+  {
+    vec2 cuv = vec2(cU0 + az * 0.15915494, uv.y);
+    vec3 cc = textureGrad(cTex, vec2(fract(cuv.x), cuv.y), dx, dy).rgb;
+    float ca = smoothstep(cAlpha.x, cAlpha.y, min(cc.r, min(cc.g, cc.b)) / max(max(cc.r, max(cc.g, cc.b)), 1e-5)) * cCover * smoothstep(cEl.x, cEl.y, d.y);
+#ifdef R_PHOTO
+    if (rCFade.x > rCFade.y) ca *= 1.0 - smoothstep(rCFade.y, rCFade.x, dot(d, rPDir));
+#endif
+    c = mix(c, cc * cBase * exp(lgL), ca);
+  }
+#endif
 #ifdef R_PHOTO
   vec3 q = pM * d;
   vec2 pv = q.xy / max(q.z, 1e-6);
@@ -183,9 +261,13 @@ vec3 v2real(vec3 d) {
 export function realSkyUniforms(R) {
   const u = {
     rTex: { value: R.tex }, rU0: { value: R.uSun - R.azSun / (2 * Math.PI) },
-    rGain0: { value: new THREE.Vector3(...R.fit.a.map((a) => Math.exp(a) * R.white * R.k)) },
+    rBase: { value: R.white * R.k }, rLogA: { value: new THREE.Vector3(...R.fit.a) },
     rGainB: { value: new THREE.Vector3(...R.fit.b) }, rFit: { value: new THREE.Vector3(R.fit.el0, R.fit.elMin, R.fit.elMax) },
   };
-  if (R.photo) Object.assign(u, { pTex: { value: R.photo.tex }, pM: { value: R.photo.M }, pScale: { value: R.photo.scale }, pGamma: { value: R.photo.P.gamma || 1 } });
+  if (R.cloud && R.cloud.on) Object.assign(u, { cTex: { value: R.cloud.tex }, cU0: { value: R.cloud.uSun + R.cloud.uOff - R.azSun / (2 * Math.PI) },
+    cBase: { value: R.cloud.white * R.cloud.k * R.cloud.gain }, cCover: { value: R.cloud.cover }, cAlpha: { value: new THREE.Vector2(...R.cloud.alpha) }, cEl: { value: new THREE.Vector2(...R.cloud.elS) } });
+  if (R.photo) Object.assign(u, { pTex: { value: R.photo.tex }, pM: { value: R.photo.M }, pScale: { value: R.photo.scale }, pGamma: { value: R.photo.P.gamma || 1 },
+    rPDir: { value: new THREE.Vector3(...R.photoDir) }, rSunD: { value: new THREE.Vector3(...(R.sunDir || [0, 1, 0])) },
+    rFade: { value: new THREE.Vector2(...(R.fade || [0, 0])) }, rCFade: { value: new THREE.Vector2(...(R.cfade || [0, 0])) } });
   return u;
 }

@@ -18,7 +18,7 @@ import { installGround } from './ground.js';
 import { exactPrepare, exactProbe, exactState } from './exact-pilot.js';
 import { austinToUtc, sunPosition, buildMoment, momentSky, cloudGLSL, nightGLSL, SKY_TABLE, sunTransmittance } from './sky.js';
 import { loadRealSky, placeRealSky, realAt, realSkyGLSL, realSkyUniforms, setAnisotropy } from './sky-real.js';
-import { glassPrepare, glassState, setGlassReal, setGlassFootprintScale } from './glass.js';
+import { glassPrepare, glassState, setGlassReal, setGlassFootprintScale, setGlassTilt, GLASS_REFLECT } from './glass.js';
 
 const params = new URLSearchParams(location.search);
 // exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
@@ -54,12 +54,15 @@ if (params.get('moment')) {
 // the owner's photo's own sky). ?sky=NAME without a moment: Light B's sun azimuth, the HDRI's own sun elevation (so the light
 // agrees with the sky it shows). ?sky=param: the parametric sky of #551 for a moment preset that names a real one.
 let REAL_SKY = null;
+// the cloud layer over a real sky (sky-real.js cloudAt): ?cloudsky=NAME, or the moment's "cloudSky"; ?cloudsky=0 = none
+// (?glassreflect=0: none, as before 2026-10-25)
+function cloudSkyName() { const q = params.get('cloudsky'); return q === '0' || (!q && !GLASS_REFLECT) ? null : (q || (MOMENT && MOMENT.cloudSky) || null); }
 {
   const want = params.get('sky') || (MOMENT && MOMENT.sky) || null;
   if (want && want !== 'param') {
     try {
       const photo = MOMENT && MOMENT.photo && !params.get('sky') ? MOMENT.photo : (params.get('skyphoto') || null);
-      REAL_SKY = await loadRealSky(want, photo, null);
+      REAL_SKY = await loadRealSky(want, photo, null, cloudSkyName());
       if (!MOMENT) {
         const s = REAL_SKY.S.sun || REAL_SKY.S.glow;
         MOMENT = { name: 'sky:' + want, az: LOOK.SUN_AZIMUTH_DEG, el: s ? (s.sun_el_deg ?? s.el_deg) : LOOK.SUN_ELEVATION_DEG };
@@ -540,7 +543,7 @@ function applyMoment(spec) {
   if (R) {
     setAnisotropy(R, renderer);
     const sunAtEl = (el) => { const T = sunTransmittance(el, M.haze); return M.sunB.map((v, c) => (M.ref.T[c] > 0 ? (v * T[c]) / M.ref.T[c] : 0)); };
-    placeRealSky(R, M, sunAtEl, M.ref.LIGHT, levelE(skyVals), M.exposure, LOOK.MOMENT.REAL.FIT_SLOPE_MAX);
+    placeRealSky(R, M, sunAtEl, M.ref.LIGHT, levelE(skyVals), M.exposure, LOOK.MOMENT.REAL.FIT_SLOPE_MAX, params.get('skyfitfade') === '0' || !GLASS_REFLECT ? null : LOOK.MOMENT.REAL.FIT_FADE_DEG, LOOK.MOMENT.REAL.CLOUDS);
     skyVals = dirs.map((d) => (d[1] >= -0.01 ? realAt(R, [d[0], Math.max(d[1], 0), d[2]]) : null));
   }
   // The LIGHT a real sky casts is the visible sky with Light B's own chroma relation: Light B lights with its sky stops x SKY_GAIN
@@ -610,7 +613,7 @@ function realMaterial(R, M, scale, below, glow) {
       sunDir: { value: new THREE.Vector3(...M.sunDir) }, glow: { value: M.el > 0 ? glow : 0 },
       sunColor: { value: new THREE.Vector3(...M.sunRGB.map((v) => (sMax > 1e-6 ? v / sMax : 0))) },
     },
-    defines: { HAS_BELOW: below ? 1 : 0, ...(R.photo ? { R_PHOTO: 1 } : {}) },
+    defines: { HAS_BELOW: below ? 1 : 0, ...(R.photo ? { R_PHOTO: 1 } : {}), ...(R.cloud && R.cloud.on ? { R_CLOUD: 1 } : {}) },
     vertexShader: /* glsl */`
       varying vec3 vDir;
       void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
@@ -1511,7 +1514,7 @@ window.__v2 = {
     const u = dome.material.uniforms ? dome.material.uniforms.scale.value : new THREE.Vector3(), was = u.clone();   // (?skykey: no uniforms)
     if (LOOK.PROBE_MIRROR_SKY) u.set(...mirrorScale);
     const ms = exactProbe(renderer, scene); u.copy(was); dirty = true; return ms;
-  }, groundLit: () => ({ on: GROUND_LIT, bakes: groundLit.bakes, size: groundLit.rt ? groundLit.rt.width : 0 }), glass: () => ({ ...glassState }), glassReal: (k, fp) => { setGlassReal(k); if (fp) setGlassFootprintScale(fp); dirty = true; }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs, probeYs: exactState.probeYs }),
+  }, groundLit: () => ({ on: GROUND_LIT, bakes: groundLit.bakes, size: groundLit.rt ? groundLit.rt.width : 0 }), glass: () => ({ ...glassState }), glassReal: (k, fp) => { setGlassReal(k); if (fp) setGlassFootprintScale(fp); dirty = true; }, glassTilt: (t, b) => { setGlassTilt(t, b); dirty = true; }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs, probeYs: exactState.probeYs }),
   timings: () => ({ ...timings }),
   // the moment (sky.js): its numbers, and a change of its haze / clouds / exposure inside the page (the sun's direction stays)
   moment: () => (momentNow ? { name: MOMENT.name || null, az: momentNow.az, el: momentNow.el, haze: momentNow.haze, cover: momentNow.C.COVER,
@@ -1526,7 +1529,7 @@ window.__v2 = {
   setSky: async (name, photo) => {
     if (!MOMENT) return null;
     const ph = photo === undefined || photo === '__keep' ? (REAL_SKY && REAL_SKY.photo ? MOMENT.photo : null) : photo;
-    REAL_SKY = name && name !== 'param' ? await loadRealSky(name, ph, renderer) : null;
+    REAL_SKY = name && name !== 'param' ? await loadRealSky(name, ph, renderer, cloudSkyName()) : null;
     const r = applyMoment(MOMENT); dirty = true; return r;
   },
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
