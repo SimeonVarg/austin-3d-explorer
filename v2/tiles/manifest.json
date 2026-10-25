@@ -1050,13 +1050,15 @@
       ],
       "lod0": "tiles/t_-5_8.glb",
       "lod1": "tiles/t_-5_8.far.glb",
+      "lod1_m": 400,
       "buildings": [
+        "butterfly-bridge",
         "seaholm-residences",
         "the-independent"
       ],
       "bytes": [
-        664796,
-        11504
+        761132,
+        25468
       ]
     },
     {
@@ -5252,6 +5254,17 @@
       "x": 371.005,
       "z": 266.448,
       "top": 17
+    },
+    "butterfly-bridge": {
+      "tile": "t_-5_8",
+      "map_ids": [
+        "w353040169"
+      ],
+      "name": "Butterfly Bridge (West 2nd Street over Shoal Creek)",
+      "model": "opus",
+      "x": -1099.507,
+      "z": 2212.261,
+      "top": 10.1
     }
   }
 }
