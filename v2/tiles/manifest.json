@@ -797,12 +797,14 @@
       ],
       "lod0": "tiles/t_-3_7.glb",
       "lod1": "tiles/t_-3_7.far.glb",
+      "lod1_m": 400,
       "buildings": [
-        "procore-tower"
+        "procore-tower",
+        "sixth-and-guadalupe"
       ],
       "bytes": [
-        57992,
-        9472
+        213148,
+        15584
       ]
     },
     {
@@ -4413,7 +4415,7 @@
       "map_ids": [
         "eaca344c"
       ],
-      "name": "West Campus block with ΣΧ letters (eaca344c)",
+      "name": "West Campus block with \u03a3\u03a7 letters (eaca344c)",
       "model": "opus",
       "x": -269.769,
       "z": -705.699,
@@ -5264,6 +5266,17 @@
       "x": -1099.507,
       "z": 2212.261,
       "top": 10.4
+    },
+    "sixth-and-guadalupe": {
+      "tile": "t_-3_7",
+      "map_ids": [
+        "w972654803"
+      ],
+      "name": "Sixth and Guadalupe",
+      "model": "opus",
+      "x": -708.562,
+      "z": 1817.05,
+      "top": 264
     }
   }
 }

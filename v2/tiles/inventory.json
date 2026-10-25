@@ -1,11 +1,11 @@
 {
   "about": "Every current best Blender build (BUILDS.json status \"best\") and whether it is in the v2 tiles. Written by scripts/v2/build_tiles.mjs.",
-  "built": "2026-10-20T18:24:42.099Z",
+  "built": "2026-10-25T20:08:17.052Z",
   "exporter": "c6e22f15bb68004b",
   "tiler": "4203883771b8af48",
   "totals": {
-    "best": 313,
-    "exported": 311
+    "best": 314,
+    "exported": 312
   },
   "buildings": {
     "100-congress": {
@@ -5171,6 +5171,21 @@
           "base at -1.7 m"
         ]
       }
+    },
+    "sixth-and-guadalupe": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "street",
+      "tile": "t_-3_7",
+      "blend_sha256": "95a3d3317ba581e6",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 264,
+        "area_ratio": 1,
+        "centre_off_m": 0.01,
+        "flags": []
+      }
     }
   },
   "tiles": {
@@ -5643,15 +5658,15 @@
       }
     },
     "t_-3_7": {
-      "hash": "387ff84e26bc5999",
+      "hash": "f395755cf331f261",
       "near": {
-        "bytes": 57992,
-        "tris": 5689,
+        "bytes": 213148,
+        "tris": 22229,
         "draws": 2
       },
       "far": {
-        "bytes": 9472,
-        "tris": 652,
+        "bytes": 15584,
+        "tris": 1142,
         "draws": 1
       }
     },
