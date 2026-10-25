@@ -52,7 +52,8 @@ export const WATER = {
   // the view cone (a pond behind the towers, the lake 2 km off), views with no visible water paid for it.
   MIRROR_FAR_M: 1500,
   MIRROR_FAR_M_PHONE: 900,
-  ANIMATE_FAR_M: 3000,            // the app keeps redrawing (moving water) only while water in view is nearer than this
+  ANIMATE_FAR_M: 3000,
+  REFLECT_GROUPS: ['city', 'blender-tiles', 'trees'],   // the scene's top-level groups the mirror shows (plus the sky)            // the app keeps redrawing (moving water) only while water in view is nearer than this
   LIFT_M: 0.03,                   // the surface sits this far over the flat ground (under the roads: bridges stay on top)
   RENDER_ORDER: 0.8,              // over the aerial ground (0.5-0.7), under the modelled asphalt (0.9) and the roads (1)
   ANIMATE: true,                  // the water moves (the app redraws every frame while water is in view)
@@ -248,20 +249,21 @@ export async function installWater({ THREE, scene, camera, renderer, sun, dome, 
     planes.push(plane);
   }
 
-  // ── what the mirror reflects: tagged on its own layer (sky dome, buildings, Blender models, trees, street furniture that stands
-  // up). Never: anything that does not write depth (the ground, the aerial, roads, paint, the route, map layers) or the water.
-  let tagged = 0, lastCount = -1;
+  // ── what the mirror reflects: tagged on its own layer. Only the sky dome and the top-level groups in WATER.REFLECT_GROUPS (plain
+  // buildings, Blender models, trees), and inside them only what writes depth. Never the ground, the aerial, roads, paint, the route,
+  // map layers, the water itself, or the street furniture and near-street layers (hundreds of small draws at street level for
+  // reflections a few pixels tall: measured on the AWS L4, a mirror of "everything that writes depth" doubled the frame's CPU time).
   function tag() {
-    let n = 0;
-    scene.traverse((o) => {
-      n++;
-      if (!(o.isMesh || o.isInstancedMesh || o.isLine || o.isPoints)) return;
-      if (o === dome) { o.layers.enable(REFLECT_LAYER); return; }
-      const m = Array.isArray(o.material) ? o.material[0] : o.material;
-      if (o.userData.noReflect || !m || m.depthWrite === false) { o.layers.disable(REFLECT_LAYER); return; }
-      if (!o.layers.isEnabled(REFLECT_LAYER)) { o.layers.enable(REFLECT_LAYER); tagged++; }
-    });
-    lastCount = n;
+    dome.layers.enable(REFLECT_LAYER);
+    for (const top of scene.children) {
+      const want = WATER.REFLECT_GROUPS.includes(top.name);
+      top.traverse((o) => {
+        if (!(o.isMesh || o.isInstancedMesh)) return;
+        const m = Array.isArray(o.material) ? o.material[0] : o.material;
+        if (want && m && m.depthWrite !== false && !o.userData.noReflect) o.layers.enable(REFLECT_LAYER);
+        else if (o !== dome) o.layers.disable(REFLECT_LAYER);
+      });
+    }
   }
   let tagAt = 0;
 
