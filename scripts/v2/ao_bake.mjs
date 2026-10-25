@@ -3,6 +3,7 @@
 // bounce, v2/look.js AO); the sun keeps the shadow map. It is part of the geometry, so it cannot flicker in motion (rule 15).
 //
 //   node scripts/v2/ao_bake.mjs v2/tiles [--jobs 4] [--only t_0_0,t_1_0]   bake into the tiles that are already built (lod0 only)
+//   node scripts/v2/ao_bake.mjs --file IN.glb [OUT.glb]                      bake into one plain .glb (an exact-photo model)
 //   build_tiles.mjs calls bakeAO(doc) on every new near tile, before Meshopt.
 //
 // Method (bakeAO below): the AO is measured per FLAT FACE and written to its vertices. From each sample point, AO.RAYS rays over the
@@ -314,7 +315,18 @@ export function bakeAO(doc, P = AO) {
 
 // ── CLI: bake into tiles that are already built ──────────────────────────
 const SELF = fileURLToPath(import.meta.url);
-if (isMainThread && process.argv[1] && path.resolve(process.argv[1]) === SELF) {
+if (isMainThread && process.argv[1] && path.resolve(process.argv[1]) === SELF && process.argv[2] === '--file') {
+  // one plain .glb (no Meshopt), e.g. an exact-photo model before it enters a trial manifest: the same bake as the tiles
+  const [src, dst = process.argv[3]] = process.argv.slice(3);
+  const { NodeIO } = await import('@gltf-transform/core');
+  const { ALL_EXTENSIONS } = await import('@gltf-transform/extensions');
+  const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
+  const doc = await io.read(src);
+  for (const m of doc.getRoot().listMeshes()) for (const p of m.listPrimitives()) if (p.getAttribute('_AO')) p.setAttribute('_AO', null);
+  const st = bakeAO(doc);
+  fs.writeFileSync(dst, await io.writeBinary(doc));
+  console.log(`AO ${path.basename(src)} -> ${path.basename(dst)}: ${st.triangles} triangles, ${st.faces} faces, ${st.samples} samples, mean ${st.meanAO.toFixed(3)}`);
+} else if (isMainThread && process.argv[1] && path.resolve(process.argv[1]) === SELF) {
   const argv = process.argv.slice(2);
   const opt = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : null; };
   const dir = path.resolve(argv[0] || 'v2/tiles');
