@@ -24,6 +24,7 @@ const VIEWS = [
   { name: 'tower-near', xz: [0, -0.5], distance: 150, polar: 74, azimuth: 185 },
   { name: 'tower-far', xz: [0, -0.5], distance: 330, polar: 62, azimuth: 200 },
   { name: 'speedway-eye', eye: [243.9, -424.5, 184.8, 1.8] },
+  { name: 'drag-eye', eye: [-252, 246, 4.8, 1.8] },   // Guadalupe (the Drag) at 21st, looking north up the street
   { name: 'calhoun-east-eye', eye: [-35, 166, 270, 1.8], pitchUp: 8 },
 ].filter((v) => !ONLY.length || ONLY.includes(v.name));
 
