@@ -51,7 +51,7 @@ export const LOOK = {
   // ...and centred on what the middle of the view looks at: the first building or ground the view's centre ray meets within MAX_M
   // (main.js shadowFocus) when that lies FARTHER than the flycam's focus (aerials looking down keep their box as before). Without it a street-level view of a tower left the tower outside the
   // box: no sun shadow on it at all (2026-10-25, the owner's photo IMG_1778). ?shadowaim=0 = off.
-  SHADOW_AIM: { ON: true, START_M: 2, STEP_M: 2, STEP_GROW: 0.04, MAX_M: 3000 },
+  SHADOW_AIM: { ON: true, START_M: 2, STEP_M: 2, STEP_GROW: 0.04, MAX_M: 3000, TOP_M: 350 },   // TOP_M: above every building top
   SHADOW_EXTENT_MIN_M: 90,
   SHADOW_EXTENT_MAX_M: 1100,
   SHADOW_EXTENT_STEP: Math.SQRT2,

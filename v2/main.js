@@ -275,7 +275,12 @@ function shadowFocus() {
   const t0 = performance.now();
   shadowAim.key = key;
   const o = camera.position, d = camera.getWorldDirection(shadowAim.dir), q = shadowAim.q;
+  // only a hit FARTHER than the focus is used, and every building stands on the ground: a ray that reaches the ground no farther than
+  // the focus (every view looking down: all the aerials) needs no march at all; above the tallest top the march starts at that height
+  const toGround = o.y > 0 && d.y < 0 ? o.y / -d.y : Infinity;
   let t = A.START_M, hit = false;
+  if (toGround <= o.distanceTo(controls.focus) || (o.y > A.TOP_M && d.y >= 0)) t = Infinity;
+  else if (o.y > A.TOP_M) t = Math.max(t, (o.y - A.TOP_M) / -d.y);
   while (t < A.MAX_M) {
     q.copy(o).addScaledVector(d, t);
     if (o.y > 0 && q.y <= 0) { q.copy(o).addScaledVector(d, o.y / Math.max(1e-6, -d.y)); hit = true; break; }
