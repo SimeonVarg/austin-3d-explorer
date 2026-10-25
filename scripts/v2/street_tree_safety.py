@@ -25,6 +25,7 @@ DEPTH_BINS = (0, .5, 1, 2, 3, 5, float('inf'))
 def source_kind(d, name, index):
     # street_trees.py appends downtown survey, general survey, then aerial detections.
     # Do not call the entire mixed City/aerial file surveyed.
+    if name == 'lidar': return 'lidar_crown'      # street_trees_lidar.py: one crown of the 2021 laser scan
     if name != 'city': return 'osm_point'
     counts = d['counts']
     assert sum(counts[k] for k in ('downtown_2013', 'inventory', 'detected')) == len(d['trees']) // 6
@@ -38,7 +39,8 @@ def depth_bin(depth):
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument('--audit', type=Path); ap.add_argument('--histogram-only', action='store_true'); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument('--audit', type=Path); ap.add_argument('--histogram-only', action='store_true')
+    ap.add_argument('--names', default='city,osm', help='which raw tree files (v2/data/trees/NAME.json) to make safe_NAME.json of'); a = ap.parse_args()
     street = ROOT / 'v2/data/street/surface.json'; surface = json.loads(street.read_text())
     road = unary_union([polygon(r) for r in surface['asphalt']]); boundary = road.boundary; prepare(road)
     near_path = ROOT/'v2/data/street/near.json'; near = json.loads(near_path.read_text()); travel_parts=[]
@@ -59,7 +61,7 @@ def main():
     grid = outlines(); building_rings = {tuple(ring) for rows in grid.values() for bb,ring in rows}
     buildings = [Polygon(r).buffer(0) for r in building_rings]; building_tree = STRtree(buildings)
     counts = {}
-    for name in ('city', 'osm'):
+    for name in a.names.split(','):
         source = ROOT / f'v2/data/trees/{name}.json'; d = json.loads(source.read_text())
         kept = []; dropped = []; kept_indices = []; moved = []; unresolved = []; non_travel = []; seams = []; hist = collections.defaultdict(collections.Counter)
         c = collections.Counter(before=len(d['trees']) // 6)

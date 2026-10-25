@@ -79,6 +79,8 @@ export const STREET_LOOK = {
 };
 
 export const TREE_LOOK = {
+  DEFAULT_MODE: 'real',         // 'real': the tree library's solid crowns (trees-real.js); 'balls': one ball or cone a tree (?trees=balls)
+  DEFAULT_SOURCE: 'lidar',      // 'lidar': a tree per crown of the 2021 laser scan; 'city': the inventories + aerial + OSM (?treesrc=city)
   // v2's own tree look (look.js TREE_*: crown '#33482a', +-12 % lightness, crown = 62 % of the height), kept, with a colour and a shape
   // per species group. radius = x the baked crown radius; minAspect = the crown is at least this x radius tall.
   GROUPS: {
@@ -93,7 +95,7 @@ export const TREE_LOOK = {
   TRUNK: '#3a3027',
 };
 
-// ?trees=real (v2/trees-real.js): a library of Austin tree forms (EZ-Tree, MIT) drawn in three distance bands. Colours come from the
+// the default (v2/trees-real.js; ?trees=balls for the old balls): a library of Austin tree forms (EZ-Tree, MIT) drawn in three distance bands. Colours come from the
 // owner's photographs (data/trees-real/manifest.json: median of masked leaf and trunk pixels); GAIN turns a photograph's colour into
 // v2's albedo scale (the aerial's GROUND_LOOK.GAIN does the same for pavement, 0.34). Repo rule 11: change a line, reload.
 export const TREE_REAL_LOOK = {
@@ -125,6 +127,29 @@ export const TREE_REAL_LOOK = {
   RECEIVE_SHADOW: true,         // the cards and trunks take the sun's shadow (?treeshadow=0 turns it off for a test)
   SHADOW_PROXY: true,           // one 20-triangle crown per tree casts the sun's shadow (the cards and impostors cast none)
   SHADOW_PROXY_SHRINK: 0.8,
+  // ── solid crowns (2026-10-25: the owner's photographs show dense, near-black crowns; the layered see-through cards were both too
+  // pale and the trees' whole cost). Each crown = the tree's own leaf clusters (k-means of its leaf cards) as opaque round clumps.
+  SOLID: true,                  // false (or ?treesolid=0): the old alpha-tested leaf cards and the far impostor atlas
+  CLUMPS: [44, 18, 6],          // clumps per crown: near, mid, far
+  CLUMP_DETAIL: [2, 0, 0],      // icosahedron detail per band (1 = 80 triangles a clump, 0 = 20)
+  CLUMP_GROW: 1.0,              // x each clump's radius (its cards' spread + the cards' own half size)
+  CLUMP_GROW_FAR: [1.12, 1.18], // the mid and far clumps grown a little more (fewer clumps hold the same crown)
+  CLUMP_FLAT: 0.82,             // clumps squashed this much in height (leaf clusters are flatter than balls)
+  CLUMP_NORMAL_CROWN: 0.8,      // 0 = each clump's own round normal, 1 = the crown's outward normal (soft, no facet flicker)
+  CROWN_UP_BIAS: 0.28,          // the crown normal leans up by this (the old cards' value)
+  AO_INNER: 0.42,               // light reaching the crown's inside (x albedo): clumps deep in the crown are this dark
+  AO_RANGE: [0.25, 0.92],       // over this share of the crown's radius from its centre the darkening fades out
+  // colour: the photograph's leaf colours (manifest.json: shaded, mid, sunlit). Albedo = mix(shaded, mid, SOLID_MIX) x SOLID_GAIN, a
+  // touch more saturated; the app's sun and sky then light it. Fitted on IMG_1778 (17:07): sunlit crown ~44,52,48, shade ~37,37,32 sRGB.
+  SOLID_MIX: 0.75,             // (first fit 2026-10-25: crowns came out a little bright and yellow against the photo's neutral dark)
+  SOLID_GAIN: 1.1,
+  SOLID_SAT: 0.8,
+  LEAF_NOISE: 0.38,             // leaf-cluster darkening on the crown's surface (0 = smooth)
+  LEAF_NOISE_SCALE: 22,         // its frequency per tree height (a 10 m tree: clusters about 0.45 m) ...
+  LEAF_NOISE_FADE: [0.3, 0.7],  // ... faded out where a cycle is under ~2 pixels (fwidth), so it never sparkles in motion (rule 15)
+  IMPOSTOR_EL_BLEND: false,     // the far crowns blend the two nearest elevation rows (4 atlas taps) or take the nearest (2): speed
+  IMPOSTOR_MIN_PX: 1.5,         // a far crown less than this many pixels across is not drawn (0 = all): the horizon's 100k crowns
+  SOLID_SPECULAR: 0.3,          // leaves have a little sheen in the sun
 };
 
 export const NEAR_LOOK = {

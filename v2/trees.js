@@ -11,7 +11,11 @@ const DATA = new URL('./data/trees/', import.meta.url).href;
 
 export function installTrees({ THREE, scene, redraw, renderer, phone = false }) {
   if (params.get('trees') === '0') return null;
-  const REAL = params.get('trees') === 'real';   // the tree library (trees-real.js) instead of one ball or cone per tree
+  // the tree library (trees-real.js: solid crowns from the tree's own leaf clusters) by default; ?trees=balls for one ball or cone a tree
+  const REAL = (params.get('trees') || T.DEFAULT_MODE) === 'real';
+  // positions: one tree per crown of the 2021 laser scan (scripts/v2/street_trees_lidar.py) by default; ?treesrc=city for the City
+  // inventories + the aerial's crowns + OSM (street_trees.py), which put trees where the owner's photographs have none
+  const SRC = params.get('treesrc') || T.DEFAULT_SOURCE;
   const group = new THREE.Group(); group.name = 'trees';
   scene.add(group);
   const stats = { ready: false };
@@ -35,7 +39,8 @@ export function installTrees({ THREE, scene, redraw, renderer, phone = false }) 
   };
 
   async function build() {
-    const files = await Promise.all([fetch(DATA + 'safe_city.json').then((r) => r.json()), fetch(DATA + 'safe_osm.json').then((r) => r.json()).catch(() => null)]);
+    const files = SRC === 'lidar' ? [await fetch(DATA + 'safe_lidar.json').then((r) => r.json())]
+      : await Promise.all([fetch(DATA + 'safe_city.json').then((r) => r.json()), fetch(DATA + 'safe_osm.json').then((r) => r.json()).catch(() => null)]);
     const groups = files[0].groups;
     const rows = groups.map(() => []);
     for (const f of files) {
@@ -70,7 +75,7 @@ export function installTrees({ THREE, scene, redraw, renderer, phone = false }) 
     });
     trunks.castShadow = true; trunks.receiveShadow = true; trunks.computeBoundingSphere(); trunks.name = 'trunks'; trunks.visible = !REAL;   // (the camera's trunk collision still reads its matrices)
     group.add(trunks);
-    Object.assign(stats, { ready: true, total: trunkAll.length, osm: files[1] ? files[1].trees.length / 6 : 0 });
+    Object.assign(stats, { ready: true, total: trunkAll.length, source: SRC, osm: files[1] ? files[1].trees.length / 6 : 0 });
     if (REAL) {
       try { const m = await import('./trees-real.js'); await m.installRealTrees({ THREE, scene, group, redraw, rows, groups, phone, renderer }); stats.real = true; }
       catch (e) { stats.realError = e.message; console.warn('[v2 trees real]', e.message); group.children.forEach((o) => { if (o.name !== 'tree ticker') o.visible = true; }); }   // fall back to the balls
