@@ -246,6 +246,7 @@
     "v2-cost.mjs": "timing: where a v2 frame's time goes (shadow pass, pixels, shading, tiles, CPU); needs a real GPU (it fails on a software renderer); run on the Mac or the AWS L4 one check at a time",
     "v2-exact.mjs": "captures the app from a solved owner-photo camera: needs the private model, trial manifest and photo camera (kept out of git) and a real GPU; run on the Mac",
     "v2-aim-shots.mjs": "shadow-aim before/after on 7 city views in one page with a real GPU; on a software renderer it runs past the 30-minute shard ceiling; run on the Mac or the AWS L4",
+    "v2-wire-shimmer.mjs": "flicker of the bridge cables in motion against a supersampled reference; needs a real GPU and Python; run on the Mac or the AWS L4",
     "v2-flight.mjs": "timing of the v2 opening flight, versions interleaved; needs a real GPU (it fails on a software renderer); run on the Mac or the AWS L4 one check at a time",
     "v2-stills.mjs": "the same still pictures from two v2 versions for a pixel diff; real GPU only (it fails on a software renderer, whose antialiasing is not the owner's)",
     "v1-v2-frame.mjs": "timing: the old app against v2 on the same views (load and frame time); needs a real GPU (it fails on a software renderer); run on the AWS L4 (scripts/aws-gpu)",
