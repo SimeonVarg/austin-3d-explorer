@@ -4,8 +4,7 @@
  *
  *   VERIFY_GL=hardware VERIFY_URL=http://127.0.0.1:8131 node scripts/verify/v2-aim-shots.mjs OUT_DIR [view ...]
  *
- * Views: the seven of v2-demo-checks.mjs (finder left out: same camera as the opening), Calhoun's east face from the street, and The
- * Independent from a pedestrian's eye on the south shore of the lake, looking up at it. 1440x900 at device scale 2, tiles settled (3 calm
+ * Views: the seven of v2-demo-checks.mjs (finder left out: same camera as the opening), Calhoun's east face from the street,. 1440x900 at device scale 2, tiles settled (3 calm
  * polls), every picture drawn twice and the second kept. Prints the shadow box (half-width, aim hit) for both arms.
  */
 import fs from 'node:fs';
@@ -25,7 +24,6 @@ const VIEWS = [
   { name: 'tower-far', xz: [0, -0.5], distance: 330, polar: 62, azimuth: 200 },
   { name: 'speedway-eye', eye: [243.9, -424.5, 184.8, 1.8] },
   { name: 'calhoun-east-eye', eye: [-35, 166, 270, 1.8], pitchUp: 8 },
-  { name: 'independent-eye', eye: [-1100, 2600, 2, 1.8], pitchUp: 12 },
 ].filter((v) => !ONLY.length || ONLY.includes(v.name));
 
 const browser = await launch(chromium, { gl: process.env.VERIFY_GL || 'hardware', maxMs: 1800000 });

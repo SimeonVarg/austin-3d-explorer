@@ -37,7 +37,11 @@ const place = () => page.evaluate(([pos, right, up, back, fov, nearM]) => {
   camera.fov = fov; camera.near = NEAR; camera.updateProjectionMatrix();
   camera.position.set(...pos);
   const m = new THREE.Matrix4().makeBasis(new THREE.Vector3(...right), new THREE.Vector3(...up), new THREE.Vector3(...back));
-  camera.quaternion.setFromRotationMatrix(m); camera.updateMatrixWorld(); window.__v2.redraw();
+  camera.quaternion.setFromRotationMatrix(m); camera.updateMatrixWorld();
+  // the flycam's focus of a person standing here (its ground point under the eye), not the start view's 2 km away: with the old focus the
+  // shadow box sat over campus and the photographed building had no sun shadow at all (pilot frames of 2026-10-25)
+  controls.focus.set(pos[0], 0, pos[2]); controls.target.set(pos[0], 0, pos[2]);
+  window.__v2.redraw();
 }, [pos, right, up, back, fov, +(process.env.EXACT_NEAR || 0) || null]);
 await page.addStyleTag({ content: 'body > *:not(canvas) { visibility: hidden !important; } canvas { visibility: visible !important; }' });
 await place();
