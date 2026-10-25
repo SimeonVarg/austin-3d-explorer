@@ -53,7 +53,9 @@ for (const v of VIEWS) {
   while (calm < 3 && Date.now() - t0 < 240000) { const s = await page.evaluate(() => window.__v2.tiles()); calm = s && s.planned && s.loading === 0 && !s.fading ? calm + 1 : 0; await page.waitForTimeout(700); }
   await page.evaluate(() => { const t = window.__v2.tileStreamer(); t && t.settle(); });
   const row = { view: v.name };
-  for (const [arm, on] of [['before', false], ['after', true]]) {
+  const ARMS = [['before', false], ['after', true]];
+  if (process.env.AIM_ORDER === 'after-first') ARMS.reverse();   // a control: is a difference the aim, or time between the pictures?
+  for (const [arm, on] of ARMS) {
     await page.evaluate((on) => { window.__v2.LOOK.SHADOW_AIM.ON = on; window.__v2.redraw(); }, on);
     await page.waitForTimeout(1200);
     const f = path.join(OUT, `${v.name}.${arm}.png`);
