@@ -16,6 +16,8 @@
  *   - --refs "main|." compares app VERSIONS on one machine, interleaved like --q: each git ref's v2/ folder is extracted to
  *     v2-ref-<ref>/ beside v2/ (so its ../data and ../js are this checkout's) and loaded as its own page; "." is this checkout's v2/.
  *     A ref this clone does not hold is fetched from origin (depth 1). --refs and --q combine (every ref x every query).
+ *   - --water adds two views over Lady Bird Lake (street level on the shore, and from 75 m); compare with --q "|water=1".
+ *     --views "opening,street level" keeps only the views whose names start with one of the given prefixes.
  *   - memory, per view: GPU buffers = the bytes of every geometry attribute and index and every texture in the scene, counted from
  *     three.js's own objects (what the page has handed the GPU, not a driver reading); JS heap = performance.memory.usedJSHeapSize.
  *   - The v2 app has no graphics auto-detect probe (that is the old app's `cancelGraphicsAutoDetect`), so there is nothing to cancel.
@@ -60,7 +62,12 @@ const VIEWS = [
   { name: 'West Campus (The Venue)', slug: 'the-venue', distance: 380, polar: 55, azimuth: 30 },
   { name: 'street level (Guadalupe at 21st)', xz: [-252, 246], distance: 45, polar: 80, azimuth: 355 },
   { name: 'DKR from 2 km', slug: 'dkr-memorial-stadium', distance: 2000, polar: 72, azimuth: 200 },
-];
+  // the water views (--water adds them; ?water=1 is the water layer, v2/water.js): street level on Lady Bird Lake's north shore
+  // looking across, and the lake from 75 m (the height of the owner's Mount Bonnell photographs over Lake Austin)
+  { name: 'street level (Lady Bird Lake shore)', xz: [-1123, 2450], distance: 45, polar: 80, azimuth: 180, water: true },
+  { name: 'Lady Bird Lake from 75 m', xz: [-2180, 1980], distance: 290, polar: 75, azimuth: 180, water: true },
+].filter((v) => !v.water || process.argv.includes('--water'))
+ .filter((v) => { const only = arg('--views', ''); return typeof only !== 'string' || !only || only.split(',').some((s) => v.name.startsWith(s)); });
 const args = [...HW_ARGS, ...(UNCAPPED ? ['--disable-gpu-vsync', '--disable-frame-rate-limit'] : [])];
 const browser = await launch(chromium, { args, maxMs: 1500000 });
 const rec = {};   // `${arm}|${view}` -> [{median,p95,calls,triangles}]
