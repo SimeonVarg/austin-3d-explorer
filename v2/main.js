@@ -762,13 +762,14 @@ function bakeGroundLit() {
   mat.uniforms.uSM.value = sun.shadow.map.depthTexture;
   mat.uniforms.uInv.value.copy(sun.shadow.matrix).invert();   // shadow uv/depth -> world (orthographic: affine)
   mat.uniforms.uBias.value = sun.shadow.bias;
-  const rt0 = renderer.getRenderTarget(), auto = renderer.autoClear, sh = renderer.shadowMap.autoUpdate;
+  const rt0 = renderer.getRenderTarget(), face0 = renderer.getActiveCubeFace(), mip0 = renderer.getActiveMipmapLevel(), auto = renderer.autoClear, sh = renderer.shadowMap.autoUpdate;
   renderer.shadowMap.autoUpdate = false; renderer.autoClear = false;
   renderer.setRenderTarget(groundLit.rt);
   const real = renderer.shadowMap.enabled; renderer.shadowMap.enabled = false;
   renderer.render(bs, bc);
   renderer.shadowMap.enabled = real;
-  renderer.setRenderTarget(rt0); renderer.autoClear = auto; renderer.shadowMap.autoUpdate = sh;
+  renderer.setRenderTarget(rt0, face0, mip0);   // (a cube camera draws its six faces through here: keep its face)
+  renderer.autoClear = auto; renderer.shadowMap.autoUpdate = sh;
   groundLit.bakes++;
 }
 if (LOOK.HEMI_INTENSITY > 0) scene.add(new THREE.HemisphereLight(LOOK.HEMI_SKY, LOOK.HEMI_GROUND, LOOK.HEMI_INTENSITY));
