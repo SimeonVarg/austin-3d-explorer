@@ -44,16 +44,16 @@ const REPS = +arg('--reps', 3), N = +arg('--n', 40), RAF = process.argv.includes
 const ARMS = [
   { name: 'desktop', w: 1440, h: 900, dpr: 2, cpu: 1, mobile: false },
   { name: 'phone', w: 390, h: 844, dpr: 3, cpu: 4, mobile: true },
-].filter((a) => !process.env.V2_FRAME_ARMS || process.env.V2_FRAME_ARMS.split(/[|;]/).some((k) => a.name.includes(k)));
+].filter((a) => { const f = arg('--arms', '') || process.env.V2_FRAME_ARMS; return !f || f.split(/[|;]/).some((k) => a.name.includes(k)); });
 const VIEWS = [
   { name: 'opening', target: [-260, 0, 60], distance: 1350, polar: 56, azimuth: 28 },
   { name: 'street', xz: [-252, 246], distance: 45, polar: 80, azimuth: 355 },
   { name: 'independent', slug: 'the-independent', distance: 420, polar: 72, azimuth: 20 },
   { name: 'drag300', xz: [-235, 30], distance: 300, polar: 60, azimuth: 250 },
   { name: 'southmall', xz: [0, 110], distance: 50, polar: 80, azimuth: 0 },
-].filter((v) => !process.env.V2_FRAME_VIEWS || process.env.V2_FRAME_VIEWS.split(/[|;]/).some((k) => v.name.includes(k)));
+].filter((v) => { const f = arg('--views', '') || process.env.V2_FRAME_VIEWS; return !f || f.split(/[|;]/).some((k) => v.name.includes(k)); });
 const STATES = (arg('--states', '') || process.env.V2_SPLIT_STATES || 'all|-trees|-glass|-dome').split('|');
-const browser = await launch(chromium, { args: [...HW_ARGS, '--disable-gpu-vsync', '--disable-frame-rate-limit'], maxMs: +process.env.VERIFY_MAX_MS || 3300000 });
+const browser = await launch(chromium, { args: [...HW_ARGS, '--disable-gpu-vsync', '--disable-frame-rate-limit'], maxMs: +arg('--max-ms', 0) || +process.env.VERIFY_MAX_MS || 3300000 });
 const rec = {};
 let renderer = '';
 for (let rep = 0; rep < REPS; rep++) for (const arm of rep % 2 ? [...ARMS].reverse() : ARMS) for (let vi = 0; vi < VARIANTS.length; vi++) {
