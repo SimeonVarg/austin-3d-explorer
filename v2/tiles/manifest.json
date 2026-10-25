@@ -1050,15 +1050,14 @@
       ],
       "lod0": "tiles/t_-5_8.glb",
       "lod1": "tiles/t_-5_8.far.glb",
-      "lod1_m": 400,
       "buildings": [
         "butterfly-bridge",
         "seaholm-residences",
         "the-independent"
       ],
       "bytes": [
-        761132,
-        25468
+        686164,
+        24464
       ]
     },
     {
@@ -5264,7 +5263,7 @@
       "model": "opus",
       "x": -1099.507,
       "z": 2212.261,
-      "top": 10.1
+      "top": 10.4
     }
   }
 }

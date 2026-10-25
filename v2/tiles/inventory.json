@@ -5150,24 +5150,24 @@
       "model": "opus",
       "kind": "street",
       "tile": "t_-5_8",
-      "blend_sha256": "8cbf22d96ea45e0a",
+      "blend_sha256": "97bf61a1a8db3287",
       "lod1": "near without small parts",
       "app_copy": {
-        "triangles": 9078,
-        "detailed_triangles": 11824,
+        "triangles": 3608,
+        "detailed_triangles": 4904,
         "target": 9000,
-        "simplify_error": 9.1e-05,
+        "simplify_error": 1e-05,
         "ground_triangles": [
           0,
           0
         ]
       },
       "placement": {
-        "height_m": 10.1,
-        "area_ratio": 0.176,
-        "centre_off_m": 0.55,
+        "height_m": 10.4,
+        "area_ratio": 0.121,
+        "centre_off_m": 0.51,
         "flags": [
-          "area x0.18",
+          "area x0.12",
           "base at -1.7 m"
         ]
       }
@@ -5799,15 +5799,15 @@
       }
     },
     "t_-5_8": {
-      "hash": "0a89027c1549c429",
+      "hash": "b583ed9853909ff6",
       "near": {
-        "bytes": 761132,
-        "tris": 66334,
+        "bytes": 686164,
+        "tris": 60864,
         "draws": 2
       },
       "far": {
-        "bytes": 25468,
-        "tris": 1956,
+        "bytes": 24464,
+        "tris": 1850,
         "draws": 1
       }
     },

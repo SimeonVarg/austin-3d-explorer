@@ -142,12 +142,11 @@
   "butterfly-bridge": {
     "triangles": 9000,
     "crease_deg": 35,
-    "reduce": "^(bb_steel_socket|bb_rib_paint|bb_rail_steel|bb_deck_concrete)$",
+    "reduce": "^(bb_rib_paint|bb_deck_concrete)$",
     "far_copy": {
       "triangles": 1500,
       "drop": "^(bb_cable|bb_steel_socket|bb_rail_steel|bb_rail_mesh)$"
     },
-    "lod1_m": 400,
     "site": {
       "site_material": "^site_",
       "cell_m": 2,

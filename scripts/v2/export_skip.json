@@ -1,5 +1,5 @@
 {
   "_about": "Objects (by name, a regex) left out of a build's export: they belong to a neighbour the app draws itself. slug -> regex. Run through scripts/v2/blender_export_skip.py (it hides them from the render, which the exporter honours), so the exporter itself, and every other build's export, stay as they were.",
   "health-transformation-building": "^(hcg_|sign_hcg_)",
-  "butterfly-bridge": "^bridge_rail_mesh$"
+  "butterfly-bridge": "^bridge_(rail_mesh|cable|steel_socket|rail_steel)$"
 }
