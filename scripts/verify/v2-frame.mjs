@@ -53,7 +53,7 @@ const VARIANTS = REFS.flatMap((r) => QS.map((q) => ({ ...r, q, name: [REFS.lengt
 const ARMS = [
   { name: 'desktop 1440x900@2, CPU x1', w: 1440, h: 900, dpr: 2, cpu: 1, mobile: false },
   { name: 'phone 390x844@3, CPU x4', w: 390, h: 844, dpr: 3, cpu: 4, mobile: true },
-];
+].filter((a) => !process.env.V2_FRAME_ARMS || process.env.V2_FRAME_ARMS.split('|').some((k) => a.name.includes(k)));   // e.g. V2_FRAME_ARMS=desktop
 const VIEWS = [
   { name: 'opening view', pose: null },
   { name: 'DKR close', slug: 'dkr-memorial-stadium', distance: 330, polar: 58, azimuth: 235 },
@@ -89,6 +89,8 @@ for (let rep = 0; rep < REPS; rep++) {
         const groundCalm = !s.g || s.g.failed || (s.g.index && s.g.missing === 0 && s.g.loading === 0 && s.g.waitingUpload === 0);
         calm = s.t && s.t.loading === 0 && groundCalm ? calm + 1 : 0; await page.waitForTimeout(700);
       }
+      // a trial manifest with an exact tile: render its local probes once (as v2-exact.mjs does), so its glass is measured as drawn
+      await page.evaluate(() => { const e = window.__v2.exact && window.__v2.exact(); if (e && e.tiles && e.probeMs == null) window.__v2.exactProbe(); });
       await page.waitForTimeout(1500);
       const m = await page.evaluate((ms) => window.__v2.measure(ms, 0.15), MS);
       // GPU-synchronous cost: 90 renders, each followed by a 1-pixel read that waits for the GPU (an uncapped rAF only times the CPU's submit rate).
