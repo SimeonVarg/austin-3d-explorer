@@ -332,10 +332,12 @@ function sortCasters(root, cam) {
   visit(root);
   return missing;
 }
+let shadowHold = false;
 if (SHADOW_CACHE) {
   const drawShadows = renderer.shadowMap.render;
   let lastSig = '';
   renderer.shadowMap.render = function (lights, s, cam) {
+    if (shadowHold) return;   // the water's mirror pass (water.js): the main pass's map is current
     if (s !== scene) return drawShadows.call(this, lights, s, cam);
     const t = performance.now();
     const sig = casterSignature(scene);
@@ -441,6 +443,13 @@ scene.add(cityGroup);
 // the City's 2025 aerial on the ground, the street layers and the credits link (ground.js; it hooks scene.onBeforeRender itself)
 installGround({ THREE, scene, camera, renderer, city, redraw: () => { dirty = true; }, phone: PHONE,
   lodHeight: () => Math.floor(innerHeight * DPR) });
+// the water (water.js): Lady Bird Lake and the rest as a moving mirror. OFF unless ?water=1 until the owner accepts it.
+let water = null;
+if (params.get('water') === '1') {
+  import('./water.js').then((m) => m.installWater({ THREE, scene, camera, renderer, sun, dome, phone: PHONE,
+    holdShadows: (on) => { shadowHold = on; }, redraw: () => { dirty = true; } }))
+    .then((w) => { water = w; }).catch((e) => console.warn('[v2 water]', e.message));
+}
 
 function geometryOf(t, normals) {
   const g = new THREE.BufferGeometry();
@@ -912,6 +921,7 @@ function frame(now) {
   if (tiles) tiles.update(now);
   if (moved || mapLayers.dirty) { mapLayers.dirty = false; mapLayers.update(); }
   labels.update(now);
+  if (water && water.update(now)) dirty = true;   // water in view moves: keep drawing
   if (!(moved || dirty || frameLog.on)) return;
   dirty = false;
   followShadow(moving);
@@ -1049,7 +1059,7 @@ window.__v2 = {
   ready: Promise.all([cityReady, tilesReady, routeReady]),
   tiles: () => tiles && tiles.summary(),
   timings: () => ({ ...timings }),
-  setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
+  setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, water: () => water, sun, flyTo, map, INTRO, skipIntro,
   intro: () => introFlight.flight && { ...introFlight.flight },
   labels: () => ({ items: labels.items.length, shown: labels.shown, merged: labels.merged || 0, occluded: labels.occludedN || 0, selected: labels.selected?.name || null }),
   pick: (x, y) => labels.pick(x, y), openCard: (name) => { const it = labels.items.find((i) => i.name === name); if (it) labels.open(it); return !!it; }, requestRoute, drawRoute, redraw: () => { dirty = true; },
