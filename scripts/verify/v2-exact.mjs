@@ -55,6 +55,6 @@ await page.screenshot({ path: out + '.tmp.png' });
 await page.waitForTimeout(800);
 await page.screenshot({ path: out });
 fs.rmSync(out + '.tmp.png', { force: true });
-const info = await page.evaluate(() => ({ ...window.__v2.info(), exact: window.__v2.exact ? window.__v2.exact() : null, tiles: window.__v2.tiles(), mem: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null }));
+const info = await page.evaluate(() => ({ ...window.__v2.info(), exact: window.__v2.exact ? window.__v2.exact() : null, glass: window.__v2.glass ? window.__v2.glass() : null, tiles: window.__v2.tiles(), mem: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null }));
 console.log(JSON.stringify({ out, fov, pos, probeMs, info, errors: errs.slice(0, 3) }));
 await browser.close();

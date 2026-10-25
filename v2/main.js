@@ -16,6 +16,7 @@ import { MapLayers } from './map-layers.js';
 import { Labels, blenderItems, homeItems, campusItems } from './labels.js';
 import { installGround } from './ground.js';
 import { exactPrepare, exactProbe, exactState } from './exact-pilot.js';
+import { glassPrepare, glassState } from './glass.js';
 
 const params = new URLSearchParams(location.search);
 // exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
@@ -617,7 +618,7 @@ const tilesReady = (async () => {
     const t = new TileStreamer({ scene, camera, manifestUrl,
       onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings,
       // the camera's collision tops from the model (#529), and the plain blocks the model stands over (covers.js)
-      prepare: (obj, def, s) => { exactPrepare(obj, def); if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
+      prepare: (obj, def, s) => { exactPrepare(obj, def); glassPrepare(obj); if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
       onChange: () => { dirty = true; sun.shadow.needsUpdate = true; labels.occGen = (labels.occGen || 0) + 1; labels.dirty = true; }, onAnimate: () => { dirty = true; } });
     if (params.get('fade') === '0') t.instant = true;
     const man = await t.load();
@@ -1095,7 +1096,7 @@ window.__v2 = {
     const u = dome.material.uniforms.scale.value, was = u.clone();
     if (LOOK.PROBE_MIRROR_SKY) u.set(...mirrorScale);
     const ms = exactProbe(renderer, scene); u.copy(was); dirty = true; return ms;
-  }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs }),
+  }, glass: () => ({ ...glassState }), exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs, probeYs: exactState.probeYs }),
   timings: () => ({ ...timings }),
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
   intro: () => introFlight.flight && { ...introFlight.flight },
