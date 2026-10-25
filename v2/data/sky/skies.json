@@ -1,0 +1,221 @@
+{
+ "note": "Real captured skies (v2/sky-real.js). Upper half of each HDRI (horizon to zenith), sRGB WebP of linear radiance / white, sun painted out and measured (u = its column, 0..1, in the image; el_deg; E_rgb = its normal irradiance in the HDRI units). Source: Poly Haven, CC0. Baked by scripts/v2/sky_bake.py.",
+ "skies": {
+  "clear_afternoon": {
+   "sun": {
+    "u": 0.6003123980237004,
+    "el_deg": 40.81677884789652,
+    "E_rgb": [
+     8.776477269947634,
+     8.338050064407689,
+     7.778357158477406
+    ],
+    "px": 995
+   },
+   "file": "clear_afternoon.webp",
+   "size": [
+    4096,
+    1024
+   ],
+   "white": 2.2435154914855957,
+   "median": 0.12270918488502502,
+   "E_sky_level_rgb": [
+    0.38787650370141863,
+    0.5644099680796079,
+    0.9035449781259113
+   ],
+   "clipped_share": 0.001,
+   "bytes": 34712,
+   "what": "clear afternoon",
+   "source": "https://polyhaven.com/a/qwantani_afternoon_puresky",
+   "licence": "CC0"
+  },
+  "cumulus": {
+   "sun": {
+    "u": 0.5951625594593878,
+    "el_deg": 47.87578959330329,
+    "E_rgb": [
+     4.373804190121433,
+     4.410588710971406,
+     4.0092655595267
+    ],
+    "px": 1192
+   },
+   "file": "cumulus.webp",
+   "size": [
+    4096,
+    1024
+   ],
+   "white": 8.266827821731567,
+   "median": 0.3444511592388153,
+   "E_sky_level_rgb": [
+    1.3515125310010259,
+    1.5533302403748033,
+    2.2258921032023764
+   ],
+   "clipped_share": 0.00179,
+   "bytes": 134048,
+   "what": "scattered cumulus, sun 48 degrees up",
+   "source": "https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky",
+   "licence": "CC0"
+  },
+  "cirrus": {
+   "sun": {
+    "u": 0.6390893287547194,
+    "el_deg": 5.728892123444723,
+    "E_rgb": [
+     1.5392913016229965,
+     0.8056098354835626,
+     0.16158531994532765
+    ],
+    "px": 553
+   },
+   "file": "cirrus.webp",
+   "size": [
+    4096,
+    1024
+   ],
+   "white": 7.546987295150757,
+   "median": 0.31445780396461487,
+   "E_sky_level_rgb": [
+    1.4396927595999007,
+    1.6208182691079265,
+    2.2323403846108767
+   ],
+   "clipped_share": 0.00213,
+   "bytes": 60900,
+   "what": "high cirrus streaks",
+   "source": "https://polyhaven.com/a/rocky_ridge_puresky",
+   "licence": "CC0"
+  },
+  "golden_hour": {
+   "sun": {
+    "u": 0.6003607102680463,
+    "el_deg": 19.076842160588342,
+    "E_rgb": [
+     9.20517508105775,
+     7.4166984877221775,
+     5.257793808766752
+    ],
+    "px": 533
+   },
+   "file": "golden_hour.webp",
+   "size": [
+    4096,
+    1024
+   ],
+   "white": 6.5454089641571045,
+   "median": 0.272725373506546,
+   "E_sky_level_rgb": [
+    1.0638818199324613,
+    1.3711603419556304,
+    1.8254574562279315
+   ],
+   "clipped_share": 0.00102,
+   "bytes": 33626,
+   "what": "golden hour, clear",
+   "source": "https://polyhaven.com/a/qwantani_late_afternoon_puresky",
+   "licence": "CC0"
+  },
+  "sunset_veil": {
+   "sun": null,
+   "glow": {
+    "u": 0.6429443359375,
+    "el_deg": 4.0869140625,
+    "sun_el_deg": 1.0
+   },
+   "file": "sunset_veil.webp",
+   "size": [
+    4096,
+    1024
+   ],
+   "white": 20.18582534790039,
+   "median": 0.9292734265327454,
+   "E_sky_level_rgb": [
+    3.365346912255953,
+    3.2869521884570236,
+    4.646482127343163
+   ],
+   "clipped_share": 0.001,
+   "bytes": 69536,
+   "what": "sunset under a grey cloud veil",
+   "source": "https://polyhaven.com/a/belfast_sunset_puresky",
+   "licence": "CC0"
+  },
+  "sunset_streaks": {
+   "sun": null,
+   "glow": {
+    "u": 0.6177978515625,
+    "el_deg": 17.6220703125,
+    "sun_el_deg": 2.0
+   },
+   "file": "sunset_streaks.webp",
+   "size": [
+    4096,
+    1024
+   ],
+   "white": 10.51345157623291,
+   "median": 0.7855707406997681,
+   "E_sky_level_rgb": [
+    2.718304278017613,
+    3.365058410487219,
+    3.994940275541055
+   ],
+   "clipped_share": 0.001,
+   "bytes": 172956,
+   "what": "sunset, cirrus streaks and altocumulus",
+   "source": "https://polyhaven.com/a/evening_road_01_puresky",
+   "licence": "CC0"
+  },
+  "blue_hour": {
+   "sun": null,
+   "glow": {
+    "u": 0.6036376953125,
+    "el_deg": 11.5576171875,
+    "sun_el_deg": -4.0
+   },
+   "file": "blue_hour.webp",
+   "size": [
+    4096,
+    1024
+   ],
+   "white": 5.286324501037598,
+   "median": 0.7918624877929688,
+   "E_sky_level_rgb": [
+    3.7115946805688775,
+    3.3497574757427313,
+    4.981852681835488
+   ],
+   "clipped_share": 0.001,
+   "bytes": 47488,
+   "what": "blue hour, after sunset",
+   "source": "https://polyhaven.com/a/qwantani_dusk_2_puresky",
+   "licence": "CC0"
+  },
+  "night_city": {
+   "sun": null,
+   "glow": {
+    "u": 0.6031494140625,
+    "el_deg": 38.5400390625,
+    "sun_el_deg": -15.0
+   },
+   "file": "night_city.webp",
+   "size": [
+    4096,
+    1024
+   ],
+   "white": 1.3782016038894653,
+   "median": 0.29751408100128174,
+   "E_sky_level_rgb": [
+    0.9284534062095102,
+    1.0418834665440768,
+    1.2161496904412494
+   ],
+   "clipped_share": 0.001,
+   "bytes": 131902,
+   "what": "night, overcast, lit by a town",
+   "source": "https://polyhaven.com/a/kloppenheim_07_puresky",
+   "licence": "CC0"
+  }
+ }
+}

@@ -1,0 +1,8 @@
+{
+  "note": "Photo moments for ?moment=NAME (v2/sky.js). A time on Austin's clock and the numbers fitted to the owner's photo; no photo pixels and no place here. SKY: haze = aerosols (1 = optical depth 0.1 at 550 nm), ms = light scattered more than once (share of the sky's mean), sun = the sun's strength against the model's, cover = share of the sky under cloud (the parametric sky only). sky = a real captured sky (v2/data/sky/skies.json, v2/sky-real.js) that replaces the parametric one; photo = the owner's own photo's sky on the dome where his photo shows sky (v2/data/sky/photo-NAME.*); ?sky=param brings the parametric sky back. CAMERA (the photo's phone, not the light): exposure (1 = the default view's), wb = white balance gains (r, g, b), sat = saturation. Day exposure is fitted; sunset and night exposures follow from the photos' own exposure (shutter x ISO) against IMG_1778's.",
+  "moments": {
+    "IMG_1778": { "time": "2026-10-24T17:07:29", "haze": 0.8, "ms": 0.7, "sun": 0.45, "cover": 0.15, "exposure": 1.15, "wb": [1, 1, 1], "sat": 1, "sky": "golden_hour", "photo": "IMG_1778" },
+    "IMG_1805": { "time": "2026-10-24T17:56:23", "haze": 1.6, "ms": 0.7, "sun": 0.6, "cover": 0.35, "exposure": 1.1, "wb": [1, 1, 1], "sat": 1, "sky": "cirrus", "photo": "IMG_1805" },
+    "IMG_1855": { "time": "2026-10-24T19:34:46", "haze": 1.0, "ms": 0.7, "sun": 0.6, "cover": 0, "exposure": 12900, "wb": [0.85, 1, 1.5], "sat": 1 }
+  }
+}
