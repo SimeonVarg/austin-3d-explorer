@@ -18,6 +18,11 @@ const SOURCES = {
 };
 const DEFAULT_HEIGHT_M = 9;       // an outline with no height anywhere
 const MIN_HEIGHT_M = 2.5;
+// Plain massing rows whose upper scan levels belong to a NEIGHBOUR's Blender model, not to them: their levels above this height (m) are
+// left out in v2. w516271470, The Independent's podium: the 2021 scan put The Independent's own east overhang (levels at 116 and 172.6 m)
+// on the podium's outline, so with the Blender Independent in place it drew a phantom white tower east of it (the site photograph shows
+// open sky there; check 2026-10-25). Its podium top is 25.4 m.
+const MASSING_CAP_M = { w516271470: 25.4 };
 
 let LOOK = null;
 // every data file is reported to the page (the loading screen counts them: js/loader.js "Paperwork")
@@ -197,6 +202,7 @@ async function buildBuildings() {
     if (Array.isArray(r.lv) && r.lv.length) {
       let y0 = 0;
       for (const [top, plans] of r.lv) {
+        if (MASSING_CAP_M[r.id] != null && top > MASSING_CAP_M[r.id] + 0.01) continue;
         const lp = plans ? polysOf(plans) : polys;
         if (top > y0) levels.push({ polys: lp, y0, y1: top });
         y0 = Math.max(y0, top);
