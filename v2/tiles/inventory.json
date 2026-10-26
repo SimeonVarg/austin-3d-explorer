@@ -1199,7 +1199,7 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_1_-1",
-      "blend_sha256": "31114facbb2b876b",
+      "blend_sha256": "acec919a04e61dd9",
       "lod1": "mass",
       "placement": {
         "height_m": 31.5,
@@ -2540,13 +2540,15 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_-1",
-      "blend_sha256": "4fc37c6dc1660397",
+      "blend_sha256": "bd7099230cdcd3cc",
       "lod1": "mass",
       "placement": {
         "height_m": 26.9,
-        "area_ratio": 0.9,
-        "centre_off_m": 1.26,
-        "flags": []
+        "area_ratio": 0.896,
+        "centre_off_m": 1.08,
+        "flags": [
+          "area x0.90"
+        ]
       }
     },
     "robert-e-johnson-state-legislative-office-building": {
@@ -5825,15 +5827,15 @@
       }
     },
     "t_0_-1": {
-      "hash": "e75428ff47bc0535",
+      "hash": "9b3357fb5834dba6",
       "near": {
-        "bytes": 1318484,
-        "tris": 119773,
-        "draws": 3
+        "bytes": 1388156,
+        "tris": 120295,
+        "draws": 4
       },
       "far": {
-        "bytes": 38600,
-        "tris": 3013,
+        "bytes": 39296,
+        "tris": 3193,
         "draws": 1
       }
     },
@@ -5981,10 +5983,10 @@
       }
     },
     "t_1_-1": {
-      "hash": "83e7f9e9c238f009",
+      "hash": "ce81a77fe20b0cd3",
       "near": {
-        "bytes": 1412212,
-        "tris": 111141,
+        "bytes": 1234344,
+        "tris": 97041,
         "draws": 6
       },
       "far": {
