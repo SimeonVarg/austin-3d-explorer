@@ -9,7 +9,7 @@
 //   - how it is drawn: on a pitched face the texture runs in the roof's own plane (u along the eave, level; v up the slope), at the
 //     measured barrel spacing and course pitch, so the rows lie as on the roof; on steep parts (caps, ridge sides) the texture's mean.
 // Rule 15 (no shimmer, blur is not a fix): the rows are a texture with full mip maps and anisotropic filtering, so far away a pixel is
-// the true average of the rows under it (the mip chain IS the box filter), with no small negative bias to keep it at a texel per pixel.
+// the true average of the rows under it (the mip chain IS the box filter); LOOK.CLAY.MIP_BIAS keeps it at about a texel per pixel (not softer than the truth).
 // Every taste value is in LOOK.CLAY (rule 11). ?clay=0 turns it off.
 import * as THREE from 'three';
 import { LOOK } from './look.js';
@@ -67,7 +67,7 @@ function patch(material, map) {
       v2t1 /= v2l;
       vec3 v2t2 = cross(v2n, v2t1);          // up the slope, in the roof's plane
       vec2 v2uv = vec2(dot(v2wp, v2t1) / ${f(C.REPEAT_M[0])}, dot(v2wp, v2t2) / ${f(C.REPEAT_M[1])});
-      vec3 v2tex = texture2D(v2ClayMap, v2uv).rgb * vec3(${C.FACTOR.map(f).join(', ')});
+      vec3 v2tex = texture2D(v2ClayMap, v2uv${C.MIP_BIAS ? ', ' + f(C.MIP_BIAS) : ''}).rgb * vec3(${C.FACTOR.map(f).join(', ')});
       v2c = mix(v2c, v2tex, v2pitch);
     }
     diffuseColor.rgb = v2c;
@@ -77,7 +77,7 @@ function patch(material, map) {
     if (RGID) sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  if (vV2Clay > 0.25) gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);');
   };
   const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
-  material.customProgramCacheKey = () => key() + '|v2-clay' + (RGID ? '-id' : '');
+  material.customProgramCacheKey = () => key() + '|v2-clay' + C.MIP_BIAS + (RGID ? '-id' : '');
   material.needsUpdate = true;
 }
 

@@ -171,6 +171,10 @@ export const LOOK = {
     ROUGHNESS: 0.8,
     PITCH_NY: [0.3, 0.97],      // faces whose normal's height is in this range get the rows (steeper or flatter: the mean)
     ANISOTROPY: 8,
+    // mip bias of the clay texture: plain trilinear filtering averaged the rows more than the supersampled truth does (v2-shimmer soft
+    // +0.04 at Biological Labs 250 m); a small negative bias takes the mip level back to about a texel per pixel (as PMA's photo textures,
+    // PR #562). ?claybias=B overrides it (an A/B).
+    MIP_BIAS: -0.15,
   },
 
   // ── trees ────────────────────────────────────────────────────────────
@@ -196,6 +200,7 @@ if (Q.get('shadowaim') === '0') LOOK.SHADOW_AIM.ON = false;
 if (Q.get('probemirror') === '0') LOOK.PROBE_MIRROR_SKY = false;
 if (Q.get('ao') && Q.get('ao') !== '0') LOOK.AO.STRENGTH = +Q.get('ao');
 if (Q.get('clay') === '0') LOOK.CLAY.ON = false;
+if (Q.has('claybias')) LOOK.CLAY.MIP_BIAS = +Q.get('claybias');
 if (Q.get('aofar')) LOOK.AO.FAR_PX_M = Q.get('aofar').split(',').map(Number);   // e.g. ?aofar=0.06,0.18,0.35,0.9
 
 // Speed knobs that change the picture (kept here so a phone/desktop difference is visible in one file).
