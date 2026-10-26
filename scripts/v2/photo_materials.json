@@ -299,5 +299,58 @@
     "size_m": 0.13
    }
   }
+ },
+ "gates-dell-complex": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "stone_lum_rig": 0.1228,
+   "photo_to_rig": 0.1593,
+   "why": "one number to overrule: the first build's cast-stone level (luminance) is kept; the brick/stone ratio and both hues come from the owner's photograph IMG_0998 (overcast, the west wall rectified at full resolution, no lamp)",
+   "hue": "the hue of each material sits between his two photos: IMG_0998 (west, cool) and IMG_1031 (east court, warm) disagree by ~25 % in blue under the same matched sky, so the hue is set where both land within ~15 % (one value to overrule); the brick pattern and tone mix come from IMG_0998"
+  },
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/gates-dell-complex/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/gates-dell-complex/brick_normal.jpg",
+    "repeat_m": [
+     1.0324,
+     1.0832
+    ],
+    "factor": [
+     0.2638,
+     0.2232,
+     0.1715
+    ],
+    "source": "owner photo IMG_0998, 2026-10-03 campus walk (west wall from Speedway, centre-bay spandrels): 183 real bricks laid in running bond at the modular course 0.0677 m (64.6 px/m measured), light divided out per channel",
+    "mean_rgb": [
+     0.1418,
+     0.0886,
+     0.0515
+    ]
+   },
+   "wall_stone_cast": {
+    "albedo": "scripts/v2/materials/gates-dell-complex/limestone_albedo.jpg",
+    "repeat_m": [
+     0.4,
+     0.4
+    ],
+    "factor": [
+     0.2823,
+     0.2103,
+     0.1528
+    ],
+    "source": "owner photo IMG_0998, 2026-10-03 campus walk (west wall plinth, centre bay): mottling only; its mean stays the first build's cast-stone colour, which was gated on his photo IMG_1031 (6.9 %) and renders closer to BOTH his photos than a re-derived hue",
+    "mean_rgb": [
+     0.1683,
+     0.1142,
+     0.0738
+    ]
+   }
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "as PMA: the brick texture is far below a texel per pixel at 250 m; anisotropy 8 + bias -0.15 keeps the blur measure <= 0 (checked with v2-shimmer on this building)"
+  }
  }
 }
