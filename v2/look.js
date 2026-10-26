@@ -158,6 +158,21 @@ export const LOOK = {
     FADE_PX: [0.22, 0.45],      // footprint (bays or storeys per pixel) over which the pattern fades to its average: gone before a bay is 2 px
   },
 
+  // ── campus clay tile roofs (v2/clay.js; 2026-10-26) ──────────────────
+  // One material for every campus clay tile roof (v2/data/roof_glass.json says which surfaces), taken from the owner's clearest roof
+  // photograph, de-lit, laid as barrels and courses at the measured spacing. ?clay=0 = the builders' plain colours as before.
+  CLAY: {
+    ON: true,
+    TEXTURE: './data/materials/clay-tile.jpg',
+    SOURCE: 'owner photo IMG_0747 (2026-10-03 campus walk): the low annex roof beside Biological Laboratories, rectified and de-lit',
+    REPEAT_M: [2.0, 2.4],       // the texture's size on the roof: 8 barrels x 0.25 m along the eave, 8 courses x 0.30 m up the slope
+    FACTOR: [0.262, 0.232, 0.185], // x the texture (linear): the albedo level, from the matched-sky renders against his photographs
+    MEAN: [0.068, 0.037, 0.030], // the texture's mean x FACTOR (linear; texture mean 0.2592, 0.1582, 0.1622): steep parts get this plain colour
+    ROUGHNESS: 0.8,
+    PITCH_NY: [0.3, 0.97],      // faces whose normal's height is in this range get the rows (steeper or flatter: the mean)
+    ANISOTROPY: 8,
+  },
+
   // ── trees ────────────────────────────────────────────────────────────
   TREE_CROWN: '#33482a',
   TREE_CROWN_VARIATION: 0.12,   // random lightness spread per tree
@@ -180,6 +195,7 @@ if (Q.get('ao') === '0') LOOK.AO.ON = false;
 if (Q.get('shadowaim') === '0') LOOK.SHADOW_AIM.ON = false;
 if (Q.get('probemirror') === '0') LOOK.PROBE_MIRROR_SKY = false;
 if (Q.get('ao') && Q.get('ao') !== '0') LOOK.AO.STRENGTH = +Q.get('ao');
+if (Q.get('clay') === '0') LOOK.CLAY.ON = false;
 if (Q.get('aofar')) LOOK.AO.FAR_PX_M = Q.get('aofar').split(',').map(Number);   // e.g. ?aofar=0.06,0.18,0.35,0.9
 
 // Speed knobs that change the picture (kept here so a phone/desktop difference is visible in one file).
