@@ -429,6 +429,7 @@
    }
   }
  },
+<<<<<<< HEAD
  "gates-dell-complex": {
   "wall_max_ny": 0.75,
   "anchor": {
@@ -497,10 +498,18 @@
      0.0641
     ]
    }
+=======
+ "robert-a-welch-hall": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "stone_lum_rig": 0.15,
+   "why": "one number to overrule: the arcade limestone of the later wing sits at luminance 0.150 on the light-rig scale (the campus limestone level: Schoch 0.138, Hogg 0.139, Biolabs 0.153); brick, metal band and portal concrete come from the owner's IMG_0994 as ratios to it (overcast, one wall plane). The limestone shows no resolvable texture in his photos (smooth sawn panels), so it is a plain photo-derived colour in the build, not a texture"
+>>>>>>> origin/main
   },
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
+<<<<<<< HEAD
    "why": "as PMA: the brick texture is far below a texel per pixel at 250 m; anisotropy 8 + bias -0.15 keeps the blur measure <= 0 (checked with v2-shimmer on this building)"
   },
   "fade": {
@@ -529,6 +538,30 @@
     "size_m": 0.05
    },
    "_why": "rule 15: blades, bars and frame are finer than a pixel from about 60 m; as they go below a pixel, they AND the dark panel behind them go over to the same colour, the screen's coverage-weighted mean (32 % blade, 68 % dark gap, from the counted pitches), so the far screen is one steady tone at the truth's average: no flicker, not darker or softer than the truth"
+=======
+   "why": "as PMA: keeps the textured brick from reading softer than the truth at 250 m (rule 15: blur is not a fix); measured in the PR"
+  },
+  "materials": {
+   "wall_brick_later": {
+    "albedo": "scripts/v2/materials/robert-a-welch-hall/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/robert-a-welch-hall/brick_normal.jpg",
+    "repeat_m": [
+     0.9885,
+     1.0544
+    ],
+    "factor": [
+     0.231,
+     0.2289,
+     0.2288
+    ],
+    "source": "owner photo IMG_0994, 2026-10-03 campus walk (the later wing's Speedway face, full-resolution original rectified through its vanishing points): 79 real bricks (cells with any tree pixel rejected) laid in running bond at the measured course 0.0659 m, light divided out",
+    "mean_rgb": [
+     0.1303,
+     0.0899,
+     0.0663
+    ]
+   }
+>>>>>>> origin/main
   }
  }
 }
