@@ -428,5 +428,38 @@
     "size_m": 0.13
    }
   }
+ },
+ "robert-a-welch-hall": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "stone_lum_rig": 0.15,
+   "why": "one number to overrule: the arcade limestone of the later wing sits at luminance 0.150 on the light-rig scale (the campus limestone level: Schoch 0.138, Hogg 0.139, Biolabs 0.153); brick, metal band and portal concrete come from the owner's IMG_0994 as ratios to it (overcast, one wall plane). The limestone shows no resolvable texture in his photos (smooth sawn panels), so it is a plain photo-derived colour in the build, not a texture"
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "as PMA: keeps the textured brick from reading softer than the truth at 250 m (rule 15: blur is not a fix); measured in the PR"
+  },
+  "materials": {
+   "wall_brick_later": {
+    "albedo": "scripts/v2/materials/robert-a-welch-hall/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/robert-a-welch-hall/brick_normal.jpg",
+    "repeat_m": [
+     0.9885,
+     1.0544
+    ],
+    "factor": [
+     0.231,
+     0.2289,
+     0.2288
+    ],
+    "source": "owner photo IMG_0994, 2026-10-03 campus walk (the later wing's Speedway face, full-resolution original rectified through its vanishing points): 79 real bricks (cells with any tree pixel rejected) laid in running bond at the measured course 0.0659 m, light divided out",
+    "mean_rgb": [
+     0.1303,
+     0.0899,
+     0.0663
+    ]
+   }
+  }
  }
 }
