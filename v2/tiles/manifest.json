@@ -1098,8 +1098,8 @@
         "will-c-hogg-building"
       ],
       "bytes": [
-        1151172,
-        38416
+        1318484,
+        38600
       ]
     },
     {
@@ -1122,8 +1122,8 @@
         "student-services-building"
       ],
       "bytes": [
-        1690408,
-        46236
+        1801500,
+        47572
       ]
     },
     {
@@ -3092,7 +3092,7 @@
       "model": "opus",
       "x": 195.807,
       "z": -280.627,
-      "top": 22.4
+      "top": 27.2
     },
     "moncrief-neuhaus-athletic-center": {
       "tile": "t_2_1",

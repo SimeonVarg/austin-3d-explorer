@@ -1999,12 +1999,12 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_-2",
-      "blend_sha256": "c92b4505462148a5",
+      "blend_sha256": "dd36c720cf016eb5",
       "lod1": "mass",
       "placement": {
-        "height_m": 22.4,
-        "area_ratio": 1.048,
-        "centre_off_m": 0.22,
+        "height_m": 27.2,
+        "area_ratio": 1.049,
+        "centre_off_m": 0.24,
         "flags": []
       }
     },
@@ -2848,14 +2848,14 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_-1",
-      "blend_sha256": "d16117970a4ace13",
+      "blend_sha256": "63882896dd0b2024",
       "lod1": "mass",
       "placement": {
         "height_m": 28.8,
-        "area_ratio": 1.111,
-        "centre_off_m": 0.74,
+        "area_ratio": 1.101,
+        "centre_off_m": 1.01,
         "flags": [
-          "area x1.11"
+          "area x1.10"
         ]
       }
     },
@@ -5825,28 +5825,28 @@
       }
     },
     "t_0_-1": {
-      "hash": "68325cce92cf3573",
+      "hash": "e75428ff47bc0535",
       "near": {
-        "bytes": 1151172,
-        "tris": 119223,
-        "draws": 2
+        "bytes": 1318484,
+        "tris": 119773,
+        "draws": 3
       },
       "far": {
-        "bytes": 38416,
-        "tris": 2968,
+        "bytes": 38600,
+        "tris": 3013,
         "draws": 1
       }
     },
     "t_0_-2": {
-      "hash": "26d0f156399f1c48",
+      "hash": "246adf47be9e7b11",
       "near": {
-        "bytes": 1690408,
-        "tris": 162129,
-        "draws": 2
+        "bytes": 1801500,
+        "tris": 164927,
+        "draws": 7
       },
       "far": {
-        "bytes": 46236,
-        "tris": 3960,
+        "bytes": 47572,
+        "tris": 4112,
         "draws": 1
       }
     },
