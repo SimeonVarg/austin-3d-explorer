@@ -90,5 +90,87 @@
     "size_m": 0.12
    }
   }
+ },
+ "hogg-memorial-auditorium": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "stone_lum_rig": 0.1385,
+   "why": "one number to overrule: the first build's smooth-limestone level is kept; every colour = the first build's colour x (owner photo / live app) per channel at the same place in IMG_0741 under the matched overcast sky, scaled by one number so the limestone keeps that level",
+   "gate_fix": "after the first app render: rough stone x1.30 and stucco x0.875 (linear), so every material sits at the same app/photo ratio as the limestone anchor in IMG_0741"
+  },
+  "materials": {
+   "wall_rough_stone": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/rough_albedo.jpg",
+    "repeat_m": [
+     1.5,
+     3.0
+    ],
+    "factor": [
+     0.273,
+     0.2497,
+     0.2228
+    ],
+    "source": "owner photo, 2026-10-03 campus walk (front, north bay, rectified through the solved camera): the pitted shell stone in its real random courses, light divided out",
+    "mean_rgb": [
+     0.1365,
+     0.1249,
+     0.1113
+    ]
+   },
+   "wall_ashlar": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/ashlar_albedo.jpg",
+    "repeat_m": [
+     1.1978,
+     2.056
+    ],
+    "factor": [
+     0.2897,
+     0.2759,
+     0.2473
+    ],
+    "source": "owner photo, 2026-10-03 campus walk (hall north wall beside the east window, rectified): smooth limestone blocks with their real joints, 4 courses",
+    "mean_rgb": [
+     0.145,
+     0.1381,
+     0.1239
+    ]
+   },
+   "wall_base_stone": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/base_albedo.jpg",
+    "repeat_m": [
+     0.6,
+     0.25
+    ],
+    "factor": [
+     0.2677,
+     0.245,
+     0.2085
+    ],
+    "source": "owner photo, 2026-10-03 campus walk (street storey north of the north door): stone mottling only, the block joints are geometry",
+    "mean_rgb": [
+     0.1336,
+     0.1231,
+     0.1041
+    ]
+   },
+   "wall_orange_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.1125,
+     0.0474,
+     0.0189
+    ],
+    "source": "owner photo, 2026-10-03 campus walk (portico bay, north): stucco mottling only",
+    "mean_rgb": [
+     0.0563,
+     0.0237,
+     0.0095
+    ]
+   }
+  }
  }
 }
