@@ -493,5 +493,37 @@
     ]
    }
   }
+ },
+ "mccombs-school-of-business": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "one number to overrule: the build's wall_brick base colour [0.1299, 0.0816, 0.0546] (light-rig scale), taken by its builder from the owner's photos; the texture carries only the brick-to-brick tone mix and the joints, its mean is scaled back to that colour"
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "as Welch, PMA and Anna Hiss: keeps the textured brick from reading softer than the truth at 250 m (rule 15: blur is not a fix)"
+  },
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/mccombs-school-of-business/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/mccombs-school-of-business/brick_normal.jpg",
+    "repeat_m": [
+     0.8509,
+     0.8128
+    ],
+    "factor": [
+     0.2141,
+     0.2141,
+     0.2141
+    ],
+    "source": "owner photo 3 of the McCombs north slab, overcast, rectified by its vanishing points: 3207 real bricks from three brick bands between window rows, light divided out, laid in running bond at the measured course 0.0508 m (brick + joint 0.170 m, 3.35 courses)",
+    "mean_rgb": [
+     0.1299,
+     0.0816,
+     0.0546
+    ]
+   }
+  }
  }
 }
