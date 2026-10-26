@@ -493,5 +493,37 @@
     ]
    }
   }
+ },
+ "gregory-gym": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "one number to overrule: the build's wall_brick base colour [0.1116, 0.0746, 0.0476] (light-rig scale), gated by its builder against the owner's photo 1; the texture carries only the brick-to-brick tone mix and the joints, its mean is scaled back to that colour"
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "as Welch, PMA and Anna Hiss: keeps the textured brick from reading softer than the truth at 250 m (rule 15: blur is not a fix)"
+  },
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/gregory-gym/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/gregory-gym/brick_normal.jpg",
+    "repeat_m": [
+     1.0996,
+     1.1888
+    ],
+    "factor": [
+     0.1917,
+     0.1917,
+     0.1917
+    ],
+    "source": "owner photo 1 of the west front, 2026-10-03 campus walk (overcast), main gable wall rectified through its proven camera: 39 real bricks from four clean patches, light divided out, laid in running bond at the measured course 0.0743 m (stretcher + joint 0.22 m)",
+    "mean_rgb": [
+     0.1116,
+     0.0746,
+     0.0476
+    ]
+   }
+  }
  }
 }
