@@ -187,6 +187,13 @@ memory and is never written here, in any tracked file, or in a commit message.
       use their own dark glass, not the sky mirror.
     - **Privacy:** photographs, builder folders and the place a photograph was taken from stay outside the repo. A
       model file in the repo holds shapes and plain colours, never an image cut from a photograph.
+    - **Materials taken from photographs (owner, 2026-10-24, restated 2026-10-26).** His words: *"Of course I don't want
+      plain colors ... take the texture of them and apply them ... Wouldn't work with the lighting engine either."* So a
+      model may carry material textures made FROM photographs: building surfaces only (brick, stone, concrete, panels,
+      mullion pattern, glass tint), with the photograph's light removed so the app's own sun, sky and reflections still
+      work. Never a whole photograph pasted or projected on a wall, never people, faces, plates or screens, never photo
+      metadata, file names or the place it was taken from. Free-licence public pictures need their credit in
+      `v2/credits.html`; all-rights-reserved pictures may guide a build but are never cut into a texture.
 
 ## Disk
 
