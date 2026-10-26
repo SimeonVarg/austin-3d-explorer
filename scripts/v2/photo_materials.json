@@ -501,8 +501,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.15,
-   "why": "as Welch, PMA and Anna Hiss: keeps the textured brick from reading softer than the truth at 250 m (rule 15: blur is not a fix)"
+   "lod_bias": -0.5,
+   "why": "at -0.15 (as Welch, PMA, Anna Hiss) the photo brick read softer than main's drawn pattern at 120 m (soft 0.28 against -0.04); -0.5 keeps it as sharp as main (rule 15: blur is not a fix)"
   },
   "materials": {
    "wall_brick": {
