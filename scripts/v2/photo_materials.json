@@ -164,14 +164,6 @@
    }
   },
   "fade": {
-   "frame_bronze": {
-    "to": [
-     0.03,
-     0.032,
-     0.035
-    ],
-    "size_m": 0.12
-   },
    "metal_coping": {
     "to": [
      0.1305,
@@ -180,6 +172,11 @@
     ],
     "size_m": 0.1
    }
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "measured (v2-shimmer, S 250 m): plain trilinear left the textured wall softer than the truth (+0.02); anisotropy 8 + bias -0.15 gives -0.03 with shimmer 0.00 (main 0.05). The window-frame coverage fade was dropped: it only made the frames softer than the truth (+0.01) and did not lower shimmer."
   }
  }
 }
