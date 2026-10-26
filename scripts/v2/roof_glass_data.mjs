@@ -25,6 +25,8 @@ const LEDGER = process.env.BUILDS_JSON || path.join(os.homedir(), 'flyover-priva
 // a clay tile roof, by the builders' material names (checked by eye against the list this prints)
 const CLAY = /^(roof_tile|roof_tile_clay|roof_tile_red|roof_tile_terracotta|roof_tile_weathered|roof_cap_clay|roof_clay_tile|tile_clay|tile_red|ridge_tile|roof_red)$/;
 const NOT_CLAY = { 'moncrief-neuhaus-athletic-center': ['roof_red'] };   // painted panels, not tile
+// builds whose clay is modelled tile by tile (a cresting of single barrels): the clay colour only, no rows on top of the modelled tiles
+const MEAN_ONLY = ['hogg-memorial-auditorium'];
 
 await MeshoptDecoder.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
@@ -50,7 +52,7 @@ for (const s of campus) {
 }
 
 // per tile: the palette colours each building's vertices use
-const out = { _about: 'Written by scripts/v2/roof_glass_data.mjs; read by v2/roofglass.js. campus: slugs whose window glass gets the campus pane look. clay: slug -> sRGB 8-bit palette colours of its clay tile roof in its tile.', campus, clay: {} };
+const out = { _about: 'Written by scripts/v2/roof_glass_data.mjs; read by v2/clay.js. campus: the campus builds (BUILDS.json kind campus) the clay roofs were looked for in. clay: slug -> sRGB 8-bit palette colours of its clay tile roof in its tile. meanOnly: slugs whose clay gets the colour without the rows.', campus, clay: {}, meanOnly: MEAN_ONLY };
 const missing = [];
 for (const t of manifest.tiles) {
   const slugs = t.buildings.filter((s) => clayCols[s]);

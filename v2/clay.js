@@ -53,7 +53,7 @@ function patch(material, map) {
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvV2Clay = v2clay;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D v2ClayMap;\nvarying float vV2Clay;')
       .replace('#include <color_fragment>', `#include <color_fragment>
-  if (vV2Clay > 0.5) {
+  if (vV2Clay > 0.25) {
     // the face's own plane, from the world position's derivatives (exact per triangle, either winding)
     vec3 v2wp = cameraPosition + (vec4(-vViewPosition, 0.0) * viewMatrix).xyz;
     vec3 v2n = normalize(cross(dFdx(v2wp), dFdy(v2wp)));
@@ -61,7 +61,7 @@ function patch(material, map) {
     vec3 v2t1 = cross(vec3(0.0, 1.0, 0.0), v2n);
     float v2l = length(v2t1);
     // pitched: from PITCH_NY[0] (steep) to PITCH_NY[1] (nearly flat) the rows show; elsewhere the texture's mean
-    float v2pitch = smoothstep(${f(C.PITCH_NY[0])}, ${f(C.PITCH_NY[0] + 0.1)}, v2n.y) * (1.0 - smoothstep(${f(C.PITCH_NY[1])}, ${f(Math.min(0.9999, C.PITCH_NY[1] + 0.01))}, v2n.y));
+    float v2pitch = step(0.75, vV2Clay) * smoothstep(${f(C.PITCH_NY[0])}, ${f(C.PITCH_NY[0] + 0.1)}, v2n.y) * (1.0 - smoothstep(${f(C.PITCH_NY[1])}, ${f(Math.min(0.9999, C.PITCH_NY[1] + 0.01))}, v2n.y));
     vec3 v2c = vec3(${C.MEAN.map(f).join(', ')});
     if (v2l > 1e-3 && v2pitch > 0.0) {
       v2t1 /= v2l;
@@ -73,21 +73,22 @@ function patch(material, map) {
     diffuseColor.rgb = v2c;
   }`);
     sh.fragmentShader = sh.fragmentShader.replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-  if (vV2Clay > 0.5) roughnessFactor = ${f(C.ROUGHNESS)};`);
-    if (RGID) sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  if (vV2Clay > 0.5) gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);');
+  if (vV2Clay > 0.25) roughnessFactor = ${f(C.ROUGHNESS)};`);
+    if (RGID) sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  if (vV2Clay > 0.25) gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);');
   };
   const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
   material.customProgramCacheKey = () => key() + '|v2-clay' + (RGID ? '-id' : '');
   material.needsUpdate = true;
 }
 
-// a loaded tile: mark its clay roof vertices and patch their material
+// a loaded tile: mark its clay roof vertices (255: rows; 128: the colour only, data.meanOnly) and patch their material
 export function clayPrepare(obj, def, renderer) {
   if (!C.ON || !data || !def) return;
   const t0 = performance.now();
   // the clay colours of the buildings in this tile, by building index
   const want = new Map();
-  (def.buildings || []).forEach((s, i) => { const cs = data.clay && data.clay[s]; if (cs && cs.length) want.set(i, cs); });
+  const meanOnly = new Set(data.meanOnly || []), level = new Map();
+  (def.buildings || []).forEach((s, i) => { const cs = data.clay && data.clay[s]; if (cs && cs.length) { want.set(i, cs); level.set(i, meanOnly.has(s) ? 128 : 255); } });
   if (!want.size) return;
   let marked = 0;
   obj.traverse((o) => {
@@ -101,13 +102,13 @@ export function clayPrepare(obj, def, renderer) {
     const e = map.matrix.elements, n = uv.count, mark = new Uint8Array(n);
     let any = 0;
     for (let i = 0; i < n; i++) {
-      const cs = want.get(Math.round(b.getX(i)));
+      const bi = Math.round(b.getX(i)), cs = want.get(bi);
       if (!cs) continue;
       const u0 = uv.getX(i), v0 = uv.getY(i);
       const u = e[0] * u0 + e[3] * v0 + e[6], v = e[1] * u0 + e[4] * v0 + e[7];
       const x = Math.min(px.w - 1, Math.max(0, Math.floor(u * px.w))), y = Math.min(px.h - 1, Math.max(0, Math.floor(v * px.h)));
       const k = (y * px.w + x) * 4, r = px.d[k], gg = px.d[k + 1], bb = px.d[k + 2];
-      for (const c of cs) if (Math.abs(c[0] - r) <= 2 && Math.abs(c[1] - gg) <= 2 && Math.abs(c[2] - bb) <= 2) { mark[i] = 255; any++; break; }
+      for (const c of cs) if (Math.abs(c[0] - r) <= 2 && Math.abs(c[1] - gg) <= 2 && Math.abs(c[2] - bb) <= 2) { mark[i] = level.get(bi); any++; break; }
     }
     if (!any) return;
     g.setAttribute('v2clay', new THREE.BufferAttribute(mark, 1, true));
