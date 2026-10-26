@@ -20,7 +20,12 @@
      0.2148,
      0.2148
     ],
-    "source": "owner photo, 2026-10-03 campus walk (N entrance): 47 real bricks laid in the measured running bond, course 0.0677 m (modular), brick + joint 0.211 m"
+    "source": "owner photo, 2026-10-03 campus walk (N entrance): 47 real bricks laid in the measured running bond, course 0.0677 m (modular), brick + joint 0.211 m",
+    "mean_rgb": [
+     0.1199,
+     0.0837,
+     0.0673
+    ]
    },
    "stone_limestone": {
     "albedo": "scripts/v2/materials/e-p-schoch-building/limestone_albedo.jpg",
@@ -33,7 +38,12 @@
      0.2512,
      0.2512
     ],
-    "source": "owner photo, 2026-10-03 campus walk (entrance pier), mottling only"
+    "source": "owner photo, 2026-10-03 campus walk (entrance pier), mottling only",
+    "mean_rgb": [
+     0.1538,
+     0.1352,
+     0.1218
+    ]
    },
    "stone_trim": {
     "albedo": "scripts/v2/materials/e-p-schoch-building/limestone_albedo.jpg",
@@ -46,7 +56,38 @@
      0.2512,
      0.2512
     ],
-    "source": "owner photo, 2026-10-03 campus walk (entrance pier), mottling only"
+    "source": "owner photo, 2026-10-03 campus walk (entrance pier), mottling only",
+    "mean_rgb": [
+     0.1538,
+     0.1352,
+     0.1218
+    ]
+   }
+  },
+  "fade": {
+   "bracket_stone": {
+    "to": [
+     0.13,
+     0.124,
+     0.11
+    ],
+    "size_m": 0.3
+   },
+   "soffit_trim": {
+    "to": [
+     0.13,
+     0.124,
+     0.11
+    ],
+    "size_m": 0.05
+   },
+   "downpipe_bronze": {
+    "to": [
+     0.1199,
+     0.0837,
+     0.0673
+    ],
+    "size_m": 0.12
    }
   }
  }

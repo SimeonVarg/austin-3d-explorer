@@ -77,6 +77,32 @@ function fadeable(material, uniform, ao) {
   material.customProgramCacheKey = () => key() + '|v2-fade' + (ao ? '|v2-ao' : '');
   material.needsUpdate = true;
 }
+// Coverage fade (rule 15) for fine parts a build marks in scripts/v2/photo_materials.json ("fade": eave brackets, a trim line): as the
+// pixel grows past the part's size (metres per pixel, as the AO above measures it), the part's colour goes over to the colour of the
+// surface behind it, so a repeat finer than a pixel has nothing left to flicker with. Band-limited by the part's own size, not a blur.
+// The tile build marks the material with extras v2_fade_to (rgb, linear) and v2_fade_m (the part's size, metres).
+const FADE_K = [0.25, 0.6];     // fade from size x K[0] to size x K[1] metres per pixel
+function coverageFade(material) {
+  const to = material && material.userData && material.userData.v2_fade_to;
+  if (!to || material.userData.v2CoverageFade) return;
+  material.userData.v2CoverageFade = true;
+  const size = +material.userData.v2_fade_m || 0.3;
+  const prev = material.onBeforeCompile;
+  material.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.uniforms.uV2FadeTo = { value: new THREE.Vector3(...to) }; sh.uniforms.uV2FadeM = { value: new THREE.Vector2(size * FADE_K[0], size * FADE_K[1]) };
+    sh.uniforms.uV2CScale = AO_SCALE;
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uV2FadeTo;\nuniform vec2 uV2FadeM;\nuniform float uV2CScale;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+  {
+    float v2cpx = max(length(dFdx(vViewPosition)), length(dFdy(vViewPosition))) * uV2CScale;
+    diffuseColor.rgb = mix(diffuseColor.rgb, uV2FadeTo, smoothstep(uV2FadeM.x, uV2FadeM.y, v2cpx));
+  }`);
+  };
+  const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
+  material.customProgramCacheKey = () => key() + '|v2-cfade';
+  material.needsUpdate = true;
+}
 // The models' shadow-map depth, pushed away from the sun by their slope (LOOK.SHADOW_SLOPE_BIAS): no self-shadow stripes on lit faces.
 // (three.js flips the factor's sign itself under a reversed depth buffer.)
 const shadowDepth = LOOK.SHADOW_SLOPE_BIAS > 0
@@ -176,7 +202,7 @@ export class TileStreamer {
           if (shadowDepth) o.customDepthMaterial = shadowDepth;
           const ao = LOOK.AO.ON && !!o.geometry.attributes._ao && o.geometry.attributes._ao.itemSize === 2;
           if (!ao && o.geometry.attributes._ao) o.geometry.deleteAttribute('_ao');
-          for (const m of Array.isArray(o.material) ? o.material : [o.material]) fadeable(m, fade, ao);
+          for (const m of Array.isArray(o.material) ? o.material : [o.material]) { coverageFade(m); fadeable(m, fade, ao); }
         });
         obj.userData.fade = fade;
         this.prepare(obj, s.def, s);   // (s: main.js adds to s.mapIds the plain extrusions this model stands over, covers.js)
