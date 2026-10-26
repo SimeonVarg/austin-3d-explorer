@@ -45,7 +45,7 @@ function refFolder(ref) {
 }
 const REFS = String(arg('--refs', '.')).split('|').map((r) => ({ ref: r, dir: refFolder(r) }));
 const VARIANTS = REFS.flatMap((r) => QS.map((q) => ({ ...r, q, name: [REFS.length > 1 ? r.ref : '', q].filter(Boolean).join(' ') || '(default)' })));
-const VIEWS = [
+let VIEWS = [
   { name: 'Moody Center fins, 650 m', slug: 'moody-center', distance: 650, polar: 74, azimuth: 160 },
   { name: 'Moody Center fins, 1100 m', slug: 'moody-center', distance: 1100, polar: 76, azimuth: 160 },
   { name: 'Moody Center fins, 1800 m', slug: 'moody-center', distance: 1800, polar: 78, azimuth: 160 },
@@ -54,7 +54,10 @@ const VIEWS = [
   { name: 'DKR fins, 1000 m', slug: 'dkr-memorial-stadium', distance: 1000, polar: 74, azimuth: 250 },
   { name: 'DKR fins, 1800 m', slug: 'dkr-memorial-stadium', distance: 1800, polar: 77, azimuth: 250 },
   { name: 'West Campus window grids, 900 m', slug: 'the-venue', distance: 900, polar: 75, azimuth: 30 },
-].filter((v) => !arg("--views", "") || String(arg("--views", "")).split(";").some((s) => v.name.includes(s)));   // --views "Moody Center fins, 650;DKR fins, 1000" = only these
+];
+// V2_SHIMMER_VIEWS='[{"name":"...","slug":"...","distance":300,"polar":75,"azimuth":315}]' measures these views instead (any building)
+if (process.env.V2_SHIMMER_VIEWS) VIEWS.splice(0, VIEWS.length, ...JSON.parse(process.env.V2_SHIMMER_VIEWS));
+const VIEWS_RUN = VIEWS.filter((v) => !arg("--views", "") || String(arg("--views", "")).split(";").some((s) => v.name.includes(s)));   // --views "Moody Center fins, 650;DKR fins, 1000" = only these
 const browser = await launch(chromium, { args: HW_ARGS, maxMs: 2400000 });
 const rows = [];
 let renderer = '';
@@ -67,7 +70,7 @@ for (const variant of VARIANTS) {
   await page.evaluate(() => window.__v2.ready);
   if (!renderer) renderer = await page.evaluate(() => { const g = window.__v2.renderer.getContext(); const e = g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER); });
   const man = await page.evaluate(() => fetch('./tiles/manifest.json').then((r) => r.json()));
-  for (const v of VIEWS) {
+  for (const v of VIEWS_RUN) {
     const b = man.buildings[v.slug];
     if (!b) { console.log('no building', v.slug); continue; }
     await page.evaluate(([x, z, d, p, a]) => window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }), [b.x, b.z, v.distance, v.polar, v.azimuth]);

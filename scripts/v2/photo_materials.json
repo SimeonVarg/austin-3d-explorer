@@ -1,0 +1,94 @@
+{
+ "_about": "Photo-derived materials (CLAUDE.md rule 16). The textures in scripts/v2/materials/<slug>/ are made FROM the owner's photographs with the photo's light divided out; factor x texture (linear) = the base colour on the light-rig scale. Texture coordinates are made at tile build time from position and normal: on a wall u runs along the wall and v up, elsewhere plan x/z; both in metres / repeat_m.",
+ "e-p-schoch-building": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "stone_lum_rig": 0.1381,
+   "photo_to_rig": 0.3195,
+   "why": "one number to overrule: the build's limestone level is kept; the brick/stone ratio and all colours come from the photograph (overcast, one wall plane, no lamp)"
+  },
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/e-p-schoch-building/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/e-p-schoch-building/brick_normal.jpg",
+    "repeat_m": [
+     1.0561,
+     1.0832
+    ],
+    "factor": [
+     0.2148,
+     0.2148,
+     0.2148
+    ],
+    "source": "owner photo, 2026-10-03 campus walk (N entrance): 47 real bricks laid in the measured running bond, course 0.0677 m (modular), brick + joint 0.211 m",
+    "mean_rgb": [
+     0.1199,
+     0.0837,
+     0.0673
+    ]
+   },
+   "stone_limestone": {
+    "albedo": "scripts/v2/materials/e-p-schoch-building/limestone_albedo.jpg",
+    "repeat_m": [
+     0.3595,
+     0.2999
+    ],
+    "factor": [
+     0.2512,
+     0.2512,
+     0.2512
+    ],
+    "source": "owner photo, 2026-10-03 campus walk (entrance pier), mottling only",
+    "mean_rgb": [
+     0.1538,
+     0.1352,
+     0.1218
+    ]
+   },
+   "stone_trim": {
+    "albedo": "scripts/v2/materials/e-p-schoch-building/limestone_albedo.jpg",
+    "repeat_m": [
+     0.3595,
+     0.2999
+    ],
+    "factor": [
+     0.2512,
+     0.2512,
+     0.2512
+    ],
+    "source": "owner photo, 2026-10-03 campus walk (entrance pier), mottling only",
+    "mean_rgb": [
+     0.1538,
+     0.1352,
+     0.1218
+    ]
+   }
+  },
+  "fade": {
+   "bracket_stone": {
+    "to": [
+     0.13,
+     0.124,
+     0.11
+    ],
+    "size_m": 0.3
+   },
+   "soffit_trim": {
+    "to": [
+     0.13,
+     0.124,
+     0.11
+    ],
+    "size_m": 0.05
+   },
+   "downpipe_bronze": {
+    "to": [
+     0.1199,
+     0.0837,
+     0.0673
+    ],
+    "size_m": 0.12
+   }
+  }
+ }
+}

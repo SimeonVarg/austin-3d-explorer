@@ -28,6 +28,7 @@ import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer
 import { makeAppCopy } from './app_copy.mjs';
 import { MESHOPT_LEVEL, QUANT } from './tile_encoding.mjs';
 import { bakeAO } from './ao_bake.mjs';
+import { applyPhotoMaterials, photoMaterialsKey } from './photo_materials.mjs';
 
 // ── PARAMETERS ──────────────────────────────────────────────────────────
 const ORIGIN = { lat: 30.28601, lon: -97.73932 };   // must equal sources.py ORIGIN
@@ -60,7 +61,7 @@ const JOBS = +(opt('--jobs') || 2);
 const sha = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
 const EXPORTER = path.join(HERE, 'blender_export_v2.py');
 const EXPORTER_HASH = sha(fs.readFileSync(EXPORTER)).slice(0, 16);
-const TILER_HASH = sha(Buffer.concat(['build_tiles.mjs', 'ao_bake.mjs', 'tile_encoding.mjs'].map((f) => fs.readFileSync(path.join(HERE, f))))).slice(0, 16);   // (a change to the AO bake rebuilds the tiles)
+const TILER_HASH = sha(Buffer.concat(['build_tiles.mjs', 'ao_bake.mjs', 'tile_encoding.mjs', 'photo_materials.mjs'].map((f) => fs.readFileSync(path.join(HERE, f))))).slice(0, 16);   // (a change to the AO bake rebuilds the tiles)
 
 function run(cmd, args, logFile) {
   return new Promise((res) => {
@@ -201,6 +202,7 @@ async function buildingDoc(s, lod, idx, part) {
     for (const sc of doc.getRoot().listScenes().slice(1)) { for (const n of sc.listChildren()) sc0.addChild(n); sc.dispose(); }
     await doc.transform(unpartition(), flatten(), join({ keepNamed: false }));
   }
+  applyPhotoMaterials(doc, s, lod, REPO);     // materials taken from photographs (scripts/v2/photo_materials.json): textures near, their mean far
   const root = doc.getRoot(); const buf = root.listBuffers()[0];
   for (const n of root.listNodes()) n.setName(s).setTranslation([sources[s].x, 0, sources[s].z]);   // (every node: a far file that kept a surface of the app copy has two)
   for (const mesh of root.listMeshes()) {
@@ -267,7 +269,7 @@ async function buildTile(t, slugs, lod) {
 
 const INV = path.join(OUT, 'inventory.json');
 const prevInv = readJSON(INV, { tiles: {} });
-const tileHash = (t) => sha(JSON.stringify([TILER_HASH, MASS_HASH, tiles[t].map((s) => [s, stateOf(s), sources[s].x, sources[s].z, hasMass(s), ...(APP_COPY[s] ? [appKey(s)] : [])])])).slice(0, 16);
+const tileHash = (t) => sha(JSON.stringify([TILER_HASH, MASS_HASH, tiles[t].map((s) => [s, stateOf(s), sources[s].x, sources[s].z, hasMass(s), ...(APP_COPY[s] ? [appKey(s)] : []), ...(photoMaterialsKey(s, REPO) ? [photoMaterialsKey(s, REPO)] : [])])])).slice(0, 16);
 const tileInfo = {};
 let rebuilt = 0;
 for (const t of Object.keys(tiles).sort()) {
