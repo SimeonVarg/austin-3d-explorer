@@ -172,5 +172,35 @@
     ]
    }
   }
+ },
+ "biological-laboratories": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "stone_lum_rig": 0.1525,
+   "photo_to_rig": 0.1988,
+   "why": "one number to overrule: the first build's limestone level is kept; the brick/limestone ratio and all colours come from the owner's photographs (IMG_0756 overcast, one wall plane, no lamp). The ground-storey limestone shows no resolvable texture in his photos (smooth, behind trees), so it is a plain photo-derived colour in the build, not a texture"
+  },
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/biological-laboratories/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/biological-laboratories/brick_normal.jpg",
+    "repeat_m": [
+     1.0172,
+     1.0672
+    ],
+    "factor": [
+     0.2167,
+     0.2161,
+     0.217
+    ],
+    "source": "owner photos, 2026-10-03 campus walk (IMG_0756 east piers, IMG_0747 west end bay, full-resolution originals, rectified): 323 real bricks laid in running bond at the measured course 0.0667 m; hue pulled 70% to the wall mean (far-pixel chroma noise), tone kept",
+    "mean_rgb": [
+     0.1083,
+     0.0881,
+     0.0696
+    ]
+   }
+  },
+  "fade": {}
  }
 }
