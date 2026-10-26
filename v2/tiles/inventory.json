@@ -2540,13 +2540,15 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_-1",
-      "blend_sha256": "4fc37c6dc1660397",
+      "blend_sha256": "2b06e25aaab5045b",
       "lod1": "mass",
       "placement": {
         "height_m": 26.9,
-        "area_ratio": 0.9,
-        "centre_off_m": 1.26,
-        "flags": []
+        "area_ratio": 0.896,
+        "centre_off_m": 1.08,
+        "flags": [
+          "area x0.90"
+        ]
       }
     },
     "robert-e-johnson-state-legislative-office-building": {
@@ -5825,15 +5827,15 @@
       }
     },
     "t_0_-1": {
-      "hash": "e75428ff47bc0535",
+      "hash": "b3f9f7a7a9907d58",
       "near": {
-        "bytes": 1318484,
-        "tris": 119773,
-        "draws": 3
+        "bytes": 1387224,
+        "tris": 120203,
+        "draws": 4
       },
       "far": {
-        "bytes": 38600,
-        "tris": 3013,
+        "bytes": 39516,
+        "tris": 3207,
         "draws": 1
       }
     },
