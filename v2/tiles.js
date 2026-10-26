@@ -81,6 +81,31 @@ function fadeable(material, uniform, ao) {
 // pixel grows past the part's size (metres per pixel, as the AO above measures it), the part's colour goes over to the colour of the
 // surface behind it, so a repeat finer than a pixel has nothing left to flicker with. Band-limited by the part's own size, not a blur.
 // The tile build marks the material with extras v2_fade_to (rgb, linear) and v2_fade_m (the part's size, metres).
+// Photo textures (scripts/v2/photo_materials.json): their sampling is set per building by the spec's "filter" (the tile build copies it into
+// the material extras v2_photo_aniso / v2_photo_bias; absent = plain trilinear, as before). Why: on PMA at 250 m the brick and precast
+// textures are far below a texel per pixel, and plain trilinear mip filtering averaged them more than the supersampled truth does, so the
+// wall measured softer than the truth (v2-shimmer "soft" +0.02, PR #562). Anisotropy narrows the footprint on slanted walls; a small
+// negative mip bias (-0.15) takes the mip level back to about a texel per pixel. Measured: soft <= 0 again, shimmer not above main's.
+// ?photoaniso=N / ?photobias=B override both for every photo material (an A/B in one page load).
+const PQ = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
+const PHOTO_ANISO_Q = PQ.has('photoaniso') ? +PQ.get('photoaniso') : null, PHOTO_BIAS_Q = PQ.has('photobias') ? +PQ.get('photobias') : null;
+function photoTextures(material) {
+  const u = material && material.userData;
+  if (!u || !u.photo_material || u.v2Photo) return;
+  u.v2Photo = true;
+  const aniso = PHOTO_ANISO_Q ?? (+u.v2_photo_aniso || 1), bias = PHOTO_BIAS_Q ?? (+u.v2_photo_bias || 0);
+  for (const t of [material.map, material.normalMap]) if (t && aniso > 1) { t.anisotropy = aniso; t.needsUpdate = true; }
+  if (!bias || !material.map) return;
+  const prev = material.onBeforeCompile;
+  material.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>',
+      THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', 'texture2D( map, vMapUv, ' + bias.toFixed(3) + ' )'));
+  };
+  const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
+  material.customProgramCacheKey = () => key() + '|v2-pbias' + bias;
+  material.needsUpdate = true;
+}
 const FADE_K = [0.25, 0.6];     // fade from size x K[0] to size x K[1] metres per pixel
 function coverageFade(material) {
   const to = material && material.userData && material.userData.v2_fade_to;
@@ -202,7 +227,7 @@ export class TileStreamer {
           if (shadowDepth) o.customDepthMaterial = shadowDepth;
           const ao = LOOK.AO.ON && !!o.geometry.attributes._ao && o.geometry.attributes._ao.itemSize === 2;
           if (!ao && o.geometry.attributes._ao) o.geometry.deleteAttribute('_ao');
-          for (const m of Array.isArray(o.material) ? o.material : [o.material]) { coverageFade(m); fadeable(m, fade, ao); }
+          for (const m of Array.isArray(o.material) ? o.material : [o.material]) { photoTextures(m); coverageFade(m); fadeable(m, fade, ao); }
         });
         obj.userData.fade = fade;
         this.prepare(obj, s.def, s);   // (s: main.js adds to s.mapIds the plain extrusions this model stands over, covers.js)

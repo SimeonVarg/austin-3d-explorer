@@ -4,6 +4,7 @@
 //     near (lod0): the albedo (x factor) and normal map, with texture coordinates made here from position and normal: on a wall
 //     (|normal.y| < wall_max_ny) u runs along the wall and v up, elsewhere plan x/z; metres / repeat_m. Mipmapped by the app (rule 15).
 //     far (lod1): the plain mean colour, so the switch to the far file does not change the colour.
+//   filter: { anisotropy, lod_bias }  optional: how v2/tiles.js samples this building's photo textures (absent = plain trilinear)
 //   fade: { <material name>: { to: [r, g, b], size_m } }  fine parts (brackets, trim) whose colour fades into the surface behind them
 //     as the pixel grows past the part's size (v2/tiles.js, coverage fade): steady in motion, never blurred.
 import fs from 'node:fs';
@@ -61,7 +62,7 @@ export function applyPhotoMaterials(doc, slug, lod, repo) {
     if (!mats[key]) {
       const m2 = mats[key] = mt.clone().setName(name + '_photo').setBaseColorFactor([...ms.factor, 1]).setBaseColorTexture(image(ms.albedo, mimeOf(ms.albedo)));
       if (ms.normal) m2.setNormalTexture(image(ms.normal, mimeOf(ms.normal)));
-      m2.setExtras({ ...(mt.getExtras() || {}), v2_kind: 'plain', photo_material: ms.source });
+      m2.setExtras({ ...(mt.getExtras() || {}), v2_kind: 'plain', photo_material: ms.source, ...(sp.filter ? { v2_photo_aniso: sp.filter.anisotropy, v2_photo_bias: sp.filter.lod_bias } : {}) });
     }
     prim.setMaterial(mats[key]);
   }
