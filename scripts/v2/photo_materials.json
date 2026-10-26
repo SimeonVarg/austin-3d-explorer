@@ -90,5 +90,105 @@
     "size_m": 0.12
    }
   }
+ },
+ "moffett-molecular-biology": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "stone_lum_rig": 0.1349,
+   "why": "one number to overrule: the first build's rough-limestone level is kept; every other colour = first build x (owner photo / app) at the same places in IMG_0926 (IMG_0924 agrees for the ashlar), divided by the rough stone's ratio, under the matched overcast sky whose exposure is set on the rough stone"
+  },
+  "materials": {
+   "wall_limestone_rough": {
+    "albedo": "scripts/v2/materials/moffett-molecular-biology/rough_albedo.jpg",
+    "repeat_m": [
+     3.8966,
+     1.806
+    ],
+    "factor": [
+     0.2854,
+     0.2688,
+     0.2262
+    ],
+    "source": "owner photo IMG_0926, 2026-10-03 campus walk (north stair tower's east face, rectified through the solved camera on the frieze plane): the shell stone in its real random courses, light divided out",
+    "mean_rgb": [
+     0.1427,
+     0.1344,
+     0.1131
+    ]
+   },
+   "wall_limestone_ashlar": {
+    "albedo": "scripts/v2/materials/moffett-molecular-biology/ashlar_albedo.jpg",
+    "repeat_m": [
+     2.5954,
+     1.1832
+    ],
+    "factor": [
+     0.2078,
+     0.2004,
+     0.1816
+    ],
+    "source": "owner photo IMG_0926, 2026-10-03 campus walk (street storey north of the north door, rectified): smooth limestone ashlar with its real light joints, 3 courses of 0.394 m",
+    "mean_rgb": [
+     0.1039,
+     0.1002,
+     0.0908
+    ]
+   },
+   "wall_limestone_smooth": {
+    "albedo": "scripts/v2/materials/moffett-molecular-biology/smooth_albedo.jpg",
+    "repeat_m": [
+     0.6997,
+     0.3944
+    ],
+    "factor": [
+     0.212,
+     0.2078,
+     0.1908
+    ],
+    "source": "owner photo IMG_0926, 2026-10-03 campus walk (a medallion block between the storeys, rectified): smooth limestone mottling only, its joints are geometry",
+    "mean_rgb": [
+     0.106,
+     0.1039,
+     0.0954
+    ]
+   },
+   "wall_tower_weathered": {
+    "albedo": "scripts/v2/materials/moffett-molecular-biology/rough_albedo.jpg",
+    "repeat_m": [
+     3.8966,
+     1.806
+    ],
+    "factor": [
+     0.2112,
+     0.2042,
+     0.181
+    ],
+    "source": "owner photo IMG_0926, 2026-10-03 campus walk (north stair tower's east face, rectified through the solved camera on the frieze plane): the shell stone in its real random courses, light divided out; the tower above its cap, weathered darker in both photos",
+    "mean_rgb": [
+     0.1056,
+     0.1021,
+     0.0905
+    ]
+   }
+  },
+  "fade": {
+   "carved_line_shadow": {
+    "to": [
+     0.0913,
+     0.0888,
+     0.0825
+    ],
+    "size_m": 0.03
+   },
+   "rail_painted_blue": {
+    "to": [
+     0.1,
+     0.098,
+     0.0867
+    ],
+    "size_m": 0.06
+   }
+  },
+  "fade_note": "rule 15: the carved step lines of the frieze (1.6 cm, read about 3 cm wide in shadow in IMG_0926) and the balcony rail fade into the stone behind them by pixel size (v2/tiles.js coverage fade): steady, not blurred"
  }
 }
