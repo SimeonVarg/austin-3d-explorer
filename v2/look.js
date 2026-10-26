@@ -166,8 +166,8 @@ export const LOOK = {
     TEXTURE: './data/materials/clay-tile.jpg',
     SOURCE: 'owner photo IMG_0747 (2026-10-03 campus walk): the low annex roof beside Biological Laboratories, rectified and de-lit',
     REPEAT_M: [2.0, 2.4],       // the texture's size on the roof: 8 barrels x 0.25 m along the eave, 8 courses x 0.30 m up the slope
-    FACTOR: [0.262, 0.232, 0.185], // x the texture (linear): the albedo level, from the matched-sky renders against his photographs
-    MEAN: [0.068, 0.037, 0.030], // the texture's mean x FACTOR (linear; texture mean 0.2592, 0.1582, 0.1622): steep parts get this plain colour
+    FACTOR: [0.301, 0.221, 0.160], // x the texture (linear): the albedo level, checked against his photographs under the matched sky
+    MEAN: [0.078, 0.035, 0.026], // the texture's mean x FACTOR (linear; texture mean 0.2592, 0.1582, 0.1622): steep parts get this plain colour
     ROUGHNESS: 0.8,
     PITCH_NY: [0.3, 0.97],      // faces whose normal's height is in this range get the rows (steeper or flatter: the mean)
     ANISOTROPY: 8,
