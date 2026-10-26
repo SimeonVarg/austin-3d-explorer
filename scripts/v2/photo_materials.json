@@ -189,18 +189,27 @@
      1.0672
     ],
     "factor": [
-     0.2167,
-     0.2161,
-     0.217
+     0.2308,
+     0.2157,
+     0.181
     ],
     "source": "owner photos, 2026-10-03 campus walk (IMG_0756 east piers, IMG_0747 west end bay, full-resolution originals, rectified): 323 real bricks laid in running bond at the measured course 0.0667 m; hue pulled 70% to the wall mean (far-pixel chroma noise), tone kept",
     "mean_rgb": [
-     0.1083,
-     0.0881,
-     0.0696
+     0.1153,
+     0.0879,
+     0.058
     ]
    }
   },
-  "fade": {}
+  "fade": {
+   "downpipe_dark": {
+    "to": [
+     0.1153,
+     0.0879,
+     0.058
+    ],
+    "size_m": 0.13
+   }
+  }
  }
 }

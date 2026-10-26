@@ -30,8 +30,8 @@
         "ut-tower-main-building"
       ],
       "bytes": [
-        2247404,
-        47104
+        2366920,
+        45480
       ]
     },
     {
@@ -2086,7 +2086,7 @@
       "model": "opus",
       "x": -36.109,
       "z": -136.333,
-      "top": 25.2
+      "top": 26.2
     },
     "biomedical-engineering-building": {
       "tile": "t_0_-2",
