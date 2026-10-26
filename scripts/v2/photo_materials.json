@@ -461,5 +461,37 @@
     ]
    }
   }
+ },
+ "anna-hiss-gymnasium": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "one number to overrule: the build's wall_brick base colour [0.0779, 0.0378, 0.0185] (light-rig scale), gated by its builder against the owner's photo 1 within 2.2 %; the texture carries only the brick-to-brick tone mix and the joints, its mean is scaled back to that colour"
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "as Welch and PMA: keeps the textured brick from reading softer than the truth at 250 m (rule 15: blur is not a fix)"
+  },
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/anna-hiss-gymnasium/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/anna-hiss-gymnasium/brick_normal.jpg",
+    "repeat_m": [
+     1.3611,
+     1.4304
+    ],
+    "factor": [
+     0.107,
+     0.107,
+     0.107
+    ],
+    "source": "owner photo 1 of the Anna Hiss courtyard entrance, 2026-10-03 campus walk (overcast), rectified through its proven camera: 49 real bricks from the wall under the stair landing, light divided out, laid in running bond at the measured course 0.0894 m (brick + joint 0.272 m)",
+    "mean_rgb": [
+     0.0779,
+     0.0378,
+     0.0185
+    ]
+   }
+  }
  }
 }
