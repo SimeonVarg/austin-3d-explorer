@@ -103,7 +103,7 @@
     "triangles": 12000,
     "crease_deg": 35,
     "reduce": "^(reveal_stone|soffit_paint|steps_stone|bin_concrete|planter_soil|site_.*)$",
-    "lod0_drop": "^(frame_steel|rail_dark|rail_grey|rail_infill|bracket_stone|downpipe_bronze|skylight_rib|louvre_dark)$",
+    "lod0_drop": "^(rail_dark|rail_grey|rail_infill|bracket_stone|downpipe_bronze|skylight_rib|louvre_dark)$",
     "site": {
       "site_material": "^site_",
       "cell_m": 2,
