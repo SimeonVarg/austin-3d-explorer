@@ -305,8 +305,12 @@
   "anchor": {
    "stone_lum_rig": 0.1228,
    "photo_to_rig": 0.1593,
-   "why": "one number to overrule: the first build's cast-stone level (luminance) is kept; the brick/stone ratio and both hues come from the owner's photograph IMG_0998 (overcast, the west wall rectified at full resolution, no lamp)",
-   "hue": "the hue of each material sits between his two photos: IMG_0998 (west, cool) and IMG_1031 (east court, warm) disagree by ~25 % in blue under the same matched sky, so the hue is set where both land within ~15 % (one value to overrule); the brick pattern and tone mix come from IMG_0998"
+   "cast_removed": [
+    1.0,
+    0.917,
+    0.822
+   ],
+   "why": "one number to overrule: the first build's cast-stone level (luminance) is kept. Hue from IMG_0998, the photo whose light is neutral: its walls face the lawn, trees and a concrete walk, and its concrete walk (taken as neutral) reads only 4 % green / 9 % blue cool, which is divided out (linear g x0.917, b x0.822). IMG_1031 is NOT used for hue: its sky is as neutral as IMG_0998's (b/r 1.05 vs 1.08, same lens, 4 minutes apart, both dry), but its walls face an enclosed court of red brick paving and brick walls, whose warm bounce light tints every wall there (the paving reads b/r 0.58); its matched light carries that bounce (wb set from the stone, a known material)."
   },
   "materials": {
    "wall_brick": {
@@ -317,15 +321,15 @@
      1.0832
     ],
     "factor": [
-     0.2638,
-     0.2232,
-     0.1715
+     0.2484,
+     0.2278,
+     0.2042
     ],
     "source": "owner photo IMG_0998, 2026-10-03 campus walk (west wall from Speedway, centre-bay spandrels): 183 real bricks laid in running bond at the modular course 0.0677 m (64.6 px/m measured), light divided out per channel",
     "mean_rgb": [
-     0.1418,
-     0.0886,
-     0.0515
+     0.1336,
+     0.0905,
+     0.0613
     ]
    },
    "wall_stone_cast": {
@@ -335,15 +339,33 @@
      0.4
     ],
     "factor": [
-     0.2823,
-     0.2103,
-     0.1528
+     0.24,
+     0.2201,
+     0.1973
     ],
-    "source": "owner photo IMG_0998, 2026-10-03 campus walk (west wall plinth, centre bay): mottling only; its mean stays the first build's cast-stone colour, which was gated on his photo IMG_1031 (6.9 %) and renders closer to BOTH his photos than a re-derived hue",
+    "source": "owner photo IMG_0998, 2026-10-03 campus walk (west wall plinth, centre bay): mottling and hue (cool cast removed), level = the first build's",
     "mean_rgb": [
-     0.1683,
-     0.1142,
-     0.0738
+     0.1431,
+     0.1195,
+     0.0953
+    ]
+   },
+   "wall_brick_ladder": {
+    "albedo": "scripts/v2/materials/gates-dell-complex/ladder_albedo.jpg",
+    "repeat_m": [
+     0.2,
+     2.1664
+    ],
+    "factor": [
+     0.2484,
+     0.2278,
+     0.2042
+    ],
+    "source": "stack-bond ladder columns counted on owner photo IMG_1031 (one brick wide, cream bricks ~27 % of courses at 1.5-1.9x the field brick); tones of the real bricks of IMG_0998",
+    "mean_rgb": [
+     0.136,
+     0.0923,
+     0.0641
     ]
    }
   },
@@ -351,6 +373,24 @@
    "anisotropy": 8,
    "lod_bias": -0.15,
    "why": "as PMA: the brick texture is far below a texel per pixel at 250 m; anisotropy 8 + bias -0.15 keeps the blur measure <= 0 (checked with v2-shimmer on this building)"
+  },
+  "fade": {
+   "screen_slats": {
+    "to": [
+     0.03,
+     0.032,
+     0.035
+    ],
+    "size_m": 0.05
+   },
+   "screen_frame": {
+    "to": [
+     0.03,
+     0.032,
+     0.035
+    ],
+    "size_m": 0.08
+   }
   }
  }
 }
