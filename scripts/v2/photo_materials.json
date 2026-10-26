@@ -529,6 +529,24 @@
      0.0923,
      0.0641
     ]
+   },
+   "screen_grille": {
+    "albedo": "scripts/v2/materials/gates-dell-complex/grille_albedo.png",
+    "repeat_m": [
+     0.213,
+     0.107
+    ],
+    "factor": [
+     0.135,
+     0.122,
+     0.109
+    ],
+    "source": "the rust screens' blades and bars counted at 4x on owner photo IMG_0998 (13 blades at 0.107 m, 7 bars at 0.213 m, members 0.025 m); blade colour sampled from the blades only",
+    "mean_rgb": [
+     0.0482,
+     0.0436,
+     0.0389
+    ]
    }
   },
   "filter": {
@@ -537,21 +555,13 @@
    "why": "as PMA: the brick texture is far below a texel per pixel at 250 m; anisotropy 8 + bias -0.15 keeps the blur measure <= 0 (checked with v2-shimmer on this building)"
   },
   "fade": {
-   "screen_slat": {
-    "to": [
-     0.0486,
-     0.0445,
-     0.041
-    ],
-    "size_m": 0.05
-   },
    "screen_frame": {
     "to": [
      0.0486,
      0.0445,
      0.041
     ],
-    "size_m": 0.05
+    "size_m": 0.06
    },
    "panel_dark_behind_screen": {
     "to": [
@@ -559,9 +569,9 @@
      0.0445,
      0.041
     ],
-    "size_m": 0.05
+    "size_m": 0.06
    },
-   "_why": "rule 15: blades, bars and frame are finer than a pixel from about 60 m; as they go below a pixel, they AND the dark panel behind them go over to the same colour, the screen's coverage-weighted mean (32 % blade, 68 % dark gap, from the counted pitches), so the far screen is one steady tone at the truth's average: no flicker, not darker or softer than the truth"
+   "_why": "rule 15: the screen's frame and the dark back panel go over to the screen's coverage-weighted mean (32 % blade) as they shrink below a pixel; the blades and bars themselves are a mipmapped texture on one quad (screen_grille), which averages to the same mean"
   }
  }
 }
