@@ -172,5 +172,93 @@
     ]
    }
   }
+ },
+ "physics-math-astronomy": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "brick_rig": [
+    0.1305,
+    0.1128,
+    0.0977
+   ],
+   "precast_rig": [
+    0.2283,
+    0.2328,
+    0.2154
+   ],
+   "why": "one number set to overrule: the build's gated colours (photo-1, overcast); the owner's east photos agree within ~10 %"
+  },
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/physics-math-astronomy/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/physics-math-astronomy/brick_normal.jpg",
+    "repeat_m": [
+     1.6248,
+     1.6248
+    ],
+    "factor": [
+     0.3123,
+     0.27,
+     0.234
+    ],
+    "source": "owner photo, 2026-10-03 campus walk (plain east face of the north block): 11719 brick-sized cells of the de-lit wall laid in running bond at the modular course 0.0677 m",
+    "mean_rgb": [
+     0.1305,
+     0.1128,
+     0.0977
+    ]
+   },
+   "precast_panel": {
+    "albedo": "scripts/v2/materials/physics-math-astronomy/precast_albedo.jpg",
+    "repeat_m": [
+     0.7557,
+     0.7557
+    ],
+    "factor": [
+     0.418,
+     0.4197,
+     0.4182
+    ],
+    "source": "owner photo, 2026-10-03 campus walk (east wall, level-2 precast band): exposed-aggregate mottling only, tie holes removed",
+    "mean_rgb": [
+     0.2283,
+     0.2328,
+     0.2154
+    ]
+   },
+   "precast_sill": {
+    "albedo": "scripts/v2/materials/physics-math-astronomy/precast_albedo.jpg",
+    "repeat_m": [
+     0.7557,
+     0.7557
+    ],
+    "factor": [
+     0.3559,
+     0.358,
+     0.364
+    ],
+    "source": "owner photo, 2026-10-03 campus walk (east wall, level-2 precast band): exposed-aggregate mottling only, tie holes removed",
+    "mean_rgb": [
+     0.1944,
+     0.1986,
+     0.1875
+    ]
+   }
+  },
+  "fade": {
+   "metal_coping": {
+    "to": [
+     0.1305,
+     0.1128,
+     0.0977
+    ],
+    "size_m": 0.1
+   }
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "measured (v2-shimmer, S 250 m): plain trilinear left the textured wall softer than the truth (+0.02); anisotropy 8 + bias -0.15 gives -0.03 with shimmer 0.00 (main 0.05). The window-frame coverage fade was dropped: it only made the frames softer than the truth (+0.01) and did not lower shimmer."
+  }
  }
 }
