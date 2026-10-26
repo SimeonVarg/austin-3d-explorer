@@ -172,5 +172,34 @@
     ]
    }
   }
+ },
+ "t-s-painter-hall": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "stone_lum_rig": 0.1338,
+   "photo": "IMG_0768",
+   "why": "one number to overrule: the build's limestone level (light rig, stone_value 0.13) is kept; the south block's brick and stone colours come from the owner's IMG_0768 by the build's own rule (photo pixel / the rig's overcast light at the exposure that puts its clean limestone at that level). Only the south block (wall_brick_block) carries the texture; the 1933 pavilion and the wing keep their gated plain colours. The limestone shows no resolvable texture at the photo's 7.5 mm/px (a tile of it repeats a visible blotch), so it is a plain photo-derived colour in the build, not a texture"
+  },
+  "materials": {
+   "wall_brick_block": {
+    "albedo": "scripts/v2/materials/t-s-painter-hall/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/t-s-painter-hall/brick_normal.jpg",
+    "repeat_m": [
+     2.016,
+     2.24
+    ],
+    "factor": [
+     0.1803,
+     0.1791,
+     0.181
+    ],
+    "source": "owner photo IMG_0768, 2026-10-03 campus walk (the south block's plain west wall, full-resolution original rectified through the 48 mm lens): 1187 real bricks laid in running bond at the measured course 0.070 m, brick + joint 2.88 courses (0.202 m)",
+    "mean_rgb": [
+     0.0926,
+     0.0725,
+     0.0532
+    ]
+   }
+  }
  }
 }
