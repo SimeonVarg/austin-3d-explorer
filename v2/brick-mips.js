@@ -104,7 +104,7 @@ export function brickMipChain(rgba, w, h, { linear = false, periods = null, P = 
   if (!per.course || !per.brick || per.peak < P.MIN_PEAK) return null;
   const out = [{ data: new Uint8ClampedArray(rgba), width: w, height: h, joints: 0, courses: 0 }];
   const enc = (v) => (linear ? Math.round(255 * Math.min(1, Math.max(0, v))) : L2S[Math.round(4095 * Math.min(1, Math.max(0, v)))]);
-  let cw = w, ch = h, s = 1;
+  let cw = w, ch = h, s = 1, jDone = 0, cDone = 0;
   while (cw > 1 || ch > 1) {
     const nw = Math.max(1, cw >> 1), nh = Math.max(1, ch >> 1); s *= 2;
     const nxt = [];
@@ -121,9 +121,13 @@ export function brickMipChain(rgba, w, h, { linear = false, periods = null, P = 
       nxt.push(dst);
     }
     const joints = 1 - smooth(P.JOINT_FULL, P.JOINT_NONE, per.brick / s), courses = 1 - smooth(P.COURSE_FULL, P.COURSE_NONE, per.course / s);
+    // each repeat is removed ONCE: a level takes only the share the levels above have not removed yet. (Re-applying the box at
+    // every level stacked into a blur several bricks wide: Anna Hiss 250 m measured soft 0.36 against 0.22 without the chain.)
+    const jt = jDone < 1 ? Math.max(0, (joints - jDone) / (1 - jDone)) : 0, ct = cDone < 1 ? Math.max(0, (courses - cDone) / (1 - cDone)) : 0;
+    jDone = Math.max(jDone, joints); cDone = Math.max(cDone, courses);
     for (let c = 0; c < 3; c++) {
-      if (joints > 0) blend(nxt[c], boxAlong(nxt[c], nw, nh, per.brick / s, true), joints);
-      if (courses > 0) blend(nxt[c], boxAlong(nxt[c], nw, nh, per.course / s, false), courses);
+      if (jt > 0) blend(nxt[c], boxAlong(nxt[c], nw, nh, per.brick / s, true), jt);
+      if (ct > 0) blend(nxt[c], boxAlong(nxt[c], nw, nh, per.course / s, false), ct);
     }
     const data = new Uint8ClampedArray(nw * nh * 4);
     for (let i = 0; i < nw * nh; i++) { data[4 * i] = enc(nxt[0][i]); data[4 * i + 1] = enc(nxt[1][i]); data[4 * i + 2] = enc(nxt[2][i]); data[4 * i + 3] = 255; }
