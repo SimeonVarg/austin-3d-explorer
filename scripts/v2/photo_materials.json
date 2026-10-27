@@ -1730,10 +1730,20 @@
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1778,
+     0.1704,
+     0.1532
+    ],
+    "size_m": 0.95
+   }
+  },
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15 (batch 2026-10-27): the -0.5 used on t_4_-3 over-sharpened these shingle roofs; -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-685d37aa": {
@@ -1780,10 +1790,20 @@
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1741,
+     0.1741,
+     0.1671
+    ],
+    "size_m": 0.95
+   }
+  },
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15 (batch 2026-10-27): the -0.5 used on t_4_-3 over-sharpened these shingle roofs; -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-c6759972": {
@@ -1831,10 +1851,20 @@
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1068,
+     0.0505,
+     0.035
+    ],
+    "size_m": 0.95
+   }
+  },
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15 (batch 2026-10-27): the -0.5 used on t_4_-3 over-sharpened these shingle roofs; -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-f00f84da": {
@@ -1882,10 +1912,20 @@
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1068,
+     0.0505,
+     0.035
+    ],
+    "size_m": 0.95
+   }
+  },
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15 (batch 2026-10-27): the -0.5 used on t_4_-3 over-sharpened these shingle roofs; -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-b1d15ed5": {
@@ -1931,10 +1971,20 @@
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1778,
+     0.1704,
+     0.1532
+    ],
+    "size_m": 0.95
+   }
+  },
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15 (batch 2026-10-27): the -0.5 used on t_4_-3 over-sharpened these shingle roofs; -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-2321c075": {
@@ -1981,10 +2031,20 @@
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1778,
+     0.1704,
+     0.1532
+    ],
+    "size_m": 0.95
+   }
+  },
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15 (batch 2026-10-27): the -0.5 used on t_4_-3 over-sharpened these shingle roofs; -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-4b256133": {
@@ -2031,10 +2091,20 @@
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1778,
+     0.1704,
+     0.1532
+    ],
+    "size_m": 0.95
+   }
+  },
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15 (batch 2026-10-27): the -0.5 used on t_4_-3 over-sharpened these shingle roofs; -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-b07e7bf4": {
@@ -2080,10 +2150,20 @@
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1778,
+     0.1704,
+     0.1532
+    ],
+    "size_m": 0.95
+   }
+  },
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15 (batch 2026-10-27): the -0.5 used on t_4_-3 over-sharpened these shingle roofs; -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-682c1554": {
@@ -2129,10 +2209,20 @@
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1778,
+     0.1704,
+     0.1532
+    ],
+    "size_m": 0.95
+   }
+  },
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15 (batch 2026-10-27): the -0.5 used on t_4_-3 over-sharpened these shingle roofs; -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  }
 }
