@@ -1,5 +1,5 @@
 {
-  "_about": "Parts of one Blender model that stand up through ANOTHER model's roof, hidden in the built tiles by scripts/v2/clip_tiles.mjs (pipeline stage 5, run after build_tiles.mjs: `node scripts/v2/clip_tiles.mjs`). The Blender builds themselves are not touched. Found by scripts/verify/v2-tile-pokes.mjs (it prints a clip entry for every poke it finds). clips[]: slug = the model the part belongs to, over = the model whose roof it crosses, tile = the tile file (lod0 only: the far mass has none of these), seed = a corner of the part, box = [x0,y0,z0,x1,y1,z1] world metres round it (the check's bounding box); the triangles of `slug` inside the box that are joined to the seed corner are dropped, tris = how many triangles that is (the stage refuses to run if the box now holds a different number: the model changed, look again), why = what the part is. known[]: pokes the check lists but nobody has decided on (a hidden part would leave a hole; the owner or the next builder decides); the check fails on any poke that is in neither list.",
+  "_about": "Parts of one Blender model that stand up through ANOTHER model's roof, hidden in the built tiles by scripts/v2/clip_tiles.mjs (pipeline stage 5, run after build_tiles.mjs: `node scripts/v2/clip_tiles.mjs`). The Blender builds themselves are not touched. Found by scripts/verify/v2-tile-pokes.mjs (it prints a clip entry for every poke it finds). clips[]: slug = the model the part belongs to, over = the model whose roof it crosses, tile = the tile file (lod0 only: the far mass has none of these), seed = a corner of the part, box = [x0,y0,z0,x1,y1,z1] world metres round it (the check's bounding box); the triangles of `slug` inside the box that are joined to the seed corner are dropped, tris = how many triangles that is (the stage refuses to run if the box now holds a different number: the model changed, look again), why = what the part is. A clip with a uv field [u, v] (the palette coordinate of one colour) drops EVERY triangle of slug in the box that is painted that colour, joined to a seed or not (for a ground sheet that came out in several pieces); seed is then unused; up: n adds a facing-up filter (the normal.y above n). known[]: pokes the check lists but nobody has decided on (a hidden part would leave a hole; the owner or the next builder decides); the check fails on any poke that is in neither list.",
   "clips": [
     {
       "slug": "dkr-memorial-stadium",
@@ -9,6 +9,27 @@
       "box": [615.72, 10.16, 377.35, 650.6, 12.51, 391.19],
       "tris": 10,
       "why": "DKR's guessed entry-pavilion canopy: a 34 m x 11 m slab sloping from 12.4 m down to 10.2 m. Over Moncrief-Neuhaus's hall roof (12.0-12.4 m) its upper face stands 0.3-0.5 m above the roof and drew as a tan patch on the red roof (aerials, 2026-10-24). Nothing of it is a photographed part of either building; the slab is inside Moncrief's volume where the roof is."
+    },
+    {
+      "slug": "dkr-memorial-stadium",
+      "over": "ground",
+      "tile": "t_2_0",
+      "uv": [0.3868, 0.3868],
+      "seed": [0, 0, 0],
+      "box": [524, -6, 60, 836, 5, 450],
+      "tris": 728,
+      "why": "DKR's site-terrain grass: the stadium build's own scan-derived ground sheet (material site_grass, palette colour 59,66,50), a ring round the east and south of the bowl whose outline follows the scan's raster cells, so it drew as green stair-stepped patches on the app's ground (live since 10-25). It is ground, not part of the building: the app draws the ground. 728 triangles in five pieces, all painted the one palette colour; the turf, the paving and every other part keep their triangles."
+    },
+    {
+      "slug": "dkr-memorial-stadium",
+      "over": "ground",
+      "tile": "t_2_0",
+      "uv": [0.3946, 0.3946],
+      "up": 0.6,
+      "seed": [657.59, 0.78, 428.92],
+      "box": [524, -6, 60, 836, 14, 450],
+      "tris": 2935,
+      "why": "DKR's site-terrain paving: the other half of the stadium build's scan-derived ground sheet (material site_paving, palette colour 82,81,79), the grey ground that joins the grass sheet above and covers the app's real ground, with the same stair-stepped scan-grid outline. Only the upward-facing triangles of that colour (2,935 of them, checked to be ONE connected sheet from ground level up the berm to 13 m); the stadium's own walls, steps and decks that share the colour keep their triangles. 2935 triangles."
     }
   ],
   "known": [
