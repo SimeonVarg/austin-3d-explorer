@@ -1732,8 +1732,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15, by roof type (batch 2026-10-27): flat membrane/stucco buildings were softer than the supersampled truth at 120 m (soft +0.14); -0.5 brought them to soft <= -0.12 with shimmer <= 0.23 on two shipped tiles"
+   "lod_bias": -0.15,
+   "why": "rule 15, by surface (batch 2026-10-27): the fine brick repeat at -0.5 shimmered at 250-600 m (0.28/0.42, soft -0.34 on the Moxy); brick walls take the PMA-measured -0.15 whatever the roof"
   }
  },
  "campus-9503af74": {
