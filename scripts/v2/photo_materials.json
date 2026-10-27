@@ -579,17 +579,17 @@
     ]
    },
    "roof_flat": {
-    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "albedo": "scripts/v2/materials/_library/flatroof_albedo.jpg",
     "repeat_m": [
-     1.6,
-     1.6
+     27.273,
+     4.545
     ],
     "factor": [
-     0.5153,
-     0.5162,
-     0.5244
+     0.3054,
+     0.3395,
+     0.4226
     ],
-    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
      0.258,
      0.258,
@@ -624,17 +624,17 @@
     ]
    },
    "roof_flat": {
-    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "albedo": "scripts/v2/materials/_library/flatroof_albedo.jpg",
     "repeat_m": [
-     1.6,
-     1.6
+     27.273,
+     4.545
     ],
     "factor": [
-     0.1682,
-     0.1401,
-     0.1165
+     0.0997,
+     0.0921,
+     0.0939
     ],
-    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
      0.0842,
      0.07,
