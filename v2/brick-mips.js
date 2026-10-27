@@ -6,7 +6,8 @@
 // positive mip bias only fades the whole wall, which the blur gate rightly refuses.
 //
 // What this makes instead, level by level from the photo (level 0 is the photo itself, untouched):
-//   1. each level is a 2x decimation of the level above with a 4-tap binomial (wraps: the texture tiles);
+//   1. each level is the 2 x 2 box average of the level above, as the GPU's own chain (a 4-tap binomial was tried: it made every
+//      level softer than main's chain, Anna Hiss 250 m soft 0.33 against 0.22, before any joint was touched);
 //   2. VERTICAL JOINTS GO FIRST: once a brick (brick + head joint) is shorter than JOINT_NONE texels at a level, the part of each
 //      row that repeats every brick (the head joints) is taken out (fully at JOINT_FULL texels). What stays is each course's tone
 //      and the bed joints: rows that read as horizontal lines, which cannot make a diagonal;
@@ -110,13 +111,13 @@ export function brickMipChain(rgba, w, h, { linear = false, periods = null, P = 
     const nxt = [];
     for (let c = 0; c < 3; c++) {
       const src = cur[c], tmp = new Float32Array(nw * ch), dst = new Float32Array(nw * nh);
-      for (let y = 0; y < ch; y++) for (let x = 0; x < nw; x++) {          // horizontal [1 3 3 1]/8 (or copy when not halving)
+      for (let y = 0; y < ch; y++) for (let x = 0; x < nw; x++) {          // horizontal 2-texel box (or copy when not halving)
         if (nw === cw) { tmp[y * nw + x] = src[y * cw + x]; continue; }
-        const a = 2 * x; tmp[y * nw + x] = (src[y * cw + (a - 1 + cw) % cw] + 3 * src[y * cw + a] + 3 * src[y * cw + (a + 1) % cw] + src[y * cw + (a + 2) % cw]) / 8;
+        tmp[y * nw + x] = 0.5 * (src[y * cw + 2 * x] + src[y * cw + 2 * x + 1]);
       }
       for (let y = 0; y < nh; y++) for (let x = 0; x < nw; x++) {          // vertical
         if (nh === ch) { dst[y * nw + x] = tmp[y * nw + x]; continue; }
-        const b = 2 * y; dst[y * nw + x] = (tmp[((b - 1 + ch) % ch) * nw + x] + 3 * tmp[b * nw + x] + 3 * tmp[((b + 1) % ch) * nw + x] + tmp[((b + 2) % ch) * nw + x]) / 8;
+        dst[y * nw + x] = 0.5 * (tmp[2 * y * nw + x] + tmp[(2 * y + 1) * nw + x]);
       }
       nxt.push(dst);
     }
