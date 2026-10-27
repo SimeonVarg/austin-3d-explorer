@@ -557,5 +557,269 @@
     ]
    }
   }
+ },
+ "kxan-building": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.5423,
+     0.5432,
+     0.5312
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: seen (Earth h045: white painted block, few windows) (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2715,
+     0.2715,
+     0.2662
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-a435f080": {
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/robert-a-welch-hall/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/robert-a-welch-hall/brick_normal.jpg",
+    "repeat_m": [
+     0.9885,
+     1.0544
+    ],
+    "factor": [
+     0.2695,
+     0.2716,
+     0.2267
+    ],
+    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo IMG_0994, light divided out), re-tinted per building; colour: not seen (trees); tan brick = street prior (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.152,
+     0.1067,
+     0.0657
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-b09961a3": {
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/robert-a-welch-hall/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/robert-a-welch-hall/brick_normal.jpg",
+    "repeat_m": [
+     0.9885,
+     1.0544
+    ],
+    "factor": [
+     0.3195,
+     0.3131,
+     0.2433
+    ],
+    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo IMG_0994, light divided out), re-tinted per building; colour: not seen (trees); tan brick = the 2-storey neighbours (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.1802,
+     0.123,
+     0.0705
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-b0d9f011": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.4268,
+     0.4276,
+     0.4035
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: partly (Earth h225: pale grey wing under the dark roof) (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2137,
+     0.2137,
+     0.2022
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-502b205a": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.4506,
+     0.4276,
+     0.3811
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: not seen; pale = street prior (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2256,
+     0.2137,
+     0.191
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-8ae135d6": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.4506,
+     0.4276,
+     0.3811
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: not seen; pale = street prior (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2256,
+     0.2137,
+     0.191
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-15f91a53": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.4038,
+     0.3953,
+     0.3682
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: seen (Earth h110: pale grey walls) (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2022,
+     0.1976,
+     0.1845
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-5e3c4bc1": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.4749,
+     0.461,
+     0.4264
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: not seen; pale = street prior (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2378,
+     0.2304,
+     0.2137
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-59486c8a": {
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/robert-a-welch-hall/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/robert-a-welch-hall/brick_normal.jpg",
+    "repeat_m": [
+     0.9885,
+     1.0544
+    ],
+    "factor": [
+     0.3425,
+     0.349,
+     0.2788
+    ],
+    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo IMG_0994, light divided out), re-tinted per building; colour: seen (Earth h315: tan brick, 2 storeys) (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.1932,
+     0.1371,
+     0.0808
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-adae8561": {
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/robert-a-welch-hall/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/robert-a-welch-hall/brick_normal.jpg",
+    "repeat_m": [
+     0.9885,
+     1.0544
+    ],
+    "factor": [
+     0.3425,
+     0.349,
+     0.2788
+    ],
+    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo IMG_0994, light divided out), re-tinted per building; colour: seen (Earth h315: tan brick, 2 storeys, '902') (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.1932,
+     0.1371,
+     0.0808
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
  }
 }
