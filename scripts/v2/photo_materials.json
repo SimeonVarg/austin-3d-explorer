@@ -493,5 +493,37 @@
     ]
    }
   }
+ },
+ "mccombs-school-of-business": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "one number to overrule: the build's wall_brick base colour [0.1299, 0.0816, 0.0546] (light-rig scale), taken by its builder from the owner's photos; the texture carries only the brick-to-brick tone mix and the joints, its mean is scaled back to that colour"
+  },
+  "filter": {
+   "anisotropy": 4,
+   "lod_bias": 1.0,
+   "why": "McCombs' brick course is 0.0508 m, about 2.4 px at 30 m in the photo-1 view: at bias -0.15 the running-bond head joints aliased into a diagonal cross-hatch (rule 15). +1.0 takes the mip past the course so the wall fades to its even photo tone where the rows cannot be resolved, and shows them up close; soft stays at or below main (measured in the PR)"
+  },
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/mccombs-school-of-business/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/mccombs-school-of-business/brick_normal.jpg",
+    "repeat_m": [
+     0.8509,
+     0.8128
+    ],
+    "factor": [
+     0.2141,
+     0.2141,
+     0.2141
+    ],
+    "source": "owner photo 3 of the McCombs north slab, overcast, rectified by its vanishing points: 3207 real bricks from three brick bands between window rows, light divided out, laid in running bond at the measured course 0.0508 m (brick + joint 0.170 m, 3.35 courses); colour checked against photo 1: the de-lit photo brick has the build's chromaticity to 1 % (r:g:b 1 : 0.62 : 0.41), so the mean stays the build's",
+    "mean_rgb": [
+     0.1299,
+     0.0816,
+     0.0546
+    ]
+   }
+  }
  }
 }
