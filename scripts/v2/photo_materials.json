@@ -557,5 +557,489 @@
     ]
    }
   }
+ },
+ "envoy-apartments-west-campus": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.4702,
+     0.4514,
+     0.4035
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: partly (Earth h045, small): pale walls (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2354,
+     0.2256,
+     0.2022
+    ]
+   },
+   "roof_flat": {
+    "albedo": "scripts/v2/materials/_library/flatroof_albedo.jpg",
+    "repeat_m": [
+     27.273,
+     4.545
+    ],
+    "factor": [
+     0.1215,
+     0.1044,
+     0.1039
+    ],
+    "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.1026,
+     0.0793,
+     0.0646
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-3fbd5939": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.4702,
+     0.4514,
+     0.4035
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: not seen (trees); pale = street prior (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2354,
+     0.2256,
+     0.2022
+    ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.184,
+     0.162,
+     0.1287
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0517,
+     0.0462,
+     0.0335
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-4b98f03d": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.2131,
+     0.3865,
+     0.0619
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: seen (Earth h225: lime-green siding, 4 storeys) (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.1067,
+     0.1932,
+     0.031
+    ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.1676,
+     0.1532,
+     0.1947
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0471,
+     0.0437,
+     0.0507
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-5cf988aa": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.4702,
+     0.4514,
+     0.4035
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: not in any capture; pale = street prior (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2354,
+     0.2256,
+     0.2022
+    ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.3221,
+     0.2781,
+     0.2604
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0905,
+     0.0793,
+     0.0678
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-6e0ca3e6": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.1312,
+     0.1781,
+     0.2389
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: partly (Earth h045: blue-grey siding) (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.0657,
+     0.089,
+     0.1197
+    ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.2339,
+     0.2048,
+     0.2055
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0657,
+     0.0584,
+     0.0535
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-87401602": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.5864,
+     0.5762,
+     0.5418
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: seen (Earth h225: white walls, 2 storeys) (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2936,
+     0.288,
+     0.2715
+    ]
+   },
+   "roof_flat": {
+    "albedo": "scripts/v2/materials/_library/flatroof_albedo.jpg",
+    "repeat_m": [
+     27.273,
+     4.545
+    ],
+    "factor": [
+     0.0703,
+     0.0769,
+     0.0923
+    ],
+    "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0594,
+     0.0584,
+     0.0574
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-967db090": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.1132,
+     0.1617,
+     0.2193
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: seen (Earth h045: blue-grey siding) (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.0567,
+     0.0808,
+     0.1099
+    ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.0997,
+     0.0849,
+     0.1125
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.028,
+     0.0242,
+     0.0293
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-9f03b6b9": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.5864,
+     0.5762,
+     0.5418
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: seen (Earth h045, small: white block) (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2936,
+     0.288,
+     0.2715
+    ]
+   },
+   "roof_flat": {
+    "albedo": "scripts/v2/materials/_library/flatroof_albedo.jpg",
+    "repeat_m": [
+     27.273,
+     4.545
+    ],
+    "factor": [
+     0.2728,
+     0.3003,
+     0.385
+    ],
+    "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.2304,
+     0.2282,
+     0.2394
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-b92e7aca": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.4702,
+     0.4514,
+     0.4035
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: not in any capture; pale = street prior (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2354,
+     0.2256,
+     0.2022
+    ]
+   },
+   "roof_flat": {
+    "albedo": "scripts/v2/materials/_library/flatroof_albedo.jpg",
+    "repeat_m": [
+     27.273,
+     4.545
+    ],
+    "factor": [
+     0.0843,
+     0.0865,
+     0.1108
+    ],
+    "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0712,
+     0.0657,
+     0.0689
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-ee9e48b5": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.2131,
+     0.2199,
+     0.2129
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: seen (Earth h225: grey siding) (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.1067,
+     0.1099,
+     0.1067
+    ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.2339,
+     0.1978,
+     0.2132
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0657,
+     0.0564,
+     0.0555
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
+ },
+ "west-campus-fd1257de": {
+  "materials": {
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.4702,
+     0.4514,
+     0.4035
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: not seen; pale = street prior (batch pilot 2026-10-27)",
+    "mean_rgb": [
+     0.2354,
+     0.2256,
+     0.2022
+    ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.1904,
+     0.1592,
+     0.1744
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0535,
+     0.0454,
+     0.0454
+    ]
+   }
+  },
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  }
  }
 }
