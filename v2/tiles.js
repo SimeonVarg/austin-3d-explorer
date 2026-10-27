@@ -11,8 +11,9 @@
 // While a tile is on screen its buildings' map ids are hidden in the plain extrusions (onShow / onHide).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { brickMipChain, BRICK_MIPS } from './brick-mips.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { LOOK } from './look.js';
+import { LOOK, BRICK_MIPS_SLUGS } from './look.js';
 
 export const TILES = {
   MAX_DECODES: 2,
@@ -105,6 +106,32 @@ function photoTextures(material) {
   const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
   material.customProgramCacheKey = () => key() + '|v2-pbias' + bias;
   material.needsUpdate = true;
+}
+// Brick mip chain (v2/brick-mips.js, rule 15): every photo brick texture (a photo material whose name says brick) gets its own
+// mip levels in which the staggered head joints are removed before they are small enough to fold into a diagonal cross-hatch,
+// then the courses, then one even tone. Made here from the texture the tile already carries: no extra download, no tile rebuild.
+// The albedo's measured course is used for its normal map too. Opt-in per building: BRICK_MIPS_SLUGS in look.js.
+const BRICK_MIPS_Q = PQ.has('brickmips') ? PQ.get('brickmips') !== '0' : null;   // null: the opt-in list decides (look.js)
+// ?brickjoint=FULL,NONE / ?brickcourse=FULL,NONE override the thresholds of v2/brick-mips.js (texels at a level) for an A/B
+const BRICK_P = { ...BRICK_MIPS };
+for (const [q, a, b] of [['brickjoint', 'JOINT_FULL', 'JOINT_NONE'], ['brickcourse', 'COURSE_FULL', 'COURSE_NONE']]) if (PQ.has(q)) [BRICK_P[a], BRICK_P[b]] = PQ.get(q).split(',').map(Number);
+const brickSeen = new WeakSet();
+function brickMips(material, optedIn) {
+  if (!(BRICK_MIPS_Q ?? optedIn) || !material || !material.userData || !material.userData.photo_material || !/brick/i.test(material.name || '')) return;
+  let periods = null;
+  for (const t of [material.map, material.normalMap]) {
+    const img = t && t.image; if (!img || !img.width || brickSeen.has(t)) continue;
+    brickSeen.add(t);
+    try {
+      const w = img.width, h = img.height, cv = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h) : Object.assign(document.createElement('canvas'), { width: w, height: h });
+      const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0);
+      const chain = brickMipChain(cx.getImageData(0, 0, w, h).data, w, h, { linear: t !== material.map, periods, P: BRICK_P });
+      if (!chain) continue;
+      periods ||= chain.periods;
+      t.mipmaps = chain.map((l) => new ImageData(l.data, l.width, l.height));
+      t.generateMipmaps = false; t.needsUpdate = true;
+    } catch (e) { console.warn('brick mips skipped', material.name, e); }
+  }
 }
 const FADE_K = [0.25, 0.6];     // fade from size x K[0] to size x K[1] metres per pixel
 function coverageFade(material) {
@@ -220,14 +247,14 @@ export class TileStreamer {
         if (job.stale) { disposeObject(gltf.scene); this.stats.discarded++; return; }
         const obj = gltf.scene;
         obj.name = s.def.id;
-        const fade = { value: 0 };
+        const fade = { value: 0 }, brickOptIn = (s.def.buildings || []).some((b) => BRICK_MIPS_SLUGS.has(b));
         obj.traverse((o) => {
           if (!o.isMesh) return;
           o.castShadow = true; o.receiveShadow = true; o.frustumCulled = true;
           if (shadowDepth) o.customDepthMaterial = shadowDepth;
           const ao = LOOK.AO.ON && !!o.geometry.attributes._ao && o.geometry.attributes._ao.itemSize === 2;
           if (!ao && o.geometry.attributes._ao) o.geometry.deleteAttribute('_ao');
-          for (const m of Array.isArray(o.material) ? o.material : [o.material]) { photoTextures(m); coverageFade(m); fadeable(m, fade, ao); }
+          for (const m of Array.isArray(o.material) ? o.material : [o.material]) { photoTextures(m); brickMips(m, brickOptIn); coverageFade(m); fadeable(m, fade, ao); }
         });
         obj.userData.fade = fade;
         this.prepare(obj, s.def, s);   // (s: main.js adds to s.mapIds the plain extrusions this model stands over, covers.js)
