@@ -500,9 +500,9 @@
    "why": "one number to overrule: the build's wall_brick base colour [0.1299, 0.0816, 0.0546] (light-rig scale), taken by its builder from the owner's photos; the texture carries only the brick-to-brick tone mix and the joints, its mean is scaled back to that colour"
   },
   "filter": {
-   "anisotropy": 4,
-   "lod_bias": 1.0,
-   "why": "McCombs' brick course is 0.0508 m, about 2.4 px at 30 m in the photo-1 view: at bias -0.15 the running-bond head joints aliased into a diagonal cross-hatch (rule 15). +1.0 takes the mip past the course so the wall fades to its even photo tone where the rows cannot be resolved, and shows them up close; soft stays at or below main (measured in the PR)"
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "as PMA, Welch, Anna Hiss; the brick mip chain (v2/brick-mips.js, opted in for McCombs in v2/look.js) removes the head joints and courses before they can fold into a diagonal cross-hatch, so the +1.0 fade is no longer needed (measured in PR #574)"
   },
   "materials": {
    "wall_brick": {
