@@ -525,5 +525,37 @@
     ]
    }
   }
+ },
+ "norman-hackerman-building": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "one number to overrule: the build's wall_brick base colour [0.0684, 0.048, 0.0372] (light-rig scale), taken by its builder from the owner's photos; the texture carries only the brick-to-brick tone mix and the joints, its mean is scaled back to that colour"
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "as PMA, Welch, Anna Hiss"
+  },
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/norman-hackerman-building/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/norman-hackerman-building/brick_normal.jpg",
+    "repeat_m": [
+     1.8617,
+     1.0832
+    ],
+    "factor": [
+     0.1228,
+     0.1228,
+     0.1228
+    ],
+    "source": "owner photo 1 of the tall block's south face, overcast, rectified through its proven camera at 250 px/m: 329 real long-format bricks from the open brick piers and the upper open wall (never near glass), light divided out, laid in running bond at the modular course 0.0677 m (FFT 0.0689 m on the photo, 72 courses per 4.88 m storey in the build), brick + joint 5.5 courses",
+    "mean_rgb": [
+     0.0684,
+     0.048,
+     0.0372
+    ]
+   }
+  }
  }
 }
