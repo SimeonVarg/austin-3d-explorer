@@ -1783,6 +1783,34 @@
         281812,
         40704
       ]
+    },
+    {
+      "id": "t_4_-3",
+      "bounds": [
+        1000,
+        -750,
+        1250,
+        -500
+      ],
+      "lod0": "tiles/t_4_-3.glb",
+      "lod1": "tiles/t_4_-3.far.glb",
+      "buildings": [
+        "campus-11fab8de",
+        "campus-1c9f83e8",
+        "campus-47430ddb",
+        "campus-58e0fd0c",
+        "campus-678899ae",
+        "campus-95c8e5cd",
+        "campus-a57f6fe3",
+        "campus-e1ba4380",
+        "campus-e4eacc40",
+        "campus-f4107e23",
+        "campus-f9d72bd0"
+      ],
+      "bytes": [
+        212900,
+        20388
+      ]
     }
   ],
   "buildings": {
@@ -5614,6 +5642,127 @@
       "x": -1167.664,
       "z": -958.952,
       "top": 7.4
+    },
+    "campus-f9d72bd0": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "f9d72bd0"
+      ],
+      "name": "Campus-area building f9d72bd0",
+      "model": "opus",
+      "x": 1146.763,
+      "z": -609.059,
+      "top": 14.2
+    },
+    "campus-95c8e5cd": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "95c8e5cd"
+      ],
+      "name": "Campus-area building 95c8e5cd",
+      "model": "opus",
+      "x": 1165.606,
+      "z": -641.548,
+      "top": 18
+    },
+    "campus-58e0fd0c": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "58e0fd0c"
+      ],
+      "name": "Campus-area building 58e0fd0c",
+      "model": "opus",
+      "x": 1110.849,
+      "z": -562.866,
+      "top": 11.1
+    },
+    "campus-e4eacc40": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "e4eacc40"
+      ],
+      "name": "Campus-area building e4eacc40",
+      "model": "opus",
+      "x": 1205.383,
+      "z": -691.177,
+      "top": 6.9
+    },
+    "campus-a57f6fe3": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "a57f6fe3"
+      ],
+      "name": "Campus-area building a57f6fe3",
+      "model": "opus",
+      "x": 1098.309,
+      "z": -517.673,
+      "top": 5.4
+    },
+    "campus-e1ba4380": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "e1ba4380"
+      ],
+      "name": "Campus-area building e1ba4380",
+      "model": "opus",
+      "x": 1024.708,
+      "z": -601.437,
+      "top": 7.8
+    },
+    "campus-f4107e23": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "f4107e23"
+      ],
+      "name": "Campus-area building f4107e23",
+      "model": "opus",
+      "x": 1012.356,
+      "z": -613.955,
+      "top": 8.2
+    },
+    "campus-678899ae": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "678899ae"
+      ],
+      "name": "Campus-area building 678899ae",
+      "model": "opus",
+      "x": 1227.693,
+      "z": -717.693,
+      "top": 7.3
+    },
+    "campus-1c9f83e8": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "1c9f83e8"
+      ],
+      "name": "Campus-area building 1c9f83e8",
+      "model": "opus",
+      "x": 1248.378,
+      "z": -747.789,
+      "top": 7.2
+    },
+    "campus-11fab8de": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "11fab8de"
+      ],
+      "name": "Campus-area building 11fab8de",
+      "model": "opus",
+      "x": 1165.662,
+      "z": -693.65,
+      "top": 5
+    },
+    "campus-47430ddb": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "47430ddb"
+      ],
+      "name": "Campus-area building 47430ddb (Jimmy John's)",
+      "model": "opus",
+      "x": 1226.106,
+      "z": -598.038,
+      "top": 3.8
     }
   }
 }
