@@ -5189,6 +5189,172 @@
         "flags": []
       }
     },
+    "kxan-building": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "commercial",
+      "tile": "t_-4_1",
+      "blend_sha256": "1c66940bc9d062e3",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 12.8,
+        "area_ratio": 1.012,
+        "centre_off_m": 0.19,
+        "flags": []
+      }
+    },
+    "west-campus-a435f080": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-4_1",
+      "blend_sha256": "6b21490875d3e988",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 3.7,
+        "area_ratio": 0.996,
+        "centre_off_m": 0.08,
+        "flags": []
+      }
+    },
+    "west-campus-b09961a3": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-4_1",
+      "blend_sha256": "51a27cb62577abc5",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 8.6,
+        "area_ratio": 1.115,
+        "centre_off_m": 0.2,
+        "flags": [
+          "area x1.11"
+        ]
+      }
+    },
+    "west-campus-b0d9f011": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-4_1",
+      "blend_sha256": "c0e79082a42f37b9",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 6.2,
+        "area_ratio": 1.101,
+        "centre_off_m": 0.08,
+        "flags": [
+          "area x1.10"
+        ]
+      }
+    },
+    "west-campus-502b205a": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-4_1",
+      "blend_sha256": "d77b91d72bcc8867",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 5.3,
+        "area_ratio": 1.108,
+        "centre_off_m": 0.09,
+        "flags": [
+          "area x1.11"
+        ]
+      }
+    },
+    "west-campus-8ae135d6": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-4_1",
+      "blend_sha256": "8a29e9b74e60d6cb",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 5.2,
+        "area_ratio": 1.114,
+        "centre_off_m": 0.08,
+        "flags": [
+          "area x1.11"
+        ]
+      }
+    },
+    "west-campus-15f91a53": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-4_1",
+      "blend_sha256": "ce8d1ab8844ffe19",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 4.9,
+        "area_ratio": 1.102,
+        "centre_off_m": 0.13,
+        "flags": [
+          "area x1.10"
+        ]
+      }
+    },
+    "west-campus-5e3c4bc1": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-4_1",
+      "blend_sha256": "c537b9ecbca57341",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 4.3,
+        "area_ratio": 1.109,
+        "centre_off_m": 0.07,
+        "flags": [
+          "area x1.11"
+        ]
+      }
+    },
+    "west-campus-59486c8a": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-4_1",
+      "blend_sha256": "1f44b36e4fe23650",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 9.1,
+        "area_ratio": 1.116,
+        "centre_off_m": 0.11,
+        "flags": [
+          "area x1.12"
+        ]
+      }
+    },
+    "west-campus-adae8561": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-4_1",
+      "blend_sha256": "c4ca1f6858c841ae",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 9.8,
+        "area_ratio": 1.11,
+        "centre_off_m": 0.26,
+        "flags": [
+          "area x1.11"
+        ]
+      }
+    },
     "west-campus-11e7591d": {
       "exported": true,
       "reason": null,
@@ -6501,6 +6667,19 @@
       "far": {
         "bytes": 5184,
         "tris": 121,
+        "draws": 1
+      }
+    },
+    "t_-4_1": {
+      "hash": "a007e8703f56aac0",
+      "near": {
+        "bytes": 206604,
+        "tris": 2778,
+        "draws": 21
+      },
+      "far": {
+        "bytes": 13924,
+        "tris": 862,
         "draws": 1
       }
     },
