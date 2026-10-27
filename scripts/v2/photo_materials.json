@@ -571,17 +571,35 @@
      0.5432,
      0.5312
     ],
-    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: seen (Earth h045: white painted block, few windows) (batch pilot 2026-10-27)",
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: seen (Earth h045: white painted block, few windows, rooftop dishes) (batch pilot 2026-10-27)",
     "mean_rgb": [
      0.2715,
      0.2715,
      0.2662
     ]
+   },
+   "roof_flat": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.5153,
+     0.5162,
+     0.5244
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.258,
+     0.258,
+     0.2628
+    ]
    }
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   }
  },
  "west-campus-a435f080": {
@@ -604,11 +622,29 @@
      0.1067,
      0.0657
     ]
+   },
+   "roof_flat": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.1682,
+     0.1401,
+     0.1165
+    ],
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0842,
+     0.07,
+     0.0584
+    ]
    }
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   }
  },
  "west-campus-b09961a3": {
@@ -631,11 +667,29 @@
      0.123,
      0.0705
     ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.1584,
+     0.1304,
+     0.1314
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0445,
+     0.0372,
+     0.0342
+    ]
    }
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   }
  },
  "west-campus-b0d9f011": {
@@ -657,11 +711,29 @@
      0.2137,
      0.2022
     ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.1068,
+     0.1027,
+     0.1175
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.03,
+     0.0293,
+     0.0306
+    ]
    }
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   }
  },
  "west-campus-502b205a": {
@@ -683,11 +755,29 @@
      0.2137,
      0.191
     ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.3602,
+     0.1778,
+     0.1229
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.1012,
+     0.0507,
+     0.032
+    ]
    }
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   }
  },
  "west-campus-8ae135d6": {
@@ -709,11 +799,29 @@
      0.2137,
      0.191
     ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.336,
+     0.2416,
+     0.2055
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0944,
+     0.0689,
+     0.0535
+    ]
    }
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   }
  },
  "west-campus-15f91a53": {
@@ -735,11 +843,29 @@
      0.1976,
      0.1845
     ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.1975,
+     0.1417,
+     0.1341
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0555,
+     0.0404,
+     0.0349
+    ]
    }
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   }
  },
  "west-campus-5e3c4bc1": {
@@ -761,11 +887,29 @@
      0.2304,
      0.2137
     ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.2452,
+     0.2156,
+     0.2282
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0689,
+     0.0615,
+     0.0594
+    ]
    }
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   }
  },
  "west-campus-59486c8a": {
@@ -788,11 +932,29 @@
      0.1371,
      0.0808
     ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.1555,
+     0.1304,
+     0.1341
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0437,
+     0.0372,
+     0.0349
+    ]
    }
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   }
  },
  "west-campus-adae8561": {
@@ -815,11 +977,29 @@
      0.1371,
      0.0808
     ]
+   },
+   "roof_shingle": {
+    "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
+    "repeat_m": [
+     13.448,
+     5.37
+    ],
+    "factor": [
+     0.1872,
+     0.1592,
+     0.1644
+    ],
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x roof_scale 0.28 (calibrated on 16 photo-built roofs)",
+    "mean_rgb": [
+     0.0526,
+     0.0454,
+     0.0428
+    ]
    }
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch pilot: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   }
  }
 }
