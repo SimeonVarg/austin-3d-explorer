@@ -46,6 +46,16 @@
       "lod1": "tiles/t_-1_-2.far.glb",
       "buildings": [
         "blanton-dormitory",
+        "campus-1795b775",
+        "campus-26434aad",
+        "campus-3e6a2817",
+        "campus-5227a4ab",
+        "campus-8c860b27",
+        "campus-9503af74",
+        "campus-9562d076",
+        "campus-a6d55ae5",
+        "campus-ab63bfdc",
+        "campus-e600e6ac",
         "carothers-dormitory",
         "dealey-center-for-new-media",
         "jesse-h-jones-communication-center-a",
@@ -56,8 +66,8 @@
         "william-randolph-hearst-building"
       ],
       "bytes": [
-        1667588,
-        37636
+        1795956,
+        44856
       ]
     },
     {
@@ -5614,6 +5624,116 @@
       "x": -1167.664,
       "z": -958.952,
       "top": 7.4
+    },
+    "campus-8c860b27": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "8c860b27"
+      ],
+      "name": "Campus-area building 8c860b27 (Moxy Austin - University)",
+      "model": "opus",
+      "x": -233.048,
+      "z": -471.347,
+      "top": 17.5
+    },
+    "campus-9503af74": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "9503af74"
+      ],
+      "name": "Campus-area building 9503af74 (Hole in the Wall)",
+      "model": "opus",
+      "x": -231.934,
+      "z": -451.717,
+      "top": 4.7
+    },
+    "campus-5227a4ab": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "5227a4ab"
+      ],
+      "name": "Campus-area building 5227a4ab (CAVA)",
+      "model": "opus",
+      "x": -237.49,
+      "z": -283.427,
+      "top": 5.3
+    },
+    "campus-9562d076": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "9562d076"
+      ],
+      "name": "Campus-area building 9562d076 (Guadalupe storefront 9562d076)",
+      "model": "opus",
+      "x": -242.218,
+      "z": -270.326,
+      "top": 4.5
+    },
+    "campus-26434aad": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "26434aad"
+      ],
+      "name": "Campus-area building 26434aad (Chase)",
+      "model": "opus",
+      "x": -225.653,
+      "z": -404.756,
+      "top": 4.8
+    },
+    "campus-3e6a2817": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "3e6a2817"
+      ],
+      "name": "Campus-area building 3e6a2817 (Snag)",
+      "model": "opus",
+      "x": -227.716,
+      "z": -423.448,
+      "top": 5.3
+    },
+    "campus-ab63bfdc": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "ab63bfdc"
+      ],
+      "name": "Campus-area building ab63bfdc (1972 Pub)",
+      "model": "opus",
+      "x": -219.72,
+      "z": -434.295,
+      "top": 4.7
+    },
+    "campus-e600e6ac": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "e600e6ac"
+      ],
+      "name": "Campus-area building e600e6ac (iVape ATX Austin)",
+      "model": "opus",
+      "x": -226.153,
+      "z": -382.841,
+      "top": 3.7
+    },
+    "campus-1795b775": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "1795b775"
+      ],
+      "name": "Campus-area building 1795b775 (Jenn's Copy & Binding)",
+      "model": "opus",
+      "x": -225.013,
+      "z": -413.127,
+      "top": 5
+    },
+    "campus-a6d55ae5": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "a6d55ae5"
+      ],
+      "name": "Campus-area building a6d55ae5 (iClips)",
+      "model": "opus",
+      "x": -227.233,
+      "z": -395.081,
+      "top": 3.6
     }
   }
 }
