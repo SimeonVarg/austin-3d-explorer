@@ -5195,12 +5195,12 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "10b0a43c70aef3e4",
+      "blend_sha256": "b769f8e6dadad08d",
       "lod1": "mass",
       "placement": {
-        "height_m": 8.1,
-        "area_ratio": 1.225,
-        "centre_off_m": 0.93,
+        "height_m": 10.1,
+        "area_ratio": 1.233,
+        "centre_off_m": 0.9,
         "flags": [
           "area x1.23"
         ]
@@ -5212,14 +5212,14 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "91bca337a01147e3",
+      "blend_sha256": "b57843b1de0794a3",
       "lod1": "mass",
       "placement": {
-        "height_m": 5.3,
-        "area_ratio": 1.112,
+        "height_m": 5.2,
+        "area_ratio": 1.116,
         "centre_off_m": 0.15,
         "flags": [
-          "area x1.11"
+          "area x1.12"
         ]
       }
     },
@@ -5229,7 +5229,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "963c11ff4ee61692",
+      "blend_sha256": "aeff6b4a56d5889d",
       "lod1": "mass",
       "placement": {
         "height_m": 4.4,
@@ -5244,14 +5244,14 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "2a774b1fb9e77fbb",
+      "blend_sha256": "0b6f594c0294d1a7",
       "lod1": "mass",
       "placement": {
-        "height_m": 8.3,
-        "area_ratio": 1.16,
-        "centre_off_m": 0.38,
+        "height_m": 8.5,
+        "area_ratio": 1.171,
+        "centre_off_m": 0.34,
         "flags": [
-          "area x1.16"
+          "area x1.17"
         ]
       }
     },
@@ -5261,12 +5261,12 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "d4ccaee48e736a51",
+      "blend_sha256": "223a229f0c36c316",
       "lod1": "mass",
       "placement": {
-        "height_m": 9.1,
-        "area_ratio": 1.054,
-        "centre_off_m": 0.34,
+        "height_m": 9.4,
+        "area_ratio": 1.078,
+        "centre_off_m": 0.19,
         "flags": []
       }
     },
@@ -5276,10 +5276,10 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "ab1b0fd42f5f0560",
+      "blend_sha256": "0540a1300b3e61fe",
       "lod1": "mass",
       "placement": {
-        "height_m": 10.1,
+        "height_m": 9.9,
         "area_ratio": 1.066,
         "centre_off_m": 0.03,
         "flags": []
@@ -5291,14 +5291,14 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "7c36b46ebeba1e05",
+      "blend_sha256": "140a3df718c24eb6",
       "lod1": "mass",
       "placement": {
-        "height_m": 5.5,
-        "area_ratio": 1.112,
+        "height_m": 7,
+        "area_ratio": 1.116,
         "centre_off_m": 0.07,
         "flags": [
-          "area x1.11"
+          "area x1.12"
         ]
       }
     },
@@ -5308,12 +5308,12 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "da1e6e9d5d7ccc72",
+      "blend_sha256": "ea883e5e45ac7105",
       "lod1": "mass",
       "placement": {
-        "height_m": 9.1,
-        "area_ratio": 1.136,
-        "centre_off_m": 0.07,
+        "height_m": 10.3,
+        "area_ratio": 1.143,
+        "centre_off_m": 0.12,
         "flags": [
           "area x1.14"
         ]
@@ -5325,12 +5325,12 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "d4377e916631f4c6",
+      "blend_sha256": "a5fb5618ba1b6231",
       "lod1": "mass",
       "placement": {
-        "height_m": 7.9,
-        "area_ratio": 1.109,
-        "centre_off_m": 0.13,
+        "height_m": 8,
+        "area_ratio": 1.108,
+        "centre_off_m": 0.11,
         "flags": [
           "area x1.11"
         ]
@@ -5342,14 +5342,14 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "21fb858608f8ac97",
+      "blend_sha256": "dbb5e5941575d48d",
       "lod1": "mass",
       "placement": {
-        "height_m": 7.6,
-        "area_ratio": 1.102,
-        "centre_off_m": 0.3,
+        "height_m": 10,
+        "area_ratio": 1.138,
+        "centre_off_m": 0.48,
         "flags": [
-          "area x1.10"
+          "area x1.14"
         ]
       }
     },
@@ -5359,12 +5359,12 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "add66dd174edf377",
+      "blend_sha256": "f7e67489b6275c23",
       "lod1": "mass",
       "placement": {
-        "height_m": 7.9,
-        "area_ratio": 1.06,
-        "centre_off_m": 0.26,
+        "height_m": 10.6,
+        "area_ratio": 1.088,
+        "centre_off_m": 0.18,
         "flags": []
       }
     },
@@ -5374,12 +5374,12 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "e0e2f43621c76b5d",
+      "blend_sha256": "c56a4e91643cea28",
       "lod1": "mass",
       "placement": {
-        "height_m": 9.1,
+        "height_m": 8.6,
         "area_ratio": 1.1,
-        "centre_off_m": 0.06,
+        "centre_off_m": 0.07,
         "flags": [
           "area x1.10"
         ]
@@ -5391,10 +5391,10 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "56d3bee5067fde38",
+      "blend_sha256": "4d878bb43d3760b7",
       "lod1": "mass",
       "placement": {
-        "height_m": 7.5,
+        "height_m": 8.8,
         "area_ratio": 1.126,
         "centre_off_m": 0.18,
         "flags": [
@@ -5408,14 +5408,14 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "91fb14cf61acb296",
+      "blend_sha256": "6ecd20bc2e578d7e",
       "lod1": "mass",
       "placement": {
-        "height_m": 7.9,
-        "area_ratio": 1.125,
-        "centre_off_m": 0.25,
+        "height_m": 9.2,
+        "area_ratio": 1.136,
+        "centre_off_m": 0.24,
         "flags": [
-          "area x1.12"
+          "area x1.14"
         ]
       }
     },
@@ -5425,13 +5425,15 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "b426180af9b6972a",
+      "blend_sha256": "9ebed9e2f523eca4",
       "lod1": "mass",
       "placement": {
-        "height_m": 7.8,
-        "area_ratio": 1.097,
-        "centre_off_m": 0.05,
-        "flags": []
+        "height_m": 7.4,
+        "area_ratio": 1.105,
+        "centre_off_m": 0.1,
+        "flags": [
+          "area x1.10"
+        ]
       }
     }
   },
@@ -6503,15 +6505,15 @@
       }
     },
     "t_-5_-4": {
-      "hash": "d5e0f1b4d2040a88",
+      "hash": "4006722637fb8c5d",
       "near": {
-        "bytes": 191844,
-        "tris": 4984,
+        "bytes": 281820,
+        "tris": 7483,
         "draws": 27
       },
       "far": {
-        "bytes": 38412,
-        "tris": 3091,
+        "bytes": 40700,
+        "tris": 3210,
         "draws": 1
       }
     }

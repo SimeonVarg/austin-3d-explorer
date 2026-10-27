@@ -1006,6 +1006,38 @@
       ]
     },
     {
+      "id": "t_-5_-4",
+      "bounds": [
+        -1250,
+        -1000,
+        -1000,
+        -750
+      ],
+      "lod0": "tiles/t_-5_-4.glb",
+      "lod1": "tiles/t_-5_-4.far.glb",
+      "buildings": [
+        "west-campus-11e7591d",
+        "west-campus-1e9db9c4",
+        "west-campus-1fdfe37f",
+        "west-campus-23779a0d",
+        "west-campus-2bf68567",
+        "west-campus-30550c0c",
+        "west-campus-3330184b",
+        "west-campus-3d91d57b",
+        "west-campus-46c205cc",
+        "west-campus-4cde06a6",
+        "west-campus-95e660cb",
+        "west-campus-95f7d084",
+        "west-campus-bd95c175",
+        "west-campus-d350227e",
+        "west-campus-ff9ae6ef"
+      ],
+      "bytes": [
+        281820,
+        40700
+      ]
+    },
+    {
       "id": "t_-5_1",
       "bounds": [
         -1250,
@@ -1723,38 +1755,6 @@
       "bytes": [
         167936,
         5184
-      ]
-    },
-    {
-      "id": "t_-5_-4",
-      "bounds": [
-        -1250,
-        -1000,
-        -1000,
-        -750
-      ],
-      "lod0": "tiles/t_-5_-4.glb",
-      "lod1": "tiles/t_-5_-4.far.glb",
-      "buildings": [
-        "west-campus-11e7591d",
-        "west-campus-1e9db9c4",
-        "west-campus-1fdfe37f",
-        "west-campus-23779a0d",
-        "west-campus-2bf68567",
-        "west-campus-30550c0c",
-        "west-campus-3330184b",
-        "west-campus-3d91d57b",
-        "west-campus-46c205cc",
-        "west-campus-4cde06a6",
-        "west-campus-95e660cb",
-        "west-campus-95f7d084",
-        "west-campus-bd95c175",
-        "west-campus-d350227e",
-        "west-campus-ff9ae6ef"
-      ],
-      "bytes": [
-        191844,
-        38412
       ]
     }
   ],
@@ -5322,7 +5322,7 @@
       "model": "opus",
       "x": -1099.873,
       "z": -932.505,
-      "top": 8.1
+      "top": 10.1
     },
     "west-campus-1e9db9c4": {
       "tile": "t_-5_-4",
@@ -5333,7 +5333,7 @@
       "model": "opus",
       "x": -1043.829,
       "z": -892.736,
-      "top": 5.3
+      "top": 5.2
     },
     "west-campus-1fdfe37f": {
       "tile": "t_-5_-4",
@@ -5355,7 +5355,7 @@
       "model": "opus",
       "x": -1035.351,
       "z": -822.447,
-      "top": 8.3
+      "top": 8.5
     },
     "west-campus-2bf68567": {
       "tile": "t_-5_-4",
@@ -5366,7 +5366,7 @@
       "model": "opus",
       "x": -1193.92,
       "z": -774.615,
-      "top": 9.1
+      "top": 9.4
     },
     "west-campus-30550c0c": {
       "tile": "t_-5_-4",
@@ -5377,7 +5377,7 @@
       "model": "opus",
       "x": -1071.438,
       "z": -978.224,
-      "top": 10.1
+      "top": 9.9
     },
     "west-campus-3330184b": {
       "tile": "t_-5_-4",
@@ -5388,7 +5388,7 @@
       "model": "opus",
       "x": -1039.28,
       "z": -967.432,
-      "top": 5.5
+      "top": 7
     },
     "west-campus-3d91d57b": {
       "tile": "t_-5_-4",
@@ -5399,7 +5399,7 @@
       "model": "opus",
       "x": -1106.487,
       "z": -848.111,
-      "top": 9.1
+      "top": 10.3
     },
     "west-campus-46c205cc": {
       "tile": "t_-5_-4",
@@ -5410,7 +5410,7 @@
       "model": "opus",
       "x": -1138.858,
       "z": -878.181,
-      "top": 7.9
+      "top": 8
     },
     "west-campus-4cde06a6": {
       "tile": "t_-5_-4",
@@ -5421,7 +5421,7 @@
       "model": "opus",
       "x": -1186.314,
       "z": -859.924,
-      "top": 7.6
+      "top": 10
     },
     "west-campus-95e660cb": {
       "tile": "t_-5_-4",
@@ -5432,7 +5432,7 @@
       "model": "opus",
       "x": -1070.323,
       "z": -830.224,
-      "top": 7.9
+      "top": 10.6
     },
     "west-campus-95f7d084": {
       "tile": "t_-5_-4",
@@ -5443,7 +5443,7 @@
       "model": "opus",
       "x": -1156.083,
       "z": -987.241,
-      "top": 9.1
+      "top": 8.6
     },
     "west-campus-bd95c175": {
       "tile": "t_-5_-4",
@@ -5454,7 +5454,7 @@
       "model": "opus",
       "x": -1195.515,
       "z": -824.543,
-      "top": 7.5
+      "top": 8.8
     },
     "west-campus-d350227e": {
       "tile": "t_-5_-4",
@@ -5465,7 +5465,7 @@
       "model": "opus",
       "x": -1086.695,
       "z": -953.874,
-      "top": 7.9
+      "top": 9.2
     },
     "west-campus-ff9ae6ef": {
       "tile": "t_-5_-4",
@@ -5476,7 +5476,7 @@
       "model": "opus",
       "x": -1167.664,
       "z": -958.952,
-      "top": 7.8
+      "top": 7.4
     }
   }
 }
