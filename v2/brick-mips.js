@@ -7,11 +7,13 @@
 //
 // What this makes instead, level by level from the photo (level 0 is the photo itself, untouched):
 //   1. each level is a 2x decimation of the level above with a 4-tap binomial (wraps: the texture tiles);
-//   2. VERTICAL JOINTS GO FIRST: once a brick (brick + head joint) is shorter than JOINT_NONE texels at a level, each texel row is
-//      pulled toward its own row mean (fully at JOINT_FULL texels). What stays is each course's tone and the bed joints: rows that
-//      read as horizontal lines, which cannot make a diagonal;
-//   3. then the courses: once a course is shorter than COURSE_NONE texels, rows are pulled toward the mean tone (fully at
-//      COURSE_FULL), so a course never reaches the sampler at less than ~2 texels, where it would beat into bands;
+//   2. VERTICAL JOINTS GO FIRST: once a brick (brick + head joint) is shorter than JOINT_NONE texels at a level, each row is
+//      averaged along itself over exactly one brick length (fully at JOINT_FULL texels). What stays is each course's tone and the
+//      bed joints: rows that read as horizontal lines, which cannot make a diagonal;
+//   3. then the courses: once a course is shorter than COURSE_NONE texels, each column is averaged over exactly one course
+//      (fully at COURSE_FULL), so a course never reaches the sampler at less than ~2 texels, where it would beat into bands.
+//   Both averages are one period wide, so they remove the repeat and keep the photo's slower tone variation (a first version
+//   flattened whole rows to their mean; the far wall then measured softer than the supersampled truth, v2-shimmer soft +0.10);
 //   4. averaging is done in linear light (colour maps) so the far tone is the photo's true mean, not a darker sRGB mean.
 // The course is measured from the texture itself (autocorrelation of its row profile: the bed joints), so every
 // photo brick texture gets the right chain with no per-building number. No extra download: the chain is made in the browser at
@@ -20,7 +22,7 @@ export const BRICK_MIPS = {
   JOINT_NONE: 20,   // brick length in texels at a level above which the head joints are kept as they are
   JOINT_FULL: 10,   // ... at or below which they are gone (rows = their own mean)
   COURSE_NONE: 4,   // course height in texels at a level above which the courses are kept
-  COURSE_FULL: 2.5, // ... at or below which the level is one even tone
+  COURSE_FULL: 2.5, // ... at or below which each column is averaged over one course (no course stripes left)
   BRICK_RATIO: 3.2, // brick + head joint, in courses
   MIN_PEAK: 0.15,   // autocorrelation peak a period must reach to count (else the texture is left to the GPU's own chain)
 };
@@ -69,6 +71,25 @@ export function brickPeriods(lum, w, h) {
   return { course: c, brick: c * BRICK_MIPS.BRICK_RATIO, peak: pv };
 }
 
+// a box exactly one period wide (fractional ends, wrapping: the texture tiles) along rows (u) or columns (v). Its zeros fall on
+// every harmonic of that period, so it removes the repeat (the joints, the courses) and nothing slower: the photo's own tone
+// variation across bricks and across the tile stays, which is what keeps the far wall as detailed as the truth (rule 15).
+function boxAlong(d, w, h, W, alongU) {
+  const n = alongU ? w : h, lines = alongU ? h : w, out = new Float32Array(w * h);
+  if (W <= 1) { out.set(d); return out; }
+  const C = new Float64Array(n + 1), line = new Float64Array(n);
+  for (let l = 0; l < lines; l++) {
+    for (let i = 0; i < n; i++) line[i] = d[alongU ? l * w + i : i * w + l];
+    for (let i = 0; i < n; i++) C[i + 1] = C[i] + line[i];
+    const tot = C[n];
+    if (W >= n) { for (let i = 0; i < n; i++) out[alongU ? l * w + i : i * w + l] = tot / n; continue; }
+    const S = (t) => { const q = Math.floor(t / n), r = t - q * n, k = Math.floor(r); return q * tot + C[k] + (r - k) * line[k]; };
+    for (let i = 0; i < n; i++) out[alongU ? l * w + i : i * w + l] = (S(i + 0.5 + W / 2) - S(i + 0.5 - W / 2)) / W;
+  }
+  return out;
+}
+const blend = (d, e, t) => { for (let i = 0; i < d.length; i++) d[i] += t * (e[i] - d[i]); };
+
 // rgba: Uint8(Clamped)Array w*h*4 (level 0). linear: false for sRGB colour maps (averaged in linear light), true for normal maps.
 // Returns [{ data: Uint8ClampedArray, width, height }] from level 0 down to 1 x 1, or null when no brick period is found.
 export function brickMipChain(rgba, w, h, { linear = false, periods = null, P = BRICK_MIPS } = {}) {
@@ -101,13 +122,8 @@ export function brickMipChain(rgba, w, h, { linear = false, periods = null, P = 
     }
     const joints = 1 - smooth(P.JOINT_FULL, P.JOINT_NONE, per.brick / s), courses = 1 - smooth(P.COURSE_FULL, P.COURSE_NONE, per.course / s);
     for (let c = 0; c < 3; c++) {
-      const d = nxt[c]; let all = 0;
-      for (let y = 0; y < nh; y++) {
-        let rm = 0; for (let x = 0; x < nw; x++) rm += d[y * nw + x]; rm /= nw; all += rm;
-        if (joints > 0) for (let x = 0; x < nw; x++) d[y * nw + x] += joints * (rm - d[y * nw + x]);
-      }
-      all /= nh;
-      if (courses > 0) for (let i = 0; i < nw * nh; i++) d[i] += courses * (all - d[i]);
+      if (joints > 0) blend(nxt[c], boxAlong(nxt[c], nw, nh, per.brick / s, true), joints);
+      if (courses > 0) blend(nxt[c], boxAlong(nxt[c], nw, nh, per.course / s, false), courses);
     }
     const data = new Uint8ClampedArray(nw * nh * 4);
     for (let i = 0; i < nw * nh; i++) { data[4 * i] = enc(nxt[0][i]); data[4 * i + 1] = enc(nxt[1][i]); data[4 * i + 2] = enc(nxt[2][i]); data[4 * i + 3] = 255; }
