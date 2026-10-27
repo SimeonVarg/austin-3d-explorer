@@ -71,7 +71,10 @@ for (const variant of VARIANTS) {
   if (!renderer) renderer = await page.evaluate(() => { const g = window.__v2.renderer.getContext(); const e = g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER); });
   const man = await page.evaluate(() => fetch('./tiles/manifest.json').then((r) => r.json()));
   for (const v of VIEWS_RUN) {
-    const b = man.buildings[v.slug];
+    // a view may carry its own target point and top (x, z, top: metres, the branch's manifest values), so main and the branch are measured
+    // at the SAME camera and box even where main has no entry for the slug (main draws the plain block and the neighbours there).
+    // 2026-10-27: the gate is always main vs branch; before, a new slug fell back to an absolute limit that charged unchanged neighbours to it.
+    const b = v.x != null && v.z != null ? { x: v.x, z: v.z, top: v.top } : man.buildings[v.slug];
     if (!b) { console.log('no building', v.slug); continue; }
     await page.evaluate(([x, z, d, p, a]) => window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }), [b.x, b.z, v.distance, v.polar, v.azimuth]);
     let calm = 0; const t0 = Date.now();
