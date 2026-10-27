@@ -1785,6 +1785,33 @@
       ]
     },
     {
+      "id": "t_-3_2",
+      "bounds": [
+        -750,
+        500,
+        -500,
+        750
+      ],
+      "lod0": "tiles/t_-3_2.glb",
+      "lod1": "tiles/t_-3_2.far.glb",
+      "buildings": [
+        "west-campus-02bd7bbb",
+        "west-campus-05c1b334",
+        "west-campus-29ab11df",
+        "west-campus-a2f87a1c",
+        "west-campus-aa286e15",
+        "west-campus-aab71877",
+        "west-campus-ad4254ec",
+        "west-campus-ca1d0382",
+        "west-campus-e353f65d",
+        "west-campus-ec2ed5e8"
+      ],
+      "bytes": [
+        192412,
+        22196
+      ]
+    },
+    {
       "id": "t_4_-3",
       "bounds": [
         1000,
@@ -4501,7 +4528,7 @@
       "map_ids": [
         "eaca344c"
       ],
-      "name": "West Campus block with ΣΧ letters (eaca344c)",
+      "name": "West Campus block with \u03a3\u03a7 letters (eaca344c)",
       "model": "opus",
       "x": -269.769,
       "z": -705.699,
@@ -5642,6 +5669,126 @@
       "x": -1167.664,
       "z": -958.952,
       "top": 7.4
+    },
+    "west-campus-e353f65d": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "e353f65d",
+        "w381834092"
+      ],
+      "name": "West Campus building e353f65d",
+      "model": "opus",
+      "x": -618.286,
+      "z": 559.439,
+      "top": 13.5
+    },
+    "west-campus-aa286e15": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "aa286e15",
+        "w381834319"
+      ],
+      "name": "West Campus building aa286e15 (Rio House Apartments)",
+      "model": "opus",
+      "x": -549.508,
+      "z": 581.12,
+      "top": 13.2
+    },
+    "west-campus-02bd7bbb": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "02bd7bbb",
+        "w381834476"
+      ],
+      "name": "West Campus building 02bd7bbb",
+      "model": "opus",
+      "x": -650.968,
+      "z": 609.27,
+      "top": 7.3
+    },
+    "west-campus-05c1b334": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "05c1b334",
+        "w381834058"
+      ],
+      "name": "West Campus building 05c1b334",
+      "model": "opus",
+      "x": -649.202,
+      "z": 640.658,
+      "top": 9
+    },
+    "west-campus-29ab11df": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "29ab11df",
+        "w381834098"
+      ],
+      "name": "West Campus building 29ab11df",
+      "model": "opus",
+      "x": -663.285,
+      "z": 555.916,
+      "top": 5.8
+    },
+    "west-campus-aab71877": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "aab71877",
+        "w381834331"
+      ],
+      "name": "West Campus building aab71877",
+      "model": "opus",
+      "x": -544.231,
+      "z": 526.959,
+      "top": 11.2
+    },
+    "west-campus-ad4254ec": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "ad4254ec",
+        "w381834114"
+      ],
+      "name": "West Campus building ad4254ec",
+      "model": "opus",
+      "x": -599.623,
+      "z": 507.879,
+      "top": 10.8
+    },
+    "west-campus-ec2ed5e8": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "ec2ed5e8",
+        "w381834334"
+      ],
+      "name": "West Campus building ec2ed5e8",
+      "model": "opus",
+      "x": -580.656,
+      "z": 660.658,
+      "top": 15.6
+    },
+    "west-campus-a2f87a1c": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "a2f87a1c",
+        "w381834091"
+      ],
+      "name": "West Campus building a2f87a1c",
+      "model": "opus",
+      "x": -505.744,
+      "z": 597.792,
+      "top": 9
+    },
+    "west-campus-ca1d0382": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "ca1d0382",
+        "w381834077"
+      ],
+      "name": "West Campus building ca1d0382",
+      "model": "opus",
+      "x": -738.645,
+      "z": 590.305,
+      "top": 11.8
     },
     "campus-f9d72bd0": {
       "tile": "t_4_-3",
