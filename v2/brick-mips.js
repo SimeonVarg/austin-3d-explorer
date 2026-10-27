@@ -8,21 +8,21 @@
 // What this makes instead, level by level from the photo (level 0 is the photo itself, untouched):
 //   1. each level is the 2 x 2 box average of the level above, as the GPU's own chain (a 4-tap binomial was tried: it made every
 //      level softer than main's chain, Anna Hiss 250 m soft 0.33 against 0.22, before any joint was touched);
-//   2. VERTICAL JOINTS GO FIRST: once a brick (brick + head joint) is shorter than JOINT_NONE texels at a level, the part of each
-//      row that repeats every brick (the head joints) is taken out (fully at JOINT_FULL texels). What stays is each course's tone
-//      and the bed joints: rows that read as horizontal lines, which cannot make a diagonal;
-//   3. then the courses: once a course is shorter than COURSE_NONE texels, the part of each column that repeats every course is
-//      taken out (fully at COURSE_FULL), so a course never reaches the sampler at less than ~2 texels, where it would beat.
-//   Only the repeat goes (removeRepeat): the photo's own tone from brick to brick stays, so the far wall keeps its detail;
+//   2. VERTICAL JOINTS GO FIRST: once a brick (brick + head joint) is shorter than JOINT_NONE texels at a level, each row is
+//      averaged along itself over exactly one brick (fully at JOINT_FULL texels). What stays is each course's tone and the bed
+//      joints: rows that read as horizontal lines, which cannot make a diagonal;
+//   3. then the courses: once a course is shorter than COURSE_NONE texels, each column is averaged over exactly one course
+//      (fully at COURSE_FULL): the rows fade to the wall's even tone before they are thin enough to beat with the pixels.
+//   Each is applied once (boxAlong), so the photo's slower tone across bricks and across the tile stays;
 //   4. averaging is done in linear light (colour maps) so the far tone is the photo's true mean, not a darker sRGB mean.
 // The course is measured from the texture itself (autocorrelation of its row profile: the bed joints), so every
 // photo brick texture gets the right chain with no per-building number. No extra download: the chain is made in the browser at
 // load (a few ms for 512 x 512) and the GPU memory is the same full chain it had before.
 export const BRICK_MIPS = {
-  JOINT_NONE: 20,   // brick length in texels at a level above which the head joints are kept as they are
-  JOINT_FULL: 10,   // ... at or below which they are gone (rows = their own mean)
-  COURSE_NONE: 4,   // course height in texels at a level above which the courses are kept
-  COURSE_FULL: 2.5, // ... at or below which the course repeat is gone
+  JOINT_NONE: 32,   // brick length in texels at a level above which the head joints are kept as they are
+  JOINT_FULL: 16,   // ... at or below which they are gone (rows = their own mean)
+  COURSE_NONE: 8,   // course height in texels at a level above which the courses are kept
+  COURSE_FULL: 4,   // ... at or below which the course repeat is gone
   BRICK_RATIO: 3.2, // brick + head joint, in courses
   MIN_PEAK: 0.15,   // autocorrelation peak a period must reach to count (else the texture is left to the GPU's own chain)
 };
@@ -71,21 +71,21 @@ export function brickPeriods(lum, w, h) {
   return { course: c, brick: c * BRICK_MIPS.BRICK_RATIO, peak: pv };
 }
 
-// the repeat itself, line by line (rows: u, columns: v): fold the line at the period P (fractional, wrapping: the texture tiles),
-// average each phase over all its periods, and return the line minus that periodic part (its mean kept). This removes every
-// harmonic of the joints or courses and NOTHING else: the photo's tone variation from brick to brick and across the tile stays.
-// (Two earlier versions measured softer than the supersampled truth at Anna Hiss 250 m, v2-shimmer soft: rows flattened to
-// their mean 0.34, a one-brick box 0.36, against 0.22 without the chain: both also took the slower tone.)
-function removeRepeat(d, w, h, P, alongU) {
+// a box exactly one period P wide (fractional ends, wrapping: the texture tiles) along rows (u) or columns (v). Its zeros fall on
+// every harmonic of P, so the joints (or courses) go, and with them everything finer than one period along that axis: the
+// edges of single bricks too, which carry the same staggered lattice. Slower tone across bricks and the tile stays.
+// (Subtracting only the exact periodic part was tried: it left each brick's own tone as staggered 2-texel blocks, and at the
+// McCombs photo camera those still beat into a cross-hatch.)
+function boxAlong(d, w, h, P, alongU) {
   const n = alongU ? w : h, lines = alongU ? h : w, out = new Float32Array(d);
-  if (P <= 1.5 || n / P < 2) return out;   // finer than the level can hold, or too few periods to tell the repeat from the photo
-  const B = Math.max(2, Math.round(P)), acc = new Float64Array(B), cnt = new Float64Array(B), bin = new Int32Array(n);
-  for (let i = 0; i < n; i++) { const ph = ((i + 0.5) / P) % 1; bin[i] = Math.min(B - 1, Math.floor(ph * B)); }
+  if (P <= 1) return out;
+  const C = new Float64Array(n + 1), line = new Float64Array(n);
   for (let l = 0; l < lines; l++) {
-    acc.fill(0); cnt.fill(0); let m = 0;
-    for (let i = 0; i < n; i++) { const v = d[alongU ? l * w + i : i * w + l]; acc[bin[i]] += v; cnt[bin[i]]++; m += v; }
-    m /= n;
-    for (let i = 0; i < n; i++) { const k = alongU ? l * w + i : i * w + l; out[k] = d[k] - (acc[bin[i]] / cnt[bin[i]] - m); }
+    for (let i = 0; i < n; i++) line[i] = d[alongU ? l * w + i : i * w + l];
+    for (let i = 0; i < n; i++) C[i + 1] = C[i] + line[i];
+    const tot = C[n];
+    const S = (t) => { const q = Math.floor(t / n), r = t - q * n, k = Math.min(n - 1, Math.floor(r)); return q * tot + C[k] + (r - k) * line[k]; };
+    for (let i = 0; i < n; i++) out[alongU ? l * w + i : i * w + l] = P >= n ? tot / n : (S(i + 0.5 + P / 2) - S(i + 0.5 - P / 2)) / P;
   }
   return out;
 }
@@ -127,8 +127,8 @@ export function brickMipChain(rgba, w, h, { linear = false, periods = null, P = 
     const jt = jDone < 1 ? Math.max(0, (joints - jDone) / (1 - jDone)) : 0, ct = cDone < 1 ? Math.max(0, (courses - cDone) / (1 - cDone)) : 0;
     jDone = Math.max(jDone, joints); cDone = Math.max(cDone, courses);
     for (let c = 0; c < 3; c++) {
-      if (jt > 0) blend(nxt[c], removeRepeat(nxt[c], nw, nh, per.brick / s, true), jt);
-      if (ct > 0) blend(nxt[c], removeRepeat(nxt[c], nw, nh, per.course / s, false), ct);
+      if (jt > 0) blend(nxt[c], boxAlong(nxt[c], nw, nh, per.brick / s, true), jt);
+      if (ct > 0) blend(nxt[c], boxAlong(nxt[c], nw, nh, per.course / s, false), ct);
     }
     const data = new Uint8ClampedArray(nw * nh * 4);
     for (let i = 0; i < nw * nh; i++) { data[4 * i] = enc(nxt[0][i]); data[4 * i + 1] = enc(nxt[1][i]); data[4 * i + 2] = enc(nxt[2][i]); data[4 * i + 3] = 255; }
