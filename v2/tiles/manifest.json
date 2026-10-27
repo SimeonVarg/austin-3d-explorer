@@ -950,33 +950,6 @@
       ]
     },
     {
-      "id": "t_-4_1",
-      "bounds": [
-        -1000,
-        250,
-        -750,
-        500
-      ],
-      "lod0": "tiles/t_-4_1.glb",
-      "lod1": "tiles/t_-4_1.far.glb",
-      "buildings": [
-        "kxan-building",
-        "west-campus-15f91a53",
-        "west-campus-502b205a",
-        "west-campus-59486c8a",
-        "west-campus-5e3c4bc1",
-        "west-campus-8ae135d6",
-        "west-campus-a435f080",
-        "west-campus-adae8561",
-        "west-campus-b09961a3",
-        "west-campus-b0d9f011"
-      ],
-      "bytes": [
-        206604,
-        13924
-      ]
-    },
-    {
       "id": "t_-4_8",
       "bounds": [
         -1000,
@@ -987,11 +960,12 @@
       "lod0": "tiles/t_-4_8.glb",
       "lod1": "tiles/t_-4_8.far.glb",
       "buildings": [
-        "360-condominiums"
+        "360-condominiums",
+        "the-republic"
       ],
       "bytes": [
-        358264,
-        9588
+        394024,
+        22720
       ]
     },
     {
@@ -1749,6 +1723,33 @@
       "bytes": [
         167936,
         5184
+      ]
+    },
+    {
+      "id": "t_-4_1",
+      "bounds": [
+        -1000,
+        250,
+        -750,
+        500
+      ],
+      "lod0": "tiles/t_-4_1.glb",
+      "lod1": "tiles/t_-4_1.far.glb",
+      "buildings": [
+        "kxan-building",
+        "west-campus-15f91a53",
+        "west-campus-502b205a",
+        "west-campus-59486c8a",
+        "west-campus-5e3c4bc1",
+        "west-campus-8ae135d6",
+        "west-campus-a435f080",
+        "west-campus-adae8561",
+        "west-campus-b09961a3",
+        "west-campus-b0d9f011"
+      ],
+      "bytes": [
+        206604,
+        13924
       ]
     }
   ],
@@ -4440,7 +4441,7 @@
       "map_ids": [
         "eaca344c"
       ],
-      "name": "West Campus block with ΣΧ letters (eaca344c)",
+      "name": "West Campus block with \u03a3\u03a7 letters (eaca344c)",
       "model": "opus",
       "x": -269.769,
       "z": -705.699,
@@ -5291,6 +5292,21 @@
       "x": -1099.507,
       "z": 2212.261,
       "top": 10.4
+    },
+    "the-republic": {
+      "tile": "t_-4_8",
+      "map_ids": [
+        "w1120921408",
+        "w1350740813",
+        "w1350740814",
+        "w1350740815",
+        "w1350740817"
+      ],
+      "name": "The Republic",
+      "model": "opus",
+      "x": -811.514,
+      "z": 2139.533,
+      "top": 216
     },
     "kxan-building": {
       "tile": "t_-4_1",
