@@ -950,6 +950,33 @@
       ]
     },
     {
+      "id": "t_-4_1",
+      "bounds": [
+        -1000,
+        250,
+        -750,
+        500
+      ],
+      "lod0": "tiles/t_-4_1.glb",
+      "lod1": "tiles/t_-4_1.far.glb",
+      "buildings": [
+        "kxan-building",
+        "west-campus-15f91a53",
+        "west-campus-502b205a",
+        "west-campus-59486c8a",
+        "west-campus-5e3c4bc1",
+        "west-campus-8ae135d6",
+        "west-campus-a435f080",
+        "west-campus-adae8561",
+        "west-campus-b09961a3",
+        "west-campus-b0d9f011"
+      ],
+      "bytes": [
+        129156,
+        16712
+      ]
+    },
+    {
       "id": "t_-4_8",
       "bounds": [
         -1000,
