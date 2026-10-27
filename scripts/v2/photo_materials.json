@@ -600,6 +600,16 @@
   "wall_max_ny": 0.75,
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1778,
+     0.1704,
+     0.1532
+    ],
+    "size_m": 0.95
+   }
   }
  },
  "west-campus-3fbd5939": {
@@ -644,6 +654,16 @@
   "wall_max_ny": 0.75,
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1778,
+     0.1704,
+     0.1532
+    ],
+    "size_m": 0.95
+   }
   }
  },
  "west-campus-4b98f03d": {
@@ -688,6 +708,16 @@
   "wall_max_ny": 0.75,
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.0813,
+     0.1462,
+     0.0248
+    ],
+    "size_m": 0.95
+   }
   }
  },
  "west-campus-5cf988aa": {
@@ -732,6 +762,16 @@
   "wall_max_ny": 0.75,
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1778,
+     0.1704,
+     0.1532
+    ],
+    "size_m": 0.95
+   }
   }
  },
  "west-campus-6e0ca3e6": {
@@ -776,6 +816,16 @@
   "wall_max_ny": 0.75,
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.0505,
+     0.068,
+     0.0913
+    ],
+    "size_m": 0.95
+   }
   }
  },
  "west-campus-87401602": {
@@ -820,6 +870,16 @@
   "wall_max_ny": 0.75,
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.2215,
+     0.2172,
+     0.2051
+    ],
+    "size_m": 0.95
+   }
   }
  },
  "west-campus-967db090": {
@@ -864,6 +924,16 @@
   "wall_max_ny": 0.75,
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.0438,
+     0.0619,
+     0.0839
+    ],
+    "size_m": 0.95
+   }
   }
  },
  "west-campus-9f03b6b9": {
@@ -908,6 +978,16 @@
   "wall_max_ny": 0.75,
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.2215,
+     0.2172,
+     0.2051
+    ],
+    "size_m": 0.95
+   }
   }
  },
  "west-campus-b92e7aca": {
@@ -952,6 +1032,16 @@
   "wall_max_ny": 0.75,
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1778,
+     0.1704,
+     0.1532
+    ],
+    "size_m": 0.95
+   }
   }
  },
  "west-campus-ee9e48b5": {
@@ -996,6 +1086,16 @@
   "wall_max_ny": 0.75,
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.0813,
+     0.0837,
+     0.0815
+    ],
+    "size_m": 0.95
+   }
   }
  },
  "west-campus-fd1257de": {
@@ -1040,6 +1140,16 @@
   "wall_max_ny": 0.75,
   "anchor": {
    "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  },
+  "fade": {
+   "glass_window": {
+    "to": [
+     0.1778,
+     0.1704,
+     0.1532
+    ],
+    "size_m": 0.95
+   }
   }
  }
 }
