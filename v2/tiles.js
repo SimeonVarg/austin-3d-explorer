@@ -11,7 +11,7 @@
 // While a tile is on screen its buildings' map ids are hidden in the plain extrusions (onShow / onHide).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { brickMipChain } from './brick-mips.js';
+import { brickMipChain, BRICK_MIPS } from './brick-mips.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { LOOK } from './look.js';
 
@@ -112,6 +112,9 @@ function photoTextures(material) {
 // then the courses, then one even tone. Made here from the texture the tile already carries: no extra download, no tile rebuild.
 // The albedo's measured course is used for its normal map too. ?brickmips=0 turns it off (an A/B in one page load).
 const BRICK_MIPS_ON = PQ.get('brickmips') !== '0';
+// ?brickjoint=FULL,NONE / ?brickcourse=FULL,NONE override the thresholds of v2/brick-mips.js (texels at a level) for an A/B
+const BRICK_P = { ...BRICK_MIPS };
+for (const [q, a, b] of [['brickjoint', 'JOINT_FULL', 'JOINT_NONE'], ['brickcourse', 'COURSE_FULL', 'COURSE_NONE']]) if (PQ.has(q)) [BRICK_P[a], BRICK_P[b]] = PQ.get(q).split(',').map(Number);
 const brickSeen = new WeakSet();
 function brickMips(material) {
   if (!BRICK_MIPS_ON || !material || !material.userData || !material.userData.photo_material || !/brick/i.test(material.name || '')) return;
@@ -122,7 +125,7 @@ function brickMips(material) {
     try {
       const w = img.width, h = img.height, cv = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h) : Object.assign(document.createElement('canvas'), { width: w, height: h });
       const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0);
-      const chain = brickMipChain(cx.getImageData(0, 0, w, h).data, w, h, { linear: t !== material.map, periods });
+      const chain = brickMipChain(cx.getImageData(0, 0, w, h).data, w, h, { linear: t !== material.map, periods, P: BRICK_P });
       if (!chain) continue;
       periods ||= chain.periods;
       t.mipmaps = chain.map((l) => new ImageData(l.data, l.width, l.height));
