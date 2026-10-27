@@ -1785,6 +1785,33 @@
       ]
     },
     {
+      "id": "t_2_-3",
+      "bounds": [
+        500,
+        -750,
+        750,
+        -500
+      ],
+      "lod0": "tiles/t_2_-3.glb",
+      "lod1": "tiles/t_2_-3.far.glb",
+      "buildings": [
+        "campus-11878e7a",
+        "campus-134e642c",
+        "campus-292c4b09",
+        "campus-30763136",
+        "campus-3c1341c2",
+        "campus-4ec95561",
+        "campus-5a9d00fb",
+        "campus-5b9951a7",
+        "campus-5d3dbb41",
+        "campus-f7281037"
+      ],
+      "bytes": [
+        202676,
+        15764
+      ]
+    },
+    {
       "id": "t_-3_2",
       "bounds": [
         -750,
@@ -5669,6 +5696,116 @@
       "x": -1167.664,
       "z": -958.952,
       "top": 7.4
+    },
+    "campus-5d3dbb41": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "5d3dbb41"
+      ],
+      "name": "Campus-area building 5d3dbb41 (Harrison Library)",
+      "model": "opus",
+      "x": 693.855,
+      "z": -713.616,
+      "top": 9.5
+    },
+    "campus-292c4b09": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "292c4b09"
+      ],
+      "name": "Campus-area building 292c4b09",
+      "model": "opus",
+      "x": 536.129,
+      "z": -666.54,
+      "top": 8.9
+    },
+    "campus-5a9d00fb": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "5a9d00fb"
+      ],
+      "name": "Campus-area building 5a9d00fb",
+      "model": "opus",
+      "x": 551.84,
+      "z": -704.812,
+      "top": 8.2
+    },
+    "campus-3c1341c2": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "3c1341c2"
+      ],
+      "name": "Campus-area building 3c1341c2",
+      "model": "opus",
+      "x": 511.168,
+      "z": -614.66,
+      "top": 12
+    },
+    "campus-134e642c": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "134e642c"
+      ],
+      "name": "Campus-area building 134e642c",
+      "model": "opus",
+      "x": 502.616,
+      "z": -567.673,
+      "top": 5.5
+    },
+    "campus-5b9951a7": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "5b9951a7"
+      ],
+      "name": "Campus-area building 5b9951a7 (Episcopal Diocese of Austin)",
+      "model": "opus",
+      "x": 627.289,
+      "z": -728.165,
+      "top": 4.8
+    },
+    "campus-4ec95561": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "4ec95561"
+      ],
+      "name": "Campus-area building 4ec95561 (Kola Family and Cosmetic Dentistry)",
+      "model": "opus",
+      "x": 504.295,
+      "z": -628.859,
+      "top": 6.3
+    },
+    "campus-f7281037": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "f7281037"
+      ],
+      "name": "Campus-area building f7281037",
+      "model": "opus",
+      "x": 632.704,
+      "z": -545.132,
+      "top": 4.6
+    },
+    "campus-30763136": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "30763136"
+      ],
+      "name": "Campus-area building 30763136",
+      "model": "opus",
+      "x": 543.475,
+      "z": -597.438,
+      "top": 4.3
+    },
+    "campus-11878e7a": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "11878e7a"
+      ],
+      "name": "Campus-area building 11878e7a",
+      "model": "opus",
+      "x": 558.197,
+      "z": -655.672,
+      "top": 4.1
     },
     "west-campus-e353f65d": {
       "tile": "t_-3_2",
