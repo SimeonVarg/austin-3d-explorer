@@ -5174,6 +5174,21 @@
         ]
       }
     },
+    "the-republic": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "street",
+      "tile": "t_-4_8",
+      "blend_sha256": "496ad93c1231c97d",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 216,
+        "area_ratio": 1.009,
+        "centre_off_m": 0.3,
+        "flags": []
+      }
+    },
     "west-campus-11e7591d": {
       "exported": true,
       "reason": null,
@@ -5981,15 +5996,15 @@
       }
     },
     "t_-4_8": {
-      "hash": "07c3d896f5bacb70",
+      "hash": "b7a27d7af3a0c5bd",
       "near": {
-        "bytes": 358264,
-        "tris": 33784,
+        "bytes": 394024,
+        "tris": 42400,
         "draws": 2
       },
       "far": {
-        "bytes": 9588,
-        "tris": 484,
+        "bytes": 22720,
+        "tris": 1718,
         "draws": 1
       }
     },

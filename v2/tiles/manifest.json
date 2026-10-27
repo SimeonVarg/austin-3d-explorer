@@ -960,11 +960,12 @@
       "lod0": "tiles/t_-4_8.glb",
       "lod1": "tiles/t_-4_8.far.glb",
       "buildings": [
-        "360-condominiums"
+        "360-condominiums",
+        "the-republic"
       ],
       "bytes": [
-        358264,
-        9588
+        394024,
+        22720
       ]
     },
     {
@@ -1002,38 +1003,6 @@
       "bytes": [
         222716,
         17036
-      ]
-    },
-    {
-      "id": "t_-5_-4",
-      "bounds": [
-        -1250,
-        -1000,
-        -1000,
-        -750
-      ],
-      "lod0": "tiles/t_-5_-4.glb",
-      "lod1": "tiles/t_-5_-4.far.glb",
-      "buildings": [
-        "west-campus-11e7591d",
-        "west-campus-1e9db9c4",
-        "west-campus-1fdfe37f",
-        "west-campus-23779a0d",
-        "west-campus-2bf68567",
-        "west-campus-30550c0c",
-        "west-campus-3330184b",
-        "west-campus-3d91d57b",
-        "west-campus-46c205cc",
-        "west-campus-4cde06a6",
-        "west-campus-95e660cb",
-        "west-campus-95f7d084",
-        "west-campus-bd95c175",
-        "west-campus-d350227e",
-        "west-campus-ff9ae6ef"
-      ],
-      "bytes": [
-        191844,
-        38412
       ]
     },
     {
@@ -1754,6 +1723,38 @@
       "bytes": [
         167936,
         5184
+      ]
+    },
+    {
+      "id": "t_-5_-4",
+      "bounds": [
+        -1250,
+        -1000,
+        -1000,
+        -750
+      ],
+      "lod0": "tiles/t_-5_-4.glb",
+      "lod1": "tiles/t_-5_-4.far.glb",
+      "buildings": [
+        "west-campus-11e7591d",
+        "west-campus-1e9db9c4",
+        "west-campus-1fdfe37f",
+        "west-campus-23779a0d",
+        "west-campus-2bf68567",
+        "west-campus-30550c0c",
+        "west-campus-3330184b",
+        "west-campus-3d91d57b",
+        "west-campus-46c205cc",
+        "west-campus-4cde06a6",
+        "west-campus-95e660cb",
+        "west-campus-95f7d084",
+        "west-campus-bd95c175",
+        "west-campus-d350227e",
+        "west-campus-ff9ae6ef"
+      ],
+      "bytes": [
+        191844,
+        38412
       ]
     }
   ],
@@ -5296,6 +5297,21 @@
       "x": -1099.507,
       "z": 2212.261,
       "top": 10.4
+    },
+    "the-republic": {
+      "tile": "t_-4_8",
+      "map_ids": [
+        "w1120921408",
+        "w1350740813",
+        "w1350740814",
+        "w1350740815",
+        "w1350740817"
+      ],
+      "name": "The Republic",
+      "model": "opus",
+      "x": -811.514,
+      "z": 2139.533,
+      "top": 216
     },
     "west-campus-11e7591d": {
       "tile": "t_-5_-4",
