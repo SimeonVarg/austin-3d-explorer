@@ -5601,6 +5601,176 @@
           "area x1.10"
         ]
       }
+    },
+    "campus-f9d72bd0": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_4_-3",
+      "blend_sha256": "8de2d0d6edbf867e",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 14.2,
+        "area_ratio": 0.078,
+        "centre_off_m": 21.32,
+        "flags": [
+          "centre 21.3 m off",
+          "area x0.08"
+        ]
+      }
+    },
+    "campus-95c8e5cd": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_4_-3",
+      "blend_sha256": "819c3052185b8ed9",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 18,
+        "area_ratio": 1.011,
+        "centre_off_m": 0.1,
+        "flags": []
+      }
+    },
+    "campus-58e0fd0c": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_4_-3",
+      "blend_sha256": "0ee6db982818853c",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 11.1,
+        "area_ratio": 1.083,
+        "centre_off_m": 0.3,
+        "flags": []
+      }
+    },
+    "campus-e4eacc40": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_4_-3",
+      "blend_sha256": "f55e1f32f014ef78",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 6.9,
+        "area_ratio": 0.999,
+        "centre_off_m": 0.06,
+        "flags": []
+      }
+    },
+    "campus-a57f6fe3": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_4_-3",
+      "blend_sha256": "f6818795680d5aac",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 5.4,
+        "area_ratio": 0.996,
+        "centre_off_m": 0.04,
+        "flags": []
+      }
+    },
+    "campus-e1ba4380": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_4_-3",
+      "blend_sha256": "c22b145623b7bd56",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 7.8,
+        "area_ratio": 1.014,
+        "centre_off_m": 0.03,
+        "flags": []
+      }
+    },
+    "campus-f4107e23": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_4_-3",
+      "blend_sha256": "5a6e5c723bb3acaa",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 8.2,
+        "area_ratio": 1.117,
+        "centre_off_m": 0.05,
+        "flags": [
+          "area x1.12"
+        ]
+      }
+    },
+    "campus-678899ae": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_4_-3",
+      "blend_sha256": "cbfae3c536b22c00",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 6.1,
+        "area_ratio": 1.005,
+        "centre_off_m": 0.17,
+        "flags": []
+      }
+    },
+    "campus-1c9f83e8": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_4_-3",
+      "blend_sha256": "484c998e0240847c",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 6,
+        "area_ratio": 1.002,
+        "centre_off_m": 0.04,
+        "flags": []
+      }
+    },
+    "campus-11fab8de": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_4_-3",
+      "blend_sha256": "948be36d2caef5e7",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 3.8,
+        "area_ratio": 1,
+        "centre_off_m": 0,
+        "flags": []
+      }
+    },
+    "campus-47430ddb": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_4_-3",
+      "blend_sha256": "d674c4c99a1d24d2",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 3.8,
+        "area_ratio": 0.996,
+        "centre_off_m": 0.19,
+        "flags": []
+      }
     }
   },
   "tiles": {
@@ -6693,6 +6863,19 @@
       "far": {
         "bytes": 40704,
         "tris": 3210,
+        "draws": 1
+      }
+    },
+    "t_4_-3": {
+      "hash": "0c8bf5265a9ff7d0",
+      "near": {
+        "bytes": 207616,
+        "tris": 3286,
+        "draws": 22
+      },
+      "far": {
+        "bytes": 21012,
+        "tris": 1655,
         "draws": 1
       }
     }
