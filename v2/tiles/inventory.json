@@ -5195,7 +5195,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "b769f8e6dadad08d",
+      "blend_sha256": "5931fd7572d3074d",
       "lod1": "mass",
       "placement": {
         "height_m": 10.1,
@@ -5212,7 +5212,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "b57843b1de0794a3",
+      "blend_sha256": "3976771c03e53965",
       "lod1": "mass",
       "placement": {
         "height_m": 5.2,
@@ -5229,7 +5229,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "aeff6b4a56d5889d",
+      "blend_sha256": "ed3dd7b0e9873184",
       "lod1": "mass",
       "placement": {
         "height_m": 4.4,
@@ -5244,7 +5244,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "0b6f594c0294d1a7",
+      "blend_sha256": "ce312442b2393937",
       "lod1": "mass",
       "placement": {
         "height_m": 8.5,
@@ -5261,7 +5261,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "223a229f0c36c316",
+      "blend_sha256": "ab560065f9f7e31e",
       "lod1": "mass",
       "placement": {
         "height_m": 9.4,
@@ -5276,7 +5276,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "0540a1300b3e61fe",
+      "blend_sha256": "b8c90bec12e7e09d",
       "lod1": "mass",
       "placement": {
         "height_m": 9.9,
@@ -5291,7 +5291,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "140a3df718c24eb6",
+      "blend_sha256": "891b154897fd98fb",
       "lod1": "mass",
       "placement": {
         "height_m": 7,
@@ -5308,7 +5308,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "ea883e5e45ac7105",
+      "blend_sha256": "7f4a7a272a467223",
       "lod1": "mass",
       "placement": {
         "height_m": 10.3,
@@ -5325,7 +5325,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "a5fb5618ba1b6231",
+      "blend_sha256": "99b57adc1cdfa12c",
       "lod1": "mass",
       "placement": {
         "height_m": 8,
@@ -5342,7 +5342,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "dbb5e5941575d48d",
+      "blend_sha256": "99dbd99a938c335a",
       "lod1": "mass",
       "placement": {
         "height_m": 10,
@@ -5359,7 +5359,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "f7e67489b6275c23",
+      "blend_sha256": "2419083865179fc8",
       "lod1": "mass",
       "placement": {
         "height_m": 10.6,
@@ -5374,7 +5374,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "c56a4e91643cea28",
+      "blend_sha256": "985587e62bda772c",
       "lod1": "mass",
       "placement": {
         "height_m": 8.6,
@@ -5391,7 +5391,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "4d878bb43d3760b7",
+      "blend_sha256": "3817dff3f2534e27",
       "lod1": "mass",
       "placement": {
         "height_m": 8.8,
@@ -5408,7 +5408,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "6ecd20bc2e578d7e",
+      "blend_sha256": "7407657266de3ce8",
       "lod1": "mass",
       "placement": {
         "height_m": 9.2,
@@ -5425,7 +5425,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-5_-4",
-      "blend_sha256": "9ebed9e2f523eca4",
+      "blend_sha256": "0198c72a36147a9b",
       "lod1": "mass",
       "placement": {
         "height_m": 7.4,
@@ -6505,14 +6505,14 @@
       }
     },
     "t_-5_-4": {
-      "hash": "4de7d21f179a67a6",
+      "hash": "ea9036de001ce77f",
       "near": {
-        "bytes": 281816,
+        "bytes": 281812,
         "tris": 7483,
         "draws": 27
       },
       "far": {
-        "bytes": 40700,
+        "bytes": 40704,
         "tris": 3210,
         "draws": 1
       }
