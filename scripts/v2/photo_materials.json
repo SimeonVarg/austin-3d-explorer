@@ -604,8 +604,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.15,
-   "why": "as the campus clay roofs (v2/clay.js, LOOK.CLAY.MIP_BIAS)"
+   "lod_bias": -0.5,
+   "why": "the plan-projected clay rows are stretched up a steep slope (1/cos pitch), so they need a sharper mip than the campus clay roofs (-0.15) to stay as sharp as the truth (rule 15 soft gate, 2026-10-27: -0.15 gave soft +0.09 at 120 m)"
   }
  },
  "west-campus-1e9db9c4": {
@@ -1058,8 +1058,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.15,
-   "why": "as the campus clay roofs (v2/clay.js, LOOK.CLAY.MIP_BIAS)"
+   "lod_bias": -0.5,
+   "why": "the plan-projected clay rows are stretched up a steep slope (1/cos pitch), so they need a sharper mip than the campus clay roofs (-0.15) to stay as sharp as the truth (rule 15 soft gate, 2026-10-27: -0.15 gave soft +0.09 at 120 m)"
   }
  },
  "west-campus-95f7d084": {
