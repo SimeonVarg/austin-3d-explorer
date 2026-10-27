@@ -5632,40 +5632,6 @@
         "flags": []
       }
     },
-    "west-campus-c6759972": {
-      "exported": true,
-      "reason": null,
-      "model": "opus",
-      "kind": "house",
-      "tile": "t_-2_-4",
-      "blend_sha256": "1dbfcbb11963c443",
-      "lod1": "mass",
-      "placement": {
-        "height_m": 12.1,
-        "area_ratio": 1.122,
-        "centre_off_m": 0.03,
-        "flags": [
-          "area x1.12"
-        ]
-      }
-    },
-    "west-campus-f00f84da": {
-      "exported": true,
-      "reason": null,
-      "model": "opus",
-      "kind": "house",
-      "tile": "t_-2_-4",
-      "blend_sha256": "14425a82aa724b56",
-      "lod1": "mass",
-      "placement": {
-        "height_m": 12.5,
-        "area_ratio": 1.12,
-        "centre_off_m": 0.05,
-        "flags": [
-          "area x1.12"
-        ]
-      }
-    },
     "west-campus-b1d15ed5": {
       "exported": true,
       "reason": null,
@@ -5956,15 +5922,15 @@
       }
     },
     "t_-2_-4": {
-      "hash": "73025fe027b9310a",
+      "hash": "3481198f0adad786",
       "near": {
-        "bytes": 820732,
-        "tris": 59936,
-        "draws": 17
+        "bytes": 735260,
+        "tris": 58709,
+        "draws": 14
       },
       "far": {
-        "bytes": 49668,
-        "tris": 4146,
+        "bytes": 45272,
+        "tris": 3705,
         "draws": 1
       }
     },
