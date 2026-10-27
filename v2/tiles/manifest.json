@@ -1751,6 +1751,38 @@
         206604,
         13924
       ]
+    },
+    {
+      "id": "t_-5_-4",
+      "bounds": [
+        -1250,
+        -1000,
+        -1000,
+        -750
+      ],
+      "lod0": "tiles/t_-5_-4.glb",
+      "lod1": "tiles/t_-5_-4.far.glb",
+      "buildings": [
+        "west-campus-11e7591d",
+        "west-campus-1e9db9c4",
+        "west-campus-1fdfe37f",
+        "west-campus-23779a0d",
+        "west-campus-2bf68567",
+        "west-campus-30550c0c",
+        "west-campus-3330184b",
+        "west-campus-3d91d57b",
+        "west-campus-46c205cc",
+        "west-campus-4cde06a6",
+        "west-campus-95e660cb",
+        "west-campus-95f7d084",
+        "west-campus-bd95c175",
+        "west-campus-d350227e",
+        "west-campus-ff9ae6ef"
+      ],
+      "bytes": [
+        281812,
+        40704
+      ]
     }
   ],
   "buildings": {
@@ -5417,6 +5449,171 @@
       "x": -800.967,
       "z": 392.035,
       "top": 9.8
+    },
+    "west-campus-11e7591d": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "11e7591d"
+      ],
+      "name": "West Campus house 11e7591d (2601)",
+      "model": "opus",
+      "x": -1099.873,
+      "z": -932.505,
+      "top": 10.1
+    },
+    "west-campus-1e9db9c4": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "1e9db9c4"
+      ],
+      "name": "West Campus house 1e9db9c4 (1110)",
+      "model": "opus",
+      "x": -1043.829,
+      "z": -892.736,
+      "top": 5.2
+    },
+    "west-campus-1fdfe37f": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "1fdfe37f"
+      ],
+      "name": "West Campus house 1fdfe37f (1200)",
+      "model": "opus",
+      "x": -1063.005,
+      "z": -913.018,
+      "top": 4.4
+    },
+    "west-campus-23779a0d": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "23779a0d"
+      ],
+      "name": "West Campus house 23779a0d",
+      "model": "opus",
+      "x": -1035.351,
+      "z": -822.447,
+      "top": 8.5
+    },
+    "west-campus-2bf68567": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "2bf68567"
+      ],
+      "name": "West Campus house 2bf68567",
+      "model": "opus",
+      "x": -1193.92,
+      "z": -774.615,
+      "top": 9.4
+    },
+    "west-campus-30550c0c": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "30550c0c"
+      ],
+      "name": "West Campus house 30550c0c",
+      "model": "opus",
+      "x": -1071.438,
+      "z": -978.224,
+      "top": 9.9
+    },
+    "west-campus-3330184b": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "3330184b"
+      ],
+      "name": "West Campus house 3330184b",
+      "model": "opus",
+      "x": -1039.28,
+      "z": -967.432,
+      "top": 7
+    },
+    "west-campus-3d91d57b": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "3d91d57b"
+      ],
+      "name": "West Campus house 3d91d57b",
+      "model": "opus",
+      "x": -1106.487,
+      "z": -848.111,
+      "top": 10.3
+    },
+    "west-campus-46c205cc": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "46c205cc"
+      ],
+      "name": "West Campus house 46c205cc",
+      "model": "opus",
+      "x": -1138.858,
+      "z": -878.181,
+      "top": 8
+    },
+    "west-campus-4cde06a6": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "4cde06a6"
+      ],
+      "name": "West Campus house 4cde06a6",
+      "model": "opus",
+      "x": -1186.314,
+      "z": -859.924,
+      "top": 10
+    },
+    "west-campus-95e660cb": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "95e660cb"
+      ],
+      "name": "West Campus house 95e660cb (1109)",
+      "model": "opus",
+      "x": -1070.323,
+      "z": -830.224,
+      "top": 10.6
+    },
+    "west-campus-95f7d084": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "95f7d084"
+      ],
+      "name": "West Campus house 95f7d084 (2602)",
+      "model": "opus",
+      "x": -1156.083,
+      "z": -987.241,
+      "top": 8.6
+    },
+    "west-campus-bd95c175": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "bd95c175"
+      ],
+      "name": "West Campus house bd95c175",
+      "model": "opus",
+      "x": -1195.515,
+      "z": -824.543,
+      "top": 8.8
+    },
+    "west-campus-d350227e": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "d350227e"
+      ],
+      "name": "West Campus house d350227e (2603)",
+      "model": "opus",
+      "x": -1086.695,
+      "z": -953.874,
+      "top": 9.2
+    },
+    "west-campus-ff9ae6ef": {
+      "tile": "t_-5_-4",
+      "map_ids": [
+        "ff9ae6ef"
+      ],
+      "name": "West Campus house ff9ae6ef",
+      "model": "opus",
+      "x": -1167.664,
+      "z": -958.952,
+      "top": 7.4
     }
   }
 }

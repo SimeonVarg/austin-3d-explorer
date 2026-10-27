@@ -1,6 +1,8 @@
 // Materials taken from photographs (CLAUDE.md rule 16, "Materials taken from photographs"), applied per building at tile build time.
 // Spec: scripts/v2/photo_materials.json, per building slug:
-//   materials: { <material name>: { albedo, normal?, repeat_m: [u, v], factor: [r, g, b], mean_rgb: [r, g, b] } }
+//   materials: { <material name>: { albedo, normal?, repeat_m: [u, v], factor: [r, g, b], mean_rgb: [r, g, b], plan_deg? } }
+//     plan_deg: on roofs and other non-wall faces, turn the plan texture coordinates to the building's own axis (degrees, model frame,
+//     counter-clockwise from east), so tile rows run along the eaves instead of along the map grid.
 //     near (lod0): the albedo (x factor) and normal map, with texture coordinates made here from position and normal: on a wall
 //     (|normal.y| < wall_max_ny) u runs along the wall and v up, elsewhere plan x/z; metres / repeat_m. Mipmapped by the app (rule 15).
 //     far (lod1): the plain mean colour, so the switch to the far file does not change the colour.
@@ -55,6 +57,7 @@ export function applyPhotoMaterials(doc, slug, lod, repo) {
       P.getElement(i, p); N.getElement(i, q);
       const l = Math.hypot(q[0], q[1], q[2]) || 1, nx = q[0] / l, ny = q[1] / l, nz = q[2] / l;
       if (Math.abs(ny) < sp.wall_max_ny) { const h = Math.hypot(nx, nz) || 1; uv[2 * i] = (p[0] * nz / h - p[2] * nx / h) / ru; uv[2 * i + 1] = -p[1] / rv; }
+      else if (ms.plan_deg) { const a = ms.plan_deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a); uv[2 * i] = (p[0] * c - p[2] * s) / ru; uv[2 * i + 1] = (p[0] * s + p[2] * c) / rv; }
       else { uv[2 * i] = p[0] / ru; uv[2 * i + 1] = p[2] / rv; }
     }
     prim.setAttribute('TEXCOORD_0', doc.createAccessor().setType('VEC2').setArray(uv).setBuffer(buf));
