@@ -13,7 +13,7 @@
 //      joints: rows that read as horizontal lines, which cannot make a diagonal;
 //   3. then the courses: once a course is shorter than COURSE_NONE texels, each column is averaged over exactly one course
 //      (fully at COURSE_FULL): the rows fade to the wall's even tone before they are thin enough to beat with the pixels.
-//   Each is applied once (boxAlong), so the photo's slower tone across bricks and across the tile stays;
+//   Each level is cleaned from the plain chain, only while the repeat is between MIN and NONE texels (see the loop);
 //   4. averaging is done in linear light (colour maps) so the far tone is the photo's true mean, not a darker sRGB mean.
 // The course is measured from the texture itself (autocorrelation of its row profile: the bed joints), so every
 // photo brick texture gets the right chain with no per-building number. No extra download: the chain is made in the browser at
@@ -23,6 +23,8 @@ export const BRICK_MIPS = {
   JOINT_FULL: 16,   // ... at or below which they are gone (rows = their own mean)
   COURSE_NONE: 8,   // course height in texels at a level above which the courses are kept
   COURSE_FULL: 4,   // ... at or below which the course repeat is gone
+  JOINT_MIN: 4,     // brick length in texels below which a level is left as the plain box average (see the chain loop)
+  COURSE_MIN: 1.5,  // ... course height, the same
   BRICK_RATIO: 3.2, // brick + head joint, in courses
   MIN_PEAK: 0.15,   // autocorrelation peak a period must reach to count (else the texture is left to the GPU's own chain)
 };
@@ -105,7 +107,7 @@ export function brickMipChain(rgba, w, h, { linear = false, periods = null, P = 
   if (!per.course || !per.brick || per.peak < P.MIN_PEAK) return null;
   const out = [{ data: new Uint8ClampedArray(rgba), width: w, height: h, joints: 0, courses: 0 }];
   const enc = (v) => (linear ? Math.round(255 * Math.min(1, Math.max(0, v))) : L2S[Math.round(4095 * Math.min(1, Math.max(0, v)))]);
-  let cw = w, ch = h, s = 1, jDone = 0, cDone = 0;
+  let cw = w, ch = h, s = 1;
   while (cw > 1 || ch > 1) {
     const nw = Math.max(1, cw >> 1), nh = Math.max(1, ch >> 1); s *= 2;
     const nxt = [];
@@ -122,16 +124,19 @@ export function brickMipChain(rgba, w, h, { linear = false, periods = null, P = 
       nxt.push(dst);
     }
     const joints = 1 - smooth(P.JOINT_FULL, P.JOINT_NONE, per.brick / s), courses = 1 - smooth(P.COURSE_FULL, P.COURSE_NONE, per.course / s);
-    // each repeat is removed ONCE: a level takes only the share the levels above have not removed yet. (Re-applying the box at
-    // every level stacked into a blur several bricks wide: Anna Hiss 250 m measured soft 0.36 against 0.22 without the chain.)
-    const jt = jDone < 1 ? Math.max(0, (joints - jDone) / (1 - jDone)) : 0, ct = cDone < 1 ? Math.max(0, (courses - cDone) / (1 - cDone)) : 0;
-    jDone = Math.max(jDone, joints); cDone = Math.max(cDone, courses);
+    // each level is cleaned from the PLAIN box chain, not from the cleaned level above, and only while the repeat is still
+    // there to beat (brick >= JOINT_MIN, course >= COURSE_MIN texels). Below that the 2 x 2 box has already averaged joints and
+    // courses into each texel, and what stays is the photo's brick-to-brick tone, which the supersampled truth has too.
+    // (Cascading the clean levels made Gregory's wall at 120 m far smoother than the truth: v2-shimmer soft 0.68.)
+    const out3 = [];
     for (let c = 0; c < 3; c++) {
-      if (jt > 0) blend(nxt[c], boxAlong(nxt[c], nw, nh, per.brick / s, true), jt);
-      if (ct > 0) blend(nxt[c], boxAlong(nxt[c], nw, nh, per.course / s, false), ct);
+      let d = nxt[c];
+      if (joints > 0 && per.brick / s >= P.JOINT_MIN) { const e = new Float32Array(d); blend(e, boxAlong(e, nw, nh, per.brick / s, true), joints); d = e; }
+      if (courses > 0 && per.course / s >= P.COURSE_MIN) { const e = new Float32Array(d); blend(e, boxAlong(e, nw, nh, per.course / s, false), courses); d = e; }
+      out3.push(d);
     }
     const data = new Uint8ClampedArray(nw * nh * 4);
-    for (let i = 0; i < nw * nh; i++) { data[4 * i] = enc(nxt[0][i]); data[4 * i + 1] = enc(nxt[1][i]); data[4 * i + 2] = enc(nxt[2][i]); data[4 * i + 3] = 255; }
+    for (let i = 0; i < nw * nh; i++) { data[4 * i] = enc(out3[0][i]); data[4 * i + 1] = enc(out3[1][i]); data[4 * i + 2] = enc(out3[2][i]); data[4 * i + 3] = 255; }
     out.push({ data, width: nw, height: nh, joints, courses });
     cur = nxt; cw = nw; ch = nh;
   }
