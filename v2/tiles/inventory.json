@@ -5180,7 +5180,7 @@
       "model": "opus",
       "kind": "street",
       "tile": "t_-2_-2",
-      "blend_sha256": "90cb5f613ba55e2c",
+      "blend_sha256": "fa8b61647dc11719",
       "lod1": "mass",
       "placement": {
         "height_m": 22.9,
@@ -5374,14 +5374,14 @@
       }
     },
     "t_-2_-2": {
-      "hash": "ae42603d7ed6ec48",
+      "hash": "21d599613a4287d4",
       "near": {
-        "bytes": 1023696,
+        "bytes": 1023588,
         "tris": 93598,
         "draws": 3
       },
       "far": {
-        "bytes": 41536,
+        "bytes": 41912,
         "tris": 3394,
         "draws": 1
       }
