@@ -54,9 +54,12 @@ for (const [tileId, list] of byTile) {
         const b = Math.round(ids.getScalar(I[t]));
         for (const c of list) {
           if (tile.buildings[b] !== c.slug) continue;
-          if (c.uv) { const u = uvs?.getElement(I[t], [0, 0]); if (!u || Math.abs(u[0] - c.uv[0]) > 0.002 || Math.abs(u[1] - c.uv[1]) > 0.002) continue; }   // (a clip with "uv": only the triangles painted that palette colour)
+          if (c.uv) { const u = uvs?.getElement(I[t], [0, 0]); if (!u || Math.abs(u[0] - c.uv[0]) > 0.002 || Math.abs(u[1] - c.uv[1]) > 0.002) continue; }   // (a clip with "uv": only the triangles painted that palette colour; "up": only upward-facing ones))
           const v = [world(I[t]), world(I[t + 1]), world(I[t + 2])];
-          if (v.every((p) => p.every((q, a) => q >= c.box[a] - TOL_M && q <= c.box[a + 3] + TOL_M))) cand.get(c).push({ rec, t, v });
+          if (!v.every((p) => p.every((q, a) => q >= c.box[a] - TOL_M && q <= c.box[a + 3] + TOL_M))) continue;
+          if (c.up) { const e1 = [0, 1, 2].map((a) => v[1][a] - v[0][a]), e2 = [0, 1, 2].map((a) => v[2][a] - v[0][a]);   // "up": only triangles that face up (|normal.y| above it): a ground sheet, not the walls and steps that share its colour
+            const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]]; if (Math.abs(n[1]) / (Math.hypot(...n) || 1) <= c.up) continue; }
+          cand.get(c).push({ rec, t, v });
         }
       }
     }
@@ -68,7 +71,7 @@ for (const [tileId, list] of byTile) {
     const at = new Map();
     tris.forEach((T, i) => T.v.forEach((p) => { const k = key(p); (at.get(k) || at.set(k, []).get(k)).push(i); }));
     const seen = new Uint8Array(tris.length), stack = [];
-    if (c.uv) { tris.forEach((T) => T.rec.drop.add(T.t)); dropped.set(c, tris.length); continue; }   // "uv": every such triangle in the box goes (a ground sheet is many pieces; no seed)
+    if (c.uv && !c.joined) { tris.forEach((T) => T.rec.drop.add(T.t)); dropped.set(c, tris.length); continue; }   // "uv": every such triangle in the box goes (a ground sheet is many pieces; no seed)
     tris.forEach((T, i) => { if (T.v.some((p) => Math.hypot(p[0] - c.seed[0], p[1] - c.seed[1], p[2] - c.seed[2]) < 0.03) && !seen[i]) { seen[i] = 1; stack.push(i); } });
     let n = 0;
     while (stack.length) { const i = stack.pop(); n++; tris[i].rec.drop.add(tris[i].t); for (const p of tris[i].v) for (const j of at.get(key(p))) if (!seen[j]) { seen[j] = 1; stack.push(j); } }
