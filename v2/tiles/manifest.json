@@ -322,14 +322,15 @@
         "centennial-condominiums",
         "delta-gamma",
         "rambler",
+        "san-antonio-garage",
         "west-campus-0972f20f",
         "west-campus-12159245",
         "yugo-austin-nueces",
         "yugo-austin-waterloo"
       ],
       "bytes": [
-        972988,
-        35948
+        1023696,
+        41536
       ]
     },
     {
@@ -5264,6 +5265,17 @@
       "x": -1099.507,
       "z": 2212.261,
       "top": 10.4
+    },
+    "san-antonio-garage": {
+      "tile": "t_-2_-2",
+      "map_ids": [
+        "e6dd1619"
+      ],
+      "name": "San Antonio Garage",
+      "model": "opus",
+      "x": -313.735,
+      "z": -286.99,
+      "top": 22.9
     }
   }
 }

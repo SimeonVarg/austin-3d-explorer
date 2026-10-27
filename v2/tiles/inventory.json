@@ -5173,6 +5173,21 @@
           "base at -1.7 m"
         ]
       }
+    },
+    "san-antonio-garage": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "street",
+      "tile": "t_-2_-2",
+      "blend_sha256": "90cb5f613ba55e2c",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 22.9,
+        "area_ratio": 1.005,
+        "centre_off_m": 0.11,
+        "flags": []
+      }
     }
   },
   "tiles": {
@@ -5359,15 +5374,15 @@
       }
     },
     "t_-2_-2": {
-      "hash": "033d7824b3fd3fb1",
+      "hash": "ae42603d7ed6ec48",
       "near": {
-        "bytes": 972988,
-        "tris": 88008,
+        "bytes": 1023696,
+        "tris": 93598,
         "draws": 3
       },
       "far": {
-        "bytes": 35948,
-        "tris": 2807,
+        "bytes": 41536,
+        "tris": 3394,
         "draws": 1
       }
     },
