@@ -1699,7 +1699,7 @@
      0.4514,
      0.4035
     ],
-    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: not seen (Earth camera off here); pale = street prior (batch pilot 2026-10-27)",
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: not seen (Earth camera off here); pale = street prior; roof greyed (aerial median read lilac, the roof is grey) (batch pilot 2026-10-27)",
     "mean_rgb": [
      0.2354,
      0.2256,
@@ -1713,15 +1713,15 @@
      4.0
     ],
     "factor": [
-     0.1248,
-     0.0934,
-     0.1491
+     0.0946,
+     0.1052,
+     0.1246
     ],
     "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.1054,
-     0.071,
-     0.0927
+     0.0799,
+     0.0799,
+     0.0775
     ]
    }
   },
@@ -1732,7 +1732,7 @@
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.5,
-   "why": "rule 15, by roof type (batch 2026-10-27): flat membrane/stucco buildings were softer than the supersampled truth at 120 m (soft +0.14); -0.5 brought them to soft <= -0.12 with shimmer <= 0.23 on two shipped tiles"
+   "why": "rule 15, by roof type (batch 2026-10-27): flat membrane/stucco buildings were softer than the supersampled truth at 120 m (soft +0.14); -0.5 brought them to soft <= -0.12"
   }
  },
  "west-campus-0f0102a1": {
@@ -1782,7 +1782,7 @@
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15, by roof type (batch 2026-10-27): shingle roofs at -0.5 measured soft -0.40 (over-sharp); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15, by roof type (batch 2026-10-27): shingle roofs and brick walls at -0.5 measured over-sharp (soft -0.3 to -0.4); -0.15 is the PMA-measured bias"
   }
  },
  "west-campus-1b957176": {
@@ -1832,7 +1832,7 @@
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15, by roof type (batch 2026-10-27): shingle roofs at -0.5 measured soft -0.40 (over-sharp); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15, by roof type (batch 2026-10-27): shingle roofs and brick walls at -0.5 measured over-sharp (soft -0.3 to -0.4); -0.15 is the PMA-measured bias"
   }
  },
  "west-campus-203780c7": {
@@ -1882,7 +1882,7 @@
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15, by roof type (batch 2026-10-27): shingle roofs at -0.5 measured soft -0.40 (over-sharp); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15, by roof type (batch 2026-10-27): shingle roofs and brick walls at -0.5 measured over-sharp (soft -0.3 to -0.4); -0.15 is the PMA-measured bias"
   }
  },
  "west-campus-307e9019": {
@@ -1932,7 +1932,7 @@
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15, by roof type (batch 2026-10-27): shingle roofs at -0.5 measured soft -0.40 (over-sharp); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15, by roof type (batch 2026-10-27): shingle roofs and brick walls at -0.5 measured over-sharp (soft -0.3 to -0.4); -0.15 is the PMA-measured bias"
   }
  },
  "west-campus-33f2677a": {
@@ -1982,7 +1982,7 @@
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15, by roof type (batch 2026-10-27): shingle roofs at -0.5 measured soft -0.40 (over-sharp); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15, by roof type (batch 2026-10-27): shingle roofs and brick walls at -0.5 measured over-sharp (soft -0.3 to -0.4); -0.15 is the PMA-measured bias"
   }
  },
  "west-campus-a36e5b4e": {
@@ -2032,7 +2032,7 @@
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.15,
-   "why": "rule 15, by roof type (batch 2026-10-27): shingle roofs at -0.5 measured soft -0.40 (over-sharp); -0.15 is the PMA-measured bias (about a texel per pixel)"
+   "why": "rule 15, by roof type (batch 2026-10-27): shingle roofs and brick walls at -0.5 measured over-sharp (soft -0.3 to -0.4); -0.15 is the PMA-measured bias"
   }
  },
  "west-campus-a806c934": {
@@ -2081,7 +2081,7 @@
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.5,
-   "why": "rule 15, by roof type (batch 2026-10-27): flat membrane/stucco buildings were softer than the supersampled truth at 120 m (soft +0.14); -0.5 brought them to soft <= -0.12 with shimmer <= 0.23 on two shipped tiles"
+   "why": "rule 15, by roof type (batch 2026-10-27): flat membrane/stucco buildings were softer than the supersampled truth at 120 m (soft +0.14); -0.5 brought them to soft <= -0.12"
   }
  }
 }
