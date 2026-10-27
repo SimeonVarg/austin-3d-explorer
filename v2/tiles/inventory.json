@@ -5173,6 +5173,23 @@
           "base at -1.7 m"
         ]
       }
+    },
+    "waterline": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "street",
+      "tile": "t_-1_11",
+      "blend_sha256": "430266239da27c9b",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 315,
+        "area_ratio": 1.09,
+        "centre_off_m": 4.57,
+        "flags": [
+          "centre 4.6 m off"
+        ]
+      }
     }
   },
   "tiles": {
@@ -6239,6 +6256,19 @@
       "far": {
         "bytes": 5184,
         "tris": 121,
+        "draws": 1
+      }
+    },
+    "t_-1_11": {
+      "hash": "ad8d8a49e0815a1f",
+      "near": {
+        "bytes": 226172,
+        "tris": 31872,
+        "draws": 2
+      },
+      "far": {
+        "bytes": 14844,
+        "tris": 906,
         "draws": 1
       }
     }
