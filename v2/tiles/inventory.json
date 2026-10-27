@@ -5608,7 +5608,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-3_-3",
-      "blend_sha256": "4d9b4bdeab7f1f23",
+      "blend_sha256": "899ae0d32466036c",
       "lod1": "mass",
       "placement": {
         "height_m": 9,
@@ -6132,9 +6132,9 @@
       }
     },
     "t_-3_-3": {
-      "hash": "69bf03e5b926e36a",
+      "hash": "67b0a9882c925635",
       "near": {
-        "bytes": 1032840,
+        "bytes": 1032900,
         "tris": 87200,
         "draws": 15
       },
