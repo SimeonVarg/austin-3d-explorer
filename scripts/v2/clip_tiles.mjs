@@ -12,9 +12,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { meshopt } from '@gltf-transform/functions';
+import { reorder } from '@gltf-transform/functions';
+import { EXTMeshoptCompression } from '@gltf-transform/extensions';
 import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer';
-import { MESHOPT_LEVEL, QUANT } from './tile_encoding.mjs';
+import { MESHOPT_LEVEL } from './tile_encoding.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -44,7 +45,7 @@ for (const [tileId, list] of byTile) {
     const mesh = node.getMesh(); if (!mesh) continue;
     const M = node.getWorldMatrix();
     for (const prim of mesh.listPrimitives()) {
-      const pos = prim.getAttribute('POSITION'), ids = prim.getAttribute('_BUILDING'), idx = prim.getIndices();
+      const pos = prim.getAttribute('POSITION'), ids = prim.getAttribute('_BUILDING'), idx = prim.getIndices(), uvs = prim.getAttribute('TEXCOORD_0');
       if (!pos || !ids || !idx) continue;
       const I = idx.getArray(), tmp = [0, 0, 0];
       const world = (v) => { pos.getElement(v, tmp); const [x, y, z] = tmp; return [M[0] * x + M[4] * y + M[8] * z + M[12], M[1] * x + M[5] * y + M[9] * z + M[13], M[2] * x + M[6] * y + M[10] * z + M[14]]; };
@@ -53,6 +54,7 @@ for (const [tileId, list] of byTile) {
         const b = Math.round(ids.getScalar(I[t]));
         for (const c of list) {
           if (tile.buildings[b] !== c.slug) continue;
+          if (c.uv) { const u = uvs?.getElement(I[t], [0, 0]); if (!u || Math.abs(u[0] - c.uv[0]) > 0.002 || Math.abs(u[1] - c.uv[1]) > 0.002) continue; }   // (a clip with "uv": only the triangles painted that palette colour)
           const v = [world(I[t]), world(I[t + 1]), world(I[t + 2])];
           if (v.every((p) => p.every((q, a) => q >= c.box[a] - TOL_M && q <= c.box[a + 3] + TOL_M))) cand.get(c).push({ rec, t, v });
         }
@@ -66,6 +68,7 @@ for (const [tileId, list] of byTile) {
     const at = new Map();
     tris.forEach((T, i) => T.v.forEach((p) => { const k = key(p); (at.get(k) || at.set(k, []).get(k)).push(i); }));
     const seen = new Uint8Array(tris.length), stack = [];
+    if (c.uv) { tris.forEach((T) => T.rec.drop.add(T.t)); dropped.set(c, tris.length); continue; }   // "uv": every such triangle in the box goes (a ground sheet is many pieces; no seed)
     tris.forEach((T, i) => { if (T.v.some((p) => Math.hypot(p[0] - c.seed[0], p[1] - c.seed[1], p[2] - c.seed[2]) < 0.03) && !seen[i]) { seen[i] = 1; stack.push(i); } });
     let n = 0;
     while (stack.length) { const i = stack.pop(); n++; tris[i].rec.drop.add(tris[i].t); for (const p of tris[i].v) for (const j of at.get(key(p))) if (!seen[j]) { seen[j] = 1; stack.push(j); } }
@@ -82,7 +85,11 @@ for (const [tileId, list] of byTile) {
     console.log(`CLIP ${c.slug} in ${tileId}: ${n} triangles hidden (${c.why.slice(0, 70)}...)`); changed = true;
   }
   if (!changed || failed || DRY) continue;
-  await doc.transform(meshopt({ encoder: MeshoptEncoder, level: MESHOPT_LEVEL, ...QUANT }));
+  // Not meshopt(): its quantize step gives the node a new scale and offset from the bounds of what is LEFT, and skips the attributes that are
+  // already 16-bit, so a clip that shortens the tile's extent (a ground sheet at its edge) would move every building (found 2026-10-27, t_2_0:
+  // the Cowboys Pavilion came out 9 m off). reorder drops the unused corners and keeps the values; the compression is switched on as meshopt() does.
+  await doc.transform(reorder({ encoder: MeshoptEncoder, target: 'size' }));
+  doc.createExtension(EXTMeshoptCompression).setRequired(true).setEncoderOptions({ method: MESHOPT_LEVEL === 'medium' ? EXTMeshoptCompression.EncoderMethod.QUANTIZE : EXTMeshoptCompression.EncoderMethod.FILTER });
   const bin = await io.writeBinary(doc);
   fs.writeFileSync(file + '.tmp', bin); fs.renameSync(file + '.tmp', file);
   const t = manifest.tiles.find((x) => x.id === tileId); if (t?.bytes) t.bytes[0] = bin.byteLength;
