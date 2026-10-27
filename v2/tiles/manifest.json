@@ -960,11 +960,12 @@
       "lod0": "tiles/t_-4_8.glb",
       "lod1": "tiles/t_-4_8.far.glb",
       "buildings": [
-        "360-condominiums"
+        "360-condominiums",
+        "the-republic"
       ],
       "bytes": [
-        358264,
-        9588
+        394024,
+        22720
       ]
     },
     {
@@ -5264,6 +5265,21 @@
       "x": -1099.507,
       "z": 2212.261,
       "top": 10.4
+    },
+    "the-republic": {
+      "tile": "t_-4_8",
+      "map_ids": [
+        "w1120921408",
+        "w1350740813",
+        "w1350740814",
+        "w1350740815",
+        "w1350740817"
+      ],
+      "name": "The Republic",
+      "model": "opus",
+      "x": -811.514,
+      "z": 2139.533,
+      "top": 216
     }
   }
 }
