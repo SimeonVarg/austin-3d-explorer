@@ -369,18 +369,27 @@
         "unidentified-north-campus-90072241",
         "west-campus-10a07e54",
         "west-campus-1854f22e",
+        "west-campus-2321c075",
         "west-campus-2527bdfa",
         "west-campus-2779329b",
         "west-campus-47882601",
+        "west-campus-4b256133",
         "west-campus-584148b6",
+        "west-campus-682c1554",
+        "west-campus-685d37aa",
         "west-campus-732691d2",
         "west-campus-7e7420aa",
         "west-campus-b01fbc20",
-        "west-campus-e1b470ab"
+        "west-campus-b07e7bf4",
+        "west-campus-b1d15ed5",
+        "west-campus-c6759972",
+        "west-campus-e1b470ab",
+        "west-campus-f00f84da",
+        "west-campus-fbd4e8b5"
       ],
       "bytes": [
-        623604,
-        30248
+        819628,
+        49668
       ]
     },
     {
@@ -5614,6 +5623,105 @@
       "x": -1167.664,
       "z": -958.952,
       "top": 7.4
+    },
+    "west-campus-fbd4e8b5": {
+      "tile": "t_-2_-4",
+      "map_ids": [
+        "fbd4e8b5"
+      ],
+      "name": "West Campus building fbd4e8b5",
+      "model": "opus",
+      "x": -411.492,
+      "z": -972.658,
+      "top": 9.9
+    },
+    "west-campus-685d37aa": {
+      "tile": "t_-2_-4",
+      "map_ids": [
+        "685d37aa"
+      ],
+      "name": "West Campus building 685d37aa",
+      "model": "opus",
+      "x": -416.997,
+      "z": -911.836,
+      "top": 13.7
+    },
+    "west-campus-c6759972": {
+      "tile": "t_-2_-4",
+      "map_ids": [
+        "c6759972"
+      ],
+      "name": "West Campus building c6759972",
+      "model": "opus",
+      "x": -385.651,
+      "z": -780.577,
+      "top": 12.1
+    },
+    "west-campus-f00f84da": {
+      "tile": "t_-2_-4",
+      "map_ids": [
+        "f00f84da"
+      ],
+      "name": "West Campus building f00f84da",
+      "model": "opus",
+      "x": -343.253,
+      "z": -761.554,
+      "top": 12.5
+    },
+    "west-campus-b1d15ed5": {
+      "tile": "t_-2_-4",
+      "map_ids": [
+        "b1d15ed5"
+      ],
+      "name": "West Campus building b1d15ed5 (Rio Grande Square Student Housing)",
+      "model": "opus",
+      "x": -485.294,
+      "z": -858.783,
+      "top": 6.3
+    },
+    "west-campus-2321c075": {
+      "tile": "t_-2_-4",
+      "map_ids": [
+        "2321c075"
+      ],
+      "name": "West Campus building 2321c075",
+      "model": "opus",
+      "x": -359.004,
+      "z": -911.432,
+      "top": 10
+    },
+    "west-campus-4b256133": {
+      "tile": "t_-2_-4",
+      "map_ids": [
+        "4b256133"
+      ],
+      "name": "West Campus building 4b256133",
+      "model": "opus",
+      "x": -416.207,
+      "z": -901.569,
+      "top": 9.3
+    },
+    "west-campus-b07e7bf4": {
+      "tile": "t_-2_-4",
+      "map_ids": [
+        "b07e7bf4"
+      ],
+      "name": "West Campus building b07e7bf4 (Montage Apartments West Campus)",
+      "model": "opus",
+      "x": -487.693,
+      "z": -953.856,
+      "top": 5.7
+    },
+    "west-campus-682c1554": {
+      "tile": "t_-2_-4",
+      "map_ids": [
+        "682c1554"
+      ],
+      "name": "West Campus building 682c1554",
+      "model": "opus",
+      "x": -472.242,
+      "z": -986.967,
+      "top": 10.1
     }
   }
 }

@@ -5601,6 +5601,149 @@
           "area x1.10"
         ]
       }
+    },
+    "west-campus-fbd4e8b5": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-2_-4",
+      "blend_sha256": "6715033c2b18524a",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 9.9,
+        "area_ratio": 0.964,
+        "centre_off_m": 0.98,
+        "flags": []
+      }
+    },
+    "west-campus-685d37aa": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-2_-4",
+      "blend_sha256": "a18257c546c55842",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 13.7,
+        "area_ratio": 1.069,
+        "centre_off_m": 0.08,
+        "flags": []
+      }
+    },
+    "west-campus-c6759972": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-2_-4",
+      "blend_sha256": "1dbfcbb11963c443",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 12.1,
+        "area_ratio": 1.122,
+        "centre_off_m": 0.03,
+        "flags": [
+          "area x1.12"
+        ]
+      }
+    },
+    "west-campus-f00f84da": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-2_-4",
+      "blend_sha256": "14425a82aa724b56",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 12.5,
+        "area_ratio": 1.12,
+        "centre_off_m": 0.05,
+        "flags": [
+          "area x1.12"
+        ]
+      }
+    },
+    "west-campus-b1d15ed5": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-2_-4",
+      "blend_sha256": "26c396800db19a0b",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 6.3,
+        "area_ratio": 1.011,
+        "centre_off_m": 0.15,
+        "flags": []
+      }
+    },
+    "west-campus-2321c075": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-2_-4",
+      "blend_sha256": "da976ca4bdf659d8",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 10,
+        "area_ratio": 1.144,
+        "centre_off_m": 0.1,
+        "flags": [
+          "area x1.14"
+        ]
+      }
+    },
+    "west-campus-4b256133": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-2_-4",
+      "blend_sha256": "a295239365669f63",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 9.3,
+        "area_ratio": 1.146,
+        "centre_off_m": 0.07,
+        "flags": [
+          "area x1.15"
+        ]
+      }
+    },
+    "west-campus-b07e7bf4": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-2_-4",
+      "blend_sha256": "e5ac8a3e9dbf2b84",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 5.7,
+        "area_ratio": 1.004,
+        "centre_off_m": 0.13,
+        "flags": []
+      }
+    },
+    "west-campus-682c1554": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "house",
+      "tile": "t_-2_-4",
+      "blend_sha256": "4db757a941d46d4f",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 10.1,
+        "area_ratio": 0.994,
+        "centre_off_m": 0.12,
+        "flags": []
+      }
     }
   },
   "tiles": {
@@ -5813,15 +5956,15 @@
       }
     },
     "t_-2_-4": {
-      "hash": "b2d01b23c0a7a218",
+      "hash": "e60afdba8a75e46d",
       "near": {
-        "bytes": 623604,
-        "tris": 56379,
-        "draws": 2
+        "bytes": 819628,
+        "tris": 59936,
+        "draws": 16
       },
       "far": {
-        "bytes": 30248,
-        "tris": 2305,
+        "bytes": 49668,
+        "tris": 4146,
         "draws": 1
       }
     },
