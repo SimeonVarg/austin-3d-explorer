@@ -1732,8 +1732,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+   "lod_bias": -0.15,
+   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-685d37aa": {
@@ -1782,8 +1782,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+   "lod_bias": -0.15,
+   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-c6759972": {
@@ -1833,8 +1833,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+   "lod_bias": -0.15,
+   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-f00f84da": {
@@ -1884,8 +1884,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+   "lod_bias": -0.15,
+   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-b1d15ed5": {
@@ -1933,8 +1933,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+   "lod_bias": -0.15,
+   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-2321c075": {
@@ -1983,8 +1983,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+   "lod_bias": -0.15,
+   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-4b256133": {
@@ -2033,8 +2033,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+   "lod_bias": -0.15,
+   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-b07e7bf4": {
@@ -2082,8 +2082,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+   "lod_bias": -0.15,
+   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  },
  "west-campus-682c1554": {
@@ -2131,8 +2131,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+   "lod_bias": -0.15,
+   "why": "rule 15 (batch 2026-10-27): -0.5 over-sharpened these shingle roofs (soft -0.40, shimmer 0.39 at 600 m); -0.15 is the PMA-measured bias (about a texel per pixel)"
   }
  }
 }
