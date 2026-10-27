@@ -635,15 +635,15 @@
      5.37
     ],
     "factor": [
-     0.2079,
-     0.1806,
-     0.1751
+     0.1869,
+     0.1841,
+     0.1955
     ],
     "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.0584,
-     0.0515,
-     0.0456
+     0.0525,
+     0.0525,
+     0.0509
     ],
     "plan_deg": 61.0
    }
@@ -680,15 +680,15 @@
      4.545
     ],
     "factor": [
-     0.2834,
-     0.3257,
-     0.3978
+     0.291,
+     0.3235,
+     0.3833
     ],
     "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.2394,
-     0.2475,
-     0.2474
+     0.2458,
+     0.2458,
+     0.2384
     ]
    }
   },
@@ -769,15 +769,15 @@
      5.37
     ],
     "factor": [
-     0.2008,
-     0.1644,
-     0.2024
+     0.1755,
+     0.1729,
+     0.184
     ],
     "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.0564,
-     0.0469,
-     0.0527
+     0.0493,
+     0.0493,
+     0.0479
     ],
     "plan_deg": 87.0
    }
@@ -814,15 +814,15 @@
      5.37
     ],
     "factor": [
-     0.1975,
-     0.1739,
-     0.1751
+     0.1801,
+     0.1774,
+     0.1882
     ],
     "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.0555,
-     0.0496,
-     0.0456
+     0.0506,
+     0.0506,
+     0.049
     ],
     "plan_deg": 61.0
    }
@@ -859,15 +859,15 @@
      5.37
     ],
     "factor": [
-     0.2452,
-     0.2149,
-     0.2024
+     0.2218,
+     0.2184,
+     0.232
     ],
     "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.0689,
-     0.0613,
-     0.0527
+     0.0623,
+     0.0623,
+     0.0604
     ],
     "plan_deg": 60.0
    }
@@ -904,15 +904,15 @@
      5.37
     ],
     "factor": [
-     0.1523,
-     0.1322,
-     0.144
+     0.1381,
+     0.136,
+     0.1444
     ],
     "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.0428,
-     0.0377,
-     0.0375
+     0.0388,
+     0.0388,
+     0.0376
     ],
     "plan_deg": 63.0
    }
@@ -949,15 +949,15 @@
      5.37
     ],
     "factor": [
-     0.1324,
-     0.1115,
-     0.1141
+     0.1167,
+     0.115,
+     0.1221
     ],
     "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.0372,
-     0.0318,
-     0.0297
+     0.0328,
+     0.0328,
+     0.0318
     ],
     "plan_deg": 78.0
    }
@@ -994,15 +994,15 @@
      5.37
     ],
     "factor": [
-     0.215,
-     0.1806,
-     0.1786
+     0.1887,
+     0.1858,
+     0.1974
     ],
     "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.0604,
-     0.0515,
-     0.0465
+     0.053,
+     0.053,
+     0.0514
     ],
     "plan_deg": 49.0
    }
@@ -1089,15 +1089,15 @@
      5.37
     ],
     "factor": [
-     0.2823,
-     0.2612,
-     0.3269
+     0.2716,
+     0.2675,
+     0.2842
     ],
     "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.0793,
-     0.0745,
-     0.0851
+     0.0763,
+     0.0763,
+     0.074
     ],
     "plan_deg": 63.0
    }
@@ -1134,15 +1134,15 @@
      5.37
     ],
     "factor": [
-     0.1805,
-     0.1553,
-     0.192
+     0.1641,
+     0.1616,
+     0.1717
     ],
     "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.0507,
-     0.0443,
-     0.05
+     0.0461,
+     0.0461,
+     0.0447
     ],
     "plan_deg": 0.0
    }
@@ -1179,15 +1179,15 @@
      5.37
     ],
     "factor": [
-     0.2865,
-     0.2532,
-     0.2858
+     0.2638,
+     0.2598,
+     0.2762
     ],
     "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.0805,
-     0.0722,
-     0.0744
+     0.0741,
+     0.0741,
+     0.0719
     ],
     "plan_deg": 63.0
    }
@@ -1224,15 +1224,15 @@
      5.37
     ],
     "factor": [
-     0.2492,
-     0.2412,
-     0.2443
+     0.2445,
+     0.2409,
+     0.2558
     ],
     "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
-     0.07,
-     0.0688,
-     0.0636
+     0.0687,
+     0.0687,
+     0.0666
     ],
     "plan_deg": 61.0
    }
