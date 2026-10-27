@@ -46,6 +46,16 @@
       "lod1": "tiles/t_-1_-2.far.glb",
       "buildings": [
         "blanton-dormitory",
+        "campus-1795b775",
+        "campus-26434aad",
+        "campus-3e6a2817",
+        "campus-5227a4ab",
+        "campus-8c860b27",
+        "campus-9503af74",
+        "campus-9562d076",
+        "campus-a6d55ae5",
+        "campus-ab63bfdc",
+        "campus-e600e6ac",
         "carothers-dormitory",
         "dealey-center-for-new-media",
         "jesse-h-jones-communication-center-a",
@@ -56,8 +66,8 @@
         "william-randolph-hearst-building"
       ],
       "bytes": [
-        1667588,
-        37636
+        1795956,
+        44856
       ]
     },
     {
@@ -1782,6 +1792,88 @@
       "bytes": [
         281812,
         40704
+      ]
+    },
+    {
+      "id": "t_2_-3",
+      "bounds": [
+        500,
+        -750,
+        750,
+        -500
+      ],
+      "lod0": "tiles/t_2_-3.glb",
+      "lod1": "tiles/t_2_-3.far.glb",
+      "buildings": [
+        "campus-11878e7a",
+        "campus-134e642c",
+        "campus-292c4b09",
+        "campus-30763136",
+        "campus-3c1341c2",
+        "campus-4ec95561",
+        "campus-5a9d00fb",
+        "campus-5b9951a7",
+        "campus-5d3dbb41",
+        "campus-f7281037"
+      ],
+      "bytes": [
+        202676,
+        15764
+      ]
+    },
+    {
+      "id": "t_-3_2",
+      "bounds": [
+        -750,
+        500,
+        -500,
+        750
+      ],
+      "lod0": "tiles/t_-3_2.glb",
+      "lod1": "tiles/t_-3_2.far.glb",
+      "buildings": [
+        "west-campus-02bd7bbb",
+        "west-campus-05c1b334",
+        "west-campus-29ab11df",
+        "west-campus-a2f87a1c",
+        "west-campus-aa286e15",
+        "west-campus-aab71877",
+        "west-campus-ad4254ec",
+        "west-campus-ca1d0382",
+        "west-campus-e353f65d",
+        "west-campus-ec2ed5e8"
+      ],
+      "bytes": [
+        192412,
+        22196
+      ]
+    },
+    {
+      "id": "t_4_-3",
+      "bounds": [
+        1000,
+        -750,
+        1250,
+        -500
+      ],
+      "lod0": "tiles/t_4_-3.glb",
+      "lod1": "tiles/t_4_-3.far.glb",
+      "buildings": [
+        "campus-11fab8de",
+        "campus-1c9f83e8",
+        "campus-47430ddb",
+        "campus-58e0fd0c",
+        "campus-678899ae",
+        "campus-95c8e5cd",
+        "campus-a57f6fe3",
+        "campus-e1ba4380",
+        "campus-e4eacc40",
+        "campus-f4107e23",
+        "campus-f9d72bd0"
+      ],
+      "bytes": [
+        212900,
+        20388
       ]
     }
   ],
@@ -4473,7 +4565,7 @@
       "map_ids": [
         "eaca344c"
       ],
-      "name": "West Campus block with ΣΧ letters (eaca344c)",
+      "name": "West Campus block with \u03a3\u03a7 letters (eaca344c)",
       "model": "opus",
       "x": -269.769,
       "z": -705.699,
@@ -5614,6 +5706,467 @@
       "x": -1167.664,
       "z": -958.952,
       "top": 7.4
+    },
+    "campus-8c860b27": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "8c860b27"
+      ],
+      "name": "Campus-area building 8c860b27 (Moxy Austin - University)",
+      "model": "opus",
+      "x": -233.048,
+      "z": -471.347,
+      "top": 17.5
+    },
+    "campus-9503af74": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "9503af74"
+      ],
+      "name": "Campus-area building 9503af74 (Hole in the Wall)",
+      "model": "opus",
+      "x": -231.934,
+      "z": -451.717,
+      "top": 4.7
+    },
+    "campus-5227a4ab": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "5227a4ab"
+      ],
+      "name": "Campus-area building 5227a4ab (CAVA)",
+      "model": "opus",
+      "x": -237.49,
+      "z": -283.427,
+      "top": 5.3
+    },
+    "campus-9562d076": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "9562d076"
+      ],
+      "name": "Campus-area building 9562d076 (Guadalupe storefront 9562d076)",
+      "model": "opus",
+      "x": -242.218,
+      "z": -270.326,
+      "top": 4.5
+    },
+    "campus-26434aad": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "26434aad"
+      ],
+      "name": "Campus-area building 26434aad (Chase)",
+      "model": "opus",
+      "x": -225.653,
+      "z": -404.756,
+      "top": 4.8
+    },
+    "campus-3e6a2817": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "3e6a2817"
+      ],
+      "name": "Campus-area building 3e6a2817 (Snag)",
+      "model": "opus",
+      "x": -227.716,
+      "z": -423.448,
+      "top": 5.3
+    },
+    "campus-ab63bfdc": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "ab63bfdc"
+      ],
+      "name": "Campus-area building ab63bfdc (1972 Pub)",
+      "model": "opus",
+      "x": -219.72,
+      "z": -434.295,
+      "top": 4.7
+    },
+    "campus-e600e6ac": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "e600e6ac"
+      ],
+      "name": "Campus-area building e600e6ac (iVape ATX Austin)",
+      "model": "opus",
+      "x": -226.153,
+      "z": -382.841,
+      "top": 3.7
+    },
+    "campus-1795b775": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "1795b775"
+      ],
+      "name": "Campus-area building 1795b775 (Jenn's Copy & Binding)",
+      "model": "opus",
+      "x": -225.013,
+      "z": -413.127,
+      "top": 5
+    },
+    "campus-a6d55ae5": {
+      "tile": "t_-1_-2",
+      "map_ids": [
+        "a6d55ae5"
+      ],
+      "name": "Campus-area building a6d55ae5 (iClips)",
+      "model": "opus",
+      "x": -227.233,
+      "z": -395.081,
+      "top": 3.6
+    },
+    "campus-5d3dbb41": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "5d3dbb41"
+      ],
+      "name": "Campus-area building 5d3dbb41 (Harrison Library)",
+      "model": "opus",
+      "x": 693.855,
+      "z": -713.616,
+      "top": 9.5
+    },
+    "campus-292c4b09": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "292c4b09"
+      ],
+      "name": "Campus-area building 292c4b09",
+      "model": "opus",
+      "x": 536.129,
+      "z": -666.54,
+      "top": 8.9
+    },
+    "campus-5a9d00fb": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "5a9d00fb"
+      ],
+      "name": "Campus-area building 5a9d00fb",
+      "model": "opus",
+      "x": 551.84,
+      "z": -704.812,
+      "top": 8.2
+    },
+    "campus-3c1341c2": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "3c1341c2"
+      ],
+      "name": "Campus-area building 3c1341c2",
+      "model": "opus",
+      "x": 511.168,
+      "z": -614.66,
+      "top": 12
+    },
+    "campus-134e642c": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "134e642c"
+      ],
+      "name": "Campus-area building 134e642c",
+      "model": "opus",
+      "x": 502.616,
+      "z": -567.673,
+      "top": 5.5
+    },
+    "campus-5b9951a7": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "5b9951a7"
+      ],
+      "name": "Campus-area building 5b9951a7 (Episcopal Diocese of Austin)",
+      "model": "opus",
+      "x": 627.289,
+      "z": -728.165,
+      "top": 4.8
+    },
+    "campus-4ec95561": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "4ec95561"
+      ],
+      "name": "Campus-area building 4ec95561 (Kola Family and Cosmetic Dentistry)",
+      "model": "opus",
+      "x": 504.295,
+      "z": -628.859,
+      "top": 6.3
+    },
+    "campus-f7281037": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "f7281037"
+      ],
+      "name": "Campus-area building f7281037",
+      "model": "opus",
+      "x": 632.704,
+      "z": -545.132,
+      "top": 4.6
+    },
+    "campus-30763136": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "30763136"
+      ],
+      "name": "Campus-area building 30763136",
+      "model": "opus",
+      "x": 543.475,
+      "z": -597.438,
+      "top": 4.3
+    },
+    "campus-11878e7a": {
+      "tile": "t_2_-3",
+      "map_ids": [
+        "11878e7a"
+      ],
+      "name": "Campus-area building 11878e7a",
+      "model": "opus",
+      "x": 558.197,
+      "z": -655.672,
+      "top": 4.1
+    },
+    "west-campus-e353f65d": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "e353f65d",
+        "w381834092"
+      ],
+      "name": "West Campus building e353f65d",
+      "model": "opus",
+      "x": -618.286,
+      "z": 559.439,
+      "top": 13.5
+    },
+    "west-campus-aa286e15": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "aa286e15",
+        "w381834319"
+      ],
+      "name": "West Campus building aa286e15 (Rio House Apartments)",
+      "model": "opus",
+      "x": -549.508,
+      "z": 581.12,
+      "top": 13.2
+    },
+    "west-campus-02bd7bbb": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "02bd7bbb",
+        "w381834476"
+      ],
+      "name": "West Campus building 02bd7bbb",
+      "model": "opus",
+      "x": -650.968,
+      "z": 609.27,
+      "top": 7.3
+    },
+    "west-campus-05c1b334": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "05c1b334",
+        "w381834058"
+      ],
+      "name": "West Campus building 05c1b334",
+      "model": "opus",
+      "x": -649.202,
+      "z": 640.658,
+      "top": 9
+    },
+    "west-campus-29ab11df": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "29ab11df",
+        "w381834098"
+      ],
+      "name": "West Campus building 29ab11df",
+      "model": "opus",
+      "x": -663.285,
+      "z": 555.916,
+      "top": 5.8
+    },
+    "west-campus-aab71877": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "aab71877",
+        "w381834331"
+      ],
+      "name": "West Campus building aab71877",
+      "model": "opus",
+      "x": -544.231,
+      "z": 526.959,
+      "top": 11.2
+    },
+    "west-campus-ad4254ec": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "ad4254ec",
+        "w381834114"
+      ],
+      "name": "West Campus building ad4254ec",
+      "model": "opus",
+      "x": -599.623,
+      "z": 507.879,
+      "top": 10.8
+    },
+    "west-campus-ec2ed5e8": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "ec2ed5e8",
+        "w381834334"
+      ],
+      "name": "West Campus building ec2ed5e8",
+      "model": "opus",
+      "x": -580.656,
+      "z": 660.658,
+      "top": 15.6
+    },
+    "west-campus-a2f87a1c": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "a2f87a1c",
+        "w381834091"
+      ],
+      "name": "West Campus building a2f87a1c",
+      "model": "opus",
+      "x": -505.744,
+      "z": 597.792,
+      "top": 9
+    },
+    "west-campus-ca1d0382": {
+      "tile": "t_-3_2",
+      "map_ids": [
+        "ca1d0382",
+        "w381834077"
+      ],
+      "name": "West Campus building ca1d0382",
+      "model": "opus",
+      "x": -738.645,
+      "z": 590.305,
+      "top": 11.8
+    },
+    "campus-f9d72bd0": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "f9d72bd0"
+      ],
+      "name": "Campus-area building f9d72bd0",
+      "model": "opus",
+      "x": 1146.763,
+      "z": -609.059,
+      "top": 14.2
+    },
+    "campus-95c8e5cd": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "95c8e5cd"
+      ],
+      "name": "Campus-area building 95c8e5cd",
+      "model": "opus",
+      "x": 1165.606,
+      "z": -641.548,
+      "top": 18
+    },
+    "campus-58e0fd0c": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "58e0fd0c"
+      ],
+      "name": "Campus-area building 58e0fd0c",
+      "model": "opus",
+      "x": 1110.849,
+      "z": -562.866,
+      "top": 11.1
+    },
+    "campus-e4eacc40": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "e4eacc40"
+      ],
+      "name": "Campus-area building e4eacc40",
+      "model": "opus",
+      "x": 1205.383,
+      "z": -691.177,
+      "top": 6.9
+    },
+    "campus-a57f6fe3": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "a57f6fe3"
+      ],
+      "name": "Campus-area building a57f6fe3",
+      "model": "opus",
+      "x": 1098.309,
+      "z": -517.673,
+      "top": 5.4
+    },
+    "campus-e1ba4380": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "e1ba4380"
+      ],
+      "name": "Campus-area building e1ba4380",
+      "model": "opus",
+      "x": 1024.708,
+      "z": -601.437,
+      "top": 7.8
+    },
+    "campus-f4107e23": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "f4107e23"
+      ],
+      "name": "Campus-area building f4107e23",
+      "model": "opus",
+      "x": 1012.356,
+      "z": -613.955,
+      "top": 8.2
+    },
+    "campus-678899ae": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "678899ae"
+      ],
+      "name": "Campus-area building 678899ae",
+      "model": "opus",
+      "x": 1227.693,
+      "z": -717.693,
+      "top": 7.3
+    },
+    "campus-1c9f83e8": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "1c9f83e8"
+      ],
+      "name": "Campus-area building 1c9f83e8",
+      "model": "opus",
+      "x": 1248.378,
+      "z": -747.789,
+      "top": 7.2
+    },
+    "campus-11fab8de": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "11fab8de"
+      ],
+      "name": "Campus-area building 11fab8de",
+      "model": "opus",
+      "x": 1165.662,
+      "z": -693.65,
+      "top": 5
+    },
+    "campus-47430ddb": {
+      "tile": "t_4_-3",
+      "map_ids": [
+        "47430ddb"
+      ],
+      "name": "Campus-area building 47430ddb (Jimmy John's)",
+      "model": "opus",
+      "x": 1226.106,
+      "z": -598.038,
+      "top": 3.8
     }
   }
 }
