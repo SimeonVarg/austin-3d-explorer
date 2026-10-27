@@ -937,16 +937,27 @@
       "buildings": [
         "21-pearl-west-campus",
         "diplomat-west-campus",
+        "envoy-apartments-west-campus",
         "west-campus-1fe7267c",
+        "west-campus-3fbd5939",
         "west-campus-41d7f858",
+        "west-campus-4b98f03d",
         "west-campus-4e03b7f5",
+        "west-campus-5cf988aa",
+        "west-campus-6e0ca3e6",
         "west-campus-7aacc4af",
+        "west-campus-87401602",
+        "west-campus-967db090",
+        "west-campus-9f03b6b9",
         "west-campus-ae4909d9",
+        "west-campus-b92e7aca",
+        "west-campus-ee9e48b5",
+        "west-campus-fd1257de",
         "west-campus-flats"
       ],
       "bytes": [
-        449928,
-        24892
+        590104,
+        42200
       ]
     },
     {
@@ -5264,6 +5275,127 @@
       "x": -1099.507,
       "z": 2212.261,
       "top": 10.4
+    },
+    "envoy-apartments-west-campus": {
+      "tile": "t_-4_0",
+      "map_ids": [
+        "1bffa6bb"
+      ],
+      "name": "Envoy Apartments West Campus",
+      "model": "opus",
+      "x": -880.053,
+      "z": 93.339,
+      "top": 6.2
+    },
+    "west-campus-3fbd5939": {
+      "tile": "t_-4_0",
+      "map_ids": [
+        "3fbd5939"
+      ],
+      "name": "West Campus apartments 3fbd5939",
+      "model": "opus",
+      "x": -890.158,
+      "z": 242.479,
+      "top": 12.9
+    },
+    "west-campus-4b98f03d": {
+      "tile": "t_-4_0",
+      "map_ids": [
+        "4b98f03d"
+      ],
+      "name": "West Campus house 4b98f03d",
+      "model": "opus",
+      "x": -932.706,
+      "z": 209.915,
+      "top": 13.7
+    },
+    "west-campus-5cf988aa": {
+      "tile": "t_-4_0",
+      "map_ids": [
+        "5cf988aa"
+      ],
+      "name": "West Campus apartments 5cf988aa",
+      "model": "opus",
+      "x": -939.479,
+      "z": 82.497,
+      "top": 9.2
+    },
+    "west-campus-6e0ca3e6": {
+      "tile": "t_-4_0",
+      "map_ids": [
+        "6e0ca3e6"
+      ],
+      "name": "West Campus house 6e0ca3e6",
+      "model": "opus",
+      "x": -934.434,
+      "z": 179.43,
+      "top": 7.9
+    },
+    "west-campus-87401602": {
+      "tile": "t_-4_0",
+      "map_ids": [
+        "87401602"
+      ],
+      "name": "West Campus apartments 87401602 (2102)",
+      "model": "opus",
+      "x": -887.555,
+      "z": 139.472,
+      "top": 6
+    },
+    "west-campus-967db090": {
+      "tile": "t_-4_0",
+      "map_ids": [
+        "967db090"
+      ],
+      "name": "West Campus house 967db090",
+      "model": "opus",
+      "x": -937.32,
+      "z": 162.193,
+      "top": 13.8
+    },
+    "west-campus-9f03b6b9": {
+      "tile": "t_-4_0",
+      "map_ids": [
+        "9f03b6b9"
+      ],
+      "name": "West Campus apartments 9f03b6b9",
+      "model": "opus",
+      "x": -785.23,
+      "z": 113.261,
+      "top": 18.1
+    },
+    "west-campus-b92e7aca": {
+      "tile": "t_-4_0",
+      "map_ids": [
+        "b92e7aca"
+      ],
+      "name": "West Campus apartments b92e7aca",
+      "model": "opus",
+      "x": -823.426,
+      "z": 208.66,
+      "top": 5.9
+    },
+    "west-campus-ee9e48b5": {
+      "tile": "t_-4_0",
+      "map_ids": [
+        "ee9e48b5"
+      ],
+      "name": "West Campus apartments ee9e48b5",
+      "model": "opus",
+      "x": -823.521,
+      "z": 145.198,
+      "top": 8.2
+    },
+    "west-campus-fd1257de": {
+      "tile": "t_-4_0",
+      "map_ids": [
+        "fd1257de"
+      ],
+      "name": "West Campus apartments fd1257de",
+      "model": "opus",
+      "x": -885.479,
+      "z": 181.403,
+      "top": 8.6
     }
   }
 }
