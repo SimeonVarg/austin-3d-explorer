@@ -2675,23 +2675,80 @@
  },
  "west-campus-e353f65d": {
   "materials": {
-   "wall_stucco": {
-    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/robert-a-welch-hall/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/robert-a-welch-hall/brick_normal.jpg",
     "repeat_m": [
-     1.6,
-     1.6
+     0.9885,
+     1.0544
     ],
     "factor": [
-     0.5317,
-     0.4418,
-     0.3855
+     0.2092,
+     0.1858,
+     0.207
     ],
-    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: seen (Earth h045+h225: pale pink-cream walls, balconies; red tile mansard rim) (batch pilot 2026-10-27)",
+    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo, light divided out), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
     "mean_rgb": [
-     0.2662,
-     0.2208,
-     0.1932
+     0.118,
+     0.073,
+     0.06
     ]
+   },
+   "wall_brick_dark": {
+    "albedo": "scripts/v2/materials/robert-a-welch-hall/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/robert-a-welch-hall/brick_normal.jpg",
+    "repeat_m": [
+     0.9885,
+     1.0544
+    ],
+    "factor": [
+     0.1503,
+     0.1471,
+     0.1739
+    ],
+    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo, light divided out), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
+    "mean_rgb": [
+     0.0848,
+     0.0578,
+     0.0504
+    ]
+   },
+   "trim_cast_stone": {
+    "albedo": "scripts/v2/materials/physics-math-astronomy/precast_albedo.jpg",
+    "repeat_m": [
+     0.7557,
+     0.7557
+    ],
+    "factor": [
+     0.3537,
+     0.3026,
+     0.2388
+    ],
+    "source": "SHARED LIBRARY: PMA precast panel (owner photo, light divided out), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
+    "mean_rgb": [
+     0.1932,
+     0.1678,
+     0.123
+    ]
+   },
+   "roof_tile_clay": {
+    "albedo": "v2/data/materials/clay-tile.jpg",
+    "repeat_m": [
+     2.0,
+     2.4
+    ],
+    "factor": [
+     0.5289,
+     0.1068,
+     0.0543
+    ],
+    "source": "SHARED LIBRARY: campus clay barrel tile (owner photo IMG_0747, de-lit, #570), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
+    "mean_rgb": [
+     0.1371,
+     0.0169,
+     0.0088
+    ],
+    "plan_deg": 71.0
    },
    "roof_flat": {
     "albedo": "scripts/v2/materials/_library/flatroof_albedo.jpg",
@@ -2704,7 +2761,7 @@
      0.249,
      0.2951
     ],
-    "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
+    "source": "SHARED LIBRARY: pale flat membrane roof (owner rooftop photo 088, de-lit), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
     "mean_rgb": [
      0.1892,
      0.1892,
@@ -2714,12 +2771,41 @@
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "walls proof 2026-10-28: colours sampled from the street views (sRGB x rig scale 0.35, glass 0.5), texture mean scaled to them"
   },
-  "filter": {
-   "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+  "fade": {
+   "screen_teal": {
+    "to": [
+     0.0208,
+     0.0375,
+     0.038
+    ],
+    "size_m": 0.1
+   },
+   "frame_bronze": {
+    "to": [
+     0.0158,
+     0.0297,
+     0.0429
+    ],
+    "size_m": 0.06
+   },
+   "trim_fine": {
+    "to": [
+     0.1481,
+     0.1109,
+     0.0852
+    ],
+    "size_m": 0.44
+   },
+   "pane_window": {
+    "to": [
+     0.0664,
+     0.0588,
+     0.0665
+    ],
+    "size_m": 0.72
+   }
   }
  },
  "west-campus-aa286e15": {
@@ -3280,15 +3366,15 @@
      1.6
     ],
     "factor": [
-     0.4702,
-     0.4514,
-     0.4035
+     0.281,
+     0.2495,
+     0.1219
     ],
-    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: not in any capture; pale = street prior (batch pilot 2026-10-27)",
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo, light divided out), re-tinted to contributed panorama Jun 2025 from the street NE of it (north arcade face + east windows), partly behind a tree (walls proof 2026-10-28)",
     "mean_rgb": [
-     0.2354,
-     0.2256,
-     0.2022
+     0.1407,
+     0.1247,
+     0.0611
     ]
    },
    "roof_tile_clay": {
@@ -3302,7 +3388,7 @@
      0.2852,
      0.2411
     ],
-    "source": "SHARED LIBRARY: the campus clay barrel tile (v2/data/materials/clay-tile.jpg, owner photo IMG_0747, de-lit, #570; 8 barrels x 0.25 m by 8 courses x 0.30 m), re-tinted per building; chosen where the aerial roof hue is red-orange; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
+    "source": "SHARED LIBRARY: campus clay barrel tile (owner photo IMG_0747, de-lit, #570), re-tinted to contributed panorama Jun 2025 from the street NE of it (north arcade face + east windows), partly behind a tree (walls proof 2026-10-28)",
     "mean_rgb": [
      0.1096,
      0.0451,
@@ -3313,12 +3399,38 @@
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "walls proof 2026-10-28: colours sampled from the street views (sRGB x rig scale 0.35, glass 0.5), texture mean scaled to them"
   },
   "filter": {
    "anisotropy": 8,
    "lod_bias": -0.5,
-   "why": "the plan-projected clay rows are stretched up a steep slope (1/cos pitch), so they need a sharper mip than the campus clay roofs (-0.15) to stay as sharp as the truth (rule 15 soft gate, 2026-10-27: -0.15 gave soft +0.09 at 120 m)"
+   "why": "as the batch clay roofs (rule 15 soft gate, 2026-10-27)"
+  },
+  "fade": {
+   "frame_maroon": {
+    "to": [
+     0.0235,
+     0.0101,
+     0.0075
+    ],
+    "size_m": 0.06
+   },
+   "trim_fine": {
+    "to": [
+     0.1893,
+     0.1692,
+     0.1104
+    ],
+    "size_m": 0.25
+   },
+   "pane_window": {
+    "to": [
+     0.0883,
+     0.0774,
+     0.0388
+    ],
+    "size_m": 0.84
+   }
   }
  },
  "campus-f9d72bd0": {
