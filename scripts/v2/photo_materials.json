@@ -102,15 +102,15 @@
    "wall_rough_stone": {
     "albedo": "scripts/v2/materials/hogg-memorial-auditorium/rough_albedo.jpg",
     "repeat_m": [
-     1.5,
-     3.0
+     4.5,
+     6.0
     ],
     "factor": [
      0.273,
      0.2497,
      0.2228
     ],
-    "source": "owner photo, 2026-10-03 campus walk (front, north bay, rectified through the solved camera): the pitted shell stone in its real random courses, light divided out",
+    "source": "owner photo, 2026-10-03 campus walk (front, north bay, rectified through the solved camera): the pitted shell stone in its real random courses, light divided out; 2026-10-28: re-laid course by course into a 4.5 x 6.0 m tile (its own pixels, courses evened 70 % to the wall mean) so the 1.5 m repeat no longer shows on long walls",
     "mean_rgb": [
      0.1365,
      0.1249,
@@ -146,7 +146,7 @@
      0.245,
      0.2085
     ],
-    "source": "owner photo, 2026-10-03 campus walk (street storey north of the north door): stone mottling only, the block joints are geometry",
+    "source": "owner photo, 2026-10-03 campus walk (street storey north of the north door): stone mottling only, the block joints are geometry; 2026-10-28: a dark column (0.85 of the mean) in each 0.6 m repeat drew false joints every 0.6 m on the street storey and the hall frieze; column and row means evened",
     "mean_rgb": [
      0.1336,
      0.1231,
@@ -171,7 +171,26 @@
      0.0095
     ]
    }
-  }
+  },
+  "fade": {
+   "bollard_yellow": {
+    "to": [
+     0.123,
+     0.108,
+     0.091
+    ],
+    "size_m": 0.18
+   },
+   "iron_black": {
+    "to": [
+     0.1336,
+     0.1231,
+     0.1041
+    ],
+    "size_m": 0.03
+   }
+  },
+  "fade_note": "2026-10-28: the frontage's iron bars and bollards fade by their size on screen (rule 15); the sign poles and plates are NOT faded: through the coverage-fade path they came out black in the app (two tries), so they stay plain until that is looked at"
  },
  "physics-math-astronomy": {
   "wall_max_ny": 0.75,
