@@ -2713,24 +2713,6 @@
      0.0504
     ]
    },
-   "trim_cast_stone": {
-    "albedo": "scripts/v2/materials/physics-math-astronomy/precast_albedo.jpg",
-    "repeat_m": [
-     0.7557,
-     0.7557
-    ],
-    "factor": [
-     0.2853,
-     0.2311,
-     0.1982
-    ],
-    "source": "SHARED LIBRARY: PMA precast panel (owner photo, light divided out), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
-    "mean_rgb": [
-     0.1558,
-     0.1282,
-     0.1021
-    ]
-   },
    "roof_tile_clay": {
     "albedo": "v2/data/materials/clay-tile.jpg",
     "repeat_m": [
@@ -2792,9 +2774,9 @@
    },
    "trim_fine": {
     "to": [
-     0.1331,
-     0.0951,
-     0.0768
+     0.1242,
+     0.0871,
+     0.0683
     ],
     "size_m": 0.44
    },
@@ -2805,6 +2787,30 @@
      0.0822
     ],
     "size_m": 1.25
+   },
+   "screen_void": {
+    "to": [
+     0.0497,
+     0.0319,
+     0.0274
+    ],
+    "size_m": 0.7
+   },
+   "trim_cast_stone": {
+    "to": [
+     0.1258,
+     0.0906,
+     0.0704
+    ],
+    "size_m": 0.35
+   },
+   "glass_door": {
+    "to": [
+     0.0643,
+     0.0451,
+     0.0413
+    ],
+    "size_m": 2.0
    }
   },
   "filter": {
@@ -2881,6 +2887,22 @@
      0.0316
     ],
     "size_m": 1.4
+   },
+   "door_paint": {
+    "to": [
+     0.0726,
+     0.0494,
+     0.0326
+    ],
+    "size_m": 0.9
+   },
+   "steel_maroon": {
+    "to": [
+     0.0874,
+     0.0456,
+     0.031
+    ],
+    "size_m": 0.3
    }
   }
  },
@@ -3298,6 +3320,22 @@
      0.0261
     ],
     "size_m": 0.84
+   },
+   "loggia_void": {
+    "to": [
+     0.0604,
+     0.0459,
+     0.0205
+    ],
+    "size_m": 1.95
+   },
+   "trim_paint": {
+    "to": [
+     0.1893,
+     0.1602,
+     0.1022
+    ],
+    "size_m": 0.15
    }
   },
   "filter": {
