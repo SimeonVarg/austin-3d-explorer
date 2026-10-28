@@ -5916,7 +5916,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-3_2",
-      "blend_sha256": "ccd65a2e23534383",
+      "blend_sha256": "d12c461a4a5d0c9b",
       "lod1": "mass",
       "placement": {
         "height_m": 14.4,
@@ -5931,7 +5931,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-3_2",
-      "blend_sha256": "c4e3ea0fa613f513",
+      "blend_sha256": "2bc2039f4273dd02",
       "lod1": "mass",
       "placement": {
         "height_m": 13.2,
@@ -6057,7 +6057,7 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-3_2",
-      "blend_sha256": "94199231fa3bfe93",
+      "blend_sha256": "fac99a5c1470993e",
       "lod1": "mass",
       "placement": {
         "height_m": 11.8,
@@ -7350,11 +7350,11 @@
       }
     },
     "t_-3_2": {
-      "hash": "0321eaf136987529",
+      "hash": "8dc1e71ae705605e",
       "near": {
-        "bytes": 709548,
+        "bytes": 682692,
         "tris": 34764,
-        "draws": 26
+        "draws": 27
       },
       "far": {
         "bytes": 21316,
