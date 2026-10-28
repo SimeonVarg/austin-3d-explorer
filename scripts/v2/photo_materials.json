@@ -3169,40 +3169,22 @@
  },
  "campus-f9d72bd0": {
   "materials": {
-   "wall_stone": {
-    "albedo": "scripts/v2/materials/moffett-molecular-biology/rough_albedo.jpg",
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
     "repeat_m": [
-     3.8966,
-     1.806
+     1.6,
+     1.6
     ],
     "factor": [
-     0.3685,
-     0.304,
-     0.2424
+     0.564,
+     0.5542,
+     0.5206
     ],
-    "source": "SHARED LIBRARY: Moffett rough limestone (owner photo, light divided out), re-tinted to Google Maps Street View, Mar 2024, from E 32nd (south face: split-face stone, strip windows under blue awnings, planter wall) (walls pass 2026-10-28)",
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: seen (Earth h045+h225: white walls, blue window bands, 4 storeys); roof flat with rooftop plant (Earth), scan levels per part (batch pilot 2026-10-27)",
     "mean_rgb": [
-     0.1845,
-     0.152,
-     0.1213
-    ]
-   },
-   "site_stone": {
-    "albedo": "scripts/v2/materials/moffett-molecular-biology/rough_albedo.jpg",
-    "repeat_m": [
-     3.8966,
-     1.806
-    ],
-    "factor": [
-     0.3309,
-     0.2494,
-     0.1722
-    ],
-    "source": "SHARED LIBRARY: Moffett rough limestone (owner photo, light divided out), re-tinted to Google Maps Street View, Mar 2024, from E 32nd (south face: split-face stone, strip windows under blue awnings, planter wall) (walls pass 2026-10-28)",
-    "mean_rgb": [
-     0.1657,
-     0.1247,
-     0.0862
+     0.2824,
+     0.277,
+     0.2609
     ]
    },
    "roof_flat": {
@@ -3216,7 +3198,7 @@
      0.1146,
      0.1359
     ],
-    "source": "SHARED LIBRARY: pale flat membrane roof (owner rooftop photo 088, de-lit), re-tinted to Google Maps Street View, Mar 2024, from E 32nd (south face: split-face stone, strip windows under blue awnings, planter wall) (walls pass 2026-10-28)",
+    "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
      0.0871,
      0.0871,
@@ -3226,41 +3208,12 @@
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "walls pass 2026-10-28: colours sampled from the Street View frame (sRGB x rig scale 0.35), texture mean scaled to them"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   },
-  "fade": {
-   "frame": {
-    "to": [
-     0.0078,
-     0.0077,
-     0.0074
-    ],
-    "size_m": 0.06
-   },
-   "awning": {
-    "to": [
-     0.0772,
-     0.0833,
-     0.1164
-    ],
-    "size_m": 0.3
-   },
-   "pane_window": {
-    "to": [
-     0.0955,
-     0.0791,
-     0.0635
-    ],
-    "size_m": 1.5
-   },
-   "trim_stone": {
-    "to": [
-     0.1933,
-     0.1619,
-     0.1292
-    ],
-    "size_m": 0.3
-   }
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.5,
+   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
   }
  },
  "campus-95c8e5cd": {
@@ -3847,15 +3800,15 @@
      1.6
     ],
     "factor": [
-     0.1336,
-     0.1092,
-     0.0782
+     0.4702,
+     0.4514,
+     0.4035
     ],
-    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo, light divided out), re-tinted to Google Maps Street View, Mar 2024, from Red River (west shop fronts: glass, sign band, sign panels) (walls pass 2026-10-28)",
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: not in any capture; pale = street prior (batch pilot 2026-10-27)",
     "mean_rgb": [
-     0.0669,
-     0.0546,
-     0.0392
+     0.2354,
+     0.2256,
+     0.2022
     ]
    },
    "roof_flat": {
@@ -3869,7 +3822,7 @@
      0.2193,
      0.2598
     ],
-    "source": "SHARED LIBRARY: pale flat membrane roof (owner rooftop photo 088, de-lit), re-tinted to Google Maps Street View, Mar 2024, from Red River (west shop fronts: glass, sign band, sign panels) (walls pass 2026-10-28)",
+    "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
      0.1666,
      0.1666,
@@ -3879,25 +3832,12 @@
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "walls pass 2026-10-28: colours sampled from the Street View frame (sRGB x rig scale 0.35), texture mean scaled to them"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   },
-  "fade": {
-   "frame": {
-    "to": [
-     0.016,
-     0.0152,
-     0.0161
-    ],
-    "size_m": 0.06
-   },
-   "trim_paint": {
-    "to": [
-     0.0794,
-     0.0664,
-     0.0496
-    ],
-    "size_m": 0.15
-   }
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.5,
+   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
   }
  }
 }
