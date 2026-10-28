@@ -2687,7 +2687,7 @@
      0.1858,
      0.207
     ],
-    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo, light divided out), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
+    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo, light divided out), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls pass 2026-10-28)",
     "mean_rgb": [
      0.118,
      0.073,
@@ -2706,7 +2706,7 @@
      0.1471,
      0.1739
     ],
-    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo, light divided out), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
+    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo, light divided out), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls pass 2026-10-28)",
     "mean_rgb": [
      0.0848,
      0.0578,
@@ -2720,15 +2720,15 @@
      0.7557
     ],
     "factor": [
-     0.3537,
-     0.3026,
-     0.2388
+     0.2012,
+     0.163,
+     0.1299
     ],
-    "source": "SHARED LIBRARY: PMA precast panel (owner photo, light divided out), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
+    "source": "SHARED LIBRARY: PMA precast panel (owner photo, light divided out), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls pass 2026-10-28)",
     "mean_rgb": [
-     0.1932,
-     0.1678,
-     0.123
+     0.1099,
+     0.0904,
+     0.0669
     ]
    },
    "roof_tile_clay": {
@@ -2738,15 +2738,15 @@
      2.4
     ],
     "factor": [
-     0.5289,
-     0.1068,
-     0.0543
+     0.4116,
+     0.1435,
+     0.0913
     ],
-    "source": "SHARED LIBRARY: campus clay barrel tile (owner photo IMG_0747, de-lit, #570), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
+    "source": "SHARED LIBRARY: campus clay barrel tile (owner photo IMG_0747, de-lit, #570), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls pass 2026-10-28)",
     "mean_rgb": [
-     0.1371,
-     0.0169,
-     0.0088
+     0.1067,
+     0.0227,
+     0.0148
     ],
     "plan_deg": 71.0
    },
@@ -2761,7 +2761,7 @@
      0.249,
      0.2951
     ],
-    "source": "SHARED LIBRARY: pale flat membrane roof (owner rooftop photo 088, de-lit), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
+    "source": "SHARED LIBRARY: pale flat membrane roof (owner rooftop photo 088, de-lit), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls pass 2026-10-28)",
     "mean_rgb": [
      0.1892,
      0.1892,
@@ -2771,7 +2771,7 @@
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "walls proof 2026-10-28: colours sampled from the street views (sRGB x rig scale 0.35, glass 0.5), texture mean scaled to them"
+   "why": "walls pass 2026-10-28: colours sampled from the Street View frame (sRGB x rig scale 0.35), texture mean scaled to them"
   },
   "fade": {
    "screen_teal": {
@@ -2784,17 +2784,17 @@
    },
    "frame_bronze": {
     "to": [
-     0.0158,
-     0.0297,
-     0.0429
+     0.0674,
+     0.0439,
+     0.0364
     ],
     "size_m": 0.06
    },
    "trim_fine": {
     "to": [
-     0.1481,
-     0.1109,
-     0.0852
+     0.1148,
+     0.08,
+     0.0628
     ],
     "size_m": 0.44
    },
@@ -3366,15 +3366,15 @@
      1.6
     ],
     "factor": [
-     0.281,
-     0.2495,
-     0.1219
+     0.2884,
+     0.2295,
+     0.1028
     ],
-    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo, light divided out), re-tinted to contributed panorama Jun 2025 from the street NE of it (north arcade face + east windows), partly behind a tree (walls proof 2026-10-28)",
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo, light divided out), re-tinted to contributed panorama Jun 2025 from the street NE of it (north arcade face + east windows); ochre from its sunlit stucco (walls pass 2026-10-28)",
     "mean_rgb": [
-     0.1407,
-     0.1247,
-     0.0611
+     0.1444,
+     0.1147,
+     0.0515
     ]
    },
    "roof_tile_clay": {
@@ -3388,7 +3388,7 @@
      0.2852,
      0.2411
     ],
-    "source": "SHARED LIBRARY: campus clay barrel tile (owner photo IMG_0747, de-lit, #570), re-tinted to contributed panorama Jun 2025 from the street NE of it (north arcade face + east windows), partly behind a tree (walls proof 2026-10-28)",
+    "source": "SHARED LIBRARY: campus clay barrel tile (owner photo IMG_0747, de-lit, #570), re-tinted to contributed panorama Jun 2025 from the street NE of it (north arcade face + east windows); ochre from its sunlit stucco (walls pass 2026-10-28)",
     "mean_rgb": [
      0.1096,
      0.0451,
@@ -3399,7 +3399,7 @@
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "walls proof 2026-10-28: colours sampled from the street views (sRGB x rig scale 0.35, glass 0.5), texture mean scaled to them"
+   "why": "walls pass 2026-10-28: colours sampled from the Street View frame (sRGB x rig scale 0.35), texture mean scaled to them"
   },
   "filter": {
    "anisotropy": 8,
@@ -3409,25 +3409,25 @@
   "fade": {
    "frame_maroon": {
     "to": [
-     0.0235,
-     0.0101,
-     0.0075
+     0.091,
+     0.0643,
+     0.0305
     ],
     "size_m": 0.06
    },
    "trim_fine": {
     "to": [
-     0.1893,
-     0.1692,
-     0.1104
+     0.1911,
+     0.1642,
+     0.1056
     ],
     "size_m": 0.25
    },
    "pane_window": {
     "to": [
-     0.0883,
-     0.0774,
-     0.0388
+     0.077,
+     0.0606,
+     0.0284
     ],
     "size_m": 0.84
    }
