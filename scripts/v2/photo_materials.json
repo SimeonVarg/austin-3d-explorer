@@ -2910,29 +2910,29 @@
      1.6
     ],
     "factor": [
-     0.0987,
-     0.0874,
-     0.0651
+     0.3859,
+     0.3691,
+     0.3033
     ],
-    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo, light divided out), re-tinted to Google Maps Street View, Mar 2024, from Rio Grande (east front: porch, steps, paired/triple windows) (walls pass 2026-10-28)",
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: seen (Earth h045: beige walls, grey metal hip roof) (batch pilot 2026-10-27)",
     "mean_rgb": [
-     0.0494,
-     0.0437,
-     0.0326
+     0.1932,
+     0.1845,
+     0.152
     ]
    },
    "roof_shingle": {
     "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
     "repeat_m": [
-     3.0,
-     3.0
+     13.448,
+     5.37
     ],
     "factor": [
      0.3616,
      0.3562,
      0.3783
     ],
-    "source": "SHARED LIBRARY: shingle roof (library, de-lit), re-tinted to Google Maps Street View, Mar 2024, from Rio Grande (east front: porch, steps, paired/triple windows) (walls pass 2026-10-28)",
+    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
      0.1016,
      0.1016,
@@ -2943,33 +2943,12 @@
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "walls pass 2026-10-28: colours sampled from the Street View frame (sRGB x rig scale 0.35), texture mean scaled to them"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
   },
-  "fade": {
-   "frame": {
-    "to": [
-     0.1258,
-     0.123,
-     0.1064
-    ],
-    "size_m": 0.06
-   },
-   "pane_window": {
-    "to": [
-     0.0284,
-     0.0256,
-     0.02
-    ],
-    "size_m": 0.7
-   },
-   "trim_paint": {
-    "to": [
-     0.1258,
-     0.123,
-     0.1064
-    ],
-    "size_m": 0.12
-   }
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.5,
+   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
   }
  },
  "west-campus-29ab11df": {
