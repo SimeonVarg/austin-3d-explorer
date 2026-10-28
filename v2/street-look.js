@@ -185,3 +185,23 @@ export const NEAR_LOOK = {
     5: { w: 0.6, h: 0.75, color: '#c8c7c2', shape: 'rect' },
   },
 };
+
+// ?sidewalk=0 turns this off (the old cream slab 0.15 m above the buildings' base). Owner photos IMG_0741/0742 (Hogg) and the campus
+// walk photos: sidewalks are mid-grey concrete with darker joints and a darker, dirtier curb, and the walk meets a building's base
+// level with it. v2's ground is flat at y = 0 and every building stands on y = 0, so y = 0 is the sidewalk's grade: the street
+// (asphalt, gutters, paint, arrows) sits one curb height BELOW it, as in the photographs, instead of the walk sitting above the base.
+// Colours: albedo on v2's scale, fitted so the app drawn from the owner's solved Hogg cameras under the matched sky (exposure 9.7,
+// wb 1.11,0.81) gives the photo's own pixels on the same walk, curb and asphalt (scripts/verify/v2-exact.mjs).
+export const SIDEWALK_LOOK = {
+  ON: true,
+  ROAD_DROP_M: 0.15,            // the street below grade = the curb's real height (Austin standard 6 in)
+  WALK: '#5f5d58',              // broom-finished concrete
+  WALK_GRAIN: 0.06,             // +- share of brightness, faded below a pixel
+  JOINT_M: 1.52,                // 5 ft slabs, joints across the walk's long axis
+  JOINT_DARK: 0.4,              // a joint line's darkening at full strength
+  JOINT_HALF_M: 0.012,          // the joint's half width (a tooled joint is ~2.5 cm across)
+  JOINT_FADE_PX: [16, 6],       // screen pixels per slab where the joints start to fade / are gone (rule 15: no shimmer, not blur)
+  CURB: '#4f4d49',              // curb top and face: older, dirtier concrete than the walk
+  GUTTER: '#56544f',
+  FRONTAGE_AT_GRADE: true,      // paving, lawn and mulch between walk and building sit at the walk's level (the building's base)
+};
