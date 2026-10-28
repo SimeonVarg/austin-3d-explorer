@@ -5916,12 +5916,12 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-3_2",
-      "blend_sha256": "e4ce08ebc36c1483",
+      "blend_sha256": "6755437a2ae4bbcd",
       "lod1": "mass",
       "placement": {
-        "height_m": 14.4,
-        "area_ratio": 1.065,
-        "centre_off_m": 0.24,
+        "height_m": 15,
+        "area_ratio": 1.036,
+        "centre_off_m": 0.12,
         "flags": []
       }
     },
@@ -5931,15 +5931,13 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-3_2",
-      "blend_sha256": "117ffcb19fcd0e62",
+      "blend_sha256": "77f4c71be8f9a220",
       "lod1": "mass",
       "placement": {
         "height_m": 13.2,
-        "area_ratio": 1.127,
-        "centre_off_m": 0.88,
-        "flags": [
-          "area x1.13"
-        ]
+        "area_ratio": 1.004,
+        "centre_off_m": 0.12,
+        "flags": []
       }
     },
     "west-campus-02bd7bbb": {
@@ -6057,14 +6055,14 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-3_2",
-      "blend_sha256": "5051b099f4a6ddad",
+      "blend_sha256": "6ad3134e3f7f99bb",
       "lod1": "mass",
       "placement": {
         "height_m": 11.8,
-        "area_ratio": 1.134,
-        "centre_off_m": 0.11,
+        "area_ratio": 1.151,
+        "centre_off_m": 0.12,
         "flags": [
-          "area x1.13"
+          "area x1.15"
         ]
       }
     },
@@ -7350,15 +7348,15 @@
       }
     },
     "t_-3_2": {
-      "hash": "2a56b9d5e5d2d2c0",
+      "hash": "3b49881186f5c5e9",
       "near": {
-        "bytes": 675824,
-        "tris": 34764,
-        "draws": 25
+        "bytes": 580220,
+        "tris": 30256,
+        "draws": 26
       },
       "far": {
-        "bytes": 21688,
-        "tris": 1797,
+        "bytes": 21736,
+        "tris": 1844,
         "draws": 1
       }
     },
