@@ -190,18 +190,23 @@ export const NEAR_LOOK = {
 // walk photos: sidewalks are mid-grey concrete with darker joints and a darker, dirtier curb, and the walk meets a building's base
 // level with it. v2's ground is flat at y = 0 and every building stands on y = 0, so y = 0 is the sidewalk's grade: the street
 // (asphalt, gutters, paint, arrows) sits one curb height BELOW it, as in the photographs, instead of the walk sitting above the base.
-// Colours: albedo on v2's scale, fitted so the app drawn from the owner's solved Hogg cameras under the matched sky (exposure 9.7,
-// wb 1.11,0.81) gives the photo's own pixels on the same walk, curb and asphalt (scripts/verify/v2-exact.mjs).
+// Colours: albedo on v2's scale, from the owner's photo IMG_0742 drawn from its solved camera under the matched sky (exposure 9.7,
+// wb 1.11,0.81; scripts/verify/v2-exact.mjs). Under that sky the app's whole frame renders ~1.4-1.6x the photo's linear light
+// (limestone 1.4x, asphalt 1.6x), so the concrete is fitted RELATIVE to the asphalt drawn in the same frame: his concrete apron is
+// 0.85-0.95x the parking lot's luminance, warmer (photo sRGB 126,118,111 vs 128,138,146); his curb is ~0.35x the concrete's light
+// (a dark, dirty face). The old walk (#86837b) and frontage paving (#837f76) were ~5x the asphalt's albedo, brighter than the
+// builders' white paint (0.17), and clipped to cream under every exposure that gets the buildings right.
 export const SIDEWALK_LOOK = {
   ON: true,
   ROAD_DROP_M: 0.15,            // the street below grade = the curb's real height (Austin standard 6 in)
-  WALK: '#5f5d58',              // broom-finished concrete
+  WALK: '#403c38',              // broom-finished concrete (0.95x the asphalt's luminance, the photo's warm hue)
   WALK_GRAIN: 0.06,             // +- share of brightness, faded below a pixel
   JOINT_M: 1.52,                // 5 ft slabs, joints across the walk's long axis
   JOINT_DARK: 0.4,              // a joint line's darkening at full strength
   JOINT_HALF_M: 0.012,          // the joint's half width (a tooled joint is ~2.5 cm across)
   JOINT_FADE_PX: [16, 6],       // screen pixels per slab where the joints start to fade / are gone (rule 15: no shimmer, not blur)
-  CURB: '#4f4d49',              // curb top and face: older, dirtier concrete than the walk
-  GUTTER: '#56544f',
+  CURB: '#31302f',              // curb top and face: older, dirtier concrete (0.65x the walk; the vertical face also gets less sky)
+  GUTTER: '#393632',            // the concrete gutter pan beside the curb
+  FRONT_PAVING: '#433f3a',      // plaza and frontage paving between walk and building (the old #837f76 drew the cream band)
   FRONTAGE_AT_GRADE: true,      // paving, lawn and mulch between walk and building sit at the walk's level (the building's base)
 };

@@ -225,7 +225,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       walk: SW ? nearMaterial(SWL.WALK, { grain: SWL.WALK_GRAIN, joints: true, opaqueDepth: true, jointM: SWL.JOINT_M, jointDark: SWL.JOINT_DARK,
         jointHalf: SWL.JOINT_HALF_M, jointFade: [1 / SWL.JOINT_FADE_PX[0], 1 / SWL.JOINT_FADE_PX[1]] })
         : nearMaterial(N.WALK, { grain: N.CONCRETE_GRAIN, joints: true, opaqueDepth: true }),
-      paving: nearMaterial(N.FRONT_PAVING, { grain: N.CONCRETE_GRAIN }), lawn: nearMaterial(N.FRONT_LAWN, { grain: N.LAWN_GRAIN }),
+      paving: nearMaterial(SW ? SWL.FRONT_PAVING : N.FRONT_PAVING, { grain: N.CONCRETE_GRAIN }), lawn: nearMaterial(N.FRONT_LAWN, { grain: N.LAWN_GRAIN }),
       mulch: nearMaterial(N.FRONT_MULCH, { grain: N.LAWN_GRAIN }),
     };
     mats.curb.side = THREE.DoubleSide; mats.walk.side = THREE.DoubleSide;
