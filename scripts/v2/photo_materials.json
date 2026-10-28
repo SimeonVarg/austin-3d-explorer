@@ -2720,15 +2720,15 @@
      0.7557
     ],
     "factor": [
-     0.2444,
-     0.1952,
-     0.1569
+     0.2012,
+     0.163,
+     0.1299
     ],
     "source": "SHARED LIBRARY: PMA precast panel (owner photo, light divided out), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
     "mean_rgb": [
-     0.1335,
-     0.1083,
-     0.0808
+     0.1099,
+     0.0904,
+     0.0669
     ]
    },
    "roof_tile_clay": {
@@ -2785,14 +2785,14 @@
     ],
     "factor": [
      0.2135,
-     0.1823,
-     0.1512
+     0.1671,
+     0.1116
     ],
     "source": "SHARED LIBRARY: Biological Laboratories brick (owner photo, light divided out), re-tinted to contributed panorama Mar 2018 from Rio Grande (west end wall + south courtyard walkways) (walls proof 2026-10-28)",
     "mean_rgb": [
      0.1067,
-     0.0743,
-     0.0485
+     0.0681,
+     0.0358
     ]
    },
    "roof_flat": {
