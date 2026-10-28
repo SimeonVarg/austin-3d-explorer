@@ -6072,15 +6072,15 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_4_-3",
-      "blend_sha256": "550be12b5bd0c544",
+      "blend_sha256": "8de2d0d6edbf867e",
       "lod1": "mass",
       "placement": {
-        "height_m": 14.9,
-        "area_ratio": 0.157,
-        "centre_off_m": 9.85,
+        "height_m": 14.2,
+        "area_ratio": 0.078,
+        "centre_off_m": 21.32,
         "flags": [
-          "centre 9.8 m off",
-          "area x0.16"
+          "centre 21.3 m off",
+          "area x0.08"
         ]
       }
     },
@@ -6233,12 +6233,12 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_4_-3",
-      "blend_sha256": "25a4330d76ae78ee",
+      "blend_sha256": "d674c4c99a1d24d2",
       "lod1": "mass",
       "placement": {
         "height_m": 3.8,
-        "area_ratio": 1.018,
-        "centre_off_m": 0.31,
+        "area_ratio": 0.996,
+        "centre_off_m": 0.19,
         "flags": []
       }
     }
@@ -7363,15 +7363,15 @@
       }
     },
     "t_4_-3": {
-      "hash": "e7b8a6a0e9ab9f88",
+      "hash": "0488f7e122402827",
       "near": {
-        "bytes": 568724,
-        "tris": 22584,
-        "draws": 27
+        "bytes": 458656,
+        "tris": 15194,
+        "draws": 26
       },
       "far": {
-        "bytes": 19700,
-        "tris": 1529,
+        "bytes": 19528,
+        "tris": 1508,
         "draws": 1
       }
     }
