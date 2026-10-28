@@ -5961,15 +5961,13 @@
       "model": "opus",
       "kind": "house",
       "tile": "t_-3_2",
-      "blend_sha256": "44c507b9fd68019f",
+      "blend_sha256": "e655083c2e6cdf60",
       "lod1": "mass",
       "placement": {
         "height_m": 9,
-        "area_ratio": 1.236,
-        "centre_off_m": 0.39,
-        "flags": [
-          "area x1.24"
-        ]
+        "area_ratio": 1.094,
+        "centre_off_m": 0.01,
+        "flags": []
       }
     },
     "west-campus-29ab11df": {
@@ -7352,15 +7350,15 @@
       }
     },
     "t_-3_2": {
-      "hash": "c2943a55b14577b4",
+      "hash": "2fb9e65ff7d23d66",
       "near": {
-        "bytes": 955252,
-        "tris": 49366,
+        "bytes": 925104,
+        "tris": 46742,
         "draws": 27
       },
       "far": {
-        "bytes": 21748,
-        "tris": 1941,
+        "bytes": 21460,
+        "tris": 1908,
         "draws": 1
       }
     },
