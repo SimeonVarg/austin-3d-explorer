@@ -3172,42 +3172,6 @@
  },
  "west-campus-ec2ed5e8": {
   "materials": {
-   "wall_precast": {
-    "albedo": "scripts/v2/materials/physics-math-astronomy/precast_albedo.jpg",
-    "repeat_m": [
-     0.7557,
-     0.7557
-    ],
-    "factor": [
-     0.2071,
-     0.1732,
-     0.1443
-    ],
-    "source": "SHARED LIBRARY: PMA precast panel (owner photo, light divided out), re-tinted to Google Maps Street View, Mar 2024, from Rio Grande (west face: parking storey, two window rows, parapet) (walls pass 2026-10-28)",
-    "mean_rgb": [
-     0.1131,
-     0.0961,
-     0.0743
-    ]
-   },
-   "trim_precast": {
-    "albedo": "scripts/v2/materials/physics-math-astronomy/precast_albedo.jpg",
-    "repeat_m": [
-     0.7557,
-     0.7557
-    ],
-    "factor": [
-     0.1681,
-     0.1408,
-     0.1231
-    ],
-    "source": "SHARED LIBRARY: PMA precast panel (owner photo, light divided out), re-tinted to Google Maps Street View, Mar 2024, from Rio Grande (west face: parking storey, two window rows, parapet) (walls pass 2026-10-28)",
-    "mean_rgb": [
-     0.0918,
-     0.0781,
-     0.0634
-    ]
-   },
    "roof_flat": {
     "albedo": "scripts/v2/materials/_library/flatroof_albedo.jpg",
     "repeat_m": [
