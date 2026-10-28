@@ -196,7 +196,7 @@ const Q = typeof location !== 'undefined' ? new URLSearchParams(location.search)
 // Brick mip chain (v2/brick-mips.js) is OPT-IN per building: it is on only for the photo brick in tiles holding a slug listed
 // here (measured to pass the shimmer/blur gates). Gregory Gym failed its 120 m blur gate with it, and the other live photo-brick
 // buildings were not measured, so they stay on the GPU's own chain. ?brickmips=1 turns it on for every photo brick, 0 off.
-export const BRICK_MIPS_SLUGS = new Set(['mccombs-school-of-business']);
+export const BRICK_MIPS_SLUGS = new Set(['mccombs-school-of-business', 'campus-e4eacc40', 'campus-678899ae', 'campus-1c9f83e8']);   // + walls pass t_4_-3 2026-10-28: brick walls seen at grazing angles (250/600 m shimmer gate)
 export const LIGHT_OLD = Q.get('light') === 'old';
 if (LIGHT_OLD) { LOOK.SHADOW_SLOPE_BIAS = 0; LOOK.AO.ON = false; }
 if (Q.get('ao') === '0') LOOK.AO.ON = false;
