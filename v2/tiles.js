@@ -134,25 +134,38 @@ function brickMips(material, optedIn) {
   }
 }
 const FADE_K = [0.25, 0.6];     // fade from size x K[0] to size x K[1] metres per pixel
-function coverageFade(material) {
+const FADE_SIZE_UNIT_M = 4;     // _FADE.w x this = the part's size in metres (scripts/v2/photo_materials.mjs)
+// Two carriers: older tiles mark the material (extras v2_fade_to / v2_fade_m); tiles built since 2026-10-28 carry the target per vertex
+// (attribute _FADE: rgb to, w size), because the build's material merges kept only one material's extras (every faded part went black).
+function coverageFade(material, perVertex) {
   const to = material && material.userData && material.userData.v2_fade_to;
-  if (!to || material.userData.v2CoverageFade) return;
+  if ((!to && !perVertex) || material.userData.v2CoverageFade) return;
   material.userData.v2CoverageFade = true;
   const size = +material.userData.v2_fade_m || 0.3;
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
-    sh.uniforms.uV2FadeTo = { value: new THREE.Vector3(...to) }; sh.uniforms.uV2FadeM = { value: new THREE.Vector2(size * FADE_K[0], size * FADE_K[1]) };
     sh.uniforms.uV2CScale = AO_SCALE;
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uV2FadeTo;\nuniform vec2 uV2FadeM;\nuniform float uV2CScale;')
+    let target = 'uV2FadeTo', band = 'uV2FadeM';
+    if (perVertex) {
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 _fade;\nvarying vec4 vV2Fade;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvV2Fade = _fade;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec4 vV2Fade;');
+      target = 'vV2Fade.rgb'; band = '(vV2Fade.a * ' + (FADE_SIZE_UNIT_M).toFixed(1) + ' * vec2(' + FADE_K[0].toFixed(3) + ', ' + FADE_K[1].toFixed(3) + '))';
+    } else {
+      sh.uniforms.uV2FadeTo = { value: new THREE.Vector3(...to) }; sh.uniforms.uV2FadeM = { value: new THREE.Vector2(size * FADE_K[0], size * FADE_K[1]) };
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uV2FadeTo;\nuniform vec2 uV2FadeM;');
+    }
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uV2CScale;')
       .replace('#include <color_fragment>', `#include <color_fragment>
   {
     float v2cpx = max(length(dFdx(vViewPosition)), length(dFdy(vViewPosition))) * uV2CScale;
-    diffuseColor.rgb = mix(diffuseColor.rgb, uV2FadeTo, smoothstep(uV2FadeM.x, uV2FadeM.y, v2cpx));
+    vec2 v2fb = ${band};
+    diffuseColor.rgb = mix(diffuseColor.rgb, ${target}, smoothstep(v2fb.x, v2fb.y, v2cpx));
   }`);
   };
   const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
-  material.customProgramCacheKey = () => key() + '|v2-cfade';
+  material.customProgramCacheKey = () => key() + (perVertex ? '|v2-cfade-v' : '|v2-cfade');
   material.needsUpdate = true;
 }
 // The models' shadow-map depth, pushed away from the sun by their slope (LOOK.SHADOW_SLOPE_BIAS): no self-shadow stripes on lit faces.
@@ -254,7 +267,10 @@ export class TileStreamer {
           if (shadowDepth) o.customDepthMaterial = shadowDepth;
           const ao = LOOK.AO.ON && !!o.geometry.attributes._ao && o.geometry.attributes._ao.itemSize === 2;
           if (!ao && o.geometry.attributes._ao) o.geometry.deleteAttribute('_ao');
-          for (const m of Array.isArray(o.material) ? o.material : [o.material]) { photoTextures(m); brickMips(m, brickOptIn); coverageFade(m); fadeable(m, fade, ao); }
+          // a primitive with per-vertex fade targets gets its own copy of the (shared palette) material: the others must not read _fade
+          const fv = !!o.geometry.attributes._fade && !Array.isArray(o.material);
+          if (fv) o.material = o.material.clone();
+          for (const m of Array.isArray(o.material) ? o.material : [o.material]) { photoTextures(m); brickMips(m, brickOptIn); coverageFade(m, fv); fadeable(m, fade, ao); }
         });
         obj.userData.fade = fade;
         this.prepare(obj, s.def, s);   // (s: main.js adds to s.mapIds the plain extrusions this model stands over, covers.js)
