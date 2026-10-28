@@ -2720,15 +2720,15 @@
      0.7557
     ],
     "factor": [
-     0.2012,
-     0.163,
-     0.1299
+     0.3537,
+     0.3026,
+     0.2388
     ],
     "source": "SHARED LIBRARY: PMA precast panel (owner photo, light divided out), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
     "mean_rgb": [
-     0.1099,
-     0.0904,
-     0.0669
+     0.1932,
+     0.1678,
+     0.123
     ]
    },
    "roof_tile_clay": {
@@ -2738,15 +2738,15 @@
      2.4
     ],
     "factor": [
-     0.4116,
-     0.1435,
-     0.0913
+     0.5289,
+     0.1068,
+     0.0543
     ],
     "source": "SHARED LIBRARY: campus clay barrel tile (owner photo IMG_0747, de-lit, #570), re-tinted to Street View Mar 2024 (west/alley face) + contributed panorama Mar 2018 (east face on Rio Grande) (walls proof 2026-10-28)",
     "mean_rgb": [
-     0.1067,
-     0.0227,
-     0.0148
+     0.1371,
+     0.0169,
+     0.0088
     ],
     "plan_deg": 71.0
    },
@@ -2772,27 +2772,52 @@
   "wall_max_ny": 0.75,
   "anchor": {
    "why": "walls proof 2026-10-28: colours sampled from the street views (sRGB x rig scale 0.35, glass 0.5), texture mean scaled to them"
+  },
+  "fade": {
+   "screen_teal": {
+    "to": [
+     0.0208,
+     0.0375,
+     0.038
+    ],
+    "size_m": 0.1
+   },
+   "frame_bronze": {
+    "to": [
+     0.0158,
+     0.0297,
+     0.0429
+    ],
+    "size_m": 0.06
+   },
+   "trim_fine": {
+    "to": [
+     0.1481,
+     0.1109,
+     0.0852
+    ],
+    "size_m": 0.44
+   }
   }
  },
  "west-campus-aa286e15": {
   "materials": {
-   "wall_brick": {
-    "albedo": "scripts/v2/materials/biological-laboratories/brick_albedo.jpg",
-    "normal": "scripts/v2/materials/biological-laboratories/brick_normal.jpg",
+   "wall_stucco": {
+    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
     "repeat_m": [
-     1.0172,
-     1.0672
+     1.6,
+     1.6
     ],
     "factor": [
-     0.2135,
-     0.1671,
-     0.1116
+     0.441,
+     0.4228,
+     0.3855
     ],
-    "source": "SHARED LIBRARY: Biological Laboratories brick (owner photo, light divided out), re-tinted to contributed panorama Mar 2018 from Rio Grande (west end wall + south courtyard walkways) (walls proof 2026-10-28)",
+    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: partly (Earth h225: pale walls; camera unproven here); roof flat with rooftop plant (Earth), scan levels per part (batch pilot 2026-10-27)",
     "mean_rgb": [
-     0.1067,
-     0.0681,
-     0.0358
+     0.2208,
+     0.2113,
+     0.1932
     ]
    },
    "roof_flat": {
@@ -2806,7 +2831,7 @@
      0.1163,
      0.138
     ],
-    "source": "SHARED LIBRARY: pale flat membrane roof (owner rooftop photo 088, de-lit), re-tinted to contributed panorama Mar 2018 from Rio Grande (west end wall + south courtyard walkways) (walls proof 2026-10-28)",
+    "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
     "mean_rgb": [
      0.0884,
      0.0884,
@@ -2816,7 +2841,12 @@
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "walls proof 2026-10-28: colours sampled from the street views (sRGB x rig scale 0.35, glass 0.5), texture mean scaled to them"
+   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.5,
+   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
   }
  },
  "west-campus-02bd7bbb": {
@@ -3175,14 +3205,14 @@
     ],
     "factor": [
      0.281,
-     0.2135,
-     0.089
+     0.2495,
+     0.1219
     ],
     "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo, light divided out), re-tinted to contributed panorama Jun 2025 from the street NE of it (north arcade face + east windows), partly behind a tree (walls proof 2026-10-28)",
     "mean_rgb": [
      0.1407,
-     0.1067,
-     0.0446
+     0.1247,
+     0.0611
     ]
    },
    "roof_tile_clay": {
@@ -3213,6 +3243,24 @@
    "anisotropy": 8,
    "lod_bias": -0.5,
    "why": "as the batch clay roofs (rule 15 soft gate, 2026-10-27)"
+  },
+  "fade": {
+   "frame_maroon": {
+    "to": [
+     0.0235,
+     0.0101,
+     0.0075
+    ],
+    "size_m": 0.06
+   },
+   "trim_fine": {
+    "to": [
+     0.1893,
+     0.1692,
+     0.1104
+    ],
+    "size_m": 0.25
+   }
   }
  },
  "campus-f9d72bd0": {
