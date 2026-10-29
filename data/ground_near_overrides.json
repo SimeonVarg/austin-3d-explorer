@@ -28,6 +28,20 @@
         151.8,
         -276.7
       ]
+    },
+    {
+      "class": "asphalt",
+      "why": "Norman Hackerman Building, package photo-1: the street in front of the building, curb to 9 m out, is asphalt (nothing in the inventory names it and the aerial's tree-shaded colour read as concrete). The curb line is measured through the photo's solved camera; the far side is the street's usual width.",
+      "ring": [
+        84.3,
+        -163.0,
+        143.0,
+        -156.3,
+        142.0,
+        -147.4,
+        83.3,
+        -154.0
+      ]
     }
   ]
 }
