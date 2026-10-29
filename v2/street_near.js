@@ -5,10 +5,12 @@
 //
 // Rule 15: fine detail is procedural only where it is bigger than a pixel (the asphalt grain and the slab joints fade with the
 // screen-space derivative). The opaque asphalt stays; fine detail is not drawn past NEAR.FADE[1].
-import { NEAR_LOOK as N } from './street-look.js';
+import { NEAR_LOOK as N, SIDEWALK_LOOK as SWL } from './street-look.js';
 import { loadSafeStreet } from './street-data.js';
 
 const params = new URLSearchParams(location.search);
+// grey concrete at the buildings' grade with the street one curb lower (street-look.js SIDEWALK_LOOK); ?sidewalk=0 = the old raised slab
+const SW = SWL.ON && params.get('sidewalk') !== '0';
 const DATA = new URL('./data/street/near.json', import.meta.url).href;
 const DATA_OSM = new URL('./data/street/near_osm.json', import.meta.url).href;   // lane lines from OSM lane counts (ODbL)
 // One road surface (scripts/v2/street_graph.py): carriageway union with junction fillets; kerbs, sidewalks, frontage and lane lines all
@@ -20,11 +22,12 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   if (params.get('near') === '0') return null;
   const group = new THREE.Group(); group.name = 'street near';
   scene.add(group);
+  if (SW) group.position.y = -SWL.ROAD_DROP_M;   // walk top at y = 0 (the base every building stands on), the street below it
   const FADE = phone ? N.FADE_PHONE : N.FADE;
   const stats = { ready: false };
 
   // ── materials: alpha by distance from the camera; optional procedural grain / joints in world space ──
-  function nearMaterial(color, { grain = 0, joints = false, opaqueDepth = false, roughness = 0.95, permanent = false } = {}) {
+  function nearMaterial(color, { grain = 0, joints = false, jointM = N.JOINT_M, jointDark = N.JOINT_DARK, jointHalf = 0.012, jointFade = [0.08, 0.3], opaqueDepth = false, roughness = 0.95, permanent = false } = {}) {
     const m = new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, transparent: !permanent, depthWrite: opaqueDepth || permanent,
       polygonOffset: !opaqueDepth, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
     m.onBeforeCompile = (sh) => {
@@ -49,13 +52,14 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
             diffuseColor.rgb *= 1.0 + ${grain.toFixed(3)} * g;
           #endif
           #if ${joints ? 1 : 0}
-            float js = vS / ${N.JOINT_M.toFixed(2)};
+            // the line is antialiased over its own pixel footprint and fades out before the slabs get a few pixels long (rule 15)
+            float js = vS / ${jointM.toFixed(3)};
             float jw = fwidth(js);
-            float jl = 1.0 - smoothstep(0.0, max(jw, 1e-4) * 1.5 + 0.012, abs(fract(js + 0.5) - 0.5));
-            diffuseColor.rgb *= 1.0 - ${N.JOINT_DARK.toFixed(2)} * jl * (1.0 - smoothstep(0.08, 0.3, jw));
+            float jl = 1.0 - smoothstep(0.0, max(jw, 1e-4) * 1.5 + ${(jointHalf / jointM).toFixed(4)}, abs(fract(js + 0.5) - 0.5));
+            diffuseColor.rgb *= 1.0 - ${jointDark.toFixed(2)} * jl * (1.0 - smoothstep(${jointFade[0].toFixed(4)}, ${jointFade[1].toFixed(4)}, jw));
           #endif`);
     };
-    m.customProgramCacheKey = () => `v2-near-${grain}-${joints}-${permanent}-${FADE.join(',')}`;
+    m.customProgramCacheKey = () => `v2-near-${grain}-${joints}-${jointM}-${jointDark}-${jointHalf}-${jointFade}-${permanent}-${FADE.join(',')}`;
     return m;
   }
 
@@ -140,17 +144,21 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
         return height;
       };
       // Polygons with holes: sidewalk slabs are raised; classified frontage stays at ground level.
-      const poly = (kind, rings, y) => {
+      const poly = (kind, rings, y, alongAxis = false) => {
         const toV = (r) => { const o = []; for (let i = 0; i + 1 < r.length; i += 2) o.push(new THREE.Vector2(r[i], r[i + 1])); return o; };
         const outer = toV(rings[0]), holes = rings.slice(1).map(toV);
         if (outer.length < 3) return;
         let tris; try { tris = THREE.ShapeUtils.triangulateShape(outer, holes); } catch (e) { return; }
         const all = outer.concat(...holes), B = buf(kind, all[0].x, all[0].y), v0 = B.pos.length / 3;
-        for (const p of all) { B.pos.push(p.x, typeof y === 'function' ? y(p.x, p.y) : y, p.y); B.nrm.push(0, 1, 0); B.s.push(0); }
+        // s = distance along the polygon's longest outer edge, so the slab joints run across the walk (a linear function: exact per triangle)
+        let ax = 1, az = 0;
+        if (alongAxis) { let best = 0; for (let i = 0; i < outer.length; i++) { const a = outer[i], b = outer[(i + 1) % outer.length], L = Math.hypot(b.x - a.x, b.y - a.y);
+          if (L > best) { best = L; ax = (b.x - a.x) / L; az = (b.y - a.y) / L; } } }
+        for (const p of all) { B.pos.push(p.x, typeof y === 'function' ? y(p.x, p.y) : y, p.y); B.nrm.push(0, 1, 0); B.s.push(alongAxis ? p.x * ax + p.y * az : 0); }
         for (const t of tris) B.idx.push(v0 + t[0], v0 + t[2], v0 + t[1]);   // (x, z) shape -> faces up
       };
       for (const r of surf.asphalt) poly('asphalt', r, N.ASPHALT_Y_M);
-      for (const r of walkRows) poly('walk', r, walkHeight);
+      for (const r of walkRows) poly('walk', r, walkHeight, SW);
       for (const r of surf.kerb_tops || []) poly('curb', r, H + N.CURB_TOP_LIFT_M);
       // Close the complete slab boundary, including driveway ends and courtyard holes. No walls on tile seams.
       if (surf.solid_edges) for (const [rows, height] of [[walkRows, walkHeight], [surf.kerb_tops || [], H + N.CURB_TOP_LIFT_M]]) {
@@ -164,7 +172,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
         }
         for (const e of edges.values()) if (e.count === 1 || typeof height !== 'function') face('curb', [e.a, e.b], 0, 0, height, 1);
       }
-      for (const k of ['paving', 'lawn', 'mulch']) for (const r of surf[k] || []) poly(k, r, N.FRONT_Y_M);
+      for (const k of ['paving', 'lawn', 'mulch']) for (const r of surf[k] || []) poly(k, r, SW && SWL.FRONTAGE_AT_GRADE ? H - 0.004 : N.FRONT_Y_M);
       d.roads = []; d.fronts = []; d.walks = []; d.curbs = surf.kerbs; d.lanes = surf.lanes.concat((surfOsm && surfOsm.lanes) || []);
     } else if (dOsm && dOsm.lanes) d.lanes = d.lanes.concat(dOsm.lanes);
     // asphalt, kerb to kerb (the two kerbs are measured per side: street_near.py)
@@ -213,9 +221,11 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
     }
     const mats = {
       asphalt: nearMaterial(N.ASPHALT, { grain: N.ASPHALT_GRAIN, permanent: true }), white: nearMaterial(N.PAINT_WHITE), yellow: nearMaterial(N.PAINT_YELLOW),
-      gutter: nearMaterial(N.GUTTER, { grain: N.CONCRETE_GRAIN }), curb: nearMaterial(N.CURB, { opaqueDepth: true }),
-      walk: nearMaterial(N.WALK, { grain: N.CONCRETE_GRAIN, joints: true, opaqueDepth: true }),
-      paving: nearMaterial(N.FRONT_PAVING, { grain: N.CONCRETE_GRAIN }), lawn: nearMaterial(N.FRONT_LAWN, { grain: N.LAWN_GRAIN }),
+      gutter: nearMaterial(SW ? SWL.GUTTER : N.GUTTER, { grain: N.CONCRETE_GRAIN }), curb: nearMaterial(SW ? SWL.CURB : N.CURB, { opaqueDepth: true }),
+      walk: SW ? nearMaterial(SWL.WALK, { grain: SWL.WALK_GRAIN, joints: true, opaqueDepth: true, jointM: SWL.JOINT_M, jointDark: SWL.JOINT_DARK,
+        jointHalf: SWL.JOINT_HALF_M, jointFade: [1 / SWL.JOINT_FADE_PX[0], 1 / SWL.JOINT_FADE_PX[1]] })
+        : nearMaterial(N.WALK, { grain: N.CONCRETE_GRAIN, joints: true, opaqueDepth: true }),
+      paving: nearMaterial(SW ? SWL.FRONT_PAVING : N.FRONT_PAVING, { grain: N.CONCRETE_GRAIN }), lawn: nearMaterial(N.FRONT_LAWN, { grain: N.LAWN_GRAIN }),
       mulch: nearMaterial(N.FRONT_MULCH, { grain: N.LAWN_GRAIN }),
     };
     mats.curb.side = THREE.DoubleSide; mats.walk.side = THREE.DoubleSide;

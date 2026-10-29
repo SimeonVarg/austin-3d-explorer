@@ -25,6 +25,9 @@ const VIEWS = [
   { name: 'South Mall 200 m', xz: [0, 130], distance: 200, polar: 74, azimuth: 20 },
   { name: 'Speedway 500 m', xz: [243, -420], distance: 500, polar: 76, azimuth: 200 },
   { name: 'Drag 1000 m', xz: [-235, 30], distance: 1000, polar: 78, azimuth: 250 },
+  // street level, along the sidewalks and curbs (v2/street-look.js SIDEWALK_LOOK; --views street): Rio Grande at 24th, Congress at 6th
+  { name: 'street Rio Grande 45 m', xz: [-515, -213], distance: 45, polar: 80, azimuth: 355 },
+  { name: 'street Congress 45 m', xz: [-335, 1997], distance: 45, polar: 80, azimuth: 342 },
 ].filter((v) => !arg('--views', '') || String(arg('--views', '')).split(';').some((s) => v.name.includes(s)));
 const browser = await launch(chromium, { args: HW_ARGS, maxMs: 2400000 });
 const rows = []; let renderer = '';
@@ -32,7 +35,7 @@ for (const q of QS) {
   const ctx = await browser.newContext({ viewport: { width: 800, height: 500 }, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log('page error:', e.message));
-  await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0${q ? '&' + q : ''}`, { waitUntil: 'load', timeout: 120000 });
+  await page.goto(`${BASE.replace(/\/$/, '')}/${process.env.V2_DIR || 'v2'}/?intro=0${q ? '&' + q : ''}`, { waitUntil: 'load', timeout: 120000 });
   await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 120000 });
   await page.evaluate(() => window.__v2.ready);
   if (!renderer) renderer = await page.evaluate(() => { const g = window.__v2.renderer.getContext(); const e = g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER); });

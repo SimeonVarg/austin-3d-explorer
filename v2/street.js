@@ -4,10 +4,11 @@
 // Everything is instanced or merged into a handful of draws. Rule 15: these are thin things (a 0.6 m bar, a 0.13 m pole, a 0.15 m curb),
 // so each fades out with distance (flat things by alpha, upright things by shrinking to their foot) before it can get thinner than a
 // pixel and flicker; beyond that the aerial photograph shows the same paint, mipmapped.
-import { STREET_LOOK as S } from './street-look.js';
+import { STREET_LOOK as S, SIDEWALK_LOOK as SWL } from './street-look.js';
 import { loadSafeStreet } from './street-data.js';
 
 const params = new URLSearchParams(location.search);
+const ROAD_DROP = SWL.ON && params.get('sidewalk') !== '0' ? SWL.ROAD_DROP_M : 0;   // the street sits one curb below the walk (street_near.js)
 const DATA = new URL('./data/street/', import.meta.url).href;
 
 export function installStreet({ THREE, scene, redraw, phone = false }) {
@@ -83,7 +84,7 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
     if (marks) city.bars = marks.bars;
 
     // ── paint: crosswalk bars, stop lines, yield teeth (one draw) ──
-    const bars = unflat(city.bars, 5).map(([x, z, a, L, w]) => [x, z, a, L, 1, w, S.PAINT_LIFT_M]);
+    const bars = unflat(city.bars, 5).map(([x, z, a, L, w]) => [x, z, a, L, 1, w, S.PAINT_LIFT_M - ROAD_DROP]);   // on the street, one curb below the walk (SIDEWALK_LOOK)
     const paint = instanced('paint', flatQuad(), flatMaterial(S.PAINT), bars);
     if (paint) paint.renderOrder = 0.96;   // over street_near.js's asphalt (0.9), with its lane lines
 
@@ -91,7 +92,7 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
     //  curbs in city.json are kept for the record and its counts.)
 
     // ── curb ramps with a warning pad ──
-    const pads = marks ? unflat(marks.pads, 3).map(([x,z,a]) => [x,z,a,S.PAD_M[0],1,S.PAD_M[1],S.CURB_HEIGHT_M + S.PAINT_LIFT_M])
+    const pads = marks ? unflat(marks.pads, 3).map(([x,z,a]) => [x,z,a,S.PAD_M[0],1,S.PAD_M[1],S.CURB_HEIGHT_M - ROAD_DROP + S.PAINT_LIFT_M])
       : [];  // raw curb-ramp points aren't validated slab positions
     const padMesh = instanced('ramp pads', flatQuad(), flatMaterial(S.PAD), pads);
     if (padMesh) padMesh.renderOrder = 0.99;
