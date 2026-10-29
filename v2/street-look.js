@@ -218,7 +218,7 @@ export const SIDEWALK_LOOK = {
 // Textures: de-lit, tileable patches resampled onto the ground plane through the SOLVED cameras of the owner's photos (Anna Hiss
 // photo-1: pavers, concrete, planting bed; Hogg IMG_0739: lawn); each is stored at linear mean TEX_MEAN, the shader scales it to ALBEDO.
 // Albedos are on v2's scale, anchored on the fitted sidewalk concrete (SIDEWALK_LOOK.WALK) with each surface's ratio to the concrete
-// measured in the same photograph (pavers 0.83x the concrete's light, warmer; lawn 0.39x the walk in IMG_0739; beds 0.17x). Plaza
+// measured in the same photograph (pavers 0.83x the concrete's light, warmer, then lifted 1.18x on 10-29: at photo-1's camera they rendered 0.84x the photo while the slab rendered 0.97x; lawn 0.39x the walk in IMG_0739; beds 0.17x). Plaza
 // concrete is cleaner than the street sidewalks: drawn from Anna Hiss photo-1's camera under its matched sky the sidewalk tone
 // rendered 0.57x the photo's courtyard slab, so the plaza concrete (and the pavers and beds measured against it) is 1.7-1.8x WALK.
 // Far away the aerial stays (the city must still read from the air); the crossfade is the near street layer's own (NEAR_LOOK.FADE).
@@ -236,7 +236,7 @@ export const GROUND_NEAR_LOOK = {
   EDGE_SHARPEN: [0.3, 0.7],
   // surfaces: [albedo sRGB hex on v2's scale, tile size [x, z] metres, texture's stored linear mean]
   CONCRETE: { color: '#4e493f', tile: [1.2, 1.2], texMean: 0.5, tex: 'ground-concrete.jpg' },
-  PAVERS:   { color: '#483f34', tile: [0.904, 1.54], texMean: 0.5, tex: 'ground-pavers.jpg' },   // 1 x 5 pattern periods (autocorrelation)
+  PAVERS:   { color: '#4e4438', tile: [0.904, 1.54], texMean: 0.5, tex: 'ground-pavers.jpg' },   // 1 x 5 pattern periods (autocorrelation)
   GRASS:    { color: '#1d2311', tile: [0.96, 0.96], texMean: 0.16, tex: 'ground-grass.jpg' },
   BED:      { color: '#1a1b0d', tile: [1.16, 1.16], texMean: 0.16, tex: 'ground-bed.jpg' },
   ASPHALT:  { color: '#3d3e40', tile: [1.2, 1.2], texMean: 0.5, tex: 'ground-concrete.jpg', grain: 0.5 },   // NEAR_LOOK.ASPHALT; concrete grain at half strength

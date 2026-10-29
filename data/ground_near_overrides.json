@@ -1,6 +1,33 @@
 {
   "about": "Ground surfaces read off the owner's photographs where the inventory (data/ground.geojson) disagrees. Measured on the ground plane through each photo's SOLVED camera (an orthographic resample, 1 cm a pixel); rings in v2 metres (x east, z south). Photo wins over outline. Drawn last (scripts/v2/ground_near.py).",
   "features": [
-    {"class": "pavers", "why": "Anna Hiss courtyard, package photo-1: the band between the two planting beds, from the gym's steps to the concrete slab, is buff brick pavers (the inventory has concrete)", "ring": [151.8, -281.5, 155.3, -281.5, 155.3, -276.7, 151.8, -276.7]}
+    {
+      "class": "concrete",
+      "why": "Anna Hiss courtyard, package photo-1: the slab in front of the paver band, from the band's end to past the photographer, is one light concrete slab (the inventory and the aerial's green hint drew lawn in its south part). Drawn before the paver band, so the band stays on top.",
+      "ring": [
+        155.3,
+        -282.5,
+        162.5,
+        -282.5,
+        162.5,
+        -275.0,
+        155.3,
+        -275.0
+      ]
+    },
+    {
+      "class": "pavers",
+      "why": "Anna Hiss courtyard, package photo-1: the band between the two planting beds, from the gym's steps to the concrete slab, is buff brick pavers (the inventory has concrete)",
+      "ring": [
+        151.8,
+        -281.5,
+        155.3,
+        -281.5,
+        155.3,
+        -276.7,
+        151.8,
+        -276.7
+      ]
+    }
   ]
 }
