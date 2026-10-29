@@ -210,3 +210,43 @@ export const SIDEWALK_LOOK = {
   FRONT_PAVING: '#3b362f',      // plaza and frontage paving between walk and building (the old #837f76 drew the cream band)
   FRONTAGE_AT_GRADE: true,      // paving, lawn and mulch between walk and building sit at the walk's level (the building's base)
 };
+
+// ?groundnear=0 turns this off. The ground near the camera (v2/ground-near.js): instead of the aerial photograph (blurred white
+// smears, painted-on cars and shadows at street level) the ground is drawn as five surfaces from the repo's own inventory
+// (v2/data/ground/near.json, scripts/v2/ground_near.py from data/ground.geojson: OSM surfaces + landuse + the City's sidewalk slabs).
+// Ground the inventory does not name takes its surface from the aerial's colour (green = lawn, dark = asphalt, else concrete).
+// Textures: de-lit, tileable patches resampled onto the ground plane through the SOLVED cameras of the owner's photos (Anna Hiss
+// photo-1: pavers, concrete, planting bed; Hogg IMG_0739: lawn); each is stored at linear mean TEX_MEAN, the shader scales it to ALBEDO.
+// Albedos are on v2's scale, anchored on the fitted sidewalk concrete (SIDEWALK_LOOK.WALK) with each surface's ratio to the concrete
+// measured in the same photograph (pavers 0.83x the concrete's light, warmer; lawn 0.39x the walk in IMG_0739; beds 0.17x). Plaza
+// concrete is cleaner than the street sidewalks: drawn from Anna Hiss photo-1's camera under its matched sky the sidewalk tone
+// rendered 0.57x the photo's courtyard slab, so the plaza concrete (and the pavers and beds measured against it) is 1.7-1.8x WALK.
+// Far away the aerial stays (the city must still read from the air); the crossfade is the near street layer's own (NEAR_LOOK.FADE).
+export const GROUND_NEAR_LOOK = {
+  ON: true,
+  FADE: [60, 90],               // metres from the camera: drawn ground fully in / gone (the aerial beyond)
+  FADE_PHONE: [50, 75],
+  MAX_CAMERA_Y_M: 140,          // above this nothing is drawn (and the class window is not updated)
+  // the class window: a square of the inventory rasterised around the camera (antialiased coverage, linear filtered)
+  WINDOW_PX: 1024, WINDOW_RES_M: 0.25,          // 256 m
+  WINDOW_PX_PHONE: 512, WINDOW_RES_M_PHONE: 0.4, // 205 m
+  WINDOW_EDGE_M: 6,             // the drawn ground fades out over this much at the window's edge
+  BUCKET_M: 64,                 // spatial index of the inventory (speed only)
+  // class edges: coverage is sharpened from [lo, hi] (0.5 = the mapped edge); rule 15: the edge is antialiased by the texture filter
+  EDGE_SHARPEN: [0.3, 0.7],
+  // surfaces: [albedo sRGB hex on v2's scale, tile size [x, z] metres, texture's stored linear mean]
+  CONCRETE: { color: '#4e493f', tile: [1.2, 1.2], texMean: 0.5, tex: 'ground-concrete.jpg' },
+  PAVERS:   { color: '#483f34', tile: [0.904, 1.54], texMean: 0.5, tex: 'ground-pavers.jpg' },   // 1 x 5 pattern periods (autocorrelation)
+  GRASS:    { color: '#1d2311', tile: [0.96, 0.96], texMean: 0.16, tex: 'ground-grass.jpg' },
+  BED:      { color: '#1a1b0d', tile: [1.16, 1.16], texMean: 0.16, tex: 'ground-bed.jpg' },
+  ASPHALT:  { color: '#3d3e40', tile: [1.2, 1.2], texMean: 0.5, tex: 'ground-concrete.jpg', grain: 0.5 },   // NEAR_LOOK.ASPHALT; concrete grain at half strength
+  TEX_CONTRAST: { concrete: 0.8, pavers: 1.0, grass: 1.0, bed: 1.0, asphalt: 0.5 },   // 1 = the photograph's own texture contrast
+  VARIATION: 0.14,              // +- brightness over ~8 m (breaks up the tiling; far bigger than a pixel, so no shimmer)
+  VARIATION_M: 8,
+  // the aerial hint for ground the inventory does not name (read off a ~2 m blur of the photograph)
+  HINT_BLUR: 16,                // x the photograph's own pixel footprint
+  HINT_GREEN: [0.04, 0.12],     // (g - max(r, b)) / luminance: concrete -> lawn
+  HINT_DARK: [0.045, 0.075],    // linear luminance after the shadow lift: asphalt below the first, concrete above the second
+  HINT_SHADOW_LIGHT: 0.6,       // where the shadow mask says building shadow, dark is not taken as asphalt beyond this share
+  FRONTAGE_OFF: true,           // the near street layer's flat frontage colours (paving / lawn / mulch) give way to this layer
+};
