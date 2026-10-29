@@ -199,14 +199,14 @@ export const NEAR_LOOK = {
 export const SIDEWALK_LOOK = {
   ON: true,
   ROAD_DROP_M: 0.15,            // the street below grade = the curb's real height (Austin standard 6 in)
-  WALK: '#45413c',              // broom-finished concrete: 1.1x the asphalt's luminance (Hogg's faded lot gives 0.9x), the photo's warm hue
+  WALK: '#3c362f',              // broom-finished concrete: renders 0.85x the lot's light in IMG_0742's frame (photo 0.83x), the photo's warm hue
   WALK_GRAIN: 0.06,             // +- share of brightness, faded below a pixel
   JOINT_M: 1.52,                // 5 ft slabs, joints across the walk's long axis
   JOINT_DARK: 0.4,              // a joint line's darkening at full strength
   JOINT_HALF_M: 0.012,          // the joint's half width (a tooled joint is ~2.5 cm across)
   JOINT_FADE_PX: [16, 6],       // screen pixels per slab where the joints start to fade / are gone (rule 15: no shimmer, not blur)
-  CURB: '#353331',              // curb top and face: older, dirtier concrete (0.65x the walk; the vertical face also gets less sky)
-  GUTTER: '#3d3a36',            // the concrete gutter pan beside the curb
-  FRONT_PAVING: '#46423d',      // plaza and frontage paving between walk and building (the old #837f76 drew the cream band)
+  CURB: '#2e2c2a',              // curb top and face: older, dirtier concrete; the face renders ~0.5x the lot in IMG_0742 (photo 0.41x, a dirty face) without going black in sun
+  GUTTER: '#34302b',            // the concrete gutter pan beside the curb
+  FRONT_PAVING: '#3b362f',      // plaza and frontage paving between walk and building (the old #837f76 drew the cream band)
   FRONTAGE_AT_GRADE: true,      // paving, lawn and mulch between walk and building sit at the walk's level (the building's base)
 };

@@ -66,7 +66,7 @@ for (const v of VIEWS) {
   page.on('console', (m) => { if (m.type() === 'error') errs.push('[console] ' + m.text()); });
   const failedReq = [];
   page.on('response', (r) => { if (r.status() >= 400) failedReq.push(r.status() + ' ' + r.url()); });
-  await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0${Q ? '&' + Q : ''}`, { waitUntil: 'load', timeout: 120000 });
+  await page.goto(`${BASE.replace(/\/$/, '')}/${process.env.V2_DIR || 'v2'}/?intro=0${Q ? '&' + Q : ''}`, { waitUntil: 'load', timeout: 120000 });
   await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 120000 });
   await page.evaluate(() => window.__v2.ready);
   if (v.eye) {
