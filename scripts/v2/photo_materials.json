@@ -3750,7 +3750,7 @@
      0.2897,
      0.2777
     ],
-    "source": "owner photo 40e5, 2026-10-03 campus walk, overcast (Tower base north face, rectified at 40 px/m through the camera solved on the strip windows): ashlar 2.30 x 0.85 m in running bond (course 33.6-34.1 px by FFT on two clean areas = 0.85 m; block 93 px = 2.3 m), each block's mottling cut from the NE margin and NW corner pier with the light divided out per channel, block tones evened 40 % (c076, sunlit, shows distinct block tones on the shaft and the front), joints 0.85 of the stone; the colour level is the build's limestone (photo/app ratio equal on R, G and B under the matched sky, so only the level moves, through the sky's exposure)",
+    "source": "owner photo 40e5, 2026-10-03 campus walk, overcast (Tower base north face, rectified at 40 px/m through the camera solved on the strip windows): ashlar 2.30 x 0.85 m in running bond (course 33.6-34.1 px by FFT on two clean areas = 0.85 m; block 93 px = 2.3 m), each block's mottling cut from the NE margin and NW corner pier with the light divided out per channel, block tones evened 40 % (c076, sunlit, shows distinct block tones on the shaft and the front), joints 0.90, mottling contrast 0.6 of the stone; the colour level is the build's limestone (photo/app ratio equal on R, G and B under the matched sky, so only the level moves, through the sky's exposure)",
     "mean_rgb": [
      0.148,
      0.144,
@@ -3768,7 +3768,7 @@
      0.3099,
      0.2978
     ],
-    "source": "owner photo 40e5, 2026-10-03 campus walk, overcast (Tower base north face, rectified at 40 px/m through the camera solved on the strip windows): ashlar 2.30 x 0.85 m in running bond (course 33.6-34.1 px by FFT on two clean areas = 0.85 m; block 93 px = 2.3 m), each block's mottling cut from the NE margin and NW corner pier with the light divided out per channel, block tones evened 40 % (c076, sunlit, shows distinct block tones on the shaft and the front), joints 0.85 of the stone; the colour level is the build's limestone (photo/app ratio equal on R, G and B under the matched sky, so only the level moves, through the sky's exposure); the shaft is under scaffolding in every 2026 owner photo, so its coursing is INFERRED the same as the base",
+    "source": "owner photo 40e5, 2026-10-03 campus walk, overcast (Tower base north face, rectified at 40 px/m through the camera solved on the strip windows): ashlar 2.30 x 0.85 m in running bond (course 33.6-34.1 px by FFT on two clean areas = 0.85 m; block 93 px = 2.3 m), each block's mottling cut from the NE margin and NW corner pier with the light divided out per channel, block tones evened 40 % (c076, sunlit, shows distinct block tones on the shaft and the front), joints 0.90, mottling contrast 0.6 of the stone; the colour level is the build's limestone (photo/app ratio equal on R, G and B under the matched sky, so only the level moves, through the sky's exposure); the shaft is under scaffolding in every 2026 owner photo, so its coursing is INFERRED the same as the base",
     "mean_rgb": [
      0.158,
      0.154,
@@ -3840,6 +3840,11 @@
     "size_m": 0.08
    }
   },
-  "fade_note": "2026-10-29: the tower base strip windows' white sashes (photo 40e5: 1.2-1.4 x the wall) fade by pixel size into the strip's mean seen from afar (0.5 x the wall), rule 15"
+  "fade_note": "2026-10-29: the tower base strip windows' white sashes (photo 40e5: 1.2-1.4 x the wall) fade by pixel size into the strip's mean seen from afar (0.5 x the wall), rule 15",
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.3,
+   "why": "as PMA/Welch: the textured limestone read softer than the supersampled truth at 120 m south (+0.10 with plain trilinear) while its shimmer was below main (-0.25 vs -0.14); anisotropy 8 + bias -0.3 + joints 0.90 / mottling 0.6 (rule 15: blur is not a fix)"
+  }
  }
 }
