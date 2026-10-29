@@ -3842,9 +3842,9 @@
   },
   "fade_note": "2026-10-29: the tower base strip windows' white sashes (photo 40e5: 1.2-1.4 x the wall) fade by pixel size into the strip's mean seen from afar (0.5 x the wall), rule 15",
   "filter": {
-   "anisotropy": 8,
-   "lod_bias": -0.3,
-   "why": "as PMA/Welch: the textured limestone read softer than the supersampled truth at 120 m south (+0.10 with plain trilinear) while its shimmer was below main (-0.25 vs -0.14); anisotropy 8 + bias -0.3 + joints 0.90 / mottling 0.6 (rule 15: blur is not a fix)"
+   "anisotropy": 16,
+   "lod_bias": -0.6,
+   "why": "as PMA/Welch: the textured limestone read softer than the supersampled truth at 120 m south (+0.10 plain trilinear, +0.05 at aniso 8 / bias -0.3) while its shimmer stayed below main (-0.25 / -0.19 vs -0.14); anisotropy 16 + bias -0.6, joints 0.90, mottling 0.6 (rule 15: blur is not a fix)"
   }
  }
 }
