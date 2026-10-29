@@ -4098,7 +4098,7 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_-1_-1",
-      "blend_sha256": "95b6948eaf7b8155",
+      "blend_sha256": "f3fc1328e5a2197b",
       "lod1": "mass",
       "app_copy": {
         "triangles": 39972,
@@ -6243,9 +6243,9 @@
   },
   "tiles": {
     "t_-1_-1": {
-      "hash": "5bf25cc309438b47",
+      "hash": "6d36b2e019990ecf",
       "near": {
-        "bytes": 2907064,
+        "bytes": 2906708,
         "tris": 202618,
         "draws": 12
       },
