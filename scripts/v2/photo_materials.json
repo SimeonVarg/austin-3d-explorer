@@ -3731,5 +3731,120 @@
    "lod_bias": -0.5,
    "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
   }
+ },
+ "ut-tower-main-building": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "stone_lum_rig": 0.144,
+   "why": "one number to overrule: the v3 build's limestone level is kept (photo 40e5 vs the live app at the same camera: linear ratio 0.64/0.65/0.64 on R/G/B on the NE margin, i.e. same hue, level set by the sky exposure)"
+  },
+  "materials": {
+   "wall_limestone": {
+    "albedo": "scripts/v2/materials/ut-tower-main-building/ashlar_albedo.jpg",
+    "repeat_m": [
+     4.6036,
+     3.3964
+    ],
+    "factor": [
+     0.2978,
+     0.2897,
+     0.2777
+    ],
+    "source": "owner photo 40e5, 2026-10-03 campus walk, overcast (Tower base north face, rectified at 40 px/m through the camera solved on the strip windows): ashlar 2.30 x 0.85 m in running bond (course 33.6-34.1 px by FFT on two clean areas = 0.85 m; block 93 px = 2.3 m), each block's mottling cut from the NE margin and NW corner pier with the light divided out per channel, block tones evened 40 % (c076, sunlit, shows distinct block tones on the shaft and the front), joints 0.90, mottling contrast 0.6 of the stone; the colour level is the build's limestone (photo/app ratio equal on R, G and B under the matched sky, so only the level moves, through the sky's exposure)",
+    "mean_rgb": [
+     0.148,
+     0.144,
+     0.138
+    ]
+   },
+   "wall_limestone_tower": {
+    "albedo": "scripts/v2/materials/ut-tower-main-building/ashlar_albedo.jpg",
+    "repeat_m": [
+     4.6036,
+     3.3964
+    ],
+    "factor": [
+     0.3179,
+     0.3099,
+     0.2978
+    ],
+    "source": "owner photo 40e5, 2026-10-03 campus walk, overcast (Tower base north face, rectified at 40 px/m through the camera solved on the strip windows): ashlar 2.30 x 0.85 m in running bond (course 33.6-34.1 px by FFT on two clean areas = 0.85 m; block 93 px = 2.3 m), each block's mottling cut from the NE margin and NW corner pier with the light divided out per channel, block tones evened 40 % (c076, sunlit, shows distinct block tones on the shaft and the front), joints 0.90, mottling contrast 0.6 of the stone; the colour level is the build's limestone (photo/app ratio equal on R, G and B under the matched sky, so only the level moves, through the sky's exposure); the shaft is under scaffolding in every 2026 owner photo, so its coursing is INFERRED the same as the base",
+    "mean_rgb": [
+     0.158,
+     0.154,
+     0.148
+    ]
+   },
+   "wall_rusticated": {
+    "albedo": "scripts/v2/materials/ut-tower-main-building/stone_albedo.jpg",
+    "repeat_m": [
+     2.3,
+     1.6
+    ],
+    "factor": [
+     0.2978,
+     0.2897,
+     0.2777
+    ],
+    "source": "owner photo 40e5 (NW corner pier, rectified): the same limestone's mottling only, no joints (trim and rusticated walls carry their joints as geometry)",
+    "mean_rgb": [
+     0.148,
+     0.144,
+     0.138
+    ]
+   },
+   "trim_limestone": {
+    "albedo": "scripts/v2/materials/ut-tower-main-building/stone_albedo.jpg",
+    "repeat_m": [
+     2.3,
+     1.6
+    ],
+    "factor": [
+     0.2978,
+     0.2897,
+     0.2777
+    ],
+    "source": "owner photo 40e5 (NW corner pier, rectified): the same limestone's mottling only, no joints (trim and rusticated walls carry their joints as geometry)",
+    "mean_rgb": [
+     0.148,
+     0.144,
+     0.138
+    ]
+   },
+   "trim_limestone_tower": {
+    "albedo": "scripts/v2/materials/ut-tower-main-building/stone_albedo.jpg",
+    "repeat_m": [
+     2.3,
+     1.6
+    ],
+    "factor": [
+     0.3179,
+     0.3099,
+     0.2978
+    ],
+    "source": "owner photo 40e5 (NW corner pier, rectified): the same limestone's mottling only, no joints (trim and rusticated walls carry their joints as geometry)",
+    "mean_rgb": [
+     0.158,
+     0.154,
+     0.148
+    ]
+   }
+  },
+  "fade": {
+   "frame_window_white": {
+    "to": [
+     0.074,
+     0.072,
+     0.069
+    ],
+    "size_m": 0.08
+   }
+  },
+  "fade_note": "2026-10-29: the tower base strip windows' white sashes (photo 40e5: 1.2-1.4 x the wall) fade by pixel size into the strip's mean seen from afar (0.5 x the wall), rule 15",
+  "filter": {
+   "anisotropy": 16,
+   "lod_bias": -0.6,
+   "why": "as PMA/Welch: the textured limestone read softer than the supersampled truth at 120 m south (+0.10 plain trilinear, +0.05 at aniso 8 / bias -0.3) while its shimmer stayed below main (-0.25 / -0.19 vs -0.14); anisotropy 16 + bias -0.6, joints 0.90, mottling 0.6 (rule 15: blur is not a fix)"
+  }
  }
 }
