@@ -510,6 +510,42 @@
      0.0378,
      0.0185
     ]
+   },
+   "brick_basket": {
+    "albedo": "scripts/v2/materials/anna-hiss-gymnasium/basket_albedo.jpg",
+    "repeat_m": [
+     1.52,
+     0.45
+    ],
+    "factor": [
+     0.2038,
+     0.1017,
+     0.0527
+    ],
+    "source": "owner photo 1 of the Anna Hiss courtyard entrance, 2026-10-03 walk (overcast), rectified through its proven camera (300 px/m on the wall plane): the basket-weave panel under the east arched window, 4 whole pattern periods (0.38 m each, autocorrelation) wide; colour relative to the running bond beside it",
+    "mean_rgb": [
+     0.0917,
+     0.0458,
+     0.0237
+    ]
+   },
+   "brick_soldier": {
+    "albedo": "scripts/v2/materials/anna-hiss-gymnasium/soldier_albedo.jpg",
+    "repeat_m": [
+     3.2267,
+     0.55
+    ],
+    "factor": [
+     0.2143,
+     0.1041,
+     0.0543
+    ],
+    "source": "owner photo 1 of the Anna Hiss courtyard entrance, 2026-10-03 walk (overcast), rectified through its proven camera (300 px/m on the wall plane): soldier course, projecting rowlock and soldier course under the windows, 22 whole periods wide; colour relative to the running bond beside it",
+    "mean_rgb": [
+     0.0964,
+     0.0468,
+     0.0245
+    ]
    }
   }
  },
