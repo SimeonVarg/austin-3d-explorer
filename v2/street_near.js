@@ -30,7 +30,8 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
   const stats = { ready: false };
 
   // ── materials: alpha by distance from the camera; optional procedural grain / joints in world space ──
-  function nearMaterial(color, { grain = 0, joints = false, jointM = N.JOINT_M, jointDark = N.JOINT_DARK, jointHalf = 0.012, jointFade = [0.08, 0.3], opaqueDepth = false, roughness = 0.95, permanent = false } = {}) {
+  function nearMaterial(color, { grain = 0, joints = false, jointM = N.JOINT_M, jointDark = N.JOINT_DARK, jointHalf = 0.012, jointFade = [0.08, 0.3], opaqueDepth = false, roughness = 0.95, permanent = false, faceColor = null, facePx = [1.5, 4] } = {}) {
+    const fc = faceColor ? new THREE.Color(faceColor) : null;   // linear (three's working space)
     const m = new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, transparent: !permanent, depthWrite: opaqueDepth || permanent,
       polygonOffset: !opaqueDepth, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
     m.onBeforeCompile = (sh) => {
@@ -60,9 +61,15 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
             float jw = fwidth(js);
             float jl = 1.0 - smoothstep(0.0, max(jw, 1e-4) * 1.5 + ${(jointHalf / jointM).toFixed(4)}, abs(fract(js + 0.5) - 0.5));
             diffuseColor.rgb *= 1.0 - ${jointDark.toFixed(2)} * jl * (1.0 - smoothstep(${jointFade[0].toFixed(4)}, ${jointFade[1].toFixed(4)}, jw));
+          #endif
+          #if ${fc ? 1 : 0}
+            // a vertical face's own colour, drawn only where the face is a few pixels tall: 0.15 m over its world-height footprint
+            float fpx = ${(SWL.ROAD_DROP_M || 0.15).toFixed(3)} / max(fwidth(vNearW.y), 1e-5);
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(${fc ? [fc.r, fc.g, fc.b].map((v) => v.toFixed(4)).join(', ') : '0.0'}) * (diffuseColor.rgb / max(diffuse, vec3(1e-4))),
+              smoothstep(${facePx[0].toFixed(2)}, ${facePx[1].toFixed(2)}, fpx));
           #endif`);
     };
-    m.customProgramCacheKey = () => `v2-near-${grain}-${joints}-${jointM}-${jointDark}-${jointHalf}-${jointFade}-${permanent}-${FADE.join(',')}`;
+    m.customProgramCacheKey = () => `v2-near-${grain}-${joints}-${jointM}-${jointDark}-${jointHalf}-${jointFade}-${permanent}-${FADE.join(',')}-${faceColor}-${facePx}`;
     return m;
   }
 
@@ -118,11 +125,12 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
 
   async function build() {
     const useSurface = params.get('surface') !== '0';
-    const [d, dOsm, surf, surfOsm, safe, safeOsm, signFaces] = await Promise.all([fetch(DATA).then((r) => r.json()), fetch(DATA_OSM).then((r) => r.json()).catch(() => null),
+    const [d, dOsm, surf, surfOsm, safe, safeOsm, signFaces, lotPaint] = await Promise.all([fetch(DATA).then((r) => r.json()), fetch(DATA_OSM).then((r) => r.json()).catch(() => null),
       useSurface ? fetch(SURFACE).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null,
       useSurface ? fetch(SURFACE_OSM).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null,
       loadSafeStreet('safe'), loadSafeStreet('safe_osm'),
-      fetch(new URL('./data/street/sign_faces.json', import.meta.url)).then(r => r.ok ? r.json() : null).catch(() => null)]);
+      fetch(new URL('./data/street/sign_faces.json', import.meta.url)).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(new URL('./data/ground/paint.json', import.meta.url)).then(r => r.ok ? r.json() : null).catch(() => null)]);
     // Fail closed: raw point inventories aren't safe render positions. OSM-derived arrows remain in the ODbL file.
     d.signs = safe?.signs || []; d.arrows = safeOsm?.arrows || [];
     const H = N.CURB_HEIGHT_M;
@@ -173,11 +181,12 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
             const edge = edges.get(key); if (edge) edge.count++; else edges.set(key, { a, b, count: 1 });
           }
         }
-        for (const e of edges.values()) if (e.count === 1 || typeof height !== 'function') face('curb', [e.a, e.b], 0, 0, height, 1);
+        for (const e of edges.values()) if (e.count === 1 || typeof height !== 'function') face(SW ? 'curbface' : 'curb', [e.a, e.b], 0, 0, height, 1);
       }
       if (!NO_FRONT) for (const k of ['paving', 'lawn', 'mulch']) for (const r of surf[k] || []) poly(k, r, SW && SWL.FRONTAGE_AT_GRADE ? H - 0.004 : N.FRONT_Y_M);
       d.roads = []; d.fronts = []; d.walks = []; d.curbs = surf.kerbs; d.lanes = surf.lanes.concat((surfOsm && surfOsm.lanes) || []);
     } else if (dOsm && dOsm.lanes) d.lanes = d.lanes.concat(dOsm.lanes);
+    if (lotPaint?.lanes) d.lanes = d.lanes.concat(lotPaint.lanes);   // stall lines read off the owner's photos (ground_near.py)
     // asphalt, kerb to kerb (the two kerbs are measured per side: street_near.py)
     for (const r of d.roads) { const pts = pairs(r, 3); if (pts.length >= 2) strip('asphalt', pts, r[0], r[1], N.ASPHALT_Y_M); }
     // the rest of the right-of-way to the building face: paving, lawn or mulch as the photograph shows, at sidewalk height
@@ -212,7 +221,7 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
       const pts = pairs(c, 0); if (pts.length < 2) continue;
       strip('gutter', pts, -N.GUTTER_M, 0, N.GUTTER_Y_M);
       if (!surf?.solid_edges) {
-        face('curb', pts, 0, 0, H, -1);
+        face(SW ? 'curbface' : 'curb', pts, 0, 0, H, -1);
         strip('curb', pts, 0, N.CURB_TOP_M, H);
       }
     }
@@ -225,14 +234,15 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
     const mats = {
       asphalt: nearMaterial(N.ASPHALT, { grain: N.ASPHALT_GRAIN, permanent: true }), white: nearMaterial(N.PAINT_WHITE), yellow: nearMaterial(N.PAINT_YELLOW),
       gutter: nearMaterial(SW ? SWL.GUTTER : N.GUTTER, { grain: N.CONCRETE_GRAIN }), curb: nearMaterial(SW ? SWL.CURB : N.CURB, { opaqueDepth: true }),
+      curbface: nearMaterial(SWL.CURB, { opaqueDepth: true, faceColor: SWL.CURB_FACE, facePx: SWL.CURB_FACE_PX }),
       walk: SW ? nearMaterial(SWL.WALK, { grain: SWL.WALK_GRAIN, joints: true, opaqueDepth: true, jointM: SWL.JOINT_M, jointDark: SWL.JOINT_DARK,
         jointHalf: SWL.JOINT_HALF_M, jointFade: [1 / SWL.JOINT_FADE_PX[0], 1 / SWL.JOINT_FADE_PX[1]] })
         : nearMaterial(N.WALK, { grain: N.CONCRETE_GRAIN, joints: true, opaqueDepth: true }),
       paving: nearMaterial(SW ? SWL.FRONT_PAVING : N.FRONT_PAVING, { grain: N.CONCRETE_GRAIN }), lawn: nearMaterial(N.FRONT_LAWN, { grain: N.LAWN_GRAIN }),
       mulch: nearMaterial(N.FRONT_MULCH, { grain: N.LAWN_GRAIN }),
     };
-    mats.curb.side = THREE.DoubleSide; mats.walk.side = THREE.DoubleSide;
-    const ORDER = { asphalt: 0.9, paving: 0.91, lawn: 0.91, mulch: 0.91, gutter: 0.92, white: 0.95, yellow: 0.95, curb: 0.97, walk: 0.98 };
+    mats.curb.side = THREE.DoubleSide; mats.curbface.side = THREE.DoubleSide; mats.walk.side = THREE.DoubleSide;
+    const ORDER = { asphalt: 0.9, paving: 0.91, lawn: 0.91, mulch: 0.91, gutter: 0.92, white: 0.95, yellow: 0.95, curb: 0.97, curbface: 0.97, walk: 0.98 };
     let draws = 0, tris = 0;
     for (const b of buckets.values()) for (const [kind, B] of Object.entries(b)) {
       if (!B.idx.length) continue;

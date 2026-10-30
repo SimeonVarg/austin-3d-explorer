@@ -206,6 +206,11 @@ export const SIDEWALK_LOOK = {
   JOINT_HALF_M: 0.012,          // the joint's half width (a tooled joint is ~2.5 cm across)
   JOINT_FADE_PX: [16, 6],       // screen pixels per slab where the joints start to fade / are gone (rule 15: no shimmer, not blur)
   CURB: '#2e2c2a',              // curb top and face: older, dirtier concrete; the face renders ~0.5x the lot in IMG_0742 (photo 0.41x, a dirty face) without going black in sun
+  // The curb's vertical face (owner ask 10-30: "curbs are flat"): a step lighter than the walk, as the sunlit/skylit face reads in
+  // IMG_0742 and IMG_0926, where the old dark face (CURB) vanished into the asphalt. Rule 15: where the 0.15 m face is under
+  // CURB_FACE_PX[0] screen pixels tall it is drawn in CURB (no light/dark sliver flickering at a distance); full at [1].
+  CURB_FACE: '#5a554c',
+  CURB_FACE_PX: [1.5, 4.0],
   GUTTER: '#34302b',            // the concrete gutter pan beside the curb
   FRONT_PAVING: '#3b362f',      // plaza and frontage paving between walk and building (the old #837f76 drew the cream band)
   FRONTAGE_AT_GRADE: true,      // paving, lawn and mulch between walk and building sit at the walk's level (the building's base)

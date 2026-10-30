@@ -29,6 +29,8 @@ BOX = (-2200, -1900, 1800, 4100)               # v2 metres kept (the aerial mask
 MIN_AREA_M2 = 0.5
 HOLE_BED_MAX_M2 = 250                          # a hole this small in a paved area is a planting bed (tree pits, planters)
 OVR = os.path.join(ROOT, 'data', 'ground_near_overrides.json')
+PAINT_OUT = os.path.join(ROOT, 'v2', 'data', 'ground', 'paint.json')   # the overrides' painted lines (lot stalls), drawn by v2/street_near.js
+PAINT_COLORS = {'white': 0, 'yellow': 1}
 NAMES = {'pavers': 1, 'grass': 2, 'bed': 3, 'concrete': 4, 'asphalt': 5}
 
 PAVERS = {'paving', 'brick', 'paving_stones', 'limestone'}
@@ -199,7 +201,13 @@ def main():
                     ha = abs(sum(hx[i] * hz[i - 1] - hx[i - 1] * hz[i] for i in range(len(hx)))) / 200.0
                     if MIN_AREA_M2 <= ha <= HOLE_BED_MAX_M2:
                         r0 = rank(p['k'], c, a); out.append(((r0[0], r0[1] + 1e-3), [3, h])); counts['hole_beds'] = counts.get('hole_beds', 0) + 1
-    for o in json.load(open(OVR))['features']:           # photo overrides: drawn last
+    ovr = json.load(open(OVR))
+    lines = [[PAINT_COLORS[g['color']], 0, 0, 0] + l for g in ovr.get('paint', []) for l in g['lines']]   # street_near.js lane rows: colour, solid
+    with open(PAINT_OUT, 'w') as fh:
+        json.dump({'about': 'Painted lines read off the owner\'s photographs (data/ground_near_overrides.json "paint"; scripts/v2/ground_near.py): '
+                            'rows of [colour 0 white / 1 yellow, 0 solid, 0, 0, x0, z0, x1, z1] in metres of the v2 frame, on the street\'s paint plane.',
+                   'lanes': lines}, fh, separators=(',', ':'))
+    for o in ovr['features']:           # photo overrides: drawn last
         out.append(((9, 0), [NAMES[o['class']], [round(v * 10) for v in o['ring']]])); counts['override'] = counts.get('override', 0) + 1
     out.sort(key=lambda r: r[0])
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
