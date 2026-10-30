@@ -25,7 +25,7 @@ export const GN_DECL = `
   uniform float gnOn; uniform sampler2D gnClass; uniform vec4 gnBox; uniform vec2 gnFade; uniform float gnEdge;
   uniform sampler2D gnTex0, gnTex1, gnTex2, gnTex3; uniform vec3 gnAlb[5]; uniform vec2 gnTile[5]; uniform float gnMean[5];
   uniform float gnContrast[5]; uniform vec2 gnSharp; uniform float gnVary, gnVaryM, gnHintBlur, gnShadowLight;
-  uniform vec2 gnGreen, gnDark;
+  uniform vec2 gnGreen, gnDark; uniform vec3 gnBedFar; uniform vec2 gnShF;
   float gnHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   float gnNoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
     return mix(mix(gnHash(i), gnHash(i + vec2(1, 0)), f.x), mix(gnHash(i + vec2(0, 1)), gnHash(i + vec2(1, 1)), f.x), f.y); }
@@ -63,7 +63,7 @@ export const GN_MIX = `
       if (w5 > 0.0) g += w5 * gnSample(gnTex0, 0, xz, gdx, gdy);
       if (w4.x > 0.0) g += w4.x * gnSample(gnTex1, 1, xz, gdx, gdy);
       if (w4.y > 0.0) g += w4.y * gnSample(gnTex2, 2, xz, gdx, gdy);
-      if (w4.z > 0.0) g += w4.z * gnSample(gnTex3, 3, xz, gdx, gdy);
+      if (w4.z > 0.0) g += w4.z * mix(gnSample(gnTex3, 3, xz, gdx, gdy), gnBedFar, smoothstep(gnShF.x, gnShF.y, gdist));
       if (w4.w > 0.0) g += w4.w * gnSample(gnTex0, 4, xz + 37.0, gdx, gdy);
       g /= sum;
       g *= 1.0 + gnVary * (gnNoise(xz / gnVaryM) + 0.5 * gnNoise(xz / (gnVaryM * 0.37)) - 0.75);
@@ -91,7 +91,7 @@ export function installGroundNear({ THREE, scene, camera, renderer, redraw, phon
   const cls = new THREE.DataTexture(data, NPX, NPX, THREE.RGBAFormat);
   cls.flipY = false; cls.generateMipmaps = true; cls.minFilter = THREE.LinearMipmapLinearFilter; cls.magFilter = THREE.LinearFilter;
   cls.colorSpace = THREE.NoColorSpace; cls.anisotropy = ANISO; cls.needsUpdate = true;
-  const S = SURF.map((k) => GN[k]);
+  const S = SURF.map((k) => GN[k]); const SH = GN.SHRUBS;
   const U = {
     gnOn: { value: 0 }, gnClass: { value: cls }, gnBox: { value: new THREE.Vector4(0, 0, 1 / SIZE, 1 / SIZE) },
     gnFade: { value: new THREE.Vector2(...FADE) }, gnEdge: { value: GN.WINDOW_EDGE_M },
@@ -102,7 +102,10 @@ export function installGroundNear({ THREE, scene, camera, renderer, redraw, phon
     gnSharp: { value: new THREE.Vector2(...GN.EDGE_SHARPEN) }, gnVary: { value: GN.VARIATION }, gnVaryM: { value: GN.VARIATION_M },
     gnHintBlur: { value: GN.HINT_BLUR }, gnGreen: { value: new THREE.Vector2(...GN.HINT_GREEN) }, gnDark: { value: new THREE.Vector2(...GN.HINT_DARK) },
     gnShadowLight: { value: GN.HINT_SHADOW_LIGHT },
+    gnBedFar: { value: lin(GN.BED_FAR) },
+    gnShF: { value: new THREE.Vector2(...((SH && SH.ON) ? (phone ? SH.FADE_PHONE : SH.FADE) : [0, 0.001])) },
   };
+  const shrubs = SH && SH.ON ? makeShrubs() : null;
 
   // ── the inventory, bucketed ──
   let feats = null; const buckets = new Map(); const B = GN.BUCKET_M;
@@ -142,7 +145,60 @@ export function installGroundNear({ THREE, scene, camera, renderer, redraw, phon
     data.set(ctx.getImageData(0, 0, NPX, NPX).data);
     cls.needsUpdate = true;
     U.gnBox.value.set(x0, z0, 1 / SIZE, 1 / SIZE);
+    if (shrubs) shrubs.place(cx, cz, x0, z0);
     stats.rasters++; stats.lastMs = +(performance.now() - t0).toFixed(1); stats.window = [x0, z0, SIZE]; stats.drawn = list.length;
+  }
+
+  // ── shrub clumps on the planting beds (GROUND_NEAR_LOOK.SHRUBS) ──
+  function makeShrubs() {
+    const MAX = phone ? SH.MAX_PHONE : SH.MAX, F = phone ? SH.FADE_PHONE : SH.FADE;
+    const geo = new THREE.IcosahedronGeometry(1, 0).translate(0, 1 - 2 * SH.SINK, 0);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, metalness: 0, flatShading: false });
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.shF = { value: new THREE.Vector2(...F) };
+      sh.vertexShader = 'uniform vec2 shF;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+        vec3 shW = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+        transformed *= 1.0 - smoothstep(shF.x, shF.y, distance(shW, cameraPosition));`);
+    };
+    const mesh = new THREE.InstancedMesh(geo, mat, MAX);
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mesh.count = 0; mesh.frustumCulled = false;
+    mesh.receiveShadow = true; mesh.castShadow = false; mesh.name = 'ground-near shrubs'; mesh.visible = false;
+    mesh.setColorAt(0, new THREE.Color());
+    scene.add(mesh);
+    const cols = SH.COLORS.map(lin), flower = lin(SH.FLOWER);
+    const h = (a, b, k) => { const v = Math.sin(a * 127.1 + b * 311.7 + k * 74.7) * 43758.5453; return v - Math.floor(v); };
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), col = new THREE.Color();
+    const R = SIZE / 2 - GN.WINDOW_EDGE_M, sp = SH.SPACING_M, cov = SH.MIN_COVER * 255;
+    function place(cx, cz, x0, z0) {
+      const pts = [];
+      for (let gx = Math.ceil((cx - R) / sp); gx <= Math.floor((cx + R) / sp); gx++) for (let gz = Math.ceil((cz - R) / sp); gz <= Math.floor((cz + R) / sp); gz++) {
+        const x = (gx + (h(gx, gz, 1) - 0.5) * SH.JITTER) * sp, z = (gz + (h(gx, gz, 2) - 0.5) * SH.JITTER) * sp;
+        const px = Math.floor((x - x0) / RES), pz = Math.floor((z - z0) / RES);
+        if (px < 0 || pz < 0 || px >= NPX || pz >= NPX) continue;
+        const o = (pz * NPX + px) * 4, r = data[o], g = data[o + 1], b = data[o + 2];
+        if (b - Math.min(r, g) < cov) continue;           // the bed code (blue only); asphalt (white) and the others fail
+        pts.push([x, z, gx, gz, (x - cx) ** 2 + (z - cz) ** 2]);
+      }
+      const fl = [];
+      for (const p of pts) if (h(p[2], p[3], 5) < SH.FLOWER_SHARE) fl.push(p);
+      const all = pts.concat(fl.map((p) => [...p, 1]));
+      if (all.length > MAX) all.sort((a, b) => a[4] - b[4]).length = MAX;
+      let n = 0;
+      for (const p of all) {
+        const [x, z, gx, gz] = p, isF = p.length > 5;
+        const r = isF ? SH.FLOWER_RADIUS_M : SH.RADIUS_M[0] + h(gx, gz, 3) * (SH.RADIUS_M[1] - SH.RADIUS_M[0]);
+        const hy = r * (SH.HEIGHT[0] + h(gx, gz, 4) * (SH.HEIGHT[1] - SH.HEIGHT[0]));
+        const top = isF ? (SH.RADIUS_M[0] + h(gx, gz, 3) * (SH.RADIUS_M[1] - SH.RADIUS_M[0])) * (SH.HEIGHT[0] + h(gx, gz, 4) * (SH.HEIGHT[1] - SH.HEIGHT[0])) * 2 * (1 - SH.SINK) * 0.8 : 0;
+        q.setFromEuler(e.set(0, h(gx, gz, 6) * 6.283, 0));
+        m4.compose(new THREE.Vector3(x + (isF ? (h(gx, gz, 7) - 0.5) * r * 2 : 0), top, z), q, new THREE.Vector3(r, hy, r));
+        mesh.setMatrixAt(n, m4);
+        if (isF) col.copy(flower); else { const t = h(gx, gz, 8) * (cols.length - 1), i = Math.min(cols.length - 2, Math.floor(t)); col.copy(cols[i]).lerp(cols[i + 1], t - i); }
+        mesh.setColorAt(n, col); n++;
+      }
+      mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      stats.shrubs = n;
+    }
+    return { mesh, place };
   }
   const prev = scene.onBeforeRender;
   scene.onBeforeRender = function (r, s, c, t) {
@@ -150,6 +206,7 @@ export function installGroundNear({ THREE, scene, camera, renderer, redraw, phon
     if (t || c !== camera) return;
     const low = c.position.y < GN.MAX_CAMERA_Y_M;
     U.gnOn.value = low && feats && lastC ? 1 : 0;
+    if (shrubs) shrubs.mesh.visible = !!U.gnOn.value || (low && !!feats);
     if (!low || !feats) return;
     if (!lastC || Math.hypot(c.position.x - lastC[0], c.position.z - lastC[1]) > SLACK) {
       lastC = [Math.round(c.position.x / 8) * 8, Math.round(c.position.z / 8) * 8];

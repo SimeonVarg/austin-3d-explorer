@@ -42,6 +42,48 @@
         83.3,
         -154.0
       ]
+    },
+    {
+      "class": "bed",
+      "why": "Anna Hiss courtyard, package photo-1 (resampled onto the ground through its solved camera, 2 cm a pixel): the north planting bed beside the paver band is low shrubs with flowers on dark mulch, from the planter wall to the slab (the aerial's green hint drew it as lawn).",
+      "ring": [
+        151.4,
+        -285.5,
+        156.2,
+        -285.5,
+        156.2,
+        -281.5,
+        151.4,
+        -281.5
+      ]
+    },
+    {
+      "class": "bed",
+      "why": "Anna Hiss courtyard, package photo-1: the south planting bed beside the paver band, same reading (the aerial's green hint drew it as lawn).",
+      "ring": [
+        150.9,
+        -276.7,
+        156.2,
+        -276.7,
+        156.2,
+        -273.5,
+        150.9,
+        -273.5
+      ]
+    },
+    {
+      "class": "bed",
+      "why": "Norman Hackerman Building, package photo-1: between the ~2.2 m concrete walk and the building runs a bed of grasses and round shrubs on mulch (the aerial's colour drew it as concrete). Offsets 2.2-4.8 m from the curb line of the asphalt override above.",
+      "ring": [
+        96.25,
+        -163.85,
+        128.25,
+        -160.2,
+        128.54,
+        -162.78,
+        96.54,
+        -166.43
+      ]
     }
   ]
 }
