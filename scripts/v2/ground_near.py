@@ -16,6 +16,7 @@ Output: { origin, classes, f: [[class, ring0, ring1...]...] } with rings as flat
   python3 scripts/v2/ground_near.py
 """
 import json, math, os
+from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SRC = os.path.join(ROOT, 'data', 'ground.geojson')
@@ -43,6 +44,21 @@ ASPHALT = {'asphalt'}
 # polygons, whose surface the bake defaults to brick paving, covered the Anna Hiss courtyard lawn and Hogg's concrete walk.
 # Key: the feature's _src.s; value: the defaulted surfaces it applies to (None = any).
 AERIAL_DECIDES = {'canopy-ground': None, 'surface-default': PAVERS}
+# The aerial decides ONCE PER POLYGON, not per pixel (owner live look 2026-10-30: per-pixel decisions drew camouflage lawn blobs on the
+# Jester plaza and torn blue-grey / green islands at Moffett): the polygon's pixels of the baked z16 aerial (~2 m) are classified and
+# the majority names the whole polygon, so its edges are the mapped outline. A class needs AERIAL_MAJORITY of the pixels, else concrete.
+AERIAL_DIR = os.path.join(ROOT, 'v2', 'data', 'aerial', '16')
+AERIAL_Z = 16
+AERIAL_GREEN = 0.10                            # (g - max(r, b)) / luminance, linear: a lawn pixel
+AERIAL_DARK = 0.16                             # linear luminance of the photograph: an asphalt pixel (concrete reads 0.3-0.6)
+AERIAL_MAJORITY = 0.5
+AERIAL_CHOICES = {'canopy-ground': (2,), 'surface-default': (2,)}   # what a guess may become by majority (a courtyard is never asphalt)
+# ...and what it becomes without one. A canopy guess is a tree-crown outline: the aerial sees dark crowns there, which is no evidence
+# of asphalt or concrete, so without a lawn majority it is not drawn (what is mapped under it, e.g. a parking lot, shows; else the hint).
+AERIAL_FALLBACK = {'canopy-ground': None, 'surface-default': 4}
+# Parking lots and service aisles the OSM road areas record (k = roadarea): the big carriageway unions are the street layer's, but a
+# lot or aisle smaller than this is drawn here as asphalt (Moffett's lot drew as beige concrete from the aerial hint).
+LOT_MAX_M2 = 0                                 # OFF: 20000 painted asphalt over Hogg's sidewalk (OSM road areas run to the building line)
 # ...except under a mapped tree crown, where the aerial sees the crown and not the ground (Hogg's planted bed under the West Mall
 # oaks read as concrete without this): there a guessed lawn stays lawn, drawn as the crown's disc inside the guessed extent.
 TREES = [os.path.join(ROOT, 'v2', 'data', 'trees', n) for n in ('city.json', 'osm.json')]
@@ -57,8 +73,44 @@ def guessed(p):
     return only is None or p.get('s') in only
 
 
-def classify(p):
+_tiles = {}
+def _tile(x, y):
+    if (x, y) not in _tiles:
+        f = os.path.join(AERIAL_DIR, str(y), str(x) + '.jpg')    # stored z/y/x
+        _tiles[(x, y)] = Image.open(f).convert('RGB').load() if os.path.exists(f) else None
+    return _tiles[(x, y)]
+
+
+def aerial_class(poly, choices, fallback=4):
+    # poly: [[lon, lat]...] outer ring. Returns (class, share, pixels) by majority of the z16 aerial pixels whose centres fall inside.
+    n = 2 ** AERIAL_Z * 256
+    gx = lambda lon: (lon + 180) / 360 * n
+    gy = lambda lat: (1 - math.log(math.tan(math.radians(lat)) + 1 / math.cos(math.radians(lat))) / math.pi) / 2 * n
+    ring = [(gx(lo), gy(la)) for lo, la in poly]
+    xs, ys = [q[0] for q in ring], [q[1] for q in ring]
+    votes = {2: 0, 4: 0, 5: 0}; tot = 0
+    for py in range(int(min(ys)), int(max(ys)) + 1):
+        for px in range(int(min(xs)), int(max(xs)) + 1):
+            if not inside(px + 0.5, py + 0.5, ring): continue
+            t = _tile(px // 256, py // 256)
+            if t is None: continue
+            r, g, b = [(v / 255) ** 2.2 for v in t[px % 256, py % 256]]
+            l = 0.2126 * r + 0.7152 * g + 0.0722 * b; tot += 1
+            if (g - max(r, b)) / max(l, 1e-3) > AERIAL_GREEN: votes[2] += 1
+            elif l < AERIAL_DARK: votes[5] += 1
+            else: votes[4] += 1
+    if tot == 0: return None, 0, 0
+    best = max(choices, key=lambda c: votes[c])
+    if votes[best] / tot >= AERIAL_MAJORITY: return best, votes[best] / tot, tot
+    return fallback, votes[4] / tot, tot
+
+
+def classify(p, g=None):
     k, s = p.get('k'), p.get('s')
+    if k == 'roadarea' and s == 'asphalt' and g is not None and g['type'] == 'Polygon':
+        ring = [((lon - ORIGIN[1]) * KX, -(lat - ORIGIN[0]) * KZ) for lon, lat in g['coordinates'][0]]
+        a = abs(sum(ring[i][0] * ring[i - 1][1] - ring[i - 1][0] * ring[i][1] for i in range(len(ring)))) / 2
+        return 5 if a <= LOT_MAX_M2 else None
     if k in ('roadarea', 'cnp', 'bank'): return None
     if guessed(p): return None
     if k not in ('area', 'patharea', 'pathslab', 'cyclearea'): return None
@@ -71,6 +123,7 @@ def classify(p):
 
 
 def rank(k, c, area):
+    if k == 'roadarea': return (-1, -area)       # lots under everything mapped on them
     # painter's order: soft ground, then lots and plazas, then mapped paths, then the surveyed slabs; big before small in a rank
     base = {2: 0, 3: 1, 5: 2, 1: 3, 4: 4}[c] if k == 'area' else (5 if k in ('patharea', 'cyclearea') else 6)
     return (base, -area)
@@ -100,7 +153,19 @@ def main():
     trees = crowns()
     for f in d['features']:
         p, g = f['properties'], f['geometry']
-        c = classify(p)
+        c = classify(p, g)
+        if c is None and guessed(p) and g['type'] in ('Polygon', 'MultiPolygon'):
+            choices = AERIAL_CHOICES[(p.get('_src') or {}).get('s')]
+            for poly in ([g['coordinates']] if g['type'] == 'Polygon' else g['coordinates']):
+                pts = [((lon - ORIGIN[1]) * KX, -(lat - ORIGIN[0]) * KZ) for lon, lat in poly[0]]
+                xs, zs = [q[0] for q in pts], [q[1] for q in pts]
+                if max(xs) < BOX[0] or min(xs) > BOX[2] or max(zs) < BOX[1] or min(zs) > BOX[3]: continue
+                ac, share, npx = aerial_class(poly[0], choices, AERIAL_FALLBACK[(p.get('_src') or {}).get('s')])
+                if ac is None: continue
+                flat = [v for x, z in pts for v in (round(x * 10), round(z * 10))]
+                a = abs(sum(xs[i] * zs[i - 1] - xs[i - 1] * zs[i] for i in range(len(xs)))) / 2
+                if a < MIN_AREA_M2: continue
+                out.append((rank('area', ac, a), [ac, flat])); counts['aerial_%d' % ac] = counts.get('aerial_%d' % ac, 0) + 1
         if c is None and guessed(p) and p.get('s') in GRASS and g['type'] in ('Polygon', 'MultiPolygon'):
             for poly in ([g['coordinates']] if g['type'] == 'Polygon' else g['coordinates']):
                 ring = [((lon - ORIGIN[1]) * KX, -(lat - ORIGIN[0]) * KZ) for lon, lat in poly[0]]

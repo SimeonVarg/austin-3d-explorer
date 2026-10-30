@@ -233,18 +233,19 @@ export const GROUND_NEAR_LOOK = {
   WINDOW_EDGE_M: 6,             // the drawn ground fades out over this much at the window's edge
   BUCKET_M: 64,                 // spatial index of the inventory (speed only)
   // class edges: coverage is sharpened from [lo, hi] (0.5 = the mapped edge); rule 15: the edge is antialiased by the texture filter
-  EDGE_SHARPEN: [0.3, 0.7],
+  EDGE_SHARPEN: [0.35, 0.65],   // at 0.25 m a window pixel: the edge is soft over ~8 cm
   // surfaces: [albedo sRGB hex on v2's scale, tile size [x, z] metres, texture's stored linear mean]
   CONCRETE: { color: '#4e493f', tile: [1.2, 1.2], texMean: 0.5, tex: 'ground-concrete.jpg' },
   PAVERS:   { color: '#4e4438', tile: [0.904, 1.54], texMean: 0.5, tex: 'ground-pavers.jpg' },   // 1 x 5 pattern periods (autocorrelation)
   GRASS:    { color: '#1d2311', tile: [0.96, 0.96], texMean: 0.16, tex: 'ground-grass.jpg' },
   BED:      { color: '#1a1b0d', tile: [1.16, 1.16], texMean: 0.16, tex: 'ground-bed.jpg' },
   ASPHALT:  { color: '#3d3e40', tile: [1.2, 1.2], texMean: 0.5, tex: 'ground-concrete.jpg', grain: 0.5 },   // NEAR_LOOK.ASPHALT; concrete grain at half strength
-  TEX_CONTRAST: { concrete: 0.8, pavers: 1.0, grass: 1.0, bed: 1.0, asphalt: 0.5 },   // 1 = the photograph's own texture contrast
+  TEX_CONTRAST: { concrete: 0.8, pavers: 1.0, grass: 0.55, bed: 1.0, asphalt: 0.5 },   // grass 1.0 read as camouflage (live look 10-30)   // 1 = the photograph's own texture contrast
   VARIATION: 0.14,              // +- brightness over ~8 m (breaks up the tiling; far bigger than a pixel, so no shimmer)
   VARIATION_M: 8,
   // the aerial hint for ground the inventory does not name (read off a ~2 m blur of the photograph)
-  HINT_BLUR: 16,                // x the photograph's own pixel footprint
+  HINT_BLUR: 16,                // x the screen pixel's footprint on the photograph (far away)
+  HINT_MAJORITY_M: 2.5,         // ...and never finer than this much ground (a majority, not per pixel); 5 turned Hogg's 3 m walk into asphalt
   HINT_GREEN: [0.04, 0.12],     // (g - max(r, b)) / luminance: concrete -> lawn
   HINT_DARK: [0.045, 0.075],    // linear luminance after the shadow lift: asphalt below the first, concrete above the second
   HINT_SHADOW_LIGHT: 0.6,       // where the shadow mask says building shadow, dark is not taken as asphalt beyond this share

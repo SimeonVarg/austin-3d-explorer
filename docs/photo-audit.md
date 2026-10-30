@@ -443,3 +443,8 @@ made or sharpened.
 - **2026-10-19.** Jester West Hall went live without its Brazos St porch. The build's coverage list
   had marked a photographed entrance block "not built: outside the outline". His words: "I don't see
   the Brazos entrance" (the same class as the DKR south-east entrance on 10/17): check 9o.
+
+- **Ground surfaces are decided per mapped polygon, never per aerial pixel** (owner live look 2026-10-30: camouflage lawn blobs on
+  the Jester plaza, torn blue-grey / green islands at Moffett). Look at the ground in every street view: a surface edge that is
+  ragged or blob-shaped instead of following a mapped outline is this defect. And a surface drawn as a flat dark slab with no
+  texture is a texture that had not loaded (the Anna Hiss pavers): check the drawn ground waits for its textures.
