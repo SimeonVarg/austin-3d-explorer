@@ -24,7 +24,7 @@ export function groundNearEnabled() { return GN.ON && params.get('groundnear') !
 export const GN_DECL = `
   uniform float gnOn; uniform sampler2D gnClass; uniform vec4 gnBox; uniform vec2 gnFade; uniform float gnEdge;
   uniform sampler2D gnTex0, gnTex1, gnTex2, gnTex3; uniform vec3 gnAlb[5]; uniform vec2 gnTile[5]; uniform float gnMean[5];
-  uniform float gnContrast[5]; uniform vec2 gnSharp; uniform float gnVary, gnVaryM, gnHintBlur, gnShadowLight;
+  uniform float gnContrast[5]; uniform vec2 gnSharp; uniform float gnVary, gnVaryM, gnHintBlur, gnHintM, gnShadowLight;
   uniform vec2 gnGreen, gnDark;
   float gnHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   float gnNoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -41,8 +41,12 @@ export const GN_MIX = `
     float gdist = length(vViewPosition);
     vec2 ein = min(cuv, 1.0 - cuv) / (gnBox.zw * gnEdge);
     float gw = gnOn * (1.0 - smoothstep(gnFade.x, gnFade.y, gdist)) * clamp(min(ein.x, ein.y), 0.0, 1.0);
-    vec2 mdx = dFdx(vMapUv) * gnHintBlur, mdy = dFdy(vMapUv) * gnHintBlur;
     if (gw > 0.002) {
+      // the aerial's hint is a MAJORITY over gnHintM metres of ground (a fixed ground footprint, not a share of the screen pixel: near
+      // the camera that was ~2 cm and every aerial pixel became its own island), and never finer than the old screen-relative blur
+      vec2 mdx = dFdx(vMapUv) * gnHintBlur, mdy = dFdy(vMapUv) * gnHintBlur;
+      float uvpm = max(length(dFdx(vMapUv)) / max(length(gdx), 1e-5), length(dFdy(vMapUv)) / max(length(gdy), 1e-5)) * gnHintM;
+      if (uvpm > max(length(mdx), length(mdy))) { mdx = vec2(uvpm, 0.0); mdy = vec2(0.0, uvpm); }
       vec4 c = textureGrad(gnClass, cuv, gdx * gnBox.zw, gdy * gnBox.zw);
       float wa = min(c.r, min(c.g, c.b));
       float wp = c.r - wa, wg = c.g - wa, wb = c.b - wa, wc = max(c.a - wa - wp - wg - wb, 0.0), wu = 1.0 - c.a;
@@ -79,8 +83,14 @@ export function installGroundNear({ THREE, scene, camera, renderer, redraw, phon
   const SLACK = Math.max(4, SIZE / 2 - FADE[1] - GN.WINDOW_EDGE_M);     // the camera may move this far before the window is redrawn
   const ANISO = Math.min(16, renderer.capabilities.getMaxAnisotropy());
   const lin = (hex) => new THREE.Color(hex);
+  // the drawn ground waits for its textures: an unloaded texture samples black, and a surface at full texture contrast then draws as
+  // a flat dark slab (live look 2026-10-30, the Anna Hiss pavers); a texture that fails draws its surface's flat albedo instead
+  let pending = 0;
   const loadTex = (file) => {
-    const t = new THREE.TextureLoader().load(MAT + file, () => redraw());
+    pending++;
+    const t = new THREE.TextureLoader().load(MAT + file, () => { pending--; redraw(); }, undefined, () => {
+      pending--; const c = document.createElement('canvas'); c.width = c.height = 1; const x = c.getContext('2d');
+      x.fillStyle = '#bcbcbc'; x.fillRect(0, 0, 1, 1); t.image = c; t.needsUpdate = true; redraw(); });
     t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = ANISO;
     t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true;
     return t;
@@ -100,7 +110,7 @@ export function installGroundNear({ THREE, scene, camera, renderer, redraw, phon
     gnMean: { value: S.map((s) => s.texMean) },
     gnContrast: { value: ['concrete', 'pavers', 'grass', 'bed', 'asphalt'].map((k) => GN.TEX_CONTRAST[k]) },
     gnSharp: { value: new THREE.Vector2(...GN.EDGE_SHARPEN) }, gnVary: { value: GN.VARIATION }, gnVaryM: { value: GN.VARIATION_M },
-    gnHintBlur: { value: GN.HINT_BLUR }, gnGreen: { value: new THREE.Vector2(...GN.HINT_GREEN) }, gnDark: { value: new THREE.Vector2(...GN.HINT_DARK) },
+    gnHintBlur: { value: GN.HINT_BLUR }, gnHintM: { value: GN.HINT_MAJORITY_M }, gnGreen: { value: new THREE.Vector2(...GN.HINT_GREEN) }, gnDark: { value: new THREE.Vector2(...GN.HINT_DARK) },
     gnShadowLight: { value: GN.HINT_SHADOW_LIGHT },
   };
 
@@ -149,8 +159,8 @@ export function installGroundNear({ THREE, scene, camera, renderer, redraw, phon
     prev.call(this, r, s, c, t);
     if (t || c !== camera) return;
     const low = c.position.y < GN.MAX_CAMERA_Y_M;
-    U.gnOn.value = low && feats && lastC ? 1 : 0;
-    if (!low || !feats) return;
+    U.gnOn.value = low && feats && lastC && !pending ? 1 : 0;
+    if (!low || !feats || pending) return;
     if (!lastC || Math.hypot(c.position.x - lastC[0], c.position.z - lastC[1]) > SLACK) {
       lastC = [Math.round(c.position.x / 8) * 8, Math.round(c.position.z / 8) * 8];
       raster(lastC[0], lastC[1]);
