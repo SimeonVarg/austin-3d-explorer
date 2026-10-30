@@ -5,12 +5,15 @@
 //
 // Rule 15: fine detail is procedural only where it is bigger than a pixel (the asphalt grain and the slab joints fade with the
 // screen-space derivative). The opaque asphalt stays; fine detail is not drawn past NEAR.FADE[1].
-import { NEAR_LOOK as N, SIDEWALK_LOOK as SWL } from './street-look.js';
+import { NEAR_LOOK as N, SIDEWALK_LOOK as SWL, GROUND_NEAR_LOOK as GNL } from './street-look.js';
+import { groundNearEnabled } from './ground-near.js';
 import { loadSafeStreet } from './street-data.js';
 
 const params = new URLSearchParams(location.search);
 // grey concrete at the buildings' grade with the street one curb lower (street-look.js SIDEWALK_LOOK); ?sidewalk=0 = the old raised slab
 const SW = SWL.ON && params.get('sidewalk') !== '0';
+// the drawn ground near buildings (ground-near.js) replaces the flat frontage colours (paving / lawn / mulch) when it is on
+const NO_FRONT = GNL.FRONTAGE_OFF && groundNearEnabled();
 const DATA = new URL('./data/street/near.json', import.meta.url).href;
 const DATA_OSM = new URL('./data/street/near_osm.json', import.meta.url).href;   // lane lines from OSM lane counts (ODbL)
 // One road surface (scripts/v2/street_graph.py): carriageway union with junction fillets; kerbs, sidewalks, frontage and lane lines all
@@ -172,14 +175,14 @@ export function installStreetNear({ THREE, scene, redraw, phone = false }) {
         }
         for (const e of edges.values()) if (e.count === 1 || typeof height !== 'function') face('curb', [e.a, e.b], 0, 0, height, 1);
       }
-      for (const k of ['paving', 'lawn', 'mulch']) for (const r of surf[k] || []) poly(k, r, SW && SWL.FRONTAGE_AT_GRADE ? H - 0.004 : N.FRONT_Y_M);
+      if (!NO_FRONT) for (const k of ['paving', 'lawn', 'mulch']) for (const r of surf[k] || []) poly(k, r, SW && SWL.FRONTAGE_AT_GRADE ? H - 0.004 : N.FRONT_Y_M);
       d.roads = []; d.fronts = []; d.walks = []; d.curbs = surf.kerbs; d.lanes = surf.lanes.concat((surfOsm && surfOsm.lanes) || []);
     } else if (dOsm && dOsm.lanes) d.lanes = d.lanes.concat(dOsm.lanes);
     // asphalt, kerb to kerb (the two kerbs are measured per side: street_near.py)
     for (const r of d.roads) { const pts = pairs(r, 3); if (pts.length >= 2) strip('asphalt', pts, r[0], r[1], N.ASPHALT_Y_M); }
     // the rest of the right-of-way to the building face: paving, lawn or mulch as the photograph shows, at sidewalk height
     const FRONT = ['paving', 'lawn', 'mulch', 'asphalt'];
-    for (const f of d.fronts || []) {
+    for (const f of NO_FRONT ? [] : d.fronts || []) {
       const pts = []; for (let i = 2; i + 2 < f.length; i += 3) pts.push([f[i], f[i + 1], f[i + 2]]);
       if (pts.length >= 2) stripVar(FRONT[f[0]] || 'paving', pts, f[1], f[0] === 3 ? N.ASPHALT_Y_M : H - 0.004);
     }

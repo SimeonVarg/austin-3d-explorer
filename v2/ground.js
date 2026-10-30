@@ -19,6 +19,7 @@ import { GROUND_LOOK as G } from './street-look.js';
 import { installStreet } from './street.js';
 import { installTrees } from './trees.js';
 import { installStreetNear } from './street_near.js';
+import { installGroundNear, GN_DECL, GN_MIX } from './ground-near.js';
 
 const params = new URLSearchParams(location.search);
 const DATA = new URL('./data/aerial/', import.meta.url).href;
@@ -67,6 +68,10 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
     gPaving: { value: lin(G.LEAN_PAVING) },
     gLean: { value: G.LEAN_STRENGTH },
   };
+  // the drawn ground near the camera (ground-near.js): its uniforms join the aerial's, its GLSL goes into the same shader
+  let near = null;
+  try { near = installGroundNear({ THREE, scene, camera, renderer, redraw, phone }); } catch (e) { console.warn('[v2 ground-near]', e.message); }
+  if (near) Object.assign(U, near.uniforms);
   const blank = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1); blank.needsUpdate = true;
   U.gMask.value = blank;
   function patch(shader) {
@@ -78,7 +83,7 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
       .replace('#include <common>', `#include <common>
         varying vec2 vGroundXZ;
         uniform vec3 gGain, gWarm, gPaving; uniform float gSat, gSatNear, gLift, gLean; uniform vec2 gDark;
-        uniform sampler2D gMask; uniform vec4 gMaskBox;`)
+        uniform sampler2D gMask; uniform vec4 gMaskBox;${near ? GN_DECL : ''}`)
       .replace('#include <map_fragment>', `
         vec3 aer = texture2D(map, vMapUv).rgb;                    // linear (the tiles are sRGB textures)
         vec2 muv = (vGroundXZ - gMaskBox.xy) * gMaskBox.zw;
@@ -90,7 +95,7 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
         // close up a photograph pixel covers many screen pixels and its JPEG colour fringes show: take most colour out there
         float tpp = length(fwidth(vMapUv * 256.0));                // photograph pixels per screen pixel
         aer = mix(vec3(lum), aer, mix(gSatNear, gSat, smoothstep(0.12, 0.6, tpp))) * gGain;
-        aer = mix(aer, gPaving, mk.g * gLean);
+        aer = mix(aer, gPaving, mk.g * gLean);${near ? GN_MIX : ''}
         diffuseColor.rgb *= aer;`);
   }
 
@@ -181,7 +186,7 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
     t.needsUpdate = true;
     const m = new THREE.MeshStandardMaterial({ map: t, roughness: 1, metalness: 0, depthWrite: false });
     m.onBeforeCompile = patch;
-    m.customProgramCacheKey = () => 'v2-aerial-1';
+    m.customProgramCacheKey = () => (near ? 'v2-aerial-1-gn' : 'v2-aerial-1');
     const mesh = new THREE.Mesh(quad, m);
     mesh.position.set(n.x0, 0, n.z0);
     mesh.scale.set(n.x1 - n.x0, 1, n.z1 - n.z0);
