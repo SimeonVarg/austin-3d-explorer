@@ -58,7 +58,7 @@ AERIAL_CHOICES = {'canopy-ground': (2,), 'surface-default': (2,)}   # what a gue
 AERIAL_FALLBACK = {'canopy-ground': None, 'surface-default': 4}
 # Parking lots and service aisles the OSM road areas record (k = roadarea): the big carriageway unions are the street layer's, but a
 # lot or aisle smaller than this is drawn here as asphalt (Moffett's lot drew as beige concrete from the aerial hint).
-LOT_MAX_M2 = 20000
+LOT_MAX_M2 = 0                                 # OFF: 20000 painted asphalt over Hogg's sidewalk (OSM road areas run to the building line)
 # ...except under a mapped tree crown, where the aerial sees the crown and not the ground (Hogg's planted bed under the West Mall
 # oaks read as concrete without this): there a guessed lawn stays lawn, drawn as the crown's disc inside the guessed extent.
 TREES = [os.path.join(ROOT, 'v2', 'data', 'trees', n) for n in ('city.json', 'osm.json')]

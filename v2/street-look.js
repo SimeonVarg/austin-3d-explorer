@@ -245,7 +245,7 @@ export const GROUND_NEAR_LOOK = {
   VARIATION_M: 8,
   // the aerial hint for ground the inventory does not name (read off a ~2 m blur of the photograph)
   HINT_BLUR: 16,                // x the screen pixel's footprint on the photograph (far away)
-  HINT_MAJORITY_M: 5,           // ...and never finer than this much ground: the hint is a majority over a few metres, not per pixel
+  HINT_MAJORITY_M: 2.5,         // ...and never finer than this much ground (a majority, not per pixel); 5 turned Hogg's 3 m walk into asphalt
   HINT_GREEN: [0.04, 0.12],     // (g - max(r, b)) / luminance: concrete -> lawn
   HINT_DARK: [0.045, 0.075],    // linear luminance after the shadow lift: asphalt below the first, concrete above the second
   HINT_SHADOW_LIGHT: 0.6,       // where the shadow mask says building shadow, dark is not taken as asphalt beyond this share
