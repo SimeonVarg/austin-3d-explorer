@@ -238,9 +238,10 @@ export const GROUND_NEAR_LOOK = {
   CONCRETE: { color: '#4e493f', tile: [1.2, 1.2], texMean: 0.5, tex: 'ground-concrete.jpg' },
   PAVERS:   { color: '#4e4438', tile: [0.904, 1.54], texMean: 0.5, tex: 'ground-pavers.jpg' },   // 1 x 5 pattern periods (autocorrelation)
   GRASS:    { color: '#1d2311', tile: [0.96, 0.96], texMean: 0.16, tex: 'ground-grass.jpg' },
-  BED:      { color: '#1a1b0d', tile: [1.16, 1.16], texMean: 0.16, tex: 'ground-bed.jpg' },
-  ASPHALT:  { color: '#3d3e40', tile: [1.2, 1.2], texMean: 0.5, tex: 'ground-concrete.jpg', grain: 0.5 },   // NEAR_LOOK.ASPHALT; concrete grain at half strength
-  TEX_CONTRAST: { concrete: 0.8, pavers: 1.0, grass: 1.0, bed: 1.0, asphalt: 0.5 },   // 1 = the photograph's own texture contrast
+  BED:      { color: '#29201c', tile: [1.16, 1.16], texMean: 0.16, tex: 'ground-bed.jpg' },   // dark mulch (10-29: Anna Hiss photo-1's mulch x the slab's scale; was #1a1b0d, the lawn's olive)
+  BED_FAR:  '#1d1c12',          // a bed's flat tone where the shrub clumps have faded out: ~70 % shrub green over the mulch (rule 15: no sub-pixel leaves)
+  ASPHALT:  { color: '#43413f', tile: [1.2, 1.2], texMean: 0.5, tex: 'ground-concrete.jpg', grain: 0.5 },   // NEAR_LOOK.ASPHALT; concrete grain at half strength
+  TEX_CONTRAST: { concrete: 0.8, pavers: 1.0, grass: 1.0, bed: 0.6, asphalt: 0.5 },   // 1 = the photograph's own texture contrast
   VARIATION: 0.14,              // +- brightness over ~8 m (breaks up the tiling; far bigger than a pixel, so no shimmer)
   VARIATION_M: 8,
   // the aerial hint for ground the inventory does not name (read off a ~2 m blur of the photograph)
@@ -249,4 +250,23 @@ export const GROUND_NEAR_LOOK = {
   HINT_DARK: [0.045, 0.075],    // linear luminance after the shadow lift: asphalt below the first, concrete above the second
   HINT_SHADOW_LIGHT: 0.6,       // where the shadow mask says building shadow, dark is not taken as asphalt beyond this share
   FRONTAGE_OFF: true,           // the near street layer's flat frontage colours (paving / lawn / mulch) give way to this layer
+  // Planting beds (10-29): low shrub clumps on the mulch, one instanced draw. Placed on a world-fixed jittered grid inside the bed
+  // class (so they stay put when the window is redrawn) and shrunk smoothly to nothing over FADE, where the bed's flat tone
+  // (BED_FAR) takes over: a clump is ~10 px wide where it starts to shrink, so nothing in it is thinner than a pixel (rule 15).
+  // Colours: the shrubs' dark / mean / light greens in Anna Hiss photo-1. 10-29 round 2: the clumps rendered 1.5-1.8x the photo's
+  // shrub pixels (median luminance in both beds) and too blue, so the palette is scaled per channel by photo / render mean
+  // (0.57, 0.63, 0.39) and widened (dark x0.6, light x1.1: his shrubs have deep gaps between leaves). Smooth domes, not facets.
+  SHRUBS: {
+    ON: true,
+    SPACING_M: 0.32, JITTER: 0.85,        // grid step and jitter (share of a step); clumps overlap into one mass
+    RADIUS_M: [0.14, 0.28],                // clump radius range
+    HEIGHT: [0.7, 1.15],                   // dome height as a share of its radius (low, mounded)
+    SINK: 0.15,                            // share of the dome below the ground
+    SEGMENTS: [8, 3],                      // dome: around x rings (40 triangles, smooth normals)
+    COLORS: ['#030501', '#111506', '#111506', '#1b210d'],
+    FLOWER: '#57502a', FLOWER_SHARE: 0.3, FLOWER_RADIUS_M: 0.035,   // small flower dots on top of some clumps
+    MIN_COVER: 0.6,                        // bed coverage needed at a grid point
+    FADE: [30, 50], FADE_PHONE: [22, 36],  // metres from the camera: full size / gone
+    MAX: 9000, MAX_PHONE: 2500,            // instance cap (the nearest are kept)
+  },
 };
