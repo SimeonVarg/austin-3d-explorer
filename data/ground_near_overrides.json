@@ -42,6 +42,24 @@
         83.3,
         -154.0
       ]
+    },
+    {
+      "class": "grass",
+      "why": "Anna Hiss courtyard, package photo-3: the lawn between the planting beds, the curved concrete planter wall and the walk is lawn (the inventory has a City 'patio' polygon that the bake defaulted to brick pavers, and the 2025 aerial does not read it as green). Outlined on the photo and carried to the ground through the photo's solved camera.",
+      "ring": [
+        145.7,
+        -271.7,
+        150.2,
+        -273.6,
+        152.9,
+        -271.9,
+        155.5,
+        -271.3,
+        155.1,
+        -267.1,
+        152.8,
+        -266.2
+      ]
     }
   ]
 }
