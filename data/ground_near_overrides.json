@@ -72,17 +72,31 @@
       ]
     },
     {
-      "class": "bed",
-      "why": "Norman Hackerman Building, package photo-1: between the ~2.2 m concrete walk and the building runs a bed of grasses and round shrubs on mulch (the aerial's colour drew it as concrete). Offsets 2.2-4.8 m from the curb line of the asphalt override above.",
+      "class": "asphalt",
+      "why": "Norman Hackerman Building, package photo-1, round 2: the photo resampled onto the app's flat ground through its solved camera puts the red curb 1-2.5 m further from the camera than the first asphalt ring between x 100 and 143, which left the walk drawn twice its width. This strip carries the asphalt to the curb as the photo shows it.",
       "ring": [
-        96.25,
-        -163.85,
-        128.25,
-        -160.2,
-        128.54,
-        -162.78,
-        96.54,
-        -166.43
+        100.0,
+        -163.7,
+        143.0,
+        -156.88,
+        143.0,
+        -156.3,
+        100.0,
+        -161.2
+      ]
+    },
+    {
+      "class": "bed",
+      "why": "Norman Hackerman Building, package photo-1: grasses and round shrubs on mulch start ~2.2 m behind the red curb (the walk) and run back to the building; the front edge is read off the same resample, 3.5 m deep (the aerial's colour drew it as concrete).",
+      "ring": [
+        100.0,
+        -166.45,
+        129.0,
+        -161.5,
+        129.0,
+        -165.0,
+        100.0,
+        -169.95
       ]
     }
   ]

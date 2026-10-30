@@ -152,8 +152,8 @@ export function installGroundNear({ THREE, scene, camera, renderer, redraw, phon
   // ── shrub clumps on the planting beds (GROUND_NEAR_LOOK.SHRUBS) ──
   function makeShrubs() {
     const MAX = phone ? SH.MAX_PHONE : SH.MAX, F = phone ? SH.FADE_PHONE : SH.FADE;
-    const geo = new THREE.IcosahedronGeometry(1, 0).translate(0, 1 - 2 * SH.SINK, 0);
-    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, metalness: 0, flatShading: false });
+    const geo = new THREE.SphereGeometry(1, SH.SEGMENTS[0], SH.SEGMENTS[1], 0, Math.PI * 2, 0, Math.PI / 2).translate(0, -SH.SINK, 0);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0 });
     mat.onBeforeCompile = (sh) => {
       sh.uniforms.shF = { value: new THREE.Vector2(...F) };
       sh.vertexShader = 'uniform vec2 shF;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
@@ -188,7 +188,7 @@ export function installGroundNear({ THREE, scene, camera, renderer, redraw, phon
         const [x, z, gx, gz] = p, isF = p.length > 5;
         const r = isF ? SH.FLOWER_RADIUS_M : SH.RADIUS_M[0] + h(gx, gz, 3) * (SH.RADIUS_M[1] - SH.RADIUS_M[0]);
         const hy = r * (SH.HEIGHT[0] + h(gx, gz, 4) * (SH.HEIGHT[1] - SH.HEIGHT[0]));
-        const top = isF ? (SH.RADIUS_M[0] + h(gx, gz, 3) * (SH.RADIUS_M[1] - SH.RADIUS_M[0])) * (SH.HEIGHT[0] + h(gx, gz, 4) * (SH.HEIGHT[1] - SH.HEIGHT[0])) * 2 * (1 - SH.SINK) * 0.8 : 0;
+        const top = isF ? (SH.RADIUS_M[0] + h(gx, gz, 3) * (SH.RADIUS_M[1] - SH.RADIUS_M[0])) * (SH.HEIGHT[0] + h(gx, gz, 4) * (SH.HEIGHT[1] - SH.HEIGHT[0])) * (1 - SH.SINK) * 0.92 : 0;
         q.setFromEuler(e.set(0, h(gx, gz, 6) * 6.283, 0));
         m4.compose(new THREE.Vector3(x + (isF ? (h(gx, gz, 7) - 0.5) * r * 2 : 0), top, z), q, new THREE.Vector3(r, hy, r));
         mesh.setMatrixAt(n, m4);
