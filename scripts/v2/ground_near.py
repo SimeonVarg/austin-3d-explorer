@@ -36,10 +36,31 @@ BED = {'bed', 'scrub', 'understorey', 'dirt', 'wood'}
 CONCRETE = {'concrete', 'aggregate', 'roadconcrete', None}
 ASPHALT = {'asphalt'}
 
+# Surfaces the inventory GUESSED rather than observed are not drawn as that surface: the ground there is left unnamed, so the
+# shader takes it from the City aerial's own colour (green = lawn, dark = asphalt, else concrete; v2/ground-near.js, HINT_*).
+# Checked against the owner's photos (2026-10-29): the 'canopy-ground' garden extents (a lawn assumed under a tree canopy
+# outline) covered Moffett's parking lot and sidewalk edge, and the City planimetric 'Courtyard' / 'Paved Patio' / 'Paving'
+# polygons, whose surface the bake defaults to brick paving, covered the Anna Hiss courtyard lawn and Hogg's concrete walk.
+# Key: the feature's _src.s; value: the defaulted surfaces it applies to (None = any).
+AERIAL_DECIDES = {'canopy-ground': None, 'surface-default': PAVERS}
+# ...except under a mapped tree crown, where the aerial sees the crown and not the ground (Hogg's planted bed under the West Mall
+# oaks read as concrete without this): there a guessed lawn stays lawn, drawn as the crown's disc inside the guessed extent.
+TREES = [os.path.join(ROOT, 'v2', 'data', 'trees', n) for n in ('city.json', 'osm.json')]
+CROWN_SCALE = 0.85                             # x the mapped crown radius (crowns are measured to the leaf tips)
+CROWN_SIDES = 16
+
+
+def guessed(p):
+    src = (p.get('_src') or {}).get('s')
+    if src not in AERIAL_DECIDES: return False
+    only = AERIAL_DECIDES[src]
+    return only is None or p.get('s') in only
+
 
 def classify(p):
     k, s = p.get('k'), p.get('s')
     if k in ('roadarea', 'cnp', 'bank'): return None
+    if guessed(p): return None
     if k not in ('area', 'patharea', 'pathslab', 'cyclearea'): return None
     if s in PAVERS: return 1
     if s in GRASS: return 2
@@ -55,12 +76,42 @@ def rank(k, c, area):
     return (base, -area)
 
 
+def crowns():
+    pts = []
+    for t in TREES:
+        if not os.path.exists(t): continue
+        a = json.load(open(t)).get('trees', [])
+        pts += [(a[i], a[i + 1], a[i + 2]) for i in range(0, len(a), 6)]
+    return pts
+
+
+def inside(x, z, ring):                        # ring: [(x, z)...] in metres
+    c, j = False, len(ring) - 1
+    for i in range(len(ring)):
+        xi, zi = ring[i]; xj, zj = ring[j]
+        if (zi > z) != (zj > z) and x < (xj - xi) * (z - zi) / (zj - zi) + xi: c = not c
+        j = i
+    return c
+
+
 def main():
     d = json.load(open(SRC))
     out, counts = [], {}
+    trees = crowns()
     for f in d['features']:
         p, g = f['properties'], f['geometry']
         c = classify(p)
+        if c is None and guessed(p) and p.get('s') in GRASS and g['type'] in ('Polygon', 'MultiPolygon'):
+            for poly in ([g['coordinates']] if g['type'] == 'Polygon' else g['coordinates']):
+                ring = [((lon - ORIGIN[1]) * KX, -(lat - ORIGIN[0]) * KZ) for lon, lat in poly[0]]
+                xs, zs = [q[0] for q in ring], [q[1] for q in ring]
+                for tx, tz, tr in trees:
+                    if not (min(xs) <= tx <= max(xs) and min(zs) <= tz <= max(zs)) or not inside(tx, tz, ring): continue
+                    r = tr * CROWN_SCALE
+                    disc = [v for k in range(CROWN_SIDES) for v in (round((tx + r * math.cos(2 * math.pi * k / CROWN_SIDES)) * 10),
+                                                                   round((tz + r * math.sin(2 * math.pi * k / CROWN_SIDES)) * 10))]
+                    out.append(((0, -math.pi * r * r), [2, disc])); counts['crown_lawn'] = counts.get('crown_lawn', 0) + 1
+            continue
         if c is None: continue
         polys = [g['coordinates']] if g['type'] == 'Polygon' else g['coordinates'] if g['type'] == 'MultiPolygon' else []
         for poly in polys:
