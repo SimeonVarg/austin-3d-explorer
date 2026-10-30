@@ -1109,8 +1109,8 @@
         "will-c-hogg-building"
       ],
       "bytes": [
-        1476064,
-        39296
+        1493976,
+        39004
       ]
     },
     {
@@ -3613,7 +3613,7 @@
       "model": "opus",
       "x": 156.954,
       "z": -38.589,
-      "top": 26.9
+      "top": 28.4
     },
     "robert-e-johnson-state-legislative-office-building": {
       "tile": "t_0_4",
