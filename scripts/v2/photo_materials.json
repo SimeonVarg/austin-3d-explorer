@@ -16,16 +16,17 @@
      1.0832
     ],
     "factor": [
-     0.2148,
-     0.2148,
-     0.2148
+     0.2255,
+     0.223,
+     0.19
     ],
     "source": "owner photo, 2026-10-03 campus walk (N entrance): 47 real bricks laid in the measured running bond, course 0.0677 m (modular), brick + joint 0.211 m",
     "mean_rgb": [
      0.1199,
      0.0837,
      0.0673
-    ]
+    ],
+    "factor_why": "2026-10-30: warmer and less pink (R/G 1.45, G/B 1.45 on the texture mean): both owner photos (IMG_1016 W face R/G 1.57 G/B 1.48, IMG_1021 N face 1.51/1.33) read the brick yellower than the lamp-free patch it was cut from"
    },
    "stone_limestone": {
     "albedo": "scripts/v2/materials/e-p-schoch-building/limestone_albedo.jpg",
@@ -67,17 +68,17 @@
   "fade": {
    "bracket_stone": {
     "to": [
-     0.13,
-     0.124,
-     0.11
+     0.17,
+     0.166,
+     0.155
     ],
     "size_m": 0.3
    },
    "soffit_trim": {
     "to": [
-     0.13,
-     0.124,
-     0.11
+     0.17,
+     0.166,
+     0.155
     ],
     "size_m": 0.05
    },
@@ -88,6 +89,22 @@
      0.0673
     ],
     "size_m": 0.12
+   },
+   "rail_dark": {
+    "to": [
+     0.125,
+     0.112,
+     0.085
+    ],
+    "size_m": 0.045
+   },
+   "rail_grey": {
+    "to": [
+     0.125,
+     0.112,
+     0.085
+    ],
+    "size_m": 0.045
    }
   }
  },

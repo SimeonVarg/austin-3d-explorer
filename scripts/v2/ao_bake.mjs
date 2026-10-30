@@ -182,7 +182,11 @@ function aoAt(B, H, rays, stack, P, px, py, pz, nx, ny, nz) {
 // the face gets the mean AO of SAMPLES points spread over its area (one per SAMPLE_AREA_M2, between SAMPLES_MIN and SAMPLES_MAX). A
 // vertex takes the area-weighted mean of the faces it belongs to: on a flat face that is the face's own value (uniform: no gradient,
 // no wedge, no noise); on a smooth-shaded curve (a column) it blends from facet to facet. Buried sample points do not count.
-export function bakeAO(doc, P = AO) {
+// downLit (opts, from app_copy.json "ao_down_lit": slug -> k): a level face that looks DOWN (a soffit, the underside of an eave) of that
+// building takes back the share k of what its occluders took. Its occluders are the lit wall and brackets it faces, which the AO counts as
+// black; in his photos those undersides read pale (E. P. Schoch, 2026-10-30: soffit AO 0.35 drawn dark grey, photo pale paint).
+export function bakeAO(doc, P = AO, opts = {}) {
+  const downLit = opts.downLit || new Map();
   // one byte, on LEVELS steps (fewer distinct values: the Meshopt vertex codec packs them tighter)
   const q8 = (a) => Math.round(Math.round(Math.min(1, Math.max(0, a)) * (P.LEVELS - 1)) * 255 / (P.LEVELS - 1));
   const items = [];
@@ -201,7 +205,8 @@ export function bakeAO(doc, P = AO) {
         const x = M[0] * nl[0] + M[4] * nl[1] + M[8] * nl[2], y = M[1] * nl[0] + M[5] * nl[1] + M[9] * nl[2], z = M[2] * nl[0] + M[6] * nl[1] + M[10] * nl[2];
         const l = Math.hypot(x, y, z) || 1; nrm[i * 3] = x / l; nrm[i * 3 + 1] = y / l; nrm[i * 3 + 2] = z / l;
       }
-      items.push({ prim, pos, nrm, index: Uint32Array.from(ia.getArray()) });
+      const ba = prim.getAttribute('_BUILDING');
+      items.push({ prim, pos, nrm, index: Uint32Array.from(ia.getArray()), bld: ba && downLit.size ? ba.getArray() : null });
     }
   }
   let nt = 0; for (const p of items) nt += p.index.length / 3;
@@ -274,7 +279,13 @@ export function bakeAO(doc, P = AO) {
         samples++;
       }
       // (a side buried in every sample is pressed against other geometry, as a layer laid on a wall: the other side is the seen one)
-      faceAO.set(r, got || got2 ? Math.max(got ? acc / got : 0, got2 ? acc2 / got2 : 0) : 1);
+      let fa = got || got2 ? Math.max(got ? acc / got : 0, got2 ? acc2 / got2 : 0) : 1;
+      if (p.bld) {
+        const k = downLit.get(Math.round(p.bld[I[r * 3]]));
+        const ny = (got ? acc / got : -1) >= (got2 ? acc2 / got2 : -1) ? fn[r * 3 + 1] : -fn[r * 3 + 1];
+        if (k && ny < -0.9 * Math.hypot(fn[r * 3], fn[r * 3 + 1], fn[r * 3 + 2])) fa = 1 - (1 - fa) * (1 - k);
+      }
+      faceAO.set(r, fa);
       faces++;
     }
     // per vertex: area-weighted mean of the faces it belongs to
