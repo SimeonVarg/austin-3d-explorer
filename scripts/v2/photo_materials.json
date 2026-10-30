@@ -405,9 +405,17 @@
      0.0867
     ],
     "size_m": 0.06
+   },
+   "rail_steel": {
+    "to": [
+     0.035,
+     0.034,
+     0.033
+    ],
+    "size_m": 0.045
    }
   },
-  "fade_note": "rule 15: the carved step lines of the frieze (1.6 cm, read about 3 cm wide in shadow in IMG_0926) and the balcony rail fade into the stone behind them by pixel size (v2/tiles.js coverage fade): steady, not blurred"
+  "fade_note": "rule 15: the carved step lines of the frieze (1.6 cm, read about 3 cm wide in shadow in IMG_0926) and the balcony rail fade into the stone behind them by pixel size (v2/tiles.js coverage fade): steady, not blurred; the north stair handrails (4.5 cm steel, 2026-10-29) fade into the granite and concrete behind them the same way"
  },
  "biological-laboratories": {
   "wall_max_ny": 0.75,
