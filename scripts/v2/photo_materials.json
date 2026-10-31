@@ -3973,5 +3973,18 @@
     ]
    }
   }
+ },
+ "the-castilian": {
+  "fade": {
+   "rail_steel": {
+    "to": [
+     0.085,
+     0.072,
+     0.058
+    ],
+    "size_m": 0.045
+   }
+  },
+  "why": "The Castilian's street level (2026-10-31): the stainless handrails of the leasing entrance steps fade by pixel coverage into the step concrete behind them (rule 15: steady in motion, not blurred)"
  }
 }
