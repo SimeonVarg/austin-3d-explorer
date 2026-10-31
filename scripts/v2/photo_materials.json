@@ -3786,5 +3786,67 @@
    "lod_bias": -0.5,
    "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
   }
+ },
+ "ernest-cockrell-jr-hall": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "the wall's mean colour is the Blender build's photo-derived brick (out-opus make_params.py: photograph pixel / the rig's no-sun light, gate 2.8 %) mixed with its photo-derived mortar (82/18); the texture carries the brick-to-brick variation and the bond from the owner's photo"
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "as PMA and Welch: keeps the textured brick from reading softer than the truth at 250 m (rule 15: blur is not a fix)"
+  },
+  "materials": {
+   "wall_brick_tan": {
+    "albedo": "scripts/v2/materials/ernest-cockrell-jr-hall/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/ernest-cockrell-jr-hall/brick_normal.jpg",
+    "repeat_m": [
+     1.0155,
+     1.0832
+    ],
+    "factor": [
+     0.2787,
+     0.2702,
+     0.2167
+    ],
+    "source": "owner photo IMG_0882, 2026-10-03 campus walk (the west entrance wall above the sign, rectified through its vanishing points, f 2980 px from 158 + 471 segments): 470 real bricks laid in running bond at the measured course (33 px in the rectified photo, modular 0.0677 m), light divided out",
+    "mean_rgb": [
+     0.1555,
+     0.1053,
+     0.0679
+    ]
+   },
+   "wall_brick_stained": {
+    "albedo": "scripts/v2/materials/ernest-cockrell-jr-hall/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/ernest-cockrell-jr-hall/brick_normal.jpg",
+    "repeat_m": [
+     1.0155,
+     1.0832
+    ],
+    "factor": [
+     0.1694,
+     0.1635,
+     0.1287
+    ],
+    "source": "owner photo IMG_0882, 2026-10-03 campus walk (the west entrance wall above the sign, rectified through its vanishing points, f 2980 px from 158 + 471 segments): 470 real bricks laid in running bond at the measured course (33 px in the rectified photo, modular 0.0677 m), light divided out; the weathered sill band of each window, darker by the build's photo ratio",
+    "mean_rgb": [
+     0.0946,
+     0.0637,
+     0.0403
+    ]
+   }
+  },
+  "fade": {
+   "metal_rail_steel": {
+    "to": [
+     0.0818,
+     0.0706,
+     0.0576
+    ],
+    "size_m": 0.045
+   }
+  },
+  "fade_note": "rule 15: the 45 mm steel handrails and posts of the west entrance steps (four rails, owner IMG_0883) fade into the concrete behind them by pixel size (v2/tiles.js coverage fade): steady, not blurred"
  }
 }

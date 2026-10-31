@@ -228,7 +228,8 @@ async function partDoc(slugs, lod, part) {
     for (const n of sc.listChildren()) scene.addChild(n);
     sc.dispose();
   }
-  await doc.transform(unpartition(), prune());
+  // keepSolidTextures: the 1x1 white texture photo_materials.mjs puts on a fade material is what keeps it out of palette(); without it every fade in a tile merged into one
+  await doc.transform(unpartition(), prune({ keepSolidTextures: true }));
   if (!doc.getRoot().listMeshes().some((m) => m.listPrimitives().length)) return null;
   const steps = [dedup()];
   if (lod === 1) steps.push(weld(), simplify({ simplifier: MeshoptSimplifier, ratio: FAR_SIMPLIFY_RATIO, error: FAR_SIMPLIFY_ERROR }));
