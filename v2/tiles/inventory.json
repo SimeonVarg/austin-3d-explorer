@@ -6244,9 +6244,9 @@
   },
   "tiles": {
     "t_-1_-1": {
-      "hash": "20584ffb4fef3898",
+      "hash": "33bd91e9be3e041f",
       "near": {
-        "bytes": 2714148,
+        "bytes": 2714168,
         "tris": 209992,
         "draws": 14
       },
