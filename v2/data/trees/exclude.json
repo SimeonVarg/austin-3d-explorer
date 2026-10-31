@@ -19,6 +19,12 @@
    "z": -210.9,
    "source": "safe_city.json (crown detected on the 2025 aerial)",
    "why": "EER south entrance: a 6.2 m round tree drawn on the walk in front of the entrance doors; the owner's photo of that entrance shows the doors, the paved walk and low planting, and no tree there"
+  },
+  {
+   "x": 85.5,
+   "z": 260.4,
+   "source": "safe_city.json (crown detected on the 2025 aerial)",
+   "why": "Graduate School of Business, south-west stone block: a 7.6 m tree drawn on the west railed stair, 6 m from the owner's camera, covering the block and footbridge; his photo from that spot shows the block, the bridge and sky clear there (the only crown is at the frame edge, further west)"
   }
  ]
 }
