@@ -4324,8 +4324,24 @@
      0.045
     ],
     "size_m": 0.28
+   },
+   "stone_pale_jc": {
+    "to": [
+     0.125,
+     0.095,
+     0.071
+    ],
+    "size_m": 0.25
+   },
+   "stone_band_jc": {
+    "to": [
+     0.125,
+     0.095,
+     0.071
+    ],
+    "size_m": 0.7
    }
   },
-  "why": "2026-10-31 first build: the terrace rails (0.06 m), storefront mullions (0.12 m) and the stone window surrounds (0.18 m) are thinner than a pixel from 250 m west; each fades by pixel coverage to what it stands on (the trimmed brick, the dark glass), never blurred (rule 15). Brick colour = brick_buff x the photo trim (0.82, 0.78, 0.75). The 0.85 m window panes fade toward the facade's own mean (half brick, half glass) as the pixel grows past a pane, so the 600 m west view keeps the window rhythm's tone without flicker. The 0.28 m dark eave fascia (about 300 m of eave line) fades toward the mean of the tile roof and the brick below it."
+  "why": "2026-10-31 first build: the terrace rails (0.06 m), storefront mullions (0.12 m) and the stone window surrounds (0.18 m) are thinner than a pixel from 250 m west; each fades by pixel coverage to what it stands on (the trimmed brick, the dark glass), never blurred (rule 15). Brick colour = brick_buff x the photo trim (0.82, 0.78, 0.75). The 0.85 m window panes fade toward the facade's own mean (half brick, half glass) as the pixel grows past a pane, so the 600 m west view keeps the window rhythm's tone without flicker. The 0.28 m dark eave fascia (about 300 m of eave line) fades toward the mean of the tile roof and the brick below it. Found with the native-vs-supersampled difference map at 250 m and 600 m west: the pale parapet copings (0.15-0.25 m) and the limestone bands (0.55-0.85 m) were the bright lines that flickered; they fade into the brick by pixel coverage."
  }
 }
