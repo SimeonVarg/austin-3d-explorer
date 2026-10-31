@@ -3864,11 +3864,11 @@
    },
    "rail_steel": {
     "to": [
-     0.05,
-     0.048,
-     0.044
+     0.139,
+     0.112,
+     0.078
     ],
-    "size_m": 0.05
+    "size_m": 0.06
    },
    "pergola_white": {
     "to": [
@@ -3887,6 +3887,6 @@
     "size_m": 0.06
    }
   },
-  "why": "2026-10-31: the south louvre blades are now light metal as in the owner's entrance photo (0.12 m on a 0.34 m pitch over dark glass), and the new entrance stair, its rails and the pergola slats are thinner than a pixel from far away; each fades to the mean of what it covers by pixel coverage (rule 15), never blurred"
+  "why": "2026-10-31: the south louvre blades are now light metal as in the owner's entrance photo (0.12 m on a 0.34 m pitch over dark glass), and the new entrance stair, its rails and the pergola slats are thinner than a pixel from far away; each fades to the mean of what it covers by pixel coverage (rule 15), never blurred. Round 2: the rails are now his dark steel (0.06 m), fading to the cream stone they stand against"
  }
 }
