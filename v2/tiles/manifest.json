@@ -775,8 +775,8 @@
         "west-campus-130c7878"
       ],
       "bytes": [
-        798768,
-        24964
+        858388,
+        24332
       ]
     },
     {
@@ -3491,7 +3491,7 @@
       "model": "opus",
       "x": -520.477,
       "z": 310.378,
-      "top": 21.1
+      "top": 23.9
     },
     "powers-student-activity-center": {
       "tile": "t_1_0",

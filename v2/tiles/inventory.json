@@ -2372,15 +2372,13 @@
       "model": "opus",
       "kind": "apartment",
       "tile": "t_-3_1",
-      "blend_sha256": "a35331d16583d117",
+      "blend_sha256": "835b92234a6ef93b",
       "lod1": "mass",
       "placement": {
-        "height_m": 21.1,
-        "area_ratio": 1.005,
-        "centre_off_m": 0.14,
-        "flags": [
-          "base at -3.3 m"
-        ]
+        "height_m": 23.9,
+        "area_ratio": 1.004,
+        "centre_off_m": 0.08,
+        "flags": []
       }
     },
     "powers-student-activity-center": {
@@ -6689,15 +6687,15 @@
       }
     },
     "t_-3_1": {
-      "hash": "ce0833e5f6ef26db",
+      "hash": "601719d7621521c9",
       "near": {
-        "bytes": 798768,
-        "tris": 73750,
+        "bytes": 858388,
+        "tris": 81540,
         "draws": 2
       },
       "far": {
-        "bytes": 24964,
-        "tris": 2075,
+        "bytes": 24332,
+        "tris": 2009,
         "draws": 1
       }
     },
