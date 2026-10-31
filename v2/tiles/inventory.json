@@ -1562,18 +1562,16 @@
     "indeed-tower": {
       "exported": true,
       "reason": null,
-      "model": "sol",
+      "model": "opus",
       "kind": "street",
       "tile": "t_-2_7",
-      "blend_sha256": "4bb3e7cab405e4b7",
+      "blend_sha256": "0f3d47407e9623cc",
       "lod1": "mass",
       "placement": {
         "height_m": 160.6,
-        "area_ratio": 1.089,
-        "centre_off_m": 2.27,
-        "flags": [
-          "centre 2.3 m off"
-        ]
+        "area_ratio": 1.041,
+        "centre_off_m": 0.63,
+        "flags": []
       }
     },
     "inspire-on-22nd": {
@@ -6586,15 +6584,15 @@
       }
     },
     "t_-2_7": {
-      "hash": "43db15dbef7efe46",
+      "hash": "1817881a8528282a",
       "near": {
-        "bytes": 1114020,
-        "tris": 101020,
+        "bytes": 1139352,
+        "tris": 103250,
         "draws": 2
       },
       "far": {
-        "bytes": 31520,
-        "tris": 2234,
+        "bytes": 34984,
+        "tris": 2516,
         "draws": 1
       }
     },
