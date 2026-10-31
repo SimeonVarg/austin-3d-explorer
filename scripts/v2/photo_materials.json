@@ -4231,8 +4231,16 @@
      0.1
     ],
     "size_m": 0.05
+   },
+   "stair_tread": {
+    "to": [
+     0.045,
+     0.052,
+     0.054
+    ],
+    "size_m": 0.1
    }
   },
-  "fade_note": "the muntin grids of the three great arch windows (over dark glass and white curtains) and of the upper arched windows (over the sky-mirror panes) fade into the pane behind as the pixel grows past the bar (rule 15)"
+  "fade_note": "the muntin grids of the three great arch windows (over dark glass and white curtains) and of the upper arched windows (over the sky-mirror panes) fade into the pane behind as the pixel grows past the bar (rule 15); the light stair treads fade into the riser/tread mean once a pixel covers a step"
  }
 }
