@@ -1133,8 +1133,8 @@
         "student-services-building"
       ],
       "bytes": [
-        2211628,
-        47416
+        2241104,
+        48472
       ]
     },
     {
@@ -3244,7 +3244,7 @@
       "model": "opus",
       "x": 195.807,
       "z": -280.627,
-      "top": 27.2
+      "top": 31.6
     },
     "moncrief-neuhaus-athletic-center": {
       "tile": "t_2_1",
