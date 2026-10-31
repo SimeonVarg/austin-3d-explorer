@@ -2294,13 +2294,16 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_1",
-      "blend_sha256": "166af023bf04ac43",
+      "blend_sha256": "2cebf15f21849de5",
       "lod1": "mass",
       "placement": {
         "height_m": 29.5,
-        "area_ratio": 1.033,
-        "centre_off_m": 1.82,
-        "flags": []
+        "area_ratio": 1.374,
+        "centre_off_m": 15.97,
+        "flags": [
+          "centre 16.0 m off",
+          "area x1.37"
+        ]
       }
     },
     "peter-t-flawn-academic-center": {
@@ -6969,15 +6972,15 @@
       }
     },
     "t_0_1": {
-      "hash": "13e845bf949f2340",
+      "hash": "08a5777d82a73668",
       "near": {
-        "bytes": 614396,
-        "tris": 74429,
+        "bytes": 616088,
+        "tris": 74564,
         "draws": 3
       },
       "far": {
-        "bytes": 79708,
-        "tris": 9175,
+        "bytes": 79220,
+        "tris": 9091,
         "draws": 1
       }
     },
