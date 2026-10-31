@@ -661,6 +661,42 @@
      0.0816,
      0.0546
     ]
+   },
+   "hedge_green": {
+    "albedo": "scripts/v2/materials/mccombs-school-of-business/hedge_albedo.jpg",
+    "repeat_m": [
+     1.5,
+     1.5
+    ],
+    "factor": [
+     0.045,
+     0.06,
+     0.02
+    ],
+    "source": "synthetic leaves (random overlapping ellipses, tileable), colours and shares from a k-means palette of a lit clipped hedge in the owner photo of the north glass hall; no photo pixels copied; mean = the build's hedge colour",
+    "mean_rgb": [
+     0.018,
+     0.024,
+     0.008
+    ]
+   },
+   "shrub_flowering": {
+    "albedo": "scripts/v2/materials/mccombs-school-of-business/shrub_albedo.jpg",
+    "repeat_m": [
+     3.0,
+     3.0
+    ],
+    "factor": [
+     0.075,
+     0.08,
+     0.03
+    ],
+    "source": "synthetic leaves and flowers the same way, palette from the flowering bed behind the granite planter in the owner photo of the east entrance (green with orange flowers); no photo pixels copied",
+    "mean_rgb": [
+     0.03,
+     0.032,
+     0.012
+    ]
    }
   },
   "fade": {
