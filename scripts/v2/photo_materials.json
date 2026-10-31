@@ -195,7 +195,7 @@
      0.17,
      0.17
     ],
-    "size_m": 0.012
+    "size_m": 0.03
    },
    "sign_symbol_white": {
     "to": [
@@ -203,15 +203,23 @@
      0.03,
      0.13
     ],
-    "size_m": 0.015
+    "size_m": 0.03
    },
-   "plate_blue": {
+   "sign_blue": {
     "to": [
      0.17,
      0.17,
      0.17
     ],
     "size_m": 0.15
+   },
+   "sign_green_small": {
+    "to": [
+     0.17,
+     0.17,
+     0.17
+    ],
+    "size_m": 0.012
    }
   },
   "fade_note": "2026-10-28: the frontage's iron bars and bollards fade by their size on screen (rule 15); the sign poles and plates are NOT faded: through the coverage-fade path they came out black in the app (two tries), so they stay plain until that is looked at; 2026-10-31: the sign letters and border (sign_green) fade into the white plate, the wheelchair symbol into the blue, the blue square into the plate, each by its stroke size (rule 15)"
