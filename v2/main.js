@@ -21,6 +21,7 @@ import { loadRealSky, placeRealSky, realAt, realSkyGLSL, realSkyUniforms, setAni
 import { glassPrepare, glassState, setGlassReal, setGlassFootprintScale } from './glass.js';
 import { clayPrepare, clayState, setRoofGlassData } from './clay.js';
 import { installWires } from './wires.js';
+import { installLamps } from './lamps.js';
 
 const params = new URLSearchParams(location.search);
 // exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
@@ -899,6 +900,8 @@ const cityGroup = new THREE.Group(); cityGroup.name = 'city';
 scene.add(cityGroup);
 // thin round parts of Blender builds (cables, rails) as coverage-faded ribbons (v2/wires.js); ?wires=0 leaves them out
 const wires = params.get('wires') === '0' ? Promise.resolve(null) : installWires(scene, renderer);
+// street lamps (v2/lamps.js): the campus globe lamp and the cobra-head street light, one instanced draw each; ?lamps=0 leaves them out
+const lamps = installLamps({ scene, renderer, camera, phone: PHONE, redraw: () => { dirty = true; }, night: () => momentNow }).catch((e) => { console.warn('[v2 lamps]', e.message); return null; });
 // the City's 2025 aerial on the ground, the street layers and the credits link (ground.js; it hooks scene.onBeforeRender itself)
 installGround({ THREE, scene, camera, renderer, city, redraw: () => { dirty = true; }, phone: PHONE,
   lodHeight: () => Math.floor(innerHeight * DPR) });
@@ -1512,7 +1515,7 @@ const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length 
 const pct = (a, p) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * p))] : null; };
 window.__v2 = {
   THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FLY, fly: () => controls.state(), field, COVER, coverStats, tileStreamer: () => tiles,
-  ready: Promise.all([cityReady, tilesReady, routeReady, wires]),
+  ready: Promise.all([cityReady, tilesReady, routeReady, wires, lamps]),
   tiles: () => tiles && tiles.summary(),
   exactProbe: () => {
     // what a local probe sees of the sky must be the MIRROR sky (LOOK.LIGHT_B.mirror x the stops), as the environment map every other
