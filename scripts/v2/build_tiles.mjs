@@ -256,7 +256,7 @@ async function buildTile(t, slugs, lod) {
     await doc.transform(unpartition());
   }
   // near tiles: ambient occlusion per vertex from the tile's own geometry (ao_bake.mjs; the app multiplies it into the sky and bounce light)
-  if (lod === 0) bakeAO(doc);
+  if (lod === 0) bakeAO(doc, undefined, { downLit: new Map(slugs.map((s, i) => [i, (APP_COPY[s] || {}).ao_down_lit]).filter(([, k]) => k > 0)) });
   doc.getRoot().getAsset().generator = 'flyover scripts/v2/build_tiles.mjs (glTF Transform 4.5.0)';
   doc.getRoot().setExtras({ tile: t, lod, buildings: slugs, building_attribute: '_BUILDING = index into buildings' });
   await doc.transform(meshopt({ encoder: MeshoptEncoder, level: MESHOPT_LEVEL, ...QUANT }));
