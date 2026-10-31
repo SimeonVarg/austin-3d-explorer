@@ -1295,15 +1295,15 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_0",
-      "blend_sha256": "644422edf7dea0c9",
+      "blend_sha256": "0afb175431f755d9",
       "lod1": "mass",
       "placement": {
-        "height_m": 16.8,
-        "area_ratio": 1.051,
-        "centre_off_m": 2.06,
+        "height_m": 18.5,
+        "area_ratio": 1.791,
+        "centre_off_m": 11.95,
         "flags": [
-          "centre 2.1 m off",
-          "base at -1.8 m"
+          "centre 11.9 m off",
+          "area x1.79"
         ]
       }
     },
@@ -1343,7 +1343,7 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_1_0",
-      "blend_sha256": "23f0a619edff73a6",
+      "blend_sha256": "8280b72421aaae76",
       "lod1": "mass",
       "placement": {
         "height_m": 26.7,
@@ -1499,12 +1499,12 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_-1_-1",
-      "blend_sha256": "c73660a1725ec347",
+      "blend_sha256": "261adf4c0a2d85fc",
       "lod1": "mass",
       "placement": {
         "height_m": 17.2,
-        "area_ratio": 1.064,
-        "centre_off_m": 0.06,
+        "area_ratio": 1.063,
+        "centre_off_m": 0.05,
         "flags": []
       }
     },
@@ -2543,13 +2543,16 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_-1",
-      "blend_sha256": "e05d48982c1c8273",
+      "blend_sha256": "4f4782642268acdd",
       "lod1": "mass",
       "placement": {
         "height_m": 28.4,
-        "area_ratio": 1.063,
-        "centre_off_m": 2,
-        "flags": []
+        "area_ratio": 1.266,
+        "centre_off_m": 12.29,
+        "flags": [
+          "centre 12.3 m off",
+          "area x1.27"
+        ]
       }
     },
     "robert-e-johnson-state-legislative-office-building": {
@@ -4139,12 +4142,12 @@
       "model": "opus",
       "kind": "apartment",
       "tile": "t_-2_-1",
-      "blend_sha256": "5849f9b676dcf0a0",
+      "blend_sha256": "bf4de687bcf39b2e",
       "lod1": "mass",
       "placement": {
         "height_m": 97.1,
-        "area_ratio": 1.029,
-        "centre_off_m": 0.06,
+        "area_ratio": 1.037,
+        "centre_off_m": 0.21,
         "flags": []
       }
     },
@@ -6244,15 +6247,15 @@
   },
   "tiles": {
     "t_-1_-1": {
-      "hash": "04227e21444cd26b",
+      "hash": "33bd91e9be3e041f",
       "near": {
-        "bytes": 2625484,
-        "tris": 199438,
-        "draws": 8
+        "bytes": 2714168,
+        "tris": 209992,
+        "draws": 14
       },
       "far": {
-        "bytes": 44728,
-        "tris": 3679,
+        "bytes": 44108,
+        "tris": 3627,
         "draws": 1
       }
     },
@@ -6413,15 +6416,15 @@
       }
     },
     "t_-2_-1": {
-      "hash": "5172873be6412d30",
+      "hash": "f6b83aba307fed44",
       "near": {
-        "bytes": 1562192,
-        "tris": 170103,
+        "bytes": 1575748,
+        "tris": 172513,
         "draws": 5
       },
       "far": {
-        "bytes": 35572,
-        "tris": 3029,
+        "bytes": 35660,
+        "tris": 3037,
         "draws": 1
       }
     },
@@ -6894,15 +6897,15 @@
       }
     },
     "t_0_-1": {
-      "hash": "22f72ae3e926d085",
+      "hash": "87b36802511cdd06",
       "near": {
-        "bytes": 1574696,
-        "tris": 128318,
+        "bytes": 1803140,
+        "tris": 148955,
         "draws": 16
       },
       "far": {
-        "bytes": 38412,
-        "tris": 2913,
+        "bytes": 38280,
+        "tris": 2943,
         "draws": 1
       }
     },
@@ -6959,15 +6962,15 @@
       }
     },
     "t_0_0": {
-      "hash": "ce1c569d266888c7",
+      "hash": "8c789c252cab8390",
       "near": {
-        "bytes": 1616740,
-        "tris": 128107,
+        "bytes": 1646252,
+        "tris": 129588,
         "draws": 6
       },
       "far": {
-        "bytes": 33992,
-        "tris": 2713,
+        "bytes": 38216,
+        "tris": 3160,
         "draws": 1
       }
     },
@@ -7115,11 +7118,11 @@
       }
     },
     "t_1_0": {
-      "hash": "f44060450c64ba16",
+      "hash": "ebeff0eba3c987e1",
       "near": {
-        "bytes": 1228336,
-        "tris": 113518,
-        "draws": 6
+        "bytes": 1250084,
+        "tris": 114149,
+        "draws": 14
       },
       "far": {
         "bytes": 41640,

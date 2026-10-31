@@ -160,15 +160,15 @@
      1.6
     ],
     "factor": [
-     0.1125,
-     0.0474,
-     0.0189
+     0.1665,
+     0.0664,
+     0.0265
     ],
-    "source": "owner photo, 2026-10-03 campus walk (portico bay, north): stucco mottling only",
+    "source": "owner photo, 2026-10-03 campus walk (portico bay, north): stucco mottling only; 2026-10-31: x1.48 / 1.40 / 1.40 (r, g, b): measured at the portico bays of the owner's front photo under the matched sky the stucco sat at 0.64-0.92 of the photo while the limestone sits at 1.15, so against the stone it read brown, not orange",
     "mean_rgb": [
-     0.0563,
-     0.0237,
-     0.0095
+     0.0833,
+     0.0332,
+     0.0133
     ]
    }
   },
@@ -188,9 +188,41 @@
      0.1041
     ],
     "size_m": 0.03
+   },
+   "sign_green": {
+    "to": [
+     0.17,
+     0.17,
+     0.17
+    ],
+    "size_m": 0.03
+   },
+   "sign_symbol_white": {
+    "to": [
+     0.006,
+     0.03,
+     0.13
+    ],
+    "size_m": 0.03
+   },
+   "sign_blue": {
+    "to": [
+     0.17,
+     0.17,
+     0.17
+    ],
+    "size_m": 0.15
+   },
+   "sign_green_small": {
+    "to": [
+     0.17,
+     0.17,
+     0.17
+    ],
+    "size_m": 0.012
    }
   },
-  "fade_note": "2026-10-28: the frontage's iron bars and bollards fade by their size on screen (rule 15); the sign poles and plates are NOT faded: through the coverage-fade path they came out black in the app (two tries), so they stay plain until that is looked at"
+  "fade_note": "2026-10-28: the frontage's iron bars and bollards fade by their size on screen (rule 15); the sign poles and plates are NOT faded: through the coverage-fade path they came out black in the app (two tries), so they stay plain until that is looked at; 2026-10-31: the sign letters and border (sign_green) fade into the white plate, the wheelchair symbol into the blue, the blue square into the plate, each by its stroke size (rule 15)"
  },
  "physics-math-astronomy": {
   "wall_max_ny": 0.75,
@@ -4280,5 +4312,58 @@
    }
   },
   "why": "The Castilian's street level (2026-10-31): the stainless handrails of the leasing entrance steps fade by pixel coverage into the step concrete behind them (rule 15: steady in motion, not blurred)"
+ },
+ "gregory-gym": {
+  "fade": {
+   "muntin_arch": {
+    "to": [
+     0.03,
+     0.029,
+     0.027
+    ],
+    "size_m": 0.045
+   },
+   "muntin_red": {
+    "to": [
+     0.095,
+     0.1,
+     0.1
+    ],
+    "size_m": 0.05
+   },
+   "stair_tread": {
+    "to": [
+     0.045,
+     0.052,
+     0.054
+    ],
+    "size_m": 0.1
+   },
+   "stair_nosing": {
+    "to": [
+     0.03,
+     0.036,
+     0.038
+    ],
+    "size_m": 0.035
+   },
+   "stair_marker": {
+    "to": [
+     0.03,
+     0.036,
+     0.038
+    ],
+    "size_m": 0.07
+   },
+   "brick_shadow": {
+    "to": [
+     0.0929,
+     0.0643,
+     0.0408
+    ],
+    "size_m": 0.5
+   }
+  },
+  "fade_note": "the muntin grids of the three great arch windows (over dark glass and white curtains) and of the upper arched windows (over the sky-mirror panes) fade into the pane behind as the pixel grows past the bar (rule 15); the light stair treads fade into the riser/tread mean once a pixel covers a step; the nosing line on every riser and the dark nosing markers fade into the riser; the shaded field inside each little corbel arch (0.5 m, a 0.745 m repeat) fades into the wall by 600 m"
  }
 }
