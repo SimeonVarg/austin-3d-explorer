@@ -28,12 +28,22 @@
  *              the variants cheap, noPicture, noLay and noGlass do not reach the drawing (they swap the per-building scenes): pass
  *              --query gltfatlas=0 for them.
  *   copies     every row drawn as its far copy (GLTF.look.copy distances set to zero): the floor a level of detail could reach
+ *   farNNN     (any number, 2026-10-16) the far copy alone from NNN metres on the owner's 1440 x 900 window, the full building alone
+ *              from the same share of it as now (`?gltffardist=NNN`, js/gltf-layer.js); `on` is the default, about 800 m
+ * Every variant change jumps each row straight to its new share of full building (the dissolve's `fadeS` is 0 for 1.2 s), so a
+ * pass never times a dissolve left over from the variant before.
  * Plus, once per pose with the layer as loaded, a CPU profile of the main thread (2 s, 1 ms sampling) and the share of it in
  * the layer's own functions.
  *
  * SETTINGS (printed): --gl hardware, desktop 1280x800 DPR 1.5 or --phone (390x844 DPR 3, mobile emulation, iPhone user agent:
  * SIMULATED, the GPU is the runner's), --throttle N (CDP CPU throttle: SIMULATED), ?intro=0&drift=0, vsync off, the auto-detect
  * probe cancelled. A reading is the MINIMUM over rounds (CLAUDE.md rule 10), every round shown.
+ *
+ * --shots POSE[,POSE..] --shot-ab A,B[,C..]: pictures instead of timing (up to 5 variants, each against the first).
+ * --motion POSE[,POSE..] --motion-ab A,B[,C..]: for each pose and variant a few seconds of the camera flying forward in REAL time,
+ *   recorded as a screencast (jpeg frames, `motion-POSE-VARIANT/`), with a log a frame of how many buildings are dissolving between
+ *   their full model and their far copy and the largest change of one building's share in one frame (a pop would be a share of 1 in
+ *   one frame; the dissolve allows dt / fadeS).
  *
  *   node scripts/perf/layer-cost.mjs --url http://127.0.0.1:8442/ --rounds 4 --out DIR
  */
@@ -69,8 +79,10 @@ const POSES = {
   'start-close': { center: [-97.7434, 30.2857], zoom: 18.6, pitch: 70, bearing: 250 },
   'west-campus': { center: [-97.7445, 30.2880], zoom: 16.6, pitch: 72, bearing: 300 },
   'union-close': { center: [-97.74286, 30.28333], zoom: 18.4, pitch: 68, bearing: 280 },
+  // pictures only (not in the timing list): on Guadalupe at about 17 m up, looking north with West Campus on the left
+  'guad-street': { center: [-97.74175, 30.28700], zoom: 19.2, pitch: 84, bearing: 356 },
 };
-const POSE_NAMES = arg('--poses', Object.keys(POSES).join(',')).split(',');
+const POSE_NAMES = arg('--poses', 'spawn,start-close,west-campus,union-close').split(',');
 
 // ── installed once in the page: the timing wrappers and the variant switches ──
 const PAGE_SETUP = `(() => {
@@ -159,9 +171,28 @@ const PAGE_SETUP = `(() => {
   const status = () => ({ timer: !!ext, own: OWN.list.length, fullShown: OWN.list.filter(b => b.group && b.group.visible).length, rows: rows().length, loaded: rows().filter(e => e.state === 2).length,
     copiesShown: COPY.shown, ownPixels: OWN.pixels, atlas: !!G.look.own.atlas, ownRenders: OWN.renders, ownFlushes: OWN.flushes, shared: !!G.look.own.shared, pack: !!G.look.own.pack, atlasMB: G.look.own.atlasMB, shPushes: OWN.sh ? OWN.sh.pushes : null, shUploads: OWN.sh ? OWN.sh.uploads : null, needMB: OWN.needMB, ownMB: Math.round((OWN.bytes || 0) / 1e6), layerTris: G.info.look ? G.info.look.triangles : null,
     shadowMapRenders: S.sunlightStats().shadowMapRenders, tiers: OWN.list.filter(b => b.group && b.group.visible).map(b => (b.samples || 0) + 'x' + (b.scale || 0)).join(' ') });
+  // farNNN: the far copy alone from NNN m on the owner's 1440 x 900 window (GLTF.look.copy.perM converts; js/gltf-layer.js ?gltffardist)
+  const farV = name => { const m = /^far(\\d+)$/.exec(name); if (!m) throw new Error('no variant ' + name);
+    return () => { const C = G.look.copy, a = C.fullM, b = C.farM; C.farM = +m[1] * C.perM; C.fullM = C.farM * C.share; return () => { C.fullM = a; C.farM = b; }; }; };
+  // every change of variant jumps each row to its new share at once (no dissolve left over into the next pass), then the dissolve is back
+  const FADE0 = G.look.copy.fadeS; let fadeT = 0;
   window.__LC = {
     status, variants: Object.keys(V),
-    set(name) { if (undo) { undo(); undo = null; } undo = V[name](); if (window.__map) window.__map.triggerRepaint(); return status(); },
+    set(name) { if (undo) { undo(); undo = null; } undo = (V[name] || farV(name))(); G.look.copy.fadeS = 0; clearTimeout(fadeT); fadeT = setTimeout(() => { G.look.copy.fadeS = FADE0; }, 1200);
+      if (window.__map) window.__map.triggerRepaint(); return status(); },
+    // the camera flies cfg.metres forward along its bearing over cfg.ms in real time; a log a frame of the dissolve
+    async fly(cfg) {
+      const m = window.__map, C = G.look.copy, R = rows(), prev = new Map(R.map(e => [e, e.fade])), log = [];
+      const lat0 = cfg.pose.center[1], lng0 = cfg.pose.center[0], br = cfg.pose.bearing * Math.PI / 180;
+      const dLat = Math.cos(br) / 111320, dLng = Math.sin(br) / (111320 * Math.cos(lat0 * Math.PI / 180));
+      m.jumpTo(cfg.pose); const t0 = performance.now();
+      await new Promise(res => { const step = () => { const t = performance.now() - t0, k = Math.min(1, t / cfg.ms), d = k * cfg.metres;
+        m.jumpTo({ center: [lng0 + dLng * d, lat0 + dLat * d] });
+        let n2 = 0, nFull = 0, maxStep = 0, who = null; for (const e of R) { if (e.farMode === 2) n2++; if (e.fade > 0) nFull++; const dd = Math.abs((e.fade || 0) - (prev.get(e) || 0)); if (dd > maxStep) { maxStep = dd; who = e.row && (e.row.name || e.row.id); } prev.set(e, e.fade); }
+        log.push({ t: Math.round(t), d: Math.round(d), n2, nFull, maxStep: +maxStep.toFixed(3), who: maxStep > 0 ? who : null });
+        if (k >= 1) return res(); requestAnimationFrame(step); }; requestAnimationFrame(step); });
+      return { log, fadeS: C.fadeS, fullM: C.fullM, farM: C.farM };
+    },
     async pass(cfg) {
       const m = window.__map; m.jumpTo(cfg.pose);
       const rec = []; let last = null, i = 0; st.byFrame = new Map();
@@ -192,6 +223,7 @@ const r2 = x => x == null ? null : +x.toFixed(2);
 // plus a pixel count of what differs (A against A = the page's own noise; A against B = the change). --width/--height/--dpr set the window.
 const SHOTS = arg('--shots', '');
 const SHOT_AB = arg('--shot-ab', 'leanOff,on').split(',');
+const MOTION = arg('--motion', ''), MOTION_AB = arg('--motion-ab', 'on').split(',');
 const W = +arg('--width', PHONE ? 390 : 1280), H = +arg('--height', PHONE ? 844 : 800), DPR = +arg('--dpr', PHONE ? 3 : 1.5);
 const chrome = await startChrome({ gl: GL, width: W, height: H, vsync: 'off', maxMs: 3000000 });
 const result = { label: LABEL, phone: PHONE, throttle: THROTTLE, poses: {}, profiles: {} };
@@ -221,30 +253,65 @@ try {
   console.error(`[${LABEL}] loaded in ${result.loadMs} ms; ${JSON.stringify(result.env)}; ${JSON.stringify(result.setup)}`);
 
   if (SHOTS) {
-    const pose = POSES[SHOTS];
-    await ev(`(async()=>{window.__LC.set('on');window.__map.jumpTo(${JSON.stringify(pose)});for(let i=0;i<240;i++){await new Promise(r=>setTimeout(r,250));if(window.GLTF_LAYER.lookTick())break;}return 0})()`);
-    await sleep(8000);
+    result.shots = [];
     // the drawing buffer read at the end of a map render (it is still whole then); kept in the page, compared there
     await ev(`(() => { window.__LCgrab = () => new Promise(res => { const m = window.__map, gl = m.painter.context.gl; const f = () => { m.off('render', f); const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight, px = new Uint8Array(W * H * 4); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px); res(px); }; m.on('render', f); m.triggerRepaint(); });
       window.__LCdiff = (a, b) => { let n2 = 0, n16 = 0, mx = 0; for (let i = 0; i < a.length; i += 4) { const d = Math.max(Math.abs(a[i] - b[i]), Math.abs(a[i + 1] - b[i + 1]), Math.abs(a[i + 2] - b[i + 2])); if (d > 2) n2++; if (d > 16) n16++; if (d > mx) mx = d; } return { pixels: a.length / 4, over2: n2, over16: n16, max: mx }; };
       window.__LCimg = {}; return 0; })()`);
-    const shots = {};
-    // two variants (A, B) or three (A, B, C: B and C each against A); every variant twice, the second kept
-    const SL = 'ABC'.slice(0, Math.min(3, SHOT_AB.length)).split('');
-    for (const [k, v] of [...SL.map((L, i) => [L + '1', SHOT_AB[i]]), ...SL.map((L, i) => [L + '2', SHOT_AB[i]])]) {
-      await ev(`window.__LC.set(${JSON.stringify(v)})`); await sleep(2500);
-      await ev(`window.__LCgrab().then(px => { window.__LCimg[${JSON.stringify(k)}] = px; return 0; })`);
-      const { data } = await page.send('Page.captureScreenshot', { format: 'png' });
-      if (k.endsWith('2')) fs.writeFileSync(path.join(OUT, `${LABEL}-${SHOTS}-${v}.png`), Buffer.from(data, 'base64'));
-      shots[k] = await ev(`window.__LC.status()`);
+    for (const poseName of SHOTS.split(',')) {
+      const pose = POSES[poseName];
+      await ev(`(async()=>{window.__LC.set('on');window.__map.jumpTo(${JSON.stringify(pose)});for(let i=0;i<240;i++){await new Promise(r=>setTimeout(r,250));if(window.GLTF_LAYER.lookTick())break;}return 0})()`);
+      await sleep(8000);
+      // up to five variants: each twice (all once, then all again; the second kept), each against the first; the first image of a
+      // variant against its second = the page's own noise
+      const VS = SHOT_AB.slice(0, 5), one = { pose: poseName, ab: VS, window: [W, H, DPR], noise: {}, change: {}, status: {} };
+      await ev(`window.__LCimg = {}; 0`);
+      for (const pass of [1, 2]) for (const v of VS) {
+        await ev(`window.__LC.set(${JSON.stringify(v)})`); await sleep(2500);
+        await ev(`window.__LCgrab().then(px => { window.__LCimg[${JSON.stringify(v + pass)}] = px; return 0; })`);
+        const { data } = await page.send('Page.captureScreenshot', { format: 'png' });
+        if (pass === 2) {
+          fs.writeFileSync(path.join(OUT, `${LABEL}-${poseName}-${v}.png`), Buffer.from(data, 'base64'));
+          one.status[v] = await ev(`window.__LC.status()`);
+          one.noise[v] = await ev(`window.__LCdiff(window.__LCimg[${JSON.stringify(v + 1)}], window.__LCimg[${JSON.stringify(v + 2)}])`);
+          if (v !== VS[0]) {
+            one.change[v] = await ev(`window.__LCdiff(window.__LCimg[${JSON.stringify(VS[0] + 2)}], window.__LCimg[${JSON.stringify(v + 2)}])`);
+            await ev(`delete window.__LCimg[${JSON.stringify(v + 1)}]; delete window.__LCimg[${JSON.stringify(v + 2)}]; 0`);
+          }
+        }
+      }
+      await ev(`window.__LCimg = {}; 0`);
+      result.shots.push(one);
+      console.error(`[${LABEL}] shots ${JSON.stringify(one)}`);
     }
-    result.shots = { pose: SHOTS, ab: SHOT_AB, window: [W, H, DPR],
-      noiseA: await ev(`window.__LCdiff(window.__LCimg.A1, window.__LCimg.A2)`), noiseB: await ev(`window.__LCdiff(window.__LCimg.B1, window.__LCimg.B2)`),
-      change: await ev(`window.__LCdiff(window.__LCimg.A2, window.__LCimg.B2)`), status: shots };
-    if (SL.length > 2) { result.shots.noiseC = await ev(`window.__LCdiff(window.__LCimg.C1, window.__LCimg.C2)`); result.shots.changeC = await ev(`window.__LCdiff(window.__LCimg.A2, window.__LCimg.C2)`); }
-    console.error(`[${LABEL}] shots ${JSON.stringify(result.shots)}`);
   }
-  for (const name of (SHOTS ? [] : POSE_NAMES)) {
+  if (MOTION) {
+    // the camera flies forward in real time; a screencast records it (jpeg, at most 1440 x 900) and the page logs the dissolve a frame
+    result.motion = [];
+    const MS = +arg('--motion-ms', 5000);
+    for (const poseName of MOTION.split(',')) {
+      const pose = POSES[poseName], metres = +arg('--motion-m-' + poseName, (poseName === 'west-campus' || poseName === 'spawn') ? 400 : 150);
+      for (const v of MOTION_AB) {
+        await ev(`(async()=>{window.__LC.set(${JSON.stringify(v)});window.__map.jumpTo(${JSON.stringify(pose)});for(let i=0;i<240;i++){await new Promise(r=>setTimeout(r,250));if(window.GLTF_LAYER.lookTick())break;}return 0})()`);
+        await sleep(6000);   // the dissolve (fadeS) is back on after 1.2 s; the rows at the start pose settle
+        const dir = path.join(OUT, `motion-${poseName}-${v}`); fs.mkdirSync(dir, { recursive: true });
+        const frames = []; let n = 0;
+        const onFrame = async ({ data, metadata, sessionId }) => { const k = n++; fs.writeFileSync(path.join(dir, `f${String(k).padStart(4, '0')}.jpg`), Buffer.from(data, 'base64')); frames.push({ k, ts: metadata && metadata.timestamp }); try { await page.send('Page.screencastFrameAck', { sessionId }); } catch (e) {} };
+        page.on('Page.screencastFrame', onFrame);
+        await page.send('Page.startScreencast', { format: 'jpeg', quality: 80, maxWidth: 1440, maxHeight: 900, everyNthFrame: 1 });
+        await sleep(300);
+        const flown = await ev(`window.__LC.fly(${JSON.stringify({ pose, metres, ms: MS })})`);
+        await sleep(300);
+        await page.send('Page.stopScreencast');
+        page.handlers.set('Page.screencastFrame', []);
+        fs.writeFileSync(path.join(dir, 'log.json'), JSON.stringify({ pose: poseName, variant: v, metres, ms: MS, frames, ...flown }));
+        const L = flown.log, one = { pose: poseName, variant: v, metres, ms: MS, screencastFrames: n, layerFrames: L.length,
+          maxShareStepInOneFrame: Math.max(...L.map(x => x.maxStep)), mostDissolvingAtOnce: Math.max(...L.map(x => x.n2)), fullM: flown.fullM, farM: flown.farM, fadeS: flown.fadeS };
+        result.motion.push(one); console.error(`[${LABEL}] motion ${JSON.stringify(one)}`);
+      }
+    }
+  }
+  for (const name of (SHOTS || MOTION ? [] : POSE_NAMES)) {
     if (DEADLINE_MIN && Date.now() - T_START > DEADLINE_MIN * 60000) { console.error(`deadline passed: pose ${name} not run`); continue; }
     const pose = POSES[name], cfg = n => JSON.stringify({ pose, n });
     // let the rows for this camera load (by distance), then warm
@@ -268,7 +335,7 @@ try {
       if (r % 2) order.reverse();
       for (const v of order) {
         const s = await ev(`window.__LC.set(${JSON.stringify(v)})`);
-        await sleep(v === 'copies' || v === 'off' ? 1600 : 600);
+        await sleep(v === 'copies' || v === 'off' || v === 'on' || /^far\d+$/.test(v) ? 1600 : 600);
         await ev(`window.__LC.pass(${cfg(WARM)}).then(()=>0)`);
         const { rec, gpu } = await ev(`window.__LC.pass(${cfg(FRAMES)})`);
         const agg = { free: r2(pct(rec.map(x => x.dt), 0.5)), p95: r2(pct(rec.map(x => x.dt), 0.95)), cpu: r2(pct(rec.map(x => x.cpu), 0.5)), gpu: r2(pct(gpu, 0.5)), gpuN: gpu.length, own: r2(pct(rec.map(x => x.own), 0.5)),
@@ -311,10 +378,11 @@ for (const [name, P] of Object.entries(result.poses)) {
     out.push('by file: ' + p.topFiles.map(x => `${x.file} ${x.selfMs}`).join(' | '));
   }
 }
-if (result.shots) { const s = result.shots; out.push(`\n## pictures ${s.pose} at ${s.window.join(' x ')}: ${s.ab[0]} against ${s.ab[1]}`); out.push(`noise ${s.ab[0]} vs itself ${JSON.stringify(s.noiseA)}; noise ${s.ab[1]} vs itself ${JSON.stringify(s.noiseB)}; change ${JSON.stringify(s.change)}`); if (s.changeC) out.push(`${s.ab[2]}: noise ${JSON.stringify(s.noiseC)}; change against ${s.ab[0]} ${JSON.stringify(s.changeC)}`); }
+for (const s of result.shots || []) { out.push(`\n## pictures ${s.pose} at ${s.window.join(' x ')}: each against ${s.ab[0]}`); for (const v of s.ab) out.push(`${v}: full buildings ${s.status[v] && s.status[v].fullShown}, far copies ${s.status[v] && s.status[v].copiesShown}; noise ${JSON.stringify(s.noise[v])}${s.change[v] ? '; change ' + JSON.stringify(s.change[v]) : ''}`); }
+for (const m of result.motion || []) out.push(`motion ${JSON.stringify(m)}`);
 out.push('\nJSON_TABLE ' + JSON.stringify(table));
 const text = out.join('\n');
 fs.writeFileSync(path.join(OUT, `report-${LABEL}.txt`), text);
 fs.writeFileSync(path.join(OUT, `raw-${LABEL}.json`), JSON.stringify(result, null, 1));
 console.log(text);
-process.exit(Object.keys(result.poses).length || result.shots ? 0 : 1);
+process.exit(Object.keys(result.poses).length || result.shots || result.motion ? 0 : 1);

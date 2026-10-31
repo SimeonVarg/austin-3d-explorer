@@ -33,6 +33,13 @@
   //  TASTE BLOCK — CLAUDE.md rule 11. Every value here is a choice, not a measurement, unless it says so.
   // ══════════════════════════════════════════════════════════════════════
   const OWN_DEFAULT = q.get('gltfaa') !== '0';
+  // `?gltffardist=<metres>` (2026-10-16, a LOOK choice for the owner, docs/gltf-layer.md "Where the far copy takes over"): the far copy
+  // alone from this many metres on the reference window below (his 1440 x 900 screen, the app's 58-degree lens), the full building alone
+  // from FAR_SHARE of it (the dissolve keeps its share of the approach). It sets GLTF.look.copy's fullM and farM, so other windows still
+  // scale as they do (a taller window sees the full building from farther). Absent = the defaults, unchanged (about 680 and 800 m).
+  // `?gltffull` / `?gltffarm` (metres a CSS pixel covers) still win over it.
+  const FAR_REF = { cssHeight: 900, fovDeg: 58, share: 0.84 / 0.99 };
+  const farPerM = 2 * Math.tan(FAR_REF.fovDeg * Math.PI / 360) / FAR_REF.cssHeight, FAR_DIST = +(q.get('gltffardist') || 0);
   const GLTF = {
     // ?gltf=1 turns it on. Anything else, or nothing: the layer is not there.
     on: q.get('gltf') === '1',
@@ -291,7 +298,7 @@
       // copy starts giving way to the wall's mean colour when it is this many canvas pixels high, and is the mean at the second number
       // (rule 15: a band a pixel or two high would flicker). `nightShare`: the share of a far copy's glass that is lit at night, times the
       // row's own occupancy. ?gltfcopy=0: no far copies (every full file by distance, as before).
-      copy: { on: q.get('gltfcopy') !== '0', fullM: q.has('gltffull') ? +q.get('gltffull') : 0.84, farM: q.has('gltffarm') ? +q.get('gltffarm') : 0.99, loadM: 1.04, unloadM: 1.10, fadeS: 0.5, pushM: 3, bandPx: [4, 2], nightShare: 1 },
+      copy: { on: q.get('gltfcopy') !== '0', fullM: q.has('gltffull') ? +q.get('gltffull') : FAR_DIST > 0 ? FAR_DIST * farPerM * FAR_REF.share : 0.84, farM: q.has('gltffarm') ? +q.get('gltffarm') : FAR_DIST > 0 ? FAR_DIST * farPerM : 0.99, perM: farPerM, share: FAR_REF.share, loadM: 1.04, unloadM: 1.10, fadeS: 0.5, pushM: 3, bandPx: [4, 2], nightShare: 1 },
       load: { on: q.get('gltfload') !== '0', inM: q.has('gltfin') ? +q.get('gltfin') : 2500, outM: q.has('gltfout') ? +q.get('gltfout') : 3000, atOnce: 3, everyMs: 250 } },
     // The layer's place in the scene, as the apartments' group has it (js/slopes-apartments.js APTS.lod / minzoom).
     lod: null, minzoom: 14,
