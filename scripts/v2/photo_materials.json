@@ -3974,6 +3974,118 @@
    }
   }
  },
+ "gates-dell-complex": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "stone_lum_rig": 0.1228,
+   "photo_to_rig": 0.1593,
+   "cast_removed": [
+    1.0,
+    0.917,
+    0.822
+   ],
+   "why": "one number to overrule: the first build's cast-stone level (luminance) is kept. Hue from IMG_0998, the photo whose light is neutral: its walls face the lawn, trees and a concrete walk, and its concrete walk (taken as neutral) reads only 4 % green / 9 % blue cool, which is divided out (linear g x0.917, b x0.822). IMG_1031 is NOT used for hue: its sky is as neutral as IMG_0998's (b/r 1.05 vs 1.08, same lens, 4 minutes apart, both dry), but its walls face an enclosed court of red brick paving and brick walls, whose warm bounce light tints every wall there (the paving reads b/r 0.58); its matched light carries that bounce (wb set from the stone, a known material)."
+  },
+  "materials": {
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/gates-dell-complex/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/gates-dell-complex/brick_normal.jpg",
+    "repeat_m": [
+     1.0324,
+     1.0832
+    ],
+    "factor": [
+     0.226,
+     0.2027,
+     0.1715
+    ],
+    "source": "owner photo IMG_0998, 2026-10-03 campus walk (west wall from Speedway, centre-bay spandrels): 183 real bricks laid in running bond at the modular course 0.0677 m (64.6 px/m measured), light divided out per channel; 2026-10-31: x0.91/0.89/0.84 (half way, in log, to IMG_1031's brick pixels 180,137,103 where the app drew 196,152,122; IMG_0998 had matched, so the two photos are split)",
+    "mean_rgb": [
+     0.1216,
+     0.0805,
+     0.0515
+    ]
+   },
+   "wall_stone_cast": {
+    "albedo": "scripts/v2/materials/gates-dell-complex/limestone_albedo.jpg",
+    "repeat_m": [
+     0.4,
+     0.4
+    ],
+    "factor": [
+     0.24,
+     0.2201,
+     0.1973
+    ],
+    "source": "owner photo IMG_0998, 2026-10-03 campus walk (west wall plinth, centre bay): mottling and hue (cool cast removed), level = the first build's",
+    "mean_rgb": [
+     0.1431,
+     0.1195,
+     0.0953
+    ]
+   },
+   "wall_brick_ladder": {
+    "albedo": "scripts/v2/materials/gates-dell-complex/ladder_albedo.jpg",
+    "repeat_m": [
+     0.2,
+     2.1664
+    ],
+    "factor": [
+     0.226,
+     0.2027,
+     0.1715
+    ],
+    "source": "stack-bond ladder columns counted on owner photo IMG_1031 (one brick wide, cream bricks ~27 % of courses at 1.5-1.9x the field brick); tones of the real bricks of IMG_0998; 2026-10-31: x0.91/0.89/0.84 (half way, in log, to IMG_1031's brick pixels 180,137,103 where the app drew 196,152,122; IMG_0998 had matched, so the two photos are split)",
+    "mean_rgb": [
+     0.1238,
+     0.0821,
+     0.0538
+    ]
+   },
+   "screen_grille": {
+    "albedo": "scripts/v2/materials/gates-dell-complex/grille_albedo.png",
+    "repeat_m": [
+     0.213,
+     0.107
+    ],
+    "factor": [
+     0.095,
+     0.095,
+     0.097
+    ],
+    "source": "the rust screens' blades and bars counted at 4x on owner photo IMG_0998 (13 blades at 0.107 m, 7 bars at 0.213 m, members 0.025 m). 2026-10-31 (round 2): read at 4x on IMG_0998, the blades and bars are LIGHT grey (sRGB ~190) over DARK gaps (~45); members and gaps at the matched light / the cast stone's gain 2.98; rule 15: the full photo contrast (members 0.15, gaps 0.008) measured soft +0.12 at west 250 m (main +0.08), 0.11/0.014 still +0.10, so members 0.095 / gaps 0.018 (contrast ~5x), same light-over-dark look",
+    "mean_rgb": [
+     0.0424,
+     0.0424,
+     0.0444
+    ]
+   }
+  },
+  "filter": {
+   "anisotropy": 16,
+   "lod_bias": -0.55,
+   "why": "rule 15 soft gate (2026-10-31, measured with v2-shimmer on this building, main and branch interleaved): at -0.15 the west face at 120 m read softer than the truth (soft +0.04, gate fails); the materials round measured -0.3/aniso 16 at +0.03 and -0.35 at +0.04/-0.01 with the old light-on-dark grille. -0.35/aniso 16 measured soft +0.02 at 120 m (main -0.06, gate +0.01) with shimmer still <= main; -0.45 chosen. Now the grille is dark blades on grey (lower contrast). Round 2 (2026-10-31): with the lifted building and the re-read left bays, west 250 m soft read +0.10-0.12 (main +0.08); -0.55 together with a lower-contrast grille."
+  },
+  "fade": {
+   "screen_frame": {
+    "to": [
+     0.0424,
+     0.0424,
+     0.0444
+    ],
+    "size_m": 0.06
+   },
+   "panel_dark_behind_screen": {
+    "to": [
+     0.0424,
+     0.0424,
+     0.0444
+    ],
+    "size_m": 0.06
+   },
+   "_why": "rule 15: the screen's frame and the dark back panel go over to the screen's coverage-weighted mean (32 % blade) as they shrink below a pixel; the blades and bars themselves are a mipmapped texture on one quad (screen_grille), which averages to the same mean"
+  }
+ },
  "the-castilian": {
   "fade": {
    "rail_steel": {
