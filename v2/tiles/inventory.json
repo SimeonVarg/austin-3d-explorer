@@ -1149,13 +1149,15 @@
       "model": "opus",
       "kind": "street",
       "tile": "t_-2_8",
-      "blend_sha256": "4ef69f1854236317",
+      "blend_sha256": "4143e53a7c097ac9",
       "lod1": "mass",
       "placement": {
         "height_m": 157.3,
-        "area_ratio": 0.954,
-        "centre_off_m": 1.44,
-        "flags": []
+        "area_ratio": 0.973,
+        "centre_off_m": 2.07,
+        "flags": [
+          "centre 2.1 m off"
+        ]
       }
     },
     "garrison-hall": {
@@ -6599,15 +6601,15 @@
       }
     },
     "t_-2_8": {
-      "hash": "e88bdd4a8c448515",
+      "hash": "1ecbe5c2ef4e9b30",
       "near": {
-        "bytes": 209420,
-        "tris": 25072,
+        "bytes": 229628,
+        "tris": 26442,
         "draws": 3
       },
       "far": {
-        "bytes": 29936,
-        "tris": 2399,
+        "bytes": 30632,
+        "tris": 2439,
         "draws": 1
       }
     },
