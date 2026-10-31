@@ -1,0 +1,23 @@
+{
+ "about": "Campus globe lamps measured from site photographs with solved cameras (2026-10-31), where OpenStreetMap has none. Each is placed on the ray through the lamp in the photograph, at the depth where the measured lamp model fills the lamp's pixels; y = foot height (m). [x, y, z, variant] in the v2 frame (x east, z south); variant 0 dark post, 1 pale post.",
+ "lamps": [
+  [
+   38.48,
+   0.0,
+   -83.73,
+   0
+  ],
+  [
+   42.92,
+   0.0,
+   -108.89,
+   0
+  ],
+  [
+   168.99,
+   2.22,
+   228.21,
+   1
+  ]
+ ]
+}
