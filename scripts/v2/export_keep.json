@@ -1,0 +1,16 @@
+{
+  "_about": "Objects (by name, regexes) KEPT in a build's export although an exporter ground rule would leave them out: real storeys, podiums, steps, terraces and walls that only share a word (street_, plaza_, site_, paving, ground) with the lot. slug -> [regex, ...], or {objects: [...], materials: {old: new}} to map a whole-dropped ground material (rig_ground) to a building material. Run through scripts/v2/blender_export_keep.py, so the exporter itself, and every other build's export, stay as they were. Found by the 2026-10-31 audit of dropped parts.",
+  "sid-richardson-hall": ["^street_storey_(north|south)$"],
+  "texan-tower": ["^street_storey_(N\\d+|recS\\d+|tower_east|tower_south)$"],
+  "moody-center": ["^site_(ne_terraces|ne_terrace_tops|plaza_tiers|plaza_tier_planting|fan_steps|round_bed|round_bed_planting|dell_sign)__", "^site_sign_(DELL|PLAZA|FOUNDING|PARTNER)$"],
+  "art-building-and-museum": ["^plaza_(step_\\d+|wall_\\d+|wall_north|deck)$"],
+  "bass-concert-hall": ["^plaza_podium$"],
+  "texas-state-history-museum": ["^site_plaza_level$", "^plaza_wall$"],
+  "scottish-rite-dormitory": ["^street_storey_stone_base$"],
+  "william-randolph-hearst-building": ["^street_storey_core$"],
+  "west-campus-12d10e75": ["^street_base_survey$"],
+  "west-campus-d44c18cb": ["^street_level_base_band$"],
+  "west-campus-0c4b89ce": ["^site_(terrace|retaining_wall|lawn|planting|stone(_\\d+)?)$"],
+  "unidentified-79e82c98": ["^street_stair$"],
+  "aerospace-engineering-building": ["^site_(terrace|steps|planter|bollards)__"]
+}
