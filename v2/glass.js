@@ -125,9 +125,11 @@ export function setGlassFootprintScale(s) { GLASS_FP.value = s; }
 // strength of the far fade, at run time (1 = on; 0 = exactly the glass without it)
 const GLASS_FAR = { value: GLASS_REAL.FAR_ON ? 1 : 0 };
 const GLASS_FAR_G = { value: new THREE.Vector2(GLASS_REAL.FAR_GAIN, GLASS_REAL.FAR_GAIN_METAL) };
+const GLASS_FAR_PX = { value: new THREE.Vector2(...GLASS_REAL.FAR_PX) };
 // measuring: k = strength; the two default-colour gains (clear, mirror) can be set too, for tuning in one page load
-export function setGlassFar(k, gainMetal, gainClear) {
+export function setGlassFar(k, gainMetal, gainClear, px0, px1) {
   GLASS_FAR.value = k;
+  if (px1 > 0) GLASS_FAR_PX.value.set(px0, px1);
   if (gainMetal != null && !Number.isNaN(gainMetal)) GLASS_FAR_G.value.y = gainMetal;
   if (gainClear != null && !Number.isNaN(gainClear)) GLASS_FAR_G.value.x = gainClear;
 }
@@ -141,7 +143,7 @@ export function realGlass(material) {
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
-    sh.uniforms.v2GlassK = GLASS_K; sh.uniforms.v2GlassFp = GLASS_FP; sh.uniforms.v2GlassFarK = GLASS_FAR; sh.uniforms.v2GlassFarG = GLASS_FAR_G;
+    sh.uniforms.v2GlassK = GLASS_K; sh.uniforms.v2GlassFp = GLASS_FP; sh.uniforms.v2GlassFarK = GLASS_FAR; sh.uniforms.v2GlassFarG = GLASS_FAR_G; sh.uniforms.v2GlassFarPx = GLASS_FAR_PX;
     const fc = material.userData.v2_glass_far;
     sh.uniforms.v2GlassFarC = { value: new THREE.Vector4(...(Array.isArray(fc) && fc.length >= 3 ? [fc[0], fc[1], fc[2], 1] : [0, 0, 0, 0])) };
     sh.vertexShader = sh.vertexShader
@@ -154,6 +156,7 @@ varying vec3 vPaneSeed;
 uniform float v2GlassK;
 uniform float v2GlassFp;
 uniform float v2GlassFarK;
+uniform vec2 v2GlassFarPx;  // the far fade band, pixels (GLASS_REAL.FAR_PX)
 uniform vec2 v2GlassFarG;   // default far colour gains: x clear glass, y mirror glass
 uniform vec4 v2GlassFarC;   // rgb: the far colour from the tile (w = 1), or w = 0: the glass's own colour x FAR_GAIN
 float v2SpecVar = 1.0;
@@ -190,7 +193,7 @@ vec4 v2paneRand2(float s) { return fract(sin(vec4(s * 29.771 + 5.31, s * 63.113 
       v2SpecVar = 1.0 + (fract(pr.x * 7.31 + pr.y * 3.17) * 2.0 - 1.0) * ${f(K.SPEC_VAR)} * vf;
     }
     // far fade: a pane only a pixel or two wide becomes a plain matte surface (no contrast left to alias, no mirror to sparkle)
-    v2Far = (1.0 - smoothstep(${f(K.FAR_PX[0])}, ${f(K.FAR_PX[1])}, v2px)) * v2GlassFarK;
+    v2Far = (1.0 - smoothstep(v2GlassFarPx.x, v2GlassFarPx.y, v2px)) * v2GlassFarK;
     if (v2Far > 0.0) {
       roughnessFactor = mix(roughnessFactor, ${f(K.FAR_ROUGH)}, v2Far);
       if (v2GlassFarC.w > 0.5 || v2GlassFarG.y >= 0.0) {
