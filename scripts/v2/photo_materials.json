@@ -3916,25 +3916,8 @@
      0.036,
      0.0351
     ]
-   },
-   "wall_concrete": {
-    "albedo": "scripts/v2/materials/pcl-library/conc_albedo.jpg",
-    "repeat_m": [
-     5.2,
-     3.6
-    ],
-    "factor": [
-     0.3995,
-     0.3917,
-     0.378
-    ],
-    "source": "same entrance photo: the blank north wall above the loggia, rectified (100 px/m); only the board-formed streaks at 0.6 contrast, 5.2 x 3.6 m tile; warmed by the NE grid concrete in the stair photo (210, 206, 198 there against 209, 210, 209 on the north wall): x 1.02 / 1.0 / 0.965",
-    "mean_rgb": [
-     0.1794,
-     0.1775,
-     0.1693
-    ]
    }
-  }
+  },
+  "concrete_note": "2026-10-31: a board-formed concrete texture from the entrance photo was tried and dropped: at 120 m east it read 0.02 softer than main (the soft gate, rule 15), and its streaks only read up close. The concrete stays the build's gated plain colour."
  }
 }
