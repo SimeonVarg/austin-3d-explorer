@@ -4308,8 +4308,16 @@
      0.071
     ],
     "size_m": 0.18
+   },
+   "glass_window": {
+    "to": [
+     0.066,
+     0.051,
+     0.04
+    ],
+    "size_m": 0.85
    }
   },
-  "why": "2026-10-31 first build: the terrace rails (0.06 m), storefront mullions (0.12 m) and the stone window surrounds (0.18 m) are thinner than a pixel from 250 m west; each fades by pixel coverage to what it stands on (the trimmed brick, the dark glass), never blurred (rule 15). Brick colour = brick_buff x the photo trim (0.82, 0.78, 0.75)."
+  "why": "2026-10-31 first build: the terrace rails (0.06 m), storefront mullions (0.12 m) and the stone window surrounds (0.18 m) are thinner than a pixel from 250 m west; each fades by pixel coverage to what it stands on (the trimmed brick, the dark glass), never blurred (rule 15). Brick colour = brick_buff x the photo trim (0.82, 0.78, 0.75). The 0.85 m window panes fade toward the facade's own mean (half brick, half glass) as the pixel grows past a pane, so the 600 m west view keeps the window rhythm's tone without flicker."
  }
 }
