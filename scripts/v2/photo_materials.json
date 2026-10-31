@@ -4409,6 +4409,27 @@
   },
   "fade_why": "2026-10-31: the entrance bay's 0.1 m light storefront frames and the 0.045 m louvre slats fade by pixel coverage into the mean of frame and what is behind them (rule 15)."
  },
+ "chemical-petroleum-engineering": {
+  "fade": {
+   "rail_black": {
+    "to": [
+     0.07,
+     0.064,
+     0.056
+    ],
+    "size_m": 0.022
+   },
+   "downlight": {
+    "to": [
+     0.167,
+     0.14,
+     0.102
+    ],
+    "size_m": 0.24
+   }
+  },
+  "fade_why": "2026-10-31: the new light-well railings (0.022 m pickets on a 0.115 m pitch) and the soffit downlights are thinner than a pixel from far away; each fades by pixel coverage to the mean of what it stands against (the brick curb and dark well; the plaster ceiling), never blurred (rule 15)"
+ },
  "driskill-hotel": {
   "_about": "2026-10-31 out-v3: thin iron parts fade by pixel coverage (rule 15); colours from the public photo, de-lit",
   "fade": {
