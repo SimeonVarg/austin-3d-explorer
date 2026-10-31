@@ -694,15 +694,15 @@
      1.5
     ],
     "factor": [
-     0.045,
+     0.0425,
      0.06,
-     0.02
+     0.012
     ],
-    "source": "synthetic leaves (random overlapping ellipses, tileable), colours and shares from a k-means palette of a lit clipped hedge in the owner photo of the north glass hall; no photo pixels copied; mean = the build's hedge colour",
+    "source": "synthetic leaves (random overlapping ellipses, tileable), colours and shares from a k-means palette of a lit clipped hedge in the owner photo of the north glass hall; no photo pixels copied; mean = the build's hedge colour; r3 (2026-10-31): mean re-set to the lit clipped hedge of the owner photo of the east entrance (r:g:b 0.70 : 1 : 0.20, the photo is a brighter, purer green than r2)",
     "mean_rgb": [
-     0.018,
+     0.017,
      0.024,
-     0.008
+     0.0048
     ]
    },
    "shrub_flowering": {
@@ -712,15 +712,33 @@
      3.0
     ],
     "factor": [
-     0.075,
-     0.08,
-     0.03
+     0.0775,
+     0.105,
+     0.0475
     ],
-    "source": "synthetic leaves and flowers the same way, palette from the flowering bed behind the granite planter in the owner photo of the east entrance (green with orange flowers); no photo pixels copied",
+    "source": "synthetic leaves and flowers the same way, palette from the flowering bed behind the granite planter in the owner photo of the east entrance (green with orange flowers); no photo pixels copied; r3 (2026-10-31): mean re-set to the green of the flowering bed in that photo (lighter feathery leaves); the flower heads are their own parts now",
     "mean_rgb": [
+     0.031,
+     0.042,
+     0.019
+    ]
+   },
+   "groundcover_green": {
+    "albedo": "scripts/v2/materials/mccombs-school-of-business/hedge_albedo.jpg",
+    "repeat_m": [
+     0.7,
+     0.7
+    ],
+    "factor": [
+     0.0575,
+     0.075,
+     0.0275
+    ],
+    "source": "r3 (2026-10-31): the low ground cover beside the east walk, the same synthetic leaf texture as the hedge at a smaller leaf (0.7 m repeat); mean from the lit ground cover in the owner photo of the east entrance, divided by the light",
+    "mean_rgb": [
+     0.023,
      0.03,
-     0.032,
-     0.012
+     0.011
     ]
    }
   },
@@ -733,6 +751,15 @@
     ],
     "size_m": 0.045,
     "why": "the east entrance handrails (0.045 m bars) fade by pixel coverage to the steps behind them, as on Welch (rule 15)"
+   },
+   "flower_orange": {
+    "to": [
+     0.031,
+     0.042,
+     0.019
+    ],
+    "size_m": 0.16,
+    "why": "r3: the orange flower heads on the planter shrub (0.16 m) fade by pixel coverage to the shrub colour, so they cannot sparkle far away (rule 15)"
    }
   }
  },
