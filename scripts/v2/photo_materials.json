@@ -4365,5 +4365,50 @@
    }
   },
   "fade_note": "the muntin grids of the three great arch windows (over dark glass and white curtains) and of the upper arched windows (over the sky-mirror panes) fade into the pane behind as the pixel grows past the bar (rule 15); the light stair treads fade into the riser/tread mean once a pixel covers a step; the nosing line on every riser and the dark nosing markers fade into the riser; the shaded field inside each little corbel arch (0.5 m, a 0.745 m repeat) fades into the wall by 600 m"
+ },
+ "sutton-hall": {
+  "_about": "Sutton Hall out-v3 (2026-10-31): no photo textures; only the fine parts fade by coverage into the surface behind them (rule 15: the 600 m shimmer gate). Colours are the build's own (linear).",
+  "fade": {
+   "frame_brown": {
+    "to": [
+     0.03,
+     0.025,
+     0.02
+    ],
+    "size_m": 0.06
+   },
+   "iron_green": {
+    "to": [
+     0.12,
+     0.1,
+     0.08
+    ],
+    "size_m": 0.09
+   },
+   "tile_blue": {
+    "to": [
+     0.26,
+     0.15,
+     0.065
+    ],
+    "size_m": 0.4
+   },
+   "letters": {
+    "to": [
+     0.36,
+     0.31,
+     0.24
+    ],
+    "size_m": 0.05
+   },
+   "lantern": {
+    "to": [
+     0.36,
+     0.31,
+     0.24
+    ],
+    "size_m": 0.36
+   }
+  }
  }
 }
