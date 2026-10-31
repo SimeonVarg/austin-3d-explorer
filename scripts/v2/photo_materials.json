@@ -354,14 +354,6 @@
     ],
     "size_m": 0.045
    },
-   "stack_metal": {
-    "to": [
-     0.45,
-     0.5,
-     0.55
-    ],
-    "size_m": 0.15
-   },
    "lunette_grille": {
     "to": [
      0.1,
