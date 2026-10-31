@@ -13,6 +13,7 @@ const SOURCES = {
   campus: 'snapshots/2026-09-15/buildings.detailed.geojson',
   lidar: 'lidar_heights.json',
   downtown: 'outer/downtown_massing.json',
+  overrides: 'building_overrides.json',   // its "exclude": true rows (stale footprints, by Overture id) are left out here too
   roads: 'roads.geojson',
   walk: 'walk_graph.json',
 };
@@ -143,6 +144,9 @@ function extrude(buf, rings, y0, y1, wallC, roofC, storeyM) {
 async function buildBuildings() {
   const [campus, lidar, downtown] = await Promise.all([getJSON(SOURCES.campus), getJSON(SOURCES.lidar).catch(() => ({})), getJSON(SOURCES.downtown).catch((e) => { postMessage({ type: 'error', msg: 'downtown massing: ' + e.message }); return { rows: [] }; })]);
   const L = lidar.buildings || {};
+  // stale footprints the repo already excludes (data/building_overrides.json, "exclude": true, keyed by Overture id): not drawn in v2 either
+  const OV = await getJSON(SOURCES.overrides).catch(() => ({})); const OVB = OV.buildings || {};
+  const EXCLUDED = new Set(Object.entries(OVB).filter(([, v]) => v && v.exclude).map(([k]) => k));
   const WALL = hexToLinear(LOOK.BUILDING_WALL), ROOF = hexToLinear(LOOK.BUILDING_ROOF), T = LOOK.BUILDING_TINT;
   const out = new Map();
   let nCampus = 0, nDown = 0, nDup = 0, nLidar = 0;
@@ -177,6 +181,7 @@ async function buildBuildings() {
   };
 
   for (const f of campus.features) {
+    if (EXCLUDED.has(String(f.properties && f.properties.id))) continue;
     const p = f.properties, g = f.geometry;
     if (!g) continue;
     const polys = polysOf(g.coordinates);
