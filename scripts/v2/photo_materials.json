@@ -694,7 +694,34 @@
      0.0372
     ]
    }
-  }
+  },
+  "fade": {
+   "rail_steel": {
+    "to": [
+     0.07,
+     0.068,
+     0.064
+    ],
+    "size_m": 0.05
+   },
+   "door_frame": {
+    "to": [
+     0.06,
+     0.066,
+     0.08
+    ],
+    "size_m": 0.09
+   },
+   "mullion_dark": {
+    "to": [
+     0.035,
+     0.0306,
+     0.0307
+    ],
+    "size_m": 0.1
+   }
+  },
+  "fade_note": "2026-10-31: the south entrance's handrails, door stiles and curtain-wall mullions fade by their size on screen (rule 15)"
  },
  "kxan-building": {
   "materials": {
