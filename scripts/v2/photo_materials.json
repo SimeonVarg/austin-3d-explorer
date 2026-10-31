@@ -694,15 +694,15 @@
      1.5
     ],
     "factor": [
-     0.0425,
+     0.03625,
      0.06,
-     0.012
+     0.005
     ],
     "source": "synthetic leaves (random overlapping ellipses, tileable), colours and shares from a k-means palette of a lit clipped hedge in the owner photo of the north glass hall; no photo pixels copied; mean = the build's hedge colour; r3 (2026-10-31): mean re-set to the lit clipped hedge of the owner photo of the east entrance (r:g:b 0.70 : 1 : 0.20, the photo is a brighter, purer green than r2)",
     "mean_rgb": [
-     0.017,
+     0.0145,
      0.024,
-     0.0048
+     0.002
     ]
    },
    "shrub_flowering": {
@@ -712,15 +712,15 @@
      3.0
     ],
     "factor": [
-     0.0775,
-     0.105,
-     0.0475
+     0.0915,
+     0.1225,
+     0.049
     ],
     "source": "synthetic leaves and flowers the same way, palette from the flowering bed behind the granite planter in the owner photo of the east entrance (green with orange flowers); no photo pixels copied; r3 (2026-10-31): mean re-set to the green of the flowering bed in that photo (lighter feathery leaves); the flower heads are their own parts now",
     "mean_rgb": [
-     0.031,
-     0.042,
-     0.019
+     0.0366,
+     0.049,
+     0.0196
     ]
    },
    "groundcover_green": {
@@ -754,9 +754,9 @@
    },
    "flower_orange": {
     "to": [
-     0.031,
-     0.042,
-     0.019
+     0.0366,
+     0.049,
+     0.0196
     ],
     "size_m": 0.16,
     "why": "r3: the orange flower heads on the planter shrub (0.16 m) fade by pixel coverage to the shrub colour, so they cannot sparkle far away (rule 15)"
