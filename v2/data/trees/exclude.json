@@ -1,0 +1,18 @@
+{
+ "about": "Trees the tree layer leaves out because the owner's own photographs show there is no tree there (the photo wins over map data). Each entry is a tree's position in safe_city.json / safe_osm.json (v2 frame, metres); v2/trees.js drops any tree within match_m of it. Add one entry per tree, with why.",
+ "match_m": 0.6,
+ "trees": [
+  {
+   "x": 166.2,
+   "z": 229.7,
+   "source": "safe_city.json (crown detected on the 2025 aerial)",
+   "why": "McCombs east (CBA South) entrance: a 7.6 m oak drawn on the stair landing; the owner's photo of that entrance shows the stair, a lamp post right of it and no tree"
+  },
+  {
+   "x": 182.7,
+   "z": 177.7,
+   "source": "safe_city.json (crown detected on the 2025 aerial)",
+   "why": "McCombs north glass hall (CBA North): an 8.3 m tree drawn 15 m in front of the hall, between the owner's camera and the doors; his photo from that spot shows a clear view of the hall with only a lamp post"
+  }
+ ]
+}
