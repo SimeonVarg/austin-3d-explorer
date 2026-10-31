@@ -1037,12 +1037,12 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_1_-2",
-      "blend_sha256": "8837d0a684db75c8",
+      "blend_sha256": "95a8e9caf8258d43",
       "lod1": "mass",
       "placement": {
         "height_m": 42,
-        "area_ratio": 1.049,
-        "centre_off_m": 0.81,
+        "area_ratio": 1.058,
+        "centre_off_m": 1.16,
         "flags": []
       }
     },
@@ -2294,13 +2294,16 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_1",
-      "blend_sha256": "5a4e459158005e0d",
+      "blend_sha256": "f171da34712c84d3",
       "lod1": "mass",
       "placement": {
         "height_m": 29.5,
-        "area_ratio": 0.999,
-        "centre_off_m": 0.09,
-        "flags": []
+        "area_ratio": 1.374,
+        "centre_off_m": 15.97,
+        "flags": [
+          "centre 16.0 m off",
+          "area x1.37"
+        ]
       }
     },
     "peter-t-flawn-academic-center": {
@@ -3983,7 +3986,7 @@
       "model": "opus",
       "kind": "apartment",
       "tile": "t_-3_-1",
-      "blend_sha256": "54d06b7c6fe6cb96",
+      "blend_sha256": "3aab8d0694acd423",
       "lod1": "mass",
       "placement": {
         "height_m": 95.5,
@@ -6618,15 +6621,15 @@
       }
     },
     "t_-3_-1": {
-      "hash": "58cb0f48b9876bf3",
+      "hash": "2ca7fb289251a251",
       "near": {
-        "bytes": 2250548,
-        "tris": 241058,
-        "draws": 2
+        "bytes": 2267944,
+        "tris": 243182,
+        "draws": 4
       },
       "far": {
-        "bytes": 43788,
-        "tris": 3597,
+        "bytes": 43600,
+        "tris": 3581,
         "draws": 1
       }
     },
@@ -6969,15 +6972,15 @@
       }
     },
     "t_0_1": {
-      "hash": "c49875e1fb4d02ed",
+      "hash": "8c105ba962fff09e",
       "near": {
-        "bytes": 612844,
-        "tris": 73492,
-        "draws": 3
+        "bytes": 704508,
+        "tris": 74564,
+        "draws": 6
       },
       "far": {
-        "bytes": 77232,
-        "tris": 8901,
+        "bytes": 79356,
+        "tris": 9095,
         "draws": 1
       }
     },
@@ -7060,15 +7063,15 @@
       }
     },
     "t_1_-2": {
-      "hash": "eb5e8a15c9b83849",
+      "hash": "23a07c0049f0bdf8",
       "near": {
-        "bytes": 809592,
-        "tris": 74824,
-        "draws": 7
+        "bytes": 873020,
+        "tris": 78039,
+        "draws": 11
       },
       "far": {
-        "bytes": 28372,
-        "tris": 2315,
+        "bytes": 28724,
+        "tris": 2381,
         "draws": 1
       }
     },
