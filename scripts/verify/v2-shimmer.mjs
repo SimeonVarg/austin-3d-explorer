@@ -19,6 +19,8 @@
  *     (a value "1:0.4" passes two arguments),
  *     twice interleaved (0,1,0,1), re-placing the camera before each pass. Extra columns: the whole canvas's mean rgb (8-bit) in the
  *     first native frame, and its difference from the first value's frame (mean |luma diff| over the whole canvas, share of pixels > 2).
+ *   - V2_SHIMMER_FAIR_GLASS=1: the truth's glass fades (v2/glass.js) decide by the NATIVE pixel's footprint, as v2-glass-shimmer.mjs
+ *     does (the same picture, sampled finely). Off by default: the gate's truth decides by its own finer pixel.
  * Instrument: viewport 800x500 at device scale 2 (canvas 1600x1000, the owner's Mac density); tiles settled and their fades
  * finished before any frame; no frame loop runs between the native and the truth draw (one synchronous pass per frame). REAL GPU
  * only (fails on SwiftShader). PNGs of the first native and truth frame per (version, view) go to --out when given.
@@ -96,7 +98,7 @@ for (const variant of VARIANTS) {
       await page.evaluate(([fn, val, x, z, d, p, a]) => { window.__v2[fn]?.(...String(val).split(':').map(Number)); window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }); window.__v2.redraw(); }, [FLIP.fn, fv, b.x, b.z, v.distance, v.polar, v.azimuth]);
       await page.waitForTimeout(400);
     }
-    const r = await page.evaluate(({ frames, SS, slug, top, want, flipKey, flipRef }) => {
+    const r = await page.evaluate(({ frames, SS, slug, top, want, flipKey, flipRef, fairGlass }) => {
       const { renderer, scene, camera, controls, THREE } = window.__v2;
       const gl = renderer.getContext(), canvas = renderer.domElement, dpr = renderer.getPixelRatio();
       const W = canvas.clientWidth, H = canvas.clientHeight;
@@ -110,6 +112,7 @@ for (const variant of VARIANTS) {
       if (x1 - x0 < 8 || y1 - y0 < 8) return { error: 'building off screen' };
       const rw = x1 - x0, rh = y1 - y0;
       const grab = (scale) => {
+        if (fairGlass && window.__v2.glassReal) window.__v2.glassReal(1, scale);   // V2_SHIMMER_FAIR_GLASS=1: glass fades decide by the native pixel in the truth too
         renderer.setPixelRatio(dpr * scale); renderer.setSize(W, H, false);
         camera.updateMatrixWorld(); renderer.render(scene, camera);
         const k = dpr * scale, gx = Math.round(x0 * k), gy = Math.round((H - y1) * k), gw = Math.round(rw * k), gh = Math.round(rh * k);
@@ -121,6 +124,7 @@ for (const variant of VARIANTS) {
           for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) { const o = ((y * s + j) * gw + (x * s + i)) * 4; acc += 0.2126 * px[o] + 0.7152 * px[o + 1] + 0.0722 * px[o + 2]; }
           out[y * nw + x] = acc / (s * s);
         }
+        if (fairGlass && window.__v2.glassReal) window.__v2.glassReal(1, 1);
         return { L: out, w: nw, h: nh };
       };
       const blur = (F) => { const o = new Float32Array(F.L.length); for (let y = 0; y < F.h; y++) for (let x = 0; x < F.w; x++) { let a = 0, n = 0; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const xx = x + i, yy = y + j; if (xx < 0 || yy < 0 || xx >= F.w || yy >= F.h) continue; a += F.L[yy * F.w + xx]; n++; } o[y * F.w + x] = a / n; } return o; };
@@ -159,7 +163,7 @@ for (const variant of VARIANTS) {
       const png = (F) => { const cv = document.createElement('canvas'); cv.width = F.w; cv.height = F.h; const g = cv.getContext('2d'); const im = g.createImageData(F.w, F.h); for (let y = 0; y < F.h; y++) for (let x = 0; x < F.w; x++) { const v = F.L[(F.h - 1 - y) * F.w + x], o = (y * F.w + x) * 4; im.data[o] = im.data[o + 1] = im.data[o + 2] = v; im.data[o + 3] = 255; } g.putImageData(im, 0, 0); return cv.toDataURL('image/png'); };
       return { p99: ex[Math.floor(ex.length * 0.99)], hot, region: [x0, y0, rw, rh], shimmer: (dN - dT) / (frames - 1), nativeChange: dN / (frames - 1), truthChange: dT / (frames - 1), alias: alias / frames, soft: soft / frames,
         pngN: png(first.N), pngT: png(first.T), tiles: window.__v2.tiles(), whole };
-    }, { frames: FRAMES, SS, slug: v.slug, top: (b.top || 30) + 2, want: { x: b.x, z: b.z, r: v.slug === 'dkr-memorial-stadium' ? 150 : v.slug === 'moody-center' ? 95 : 45 }, flipKey: FLIP ? v.name : '', flipRef: FLIP ? pi === 0 : false });
+    }, { frames: FRAMES, SS, slug: v.slug, top: (b.top || 30) + 2, want: { x: b.x, z: b.z, r: v.slug === 'dkr-memorial-stadium' ? 150 : v.slug === 'moody-center' ? 95 : 45 }, flipKey: FLIP ? v.name : '', flipRef: FLIP ? pi === 0 : false, fairGlass: process.env.V2_SHIMMER_FAIR_GLASS === '1' });
     if (r.error) { console.log(variant.name, v.name, r.error); continue; }
     const vname = FLIP ? `${variant.name === '(default)' ? '' : variant.name + ' '}${FLIP.fn}=${fv}` : variant.name;
     if (OUT) {
