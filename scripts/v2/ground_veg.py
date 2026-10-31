@@ -54,8 +54,8 @@ TEX_M, TEX_CROWN = 1.3, 0.32                   # local luminance std / mean over
 MODE_M = 0.8
 CROWN_FILL_M = 10.0
 OPEN_M, CLOSE_M = 0.8, 1.0
-MIN_M2 = 10.0
-SIMPLIFY_M = 0.4                               # 0.25 doubled the file (4.2 MB) for edges finer than the 0.25 m class window
+MIN_M2 = 15.0
+SIMPLIFY_M = 0.7                               # lawns do not need pixel detail: 0.25 m made 4.2 MB, 0.4 m 2.5 MB
 LAWN, BED, OTHER, CROWN = 2, 3, 4, 9           # 2 / 3 = ground_near classes grass / bed
 
 

@@ -1,4 +1,4 @@
-"""Bake the classified ground near buildings for v2 (v2/ground-near.js): data/ground.geojson -> v2/data/ground/near.json.
+"""Bake the classified ground near buildings for v2 (v2/ground-near.js): data/ground.geojson -> v2/data/ground/near/ (index.json + one file per CELL_M cell).
 
 data/ground.geojson is the repo's own surface inventory (scripts/bake_ground.py: OSM surfaces, landuse, plazas, campus lawns and
 beds, the City's sidewalk slabs). This keeps the five surfaces the street-level ground draws and drops what other layers draw
@@ -10,7 +10,9 @@ beds, the City's sidewalk slabs). This keeps the five surfaces the street-level 
   4 concrete  walks, slabs, plazas        (pathslab, patharea / area / cyclearea with s = concrete, aggregate, roadconcrete, None)
   5 asphalt   parking and paved lots      (area / patharea / cyclearea with s = asphalt)
 
-Output: { origin, classes, f: [[class, ring0, ring1...]...] } with rings as flat [x, z, x, z...] in decimetres of the v2 frame
+Output (2026-10-31: split by cell, so a phone loads only the ground around its camera): near/index.json { classes, unit_m, cell_m,
+cells: ["cx_cz"...], veg: [i0, i1] (the aerial lawns' global indices, for ?groundveg=0) } and near/<cx>_<cz>.json { f: [[index, class,
+ring0, ring1...]...] } (a feature is in every cell its bounds touch; index = its global painter's order), with rings as flat [x, z, x, z...] in decimetres of the v2 frame
 (v2/geo.js toLocal: x east, z south), in painter's order (later draws over earlier: lawns first, sidewalk slabs last).
 
   python3 scripts/v2/ground_near.py
@@ -20,7 +22,9 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SRC = os.path.join(ROOT, 'data', 'ground.geojson')
-OUT = os.path.join(ROOT, 'v2', 'data', 'ground', 'near.json')
+OUT = os.path.join(ROOT, 'v2', 'data', 'ground', 'near')
+CELL_M = 128                                   # cell side: the 256 m class window touches 3x3 to 4x4 cells
+BIG_CELLS = 4                                  # a feature touching more cells than this goes to big.json (loaded once) instead of every cell
 ORIGIN = (30.28601, -97.73932)                 # v2/geo.js ORIGIN (lat, lon)
 R = 6378137.0
 KX = R * math.pi / 180 * math.cos(ORIGIN[0] * math.pi / 180)
@@ -225,13 +229,29 @@ def main():
     for o in ovr['features']:           # photo overrides: drawn last
         out.append(((9, 0), [NAMES[o['class']], [round(v * 10) for v in o['ring']]])); counts['override'] = counts.get('override', 0) + 1
     out.sort(key=lambda r: r[0])
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    veg = [i for i, r in enumerate(out) if r[0][0] == VEG_RANK]
+    import shutil
+    shutil.rmtree(OUT, ignore_errors=True); os.makedirs(OUT)
+    cells = {}; big = []
+    for i, (_, f) in enumerate(out):
+        xs, zs = f[1][0::2], f[1][1::2]
+        span = (math.floor(max(xs) / (CELL_M * 10)) - math.floor(min(xs) / (CELL_M * 10)) + 1) * (math.floor(max(zs) / (CELL_M * 10)) - math.floor(min(zs) / (CELL_M * 10)) + 1)
+        if span > BIG_CELLS: big.append([i] + f); continue
+        for cx in range(math.floor(min(xs) / (CELL_M * 10)), math.floor(max(xs) / (CELL_M * 10)) + 1):
+            for cz in range(math.floor(min(zs) / (CELL_M * 10)), math.floor(max(zs) / (CELL_M * 10)) + 1):
+                cells.setdefault('%d_%d' % (cx, cz), []).append([i] + f)
+    for k, fs in cells.items():
+        with open(os.path.join(OUT, k + '.json'), 'w') as fh: json.dump({'f': fs}, fh, separators=(',', ':'))
     doc = {'about': 'Classified ground near buildings for v2/ground-near.js (scripts/v2/ground_near.py from data/ground.geojson: '
-                    'OpenStreetMap ODbL + City of Austin open data). Rings in decimetres of the v2 frame, painter\'s order.',
+                    'OpenStreetMap ODbL + City of Austin open data; lawns and beds from the City 2025 aerial, data/ground_veg.json). '
+                    'Rings in decimetres of the v2 frame, painter\'s order = index; one file per cell.',
            'classes': {'1': 'pavers', '2': 'grass', '3': 'bed', '4': 'concrete', '5': 'asphalt'},
-           'unit_m': 0.1, 'f': [r[1] for r in out]}
-    with open(OUT, 'w') as fh: json.dump(doc, fh, separators=(',', ':'))
-    print('features', len(out), 'by class', counts, 'bytes', os.path.getsize(OUT))
+           'unit_m': 0.1, 'cell_m': CELL_M, 'cells': sorted(cells), 'count': len(out), 'veg': [veg[0], veg[-1] + 1] if veg else [0, 0]}
+    with open(os.path.join(OUT, 'index.json'), 'w') as fh: json.dump(doc, fh, separators=(',', ':'))
+    with open(os.path.join(OUT, 'big.json'), 'w') as fh: json.dump({'f': big}, fh, separators=(',', ':'))
+    assert not veg or veg[-1] + 1 - veg[0] == len(veg)
+    size = sum(os.path.getsize(os.path.join(OUT, n)) for n in os.listdir(OUT))
+    print('features', len(out), 'by class', counts, 'cells', len(cells), 'bytes', size, 'largest cell', max(os.path.getsize(os.path.join(OUT, n)) for n in os.listdir(OUT)))
 
 
 if __name__ == '__main__':
