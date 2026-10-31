@@ -4213,5 +4213,34 @@
    }
   },
   "why": "2026-10-31: the south louvre blades are now light metal as in the owner's entrance photo (0.12 m on a 0.34 m pitch over dark glass), and the new entrance stair, its rails and the pergola slats are thinner than a pixel from far away; each fades to the mean of what it covers by pixel coverage (rule 15), never blurred. Round 2: the rails are now his dark steel (0.06 m), fading to the cream stone they stand against"
+ },
+ "union-on-san-antonio": {
+  "fade": {
+   "bollard_yellow": {
+    "to": [
+     0.0105,
+     0.0108,
+     0.0123
+    ],
+    "size_m": 0.2
+   },
+   "pipe_red": {
+    "to": [
+     0.045,
+     0.045,
+     0.045
+    ],
+    "size_m": 0.14
+   },
+   "interior_light_strip": {
+    "to": [
+     0.28,
+     0.26,
+     0.21
+    ],
+    "size_m": 0.15
+   }
+  },
+  "fade_note": "2026-10-31: the garage-entrance bollards and clearance bar, the sprinkler pipes and strip lights behind the garage screen fade by their size on screen (rule 15)"
  }
 }
