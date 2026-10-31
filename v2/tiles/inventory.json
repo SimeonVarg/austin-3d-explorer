@@ -7051,11 +7051,11 @@
       }
     },
     "t_1_-1": {
-      "hash": "5645cc20f7aab907",
+      "hash": "64b64be54fcc9212",
       "near": {
-        "bytes": 1150892,
+        "bytes": 1155532,
         "tris": 85405,
-        "draws": 8
+        "draws": 10
       },
       "far": {
         "bytes": 37872,
