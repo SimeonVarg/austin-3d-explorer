@@ -36,12 +36,16 @@ export function installTrees({ THREE, scene, redraw, renderer, phone = false }) 
 
   async function build() {
     const files = await Promise.all([fetch(DATA + 'safe_city.json').then((r) => r.json()), fetch(DATA + 'safe_osm.json').then((r) => r.json()).catch(() => null)]);
+    // trees the owner's photographs show are not there (data/trees/exclude.json): any tree within match_m of a listed position is left out
+    const ex = await fetch(DATA + 'exclude.json').then((r) => r.json()).catch(() => null);
+    const exList = (ex && ex.trees) || [], exR2 = ((ex && ex.match_m) || 0.6) ** 2;
+    const excluded = (x, z) => exList.some((e) => (e.x - x) ** 2 + (e.z - z) ** 2 <= exR2);
     const groups = files[0].groups;
     const rows = groups.map(() => []);
     for (const f of files) {
       if (!f) continue;
       const t = f.trees;
-      for (let i = 0; i + 6 <= t.length; i += 6) rows[t[i + 4]].push([t[i], t[i + 1], t[i + 2], t[i + 3], t[i + 5] / 255]);
+      for (let i = 0; i + 6 <= t.length; i += 6) { if (exList.length && excluded(t[i], t[i + 1])) { stats.excluded = (stats.excluded || 0) + 1; continue; } rows[t[i + 4]].push([t[i], t[i + 1], t[i + 2], t[i + 3], t[i + 5] / 255]); }
     }
     const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), S = new THREE.Vector3(), c = new THREE.Color(), hsl = {};
     const trunkAll = [];   // [x, z, crown radius, height, crown height]
