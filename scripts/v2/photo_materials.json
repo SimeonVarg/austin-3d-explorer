@@ -4086,6 +4086,27 @@
    "_why": "rule 15: the screen's frame and the dark back panel go over to the screen's coverage-weighted mean (32 % blade) as they shrink below a pixel; the blades and bars themselves are a mipmapped texture on one quad (screen_grille), which averages to the same mean"
   }
  },
+ "union-on-24th": {
+  "fade": {
+   "mullion_sf": {
+    "to": [
+     0.025,
+     0.016,
+     0.008
+    ],
+    "size_m": 0.14
+   },
+   "slat_fin": {
+    "to": [
+     0.016,
+     0.012,
+     0.008
+    ],
+    "size_m": 0.06
+   }
+  },
+  "fade_why": "2026-10-31: the storefront's 0.14 m mullions and the entrance screen's 0.06 m slats fade by pixel coverage into the lit room behind them. (Podium ribs were tried and dropped: they failed the south 250 m shimmer gate.)"
+ },
  "gregory-gym": {
   "fade": {
    "muntin_arch": {
