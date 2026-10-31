@@ -3859,8 +3859,8 @@
   },
   "filter": {
    "anisotropy": 8,
-   "lod_bias": -0.15,
-   "why": "as Painter/Welch: brick courses on the stair walls must stay sharp at grazing angles (rule 15: blur is not a fix)"
+   "lod_bias": -0.35,
+   "why": "brick courses on the stair walls must stay sharp at grazing angles (rule 15: blur is not a fix); -0.15 read 0.02 softer than main at 120 m east, so -0.35 (shimmer had headroom: -0.16 against main -0.11)"
   },
   "materials": {
    "wall_brick_buff": {
