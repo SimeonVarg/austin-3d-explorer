@@ -56,6 +56,11 @@ export const GLASS_REAL = {
   BOW_PX: [10, 24],        // the bow varies inside a pane, so it goes first
   MAX_PANE_M: 12,          // islands bigger than this (a whole glazed wall in one piece) get no per-pane look
   FAR_ON: typeof location === 'undefined' || new URLSearchParams(location.search).get('glassfar') !== '0',
+  // the far fade on glass WITHOUT a v2_glass_far from its tile (the default colour below). Off (2026-10-30): with only the glass's own
+  // colour to fade to it measured worse on main's glass at the gate (West Campus grids 900 m 0.21 -> 0.28, Health Transformation
+  // 1100 m -1.06 -> -1.02, and against a truth that fades too, worse on all three), because a pane's own colour can sit further from
+  // its wall than the mirror did. The fade needs the wall's colour, so it runs where a tile build gives one. ?glassfar=1 = on everywhere.
+  FAR_DEFAULT: typeof location !== 'undefined' && new URLSearchParams(location.search).get('glassfar') === '1',
   FAR_PX: [1.5, 3],        // far fade by the pane's smaller side on screen, pixels: [fully matte below, glass as before above]
   FAR_ROUGH: 1.0,          // roughness of the far (matte) pane
   FAR_GAIN: 1.0,           // default far colour (no v2_glass_far from the tile): the glass's own base colour x this, for clear (non-metal) glass
@@ -126,10 +131,15 @@ export function setGlassFootprintScale(s) { GLASS_FP.value = s; }
 const GLASS_FAR = { value: GLASS_REAL.FAR_ON ? 1 : 0 };
 const GLASS_FAR_G = { value: new THREE.Vector2(GLASS_REAL.FAR_GAIN, GLASS_REAL.FAR_GAIN_METAL) };
 const GLASS_FAR_PX = { value: new THREE.Vector2(...GLASS_REAL.FAR_PX) };
+const GLASS_FAR_D = { value: GLASS_REAL.FAR_DEFAULT ? 1 : 0 };
+const GLASS_FAR_OVR = { value: new THREE.Vector4(0, 0, 0, 0) };   // measuring: one far colour for every glass (w = 1), as if each tile gave it
 // measuring: k = strength; the two default-colour gains (clear, mirror) can be set too, for tuning in one page load
-export function setGlassFar(k, gainMetal, gainClear, px0, px1) {
+// (k, gainMetal, gainClear, px0, px1, useDefault 0|1, r, g, b): positional so a measuring flip can pass "1:0.15:1:1.5:3:1"
+export function setGlassFar(k, gainMetal, gainClear, px0, px1, useDefault, r, g, b) {
   GLASS_FAR.value = k;
   if (px1 > 0) GLASS_FAR_PX.value.set(px0, px1);
+  if (useDefault === 0 || useDefault === 1) GLASS_FAR_D.value = useDefault;
+  if (b != null && !Number.isNaN(b)) GLASS_FAR_OVR.value.set(r, g, b, r >= 0 ? 1 : 0);
   if (gainMetal != null && !Number.isNaN(gainMetal)) GLASS_FAR_G.value.y = gainMetal;
   if (gainClear != null && !Number.isNaN(gainClear)) GLASS_FAR_G.value.x = gainClear;
 }
@@ -143,7 +153,7 @@ export function realGlass(material) {
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
-    sh.uniforms.v2GlassK = GLASS_K; sh.uniforms.v2GlassFp = GLASS_FP; sh.uniforms.v2GlassFarK = GLASS_FAR; sh.uniforms.v2GlassFarG = GLASS_FAR_G; sh.uniforms.v2GlassFarPx = GLASS_FAR_PX;
+    sh.uniforms.v2GlassK = GLASS_K; sh.uniforms.v2GlassFp = GLASS_FP; sh.uniforms.v2GlassFarK = GLASS_FAR; sh.uniforms.v2GlassFarG = GLASS_FAR_G; sh.uniforms.v2GlassFarPx = GLASS_FAR_PX; sh.uniforms.v2GlassFarD = GLASS_FAR_D; sh.uniforms.v2GlassFarO = GLASS_FAR_OVR;
     const fc = material.userData.v2_glass_far;
     sh.uniforms.v2GlassFarC = { value: new THREE.Vector4(...(Array.isArray(fc) && fc.length >= 3 ? [fc[0], fc[1], fc[2], 1] : [0, 0, 0, 0])) };
     sh.vertexShader = sh.vertexShader
@@ -157,7 +167,9 @@ uniform float v2GlassK;
 uniform float v2GlassFp;
 uniform float v2GlassFarK;
 uniform vec2 v2GlassFarPx;  // the far fade band, pixels (GLASS_REAL.FAR_PX)
-uniform vec2 v2GlassFarG;   // default far colour gains: x clear glass, y mirror glass
+uniform vec2 v2GlassFarG;
+uniform float v2GlassFarD;  // 1: glass without a far colour fades to its own colour x gain; 0: it does not fade
+uniform vec4 v2GlassFarO;   // default far colour gains: x clear glass, y mirror glass
 uniform vec4 v2GlassFarC;   // rgb: the far colour from the tile (w = 1), or w = 0: the glass's own colour x FAR_GAIN
 float v2SpecVar = 1.0;
 float v2Far = 0.0;          // 0 = the glass, 1 = the far pane
@@ -193,16 +205,15 @@ vec4 v2paneRand2(float s) { return fract(sin(vec4(s * 29.771 + 5.31, s * 63.113 
       v2SpecVar = 1.0 + (fract(pr.x * 7.31 + pr.y * 3.17) * 2.0 - 1.0) * ${f(K.SPEC_VAR)} * vf;
     }
     // far fade: a pane only a pixel or two wide becomes a plain matte surface (no contrast left to alias, no mirror to sparkle)
-    v2Far = (1.0 - smoothstep(v2GlassFarPx.x, v2GlassFarPx.y, v2px)) * v2GlassFarK;
+    vec4 v2fc4 = v2GlassFarO.w > 0.5 ? v2GlassFarO : v2GlassFarC;
+    v2Far = (1.0 - smoothstep(v2GlassFarPx.x, v2GlassFarPx.y, v2px)) * v2GlassFarK * max(v2fc4.w, v2GlassFarD);
     if (v2Far > 0.0) {
+      vec3 v2fc = v2fc4.w > 0.5 ? v2fc4.rgb : diffuseColor.rgb * mix(v2GlassFarG.x, v2GlassFarG.y, metalnessFactor);
+      diffuseColor = mix(diffuseColor, vec4(v2fc, 1.0), v2Far);
       roughnessFactor = mix(roughnessFactor, ${f(K.FAR_ROUGH)}, v2Far);
-      if (v2GlassFarC.w > 0.5 || v2GlassFarG.y >= 0.0) {
-        vec3 v2fc = v2GlassFarC.w > 0.5 ? v2GlassFarC.rgb : diffuseColor.rgb * mix(v2GlassFarG.x, v2GlassFarG.y, metalnessFactor);
-        diffuseColor = mix(diffuseColor, vec4(v2fc, 1.0), v2Far);
-        metalnessFactor = mix(metalnessFactor, 0.0, v2Far);
-        v2FarS = v2Far;
-      }
+      metalnessFactor = mix(metalnessFactor, 0.0, v2Far);
     }
+    v2FarS = v2Far;
   }`)
       .replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
   material.specularColor *= 1.0 - v2FarS; material.specularColorBlended *= 1.0 - v2FarS; material.specularF90 *= 1.0 - v2FarS;
