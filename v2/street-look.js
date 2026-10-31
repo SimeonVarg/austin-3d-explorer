@@ -91,6 +91,22 @@ export const TREE_LOOK = {
   LIGHTNESS_VARIATION: 0.12,
   HUE_VARIATION: 0.02,
   TRUNK: '#3a3027',
+  TRUNK_TOP: 0.3,               // the trunk rises to (height - TRUNK_TOP x crown height): up into the lifted canopy below (hidden in a whole crown)
+  // Standing under a tree (v2/trees.js nearShader). A solid ball's underside sits at eye height right beside the trunk, so a camera
+  // under a crown saw a flat green slab across the view. Under a crown, the crown's underside is lifted into a dome (a canopy over the
+  // head, the way a live oak's limbs hold it) and opened into leaf clusters; any crown surface right at the camera opens the same way.
+  // Every factor is a smooth function of the camera position (no popping), the clusters are fixed on the crown (no swimming), their
+  // edges are antialiased over the pixel's own slope (rule 15). Crowns not near the camera are drawn exactly as before.
+  NEAR: {
+    UNDER_R: [0.8, 1.7],        // camera horizontal distance from the crown's axis, x crown radius: fully under -> not under
+    ABOVE: [0.2, 0.9],          // camera height above the crown's centre, x half crown height: still under -> above it (a flight sees whole crowns)
+    DOME: 1.25,                 // underside lift at the axis, x half crown height (0 at the rim): 1.25 puts it above the crown's centre
+    OPEN_UNDER: 0.55,           // 0..1 how far the underside opens when under (0.55 = clusters with sky and the building through them)
+    NEAR_M: [1.5, 6],           // any crown surface nearer than [0] m opens by OPEN_NEAR, none past [1] m
+    OPEN_NEAR: 0.85,
+    CLUSTER_M: [0.55, 0.2],      // leaf-cluster sizes, metres (two octaves)
+    SHADE: 0.4,                 // x colour of the opened underside when fully under (a canopy is dark from below)
+  },
 };
 
 // ?trees=real (v2/trees-real.js): a library of Austin tree forms (EZ-Tree, MIT) drawn in three distance bands. Colours come from the

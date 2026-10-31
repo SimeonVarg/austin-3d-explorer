@@ -34,6 +34,59 @@ export function installTrees({ THREE, scene, redraw, renderer, phone = false }) 
     cone: () => new THREE.ConeGeometry(1, 2, 8, 1, false),
   };
 
+  // Under a tree (street-look.js TREE_LOOK.NEAR). Vertex: the crown the camera stands under lifts its underside into a dome (0 at the
+  // rim). Fragment: the underside of that crown, and any crown surface right at the camera, opens into leaf clusters (3D value noise
+  // fixed on the crown's own unlifted surface, so the clusters ride with it and never swim); edge = smoothstep over the pixel's own
+  // slope, alpha to coverage with MSAA. Crowns away from the camera skip all of it (open = 0, lift = 0): the same picture as before.
+  const N = T.NEAR, f = (v) => Number(v).toFixed(4);
+  const msaa = !!(renderer && renderer.getContext && renderer.getContext().getContextAttributes().antialias);
+  const nearU = { uTreeNear: { value: params.get('treenear0') === '1' ? 0 : 1 } };   // 0 = the old solid crowns (A/B in one page load)
+  function nearShader(mat) {
+    mat.alphaToCoverage = msaa;
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.uTreeNear = nearU.uTreeNear;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
+uniform float uTreeNear; varying vec3 vTnSurf; varying vec3 vTnWorld; varying float vTnUnder; varying float vTnLow;`)
+        .replace('#include <begin_vertex>', `#include <begin_vertex>
+#ifdef USE_INSTANCING
+{
+  vec3 c = instanceMatrix[3].xyz; vec3 s = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
+  vec3 q = (cameraPosition - c) / s;
+  float under = uTreeNear * (1.0 - smoothstep(${f(N.UNDER_R[0])}, ${f(N.UNDER_R[1])}, length(q.xz))) * (1.0 - smoothstep(${f(N.ABOVE[0])}, ${f(N.ABOVE[1])}, q.y));
+  vTnSurf = c + transformed * s; vTnUnder = under; vTnLow = 1.0 - smoothstep(-0.3, 0.45, transformed.y);
+  if (transformed.y < 0.0) transformed.y += under * ${f(N.DOME)} * max(0.0, 1.0 - dot(transformed.xz, transformed.xz));
+  vTnWorld = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;
+}
+#endif`);
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+uniform float uTreeNear; varying vec3 vTnSurf; varying vec3 vTnWorld; varying float vTnUnder; varying float vTnLow;
+float tnHash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float tnNoise(vec3 x) {
+  vec3 i = floor(x), u = fract(x); u = u * u * (3.0 - 2.0 * u);
+  return mix(mix(mix(tnHash(i), tnHash(i + vec3(1, 0, 0)), u.x), mix(tnHash(i + vec3(0, 1, 0)), tnHash(i + vec3(1, 1, 0)), u.x), u.y),
+             mix(mix(tnHash(i + vec3(0, 0, 1)), tnHash(i + vec3(1, 0, 1)), u.x), mix(tnHash(i + vec3(0, 1, 1)), tnHash(i + vec3(1, 1, 1)), u.x), u.y), u.z);
+}`)
+        .replace('#include <alphatest_fragment>', `#include <alphatest_fragment>
+{
+  float nearK = uTreeNear * (1.0 - smoothstep(${f(N.NEAR_M[0])}, ${f(N.NEAR_M[1])}, length(vTnWorld - cameraPosition)));
+  float open = max(vTnUnder * vTnLow * ${f(N.OPEN_UNDER)}, nearK * ${f(N.OPEN_NEAR)});
+  if (open > 0.001) {
+    float n = 0.6 * tnNoise(vTnSurf / ${f(N.CLUSTER_M[0])}) + 0.4 * tnNoise(vTnSurf / ${f(N.CLUSTER_M[1])} + 17.0);
+    float cut = mix(-0.05, 0.95, open), w = max(fwidth(n), 1e-4);
+    float a = smoothstep(cut - 0.5 * w, cut + 0.5 * w, n);
+    #ifdef ALPHA_TO_COVERAGE
+      diffuseColor.a = a; if (a <= 0.0) discard;
+    #else
+      if (a < 0.5) discard;
+    #endif
+    diffuseColor.rgb *= mix(1.0, ${f(N.SHADE)}, vTnUnder);
+  }
+}`);
+    };
+    mat.customProgramCacheKey = () => 'v2-tree-near' + msaa;
+    return mat;
+  }
+
   async function build() {
     const files = await Promise.all([fetch(DATA + 'safe_city.json').then((r) => r.json()), fetch(DATA + 'safe_osm.json').then((r) => r.json()).catch(() => null)]);
     // trees the owner's photographs show are not there (data/trees/exclude.json): any tree within match_m of a listed position is left out
@@ -52,7 +105,7 @@ export function installTrees({ THREE, scene, redraw, renderer, phone = false }) 
     groups.forEach((name, gi) => {
       const list = rows[gi]; if (!list.length) return;
       const look = T.GROUPS[name] || T.GROUPS.broadleaf;
-      const crowns = new THREE.InstancedMesh(SHAPES[look.shape](), new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0 }), list.length);
+      const crowns = new THREE.InstancedMesh(SHAPES[look.shape](), nearShader(new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0 })), list.length);
       new THREE.Color(look.color).getHSL(hsl);
       list.forEach(([x, z, r, h, v], i) => {
         r *= look.radius;
@@ -70,7 +123,7 @@ export function installTrees({ THREE, scene, redraw, renderer, phone = false }) 
     const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshStandardMaterial({ color: T.TRUNK, roughness: 1 }), trunkAll.length);
     trunkAll.forEach(([x, z, r, h, ch], i) => {
       const tr = 0.12 + r * 0.025;
-      M.compose(P.set(x, 0, z), Q, S.set(tr, Math.max(0.5, h - ch * 0.8), tr)); trunks.setMatrixAt(i, M);
+      M.compose(P.set(x, 0, z), Q, S.set(tr, Math.max(0.5, h - ch * T.TRUNK_TOP), tr)); trunks.setMatrixAt(i, M);
     });
     trunks.castShadow = true; trunks.receiveShadow = true; trunks.computeBoundingSphere(); trunks.name = 'trunks'; trunks.visible = !REAL;   // (the camera's trunk collision still reads its matrices)
     group.add(trunks);
@@ -82,7 +135,7 @@ export function installTrees({ THREE, scene, redraw, renderer, phone = false }) 
     redraw();
   }
   build().catch((e) => { stats.error = e.message; console.warn('[v2 trees]', e.message); });
-  const api = { stats: () => ({ ...stats }), group };
+  const api = { stats: () => ({ ...stats }), group, near: (on) => { nearU.uTreeNear.value = on ? 1 : 0; redraw(); } };   // near(): the A/B switch
   window.__v2trees = api;
   return api;
 }
