@@ -4242,5 +4242,27 @@
    }
   },
   "fade_note": "2026-10-31: the garage-entrance bollards and clearance bar, the sprinkler pipes and strip lights behind the garage screen fade by their size on screen (rule 15)"
+ },
+ "gary-l-thomas-energy-engineering-building": {
+  "wall_max_ny": 0.75,
+  "fade": {
+   "metal_rail_dark": {
+    "to": [
+     0.0416,
+     0.0405,
+     0.0383
+    ],
+    "size_m": 0.04
+   },
+   "drain_dark": {
+    "to": [
+     0.1406,
+     0.1358,
+     0.1346
+    ],
+    "size_m": 0.3
+   }
+  },
+  "why": "2026-10-31: the NW plaza's pipe rails, the stair's picket rails (0.024-0.05 m) and the 0.3 m trench drain are thinner than a pixel from far away and flickered at 250 m over the lowered-only baseline; each fades to the mean of what it covers by pixel coverage (rule 15), never blurred"
  }
 }
