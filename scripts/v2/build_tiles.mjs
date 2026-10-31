@@ -239,7 +239,10 @@ async function partDoc(slugs, lod, part) {
   if (!doc.getRoot().listMeshes().some((m) => m.listPrimitives().length)) return null;
   const steps = [dedup()];
   if (lod === 1) steps.push(weld(), simplify({ simplifier: MeshoptSimplifier, ratio: FAR_SIMPLIFY_RATIO, error: FAR_SIMPLIFY_ERROR }));
-  steps.push(palette({ min: 2 }), flatten(), join({ keepNamed: false }), prune());
+  // keepSolidTextures here too (2026-10-31): the fade materials share ONE 1x1 white texture after dedup(), and prune's solid-texture pass
+  // multiplies the texture colour into each material through a shared scratch array (gltf-transform pruneSolidTextures: mul(factor, factor, ...)),
+  // so every fade material after the first took the product of all the factors before it: t_-1_-1's bollards came out black (0.219 -> 0.0044)
+  steps.push(palette({ min: 2 }), flatten(), join({ keepNamed: false }), prune({ keepSolidTextures: true }));
   await doc.transform(...steps);
   // The builders' faces are wound either way (Blender draws both sides, so nobody saw it): on 280 of 304 builds some faces that look at the sky are
   // wound downward, DKR's whole seat rake among them. Drawn single-sided those are culled and the viewer looks through them at what lies beneath
