@@ -314,8 +314,8 @@
         "yugo-austin-rio"
       ],
       "bytes": [
-        1541456,
-        35556
+        1562192,
+        35572
       ]
     },
     {
@@ -1133,8 +1133,8 @@
         "student-services-building"
       ],
       "bytes": [
-        2211628,
-        47416
+        2257972,
+        47000
       ]
     },
     {
@@ -1215,8 +1215,8 @@
         "waggener-hall"
       ],
       "bytes": [
-        1616740,
-        33992
+        1646252,
+        38216
       ]
     },
     {
@@ -1239,8 +1239,8 @@
         "university-teaching-center"
       ],
       "bytes": [
-        704508,
-        79356
+        711112,
+        77912
       ]
     },
     {
@@ -1460,7 +1460,7 @@
         "winship-drama-building"
       ],
       "bytes": [
-        1228336,
+        1250084,
         41640
       ]
     },
@@ -2761,7 +2761,7 @@
       "model": "opus",
       "x": 95.327,
       "z": 208.093,
-      "top": 16.8
+      "top": 18.5
     },
     "grandmarc-austin": {
       "tile": "t_-2_-3",
@@ -3244,7 +3244,7 @@
       "model": "opus",
       "x": 195.807,
       "z": -280.627,
-      "top": 27.2
+      "top": 31.6
     },
     "moncrief-neuhaus-athletic-center": {
       "tile": "t_2_1",
