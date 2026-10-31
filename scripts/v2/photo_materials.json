@@ -4213,5 +4213,26 @@
    }
   },
   "why": "2026-10-31: the south louvre blades are now light metal as in the owner's entrance photo (0.12 m on a 0.34 m pitch over dark glass), and the new entrance stair, its rails and the pergola slats are thinner than a pixel from far away; each fades to the mean of what it covers by pixel coverage (rule 15), never blurred. Round 2: the rails are now his dark steel (0.06 m), fading to the cream stone they stand against"
+ },
+ "the-standard": {
+  "fade": {
+   "frame_light": {
+    "to": [
+     0.05,
+     0.045,
+     0.035
+    ],
+    "size_m": 0.1
+   },
+   "louvre_slat": {
+    "to": [
+     0.007,
+     0.009,
+     0.011
+    ],
+    "size_m": 0.045
+   }
+  },
+  "fade_why": "2026-10-31: the entrance bay's 0.1 m light storefront frames and the 0.045 m louvre slats fade by pixel coverage into the mean of frame and what is behind them (rule 15)."
  }
 }
