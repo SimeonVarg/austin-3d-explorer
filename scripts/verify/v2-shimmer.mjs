@@ -15,6 +15,14 @@
  *       alias = mean |native - truth|     the still-frame error (jaggies + moire);
  *       soft  = mean |blur(truth) - truth| - mean |blur(native) - native|  > 0 when native is SOFTER than the truth (a blur "fix").
  *   - --refs compares app versions interleaved, as in v2-frame.mjs (each ref's v2/ extracted beside v2/).
+ *   - --flip "glassFar=0,1" (rule 13: load once, test many): in ONE page load, per view, calls window.__v2.glassFar(v) for each value
+ *     (a value "1:0.4" passes two arguments),
+ *     twice interleaved (0,1,0,1), re-placing the camera before each pass. Extra columns: the whole canvas's mean rgb (8-bit) in the
+ *     first native frame, and its difference from the first value's frame (mean |luma diff| over the whole canvas, share of pixels > 2).
+ *   - FAIR GLASS TRUTH (default since 2026-10-31): in the truth frame the glass fades of v2/glass.js (per-pane variation, far fade)
+ *     decide by the NATIVE pixel's footprint (setGlassFootprintScale), as v2-glass-shimmer.mjs does: the same picture, sampled finely.
+ *     A truth that does not fade is not a fair truth for a fade made by footprint (it charges the fade as blur). Coverage fades and
+ *     everything else in the truth are unchanged. V2_SHIMMER_FAIR_GLASS=0 = the old truth.
  * Instrument: viewport 800x500 at device scale 2 (canvas 1600x1000, the owner's Mac density); tiles settled and their fades
  * finished before any frame; no frame loop runs between the native and the truth draw (one synchronous pass per frame). REAL GPU
  * only (fails on SwiftShader). PNGs of the first native and truth frame per (version, view) go to --out when given.
@@ -29,6 +37,7 @@ import { launch, BASE, HW_ARGS } from './chrome.mjs';
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i < 0 ? d : (process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : true); };
 const FRAMES = +arg('--frames', 24), SS = +arg('--ss', 3), OUT = arg('--out', '');
 const QS = String(arg('--q', '')).split('|');
+const FLIP = arg('--flip', '') ? (([fn, vs]) => ({ fn, vals: vs.split(',') }))(String(arg('--flip', '')).split('=')) : null;
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 function refFolder(ref) {
   if (ref === '.') return 'v2';
@@ -84,7 +93,14 @@ for (const variant of VARIANTS) {
       calm = s.t && s.t.loading === 0 && !s.t.fading && groundCalm ? calm + 1 : 0; await page.waitForTimeout(700);
     }
     await page.waitForTimeout(1200);
-    const r = await page.evaluate(({ frames, SS, slug, top, want }) => {
+    const passes = FLIP ? [0, 1].flatMap(() => FLIP.vals) : [null];
+    for (const [pi, fv] of passes.entries()) {
+    if (FLIP) {
+      // (a version without the function, e.g. an older --refs, draws as it is)
+      await page.evaluate(([fn, val, x, z, d, p, a]) => { window.__v2[fn]?.(...String(val).split(':').map(Number)); window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }); window.__v2.redraw(); }, [FLIP.fn, fv, b.x, b.z, v.distance, v.polar, v.azimuth]);
+      await page.waitForTimeout(400);
+    }
+    const r = await page.evaluate(({ frames, SS, slug, top, want, flipKey, flipRef, fairGlass }) => {
       const { renderer, scene, camera, controls, THREE } = window.__v2;
       const gl = renderer.getContext(), canvas = renderer.domElement, dpr = renderer.getPixelRatio();
       const W = canvas.clientWidth, H = canvas.clientHeight;
@@ -98,6 +114,7 @@ for (const variant of VARIANTS) {
       if (x1 - x0 < 8 || y1 - y0 < 8) return { error: 'building off screen' };
       const rw = x1 - x0, rh = y1 - y0;
       const grab = (scale) => {
+        if (fairGlass && window.__v2.glassReal) window.__v2.glassReal(1, scale);   // fair glass truth: glass fades decide by the native pixel
         renderer.setPixelRatio(dpr * scale); renderer.setSize(W, H, false);
         camera.updateMatrixWorld(); renderer.render(scene, camera);
         const k = dpr * scale, gx = Math.round(x0 * k), gy = Math.round((H - y1) * k), gw = Math.round(rw * k), gh = Math.round(rh * k);
@@ -109,13 +126,27 @@ for (const variant of VARIANTS) {
           for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) { const o = ((y * s + j) * gw + (x * s + i)) * 4; acc += 0.2126 * px[o] + 0.7152 * px[o + 1] + 0.0722 * px[o + 2]; }
           out[y * nw + x] = acc / (s * s);
         }
+        if (fairGlass && window.__v2.glassReal) window.__v2.glassReal(1, 1);
         return { L: out, w: nw, h: nh };
       };
       const blur = (F) => { const o = new Float32Array(F.L.length); for (let y = 0; y < F.h; y++) for (let x = 0; x < F.w; x++) { let a = 0, n = 0; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const xx = x + i, yy = y + j; if (xx < 0 || yy < 0 || xx >= F.w || yy >= F.h) continue; a += F.L[yy * F.w + xx]; n++; } o[y * F.w + x] = a / n; } return o; };
       const mad = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length; };
       const off = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
       let prevN = null, prevT = null, dN = 0, dT = 0, alias = 0, soft = 0, first = null, eN = null, eT = null;
+      let whole = null;
       for (let f = 0; f < frames; f++) {
+        if (f === 0 && flipKey) {
+          // the whole canvas, native, first frame: mean colour, and the difference from the first flip value's frame
+          renderer.setPixelRatio(dpr); renderer.setSize(W, H, false); camera.updateMatrixWorld(); renderer.render(scene, camera);
+          const cw = canvas.width, ch = canvas.height, px = new Uint8Array(cw * ch * 4); gl.readPixels(0, 0, cw, ch, gl.RGBA, gl.UNSIGNED_BYTE, px);
+          const m = [0, 0, 0]; for (let i = 0; i < px.length; i += 4) { m[0] += px[i]; m[1] += px[i + 1]; m[2] += px[i + 2]; }
+          const n = cw * ch; whole = { mean: m.map((x) => x / n) };
+          window.__flipRef ||= {};
+          if (flipRef) window.__flipRef[flipKey] = px;
+          const ref = window.__flipRef[flipKey];
+          if (ref && ref !== px) { let d = 0, big = 0; for (let i = 0; i < px.length; i += 4) { const e = Math.abs(0.2126 * (px[i] - ref[i]) + 0.7152 * (px[i + 1] - ref[i + 1]) + 0.0722 * (px[i + 2] - ref[i + 2])); d += e; if (e > 2) big++; } whole.diff = d / n; whole.big = big / n; }
+          else whole.diff = 0, whole.big = 0;
+        }
         if (f) { off.copy(camera.position).sub(controls.target).applyAxisAngle(up, THREE.MathUtils.degToRad(0.15)); camera.position.copy(controls.target).add(off); camera.lookAt(controls.target); }
         const N = grab(1), T = grab(SS);
         alias += mad(N.L, T.L); soft += mad(blur(T), T.L) - mad(blur(N), N.L);
@@ -133,15 +164,17 @@ for (const variant of VARIANTS) {
       const hot = ex.filter((v) => v > 6).length / ex.length;
       const png = (F) => { const cv = document.createElement('canvas'); cv.width = F.w; cv.height = F.h; const g = cv.getContext('2d'); const im = g.createImageData(F.w, F.h); for (let y = 0; y < F.h; y++) for (let x = 0; x < F.w; x++) { const v = F.L[(F.h - 1 - y) * F.w + x], o = (y * F.w + x) * 4; im.data[o] = im.data[o + 1] = im.data[o + 2] = v; im.data[o + 3] = 255; } g.putImageData(im, 0, 0); return cv.toDataURL('image/png'); };
       return { p99: ex[Math.floor(ex.length * 0.99)], hot, region: [x0, y0, rw, rh], shimmer: (dN - dT) / (frames - 1), nativeChange: dN / (frames - 1), truthChange: dT / (frames - 1), alias: alias / frames, soft: soft / frames,
-        pngN: png(first.N), pngT: png(first.T), tiles: window.__v2.tiles() };
-    }, { frames: FRAMES, SS, slug: v.slug, top: (b.top || 30) + 2, want: { x: b.x, z: b.z, r: v.slug === 'dkr-memorial-stadium' ? 150 : v.slug === 'moody-center' ? 95 : 45 } });
+        pngN: png(first.N), pngT: png(first.T), tiles: window.__v2.tiles(), whole };
+    }, { frames: FRAMES, SS, slug: v.slug, top: (b.top || 30) + 2, want: { x: b.x, z: b.z, r: v.slug === 'dkr-memorial-stadium' ? 150 : v.slug === 'moody-center' ? 95 : 45 }, flipKey: FLIP ? v.name : '', flipRef: FLIP ? pi === 0 : false, fairGlass: process.env.V2_SHIMMER_FAIR_GLASS !== '0' });
     if (r.error) { console.log(variant.name, v.name, r.error); continue; }
+    const vname = FLIP ? `${variant.name === '(default)' ? '' : variant.name + ' '}${FLIP.fn}=${fv}` : variant.name;
     if (OUT) {
       fs.mkdirSync(OUT, { recursive: true });
       const slugOf = (s) => s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      for (const [k, u] of [['native', r.pngN], ['truth', r.pngT]]) fs.writeFileSync(path.join(OUT, `${slugOf(variant.name)}--${slugOf(v.name)}--${k}.png`), Buffer.from(u.split(',')[1], 'base64'));
+      for (const [k, u] of [['native', r.pngN], ['truth', r.pngT]]) fs.writeFileSync(path.join(OUT, `${slugOf(vname)}--${slugOf(v.name)}--${k}.png`), Buffer.from(u.split(',')[1], 'base64'));
     }
-    rows.push({ variant: variant.name, view: v.name, ...r, pngN: undefined, pngT: undefined });
+    rows.push({ variant: vname, view: v.name, ...r, pngN: undefined, pngT: undefined });
+    }
   }
   await ctx.close();
 }
@@ -150,5 +183,6 @@ const f = (x) => x.toFixed(2);
 console.log(`renderer: ${renderer}`);
 console.log(`instrument: 800x500 @2 (canvas 1600x1000), ${FRAMES} frames of orbit at 0.15 deg/frame, truth = ${SS}x${SS} supersample box-filtered; 8-bit luma inside the building's box`);
 console.log('version/query | view | shimmer (native change - truth change) | p99 per-pixel excess change | flickering share (pixels with excess > 6) | native change | truth change | alias (|native - truth|) | soft (> 0: native blurrier than truth) | region px | tiles full/far');
-for (const r of rows) console.log(`${r.variant} | ${r.view} | ${f(r.shimmer)} | ${f(r.p99)} | ${(100 * r.hot).toFixed(2)} % | ${f(r.nativeChange)} | ${f(r.truthChange)} | ${f(r.alias)} | ${f(r.soft)} | ${r.region[2]}x${r.region[3]} | ${r.tiles.lod0}/${r.tiles.lod1 || 0}`);
+for (const r of rows) console.log(`${r.variant} | ${r.view} | ${f(r.shimmer)} | ${f(r.p99)} | ${(100 * r.hot).toFixed(2)} % | ${f(r.nativeChange)} | ${f(r.truthChange)} | ${f(r.alias)} | ${f(r.soft)} | ${r.region[2]}x${r.region[3]} | ${r.tiles.lod0}/${r.tiles.lod1 || 0}` +
+  (r.whole ? ` | mean rgb ${r.whole.mean.map((x) => x.toFixed(2)).join(',')} | vs first: ${r.whole.diff.toFixed(3)} luma, ${(100 * r.whole.big).toFixed(3)} % > 2` : ''));
 if (/swiftshader/i.test(renderer)) { console.log('*FAIL: software renderer'); process.exit(1); }
