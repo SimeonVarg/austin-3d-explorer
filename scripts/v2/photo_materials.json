@@ -714,7 +714,7 @@
  "norman-hackerman-building": {
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "one number to overrule: the build's wall_brick base colour [0.0684, 0.048, 0.0372] (light-rig scale), taken by its builder from the owner's photos; the texture carries only the brick-to-brick tone mix and the joints, its mean is scaled back to that colour"
+   "why": "one number to overrule: the build's wall_brick base colour [0.0684, 0.048, 0.0372] (light-rig scale), taken by its builder from the owner's photos; the texture carries only the brick-to-brick tone mix and the joints, its mean is scaled back to that colour; 2026-10-31: raised x[1.27,1.27,1.16] to [0.0869, 0.061, 0.0432] so the brick-to-limestone balance and hue match photo-1 under the app's matched sky (the app drew it darker and pinker than the photo)"
   },
   "filter": {
    "anisotropy": 8,
@@ -730,18 +730,45 @@
      1.0832
     ],
     "factor": [
-     0.1228,
-     0.1228,
-     0.1228
+     0.156,
+     0.156,
+     0.1424
     ],
     "source": "owner photo 1 of the tall block's south face, overcast, rectified through its proven camera at 250 px/m: 329 real long-format bricks from the open brick piers and the upper open wall (never near glass), light divided out, laid in running bond at the modular course 0.0677 m (FFT 0.0689 m on the photo, 72 courses per 4.88 m storey in the build), brick + joint 5.5 courses",
     "mean_rgb": [
-     0.0684,
-     0.048,
-     0.0372
+     0.0869,
+     0.061,
+     0.0432
     ]
    }
-  }
+  },
+  "fade": {
+   "rail_steel": {
+    "to": [
+     0.07,
+     0.068,
+     0.064
+    ],
+    "size_m": 0.05
+   },
+   "door_frame": {
+    "to": [
+     0.06,
+     0.066,
+     0.08
+    ],
+    "size_m": 0.09
+   },
+   "mullion_dark": {
+    "to": [
+     0.035,
+     0.0306,
+     0.0307
+    ],
+    "size_m": 0.1
+   }
+  },
+  "fade_note": "2026-10-31: the south entrance's handrails, door stiles and curtain-wall mullions fade by their size on screen (rule 15)"
  },
  "kxan-building": {
   "materials": {
