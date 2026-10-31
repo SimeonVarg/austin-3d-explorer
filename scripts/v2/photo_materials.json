@@ -377,17 +377,9 @@
      0.08
     ],
     "size_m": 0.1
-   },
-   "glass_window": {
-    "to": [
-     0.07,
-     0.06,
-     0.05
-    ],
-    "size_m": 1.2
    }
   },
-  "fade_why": "2026-10-30: sizes are each part's real thickness, so a part fades only once it is under about 2 px (FADE_K). glass_window: a 1.2 m pane fades into the wall's far tone from 0.3 to 0.72 m per pixel (600 m and beyond), where the v2-shimmer excess map put the new flicker (dark panes about 2 px wide); nothing fades at 250 m or nearer."
+  "fade_why": "2026-10-30: sizes are each part's real thickness, so a part fades only once it is under about 2 px (tiles.js FADE_K); nothing large fades at 250 m or nearer (the soft gate)."
  },
  "moffett-molecular-biology": {
   "wall_max_ny": 0.75,
