@@ -1359,8 +1359,8 @@
         "odonnell-building"
       ],
       "bytes": [
-        731364,
-        40896
+        1133728,
+        38968
       ]
     },
     {
@@ -2693,7 +2693,7 @@
       "model": "opus",
       "x": 264.557,
       "z": -31.029,
-      "top": 31.5
+      "top": 32.1
     },
     "george-h-w-bush-state-office-building": {
       "tile": "t_0_2",
