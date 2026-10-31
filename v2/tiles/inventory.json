@@ -2848,7 +2848,7 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_-1",
-      "blend_sha256": "742563df82d2f353",
+      "blend_sha256": "780357568aa62369",
       "lod1": "mass",
       "placement": {
         "height_m": 28.8,
@@ -6891,9 +6891,9 @@
       }
     },
     "t_0_-1": {
-      "hash": "74be5ef49189fa08",
+      "hash": "08eb41eda5f2ed7f",
       "near": {
-        "bytes": 1557556,
+        "bytes": 1544520,
         "tris": 127690,
         "draws": 6
       },
