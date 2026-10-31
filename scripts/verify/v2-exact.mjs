@@ -36,6 +36,7 @@ const place = () => page.evaluate(([pos, right, up, back, fov, nearM]) => {
   const { THREE, camera, controls } = window.__v2;
   controls.update = () => false; controls.enabled = false;
   camera.fov = fov; camera.near = NEAR; camera.updateProjectionMatrix();
+  if ("fovBase" in controls) { controls.fovBase = fov; controls.fovKickNow = 0; }   // the flycam writes its own lens back on a redraw: a 14 mm photo drew at the app lens
   camera.position.set(...pos);
   const m = new THREE.Matrix4().makeBasis(new THREE.Vector3(...right), new THREE.Vector3(...up), new THREE.Vector3(...back));
   camera.quaternion.setFromRotationMatrix(m); camera.updateMatrixWorld();
