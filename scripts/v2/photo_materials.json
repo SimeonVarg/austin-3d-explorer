@@ -3805,15 +3805,33 @@
      4.5
     ],
     "factor": [
-     0.526,
-     0.374,
-     0.224
+     0.4576,
+     0.3254,
+     0.1949
     ],
     "source": "owner photo, 2026-09-29 West Campus walk (the stone block's south face above its window, rectified through the solved camera): the real coursed blocks and joints, light divided out",
     "mean_rgb": [
-     0.263,
-     0.187,
-     0.112
+     0.2288,
+     0.1627,
+     0.0974
+    ]
+   },
+   "stone_planter": {
+    "albedo": "scripts/v2/materials/2400-nueces/stone_albedo.jpg",
+    "repeat_m": [
+     3.8917,
+     4.5
+    ],
+    "factor": [
+     0.318,
+     0.274,
+     0.2
+    ],
+    "source": "owner photo, 2026-09-29 West Campus walk (the stone block's south face above its window, rectified through the solved camera): the real coursed blocks and joints, light divided out; the planter wall is the same limestone, its level from the planter in the same photo",
+    "mean_rgb": [
+     0.159,
+     0.137,
+     0.1
     ]
    }
   }
