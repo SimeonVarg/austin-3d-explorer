@@ -92,7 +92,8 @@ for (const variant of VARIANTS) {
     const passes = FLIP ? [0, 1].flatMap(() => FLIP.vals) : [null];
     for (const [pi, fv] of passes.entries()) {
     if (FLIP) {
-      await page.evaluate(([fn, val, x, z, d, p, a]) => { window.__v2[fn]?.(...String(val).split(':').map(Number));   // absent in an older --refs version: it draws as it is window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }); window.__v2.redraw(); }, [FLIP.fn, fv, b.x, b.z, v.distance, v.polar, v.azimuth]);
+      // (a version without the function, e.g. an older --refs, draws as it is)
+      await page.evaluate(([fn, val, x, z, d, p, a]) => { window.__v2[fn]?.(...String(val).split(':').map(Number)); window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }); window.__v2.redraw(); }, [FLIP.fn, fv, b.x, b.z, v.distance, v.polar, v.azimuth]);
       await page.waitForTimeout(400);
     }
     const r = await page.evaluate(({ frames, SS, slug, top, want, flipKey, flipRef }) => {
