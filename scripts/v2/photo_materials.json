@@ -4176,6 +4176,44 @@
   },
   "concrete_note": "2026-10-31: a board-formed concrete texture from the entrance photo was tried and dropped: at 120 m east it read 0.02 softer than main (the soft gate, rule 15), and its streaks only read up close. The concrete stays the build's gated plain colour."
  },
+ "engineering-education-and-research-center": {
+  "wall_max_ny": 0.75,
+  "fade": {
+   "louvre_metal": {
+    "to": [
+     0.065,
+     0.066,
+     0.068
+    ],
+    "size_m": 0.34
+   },
+   "rail_steel": {
+    "to": [
+     0.139,
+     0.112,
+     0.078
+    ],
+    "size_m": 0.06
+   },
+   "pergola_white": {
+    "to": [
+     0.06,
+     0.061,
+     0.062
+    ],
+    "size_m": 0.12
+   },
+   "stair_steel": {
+    "to": [
+     0.04,
+     0.038,
+     0.034
+    ],
+    "size_m": 0.06
+   }
+  },
+  "why": "2026-10-31: the south louvre blades are now light metal as in the owner's entrance photo (0.12 m on a 0.34 m pitch over dark glass), and the new entrance stair, its rails and the pergola slats are thinner than a pixel from far away; each fades to the mean of what it covers by pixel coverage (rule 15), never blurred. Round 2: the rails are now his dark steel (0.06 m), fading to the cream stone they stand against"
+ },
  "gregory-gym": {
   "fade": {
    "muntin_arch": {
