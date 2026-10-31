@@ -124,12 +124,12 @@
       "model": "opus",
       "kind": "apartment",
       "tile": "t_-2_-1",
-      "blend_sha256": "35968fcddfe5b507",
+      "blend_sha256": "c236a01022e0e176",
       "lod1": "mass",
       "placement": {
         "height_m": 51.4,
-        "area_ratio": 1.008,
-        "centre_off_m": 0.34,
+        "area_ratio": 1.015,
+        "centre_off_m": 0.69,
         "flags": []
       }
     },
@@ -6410,15 +6410,15 @@
       }
     },
     "t_-2_-1": {
-      "hash": "ed550053b1859e63",
+      "hash": "82339d8d231d55b3",
       "near": {
-        "bytes": 1449044,
-        "tris": 165571,
-        "draws": 2
+        "bytes": 1536036,
+        "tris": 168245,
+        "draws": 3
       },
       "far": {
-        "bytes": 36220,
-        "tris": 3095,
+        "bytes": 35616,
+        "tris": 3043,
         "draws": 1
       }
     },
