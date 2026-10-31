@@ -3924,15 +3924,15 @@
      3.6
     ],
     "factor": [
+     0.3995,
      0.3917,
-     0.3917,
-     0.3917
+     0.378
     ],
-    "source": "same entrance photo: the blank north wall above the loggia, rectified (100 px/m); only the board-formed streaks at 0.6 contrast, 5.2 x 3.6 m tile",
+    "source": "same entrance photo: the blank north wall above the loggia, rectified (100 px/m); only the board-formed streaks at 0.6 contrast, 5.2 x 3.6 m tile; warmed by the NE grid concrete in the stair photo (210, 206, 198 there against 209, 210, 209 on the north wall): x 1.02 / 1.0 / 0.965",
     "mean_rgb": [
-     0.1759,
+     0.1794,
      0.1775,
-     0.1754
+     0.1693
     ]
    }
   }
