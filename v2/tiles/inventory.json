@@ -6891,11 +6891,11 @@
       }
     },
     "t_0_-1": {
-      "hash": "08eb41eda5f2ed7f",
+      "hash": "c2eaee428427e0eb",
       "near": {
-        "bytes": 1544520,
+        "bytes": 1577936,
         "tris": 127690,
-        "draws": 6
+        "draws": 19
       },
       "far": {
         "bytes": 38400,
