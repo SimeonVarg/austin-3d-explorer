@@ -4333,5 +4333,26 @@
    }
   },
   "fade_note": "the muntin grids of the three great arch windows (over dark glass and white curtains) and of the upper arched windows (over the sky-mirror panes) fade into the pane behind as the pixel grows past the bar (rule 15); the light stair treads fade into the riser/tread mean once a pixel covers a step; the nosing line on every riser and the dark nosing markers fade into the riser; the shaded field inside each little corbel arch (0.5 m, a 0.745 m repeat) fades into the wall by 600 m"
+ },
+ "chemical-petroleum-engineering": {
+  "fade": {
+   "rail_black": {
+    "to": [
+     0.07,
+     0.064,
+     0.056
+    ],
+    "size_m": 0.022
+   },
+   "downlight": {
+    "to": [
+     0.167,
+     0.14,
+     0.102
+    ],
+    "size_m": 0.24
+   }
+  },
+  "fade_why": "2026-10-31: the new light-well railings (0.022 m pickets on a 0.115 m pitch) and the soffit downlights are thinner than a pixel from far away; each fades by pixel coverage to the mean of what it stands against (the brick curb and dark well; the plaster ceiling), never blurred (rule 15)"
  }
 }
