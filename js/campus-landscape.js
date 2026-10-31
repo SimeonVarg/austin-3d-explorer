@@ -19,6 +19,8 @@
   furniture:{pole:.035,umbrellaSides:8,canopyRise:.45,seatHeight:.46,seatRadius:.23,railHeight:1.05,railPostPitch:1.4},
   livingWall:{bottom:.45,spacing:.65,radius:.4},fountain:{stem:.16,bowl:.55,height:1.45},shrubQuality:1.3,
  };
+ // ?look=photo (js/look-photo.js): the campus crowns' leaf tones and ring shading toward the photographs.
+ if(window.LOOK_PHOTO&&window.LOOK_PHOTO.treesOn&&window.LOOK_PHOTO.campusLandscape){const L=window.LOOK_PHOTO.campusLandscape;if(L.leaf)C.leaf=L.leaf;if(L.shade)C.crown.shade=L.shade;if(L.capRadius)C.capRadius=L.capRadius;if(L.facetTone)C.facetTone=L.facetTone}
  let data=null,map=null,group=null,structuralGroup=null,originalFilter=null,lastDensity=-1,lastDetail=-1;
  const count={done:false,trees:0,triangles:0,gardens:0,railings:0,structuralTriangles:0};
  // Explicit ground-only geometry is indexed once on load. Overhead court
@@ -85,7 +87,7 @@
   };
   for(let j=0;j<m;j++)for(let i=0;i<n;i++){
    const a=at(i,j),b=at(i+1,j),c=at(i+1,j+1),d=at(i,j+1);
-   const tone=mixTone(col,C.crown.shade+(1-C.crown.shade)*(1-j/m));
+   const tone=mixTone(col,(C.crown.shade+(1-C.crown.shade)*(1-j/m))*(1+(C.facetTone||0)*(hash(seed*7+i*13+j*29,3)-.5)*2));
    B.triN(a.p,b.p,c.p,a.n,b.n,c.n,tone);B.triN(a.p,c.p,d.p,a.n,c.n,d.n,tone);
   }
  }
@@ -97,7 +99,7 @@
    const p=slopes.toLocal(lng,lat,0),form=C.species[sp]||C.species.other,seed=hash(i,8)*Math.PI*2;
    const key=Math.floor(p.x/C.chunkSize)+','+Math.floor(p.y/C.chunkSize);
    if(!chunks.has(key))chunks.set(key,slopes.build());const B=chunks.get(key);
-   const height=Math.max(2,top-base),radius=r*form.spread,half=Math.min(height/2*form.depth,(top-.8)/2),cz=top-half;
+   const height=Math.max(2,top-base),radius=Math.min(C.capRadius||1e9,r*form.spread),half=Math.min(height/2*form.depth,(top-.8)/2),cz=top-half;
    const col=C.leaf[Math.min(C.leaf.length-1,Math.floor(hue*C.leaf.length))],thick=Math.min(C.trunk.largeRadius,Math.max(C.trunk.radius,r*C.trunk.radiusRatio));
    const fork=[p.x+Math.cos(seed)*thick,p.y+Math.sin(seed)*thick,Math.max(C.trunk.forkMin,base+height*C.trunk.forkHeight)];
    stem(B,[p.x,p.y,0],fork,thick,thick*C.trunk.topRadius,C.bark);

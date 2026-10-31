@@ -133,6 +133,21 @@ photograph and in the render. Light differs, so compare RATIOS between
 materials (brick against plaster), and how much the colour varies inside one
 material.
 
+**6b. The ground between the buildings is part of the picture, and it is most of it.**
+Measure it per material CLASS, not per building: canopy in sun, canopy in shade,
+asphalt, sidewalk, lawn, far tree cover, sky at the horizon, and one white roof,
+one wall of each generic tone. For each class take a clean rectangle in the
+photograph and one in the render from the same camera (draw the rectangles on
+both pictures and look: a rectangle on a shadow edge, an air-conditioning unit or
+the wrong kerb gave 40 points of false difference twice), the median RGB of each,
+and the CIE Lab distance. Render at the hour the photograph's sun matches and say
+which. Write the table before and after; the mean per class is the score. On
+2026-10-11 the largest gaps were not buildings: the tree canopy (median RGB
+(120,144,110) against (57,65,38), a dark dense crown against pale stacked discs),
+sidewalks (cream (244,235,209) against concrete grey (123..170)) and the ground
+colour between crowns, while generic walls and white roofs were already within
+5 to 11 points. Fix by class, behind a switch (`?look=photo`).
+
 **7. Openings.** Is the glass dark or bright? What shows behind an arch or a
 shop front?
 
@@ -320,6 +335,9 @@ camera.
 
 Keep this list. One line per owner comment: date, the comment, the check it
 made or sharpened.
+
+- 2026-10-11, whole views must match the site photographs: check 6b (measure canopy, road, sidewalk, ground and sky by
+  class, because they cover more of a frame than all the rebuilt buildings).
 
 - 2026-10-08. "there are three rows of windows, each having a little bar thing
   at the top": checks 1 and 2 (count rows; what is fixed to each part), and the
