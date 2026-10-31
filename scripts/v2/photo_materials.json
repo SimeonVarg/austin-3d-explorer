@@ -4255,5 +4255,36 @@
    }
   },
   "why": "The Castilian's street level (2026-10-31): the stainless handrails of the leasing entrance steps fade by pixel coverage into the step concrete behind them (rule 15: steady in motion, not blurred)"
+ },
+ "jester-center": {
+  "wall_max_ny": 0.75,
+  "materials": {},
+  "fade": {
+   "rail_metal": {
+    "to": [
+     0.125,
+     0.095,
+     0.071
+    ],
+    "size_m": 0.06
+   },
+   "frame_white": {
+    "to": [
+     0.01,
+     0.01,
+     0.012
+    ],
+    "size_m": 0.12
+   },
+   "stone_surround": {
+    "to": [
+     0.125,
+     0.095,
+     0.071
+    ],
+    "size_m": 0.18
+   }
+  },
+  "why": "2026-10-31 first build: the terrace rails (0.06 m), storefront mullions (0.12 m) and the stone window surrounds (0.18 m) are thinner than a pixel from 250 m west; each fades by pixel coverage to what it stands on (the trimmed brick, the dark glass), never blurred (rule 15). Brick colour = brick_buff x the photo trim (0.82, 0.78, 0.75)."
  }
 }
