@@ -4085,5 +4085,26 @@
    },
    "_why": "rule 15: the screen's frame and the dark back panel go over to the screen's coverage-weighted mean (32 % blade) as they shrink below a pixel; the blades and bars themselves are a mipmapped texture on one quad (screen_grille), which averages to the same mean"
   }
+ },
+ "gregory-gym": {
+  "fade": {
+   "muntin_arch": {
+    "to": [
+     0.03,
+     0.029,
+     0.027
+    ],
+    "size_m": 0.045
+   },
+   "muntin_red": {
+    "to": [
+     0.1,
+     0.1,
+     0.1
+    ],
+    "size_m": 0.05
+   }
+  },
+  "fade_note": "the muntin grids of the three great arch windows (over dark glass and white curtains) and of the upper arched windows (over the sky-mirror panes) fade into the pane behind as the pixel grows past the bar (rule 15)"
  }
 }
