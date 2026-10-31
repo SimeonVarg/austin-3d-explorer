@@ -123,8 +123,13 @@ const GLASS_FP = { value: 1 };
 export function setGlassFootprintScale(s) { GLASS_FP.value = s; }
 // strength of the far fade, at run time (1 = on; 0 = exactly the glass without it)
 const GLASS_FAR = { value: GLASS_REAL.FAR_ON ? 1 : 0 };
-const GLASS_FAR_G = { value: GLASS_REAL.FAR_GAIN_METAL };
-export function setGlassFar(k, gainMetal) { GLASS_FAR.value = k; if (gainMetal != null && !Number.isNaN(gainMetal)) GLASS_FAR_G.value = gainMetal; }
+const GLASS_FAR_G = { value: new THREE.Vector2(GLASS_REAL.FAR_GAIN, GLASS_REAL.FAR_GAIN_METAL) };
+// measuring: k = strength; the two default-colour gains (clear, mirror) can be set too, for tuning in one page load
+export function setGlassFar(k, gainMetal, gainClear) {
+  GLASS_FAR.value = k;
+  if (gainMetal != null && !Number.isNaN(gainMetal)) GLASS_FAR_G.value.y = gainMetal;
+  if (gainClear != null && !Number.isNaN(gainClear)) GLASS_FAR_G.value.x = gainClear;
+}
 const K = GLASS_REAL;
 const DEG = Math.PI / 180;
 
@@ -148,7 +153,7 @@ varying vec3 vPaneSeed;
 uniform float v2GlassK;
 uniform float v2GlassFp;
 uniform float v2GlassFarK;
-uniform float v2GlassFarG;
+uniform vec2 v2GlassFarG;   // default far colour gains: x clear glass, y mirror glass
 uniform vec4 v2GlassFarC;   // rgb: the far colour from the tile (w = 1), or w = 0: the glass's own colour x FAR_GAIN
 float v2SpecVar = 1.0;
 float v2Far = 0.0;          // 0 = the glass, 1 = the far pane
@@ -187,8 +192,8 @@ vec4 v2paneRand2(float s) { return fract(sin(vec4(s * 29.771 + 5.31, s * 63.113 
     v2Far = (1.0 - smoothstep(${f(K.FAR_PX[0])}, ${f(K.FAR_PX[1])}, v2px)) * v2GlassFarK;
     if (v2Far > 0.0) {
       roughnessFactor = mix(roughnessFactor, ${f(K.FAR_ROUGH)}, v2Far);
-      if (v2GlassFarC.w > 0.5 || v2GlassFarG >= 0.0) {
-        vec3 v2fc = v2GlassFarC.w > 0.5 ? v2GlassFarC.rgb : diffuseColor.rgb * mix(${f(K.FAR_GAIN)}, v2GlassFarG, metalnessFactor);
+      if (v2GlassFarC.w > 0.5 || v2GlassFarG.y >= 0.0) {
+        vec3 v2fc = v2GlassFarC.w > 0.5 ? v2GlassFarC.rgb : diffuseColor.rgb * mix(v2GlassFarG.x, v2GlassFarG.y, metalnessFactor);
         diffuseColor = mix(diffuseColor, vec4(v2fc, 1.0), v2Far);
         metalnessFactor = mix(metalnessFactor, 0.0, v2Far);
         v2FarS = v2Far;
