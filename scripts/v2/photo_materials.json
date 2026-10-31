@@ -4387,5 +4387,26 @@
    }
   },
   "why": "2026-10-31: the NW plaza's pipe rails, the stair's picket rails (0.024-0.05 m) and the 0.3 m trench drain are thinner than a pixel from far away and flickered at 250 m over the lowered-only baseline; each fades to the mean of what it covers by pixel coverage (rule 15), never blurred"
+ },
+ "the-standard": {
+  "fade": {
+   "frame_light": {
+    "to": [
+     0.05,
+     0.045,
+     0.035
+    ],
+    "size_m": 0.1
+   },
+   "louvre_slat": {
+    "to": [
+     0.007,
+     0.009,
+     0.011
+    ],
+    "size_m": 0.045
+   }
+  },
+  "fade_why": "2026-10-31: the entrance bay's 0.1 m light storefront frames and the 0.045 m louvre slats fade by pixel coverage into the mean of frame and what is behind them (rule 15)."
  }
 }
