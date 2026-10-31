@@ -320,7 +320,7 @@
      0.0136,
      0.0119
     ],
-    "size_m": 0.15
+    "size_m": 0.06
    },
    "door_panel_line": {
     "to": [
@@ -352,15 +352,7 @@
      0.047,
      0.042
     ],
-    "size_m": 0.05
-   },
-   "tile_lip": {
-    "to": [
-     0.08,
-     0.075,
-     0.067
-    ],
-    "size_m": 0.3
+    "size_m": 0.045
    },
    "stack_metal": {
     "to": [
@@ -368,7 +360,7 @@
      0.5,
      0.55
     ],
-    "size_m": 0.4
+    "size_m": 0.15
    },
    "lunette_grille": {
     "to": [
@@ -376,7 +368,7 @@
      0.095,
      0.085
     ],
-    "size_m": 0.35
+    "size_m": 0.1
    },
    "canopy_post": {
     "to": [
@@ -384,41 +376,18 @@
      0.09,
      0.08
     ],
-    "size_m": 0.2
+    "size_m": 0.1
    },
-   "stone_band": {
+   "glass_window": {
     "to": [
-     0.113,
-     0.104,
-     0.087
+     0.07,
+     0.06,
+     0.05
     ],
-    "size_m": 0.2
-   },
-   "brick_soldier": {
-    "to": [
-     0.085,
-     0.066,
-     0.049
-    ],
-    "size_m": 0.25
-   },
-   "reveal_brick": {
-    "to": [
-     0.05,
-     0.047,
-     0.042
-    ],
-    "size_m": 0.22
-   },
-   "reveal_stone": {
-    "to": [
-     0.05,
-     0.047,
-     0.042
-    ],
-    "size_m": 0.22
+    "size_m": 1.2
    }
-  }
+  },
+  "fade_why": "2026-10-30: sizes are each part's real thickness, so a part fades only once it is under about 2 px (FADE_K). glass_window: a 1.2 m pane fades into the wall's far tone from 0.3 to 0.72 m per pixel (600 m and beyond), where the v2-shimmer excess map put the new flicker (dark panes about 2 px wide); nothing fades at 250 m or nearer."
  },
  "moffett-molecular-biology": {
   "wall_max_ny": 0.75,
