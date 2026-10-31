@@ -1393,11 +1393,11 @@
       "model": "opus",
       "kind": "street",
       "tile": "t_-2_9",
-      "blend_sha256": "90f33a44b84e1b33",
+      "blend_sha256": "45ef618b7f1b1aa1",
       "lod1": "mass",
       "placement": {
         "height_m": 156.9,
-        "area_ratio": 1.054,
+        "area_ratio": 1.063,
         "centre_off_m": 0.41,
         "flags": []
       }
@@ -2373,15 +2373,13 @@
       "model": "opus",
       "kind": "apartment",
       "tile": "t_-3_1",
-      "blend_sha256": "a35331d16583d117",
+      "blend_sha256": "835b92234a6ef93b",
       "lod1": "mass",
       "placement": {
-        "height_m": 21.1,
-        "area_ratio": 1.005,
-        "centre_off_m": 0.14,
-        "flags": [
-          "base at -3.3 m"
-        ]
+        "height_m": 23.9,
+        "area_ratio": 1.004,
+        "centre_off_m": 0.08,
+        "flags": []
       }
     },
     "powers-student-activity-center": {
@@ -2544,7 +2542,7 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_-1",
-      "blend_sha256": "4f4782642268acdd",
+      "blend_sha256": "ddc9c22d418f6dab",
       "lod1": "mass",
       "placement": {
         "height_m": 28.4,
@@ -4005,7 +4003,7 @@
       "model": "opus",
       "kind": "apartment",
       "tile": "t_-2_1",
-      "blend_sha256": "a896c1ce8679f799",
+      "blend_sha256": "11dd31a1136e0ff9",
       "lod1": "mass",
       "placement": {
         "height_m": 95.7,
@@ -6495,15 +6493,15 @@
       }
     },
     "t_-2_1": {
-      "hash": "cc485ee53f35df30",
+      "hash": "4c2c4eb63a692aa0",
       "near": {
-        "bytes": 537508,
-        "tris": 64451,
-        "draws": 5
+        "bytes": 547920,
+        "tris": 64885,
+        "draws": 6
       },
       "far": {
-        "bytes": 26736,
-        "tris": 2012,
+        "bytes": 28100,
+        "tris": 2094,
         "draws": 1
       }
     },
@@ -6612,15 +6610,15 @@
       }
     },
     "t_-2_9": {
-      "hash": "93f54175bfc1668e",
+      "hash": "22afc70b707ba072",
       "near": {
-        "bytes": 952620,
-        "tris": 101928,
+        "bytes": 961904,
+        "tris": 102516,
         "draws": 2
       },
       "far": {
-        "bytes": 27440,
-        "tris": 1842,
+        "bytes": 28016,
+        "tris": 1888,
         "draws": 1
       }
     },
@@ -6690,15 +6688,15 @@
       }
     },
     "t_-3_1": {
-      "hash": "ce0833e5f6ef26db",
+      "hash": "601719d7621521c9",
       "near": {
-        "bytes": 798768,
-        "tris": 73750,
+        "bytes": 858388,
+        "tris": 81540,
         "draws": 2
       },
       "far": {
-        "bytes": 24964,
-        "tris": 2075,
+        "bytes": 24332,
+        "tris": 2009,
         "draws": 1
       }
     },
@@ -6898,15 +6896,15 @@
       }
     },
     "t_0_-1": {
-      "hash": "87b36802511cdd06",
+      "hash": "3101234bd62bb783",
       "near": {
-        "bytes": 1803140,
-        "tris": 148955,
+        "bytes": 1860016,
+        "tris": 154680,
         "draws": 16
       },
       "far": {
-        "bytes": 38280,
-        "tris": 2943,
+        "bytes": 38520,
+        "tris": 2912,
         "draws": 1
       }
     },
