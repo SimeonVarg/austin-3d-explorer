@@ -656,8 +656,8 @@
         "west-campus-8d78646f"
       ],
       "bytes": [
-        2250548,
-        43788
+        2267944,
+        43600
       ]
     },
     {
@@ -1239,8 +1239,8 @@
         "university-teaching-center"
       ],
       "bytes": [
-        612844,
-        77232
+        704508,
+        79356
       ]
     },
     {
@@ -1359,8 +1359,8 @@
         "odonnell-building"
       ],
       "bytes": [
-        731364,
-        40896
+        1133728,
+        38968
       ]
     },
     {
@@ -1381,8 +1381,8 @@
         "physics-math-astronomy"
       ],
       "bytes": [
-        809592,
-        28372
+        873020,
+        28724
       ]
     },
     {
@@ -2693,7 +2693,7 @@
       "model": "opus",
       "x": 264.557,
       "z": -31.029,
-      "top": 31.5
+      "top": 32.1
     },
     "george-h-w-bush-state-office-building": {
       "tile": "t_0_2",
