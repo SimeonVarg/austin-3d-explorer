@@ -3810,7 +3810,7 @@
      0.2702,
      0.2167
     ],
-    "source": "owner photo IMG_0882, 2026-10-03 campus walk (the west entrance wall above the sign, rectified through its vanishing points, f 2980 px from 158 + 471 segments): 470 real bricks laid in running bond at the measured course (33 px in the rectified photo, modular 0.0677 m), light divided out",
+    "source": "owner photo, 2026-10-03 campus walk (the west entrance wall above the sign, rectified through its vanishing points, f 2980 px from 158 + 471 segments): 470 real bricks laid in running bond at the measured course (33 px in the rectified photo, modular 0.0677 m), light divided out",
     "mean_rgb": [
      0.1555,
      0.1053,
@@ -3829,7 +3829,7 @@
      0.1635,
      0.1287
     ],
-    "source": "owner photo IMG_0882, 2026-10-03 campus walk (the west entrance wall above the sign, rectified through its vanishing points, f 2980 px from 158 + 471 segments): 470 real bricks laid in running bond at the measured course (33 px in the rectified photo, modular 0.0677 m), light divided out; the weathered sill band of each window, darker by the build's photo ratio",
+    "source": "owner photo, 2026-10-03 campus walk (the west entrance wall above the sign, rectified through its vanishing points, f 2980 px from 158 + 471 segments): 470 real bricks laid in running bond at the measured course (33 px in the rectified photo, modular 0.0677 m), light divided out; the weathered sill band of each window, darker by the build's photo ratio",
     "mean_rgb": [
      0.0946,
      0.0637,
@@ -3847,6 +3847,6 @@
     "size_m": 0.045
    }
   },
-  "fade_note": "rule 15: the 45 mm steel handrails and posts of the west entrance steps (four rails, owner IMG_0883) fade into the concrete behind them by pixel size (v2/tiles.js coverage fade): steady, not blurred"
+  "fade_note": "rule 15: the 45 mm steel handrails and posts of the west entrance steps (four rails, from the owner photo) fade into the concrete behind them by pixel size (v2/tiles.js coverage fade): steady, not blurred"
  }
 }
