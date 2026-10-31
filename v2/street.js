@@ -1,6 +1,6 @@
 // The v2 street furniture, in 3D, from open data baked by scripts/v2/street_bake.py:
 //   v2/data/street/city.json  (City of Austin)  crosswalk bars, stop lines, yield teeth, curbs, curb-ramp pads, signal poles
-//   v2/data/street/osm.json   (OpenStreetMap, ODbL)  street lamps
+//   v2/data/street/safe_osm.json (OpenStreetMap, ODbL)  bus stops and benches (street lamps: v2/lamps.js)
 // Everything is instanced or merged into a handful of draws. Rule 15: these are thin things (a 0.6 m bar, a 0.13 m pole, a 0.15 m curb),
 // so each fades out with distance (flat things by alpha, upright things by shrinking to their foot) before it can get thinner than a
 // pixel and flicker; beyond that the aerial photograph shows the same paint, mipmapped.
@@ -128,19 +128,7 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
     // (protected bike lanes: no posts. The City's bike-facility lines follow the street's centreline, not the lane, so posts drawn
     //  from them stood in the middle of Congress Avenue; 2026-10-18.)
 
-    // ── street lamps (OpenStreetMap) ──
-    if (osm && osm.lamps) {
-      const L = unflat(osm.lamps, 3).map((r,i) => [...r, osm.lamp_angles[i]]);
-      const cobra = L.filter((l) => l[2] === 1), lantern = L.filter((l) => l[2] === 0);
-      // The bake points the arm from its validated sidewalk foot toward the road.
-      const cr = cobra.map(([x, z, , a]) => [x, z, a, 1, 1, 1]);
-      instanced('lamp masts', cyl(0.09, 0.13, S.LAMP_MAST_M + 0.3, -0.3), uprightMaterial(S.LAMP_METAL), cr, null, { shadow: true });
-      instanced('lamp arms', box(1.8, 0.1, 0.1, 0.9, S.LAMP_MAST_M - 0.1, 0), uprightMaterial(S.LAMP_METAL), cr);
-      instanced('lamp heads', box(0.7, 0.16, 0.32, 1.85, S.LAMP_MAST_M - 0.18, 0), uprightMaterial(S.LAMP_HEAD, 0.4, 0.3), cr);
-      const lr = lantern.map(([x, z]) => [x, z, 0, 1, 1, 1]);
-      instanced('lantern posts', cyl(0.06, 0.09, S.LANTERN_POST_M + 0.3, -0.3), uprightMaterial(S.LAMP_METAL), lr, null, { shadow: true });
-      instanced('lantern heads', box(0.34, 0.55, 0.34, 0, S.LANTERN_POST_M + 0.27, 0), uprightMaterial(S.LANTERN_GLASS, 0.3, 0.0), lr);
-    }
+    // (street lamps: v2/lamps.js draws them, from v2/data/lamps.json, with models built in Blender; 2026-10-31)
     // ── bus stops and benches (OpenStreetMap): a shelter (roof, back and side glass on posts), a bench, a stop sign post ──
     if (osm && osm.stops) {
       const st = unflat(osm.stops, 5), bn = unflat(osm.benches || [], 3);
@@ -157,7 +145,7 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
       instanced('stop poles', cyl(0.04, 0.04, 2.9), uprightMaterial(S.SIGNAL_METAL), st.map(([x, z, a]) => [x, z, a, 1, 1, 1]));
       // The near batch draws the supported BUS face with its legend; a missing atlas leaves no blank flag.
     }
-    Object.assign(stats, { ready: true, ...(city.counts || {}), signal_poles: sig.length, lamps: osm && osm.lamps ? osm.lamps.length / 3 : 0, draws: group.children.length });
+    Object.assign(stats, { ready: true, ...(city.counts || {}), signal_poles: sig.length, draws: group.children.length });
     redraw();
   }
   build().catch((e) => { stats.error = e.message; console.warn('[v2 street]', e.message); });
