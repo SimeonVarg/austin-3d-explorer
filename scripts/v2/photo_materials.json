@@ -661,13 +661,60 @@
      0.0816,
      0.0546
     ]
+   },
+   "hedge_green": {
+    "albedo": "scripts/v2/materials/mccombs-school-of-business/hedge_albedo.jpg",
+    "repeat_m": [
+     1.5,
+     1.5
+    ],
+    "factor": [
+     0.045,
+     0.06,
+     0.02
+    ],
+    "source": "synthetic leaves (random overlapping ellipses, tileable), colours and shares from a k-means palette of a lit clipped hedge in the owner photo of the north glass hall; no photo pixels copied; mean = the build's hedge colour",
+    "mean_rgb": [
+     0.018,
+     0.024,
+     0.008
+    ]
+   },
+   "shrub_flowering": {
+    "albedo": "scripts/v2/materials/mccombs-school-of-business/shrub_albedo.jpg",
+    "repeat_m": [
+     3.0,
+     3.0
+    ],
+    "factor": [
+     0.075,
+     0.08,
+     0.03
+    ],
+    "source": "synthetic leaves and flowers the same way, palette from the flowering bed behind the granite planter in the owner photo of the east entrance (green with orange flowers); no photo pixels copied",
+    "mean_rgb": [
+     0.03,
+     0.032,
+     0.012
+    ]
+   }
+  },
+  "fade": {
+   "rail_steel": {
+    "to": [
+     0.06,
+     0.055,
+     0.05
+    ],
+    "size_m": 0.045,
+    "why": "the east entrance handrails (0.045 m bars) fade by pixel coverage to the steps behind them, as on Welch (rule 15)"
    }
   }
  },
  "norman-hackerman-building": {
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "one number to overrule: the build's wall_brick base colour [0.0684, 0.048, 0.0372] (light-rig scale), taken by its builder from the owner's photos; the texture carries only the brick-to-brick tone mix and the joints, its mean is scaled back to that colour"
+   "why": "one number to overrule: the build's wall_brick base colour [0.0684, 0.048, 0.0372] (light-rig scale), taken by its builder from the owner's photos; the texture carries only the brick-to-brick tone mix and the joints, its mean is scaled back to that colour; 2026-10-31: raised x[1.27,1.27,1.16] to [0.0869, 0.061, 0.0432] so the brick-to-limestone balance and hue match photo-1 under the app's matched sky (the app drew it darker and pinker than the photo)"
   },
   "filter": {
    "anisotropy": 8,
@@ -683,18 +730,45 @@
      1.0832
     ],
     "factor": [
-     0.1228,
-     0.1228,
-     0.1228
+     0.156,
+     0.156,
+     0.1424
     ],
     "source": "owner photo 1 of the tall block's south face, overcast, rectified through its proven camera at 250 px/m: 329 real long-format bricks from the open brick piers and the upper open wall (never near glass), light divided out, laid in running bond at the modular course 0.0677 m (FFT 0.0689 m on the photo, 72 courses per 4.88 m storey in the build), brick + joint 5.5 courses",
     "mean_rgb": [
-     0.0684,
-     0.048,
-     0.0372
+     0.0869,
+     0.061,
+     0.0432
     ]
    }
-  }
+  },
+  "fade": {
+   "rail_steel": {
+    "to": [
+     0.07,
+     0.068,
+     0.064
+    ],
+    "size_m": 0.05
+   },
+   "door_frame": {
+    "to": [
+     0.06,
+     0.066,
+     0.08
+    ],
+    "size_m": 0.09
+   },
+   "mullion_dark": {
+    "to": [
+     0.035,
+     0.0306,
+     0.0307
+    ],
+    "size_m": 0.1
+   }
+  },
+  "fade_note": "2026-10-31: the south entrance's handrails, door stiles and curtain-wall mullions fade by their size on screen (rule 15)"
  },
  "kxan-building": {
   "materials": {
@@ -3849,6 +3923,55 @@
    "anisotropy": 8,
    "lod_bias": -0.5,
    "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+  }
+ },
+ "2400-nueces": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "one number to overrule: the stone block keeps the build's limestone level x 1.07 (the photo's stone/silver ratio over the build's); the texture carries only the blocks' own tones and joints"
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "as PMA and Welch: keeps the coursed stone from reading softer than the truth at 250 m (rule 15: blur is not a fix)"
+  },
+  "materials": {
+   "stone_limestone": {
+    "albedo": "scripts/v2/materials/2400-nueces/stone_albedo.jpg",
+    "repeat_m": [
+     3.8917,
+     4.5
+    ],
+    "factor": [
+     0.4576,
+     0.3254,
+     0.1949
+    ],
+    "source": "owner photo, 2026-09-29 West Campus walk (the stone block's south face above its window, rectified through the solved camera): the real coursed blocks and joints, light divided out",
+    "mean_rgb": [
+     0.2288,
+     0.1627,
+     0.0974
+    ]
+   },
+   "stone_planter": {
+    "albedo": "scripts/v2/materials/2400-nueces/stone_albedo.jpg",
+    "repeat_m": [
+     3.8917,
+     4.5
+    ],
+    "factor": [
+     0.318,
+     0.274,
+     0.2
+    ],
+    "source": "owner photo, 2026-09-29 West Campus walk (the stone block's south face above its window, rectified through the solved camera): the real coursed blocks and joints, light divided out; the planter wall is the same limestone, its level from the planter in the same photo",
+    "mean_rgb": [
+     0.159,
+     0.137,
+     0.1
+    ]
+   }
   }
  },
  "pcl-library": {

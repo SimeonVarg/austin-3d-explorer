@@ -124,12 +124,12 @@
       "model": "opus",
       "kind": "apartment",
       "tile": "t_-2_-1",
-      "blend_sha256": "35968fcddfe5b507",
+      "blend_sha256": "d6e33c5e06adffb8",
       "lod1": "mass",
       "placement": {
         "height_m": 51.4,
-        "area_ratio": 1.008,
-        "centre_off_m": 0.34,
+        "area_ratio": 1.015,
+        "centre_off_m": 0.71,
         "flags": []
       }
     },
@@ -1981,15 +1981,15 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_0",
-      "blend_sha256": "bc911b8cff022bb3",
+      "blend_sha256": "cafa92b2860dabbc",
       "lod1": "mass",
       "placement": {
         "height_m": 27.6,
-        "area_ratio": 1.13,
-        "centre_off_m": 4.86,
+        "area_ratio": 1.367,
+        "centre_off_m": 8.54,
         "flags": [
-          "centre 4.9 m off",
-          "area x1.13"
+          "centre 8.5 m off",
+          "area x1.37"
         ]
       }
     },
@@ -2150,7 +2150,7 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_-1",
-      "blend_sha256": "a289cf0c480c4fd1",
+      "blend_sha256": "cfa233c87fd13a12",
       "lod1": "mass",
       "placement": {
         "height_m": 32.5,
@@ -6413,15 +6413,15 @@
       }
     },
     "t_-2_-1": {
-      "hash": "ed550053b1859e63",
+      "hash": "75cd1640b6970ea9",
       "near": {
-        "bytes": 1449044,
-        "tris": 165571,
-        "draws": 2
+        "bytes": 1541456,
+        "tris": 168425,
+        "draws": 4
       },
       "far": {
-        "bytes": 36220,
-        "tris": 3095,
+        "bytes": 35556,
+        "tris": 3025,
         "draws": 1
       }
     },
@@ -6894,15 +6894,15 @@
       }
     },
     "t_0_-1": {
-      "hash": "889b88aa56b34081",
+      "hash": "22f72ae3e926d085",
       "near": {
-        "bytes": 1560284,
-        "tris": 127690,
-        "draws": 13
+        "bytes": 1574696,
+        "tris": 128318,
+        "draws": 16
       },
       "far": {
-        "bytes": 38400,
-        "tris": 2912,
+        "bytes": 38412,
+        "tris": 2913,
         "draws": 1
       }
     },
@@ -6959,15 +6959,15 @@
       }
     },
     "t_0_0": {
-      "hash": "27a686570f109913",
+      "hash": "ce1c569d266888c7",
       "near": {
-        "bytes": 1322328,
-        "tris": 116222,
-        "draws": 3
+        "bytes": 1616740,
+        "tris": 128107,
+        "draws": 6
       },
       "far": {
-        "bytes": 30092,
-        "tris": 2493,
+        "bytes": 33992,
+        "tris": 2713,
         "draws": 1
       }
     },
