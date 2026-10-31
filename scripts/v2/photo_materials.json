@@ -598,6 +598,17 @@
      0.0546
     ]
    }
+  },
+  "fade": {
+   "rail_steel": {
+    "to": [
+     0.06,
+     0.055,
+     0.05
+    ],
+    "size_m": 0.045,
+    "why": "the east entrance handrails (0.045 m bars) fade by pixel coverage to the steps behind them, as on Welch (rule 15)"
+   }
   }
  },
  "norman-hackerman-building": {
