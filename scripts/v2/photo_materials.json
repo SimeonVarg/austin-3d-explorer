@@ -4106,5 +4106,74 @@
    }
   },
   "fade_why": "2026-10-31: the storefront's 0.14 m mullions and the entrance screen's 0.06 m slats fade by pixel coverage into the lit room behind them. (Podium ribs were tried and dropped: they failed the south 250 m shimmer gate.)"
+ },
+ "pcl-library": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "photo": "the east plaza stair and the north entrance photos of the 2026-10-03 walk",
+   "why": "each texture's mean is light_rig.base_colour of the same rectified patch (overcast, exposure 8.64 / 8.08 from the NE grid concrete at the build's concrete level), so the far colour equals the near mean"
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.35,
+   "why": "brick courses on the stair walls must stay sharp at grazing angles (rule 15: blur is not a fix); -0.15 read 0.02 softer than main at 120 m east, so -0.35 (shimmer had headroom: -0.16 against main -0.11)"
+  },
+  "materials": {
+   "wall_brick_buff": {
+    "albedo": "scripts/v2/materials/pcl-library/buff_albedo.jpg",
+    "repeat_m": [
+     1.62,
+     0.952
+    ],
+    "factor": [
+     0.1929,
+     0.1929,
+     0.1929
+    ],
+    "source": "owner photo of the east plaza stair (2026-10-03 campus walk): the north cheek wall above the rail, rectified through the solved camera (300 px/m), de-lit per channel, cross-faded into a 1.62 x 0.952 m tile (8 bricks x 14 courses as measured on the rectified wall)",
+    "mean_rgb": [
+     0.1129,
+     0.0841,
+     0.0634
+    ]
+   },
+   "brick_stair": {
+    "albedo": "scripts/v2/materials/pcl-library/riser_albedo.jpg",
+    "repeat_m": [
+     1.2,
+     0.1667
+    ],
+    "factor": [
+     0.0784,
+     0.0784,
+     0.0784
+    ],
+    "source": "same photo: the second riser of the flight, rectified (300 px/m), one row of soldier bricks; v repeats every riser (3/18 m, the build's riser), u 1.2 m",
+    "mean_rgb": [
+     0.0387,
+     0.0333,
+     0.0339
+    ]
+   },
+   "paving_brick": {
+    "albedo": "scripts/v2/materials/pcl-library/pave_albedo.jpg",
+    "repeat_m": [
+     1.6,
+     1.6
+    ],
+    "factor": [
+     0.0857,
+     0.0857,
+     0.0857
+    ],
+    "source": "owner photo on the plaza by the north entrance: the basket-weave pavers just in front of the camera, rectified on the plaza plane (250 px/m), 1.6 m tile",
+    "mean_rgb": [
+     0.0446,
+     0.036,
+     0.0351
+    ]
+   }
+  },
+  "concrete_note": "2026-10-31: a board-formed concrete texture from the entrance photo was tried and dropped: at 120 m east it read 0.02 softer than main (the soft gate, rule 15), and its streaks only read up close. The concrete stays the build's gated plain colour."
  }
 }
