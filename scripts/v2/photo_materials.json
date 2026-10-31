@@ -3851,6 +3851,55 @@
    "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
   }
  },
+ "2400-nueces": {
+  "wall_max_ny": 0.75,
+  "anchor": {
+   "why": "one number to overrule: the stone block keeps the build's limestone level x 1.07 (the photo's stone/silver ratio over the build's); the texture carries only the blocks' own tones and joints"
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "as PMA and Welch: keeps the coursed stone from reading softer than the truth at 250 m (rule 15: blur is not a fix)"
+  },
+  "materials": {
+   "stone_limestone": {
+    "albedo": "scripts/v2/materials/2400-nueces/stone_albedo.jpg",
+    "repeat_m": [
+     3.8917,
+     4.5
+    ],
+    "factor": [
+     0.4576,
+     0.3254,
+     0.1949
+    ],
+    "source": "owner photo, 2026-09-29 West Campus walk (the stone block's south face above its window, rectified through the solved camera): the real coursed blocks and joints, light divided out",
+    "mean_rgb": [
+     0.2288,
+     0.1627,
+     0.0974
+    ]
+   },
+   "stone_planter": {
+    "albedo": "scripts/v2/materials/2400-nueces/stone_albedo.jpg",
+    "repeat_m": [
+     3.8917,
+     4.5
+    ],
+    "factor": [
+     0.318,
+     0.274,
+     0.2
+    ],
+    "source": "owner photo, 2026-09-29 West Campus walk (the stone block's south face above its window, rectified through the solved camera): the real coursed blocks and joints, light divided out; the planter wall is the same limestone, its level from the planter in the same photo",
+    "mean_rgb": [
+     0.159,
+     0.137,
+     0.1
+    ]
+   }
+  }
+ },
  "engineering-education-and-research-center": {
   "wall_max_ny": 0.75,
   "fade": {
