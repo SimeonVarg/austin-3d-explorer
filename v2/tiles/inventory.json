@@ -1499,12 +1499,12 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_-1_-1",
-      "blend_sha256": "c73660a1725ec347",
+      "blend_sha256": "261adf4c0a2d85fc",
       "lod1": "mass",
       "placement": {
         "height_m": 17.2,
-        "area_ratio": 1.064,
-        "centre_off_m": 0.06,
+        "area_ratio": 1.063,
+        "centre_off_m": 0.05,
         "flags": []
       }
     },
@@ -6244,15 +6244,15 @@
   },
   "tiles": {
     "t_-1_-1": {
-      "hash": "04227e21444cd26b",
+      "hash": "33bd91e9be3e041f",
       "near": {
-        "bytes": 2625484,
-        "tris": 199438,
-        "draws": 8
+        "bytes": 2714168,
+        "tris": 209992,
+        "draws": 14
       },
       "far": {
-        "bytes": 44728,
-        "tris": 3679,
+        "bytes": 44108,
+        "tris": 3627,
         "draws": 1
       }
     },
@@ -6493,7 +6493,7 @@
     "t_-2_1": {
       "hash": "cc485ee53f35df30",
       "near": {
-        "bytes": 537508,
+        "bytes": 537560,
         "tris": 64451,
         "draws": 5
       },
@@ -6623,7 +6623,7 @@
     "t_-3_-1": {
       "hash": "2ca7fb289251a251",
       "near": {
-        "bytes": 2267944,
+        "bytes": 2267976,
         "tris": 243182,
         "draws": 4
       },
@@ -6896,7 +6896,7 @@
     "t_0_-1": {
       "hash": "22f72ae3e926d085",
       "near": {
-        "bytes": 1574696,
+        "bytes": 1574340,
         "tris": 128318,
         "draws": 16
       },
@@ -7052,7 +7052,7 @@
     "t_1_-1": {
       "hash": "1fcd8b8bf43b5e53",
       "near": {
-        "bytes": 1133728,
+        "bytes": 1133764,
         "tris": 83773,
         "draws": 8
       },
@@ -7065,7 +7065,7 @@
     "t_1_-2": {
       "hash": "23a07c0049f0bdf8",
       "near": {
-        "bytes": 873020,
+        "bytes": 872936,
         "tris": 78039,
         "draws": 11
       },
