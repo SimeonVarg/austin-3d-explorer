@@ -56,11 +56,8 @@ export const GLASS_REAL = {
   BOW_PX: [10, 24],        // the bow varies inside a pane, so it goes first
   MAX_PANE_M: 12,          // islands bigger than this (a whole glazed wall in one piece) get no per-pane look
   FAR_ON: typeof location === 'undefined' || new URLSearchParams(location.search).get('glassfar') !== '0',
-  // the far fade on glass WITHOUT a v2_glass_far from its tile (the default colour below). Off (2026-10-30): with only the glass's own
-  // colour to fade to it measured worse on main's glass at the gate (West Campus grids 900 m 0.21 -> 0.28, Health Transformation
-  // 1100 m -1.06 -> -1.02, and against a truth that fades too, worse on all three), because a pane's own colour can sit further from
-  // its wall than the mirror did. The fade needs the wall's colour, so it runs where a tile build gives one. ?glassfar=1 = on everywhere.
-  FAR_DEFAULT: typeof location !== 'undefined' && new URLSearchParams(location.search).get('glassfar') === '1',
+  // the far fade on glass WITHOUT a v2_glass_far from its tile (it then fades to the default colour below). On by default.
+  FAR_DEFAULT: true,
   FAR_PX: [1.5, 3],        // far fade by the pane's smaller side on screen, pixels: [fully matte below, glass as before above]
   FAR_ROUGH: 1.0,          // roughness of the far (matte) pane
   FAR_GAIN: 1.0,           // default far colour (no v2_glass_far from the tile): the glass's own base colour x this, for clear (non-metal) glass
@@ -173,7 +170,7 @@ uniform vec4 v2GlassFarO;   // default far colour gains: x clear glass, y mirror
 uniform vec4 v2GlassFarC;   // rgb: the far colour from the tile (w = 1), or w = 0: the glass's own colour x FAR_GAIN
 float v2SpecVar = 1.0;
 float v2Far = 0.0;          // 0 = the glass, 1 = the far pane
-float v2FarS = 0.0;         // how much of the specular goes (v2Far for a matte far pane, 0 when the pane only roughens)
+float v2FarS = 0.0;         // how much of the specular (and transmission) goes: as v2Far
 // four numbers in [0, 1) from the pane's seed (per pane, constant: nothing here changes from frame to frame)
 vec4 v2paneRand(float s) { return fract(sin(vec4(s * 91.317 + 0.13, s * 47.731 + 1.37, s * 13.137 + 2.71, s * 71.917 + 4.13)) * 43758.5453); }
 vec4 v2paneRand2(float s) { return fract(sin(vec4(s * 29.771 + 5.31, s * 63.113 + 6.47, s * 37.519 + 7.93, s * 83.371 + 8.17)) * 24634.6345); }`)
