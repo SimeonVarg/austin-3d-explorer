@@ -15,7 +15,8 @@
  *       alias = mean |native - truth|     the still-frame error (jaggies + moire);
  *       soft  = mean |blur(truth) - truth| - mean |blur(native) - native|  > 0 when native is SOFTER than the truth (a blur "fix").
  *   - --refs compares app versions interleaved, as in v2-frame.mjs (each ref's v2/ extracted beside v2/).
- *   - --flip "glassFar=0,1" (rule 13: load once, test many): in ONE page load, per view, calls window.__v2.glassFar(v) for each value,
+ *   - --flip "glassFar=0,1" (rule 13: load once, test many): in ONE page load, per view, calls window.__v2.glassFar(v) for each value
+ *     (a value "1:0.4" passes two arguments),
  *     twice interleaved (0,1,0,1), re-placing the camera before each pass. Extra columns: the whole canvas's mean rgb (8-bit) in the
  *     first native frame, and its difference from the first value's frame (mean |luma diff| over the whole canvas, share of pixels > 2).
  * Instrument: viewport 800x500 at device scale 2 (canvas 1600x1000, the owner's Mac density); tiles settled and their fades
@@ -32,7 +33,7 @@ import { launch, BASE, HW_ARGS } from './chrome.mjs';
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i < 0 ? d : (process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : true); };
 const FRAMES = +arg('--frames', 24), SS = +arg('--ss', 3), OUT = arg('--out', '');
 const QS = String(arg('--q', '')).split('|');
-const FLIP = arg('--flip', '') ? (([fn, vs]) => ({ fn, vals: vs.split(',').map(Number) }))(String(arg('--flip', '')).split('=')) : null;
+const FLIP = arg('--flip', '') ? (([fn, vs]) => ({ fn, vals: vs.split(',') }))(String(arg('--flip', '')).split('=')) : null;
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 function refFolder(ref) {
   if (ref === '.') return 'v2';
@@ -91,7 +92,7 @@ for (const variant of VARIANTS) {
     const passes = FLIP ? [0, 1].flatMap(() => FLIP.vals) : [null];
     for (const [pi, fv] of passes.entries()) {
     if (FLIP) {
-      await page.evaluate(([fn, val, x, z, d, p, a]) => { window.__v2[fn](val); window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }); window.__v2.redraw(); }, [FLIP.fn, fv, b.x, b.z, v.distance, v.polar, v.azimuth]);
+      await page.evaluate(([fn, val, x, z, d, p, a]) => { window.__v2[fn](...String(val).split(':').map(Number)); window.__v2.placeCamera({ target: [x, 0, z], distance: d, polarDeg: p, azimuthDeg: a }); window.__v2.redraw(); }, [FLIP.fn, fv, b.x, b.z, v.distance, v.polar, v.azimuth]);
       await page.waitForTimeout(400);
     }
     const r = await page.evaluate(({ frames, SS, slug, top, want, flipKey, flipRef }) => {

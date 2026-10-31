@@ -58,7 +58,8 @@ export const GLASS_REAL = {
   FAR_ON: typeof location === 'undefined' || new URLSearchParams(location.search).get('glassfar') !== '0',
   FAR_PX: [1.5, 3],        // far fade by the pane's smaller side on screen, pixels: [fully matte below, glass as before above]
   FAR_ROUGH: 1.0,          // roughness of the far (matte) pane
-  FAR_GAIN: 1.0,           // default far colour = the glass's own base colour x this (when the tile gives no v2_glass_far)
+  FAR_GAIN: 1.0,           // default far colour (no v2_glass_far from the tile): the glass's own base colour x this, for clear (non-metal) glass
+  FAR_GAIN_METAL: 0.4,     // ... and x this for mirror glass (metalness 1): its look is the sky it mirrors, not its base colour lit
 };
 
 // the pane look of a pane middle: one seed in [0, 1) from its position (rounded to 5 cm, so tiny export differences cannot move it)
@@ -122,7 +123,8 @@ const GLASS_FP = { value: 1 };
 export function setGlassFootprintScale(s) { GLASS_FP.value = s; }
 // strength of the far fade, at run time (1 = on; 0 = exactly the glass without it)
 const GLASS_FAR = { value: GLASS_REAL.FAR_ON ? 1 : 0 };
-export function setGlassFar(k) { GLASS_FAR.value = k; }
+const GLASS_FAR_G = { value: GLASS_REAL.FAR_GAIN_METAL };
+export function setGlassFar(k, gainMetal) { GLASS_FAR.value = k; if (gainMetal != null && !Number.isNaN(gainMetal)) GLASS_FAR_G.value = gainMetal; }
 const K = GLASS_REAL;
 const DEG = Math.PI / 180;
 
@@ -133,7 +135,7 @@ export function realGlass(material) {
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
-    sh.uniforms.v2GlassK = GLASS_K; sh.uniforms.v2GlassFp = GLASS_FP; sh.uniforms.v2GlassFarK = GLASS_FAR;
+    sh.uniforms.v2GlassK = GLASS_K; sh.uniforms.v2GlassFp = GLASS_FP; sh.uniforms.v2GlassFarK = GLASS_FAR; sh.uniforms.v2GlassFarG = GLASS_FAR_G;
     const fc = material.userData.v2_glass_far;
     sh.uniforms.v2GlassFarC = { value: new THREE.Vector4(...(Array.isArray(fc) && fc.length >= 3 ? [fc[0], fc[1], fc[2], 1] : [0, 0, 0, 0])) };
     sh.vertexShader = sh.vertexShader
@@ -146,9 +148,11 @@ varying vec3 vPaneSeed;
 uniform float v2GlassK;
 uniform float v2GlassFp;
 uniform float v2GlassFarK;
+uniform float v2GlassFarG;
 uniform vec4 v2GlassFarC;   // rgb: the far colour from the tile (w = 1), or w = 0: the glass's own colour x FAR_GAIN
 float v2SpecVar = 1.0;
-float v2Far = 0.0;          // 0 = the glass, 1 = the far matte pane
+float v2Far = 0.0;          // 0 = the glass, 1 = the far pane
+float v2FarS = 0.0;         // how much of the specular goes (v2Far for a matte far pane, 0 when the pane only roughens)
 // four numbers in [0, 1) from the pane's seed (per pane, constant: nothing here changes from frame to frame)
 vec4 v2paneRand(float s) { return fract(sin(vec4(s * 91.317 + 0.13, s * 47.731 + 1.37, s * 13.137 + 2.71, s * 71.917 + 4.13)) * 43758.5453); }
 vec4 v2paneRand2(float s) { return fract(sin(vec4(s * 29.771 + 5.31, s * 63.113 + 6.47, s * 37.519 + 7.93, s * 83.371 + 8.17)) * 24634.6345); }`)
@@ -182,25 +186,28 @@ vec4 v2paneRand2(float s) { return fract(sin(vec4(s * 29.771 + 5.31, s * 63.113 
     // far fade: a pane only a pixel or two wide becomes a plain matte surface (no contrast left to alias, no mirror to sparkle)
     v2Far = (1.0 - smoothstep(${f(K.FAR_PX[0])}, ${f(K.FAR_PX[1])}, v2px)) * v2GlassFarK;
     if (v2Far > 0.0) {
-      vec3 v2fc = v2GlassFarC.w > 0.5 ? v2GlassFarC.rgb : diffuseColor.rgb * ${f(K.FAR_GAIN)};
-      diffuseColor = mix(diffuseColor, vec4(v2fc, 1.0), v2Far);
       roughnessFactor = mix(roughnessFactor, ${f(K.FAR_ROUGH)}, v2Far);
-      metalnessFactor = mix(metalnessFactor, 0.0, v2Far);
+      if (v2GlassFarC.w > 0.5 || v2GlassFarG >= 0.0) {
+        vec3 v2fc = v2GlassFarC.w > 0.5 ? v2GlassFarC.rgb : diffuseColor.rgb * mix(${f(K.FAR_GAIN)}, v2GlassFarG, metalnessFactor);
+        diffuseColor = mix(diffuseColor, vec4(v2fc, 1.0), v2Far);
+        metalnessFactor = mix(metalnessFactor, 0.0, v2Far);
+        v2FarS = v2Far;
+      }
     }
   }`)
       .replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
-  material.specularColor *= 1.0 - v2Far; material.specularColorBlended *= 1.0 - v2Far; material.specularF90 *= 1.0 - v2Far;
+  material.specularColor *= 1.0 - v2FarS; material.specularColorBlended *= 1.0 - v2FarS; material.specularF90 *= 1.0 - v2FarS;
 #ifdef USE_CLEARCOAT
-  material.clearcoat *= 1.0 - v2Far;
+  material.clearcoat *= 1.0 - v2FarS;
 #endif
 #ifdef USE_SHEEN
-  material.sheenColor *= 1.0 - v2Far;
+  material.sheenColor *= 1.0 - v2FarS;
 #endif
 #ifdef USE_IRIDESCENCE
-  material.iridescence *= 1.0 - v2Far;
+  material.iridescence *= 1.0 - v2FarS;
 #endif`)
-      .replace('#include <transmission_fragment>', THREE.ShaderChunk.transmission_fragment.replace('material.transmission = transmission;', 'material.transmission = transmission * (1.0 - v2Far);'))
-      .replace('#include <aomap_fragment>', `reflectedLight.indirectSpecular *= v2SpecVar * (1.0 - v2Far); reflectedLight.directSpecular *= 1.0 - v2Far;\n#include <aomap_fragment>`);
+      .replace('#include <transmission_fragment>', THREE.ShaderChunk.transmission_fragment.replace('material.transmission = transmission;', 'material.transmission = transmission * (1.0 - v2FarS);'))
+      .replace('#include <aomap_fragment>', `reflectedLight.indirectSpecular *= v2SpecVar * (1.0 - v2FarS); reflectedLight.directSpecular *= 1.0 - v2FarS;\n#include <aomap_fragment>`);
   };
   const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
   material.customProgramCacheKey = () => key() + '|v2-glass-real';

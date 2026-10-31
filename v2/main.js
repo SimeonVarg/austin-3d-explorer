@@ -1520,7 +1520,7 @@ window.__v2 = {
     const u = dome.material.uniforms ? dome.material.uniforms.scale.value : new THREE.Vector3(), was = u.clone();   // (?skykey: no uniforms)
     if (LOOK.PROBE_MIRROR_SKY) u.set(...mirrorScale);
     const ms = exactProbe(renderer, scene); u.copy(was); dirty = true; return ms;
-  }, groundLit: () => ({ on: GROUND_LIT, bakes: groundLit.bakes, size: groundLit.rt ? groundLit.rt.width : 0 }), glass: () => ({ ...glassState }), clay: () => ({ ...clayState }), glassReal: (k, fp) => { setGlassReal(k); if (fp) setGlassFootprintScale(fp); dirty = true; }, glassFar: (k) => { setGlassFar(k); dirty = true; }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs, probeYs: exactState.probeYs }),
+  }, groundLit: () => ({ on: GROUND_LIT, bakes: groundLit.bakes, size: groundLit.rt ? groundLit.rt.width : 0 }), glass: () => ({ ...glassState }), clay: () => ({ ...clayState }), glassReal: (k, fp) => { setGlassReal(k); if (fp) setGlassFootprintScale(fp); dirty = true; }, glassFar: (k, g) => { setGlassFar(k, g); dirty = true; }, exact: () => ({ tiles: exactState.tiles.length, glass: exactState.tiles.map((t) => t.glass.length), hidden: exactState.hidden, probeMs: exactState.probeMs, probeYs: exactState.probeYs }),
   timings: () => ({ ...timings }),
   // the moment (sky.js): its numbers, and a change of its haze / clouds / exposure inside the page (the sun's direction stays)
   moment: () => (momentNow ? { name: MOMENT.name || null, az: momentNow.az, el: momentNow.el, haze: momentNow.haze, cover: momentNow.C.COVER,
