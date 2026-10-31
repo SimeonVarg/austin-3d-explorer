@@ -1499,12 +1499,12 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_-1_-1",
-      "blend_sha256": "c73660a1725ec347",
+      "blend_sha256": "261adf4c0a2d85fc",
       "lod1": "mass",
       "placement": {
         "height_m": 17.2,
-        "area_ratio": 1.064,
-        "centre_off_m": 0.06,
+        "area_ratio": 1.063,
+        "centre_off_m": 0.05,
         "flags": []
       }
     },
@@ -6247,15 +6247,15 @@
   },
   "tiles": {
     "t_-1_-1": {
-      "hash": "04227e21444cd26b",
+      "hash": "33bd91e9be3e041f",
       "near": {
-        "bytes": 2625484,
-        "tris": 199438,
-        "draws": 8
+        "bytes": 2714168,
+        "tris": 209992,
+        "draws": 14
       },
       "far": {
-        "bytes": 44728,
-        "tris": 3679,
+        "bytes": 44108,
+        "tris": 3627,
         "draws": 1
       }
     },
