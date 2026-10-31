@@ -477,9 +477,34 @@
      0.033
     ],
     "size_m": 0.045
+   },
+   "brick_arch": {
+    "to": [
+     0.088,
+     0.066,
+     0.05
+    ],
+    "size_m": 0.44
+   },
+   "darkpane_slit": {
+    "to": [
+     0.1427,
+     0.1344,
+     0.1131
+    ],
+    "size_m": 0.45
+   },
+   "frame_west": {
+    "to": [
+     0.0085,
+     0.0108,
+     0.0133
+    ],
+    "size_m": 0.06
    }
   },
-  "fade_note": "rule 15: the carved step lines of the frieze (1.6 cm, read about 3 cm wide in shadow in IMG_0926) and the balcony rail fade into the stone behind them by pixel size (v2/tiles.js coverage fade): steady, not blurred; the north stair handrails (4.5 cm steel, 2026-10-29) fade into the granite and concrete behind them the same way"
+  "fade_note": "rule 15: the carved step lines of the frieze (1.6 cm, read about 3 cm wide in shadow in IMG_0926) and the balcony rail fade into the stone behind them by pixel size (v2/tiles.js coverage fade): steady, not blurred; the north stair handrails (4.5 cm steel, 2026-10-29) fade into the granite and concrete behind them the same way",
+  "fade_note_west": "rule 15, west face (2026-10-31): the small brick arches of the band over the street storey (0.44 m), the slit windows of the top storey (0.45 m) and the window frames (6 cm) fade into the surface behind them by pixel size; the 600 m west view shimmered above main without it"
  },
  "biological-laboratories": {
   "wall_max_ny": 0.75,
@@ -4255,6 +4280,59 @@
    }
   },
   "why": "The Castilian's street level (2026-10-31): the stainless handrails of the leasing entrance steps fade by pixel coverage into the step concrete behind them (rule 15: steady in motion, not blurred)"
+ },
+ "gregory-gym": {
+  "fade": {
+   "muntin_arch": {
+    "to": [
+     0.03,
+     0.029,
+     0.027
+    ],
+    "size_m": 0.045
+   },
+   "muntin_red": {
+    "to": [
+     0.095,
+     0.1,
+     0.1
+    ],
+    "size_m": 0.05
+   },
+   "stair_tread": {
+    "to": [
+     0.045,
+     0.052,
+     0.054
+    ],
+    "size_m": 0.1
+   },
+   "stair_nosing": {
+    "to": [
+     0.03,
+     0.036,
+     0.038
+    ],
+    "size_m": 0.035
+   },
+   "stair_marker": {
+    "to": [
+     0.03,
+     0.036,
+     0.038
+    ],
+    "size_m": 0.07
+   },
+   "brick_shadow": {
+    "to": [
+     0.0929,
+     0.0643,
+     0.0408
+    ],
+    "size_m": 0.5
+   }
+  },
+  "fade_note": "the muntin grids of the three great arch windows (over dark glass and white curtains) and of the upper arched windows (over the sky-mirror panes) fade into the pane behind as the pixel grows past the bar (rule 15); the light stair treads fade into the riser/tread mean once a pixel covers a step; the nosing line on every riser and the dark nosing markers fade into the riser; the shaded field inside each little corbel arch (0.5 m, a 0.745 m repeat) fades into the wall by 600 m"
  },
  "chemical-petroleum-engineering": {
   "fade": {
