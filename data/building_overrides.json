@@ -18,6 +18,16 @@
   "_colours_are_measured": "Every hex in this file was sampled off a photograph with green-dominant pixels rejected so foliage cannot vote, and the source frame is named in the `why` beside it. A guessed colour has cost this project a correction round every single time.",
 
   "buildings": {
+    "e9d41e32-d8b7-4be1-b5e5-a2b769ca55c4": {
+      "name": "Overture 'greenhouse' west of T. S. Painter Hall (8.0 m, a class-default height)",
+      "exclude": true,
+      "why": "The owner's photograph of Painter Hall's west entrance (2026-10-03 walk) shows the steel canopy, low plantings and the glazed entrance on this spot, and no greenhouse: a stale footprint. In v2 it drew a pale block in front of that entrance."
+    },
+    "42e1cca3-0a44-4dd4-bfe6-0526fff5f606": {
+      "name": "Overture 'greenhouse' west of T. S. Painter Hall (3.7 m)",
+      "exclude": true,
+      "why": "The owner's photograph of Painter Hall's west entrance (2026-10-03 walk) shows the steel canopy, low plantings and the glazed entrance on this spot, and no greenhouse: a stale footprint. In v2 it drew a pale block in front of that entrance."
+    },
     "526f0b7f-19e1-4489-826c-bff4b095c961": {
       "name": "Computation Center",
       "osm_way_id": 129435969,
