@@ -333,8 +333,8 @@
       "lod1": "mass",
       "placement": {
         "height_m": 26.2,
-        "area_ratio": 0.988,
-        "centre_off_m": 0.42,
+        "area_ratio": 1.009,
+        "centre_off_m": 0.9,
         "flags": []
       }
     },
@@ -444,10 +444,10 @@
       "lod1": "mass",
       "placement": {
         "height_m": 33.2,
-        "area_ratio": 1.042,
-        "centre_off_m": 2.87,
+        "area_ratio": 1.044,
+        "centre_off_m": 2.97,
         "flags": [
-          "centre 2.9 m off"
+          "centre 3.0 m off"
         ]
       }
     },
@@ -2743,7 +2743,7 @@
       "placement": {
         "height_m": 12.2,
         "area_ratio": 1.002,
-        "centre_off_m": 0.31,
+        "centre_off_m": 0.32,
         "flags": []
       }
     },
@@ -3003,9 +3003,12 @@
       "lod1": "mass",
       "placement": {
         "height_m": 33.3,
-        "area_ratio": 1.004,
-        "centre_off_m": 0.2,
-        "flags": []
+        "area_ratio": 1.101,
+        "centre_off_m": 3.9,
+        "flags": [
+          "centre 3.9 m off",
+          "area x1.10"
+        ]
       }
     },
     "texas-supreme-court-building": {
@@ -3473,7 +3476,7 @@
       "lod1": "mass",
       "placement": {
         "height_m": 19.1,
-        "area_ratio": 0.706,
+        "area_ratio": 0.707,
         "centre_off_m": 13.49,
         "flags": [
           "centre 13.5 m off",
@@ -4289,9 +4292,11 @@
       "lod1": "mass",
       "placement": {
         "height_m": 14.1,
-        "area_ratio": 1.091,
-        "centre_off_m": 0.55,
-        "flags": []
+        "area_ratio": 1.106,
+        "centre_off_m": 0.22,
+        "flags": [
+          "area x1.11"
+        ]
       }
     },
     "west-campus-0fe2da88": {
@@ -6261,28 +6266,28 @@
       }
     },
     "t_-1_-2": {
-      "hash": "61c068695f411096",
+      "hash": "626c14579ba3f97d",
       "near": {
-        "bytes": 1795956,
-        "tris": 167845,
+        "bytes": 1796096,
+        "tris": 167857,
         "draws": 18
       },
       "far": {
-        "bytes": 44856,
-        "tris": 3695,
+        "bytes": 44976,
+        "tris": 3701,
         "draws": 1
       }
     },
     "t_-1_-3": {
-      "hash": "1c5ba869e318aae3",
+      "hash": "05bf0ae8bed978e8",
       "near": {
-        "bytes": 613160,
-        "tris": 56593,
+        "bytes": 607420,
+        "tris": 56677,
         "draws": 2
       },
       "far": {
-        "bytes": 21244,
-        "tris": 1644,
+        "bytes": 21052,
+        "tris": 1625,
         "draws": 1
       }
     },
@@ -6768,15 +6773,15 @@
       }
     },
     "t_-4_-2": {
-      "hash": "238abb15b5b05044",
+      "hash": "9bcae75edc2b052f",
       "near": {
-        "bytes": 1726840,
-        "tris": 168138,
+        "bytes": 1721672,
+        "tris": 168226,
         "draws": 2
       },
       "far": {
-        "bytes": 74712,
-        "tris": 6517,
+        "bytes": 75060,
+        "tris": 6559,
         "draws": 1
       }
     },
@@ -6833,15 +6838,15 @@
       }
     },
     "t_-5_-2": {
-      "hash": "e587d2a068d32618",
+      "hash": "68aedd53e81dc77e",
       "near": {
-        "bytes": 222716,
-        "tris": 21125,
+        "bytes": 223976,
+        "tris": 21292,
         "draws": 2
       },
       "far": {
-        "bytes": 17036,
-        "tris": 1228,
+        "bytes": 17952,
+        "tris": 1299,
         "draws": 1
       }
     },
@@ -6924,27 +6929,27 @@
       }
     },
     "t_0_-3": {
-      "hash": "afa957de20f52013",
+      "hash": "331c973d4b08b477",
       "near": {
-        "bytes": 230604,
-        "tris": 27555,
+        "bytes": 227804,
+        "tris": 27745,
         "draws": 2
       },
       "far": {
-        "bytes": 17048,
-        "tris": 1196,
+        "bytes": 17068,
+        "tris": 1201,
         "draws": 1
       }
     },
     "t_0_-4": {
-      "hash": "21a5d0fc245f8641",
+      "hash": "3e5f2ddfb96ebc07",
       "near": {
-        "bytes": 389988,
-        "tris": 33461,
+        "bytes": 390736,
+        "tris": 33569,
         "draws": 2
       },
       "far": {
-        "bytes": 17780,
+        "bytes": 17856,
         "tris": 1262,
         "draws": 1
       }
@@ -7002,15 +7007,15 @@
       }
     },
     "t_0_2": {
-      "hash": "0a8e80f96dd1ea54",
+      "hash": "383cd24fd5a0ea02",
       "near": {
-        "bytes": 751724,
-        "tris": 81915,
+        "bytes": 748844,
+        "tris": 81967,
         "draws": 2
       },
       "far": {
-        "bytes": 36232,
-        "tris": 3010,
+        "bytes": 36444,
+        "tris": 3038,
         "draws": 1
       }
     },
@@ -7171,15 +7176,15 @@
       }
     },
     "t_2_-1": {
-      "hash": "69ec7de271cb2c04",
+      "hash": "dfea68ebea94a64c",
       "near": {
-        "bytes": 324924,
-        "tris": 36904,
+        "bytes": 329916,
+        "tris": 37396,
         "draws": 2
       },
       "far": {
-        "bytes": 13056,
-        "tris": 791,
+        "bytes": 13280,
+        "tris": 811,
         "draws": 1
       }
     },
@@ -7249,15 +7254,15 @@
       }
     },
     "t_3_-1": {
-      "hash": "f7ea9d7f3e5a21d3",
+      "hash": "773475a60296f64c",
       "near": {
-        "bytes": 466264,
-        "tris": 61118,
+        "bytes": 457532,
+        "tris": 61130,
         "draws": 2
       },
       "far": {
-        "bytes": 13104,
-        "tris": 931,
+        "bytes": 13196,
+        "tris": 936,
         "draws": 1
       }
     },
@@ -7275,15 +7280,15 @@
       }
     },
     "t_3_0": {
-      "hash": "618cf4bd076b012c",
+      "hash": "647c49ec8e0a26e5",
       "near": {
-        "bytes": 257256,
-        "tris": 29263,
+        "bytes": 249420,
+        "tris": 29287,
         "draws": 2
       },
       "far": {
-        "bytes": 7088,
-        "tris": 364,
+        "bytes": 6828,
+        "tris": 327,
         "draws": 1
       }
     },
