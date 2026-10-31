@@ -285,7 +285,12 @@
   "anchor": {
    "stone_lum_rig": 0.1338,
    "photo": "IMG_0768",
-   "why": "one number to overrule: the build's limestone level (light rig, stone_value 0.13) is kept; the south block's brick and stone colours come from the owner's IMG_0768 by the build's own rule (photo pixel / the rig's overcast light at the exposure that puts its clean limestone at that level). Only the south block (wall_brick_block) carries the texture; the 1933 pavilion and the wing keep their gated plain colours. The limestone shows no resolvable texture at the photo's 7.5 mm/px (a tile of it repeats a visible blotch), so it is a plain photo-derived colour in the build, not a texture"
+   "why": "one number to overrule: the build's limestone level (light rig, stone_value 0.13) is kept; the south block's brick and stone colours come from the owner's IMG_0768 by the build's own rule (photo pixel / the rig's overcast light at the exposure that puts its clean limestone at that level). 2026-10-30: the owner's IMG_0769 shows the wing in the same buff brick, so the whole hall now carries the block's photo brick (wall_brick_block) and photo limestone colour. The limestone shows no resolvable texture at the photo's 7.5 mm/px (a tile of it repeats a visible blotch), so it is a plain photo-derived colour in the build, not a texture"
+  },
+  "filter": {
+   "anisotropy": 8,
+   "lod_bias": -0.15,
+   "why": "as Welch/PMA: the photo brick now covers the whole hall (the wing too), and plain trilinear made it read softer than the truth at 250 m (rule 15: blur is not a fix)"
   },
   "materials": {
    "wall_brick_block": {
@@ -307,7 +312,66 @@
      0.0532
     ]
    }
-  }
+  },
+  "fade": {
+   "tile_gap": {
+    "to": [
+     0.0236,
+     0.0136,
+     0.0119
+    ],
+    "size_m": 0.06
+   },
+   "door_panel_line": {
+    "to": [
+     0.0485,
+     0.0552,
+     0.0513
+    ],
+    "size_m": 0.05
+   },
+   "grille_bar": {
+    "to": [
+     0.022,
+     0.025,
+     0.024
+    ],
+    "size_m": 0.045
+   },
+   "rail_galv": {
+    "to": [
+     0.45,
+     0.5,
+     0.55
+    ],
+    "size_m": 0.06
+   },
+   "sash_white": {
+    "to": [
+     0.05,
+     0.047,
+     0.042
+    ],
+    "size_m": 0.045
+   },
+   "lunette_grille": {
+    "to": [
+     0.1,
+     0.095,
+     0.085
+    ],
+    "size_m": 0.1
+   },
+   "canopy_post": {
+    "to": [
+     0.09,
+     0.09,
+     0.08
+    ],
+    "size_m": 0.1
+   }
+  },
+  "fade_why": "2026-10-30: sizes are each part's real thickness, so a part fades only once it is under about 2 px (tiles.js FADE_K); nothing large fades at 250 m or nearer (the soft gate)."
  },
  "moffett-molecular-biology": {
   "wall_max_ny": 0.75,
