@@ -94,6 +94,22 @@
       ]
     },
     {
+      "class": "grass",
+      "why": "McCombs east entrance, owner photo IMG_1126 (whole-frame review 2026-10-31): at the foot of the granite planter wall, left of the walk, is a strip of low green ground cover; nothing in the inventory names it and the aerial sees the wall's shadow. Outlined on the photo, carried to the ground through the solved camera.",
+      "ring": [
+        166.03,
+        240.76,
+        163.52,
+        237.76,
+        165.19,
+        236.55,
+        167.35,
+        236.6,
+        169.53,
+        236.56
+      ]
+    },
+    {
       "class": "bed",
       "why": "Moffett Molecular Biology courtyard, owner photo IMG_0964 (whole-frame review 2026-10-31): left of the brick walk are planting beds (shrubs and flowers in mulch); the inventory has one City courtyard polygon, defaulted, and the z19 aerial reads the January beds as paving. Outlined on the photo, carried to the ground through the solved camera.",
       "ring": [
