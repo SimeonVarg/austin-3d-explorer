@@ -233,7 +233,7 @@ async function partDoc(slugs, lod, part) {
   if (!doc.getRoot().listMeshes().some((m) => m.listPrimitives().length)) return null;
   const steps = [dedup()];
   if (lod === 1) steps.push(weld(), simplify({ simplifier: MeshoptSimplifier, ratio: FAR_SIMPLIFY_RATIO, error: FAR_SIMPLIFY_ERROR }));
-  steps.push(palette({ min: 2 }), flatten(), join({ keepNamed: false }), prune());
+  steps.push(palette({ min: 2 }), flatten(), join({ keepNamed: false }), prune({ keepSolidTextures: true }));   // same one-line fix as #631: without it every fade material after the first in a tile goes toward black
   await doc.transform(...steps);
   // The builders' faces are wound either way (Blender draws both sides, so nobody saw it): on 280 of 304 builds some faces that look at the sky are
   // wound downward, DKR's whole seat rake among them. Drawn single-sided those are culled and the viewer looks through them at what lies beneath
