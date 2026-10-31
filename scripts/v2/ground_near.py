@@ -33,7 +33,7 @@ PAINT_OUT = os.path.join(ROOT, 'v2', 'data', 'ground', 'paint.json')   # the ove
 PAINT_COLORS = {'white': 0, 'yellow': 1}
 NAMES = {'pavers': 1, 'grass': 2, 'bed': 3, 'concrete': 4, 'asphalt': 5}
 
-PAVERS = {'paving', 'brick', 'paving_stones', 'limestone'}
+PAVERS = {'paving', 'brick', 'brickpave', 'paving_stones', 'limestone'}   # brickpave: GDC's brick walks (was dropped, 2026-10-31)
 GRASS = {'gardenlawn', 'turf', 'grass'}
 BED = {'bed', 'scrub', 'understorey', 'dirt', 'wood'}
 CONCRETE = {'concrete', 'aggregate', 'roadconcrete', None}
@@ -63,6 +63,13 @@ AERIAL_FALLBACK = {'canopy-ground': None, 'surface-default': 4}
 LOT_MAX_M2 = 0                                 # OFF: 20000 painted asphalt over Hogg's sidewalk (OSM road areas run to the building line)
 # ...except under a mapped tree crown, where the aerial sees the crown and not the ground (Hogg's planted bed under the West Mall
 # oaks read as concrete without this): there a guessed lawn stays lawn, drawn as the crown's disc inside the guessed extent.
+# Lawns and planting beds read off the 2025 aerial at z19 (scripts/v2/ground_veg.py, 2026-10-31): drawn over ground the inventory
+# does not name and over its guesses (GUESS_UNDER_VEG), under everything it maps (paths, slabs, plazas, lots, beds). In 9 of 10 owner
+# photos the app drew pale paving where he shows lawn, ground cover or mulch; the z16 hint could not see strips, crowns or winter beds.
+VEG = os.path.join(ROOT, 'data', 'ground_veg.json')
+VEG_RANK = 0.5                                 # painter's rank: over mapped lawns (0), under mapped beds (1) and every hard surface
+GUESS_RANK = -0.5                              # guessed surfaces (AERIAL_DECIDES, surface-default concrete) go under the aerial's lawns
+GUESS_UNDER_VEG = {'canopy-ground', 'surface-default'}
 TREES = [os.path.join(ROOT, 'v2', 'data', 'trees', n) for n in ('city.json', 'osm.json')]
 CROWN_SCALE = 0.85                             # x the mapped crown radius (crowns are measured to the leaf tips)
 CROWN_SIDES = 16
@@ -167,7 +174,7 @@ def main():
                 flat = [v for x, z in pts for v in (round(x * 10), round(z * 10))]
                 a = abs(sum(xs[i] * zs[i - 1] - xs[i - 1] * zs[i] for i in range(len(xs)))) / 2
                 if a < MIN_AREA_M2: continue
-                out.append((rank('area', ac, a), [ac, flat])); counts['aerial_%d' % ac] = counts.get('aerial_%d' % ac, 0) + 1
+                out.append(((GUESS_RANK, -a), [ac, flat])); counts['aerial_%d' % ac] = counts.get('aerial_%d' % ac, 0) + 1
         if c is None and guessed(p) and p.get('s') in GRASS and g['type'] in ('Polygon', 'MultiPolygon'):
             for poly in ([g['coordinates']] if g['type'] == 'Polygon' else g['coordinates']):
                 ring = [((lon - ORIGIN[1]) * KX, -(lat - ORIGIN[0]) * KZ) for lon, lat in poly[0]]
@@ -193,14 +200,22 @@ def main():
             if max(xs) < BOX[0] * 10 or min(xs) > BOX[2] * 10 or max(zs) < BOX[1] * 10 or min(zs) > BOX[3] * 10: continue
             a = abs(sum(xs[i] * zs[i - 1] - xs[i - 1] * zs[i] for i in range(len(xs)))) / 200.0
             if a < MIN_AREA_M2: continue
-            out.append((rank(p['k'], c, a), [c] + rings))
+            r0 = rank(p['k'], c, a)
+            if (p.get('_src') or {}).get('s') in GUESS_UNDER_VEG and c != 5: r0 = (GUESS_RANK, r0[1])   # a defaulted courtyard / patio
+            out.append((r0, [c] + rings))
             counts[c] = counts.get(c, 0) + 1
             if c in (1, 4):                      # holes in a plaza or walk: the beds and planters it was mapped around
                 for h in rings[1:]:
                     hx, hz = h[0::2], h[1::2]
                     ha = abs(sum(hx[i] * hz[i - 1] - hx[i - 1] * hz[i] for i in range(len(hx)))) / 200.0
                     if MIN_AREA_M2 <= ha <= HOLE_BED_MAX_M2:
-                        r0 = rank(p['k'], c, a); out.append(((r0[0], r0[1] + 1e-3), [3, h])); counts['hole_beds'] = counts.get('hole_beds', 0) + 1
+                        out.append(((r0[0], r0[1] + 1e-3), [3, h])); counts['hole_beds'] = counts.get('hole_beds', 0) + 1
+    if os.path.exists(VEG):
+        for f in json.load(open(VEG))['f']:
+            xs, zs = f[1][0::2], f[1][1::2]
+            if max(xs) < BOX[0] * 10 or min(xs) > BOX[2] * 10 or max(zs) < BOX[1] * 10 or min(zs) > BOX[3] * 10: continue
+            a = abs(sum(xs[i] * zs[i - 1] - xs[i - 1] * zs[i] for i in range(len(xs)))) / 200.0
+            out.append(((VEG_RANK, -a), f)); counts['veg_%d' % f[0]] = counts.get('veg_%d' % f[0], 0) + 1
     ovr = json.load(open(OVR))
     lines = [[PAINT_COLORS[g['color']], 0, 0, 0] + l for g in ovr.get('paint', []) for l in g['lines']]   # street_near.js lane rows: colour, solid
     with open(PAINT_OUT, 'w') as fh:
