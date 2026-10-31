@@ -59,7 +59,8 @@ export const GLASS_REAL = {
   FAR_PX: [1.5, 3],        // far fade by the pane's smaller side on screen, pixels: [fully matte below, glass as before above]
   FAR_ROUGH: 1.0,          // roughness of the far (matte) pane
   FAR_GAIN: 1.0,           // default far colour (no v2_glass_far from the tile): the glass's own base colour x this, for clear (non-metal) glass
-  FAR_GAIN_METAL: 0.4,     // ... and x this for mirror glass (metalness 1): its look is the sky it mirrors, not its base colour lit
+  FAR_GAIN_METAL: 0.15,    // ... and x this for mirror glass (metalness 1): its look is the sky it mirrors, not its base colour lit
+                           // (tuned 2026-10-30 in one page load, 0 / 0.15 / 0.25 / 0.4 / 0.6 / 1: 0.15 had the lowest shimmer on every view tried)
 };
 
 // the pane look of a pane middle: one seed in [0, 1) from its position (rounded to 5 cm, so tiny export differences cannot move it)
