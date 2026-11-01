@@ -241,6 +241,7 @@
   },
   "_laptop_only": "Timing. Frame times on a shared cloud CPU with a software rasteriser measure the runner, not the code (README: 'right for pixel assertions and useless for timing'). These stay on a quiet laptop.",
   "laptop_only": {
+    "v2-tree-near.mjs": "walk under a tree: near-crown pop and flicker, old vs new crowns; needs a real GPU and its walk arguments; run on the Mac",
     "graphics-parity.mjs": "hardware GL: cold production graphics comparison with explicit source/query arms, exact pixels and repeat-noise control",
     "v2-frame.mjs": "timing of the v2 app (/v2/): needs a real GPU (it fails on a software renderer); run on the AWS L4 one check at a time (scripts/aws-gpu)",
     "v2-cost.mjs": "timing: where a v2 frame's time goes (shadow pass, pixels, shading, tiles, CPU); needs a real GPU (it fails on a software renderer); run on the Mac or the AWS L4 one check at a time",
