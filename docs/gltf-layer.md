@@ -755,3 +755,46 @@ Why is not found. It is the fastest setting (table), so it is the next thing to 
 shared thin parts darken; with them, the desktop reads +40 to +56 %. (3) What is left is mostly the flushes' GPU time (a clear and a resolve
 of each target) and three.js's own walk of each render call, not the triangles: a smaller far tier (fewer pixels in the 8-sample target)
 would cut both memory and that time, but it is a look choice for the owner.
+
+## Where the far copy takes over: a look choice for the owner (2026-10-16, `mac/gltf-far-distance`, draft)
+
+**The knob.** Which of a building's two drawings is shown goes by the metres of the building one CSS pixel covers (`GLTF.look.copy`
+`fullM` 0.84 / `farM` 0.99): on his 1440 x 900 window that is the full Blender model to about 680 m, a dissolve to about 800 m, the far
+copy beyond. `?gltffardist=<metres>` (new; nothing changes without it) sets both from one distance ON THAT WINDOW, keeping the dissolve's
+share (full model alone to 0.85 of it). Other windows still scale: the 1280 x 800 timing window sees 0.89 of the number, the simulated
+phone 0.94. `scripts/perf/layer-cost.mjs` takes variants `farNNN` (same conversion), several poses for `--shots`, and `--motion`
+(a real-time forward flight recorded as a screencast, with a log a frame of each building's share of full model).
+
+**Frame time against that distance** (AWS L4 run 38958399251, one page, interleaved, minimum over rounds of the median frame interval;
+desktop 1280 x 800 at 1.5, 4 rounds; SIMULATED phone 390 x 844 at 3, renderScale 0.75, CPU slowed 4x, 3 rounds; % = against the layer off):
+
+| view | off | now (~800 m) | 550 m | 400 m | 250 m | 150 m | 100 m | +25 % at about |
+|---|---|---|---|---|---|---|---|---|
+| opening view | 8.0 ms | 11.9 (+49 %) | 10.1 (+26 %) | 9.9 (+24 %) | 9.2 (+15 %) | 8.0 (0 %) | 8.0 (0 %) | 475 m |
+| start, close | 7.6 | 12.0 (+58 %) | 10.5 (+38 %) | 9.9 (+30 %) | 9.0 (+18 %) | 8.0 (+5 %) | 7.3 (-4 %) | 340 m |
+| over West Campus | 7.6 | 11.3 (+49 %) | 11.1 (+46 %) | 10.3 (+36 %) | 7.9 (+4 %) | 7.3 | 7.0 | 350 m |
+| Union on San Antonio, close | 7.9 | 10.8 (+37 %) | 9.2 (+16 %) | 8.9 (+13 %) | 8.5 (+8 %) | 8.1 (+3 %) | 7.7 | 650 m |
+| phone: opening view | 23.6 | 39.7 (+68 %) | 29.1 (+23 %) | 27.0 (+14 %) | 23.3 (-1 %) | 20.1 | 19.0 | 560 m |
+| phone: start, close | 18.2 | 32.6 (+79 %) | 28.6 (+57 %) | 24.9 (+37 %) | 20.6 (+13 %) | 18.4 (+1 %) | 16.6 | 325 m |
+| phone: over West Campus | 20.7 | 38.6 (+86 %) | 36.6 (+77 %) | 30.3 (+46 %) | 24.0 (+16 %) | 18.8 | 19.0 | 295 m |
+| phone: Union, close | 16.6 | 32.3 (+95 %) | 23.3 (+40 %) | 23.8 (+43 %) | 19.0 (+14 %) | 18.4 (+11 %) | 16.5 | 305 m |
+
+(The last column is read between the two measured distances on either side, in a straight line.) **Every view meets +25 % at 250 m**
+(desktop +4 to +18 %, phone -1 to +16 %); the tightest view (phone, over West Campus) needs about 295 m. Fewer full buildings is the whole
+of it: at 250 m about 8 to 14 full models are drawn instead of 94 to 100 (the pictures' own count), and the atlas targets fall from
+200-400 MB to 1-120 MB. Below 150 m nothing more is saved.
+
+**What it costs the look** (pictures at 1440 x 900, pixel ratio 2, in one page; the page against itself 0 pixels): from the street on
+Guadalupe almost nothing changes at 250 m (38,000 of 5.2 M pixels by more than 2 levels: a few far buildings down the street). From
+the high view over West Campus a lot does (642,000 pixels): every building past 250 m loses its windows and wall detail and becomes the
+far copy, a block in banded mean colours (the Castilian, Skyloft, the Quarters, Union on 24th). At 400 m the same view changes 551,000
+pixels; the nearest towers keep their windows.
+
+**Motion (rule 15).** No pop: a building's share of full model never moved more than 0.09 in one frame (a pop is 1.0; the dissolve
+allows frame time / 0.5 s), at any distance; at 250 m 3 to 8 buildings are mid-dissolve at once, against 13 to 18 now. Frame-to-frame
+change during the flights is LOWER at shorter distances (high view 4.7 now, 2.8 at 250 m; street 3.9 and 3.0), because the far copies
+carry no window grid to shimmer, not because anything is blurred. What the eye sees instead, in the high view at 250 m, is windows
+fading in on a building over about half a second as the camera comes within 250 m of it.
+
+The pictures and clips are private (`~/flyover-private/far-distance-2026-10-16/`). **This is the owner's call** (rule 9): the default is
+unchanged and the layer stays off.
