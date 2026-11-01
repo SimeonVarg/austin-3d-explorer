@@ -66,8 +66,8 @@
         "william-randolph-hearst-building"
       ],
       "bytes": [
-        1795956,
-        44856
+        1796096,
+        44976
       ]
     },
     {
@@ -86,8 +86,8 @@
         "unidentified-west-campus-f0b137e7"
       ],
       "bytes": [
-        613160,
-        21244
+        607420,
+        21052
       ]
     },
     {
@@ -132,8 +132,8 @@
         "sutton-hall"
       ],
       "bytes": [
-        1412404,
-        27200
+        1438900,
+        26092
       ]
     },
     {
@@ -154,8 +154,8 @@
         "university-catholic-center"
       ],
       "bytes": [
-        699416,
-        42140
+        726012,
+        42232
       ]
     },
     {
@@ -173,8 +173,8 @@
         "four-seasons-residences"
       ],
       "bytes": [
-        453260,
-        7996
+        453648,
+        8008
       ]
     },
     {
@@ -270,8 +270,8 @@
         "southwest-tower"
       ],
       "bytes": [
-        595336,
-        22932
+        663084,
+        22972
       ]
     },
     {
@@ -314,8 +314,8 @@
         "yugo-austin-rio"
       ],
       "bytes": [
-        1575748,
-        35660
+        1586028,
+        35364
       ]
     },
     {
@@ -437,8 +437,8 @@
         "villas-on-nueces"
       ],
       "bytes": [
-        1833604,
-        54440
+        1839740,
+        54084
       ]
     },
     {
@@ -590,8 +590,8 @@
         "one-american-center"
       ],
       "bytes": [
-        1114020,
-        31520
+        1139352,
+        34984
       ]
     },
     {
@@ -609,8 +609,8 @@
         "frost-bank-tower"
       ],
       "bytes": [
-        209420,
-        29936
+        229628,
+        30632
       ]
     },
     {
@@ -631,8 +631,8 @@
         "the-austonian"
       ],
       "bytes": [
-        932704,
-        25820
+        961904,
+        28016
       ]
     },
     {
@@ -656,8 +656,8 @@
         "west-campus-8d78646f"
       ],
       "bytes": [
-        2302852,
-        40900
+        2303844,
+        39704
       ]
     },
     {
@@ -775,8 +775,8 @@
         "west-campus-130c7878"
       ],
       "bytes": [
-        858388,
-        24332
+        850936,
+        24388
       ]
     },
     {
@@ -811,8 +811,8 @@
         "procore-tower"
       ],
       "bytes": [
-        57992,
-        9472
+        55156,
+        9580
       ]
     },
     {
@@ -907,8 +907,8 @@
         "yugo-the-corner"
       ],
       "bytes": [
-        1726840,
-        74712
+        1721672,
+        75060
       ]
     },
     {
@@ -1011,8 +1011,8 @@
         "west-campus-0c4b89ce"
       ],
       "bytes": [
-        222716,
-        17036
+        223976,
+        17952
       ]
     },
     {
@@ -1067,8 +1067,8 @@
         "the-independent"
       ],
       "bytes": [
-        686164,
-        24464
+        697324,
+        23884
       ]
     },
     {
@@ -1109,7 +1109,7 @@
         "will-c-hogg-building"
       ],
       "bytes": [
-        1860016,
+        1873140,
         38520
       ]
     },
@@ -1154,8 +1154,8 @@
         "unidentified-north-campus-768ae01e"
       ],
       "bytes": [
-        230604,
-        17048
+        227804,
+        17068
       ]
     },
     {
@@ -1174,8 +1174,8 @@
         "unidentified-north-campus-08cca10d"
       ],
       "bytes": [
-        389988,
-        17780
+        390736,
+        17856
       ]
     },
     {
@@ -1233,14 +1233,15 @@
       "buildings": [
         "austin-by-ellsworth-kelly",
         "george-i-sanchez-building",
+        "jester-center",
         "jester-west-hall",
         "pcl-library",
         "texas-alpha-phi",
         "university-teaching-center"
       ],
       "bytes": [
-        711112,
-        77912
+        816384,
+        85360
       ]
     },
     {
@@ -1278,8 +1279,8 @@
         "texas-state-history-museum"
       ],
       "bytes": [
-        751724,
-        36232
+        748844,
+        36444
       ]
     },
     {
@@ -1359,8 +1360,8 @@
         "odonnell-building"
       ],
       "bytes": [
-        1155532,
-        37872
+        1160584,
+        37556
       ]
     },
     {
@@ -1460,7 +1461,7 @@
         "winship-drama-building"
       ],
       "bytes": [
-        1250084,
+        1249932,
         41640
       ]
     },
@@ -1543,8 +1544,8 @@
         "texas-memorial-museum"
       ],
       "bytes": [
-        324924,
-        13056
+        329916,
+        13280
       ]
     },
     {
@@ -1657,8 +1658,8 @@
         "music-recital-hall"
       ],
       "bytes": [
-        466264,
-        13104
+        457532,
+        13196
       ]
     },
     {
@@ -1694,8 +1695,8 @@
         "sid-richardson-hall"
       ],
       "bytes": [
-        257256,
-        7088
+        249420,
+        6828
       ]
     },
     {
@@ -2522,7 +2523,7 @@
         "w313917989"
       ],
       "name": "Driskill Hotel",
-      "model": "sol",
+      "model": "opus",
       "x": -234.269,
       "z": 1995.951,
       "top": 28.4
@@ -2949,7 +2950,7 @@
         "w957405853"
       ],
       "name": "Indeed Tower",
-      "model": "sol",
+      "model": "opus",
       "x": -490.875,
       "z": 1883.137,
       "top": 160.6
@@ -6167,6 +6168,17 @@
       "x": 1226.106,
       "z": -598.038,
       "top": 3.8
+    },
+    "jester-center": {
+      "tile": "t_0_1",
+      "map_ids": [
+        "9e2404d3"
+      ],
+      "name": "Beauford H. Jester Center",
+      "model": "opus",
+      "x": 228.14,
+      "z": 331.092,
+      "top": 19.3
     }
   }
 }
