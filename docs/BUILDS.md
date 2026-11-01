@@ -233,6 +233,7 @@ Right now: 393 builds of 324 buildings; 119 buildings flagged to retarget.
 | Jesse H. Jones Communication Center (A) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 18,544 | 32 min, 377k plan tokens |  |  |
 | Jesse H. Jones Communication Center (B) | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 16,014 | 28 min, 309k plan tokens |  |  |
 | Jesse H. Jones Hall | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 21,636 | 41 min, 394k plan tokens |  |  |
+| Jester Center | Opus 5.5 | 2026-10-31 | loose | mixed | unreviewed | 8,960 | lane build |  | yes |
 | Jester East Hall | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 21,372 | 39 min, 397k plan tokens |  |  |
 | Jester West Hall | Opus 5.5 | 2026-10-19 | loose | mixed | unreviewed | 58,356 | 260 min |  | yes |
 | John B. Connally Center for Justice | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 16,000 | 27 min, 316k plan tokens |  |  |
@@ -420,6 +421,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Hotel ZaZa**: Earth 3D; 2nd view held-outs all shift one way (~0.44 deg heading), main view 2.3 px; balconies too light; 9k vs 12k
 - **Ion Austin**: after-sunset photograph: colours all miss; roof scale shrunk 11% late (53 to 60 m)
 - **J. T. Patterson Laboratories**: stair tower position inferred, up to 7.3 m off; glass too light
+- **Jester Center**: First build of the low north-west block (map 9e2404d3), replacing the plain map stand-in. Roof heights and forms from the 2021 scan; west face (entrance recess with three arched doors, tile canopy, 2 x 3 windows and stone frieze; the arcade wing on its terrace; stair tower with slit window and louvred slot; the wide stair) from the owner's walk photos through a solved camera. Gaps: north, east and courtyard faces inferred (Street View capture blocked); Jester West's south-west loggia is that model's.
 - **Jester West Hall**: Rebuilt from 10 site photographs + Street View + 2021 scan (Earth type-only); entrances added after the owner's note (Brazos St porch, W entrance block, W link storefront, 3 OSM doors); 4 independent reviews; app copy 24,116 tri. Gaps: cameras loose, E/N/S faces inferred from Earth, S-wing cross gables simplified.
 - **JW Marriott Austin**: Earth 3D; 3 held-out pass but one only after a model change made after its error was seen, and R_NE sat on the neighbour; white 78.6 m tower inside the outline built too (may be a separate building); 19k vs 34k tri
 - **Littlefield House**: camera unproven on an old small public photo; work render only; heights maybe 5-10 % high
