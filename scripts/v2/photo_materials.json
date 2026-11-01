@@ -726,15 +726,15 @@
      1.5
     ],
     "factor": [
-     0.045,
+     0.03625,
      0.06,
-     0.02
+     0.005
     ],
-    "source": "synthetic leaves (random overlapping ellipses, tileable), colours and shares from a k-means palette of a lit clipped hedge in the owner photo of the north glass hall; no photo pixels copied; mean = the build's hedge colour",
+    "source": "synthetic leaves (random overlapping ellipses, tileable), colours and shares from a k-means palette of a lit clipped hedge in the owner photo of the north glass hall; no photo pixels copied; mean = the build's hedge colour; r3 (2026-10-31): mean re-set to the lit clipped hedge of the owner photo of the east entrance (r:g:b 0.70 : 1 : 0.20, the photo is a brighter, purer green than r2)",
     "mean_rgb": [
-     0.018,
+     0.0145,
      0.024,
-     0.008
+     0.002
     ]
    },
    "shrub_flowering": {
@@ -744,15 +744,33 @@
      3.0
     ],
     "factor": [
-     0.075,
-     0.08,
-     0.03
+     0.0915,
+     0.1225,
+     0.049
     ],
-    "source": "synthetic leaves and flowers the same way, palette from the flowering bed behind the granite planter in the owner photo of the east entrance (green with orange flowers); no photo pixels copied",
+    "source": "synthetic leaves and flowers the same way, palette from the flowering bed behind the granite planter in the owner photo of the east entrance (green with orange flowers); no photo pixels copied; r3 (2026-10-31): mean re-set to the green of the flowering bed in that photo (lighter feathery leaves); the flower heads are their own parts now",
     "mean_rgb": [
+     0.0366,
+     0.049,
+     0.0196
+    ]
+   },
+   "groundcover_green": {
+    "albedo": "scripts/v2/materials/mccombs-school-of-business/hedge_albedo.jpg",
+    "repeat_m": [
+     0.7,
+     0.7
+    ],
+    "factor": [
+     0.0575,
+     0.075,
+     0.0275
+    ],
+    "source": "r3 (2026-10-31): the low ground cover beside the east walk, the same synthetic leaf texture as the hedge at a smaller leaf (0.7 m repeat); mean from the lit ground cover in the owner photo of the east entrance, divided by the light",
+    "mean_rgb": [
+     0.023,
      0.03,
-     0.032,
-     0.012
+     0.011
     ]
    }
   },
@@ -765,6 +783,15 @@
     ],
     "size_m": 0.045,
     "why": "the east entrance handrails (0.045 m bars) fade by pixel coverage to the steps behind them, as on Welch (rule 15)"
+   },
+   "flower_orange": {
+    "to": [
+     0.0366,
+     0.049,
+     0.0196
+    ],
+    "size_m": 0.16,
+    "why": "r3: the orange flower heads on the planter shrub (0.16 m) fade by pixel coverage to the shrub colour, so they cannot sparkle far away (rule 15)"
    }
   }
  },
@@ -4365,5 +4392,291 @@
    }
   },
   "fade_note": "the muntin grids of the three great arch windows (over dark glass and white curtains) and of the upper arched windows (over the sky-mirror panes) fade into the pane behind as the pixel grows past the bar (rule 15); the light stair treads fade into the riser/tread mean once a pixel covers a step; the nosing line on every riser and the dark nosing markers fade into the riser; the shaded field inside each little corbel arch (0.5 m, a 0.745 m repeat) fades into the wall by 600 m"
+ },
+ "gary-l-thomas-energy-engineering-building": {
+  "wall_max_ny": 0.75,
+  "fade": {
+   "metal_rail_dark": {
+    "to": [
+     0.0416,
+     0.0405,
+     0.0383
+    ],
+    "size_m": 0.04
+   },
+   "drain_dark": {
+    "to": [
+     0.1406,
+     0.1358,
+     0.1346
+    ],
+    "size_m": 0.3
+   }
+  },
+  "why": "2026-10-31: the NW plaza's pipe rails, the stair's picket rails (0.024-0.05 m) and the 0.3 m trench drain are thinner than a pixel from far away and flickered at 250 m over the lowered-only baseline; each fades to the mean of what it covers by pixel coverage (rule 15), never blurred"
+ },
+ "the-standard": {
+  "fade": {
+   "frame_light": {
+    "to": [
+     0.05,
+     0.045,
+     0.035
+    ],
+    "size_m": 0.1
+   },
+   "louvre_slat": {
+    "to": [
+     0.007,
+     0.009,
+     0.011
+    ],
+    "size_m": 0.045
+   }
+  },
+  "fade_why": "2026-10-31: the entrance bay's 0.1 m light storefront frames and the 0.045 m louvre slats fade by pixel coverage into the mean of frame and what is behind them (rule 15)."
+ },
+ "chemical-petroleum-engineering": {
+  "fade": {
+   "rail_black": {
+    "to": [
+     0.07,
+     0.064,
+     0.056
+    ],
+    "size_m": 0.022
+   },
+   "downlight": {
+    "to": [
+     0.167,
+     0.14,
+     0.102
+    ],
+    "size_m": 0.24
+   }
+  },
+  "fade_why": "2026-10-31: the new light-well railings (0.022 m pickets on a 0.115 m pitch) and the soffit downlights are thinner than a pixel from far away; each fades by pixel coverage to the mean of what it stands against (the brick curb and dark well; the plaster ceiling), never blurred (rule 15)"
+ },
+ "jester-center": {
+  "wall_max_ny": 0.75,
+  "materials": {},
+  "fade": {
+   "rail_metal": {
+    "to": [
+     0.125,
+     0.095,
+     0.071
+    ],
+    "size_m": 0.06
+   },
+   "glass_window": {
+    "to": [
+     0.066,
+     0.051,
+     0.04
+    ],
+    "size_m": 0.85
+   },
+   "coping_dark": {
+    "to": [
+     0.095,
+     0.06,
+     0.045
+    ],
+    "size_m": 0.28
+   }
+  },
+  "why": "2026-10-31 first build (rule 15): the terrace rails (0.06 m), the dark eave fascia (0.28 m) and the 0.85 m window panes fade by pixel coverage toward what they stand on, never blurred. NOT faded, on purpose: the pale stone (copings, bands, window surrounds) and the storefront mullions. In this tile build a fade clone of a material used by many primitives came out with a near-black base colour (stone_band_jc 8e-6, stone_surround 2e-7, frame_white 0.003 instead of about 0.14), so the stone read black at the owner's camera; the plain materials keep their true colour."
+ },
+ "sutton-hall": {
+  "_about": "Sutton Hall out-v3 (2026-10-31): no photo textures; only the fine parts fade by coverage into the surface behind them (rule 15: the 600 m shimmer gate). Colours are the build's own (linear).",
+  "fade": {
+   "frame_brown": {
+    "to": [
+     0.03,
+     0.025,
+     0.02
+    ],
+    "size_m": 0.06
+   },
+   "iron_green": {
+    "to": [
+     0.12,
+     0.1,
+     0.08
+    ],
+    "size_m": 0.09
+   },
+   "tile_blue": {
+    "to": [
+     0.26,
+     0.15,
+     0.065
+    ],
+    "size_m": 0.4
+   },
+   "letters": {
+    "to": [
+     0.36,
+     0.31,
+     0.24
+    ],
+    "size_m": 0.05
+   },
+   "lantern": {
+    "to": [
+     0.36,
+     0.31,
+     0.24
+    ],
+    "size_m": 0.36
+   }
+  }
+ },
+ "driskill-hotel": {
+  "_about": "2026-10-31 out-v3: thin iron parts fade by pixel coverage (rule 15); colours from the public photo, de-lit",
+  "fade": {
+   "iron_picket": {
+    "to": [
+     0.015,
+     0.03,
+     0.008
+    ],
+    "size_m": 0.03
+   },
+   "grille_iron": {
+    "to": [
+     0.01,
+     0.01,
+     0.012
+    ],
+    "size_m": 0.044
+   },
+   "iron_green": {
+    "to": [
+     0.04,
+     0.02,
+     0.01
+    ],
+    "size_m": 0.06
+   }
+  }
+ },
+ "villas-on-rio": {
+  "fade": {
+   "metal_storefront": {
+    "to": [
+     0.122,
+     0.075,
+     0.027
+    ],
+    "size_m": 0.1
+   },
+   "shade_pod_0": {
+    "to": [
+     0.0983,
+     0.1006,
+     0.0932
+    ],
+    "size_m": 1.0
+   },
+   "shade_pod_1": {
+    "to": [
+     0.0983,
+     0.1006,
+     0.0932
+    ],
+    "size_m": 1.0
+   },
+   "shade_pod_10": {
+    "to": [
+     0.0983,
+     0.1006,
+     0.0932
+    ],
+    "size_m": 1.0
+   },
+   "shade_pod_11": {
+    "to": [
+     0.0983,
+     0.1006,
+     0.0932
+    ],
+    "size_m": 1.0
+   },
+   "shade_pod_2": {
+    "to": [
+     0.0983,
+     0.1006,
+     0.0932
+    ],
+    "size_m": 1.0
+   },
+   "shade_pod_3": {
+    "to": [
+     0.0983,
+     0.1006,
+     0.0932
+    ],
+    "size_m": 1.0
+   },
+   "shade_pod_4": {
+    "to": [
+     0.0983,
+     0.1006,
+     0.0932
+    ],
+    "size_m": 1.0
+   },
+   "shade_pod_5": {
+    "to": [
+     0.0983,
+     0.1006,
+     0.0932
+    ],
+    "size_m": 1.0
+   },
+   "shade_pod_6": {
+    "to": [
+     0.0983,
+     0.1006,
+     0.0932
+    ],
+    "size_m": 1.0
+   },
+   "shade_pod_7": {
+    "to": [
+     0.0983,
+     0.1006,
+     0.0932
+    ],
+    "size_m": 1.0
+   },
+   "shade_pod_8": {
+    "to": [
+     0.0983,
+     0.1006,
+     0.0932
+    ],
+    "size_m": 1.0
+   },
+   "shade_pod_9": {
+    "to": [
+     0.0983,
+     0.1006,
+     0.0932
+    ],
+    "size_m": 1.0
+   },
+   "metal_dark": {
+    "to": [
+     0.056,
+     0.0515,
+     0.046
+    ],
+    "size_m": 1.0
+   }
+  },
+  "fade_why": "rule 15 (2026-10-31, round 2): the storefront's 0.1 m frames and mullions now stand in front of the lit warm interior (emissive), so they fade by pixel coverage into the mean of frame and lit room (85 % room at its de-lit equivalent 0.128/0.073/0.017, 15 % frame); the 600 m west view shimmered 0.09 above main without it. The podium's shade tones (12 measured colours; the pane glass is 0.9-1.6 m wide, size 1.0 m) fade by pixel coverage into their pane-weighted mean [0.0983, 0.1006, 0.0932] once a pixel covers a good part of a pane: the 600 m west view measured 1.19 against main's 1.10 with the frame fade alone (unchanged), the random light/dark panes being 2-3 px there. The small dark vent boxes over every podium window (0.32 x 0.09 m, metal_dark) fade into the grey wall they sit on (wall x0.88, their coverage-weighted mean) between 0.25 and 0.6 m per pixel (size 1.0: at 0.2 they read softer than the supersampled truth at 250 m, soft +0.04): kept at his cameras and up to ~250 m, gone at 600 m where the 600 m west view now measures below main."
  }
 }
