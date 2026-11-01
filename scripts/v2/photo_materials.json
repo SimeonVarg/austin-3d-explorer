@@ -4505,5 +4505,34 @@
     "size_m": 0.36
    }
   }
+ },
+ "driskill-hotel": {
+  "_about": "2026-10-31 out-v3: thin iron parts fade by pixel coverage (rule 15); colours from the public photo, de-lit",
+  "fade": {
+   "iron_picket": {
+    "to": [
+     0.015,
+     0.03,
+     0.008
+    ],
+    "size_m": 0.03
+   },
+   "grille_iron": {
+    "to": [
+     0.01,
+     0.01,
+     0.012
+    ],
+    "size_m": 0.044
+   },
+   "iron_green": {
+    "to": [
+     0.04,
+     0.02,
+     0.01
+    ],
+    "size_m": 0.06
+   }
+  }
  }
 }

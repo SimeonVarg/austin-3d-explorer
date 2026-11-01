@@ -942,15 +942,15 @@
     "driskill-hotel": {
       "exported": true,
       "reason": null,
-      "model": "sol",
+      "model": "opus",
       "kind": "apartment",
       "tile": "t_-1_7",
-      "blend_sha256": "512e040a190c92b2",
+      "blend_sha256": "f766c778f91fe988",
       "lod1": "mass",
       "placement": {
         "height_m": 28.4,
-        "area_ratio": 1.064,
-        "centre_off_m": 1.41,
+        "area_ratio": 1.073,
+        "centre_off_m": 1.62,
         "flags": []
       }
     },
@@ -6409,15 +6409,15 @@
       }
     },
     "t_-1_7": {
-      "hash": "973779463701848c",
+      "hash": "9d8b4a9bc5eff2f3",
       "near": {
-        "bytes": 595336,
-        "tris": 51536,
-        "draws": 2
+        "bytes": 663084,
+        "tris": 57331,
+        "draws": 5
       },
       "far": {
-        "bytes": 22932,
-        "tris": 1906,
+        "bytes": 22972,
+        "tris": 1916,
         "draws": 1
       }
     },
