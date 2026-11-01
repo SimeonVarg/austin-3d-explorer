@@ -1233,14 +1233,15 @@
       "buildings": [
         "austin-by-ellsworth-kelly",
         "george-i-sanchez-building",
+        "jester-center",
         "jester-west-hall",
         "pcl-library",
         "texas-alpha-phi",
         "university-teaching-center"
       ],
       "bytes": [
-        711112,
-        77912
+        816384,
+        85360
       ]
     },
     {
@@ -6167,6 +6168,17 @@
       "x": 1226.106,
       "z": -598.038,
       "top": 3.8
+    },
+    "jester-center": {
+      "tile": "t_0_1",
+      "map_ids": [
+        "9e2404d3"
+      ],
+      "name": "Beauford H. Jester Center",
+      "model": "opus",
+      "x": 228.14,
+      "z": 331.092,
+      "top": 19.3
     }
   }
 }

@@ -4429,5 +4429,36 @@
    }
   },
   "fade_why": "2026-10-31: the new light-well railings (0.022 m pickets on a 0.115 m pitch) and the soffit downlights are thinner than a pixel from far away; each fades by pixel coverage to the mean of what it stands against (the brick curb and dark well; the plaster ceiling), never blurred (rule 15)"
+ },
+ "jester-center": {
+  "wall_max_ny": 0.75,
+  "materials": {},
+  "fade": {
+   "rail_metal": {
+    "to": [
+     0.125,
+     0.095,
+     0.071
+    ],
+    "size_m": 0.06
+   },
+   "glass_window": {
+    "to": [
+     0.066,
+     0.051,
+     0.04
+    ],
+    "size_m": 0.85
+   },
+   "coping_dark": {
+    "to": [
+     0.095,
+     0.06,
+     0.045
+    ],
+    "size_m": 0.28
+   }
+  },
+  "why": "2026-10-31 first build (rule 15): the terrace rails (0.06 m), the dark eave fascia (0.28 m) and the 0.85 m window panes fade by pixel coverage toward what they stand on, never blurred. NOT faded, on purpose: the pale stone (copings, bands, window surrounds) and the storefront mullions. In this tile build a fade clone of a material used by many primitives came out with a near-black base colour (stone_band_jc 8e-6, stone_surround 2e-7, frame_white 0.003 instead of about 0.14), so the stone read black at the owner's camera; the plain materials keep their true colour."
  }
 }

@@ -6247,6 +6247,21 @@
         "centre_off_m": 0.19,
         "flags": []
       }
+    },
+    "jester-center": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "campus",
+      "tile": "t_0_1",
+      "blend_sha256": "6ab83cb025b50f1a",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 19.3,
+        "area_ratio": 1.001,
+        "centre_off_m": 1.81,
+        "flags": []
+      }
     }
   },
   "tiles": {
@@ -6979,15 +6994,15 @@
       }
     },
     "t_0_1": {
-      "hash": "441b8ecd87283f14",
+      "hash": "cb6d315c873b2949",
       "near": {
-        "bytes": 711112,
-        "tris": 74698,
-        "draws": 6
+        "bytes": 816384,
+        "tris": 83262,
+        "draws": 9
       },
       "far": {
-        "bytes": 77912,
-        "tris": 8887,
+        "bytes": 85360,
+        "tris": 9579,
         "draws": 1
       }
     },
