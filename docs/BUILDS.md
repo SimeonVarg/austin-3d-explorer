@@ -315,7 +315,7 @@ Right now: 393 builds of 324 buildings; 119 buildings flagged to retarget.
 | 405 Colorado | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 12,476 | 35 min, 346k plan tokens |  |  |
 | Austin Marriott Downtown | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 6,002 | 26 min, 326k plan tokens |  | yes |
 | Barbara Jordan State Office Building | Opus 5.5 | 2026-10-16 | proven | Earth 3D | unreviewed | 21,114 | 44 min, 396k plan tokens |  |  |
-| Block 185 | Opus 5.5 | 2026-10-16 | loose | Earth 3D | unreviewed | 10,452 | 40 min, 355k plan tokens |  |  |
+| Block 185 | Opus 5.5 | 2026-10-25 | unproven | site photos + 2021 scan | unreviewed | 29,621 | 150 min |  | yes |
 | Church of Scientology (Guadalupe) | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 12,192 | 30 min, 344k plan tokens |  |  |
 | Colorado Tower | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 20,986 | 37 min, 386k plan tokens |  |  |
 | Dewitt C. Greer State Highway Building | Opus 5.5 | 2026-10-16 | unproven | Earth 3D | unreviewed | 25,357 | 39 min, 363k plan tokens |  |  |
@@ -475,6 +475,7 @@ In the 2026-10-13 blind trials the owner picked the models correctly every time 
 - **Heinsohn Hall**: independent retry: held-out pass but all on one flat face; camera height 0.44 m (implausible); porthole wall 1.5x tall; not sent; PARKED (2 tries)
 - **Dorothy Gebauer Building**: three early stops (oaks; floating camera; scale free with one panorama position); PARKED; parapet ~3 m over the roof deck
 - **The Block on Pearl (south)**: parked: Earth 3D only; held-out fails (one pick on the wrong edge); massing reads wrong next to Earth; 800 px draft only; not sent
+- **Block 185**: rebuild 2026-10-25 (replaces the 10-16 Earth build, which drew a solid wall to the ground): storey plans from the 2021 scan contours (stepped south terraces, west face leaning in), open street storey on 20 columns with a set-back lobby and three entrances (positions inferred), west fin screen, north/east dark glass with a white band every 3rd storey; upper 60 m and crown extrapolated. Gaps: cameras not proven (silhouette fits only); the top reads as a stepped wedge where the photos show a smooth curved sail with its tip at the north-west; the app's glass mix reads as blue blocks.
 - **Block on Pearl north (064e7194)**: parked, not sent: very noisy 16-sample draft, mansards and blue walls far too dark, massing reads heavier than Earth; same complex as the parked Pearl south
 - **West Campus block a06cb507**: Opus redo, unfinished: 1 storey fits the scan, but roof render 30-40 px off the views (corner matching wrong); colour checks invalid; next: named corners at 4x
 
