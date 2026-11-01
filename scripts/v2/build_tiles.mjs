@@ -104,7 +104,13 @@ const FROZEN = readJSON(path.join(HERE, 'frozen.json'), {});
 const LOD1_M = readJSON(path.join(HERE, 'lod1.json'), {});
 const EXPORT_SKIP = readJSON(path.join(HERE, 'export_skip.json'), {});
 const SKIP_PY = path.join(HERE, 'blender_export_skip.py');
-const keyOf = (s) => (FROZEN[s] ? ((() => { try { return fs.readFileSync(path.join(EXPORT, `${s}.key`), 'utf8'); } catch { return 'frozen'; } })()) : `${sources[s].blend_sha256}:${EXPORTER_HASH}${EXPORT_SKIP[s] ? ':skip' + sha(Buffer.from(EXPORT_SKIP[s])).slice(0, 8) : ''}`);
+// objects KEPT in a build's export that a ground rule would drop (real street storeys, podiums, steps named street_/plaza_/site_):
+// export_keep.json, run through blender_export_keep.py; part of the export key of the builds it names only
+const EXPORT_KEEP = readJSON(path.join(HERE, 'export_keep.json'), {});
+const KEEP_PY = path.join(HERE, 'blender_export_keep.py');
+const KEEP_HASH = sha(fs.readFileSync(KEEP_PY)).slice(0, 8);
+const keepArg = (s) => JSON.stringify(EXPORT_KEEP[s]);
+const keyOf = (s) => (FROZEN[s] ? ((() => { try { return fs.readFileSync(path.join(EXPORT, `${s}.key`), 'utf8'); } catch { return 'frozen'; } })()) : `${sources[s].blend_sha256}:${EXPORTER_HASH}${EXPORT_SKIP[s] ? ':skip' + sha(Buffer.from(EXPORT_SKIP[s])).slice(0, 8) : ''}${EXPORT_KEEP[s] ? ':keep' + sha(Buffer.from(keepArg(s) + KEEP_HASH)).slice(0, 8) : ''}`);
 const stateFile = (s) => path.join(EXPORT, `${s}.key`);
 const exported = (s) => fs.existsSync(stateFile(s)) && (FROZEN[s] || fs.readFileSync(stateFile(s), 'utf8') === keyOf(s))
   && fs.existsSync(path.join(EXPORT, `${s}.near.glb`)) && fs.existsSync(path.join(EXPORT, `${s}.far.glb`));
@@ -124,7 +130,7 @@ console.log(`EXPORT ${todo.length} to do (${want.length - todo.length} current),
     while (next < todo.length) {
       const s = todo[next++]; const t0 = Date.now();
       const base = path.join(EXPORT, s);
-      const r = await run(BRENDER, ['-b', sources[s].blend, '-P', EXPORT_SKIP[s] ? SKIP_PY : EXPORTER, '--', ...(EXPORT_SKIP[s] ? [EXPORT_SKIP[s]] : []), `${base}.near.glb`, `${base}.far.glb`, `${base}.json`], `${base}.log`);
+      const r = await run(BRENDER, ['-b', sources[s].blend, '-P', EXPORT_KEEP[s] ? KEEP_PY : EXPORT_SKIP[s] ? SKIP_PY : EXPORTER, '--', ...(EXPORT_KEEP[s] ? [keepArg(s), EXPORT_SKIP[s] || ''] : EXPORT_SKIP[s] ? [EXPORT_SKIP[s]] : []), `${base}.near.glb`, `${base}.far.glb`, `${base}.json`], `${base}.log`);
       const ok = r.code === 0 && /V2EXPORT/.test(r.out);
       if (ok) fs.writeFileSync(stateFile(s), keyOf(s)); else failed[s] = (r.out.match(/Error[^\n]*/) || [`exit ${r.code}`])[0].slice(0, 200);
       done++; console.log(`  [${done}/${todo.length}] ${s} ${ok ? 'ok' : 'FAILED ' + failed[s]} ${((Date.now() - t0) / 1000).toFixed(0)} s`);
@@ -233,7 +239,10 @@ async function partDoc(slugs, lod, part) {
   if (!doc.getRoot().listMeshes().some((m) => m.listPrimitives().length)) return null;
   const steps = [dedup()];
   if (lod === 1) steps.push(weld(), simplify({ simplifier: MeshoptSimplifier, ratio: FAR_SIMPLIFY_RATIO, error: FAR_SIMPLIFY_ERROR }));
-  steps.push(palette({ min: 2 }), flatten(), join({ keepNamed: false }), prune());
+  // keepSolidTextures here too (2026-10-31): the fade materials share ONE 1x1 white texture after dedup(), and prune's solid-texture pass
+  // multiplies the texture colour into each material through a shared scratch array (gltf-transform pruneSolidTextures: mul(factor, factor, ...)),
+  // so every fade material after the first took the product of all the factors before it: t_-1_-1's bollards came out black (0.219 -> 0.0044)
+  steps.push(palette({ min: 2 }), flatten(), join({ keepNamed: false }), prune({ keepSolidTextures: true }));
   await doc.transform(...steps);
   // The builders' faces are wound either way (Blender draws both sides, so nobody saw it): on 280 of 304 builds some faces that look at the sky are
   // wound downward, DKR's whole seat rake among them. Drawn single-sided those are culled and the viewer looks through them at what lies beneath
