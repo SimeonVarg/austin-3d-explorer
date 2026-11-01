@@ -124,12 +124,12 @@
       "model": "opus",
       "kind": "apartment",
       "tile": "t_-2_-1",
-      "blend_sha256": "d6e33c5e06adffb8",
+      "blend_sha256": "87e3483deb7d550b",
       "lod1": "mass",
       "placement": {
         "height_m": 51.4,
-        "area_ratio": 1.015,
-        "centre_off_m": 0.71,
+        "area_ratio": 1.014,
+        "centre_off_m": 0.62,
         "flags": []
       }
     },
@@ -333,8 +333,8 @@
       "lod1": "mass",
       "placement": {
         "height_m": 26.2,
-        "area_ratio": 0.988,
-        "centre_off_m": 0.42,
+        "area_ratio": 1.009,
+        "centre_off_m": 0.9,
         "flags": []
       }
     },
@@ -344,12 +344,12 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_-1_1",
-      "blend_sha256": "d8154a171bb2df7e",
+      "blend_sha256": "eb5d84bb110e8058",
       "lod1": "mass",
       "placement": {
         "height_m": 28.7,
-        "area_ratio": 0.997,
-        "centre_off_m": 1.19,
+        "area_ratio": 0.999,
+        "centre_off_m": 1.28,
         "flags": []
       }
     },
@@ -444,10 +444,10 @@
       "lod1": "mass",
       "placement": {
         "height_m": 33.2,
-        "area_ratio": 1.042,
-        "centre_off_m": 2.87,
+        "area_ratio": 1.044,
+        "centre_off_m": 2.97,
         "flags": [
-          "centre 2.9 m off"
+          "centre 3.0 m off"
         ]
       }
     },
@@ -1134,7 +1134,7 @@
       "model": "opus",
       "kind": "apartment",
       "tile": "t_-1_10",
-      "blend_sha256": "bcb03ada1dd13782",
+      "blend_sha256": "4439831849cf77fe",
       "lod1": "mass",
       "placement": {
         "height_m": 120.8,
@@ -1149,13 +1149,15 @@
       "model": "opus",
       "kind": "street",
       "tile": "t_-2_8",
-      "blend_sha256": "4ef69f1854236317",
+      "blend_sha256": "4143e53a7c097ac9",
       "lod1": "mass",
       "placement": {
         "height_m": 157.3,
-        "area_ratio": 0.954,
-        "centre_off_m": 1.44,
-        "flags": []
+        "area_ratio": 0.973,
+        "centre_off_m": 2.07,
+        "flags": [
+          "centre 2.1 m off"
+        ]
       }
     },
     "garrison-hall": {
@@ -1393,12 +1395,12 @@
       "model": "opus",
       "kind": "street",
       "tile": "t_-2_9",
-      "blend_sha256": "b0e45f6778ec0de4",
+      "blend_sha256": "45ef618b7f1b1aa1",
       "lod1": "mass",
       "placement": {
         "height_m": 156.9,
-        "area_ratio": 1.024,
-        "centre_off_m": 0.24,
+        "area_ratio": 1.063,
+        "centre_off_m": 0.41,
         "flags": []
       }
     },
@@ -1562,18 +1564,16 @@
     "indeed-tower": {
       "exported": true,
       "reason": null,
-      "model": "sol",
+      "model": "opus",
       "kind": "street",
       "tile": "t_-2_7",
-      "blend_sha256": "4bb3e7cab405e4b7",
+      "blend_sha256": "0f3d47407e9623cc",
       "lod1": "mass",
       "placement": {
         "height_m": 160.6,
-        "area_ratio": 1.089,
-        "centre_off_m": 2.27,
-        "flags": [
-          "centre 2.3 m off"
-        ]
+        "area_ratio": 1.041,
+        "centre_off_m": 0.63,
+        "flags": []
       }
     },
     "inspire-on-22nd": {
@@ -1612,12 +1612,12 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_1_-1",
-      "blend_sha256": "56a56d73006dfa99",
+      "blend_sha256": "6ede5f11cd40a962",
       "lod1": "mass",
       "placement": {
         "height_m": 33,
-        "area_ratio": 1.065,
-        "centre_off_m": 1.36,
+        "area_ratio": 1.057,
+        "centre_off_m": 1.15,
         "flags": []
       }
     },
@@ -2151,12 +2151,12 @@
       "model": "opus",
       "kind": "campus",
       "tile": "t_0_-1",
-      "blend_sha256": "cfa233c87fd13a12",
+      "blend_sha256": "eda43d9fdddfaf43",
       "lod1": "mass",
       "placement": {
         "height_m": 32.5,
         "area_ratio": 1.082,
-        "centre_off_m": 1.42,
+        "centre_off_m": 1.43,
         "flags": []
       }
     },
@@ -2373,12 +2373,12 @@
       "model": "opus",
       "kind": "apartment",
       "tile": "t_-3_1",
-      "blend_sha256": "835b92234a6ef93b",
+      "blend_sha256": "73adc83b04c231b5",
       "lod1": "mass",
       "placement": {
         "height_m": 23.9,
-        "area_ratio": 1.004,
-        "centre_off_m": 0.08,
+        "area_ratio": 1.003,
+        "centre_off_m": 0.07,
         "flags": []
       }
     },
@@ -2437,7 +2437,7 @@
       "model": "opus",
       "kind": "street",
       "tile": "t_-3_7",
-      "blend_sha256": "eb10c8f919b6167d",
+      "blend_sha256": "651a7ad592f69b33",
       "lod1": "mass",
       "placement": {
         "height_m": 97.6,
@@ -2689,12 +2689,12 @@
       "model": "opus",
       "kind": "apartment",
       "tile": "t_-5_8",
-      "blend_sha256": "103053dd575f57a7",
+      "blend_sha256": "0c8aac9f884d5127",
       "lod1": "mass",
       "placement": {
         "height_m": 104.7,
-        "area_ratio": 1.015,
-        "centre_off_m": 0.05,
+        "area_ratio": 1.075,
+        "centre_off_m": 1.06,
         "flags": []
       }
     },
@@ -2741,7 +2741,7 @@
       "placement": {
         "height_m": 12.2,
         "area_ratio": 1.002,
-        "centre_off_m": 0.31,
+        "centre_off_m": 0.32,
         "flags": []
       }
     },
@@ -3001,9 +3001,12 @@
       "lod1": "mass",
       "placement": {
         "height_m": 33.3,
-        "area_ratio": 1.004,
-        "centre_off_m": 0.2,
-        "flags": []
+        "area_ratio": 1.101,
+        "centre_off_m": 3.9,
+        "flags": [
+          "centre 3.9 m off",
+          "area x1.10"
+        ]
       }
     },
     "texas-supreme-court-building": {
@@ -3188,7 +3191,7 @@
       "model": "opus",
       "kind": "apartment",
       "tile": "t_-3_-1",
-      "blend_sha256": "f9fbc625330333e2",
+      "blend_sha256": "7efc36aeec214c8b",
       "lod1": "mass",
       "placement": {
         "height_m": 59,
@@ -3471,7 +3474,7 @@
       "lod1": "mass",
       "placement": {
         "height_m": 19.1,
-        "area_ratio": 0.706,
+        "area_ratio": 0.707,
         "centre_off_m": 13.49,
         "flags": [
           "centre 13.5 m off",
@@ -4287,9 +4290,11 @@
       "lod1": "mass",
       "placement": {
         "height_m": 14.1,
-        "area_ratio": 1.091,
-        "centre_off_m": 0.55,
-        "flags": []
+        "area_ratio": 1.106,
+        "centre_off_m": 0.22,
+        "flags": [
+          "area x1.11"
+        ]
       }
     },
     "west-campus-0fe2da88": {
@@ -6242,6 +6247,21 @@
         "centre_off_m": 0.19,
         "flags": []
       }
+    },
+    "jester-center": {
+      "exported": true,
+      "reason": null,
+      "model": "opus",
+      "kind": "campus",
+      "tile": "t_0_1",
+      "blend_sha256": "6ab83cb025b50f1a",
+      "lod1": "mass",
+      "placement": {
+        "height_m": 19.3,
+        "area_ratio": 1.001,
+        "centre_off_m": 1.81,
+        "flags": []
+      }
     }
   },
   "tiles": {
@@ -6259,28 +6279,28 @@
       }
     },
     "t_-1_-2": {
-      "hash": "61c068695f411096",
+      "hash": "626c14579ba3f97d",
       "near": {
-        "bytes": 1795956,
-        "tris": 167845,
+        "bytes": 1796096,
+        "tris": 167857,
         "draws": 18
       },
       "far": {
-        "bytes": 44856,
-        "tris": 3695,
+        "bytes": 44976,
+        "tris": 3701,
         "draws": 1
       }
     },
     "t_-1_-3": {
-      "hash": "1c5ba869e318aae3",
+      "hash": "05bf0ae8bed978e8",
       "near": {
-        "bytes": 613160,
-        "tris": 56593,
+        "bytes": 607420,
+        "tris": 56677,
         "draws": 2
       },
       "far": {
-        "bytes": 21244,
-        "tris": 1644,
+        "bytes": 21052,
+        "tris": 1625,
         "draws": 1
       }
     },
@@ -6311,27 +6331,27 @@
       }
     },
     "t_-1_1": {
-      "hash": "64fe541ff7dae053",
+      "hash": "fdddcb4e0ddb23f3",
       "near": {
-        "bytes": 699416,
-        "tris": 71147,
+        "bytes": 726012,
+        "tris": 73756,
         "draws": 2
       },
       "far": {
-        "bytes": 42140,
-        "tris": 3764,
+        "bytes": 42232,
+        "tris": 3762,
         "draws": 1
       }
     },
     "t_-1_10": {
-      "hash": "30f0fb0c5e40c2af",
+      "hash": "cd653285de163c93",
       "near": {
-        "bytes": 453260,
-        "tris": 36793,
+        "bytes": 453648,
+        "tris": 36817,
         "draws": 2
       },
       "far": {
-        "bytes": 7996,
+        "bytes": 8008,
         "tris": 326,
         "draws": 1
       }
@@ -6415,15 +6435,15 @@
       }
     },
     "t_-2_-1": {
-      "hash": "f6b83aba307fed44",
+      "hash": "fe240f9ef2cdb6e6",
       "near": {
-        "bytes": 1575748,
-        "tris": 172513,
+        "bytes": 1586028,
+        "tris": 174813,
         "draws": 5
       },
       "far": {
-        "bytes": 35660,
-        "tris": 3037,
+        "bytes": 35364,
+        "tris": 3004,
         "draws": 1
       }
     },
@@ -6584,54 +6604,54 @@
       }
     },
     "t_-2_7": {
-      "hash": "43db15dbef7efe46",
+      "hash": "1817881a8528282a",
       "near": {
-        "bytes": 1114020,
-        "tris": 101020,
+        "bytes": 1139352,
+        "tris": 103250,
         "draws": 2
       },
       "far": {
-        "bytes": 31520,
-        "tris": 2234,
+        "bytes": 34984,
+        "tris": 2516,
         "draws": 1
       }
     },
     "t_-2_8": {
-      "hash": "e88bdd4a8c448515",
+      "hash": "1ecbe5c2ef4e9b30",
       "near": {
-        "bytes": 209420,
-        "tris": 25072,
+        "bytes": 229628,
+        "tris": 26442,
         "draws": 3
       },
       "far": {
-        "bytes": 29936,
-        "tris": 2399,
+        "bytes": 30632,
+        "tris": 2439,
         "draws": 1
       }
     },
     "t_-2_9": {
-      "hash": "5e32d33fa3582b34",
+      "hash": "22afc70b707ba072",
       "near": {
-        "bytes": 932704,
-        "tris": 97804,
+        "bytes": 961904,
+        "tris": 102516,
         "draws": 2
       },
       "far": {
-        "bytes": 25820,
-        "tris": 1800,
+        "bytes": 28016,
+        "tris": 1888,
         "draws": 1
       }
     },
     "t_-3_-1": {
-      "hash": "b86eab318a9032ae",
+      "hash": "55ac9ae3ff08979d",
       "near": {
-        "bytes": 2302852,
-        "tris": 247682,
+        "bytes": 2303844,
+        "tris": 247760,
         "draws": 6
       },
       "far": {
-        "bytes": 40900,
-        "tris": 3327,
+        "bytes": 39704,
+        "tris": 3197,
         "draws": 1
       }
     },
@@ -6688,15 +6708,15 @@
       }
     },
     "t_-3_1": {
-      "hash": "601719d7621521c9",
+      "hash": "be20d7d7d8875cc8",
       "near": {
-        "bytes": 858388,
-        "tris": 81540,
+        "bytes": 850936,
+        "tris": 81220,
         "draws": 2
       },
       "far": {
-        "bytes": 24332,
-        "tris": 2009,
+        "bytes": 24388,
+        "tris": 2001,
         "draws": 1
       }
     },
@@ -6714,15 +6734,15 @@
       }
     },
     "t_-3_7": {
-      "hash": "387ff84e26bc5999",
+      "hash": "a6e0c1750ef275f0",
       "near": {
-        "bytes": 57992,
-        "tris": 5689,
+        "bytes": 55156,
+        "tris": 5989,
         "draws": 2
       },
       "far": {
-        "bytes": 9472,
-        "tris": 652,
+        "bytes": 9580,
+        "tris": 664,
         "draws": 1
       }
     },
@@ -6766,15 +6786,15 @@
       }
     },
     "t_-4_-2": {
-      "hash": "238abb15b5b05044",
+      "hash": "9bcae75edc2b052f",
       "near": {
-        "bytes": 1726840,
-        "tris": 168138,
+        "bytes": 1721672,
+        "tris": 168226,
         "draws": 2
       },
       "far": {
-        "bytes": 74712,
-        "tris": 6517,
+        "bytes": 75060,
+        "tris": 6559,
         "draws": 1
       }
     },
@@ -6831,15 +6851,15 @@
       }
     },
     "t_-5_-2": {
-      "hash": "e587d2a068d32618",
+      "hash": "68aedd53e81dc77e",
       "near": {
-        "bytes": 222716,
-        "tris": 21125,
+        "bytes": 223976,
+        "tris": 21292,
         "draws": 2
       },
       "far": {
-        "bytes": 17036,
-        "tris": 1228,
+        "bytes": 17952,
+        "tris": 1299,
         "draws": 1
       }
     },
@@ -6870,15 +6890,15 @@
       }
     },
     "t_-5_8": {
-      "hash": "b583ed9853909ff6",
+      "hash": "552152fa5613c910",
       "near": {
-        "bytes": 686164,
-        "tris": 60864,
+        "bytes": 697324,
+        "tris": 61670,
         "draws": 2
       },
       "far": {
-        "bytes": 24464,
-        "tris": 1850,
+        "bytes": 23884,
+        "tris": 1806,
         "draws": 1
       }
     },
@@ -6896,10 +6916,10 @@
       }
     },
     "t_0_-1": {
-      "hash": "3101234bd62bb783",
+      "hash": "4cf3577b6fe3c92e",
       "near": {
-        "bytes": 1860016,
-        "tris": 154680,
+        "bytes": 1873140,
+        "tris": 155632,
         "draws": 16
       },
       "far": {
@@ -6922,27 +6942,27 @@
       }
     },
     "t_0_-3": {
-      "hash": "afa957de20f52013",
+      "hash": "331c973d4b08b477",
       "near": {
-        "bytes": 230604,
-        "tris": 27555,
+        "bytes": 227804,
+        "tris": 27745,
         "draws": 2
       },
       "far": {
-        "bytes": 17048,
-        "tris": 1196,
+        "bytes": 17068,
+        "tris": 1201,
         "draws": 1
       }
     },
     "t_0_-4": {
-      "hash": "21a5d0fc245f8641",
+      "hash": "3e5f2ddfb96ebc07",
       "near": {
-        "bytes": 389988,
-        "tris": 33461,
+        "bytes": 390736,
+        "tris": 33569,
         "draws": 2
       },
       "far": {
-        "bytes": 17780,
+        "bytes": 17856,
         "tris": 1262,
         "draws": 1
       }
@@ -6974,15 +6994,15 @@
       }
     },
     "t_0_1": {
-      "hash": "441b8ecd87283f14",
+      "hash": "cb6d315c873b2949",
       "near": {
-        "bytes": 711112,
-        "tris": 74698,
-        "draws": 6
+        "bytes": 816384,
+        "tris": 83262,
+        "draws": 9
       },
       "far": {
-        "bytes": 77912,
-        "tris": 8887,
+        "bytes": 85360,
+        "tris": 9579,
         "draws": 1
       }
     },
@@ -7000,15 +7020,15 @@
       }
     },
     "t_0_2": {
-      "hash": "0a8e80f96dd1ea54",
+      "hash": "383cd24fd5a0ea02",
       "near": {
-        "bytes": 751724,
-        "tris": 81915,
+        "bytes": 748844,
+        "tris": 81967,
         "draws": 2
       },
       "far": {
-        "bytes": 36232,
-        "tris": 3010,
+        "bytes": 36444,
+        "tris": 3038,
         "draws": 1
       }
     },
@@ -7052,15 +7072,15 @@
       }
     },
     "t_1_-1": {
-      "hash": "64b64be54fcc9212",
+      "hash": "f727054030c70afb",
       "near": {
-        "bytes": 1155532,
-        "tris": 85405,
+        "bytes": 1160584,
+        "tris": 85775,
         "draws": 10
       },
       "far": {
-        "bytes": 37872,
-        "tris": 2987,
+        "bytes": 37556,
+        "tris": 2958,
         "draws": 1
       }
     },
@@ -7119,7 +7139,7 @@
     "t_1_0": {
       "hash": "ebeff0eba3c987e1",
       "near": {
-        "bytes": 1250084,
+        "bytes": 1249932,
         "tris": 114149,
         "draws": 14
       },
@@ -7169,15 +7189,15 @@
       }
     },
     "t_2_-1": {
-      "hash": "69ec7de271cb2c04",
+      "hash": "dfea68ebea94a64c",
       "near": {
-        "bytes": 324924,
-        "tris": 36904,
+        "bytes": 329916,
+        "tris": 37396,
         "draws": 2
       },
       "far": {
-        "bytes": 13056,
-        "tris": 791,
+        "bytes": 13280,
+        "tris": 811,
         "draws": 1
       }
     },
@@ -7247,15 +7267,15 @@
       }
     },
     "t_3_-1": {
-      "hash": "f7ea9d7f3e5a21d3",
+      "hash": "773475a60296f64c",
       "near": {
-        "bytes": 466264,
-        "tris": 61118,
+        "bytes": 457532,
+        "tris": 61130,
         "draws": 2
       },
       "far": {
-        "bytes": 13104,
-        "tris": 931,
+        "bytes": 13196,
+        "tris": 936,
         "draws": 1
       }
     },
@@ -7273,15 +7293,15 @@
       }
     },
     "t_3_0": {
-      "hash": "618cf4bd076b012c",
+      "hash": "647c49ec8e0a26e5",
       "near": {
-        "bytes": 257256,
-        "tris": 29263,
+        "bytes": 249420,
+        "tris": 29287,
         "draws": 2
       },
       "far": {
-        "bytes": 7088,
-        "tris": 364,
+        "bytes": 6828,
+        "tris": 327,
         "draws": 1
       }
     },

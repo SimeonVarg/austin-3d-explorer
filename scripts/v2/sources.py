@@ -25,8 +25,9 @@ TILE_M = 250.0                                  # tiles are squares of this side
 MODEL_KEY = {'claude-opus-5-5': 'opus', 'gpt-6.1-sol': 'sol', 'claude-sonnet-5-5': 'sonnet'}
 # where each builder's output lives inside a package folder (the newest qualifying .blend wins)
 # out-v2: the 2026-10-18 DKR Memorial Stadium rebuild (the only package with one) lives there
+# out-v5: Norman Hackerman round 2 (2026-10-31: louvred sunscreen, dark colonnade glass, entrance planters)
 # out-v3: E. P. Schoch rebuilt through the owner's photo cameras (2026-10-26, PR #561; the only package with one)
-OUT_DIRS = {'opus': ('out-opus', 'out-opus-*', 'out-v2', 'out-v3', 'out-v4'), 'sonnet': ('out-sonnet', 'out-sonnet-*', 'out-opus-glass', 'detail-sonnet'), 'sol': ('out-sol', 'out-sol-*')}
+OUT_DIRS = {'opus': ('out-opus', 'out-opus-*', 'out-v2', 'out-v3', 'out-v4', 'out-v5'), 'sonnet': ('out-sonnet', 'out-sonnet-*', 'out-opus-glass', 'detail-sonnet'), 'sol': ('out-sol', 'out-sol-*')}
 NOT_A_MODEL = re.compile(r'(_before_|\.before-|^work\.blend$|\.blend\d+$)')
 # the ledger's slug and the package folder's name differ for these (checked by hand, 2026-10-17)
 ALIASES = {'the-venue': 'the-venue-on-guadalupe', 'villas-at-san-gabriel': 'villas-san-gabriel', 'texas-hillel': 'texas-hillel-foundation',
