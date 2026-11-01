@@ -3586,22 +3586,23 @@
  },
  "campus-e4eacc40": {
   "materials": {
-   "wall_stucco": {
-    "albedo": "scripts/v2/materials/hogg-memorial-auditorium/stucco_albedo.jpg",
+   "wall_brick": {
+    "albedo": "scripts/v2/materials/biological-laboratories/brick_albedo.jpg",
+    "normal": "scripts/v2/materials/biological-laboratories/brick_normal.jpg",
     "repeat_m": [
-     1.6,
-     1.6
+     1.0172,
+     1.0672
     ],
     "factor": [
-     0.5107,
-     0.471,
-     0.4035
+     0.1223,
+     0.0839,
+     0.0596
     ],
-    "source": "SHARED LIBRARY: Hogg Auditorium stucco (owner photo 2026-10-03, light divided out), re-tinted per building; colour: partly (Earth h225: pale walls, white membrane roof, U plan) (batch pilot 2026-10-27)",
+    "source": "SHARED LIBRARY: Biological Laboratories brick (owner photo, light divided out), re-tinted to Google Maps Street View, Mar 2024, from Red River (east face: brick, tile mansard edge, white entrance panel, red screen, steps, white bay) (walls pass 2026-10-28)",
     "mean_rgb": [
-     0.2557,
-     0.2354,
-     0.2022
+     0.0611,
+     0.0342,
+     0.0191
     ]
    },
    "roof_flat": {
@@ -3615,7 +3616,7 @@
      0.3212,
      0.3808
     ],
-    "source": "SHARED LIBRARY: pale flat membrane roof cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
+    "source": "SHARED LIBRARY: pale flat membrane roof (owner rooftop photo 088, de-lit), re-tinted to Google Maps Street View, Mar 2024, from Red River (east face: brick, tile mansard edge, white entrance panel, red screen, steps, white bay) (walls pass 2026-10-28)",
     "mean_rgb": [
      0.2441,
      0.2441,
@@ -3625,12 +3626,49 @@
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "walls pass 2026-10-28: colours sampled from the Street View frame (sRGB x rig scale 0.35), texture mean scaled to them"
   },
-  "filter": {
-   "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+  "fade": {
+   "roof_tile": {
+    "to": [
+     0.1549,
+     0.1328,
+     0.1251
+    ],
+    "size_m": 0.5
+   },
+   "frame": {
+    "to": [
+     0.0384,
+     0.024,
+     0.0152
+    ],
+    "size_m": 0.06
+   },
+   "pane_window": {
+    "to": [
+     0.0362,
+     0.0222,
+     0.0143
+    ],
+    "size_m": 0.5
+   },
+   "trim_brown": {
+    "to": [
+     0.0413,
+     0.0227,
+     0.0132
+    ],
+    "size_m": 0.12
+   },
+   "stucco_grey": {
+    "to": [
+     0.0927,
+     0.0913,
+     0.0736
+    ],
+    "size_m": 1.1
+   }
   }
  },
  "campus-a57f6fe3": {
@@ -3791,29 +3829,29 @@
      1.0544
     ],
     "factor": [
-     0.301,
-     0.1924,
-     0.1812
+     0.2399,
+     0.1672,
+     0.1018
     ],
-    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo IMG_0994, light divided out), re-tinted per building; colour: seen (Earth h045: salmon brick, brown roof); low hip roof (Earth + aerial), ridge = scan p99 (batch pilot 2026-10-27)",
+    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo, light divided out), re-tinted to Google Maps Street View, Mar 2024, from Red River (east end wall: salmon brick, aggregate strip, deep eaves; pool fence) (walls pass 2026-10-28)",
     "mean_rgb": [
-     0.1698,
-     0.0756,
-     0.0525
+     0.1353,
+     0.0657,
+     0.0295
     ]
    },
    "roof_shingle": {
     "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
     "repeat_m": [
-     13.448,
-     5.37
+     3.0,
+     3.0
     ],
     "factor": [
      0.2064,
      0.2034,
      0.2159
     ],
-    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
+    "source": "SHARED LIBRARY: shingle roof (library, de-lit), re-tinted to Google Maps Street View, Mar 2024, from Red River (east end wall: salmon brick, aggregate strip, deep eaves; pool fence) (walls pass 2026-10-28)",
     "mean_rgb": [
      0.058,
      0.058,
@@ -3824,12 +3862,49 @@
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "walls pass 2026-10-28: colours sampled from the Street View frame (sRGB x rig scale 0.35), texture mean scaled to them"
   },
-  "filter": {
-   "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+  "fade": {
+   "frame": {
+    "to": [
+     0.1475,
+     0.1127,
+     0.0897
+    ],
+    "size_m": 0.06
+   },
+   "pane_window": {
+    "to": [
+     0.0723,
+     0.0374,
+     0.0193
+    ],
+    "size_m": 1.2
+   },
+   "rail_dark": {
+    "to": [
+     0.0791,
+     0.0704,
+     0.047
+    ],
+    "size_m": 0.08
+   },
+   "picket": {
+    "to": [
+     0.0845,
+     0.0752,
+     0.0501
+    ],
+    "size_m": 0.02
+   },
+   "aggregate": {
+    "to": [
+     0.1234,
+     0.0824,
+     0.0476
+    ],
+    "size_m": 0.64
+   }
   }
  },
  "campus-1c9f83e8": {
@@ -3842,29 +3917,29 @@
      1.0544
     ],
     "factor": [
-     0.301,
-     0.1924,
-     0.1812
+     0.1948,
+     0.1336,
+     0.0849
     ],
-    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo IMG_0994, light divided out), re-tinted per building; colour: seen (Earth h045: salmon brick, brown roof); low hip roof (Earth + aerial), ridge = scan p99 (batch pilot 2026-10-27)",
+    "source": "SHARED LIBRARY: Welch Hall modular brick (owner photo, light divided out), re-tinted to Google Maps Street View, Mar 2024, from Red River (east end wall: salmon brick, aggregate strip, deep eaves; pool fence) (walls pass 2026-10-28)",
     "mean_rgb": [
-     0.1698,
-     0.0756,
-     0.0525
+     0.1099,
+     0.0525,
+     0.0246
     ]
    },
    "roof_shingle": {
     "albedo": "scripts/v2/materials/_library/shingle_albedo.jpg",
     "repeat_m": [
-     13.448,
-     5.37
+     3.0,
+     3.0
     ],
     "factor": [
      0.2196,
      0.2163,
      0.2297
     ],
-    "source": "SHARED LIBRARY: grey asphalt shingle cut from the owner rooftop photo 088 (2026-10-11), light divided out, seamless; re-tinted per building; colour: City of Austin 2025 aerial, median inside outline, x per-channel roof scale [0.28, 0.284, 0.271] (calibrated on 16 photo-built roofs)",
+    "source": "SHARED LIBRARY: shingle roof (library, de-lit), re-tinted to Google Maps Street View, Mar 2024, from Red River (east end wall: salmon brick, aggregate strip, deep eaves; pool fence) (walls pass 2026-10-28)",
     "mean_rgb": [
      0.0617,
      0.0617,
@@ -3875,12 +3950,49 @@
   },
   "wall_max_ny": 0.75,
   "anchor": {
-   "why": "batch run: wall colour = one Earth 3D frame or the street prior x rig scale 0.35 (build/table.json defaults); texture mean scaled back to it"
+   "why": "walls pass 2026-10-28: colours sampled from the Street View frame (sRGB x rig scale 0.35), texture mean scaled to them"
   },
-  "filter": {
-   "anisotropy": 8,
-   "lod_bias": -0.5,
-   "why": "rule 15 soft gate (batch 2026-10-27): at 120 m the default mip left the stucco/membrane textures blurrier than the 3x3 supersampled truth (soft +0.14 on t_4_-3); a sharper mip with anisotropy brings them to the truth, shimmer has headroom"
+  "fade": {
+   "frame": {
+    "to": [
+     0.1348,
+     0.1061,
+     0.0873
+    ],
+    "size_m": 0.06
+   },
+   "pane_window": {
+    "to": [
+     0.0595,
+     0.0308,
+     0.0169
+    ],
+    "size_m": 1.2
+   },
+   "rail_dark": {
+    "to": [
+     0.0585,
+     0.0585,
+     0.0399
+    ],
+    "size_m": 0.08
+   },
+   "picket": {
+    "to": [
+     0.0624,
+     0.0624,
+     0.0425
+    ],
+    "size_m": 0.02
+   },
+   "aggregate": {
+    "to": [
+     0.096,
+     0.0673,
+     0.0401
+    ],
+    "size_m": 0.3
+   }
   }
  },
  "campus-11fab8de": {
