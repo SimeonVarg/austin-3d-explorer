@@ -1,4 +1,4 @@
-"""Bake the classified ground near buildings for v2 (v2/ground-near.js): data/ground.geojson -> v2/data/ground/near.json.
+"""Bake the classified ground near buildings for v2 (v2/ground-near.js): data/ground.geojson -> v2/data/ground/near/ (index.json + one file per CELL_M cell).
 
 data/ground.geojson is the repo's own surface inventory (scripts/bake_ground.py: OSM surfaces, landuse, plazas, campus lawns and
 beds, the City's sidewalk slabs). This keeps the five surfaces the street-level ground draws and drops what other layers draw
@@ -10,7 +10,9 @@ beds, the City's sidewalk slabs). This keeps the five surfaces the street-level 
   4 concrete  walks, slabs, plazas        (pathslab, patharea / area / cyclearea with s = concrete, aggregate, roadconcrete, None)
   5 asphalt   parking and paved lots      (area / patharea / cyclearea with s = asphalt)
 
-Output: { origin, classes, f: [[class, ring0, ring1...]...] } with rings as flat [x, z, x, z...] in decimetres of the v2 frame
+Output (2026-10-31: split by cell, so a phone loads only the ground around its camera): near/index.json { classes, unit_m, cell_m,
+cells: ["cx_cz"...], veg: [i0, i1] (the aerial lawns' global indices, for ?groundveg=0) } and near/<cx>_<cz>.json { f: [[index, class,
+ring0, ring1...]...] } (a feature is in every cell its bounds touch; index = its global painter's order), with rings as flat [x, z, x, z...] in decimetres of the v2 frame
 (v2/geo.js toLocal: x east, z south), in painter's order (later draws over earlier: lawns first, sidewalk slabs last).
 
   python3 scripts/v2/ground_near.py
@@ -20,7 +22,9 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SRC = os.path.join(ROOT, 'data', 'ground.geojson')
-OUT = os.path.join(ROOT, 'v2', 'data', 'ground', 'near.json')
+OUT = os.path.join(ROOT, 'v2', 'data', 'ground', 'near')
+CELL_M = 128                                   # cell side: the 256 m class window touches 3x3 to 4x4 cells
+BIG_CELLS = 4                                  # a feature touching more cells than this goes to big.json (loaded once) instead of every cell
 ORIGIN = (30.28601, -97.73932)                 # v2/geo.js ORIGIN (lat, lon)
 R = 6378137.0
 KX = R * math.pi / 180 * math.cos(ORIGIN[0] * math.pi / 180)
@@ -33,7 +37,7 @@ PAINT_OUT = os.path.join(ROOT, 'v2', 'data', 'ground', 'paint.json')   # the ove
 PAINT_COLORS = {'white': 0, 'yellow': 1}
 NAMES = {'pavers': 1, 'grass': 2, 'bed': 3, 'concrete': 4, 'asphalt': 5}
 
-PAVERS = {'paving', 'brick', 'paving_stones', 'limestone'}
+PAVERS = {'paving', 'brick', 'brickpave', 'paving_stones', 'limestone'}   # brickpave: GDC's brick walks (was dropped, 2026-10-31)
 GRASS = {'gardenlawn', 'turf', 'grass'}
 BED = {'bed', 'scrub', 'understorey', 'dirt', 'wood'}
 CONCRETE = {'concrete', 'aggregate', 'roadconcrete', None}
@@ -63,6 +67,13 @@ AERIAL_FALLBACK = {'canopy-ground': None, 'surface-default': 4}
 LOT_MAX_M2 = 0                                 # OFF: 20000 painted asphalt over Hogg's sidewalk (OSM road areas run to the building line)
 # ...except under a mapped tree crown, where the aerial sees the crown and not the ground (Hogg's planted bed under the West Mall
 # oaks read as concrete without this): there a guessed lawn stays lawn, drawn as the crown's disc inside the guessed extent.
+# Lawns and planting beds read off the 2025 aerial at z19 (scripts/v2/ground_veg.py, 2026-10-31): drawn over ground the inventory
+# does not name and over its guesses (GUESS_UNDER_VEG), under everything it maps (paths, slabs, plazas, lots, beds). In 9 of 10 owner
+# photos the app drew pale paving where he shows lawn, ground cover or mulch; the z16 hint could not see strips, crowns or winter beds.
+VEG = os.path.join(ROOT, 'data', 'ground_veg.json')
+VEG_RANK = 0.5                                 # painter's rank: over mapped lawns (0), under mapped beds (1) and every hard surface
+GUESS_RANK = -0.5                              # guessed surfaces (AERIAL_DECIDES, surface-default concrete) go under the aerial's lawns
+GUESS_UNDER_VEG = {'canopy-ground', 'surface-default'}
 TREES = [os.path.join(ROOT, 'v2', 'data', 'trees', n) for n in ('city.json', 'osm.json')]
 CROWN_SCALE = 0.85                             # x the mapped crown radius (crowns are measured to the leaf tips)
 CROWN_SIDES = 16
@@ -167,7 +178,7 @@ def main():
                 flat = [v for x, z in pts for v in (round(x * 10), round(z * 10))]
                 a = abs(sum(xs[i] * zs[i - 1] - xs[i - 1] * zs[i] for i in range(len(xs)))) / 2
                 if a < MIN_AREA_M2: continue
-                out.append((rank('area', ac, a), [ac, flat])); counts['aerial_%d' % ac] = counts.get('aerial_%d' % ac, 0) + 1
+                out.append(((GUESS_RANK, -a), [ac, flat])); counts['aerial_%d' % ac] = counts.get('aerial_%d' % ac, 0) + 1
         if c is None and guessed(p) and p.get('s') in GRASS and g['type'] in ('Polygon', 'MultiPolygon'):
             for poly in ([g['coordinates']] if g['type'] == 'Polygon' else g['coordinates']):
                 ring = [((lon - ORIGIN[1]) * KX, -(lat - ORIGIN[0]) * KZ) for lon, lat in poly[0]]
@@ -193,14 +204,22 @@ def main():
             if max(xs) < BOX[0] * 10 or min(xs) > BOX[2] * 10 or max(zs) < BOX[1] * 10 or min(zs) > BOX[3] * 10: continue
             a = abs(sum(xs[i] * zs[i - 1] - xs[i - 1] * zs[i] for i in range(len(xs)))) / 200.0
             if a < MIN_AREA_M2: continue
-            out.append((rank(p['k'], c, a), [c] + rings))
+            r0 = rank(p['k'], c, a)
+            if (p.get('_src') or {}).get('s') in GUESS_UNDER_VEG and c != 5: r0 = (GUESS_RANK, r0[1])   # a defaulted courtyard / patio
+            out.append((r0, [c] + rings))
             counts[c] = counts.get(c, 0) + 1
             if c in (1, 4):                      # holes in a plaza or walk: the beds and planters it was mapped around
                 for h in rings[1:]:
                     hx, hz = h[0::2], h[1::2]
                     ha = abs(sum(hx[i] * hz[i - 1] - hx[i - 1] * hz[i] for i in range(len(hx)))) / 200.0
                     if MIN_AREA_M2 <= ha <= HOLE_BED_MAX_M2:
-                        r0 = rank(p['k'], c, a); out.append(((r0[0], r0[1] + 1e-3), [3, h])); counts['hole_beds'] = counts.get('hole_beds', 0) + 1
+                        out.append(((r0[0], r0[1] + 1e-3), [3, h])); counts['hole_beds'] = counts.get('hole_beds', 0) + 1
+    if os.path.exists(VEG):
+        for f in json.load(open(VEG))['f']:
+            xs, zs = f[1][0::2], f[1][1::2]
+            if max(xs) < BOX[0] * 10 or min(xs) > BOX[2] * 10 or max(zs) < BOX[1] * 10 or min(zs) > BOX[3] * 10: continue
+            a = abs(sum(xs[i] * zs[i - 1] - xs[i - 1] * zs[i] for i in range(len(xs)))) / 200.0
+            out.append(((VEG_RANK, -a), f)); counts['veg_%d' % f[0]] = counts.get('veg_%d' % f[0], 0) + 1
     ovr = json.load(open(OVR))
     lines = [[PAINT_COLORS[g['color']], 0, 0, 0] + l for g in ovr.get('paint', []) for l in g['lines']]   # street_near.js lane rows: colour, solid
     with open(PAINT_OUT, 'w') as fh:
@@ -210,13 +229,29 @@ def main():
     for o in ovr['features']:           # photo overrides: drawn last
         out.append(((9, 0), [NAMES[o['class']], [round(v * 10) for v in o['ring']]])); counts['override'] = counts.get('override', 0) + 1
     out.sort(key=lambda r: r[0])
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    veg = [i for i, r in enumerate(out) if r[0][0] == VEG_RANK]
+    import shutil
+    shutil.rmtree(OUT, ignore_errors=True); os.makedirs(OUT)
+    cells = {}; big = []
+    for i, (_, f) in enumerate(out):
+        xs, zs = f[1][0::2], f[1][1::2]
+        span = (math.floor(max(xs) / (CELL_M * 10)) - math.floor(min(xs) / (CELL_M * 10)) + 1) * (math.floor(max(zs) / (CELL_M * 10)) - math.floor(min(zs) / (CELL_M * 10)) + 1)
+        if span > BIG_CELLS: big.append([i] + f); continue
+        for cx in range(math.floor(min(xs) / (CELL_M * 10)), math.floor(max(xs) / (CELL_M * 10)) + 1):
+            for cz in range(math.floor(min(zs) / (CELL_M * 10)), math.floor(max(zs) / (CELL_M * 10)) + 1):
+                cells.setdefault('%d_%d' % (cx, cz), []).append([i] + f)
+    for k, fs in cells.items():
+        with open(os.path.join(OUT, k + '.json'), 'w') as fh: json.dump({'f': fs}, fh, separators=(',', ':'))
     doc = {'about': 'Classified ground near buildings for v2/ground-near.js (scripts/v2/ground_near.py from data/ground.geojson: '
-                    'OpenStreetMap ODbL + City of Austin open data). Rings in decimetres of the v2 frame, painter\'s order.',
+                    'OpenStreetMap ODbL + City of Austin open data; lawns and beds from the City 2025 aerial, data/ground_veg.json). '
+                    'Rings in decimetres of the v2 frame, painter\'s order = index; one file per cell.',
            'classes': {'1': 'pavers', '2': 'grass', '3': 'bed', '4': 'concrete', '5': 'asphalt'},
-           'unit_m': 0.1, 'f': [r[1] for r in out]}
-    with open(OUT, 'w') as fh: json.dump(doc, fh, separators=(',', ':'))
-    print('features', len(out), 'by class', counts, 'bytes', os.path.getsize(OUT))
+           'unit_m': 0.1, 'cell_m': CELL_M, 'cells': sorted(cells), 'count': len(out), 'veg': [veg[0], veg[-1] + 1] if veg else [0, 0]}
+    with open(os.path.join(OUT, 'index.json'), 'w') as fh: json.dump(doc, fh, separators=(',', ':'))
+    with open(os.path.join(OUT, 'big.json'), 'w') as fh: json.dump({'f': big}, fh, separators=(',', ':'))
+    assert not veg or veg[-1] + 1 - veg[0] == len(veg)
+    size = sum(os.path.getsize(os.path.join(OUT, n)) for n in os.listdir(OUT))
+    print('features', len(out), 'by class', counts, 'cells', len(cells), 'bytes', size, 'largest cell', max(os.path.getsize(os.path.join(OUT, n)) for n in os.listdir(OUT)))
 
 
 if __name__ == '__main__':

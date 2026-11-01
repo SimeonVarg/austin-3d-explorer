@@ -74,6 +74,94 @@
         244.7,
         -286.0
       ]
+    },
+    {
+      "class": "bed",
+      "why": "McCombs east entrance, owner photo IMG_1126 (whole-frame review 2026-10-31): the ground between the walk and the clipped hedge is a dark mulch bed with a gravel edge; the inventory's walk polygon runs over it and drew it as pale concrete. Outlined on the photo and carried to the ground through the photo's solved camera.",
+      "ring": [
+        170.94,
+        230.42,
+        169.28,
+        227.85,
+        171.75,
+        228.14,
+        172.35,
+        229.37,
+        172.21,
+        229.68,
+        171.8,
+        230.25
+      ]
+    },
+    {
+      "class": "grass",
+      "why": "McCombs east entrance, owner photo IMG_1126 (whole-frame review 2026-10-31): at the foot of the granite planter wall, left of the walk, is a strip of low green ground cover; nothing in the inventory names it and the aerial sees the wall's shadow. Outlined on the photo, carried to the ground through the solved camera.",
+      "ring": [
+        166.03,
+        240.76,
+        163.52,
+        237.76,
+        165.19,
+        236.55,
+        167.35,
+        236.6,
+        169.53,
+        236.56
+      ]
+    },
+    {
+      "class": "bed",
+      "why": "Moffett Molecular Biology courtyard, owner photo IMG_0964 (whole-frame review 2026-10-31): left of the brick walk are planting beds (shrubs and flowers in mulch); the inventory has one City courtyard polygon, defaulted, and the z19 aerial reads the January beds as paving. Outlined on the photo, carried to the ground through the solved camera.",
+      "ring": [
+        175.82,
+        -292.32,
+        176.08,
+        -282.9,
+        166.79,
+        -284.32,
+        163.46,
+        -285.49,
+        160.84,
+        -285.28,
+        160.56,
+        -285.74
+      ]
+    },
+    {
+      "class": "bed",
+      "why": "Moffett Molecular Biology courtyard, owner photo IMG_0964 (whole-frame review 2026-10-31): right of the brick walk is a planting bed (shrubs in mulch), as on the left. Outlined on the photo, carried to the ground through the solved camera.",
+      "ring": [
+        173.2,
+        -274.23,
+        174.3,
+        -269.45,
+        160.71,
+        -278.25,
+        161.39,
+        -278.12,
+        163.8,
+        -277.3,
+        167.15,
+        -276.48
+      ]
+    },
+    {
+      "class": "grass",
+      "why": "T. S. Painter Hall west wall, owner photo IMG_0768 (whole-frame review 2026-10-31): between the car park's curb and the building's base runs a lawn strip by the ramp; nothing in the inventory names it and at the z16 and z19 aerial it sits in the building's shadow. Outlined on the photo, carried to the ground through the solved camera.",
+      "ring": [
+        64.87,
+        -97.8,
+        71.6,
+        -73.04,
+        66.46,
+        -65.18,
+        46.87,
+        -74.97,
+        41.36,
+        -87.17,
+        36.45,
+        -96.07
+      ]
     }
   ],
   "paint": [

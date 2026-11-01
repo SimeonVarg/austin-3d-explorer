@@ -2,7 +2,8 @@
 // concrete, brick / stone pavers, lawn, planting beds and asphalt, with textures cut from the owner's photographs, instead of the
 // City's aerial photograph. Far away the aerial stays. Values: street-look.js GROUND_NEAR_LOOK (rule 11); ?groundnear=0 turns it off.
 //
-// How: the inventory (v2/data/ground/near.json, scripts/v2/ground_near.py) is rasterised with antialiasing into a class window
+// How: the inventory (v2/data/ground/near/, scripts/v2/ground_near.py; one file per 128 m cell, fetched only around a low camera, so
+// a phone never holds the whole city's ground) is rasterised with antialiasing into a class window
 // around the camera (RGBA: R pavers, G lawn, B bed, RGB all = asphalt, A = mapped; mapped with no colour = concrete). The aerial
 // tiles' own shader (ground.js) reads the window, decodes the five surfaces, takes ground the inventory does not name from the
 // aerial's colour, and crossfades to the aerial by distance. No new geometry and no new draw: the aerial quads are the ground.
@@ -12,12 +13,15 @@
 import { GROUND_NEAR_LOOK as GN } from './street-look.js';
 
 const params = new URLSearchParams(location.search);
-const DATA = new URL('./data/ground/near.json', import.meta.url).href;
+const DATA = new URL('./data/ground/near/', import.meta.url).href;
+const KEEP_CELLS = 64;                         // cells kept in memory (least recently used go first); the window needs at most 16
 const MAT = new URL('./data/materials/', import.meta.url).href;
 const SURF = ['CONCRETE', 'PAVERS', 'GRASS', 'BED', 'ASPHALT'];
 const FILL = { 1: 'rgb(255,0,0)', 2: 'rgb(0,255,0)', 3: 'rgb(0,0,255)', 4: 'rgb(0,0,0)', 5: 'rgb(255,255,255)' };
 
 export function groundNearEnabled() { return GN.ON && params.get('groundnear') !== '0'; }
+// ?groundveg=0 leaves out the lawns and beds read off the z19 aerial (scripts/v2/ground_veg.py); window.__v2groundNear.setVeg(bool) flips
+// it in place (the shimmer A/B in one page load, scripts/verify/v2-ground-shimmer.mjs)
 
 // The GLSL the aerial shader gets (ground.js patch): declarations, and the code that turns the aerial albedo `aer` into the
 // drawn ground's albedo near the camera. Needs: vGroundXZ (world xz), vViewPosition, vMapUv, map, mk (the shadow mask sample).
@@ -114,37 +118,61 @@ export function installGroundNear({ THREE, scene, camera, renderer, redraw, phon
     gnShadowLight: { value: GN.HINT_SHADOW_LIGHT },
   };
 
-  // ── the inventory, bucketed ──
-  let feats = null; const buckets = new Map(); const B = GN.BUCKET_M;
-  fetch(DATA).then((r) => r.json()).then((d) => {
-    const u = d.unit_m || 0.1;
-    feats = d.f.map((f, i) => {
-      const rings = f.slice(1).map((r) => Float32Array.from(r, (v) => v * u));
-      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-      const o = rings[0]; for (let k = 0; k < o.length; k += 2) { x0 = Math.min(x0, o[k]); x1 = Math.max(x1, o[k]); z0 = Math.min(z0, o[k + 1]); z1 = Math.max(z1, o[k + 1]); }
-      for (let bx = Math.floor(x0 / B); bx <= Math.floor(x1 / B); bx++) for (let bz = Math.floor(z0 / B); bz <= Math.floor(z1 / B); bz++) {
-        const k = bx + ',' + bz; (buckets.get(k) || buckets.set(k, []).get(k)).push(i);
-      }
-      return { c: f[0], rings, x0, x1, z0, z1 };
-    });
-    stats.features = feats.length; lastC = null; redraw();
+  // ── the inventory, by cell ──
+  let index = null, vegOn = params.get('groundveg') !== '0';
+  const big = [], cells = new Map();            // key -> { feats, used } | 'loading'
+  const parse = (u, rows) => rows.map((f) => {
+    const rings = f.slice(2).map((r) => Float32Array.from(r, (v) => v * u));
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    const o = rings[0]; for (let k = 0; k < o.length; k += 2) { x0 = Math.min(x0, o[k]); x1 = Math.max(x1, o[k]); z0 = Math.min(z0, o[k + 1]); z1 = Math.max(z1, o[k + 1]); }
+    return { i: f[0], c: f[1], rings, x0, x1, z0, z1 };
+  });
+  Promise.all([fetch(DATA + 'index.json').then((r) => r.json()), fetch(DATA + 'big.json').then((r) => r.json())]).then(([d, b]) => {
+    index = { ...d, has: new Set(d.cells) }; big.push(...parse(d.unit_m || 0.1, b.f));
+    stats.features = d.count; dirty = true; redraw();
   }).catch((e) => { stats.error = e.message; console.warn('[v2 ground-near]', e.message); });
+  const cellKeys = (x0, z0, size) => {
+    const C = index.cell_m, out = [];
+    for (let cx = Math.floor(x0 / C); cx <= Math.floor((x0 + size) / C); cx++) for (let cz = Math.floor(z0 / C); cz <= Math.floor((z0 + size) / C); cz++) {
+      const k = cx + '_' + cz; if (index.has.has(k)) out.push(k);
+    }
+    return out;
+  };
+  let tick = 0, dirty = false;
+  function want(keys) {                         // true when every cell is in memory; starts the fetches of the rest
+    let ready = true;
+    for (const k of keys) {
+      const c = cells.get(k);
+      if (c && c !== 'loading') { c.used = ++tick; continue; }
+      ready = false; if (c) continue;
+      cells.set(k, 'loading'); stats.fetches++;
+      fetch(DATA + k + '.json').then((r) => r.json()).then((d) => { cells.set(k, { feats: parse(index.unit_m || 0.1, d.f), used: ++tick }); dirty = true; redraw(); })
+        .catch((e) => { cells.set(k, { feats: [], used: ++tick }); dirty = true; stats.error = e.message; });
+    }
+    if (cells.size > KEEP_CELLS) {
+      const old = [...cells].filter(([, c]) => c !== 'loading').sort((a, b) => a[1].used - b[1].used).slice(0, cells.size - KEEP_CELLS);
+      for (const [k] of old) cells.delete(k);
+    }
+    stats.cells = cells.size; stats.loading = [...cells.values()].filter((c) => c === 'loading').length;
+    return ready;
+  }
 
   // ── the class window ──
   const canvas = document.createElement('canvas'); canvas.width = canvas.height = NPX;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  let lastC = null; const stats = { features: 0, rasters: 0, lastMs: 0, window: null };
+  let lastC = null; const stats = { features: 0, rasters: 0, lastMs: 0, window: null, fetches: 0, cells: 0 };
   function raster(cx, cz) {
     const t0 = performance.now();
     const x0 = cx - SIZE / 2, z0 = cz - SIZE / 2;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, NPX, NPX);
     ctx.setTransform(1 / RES, 0, 0, 1 / RES, -x0 / RES, -z0 / RES);
     const seen = new Set(), list = [];
-    for (let bx = Math.floor(x0 / B); bx <= Math.floor((x0 + SIZE) / B); bx++) for (let bz = Math.floor(z0 / B); bz <= Math.floor((z0 + SIZE) / B); bz++)
-      for (const i of buckets.get(bx + ',' + bz) || []) if (!seen.has(i)) { seen.add(i); list.push(i); }
-    list.sort((a, b) => a - b);                   // painter's order of the bake
-    for (const i of list) {
-      const f = feats[i];
+    const add = (f) => { if (seen.has(f.i) || f.x1 < x0 || f.x0 > x0 + SIZE || f.z1 < z0 || f.z0 > z0 + SIZE) return;
+      if (!vegOn && f.i >= index.veg[0] && f.i < index.veg[1]) return; seen.add(f.i); list.push(f); };
+    big.forEach(add);
+    for (const k of cellKeys(x0, z0, SIZE)) { const c = cells.get(k); if (c && c !== 'loading') c.feats.forEach(add); }
+    list.sort((a, b) => a.i - b.i);                 // painter's order of the bake
+    for (const f of list) {
       ctx.beginPath();
       for (const r of f.rings) { ctx.moveTo(r[0], r[1]); for (let k = 2; k < r.length; k += 2) ctx.lineTo(r[k], r[k + 1]); ctx.closePath(); }
       ctx.fillStyle = FILL[f.c]; ctx.fill('evenodd');
@@ -159,15 +187,17 @@ export function installGroundNear({ THREE, scene, camera, renderer, redraw, phon
     prev.call(this, r, s, c, t);
     if (t || c !== camera) return;
     const low = c.position.y < GN.MAX_CAMERA_Y_M;
-    U.gnOn.value = low && feats && lastC && !pending ? 1 : 0;
-    if (!low || !feats || pending) return;
-    if (!lastC || Math.hypot(c.position.x - lastC[0], c.position.z - lastC[1]) > SLACK) {
-      lastC = [Math.round(c.position.x / 8) * 8, Math.round(c.position.z / 8) * 8];
-      raster(lastC[0], lastC[1]);
+    U.gnOn.value = low && index && lastC && !pending ? 1 : 0;
+    if (!low || !index || pending) return;
+    if (!lastC || dirty || Math.hypot(c.position.x - lastC[0], c.position.z - lastC[1]) > SLACK) {
+      const C = [Math.round(c.position.x / 8) * 8, Math.round(c.position.z / 8) * 8];
+      if (!want(cellKeys(C[0] - SIZE / 2, C[1] - SIZE / 2, SIZE))) return;   // waits for its cells (drawn ground stays as it was)
+      lastC = C; dirty = false; raster(lastC[0], lastC[1]);
       U.gnOn.value = 1;
     }
   };
-  const api = { uniforms: U, stats: () => ({ ...stats, on: U.gnOn.value, slack: SLACK }) };
+  const api = { uniforms: U, stats: () => ({ ...stats, on: U.gnOn.value, slack: SLACK, veg: vegOn }),
+    setVeg: (on) => { vegOn = !!on; if (lastC) raster(lastC[0], lastC[1]); redraw(); } };
   window.__v2groundNear = api;
   return api;
 }
