@@ -4231,7 +4231,42 @@
     ]
    }
   },
-  "concrete_note": "2026-10-31: a board-formed concrete texture from the entrance photo was tried and dropped: at 120 m east it read 0.02 softer than main (the soft gate, rule 15), and its streaks only read up close. The concrete stays the build's gated plain colour."
+  "concrete_note": "2026-10-31: a board-formed concrete texture from the entrance photo was tried and dropped: at 120 m east it read 0.02 softer than main (the soft gate, rule 15), and its streaks only read up close. The concrete stays the build's gated plain colour.",
+  "fade": {
+   "umbrella_pole": {
+    "to": [
+     0.0446,
+     0.036,
+     0.0351
+    ],
+    "size_m": 0.05
+   },
+   "furniture_steel": {
+    "to": [
+     0.0446,
+     0.036,
+     0.0351
+    ],
+    "size_m": 0.05
+   },
+   "flower_yellow": {
+    "to": [
+     0.012,
+     0.022,
+     0.006
+    ],
+    "size_m": 0.22
+   },
+   "flower_orange": {
+    "to": [
+     0.012,
+     0.022,
+     0.006
+    ],
+    "size_m": 0.22
+   }
+  },
+  "fade_note": "2026-10-31 round 3: the plaza's umbrella poles and table frames fade to the pavers, the shrub's flower clusters to its leaves, by their size on screen (rule 15)"
  },
  "engineering-education-and-research-center": {
   "wall_max_ny": 0.75,
