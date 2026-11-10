@@ -6266,9 +6266,9 @@
   },
   "tiles": {
     "t_-1_-1": {
-      "hash": "4ce0e82b76f196ee",
+      "hash": "33bd91e9be3e041f",
       "near": {
-        "bytes": 3078100,
+        "bytes": 2714168,
         "tris": 209992,
         "draws": 14
       },
@@ -6331,11 +6331,11 @@
       }
     },
     "t_-1_1": {
-      "hash": "459dc147385841a1",
+      "hash": "fdddcb4e0ddb23f3",
       "near": {
-        "bytes": 1324920,
+        "bytes": 726012,
         "tris": 73756,
-        "draws": 4
+        "draws": 2
       },
       "far": {
         "bytes": 42232,
