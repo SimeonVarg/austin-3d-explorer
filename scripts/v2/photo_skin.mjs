@@ -25,6 +25,7 @@ export const SKIN = {
   SHARP: 0.5, TEXEL_MIN_M: 0.004, TEXEL_MAX_M: 0.03,      // each rectangle's texel: SHARP of its best photograph's own pixel size on that wall (a wall seen from near is kept finer than one seen from far); all grow together until the atlas fits
   MAX_SIDE: 4096,      // atlas width; height may be less
   PAD: 8,              // texels of padding round each rectangle (filled by edge extension)
+  MIN_SEEN_M2: Infinity,      // (a bake may set min_seen_m2: keep a long wall of which a photograph saw this many square metres. Off by default: tried on a 60 m brick wall on 2026-11-10, the atlas cannot hold brick courses at that size and the wall read softer than its tiled texture)
   MIN_SEEN: 0.30,      // a rectangle goes in the atlas when this share of its surface was seen by a photograph, or by one of its twins
   ZS: 3,               // the occlusion depth buffer is the photograph's size / ZS
   GUARD: 3,            // depth-buffer pixels round a sample that must hold no nearer surface and no empty sky
@@ -34,6 +35,7 @@ export const SKIN = {
   HOST_M: 1.0, RELIEF_THIN_M: 0.30, RELIEF_M: 0.08,      // a wall rectangle at least HOST_M both ways takes in the faces of its own material that are thinner than RELIEF_THIN_M and lie within RELIEF_M of it
   AO_KEEP: 0.3,        // how much of the tile's baked ambient shade a skinned surface keeps (a photograph under cloud already holds that shade)
   WITNESS: 0.30,       // a photograph gives a rectangle nothing when the mask (trees, cars, people) hides more than 1 - this of what it should see of it
+  HUE_MAX: 1.1,        // the colour factor's tint against its own brightness, per channel
   OWN_M: 0.25,         // what the build draws itself (signs, lamps, rails: the left-out materials) is masked in each photograph with this margin: the photograph's own copy of it is not painted a second time on the wall behind
   LEAK_DARK: 0.62, LEAK_MIN: 200,      // a seen texel darker than this share of its material's median in the rectangle, joined to unseen surface, is a leak
   LINK_TEXELS: 3000,                    // two photographs' exposures are linked through a material both saw at least this much of
@@ -435,7 +437,8 @@ async function bake(slug, glb, specFile, outDir) {
     }
     for (const R of rects) toneTo(R, (k) => R.state[k] === 3 ? 1 : R.state[k] === 2 ? 0 : -1, 0);
     for (const R of rects) { let kn = 0; for (let k = 0; k < R.w * R.h; k++) if (R.state[k] >= 2) kn++; R.known = R.surf ? kn / R.surf : 0; }
-    const keep = rects.filter((R) => R.known >= K.MIN_SEEN && Math.min(R.w, R.h) >= K.MIN_TEXELS).sort((p, q) => q.h - p.h);
+    // (a long wall of which a photograph saw one end is kept too, when that end is big: the rest of it takes the same material's sample)
+    const keep = rects.filter((R) => (R.known >= K.MIN_SEEN || R.nseen * R.texel * R.texel >= (spec.min_seen_m2 || K.MIN_SEEN_M2)) && Math.min(R.w, R.h) >= K.MIN_TEXELS).sort((p, q) => q.h - p.h);
     const side = K.MAX_SIDE; let x = 0, y = 0, rowH = 0, fits = true;
     for (const R of keep) { const w = R.w + 2 * K.PAD, h = R.h + 2 * K.PAD; if (w > side) { fits = false; break; } if (x + w > side) { x = 0; y += rowH; rowH = 0; } R.x = x; R.y = y; x += w; rowH = Math.max(rowH, h); }
     const Hh = y + rowH, maxH = spec.max_height || 4096;
@@ -452,6 +455,9 @@ async function bake(slug, glb, specFile, outDir) {
   // a mean of ratios to 0.91 and washed a whole building out. Glass, lit rooms, doors, plants and ground are not walls and do not count.
   const tot = rows.reduce((s, r) => s + r.n, 0), wall = rows.filter((r) => r.n > 0.01 * tot && !/glass|pane|sign|door|lobby|interior|blind|shrub|leaf|agave|plant|bed_|paving|ground|roof|tile/.test(r.name));
   const factor = [0, 1, 2].map((k) => wall.reduce((s, r) => s + r.n * r.c[k], 0) / Math.max(1e-6, wall.reduce((s, r) => s + r.n * r.p[k], 0)));
+  // one brightness, and a tint held within HUE_MAX of it: the photograph's own colours are the truth; a tint taken freely from the build's
+  // colours turned a pale stone entrance blue when the build's brick was pinker than the photographed brick (2026-11-10)
+  { const lum = 0.2126 * factor[0] + 0.7152 * factor[1] + 0.0722 * factor[2]; for (let k = 0; k < 3; k++) factor[k] = lum * Math.max(1 / K.HUE_MAX, Math.min(K.HUE_MAX, factor[k] / lum)); }
   if (spec.factor) factor.splice(0, 3, ...spec.factor);
   // a plain material takes its photographed colour only when that is near what the build had (0.7 to 1.4): farther off, one of the two is wrong
   const big = wall.filter((r) => r.n > 0.04 * tot && Math.max(...r.c.slice(0, 3)) > 0.05 && [0, 1, 2].every((k) => { const q = r.p[k] * factor[k] / Math.max(1e-6, r.c[k]); return q > 0.7 && q < 1.4; }));
@@ -463,7 +469,7 @@ async function bake(slug, glb, specFile, outDir) {
   const gmean = mats.map((m, i) => { const a = packed.acc[i]; return a[3] >= 1500 ? [a[0] / a[3], a[1] / a[3], a[2] / a[3]] : null; });
   // a square sample of each material where a photograph saw all of it: what the material looks like where nothing saw it
   const { keep, W, H } = packed, at = new Uint8Array(W * H * 3), patches = new Array(mats.length).fill(null);
-  for (const S of [112, 80, 56, 40, 28]) for (const R of keep) {
+  for (const S of [320, 224, 160, 112, 80, 56, 40, 28]) for (const R of keep) {
     if (R.w < S || R.h < S) continue;
     for (let y = 0; y + S <= R.h; y += S >> 2) for (let x = 0; x + S <= R.w; x += S >> 2) {
       const m = R.m[y * R.w + x]; if (patches[m] || R.state[y * R.w + x] !== 2) continue;
