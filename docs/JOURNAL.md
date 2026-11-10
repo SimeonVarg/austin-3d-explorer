@@ -24,4 +24,5 @@ New entries: add a dated entry at the top of the current month's file
 - [`2026-08-p4.md`](journal/2026-08-p4.md) - 6368 lines, 376 KB
 - [`2026-09-p1.md`](journal/2026-09-p1.md) - 5405 lines, 377 KB
 - [`2026-09-p2.md`](journal/2026-09-p2.md) - 1707 lines, 171 KB
+- [`2026-11.md`](journal/2026-11.md) - 20 lines, 2 KB
 - [`2026-10.md`](journal/2026-10.md) - 106 lines, 6 KB

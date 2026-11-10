@@ -194,6 +194,17 @@ memory and is never written here, in any tracked file, or in a commit message.
       work. Never a whole photograph pasted or projected on a wall, never people, faces, plates or screens, never photo
       metadata, file names or the place it was taken from. Free-licence public pictures need their credit in
       `v2/credits.html`; all-rights-reserved pictures may guide a build but are never cut into a texture.
+    - **Photo skin (2026-11-10; this changes "never projected on a wall" in the bullet above).** The owner's reason against a
+      photograph on a wall was the lighting engine (*"Wouldn't work with the lighting engine either"*). On 2026-11-10 that was
+      tested on Hogg Auditorium: a wall that keeps its photograph's pixels as its base colour still takes the app's sun, shade,
+      sunset and night like any other wall (the test is described in pull request #665; the pictures went to the owner). On the same day he gave the main lane the whole
+      method to change (*"you change everything"*, *"correct me"*). So a building may carry a photo skin
+      (`scripts/v2/photo_skin.mjs`): building surfaces only; from the owner's own photographs, taken under cloud where there is a
+      choice (or free-licence pictures with their credit in `v2/credits.html`); trees, sky, people, cars, poles and signs masked
+      out; one flat colour factor so the app's light stays in charge. What does not change: no Street View, Earth or
+      all-rights-reserved pixels; no people, faces, plates or screens; no photo names, cameras or the place a photograph was
+      taken from in the repo. His eye decides as for any change. To take a skin off, delete `v2/skins/<slug>/` and rebuild that
+      building's tile.
 
 ## Disk
 
