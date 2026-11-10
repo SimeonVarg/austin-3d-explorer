@@ -13,6 +13,7 @@ import { chromium } from 'playwright-core';
 import { launch, BASE } from './chrome.mjs';
 
 const [outDir, slug, ...rest] = process.argv.slice(2);
+if (!outDir || !slug) { console.error('usage: v2-orbit.mjs OUT_DIR SLUG [--radius m] [--eye m] [--eye2 m] [--target m] [--from deg] [--to deg] [--frames n] [--fov deg] [--size WxH] [--query "&..."] [--near m]'); process.exit(2); }
 const opt = (k, d) => { const i = rest.indexOf('--' + k); return i >= 0 ? rest[i + 1] : d; };
 const radius = +opt('radius', 45), eye = +opt('eye', 1.7), eye2 = +opt('eye2', opt('eye', 1.7)), target = +opt('target', 7), from = +opt('from', 40), to = +opt('to', 140);
 const frames = +opt('frames', 60), fov = +opt('fov', 50), near = +opt('near', 0), query = opt('query', ''), [w, h] = opt('size', '1280x720').split('x').map(Number);
