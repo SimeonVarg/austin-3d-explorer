@@ -239,6 +239,7 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
   quad.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
   quad.setIndex([0, 1, 2, 0, 2, 3]);
   const EL = manifest.el, AZ = manifest.az, VFAR = L.FAR_VARIANTS, ROWS = VFAR * EL.length;
+  const CELLPX = manifest.cell || 96;   // pixels a view in the far crowns' atlas
   const farU = { value: new THREE.Vector2(D2, W2) };   // the mid -> far band, shared by every impostor material (setBands moves it)
   const impostorMaterial = (sp, atlas) => {
     // the crown's sphere inside the quad: its radius as a share of the quad's half size (the variants' mean crownR / (rs x 1.03))
@@ -271,7 +272,7 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
         .replace('#include <map_fragment>', `
         {
           vec2 dx = dFdx(vQ), dy = dFdy(vQ);
-          { float rho = max(length(dx), length(dy)) * 96.0; float kk = max(1.0, exp2(${L.IMPOSTOR_MIN_LOD.toFixed(2)}) / max(rho, 1e-3)); dx *= kk; dy *= kk; }
+          { float rho = max(length(dx), length(dy)) * ${CELLPX.toFixed(1)}; float kk = max(1.0, exp2(${L.IMPOSTOR_MIN_LOD.toFixed(2)}) / max(rho, 1e-3)); dx *= kk; dy *= kk; }
           float a = vToCam.x / 6.28318530718 * AZN; a = a - AZN * floor(a / AZN);
           float a0 = floor(a), ta = a - a0, e = vToCam.y; float e0 = 0.0, te = 0.0;
           if (e <= uEl[0]) { e0 = 0.0; te = 0.0; }
@@ -281,7 +282,7 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
           vec4 sampledDiffuseColor = mix(mix(c00, c10, ta), mix(c01, c11, ta), te);
           diffuseColor *= sampledDiffuseColor;
         }`)
-        .replace('#include <alphatest_fragment>', alphaChunk('vQ * 96.0', L.ALPHA_LOD_FAR))
+        .replace('#include <alphatest_fragment>', alphaChunk(`vQ * ${CELLPX.toFixed(1)}`, L.ALPHA_LOD_FAR))
         // Lit like the mid crown it replaces (no pop at the hand-over, rule 15): the cards' normals point out from the crown's middle
         // (+ IMPOSTOR_UP_BIAS up), so the quad gets the normals of the crown's sphere as seen from the camera; and the cards take the
         // sun's shadow (buildings', and the crown's own proxy on its far side), so the quad looks its shadow up on that sphere's surface.

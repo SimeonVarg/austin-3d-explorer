@@ -195,7 +195,7 @@ const canvasBlob = (c) => new Promise((res) => c.toBlob(res, 'image/png'));
 // ── run ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const COLOURS = await (await fetch('/colours.json')).json();    // per species leaf/trunk hex from the photographs
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, canvas: document.getElementById('c') });
-const CELL = 96, AZ = 8, EL = [8, 32, 56, 84], VFAR = 2;
+const CELL = +(new URLSearchParams(location.search).get('cell')) || 192, AZ = 8, EL = [8, 32, 56, 84], VFAR = 2;   // 192 px a view since 2026-11-10 (was 96): the far crowns take over nearer the camera
 const hex = (h) => new THREE.Color(h);
 const log = [];
 const manifest = { generator: 'EZ-Tree 1.1.0 (MIT) via tools/trees/gen', cell: CELL, az: AZ, el: EL, species: {} };
