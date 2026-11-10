@@ -34,6 +34,7 @@ export const SKIN = {
   HOST_M: 1.0, RELIEF_THIN_M: 0.30, RELIEF_M: 0.08,      // a wall rectangle at least HOST_M both ways takes in the faces of its own material that are thinner than RELIEF_THIN_M and lie within RELIEF_M of it
   AO_KEEP: 0.3,        // how much of the tile's baked ambient shade a skinned surface keeps (a photograph under cloud already holds that shade)
   WITNESS: 0.30,       // a photograph gives a rectangle nothing when the mask (trees, cars, people) hides more than 1 - this of what it should see of it
+  OWN_M: 0.25,         // what the build draws itself (signs, lamps, rails: the left-out materials) is masked in each photograph with this margin: the photograph's own copy of it is not painted a second time on the wall behind
   LEAK_DARK: 0.62, LEAK_MIN: 200,      // a seen texel darker than this share of its material's median in the rectangle, joined to unseen surface, is a leak
   LINK_TEXELS: 3000,                    // two photographs' exposures are linked through a material both saw at least this much of
   MATCH_TEXELS: 150, MATCH_MAX: 2.2,    // in one rectangle a second photograph (or a twin's fill) takes the first one's tone, through a material both hold this much of
@@ -205,7 +206,7 @@ export async function applyPhotoSkin(doc, slug, lod, repo) {
   const img = sc < 1 ? await sharp(full).resize(Math.round(W * sc), Math.round(H * sc), { kernel: 'lanczos3' }).jpeg({ quality: K.JPEG_Q, mozjpeg: true }).toBuffer() : fs.readFileSync(full);
   const tex = doc.createTexture('photo_skin_' + slug).setImage(img).setMimeType('image/jpeg');
   const mat = doc.createMaterial('photo_skin').setBaseColorTexture(tex).setBaseColorFactor([...sk.factor, 1]).setRoughnessFactor(K.ROUGHNESS).setMetallicFactor(0)
-    .setExtras({ v2_kind: 'plain', photo_material: 'photo skin', photo_skin: slug, photo_skin_full: sc < 1 ? 1 : 0, v2_photo_aniso: K.ANISO, v2_photo_bias: K.BIAS });
+    .setExtras({ v2_kind: 'plain', photo_material: 'photo skin', photo_skin: slug, photo_skin_full: sc < 1 ? 1 : 0, v2_photo_aniso: K.ANISO, v2_photo_bias: typeof sk.bias === 'number' ? sk.bias : K.BIAS });      // (a bake may set its own bias: a wall of fine dark and light strips is steadier at 0)
   // corners that are the same point with the same normal and the same place in the atlas are one vertex (per-vertex values such as the
   // tile's ambient occlusion are then one value there, as they were before the triangles moved)
   const wP = [], wN = [], wU = [], wI = new Uint32Array(oP.length / 3), seen = new Map();
@@ -284,11 +285,27 @@ function sample(ph, px, py, lvl, out) {
   return true;
 }
 
+// the place in one photograph of the triangles the build draws itself, grown by OWN_M (at the depth buffer's size)
+function ownMask(ph, T, own) {
+  const w = ph.z.w, h = ph.z.h, m = new Uint8Array(w * h), a = [0, 0], b = [0, 0], c = [0, 0], Z = K.ZS;
+  const seg = (px, py, x0, y0, x1, y1) => { const dx = x1 - x0, dy = y1 - y0, l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((px - x0) * dx + (py - y0) * dy) / l2)) : 0; return Math.hypot(px - x0 - t * dx, py - y0 - t * dy); };
+  for (let t = 0; t < T.n; t++) {
+    if (!own(T.src[t].mt)) continue;
+    const o = t * 9, p = T.P, za = project(ph, p[o], p[o + 1], p[o + 2], a), zb = project(ph, p[o + 3], p[o + 4], p[o + 5], b), zc = project(ph, p[o + 6], p[o + 7], p[o + 8], c); if (!za || !zb || !zc) continue;
+    const ax = a[0] / Z, ay = a[1] / Z, bx = b[0] / Z, by = b[1] / Z, cx = c[0] / Z, cy = c[1] / Z, zmin = Math.min(za, zb, zc), r = K.OWN_M * ph.fx / zmin / Z;
+    const mx = Math.floor((ax + bx + cx) / 3), my = Math.floor((ay + by + cy) / 3);
+    if (mx >= 0 && my >= 0 && mx < w && my < h && ph.z.zb[my * w + mx] < zmin - 0.5) continue;      // behind the building from here: it hides nothing
+    const x0 = Math.max(0, Math.floor(Math.min(ax, bx, cx) - r)), x1 = Math.min(w - 1, Math.ceil(Math.max(ax, bx, cx) + r)), y0 = Math.max(0, Math.floor(Math.min(ay, by, cy) - r)), y1 = Math.min(h - 1, Math.ceil(Math.max(ay, by, cy) + r));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const k = y * w + x; if (m[k]) continue; const px = x + 0.5, py = y + 0.5;
+      if (Math.min(seg(px, py, ax, ay, bx, by), seg(px, py, bx, by, cx, cy), seg(px, py, cx, cy, ax, ay)) <= r) m[k] = 1; }
+  }
+  return m;
+}
 async function loadMask(sharp, ph, f) {       // white = do not use this pixel (trees, people, cars, sky in front of or beside the building)
   const m = await sharp(f.replace(/^~/, process.env.HOME)).extractChannel(0).raw().toBuffer({ resolveWithObject: true });
   ph.mask = { w: m.info.width, h: m.info.height, d: m.data };
 }
-const masked = (ph, px, py) => { const M = ph.mask; if (!M) return false; const x = Math.floor(px * M.w / ph.W), y = Math.floor(py * M.h / ph.H); return M.d[y * M.w + x] > 127; };
+const masked = (ph, px, py) => { if (ph.own && ph.own[Math.floor(py / K.ZS) * ph.z.w + Math.floor(px / K.ZS)]) return true; const M = ph.mask; if (!M) return false; const x = Math.floor(px * M.w / ph.W), y = Math.floor(py * M.h / ph.H); return M.d[y * M.w + x] > 127; };
 
 async function bake(slug, glb, specFile, outDir) {
   const sharp = (await import('sharp')).default;
@@ -305,6 +322,8 @@ async function bake(slug, glb, specFile, outDir) {
   const fades = Object.keys(((JSON.parse(fs.readFileSync(path.join(HERE, 'photo_materials.json'), 'utf8'))[slug] || {}).fade) || {});
   const exclude = [spec.exclude, fades.length ? '^(' + fades.join('|') + ')$' : null].filter(Boolean).join('|') || null, ex = exclude ? new RegExp(exclude) : null;
   const { ch, rects, slabs, relief } = chartRects(T, F, leftOut(ex));
+  { const own = (mt) => !!mt && mt.getAlphaMode() !== 'BLEND' && (!!(mt.getExtras() || {}).v2_fade_to || (ex ? ex.test(baseName(mt)) : false));
+    for (const ph of photos) { ph.own = ownMask(ph, T, own); let n = 0; for (let i = 0; i < ph.own.length; i++) n += ph.own[i]; console.log(`  the build's own parts hide ${(100 * n / ph.own.length).toFixed(1)} % of a photograph`); } }
   console.log(`${rects.length} rectangles in ${slabs} slabs, ${relief} relief triangles drawn with their wall`);
   // 2. bake every rectangle at the texel size; grow the texel until what is kept fits the atlas
   // the texel each rectangle wants: what its best photograph can fill there (three quarters of the rectangle's triangles are seen no finer)
@@ -428,9 +447,14 @@ async function bake(slug, glb, specFile, outDir) {
   if (!packed) throw new Error('atlas did not fit');
   // 3. one colour factor: the photographs' exposure against the build's own calibrated wall colours (light-rig scale)
   const rows = mats.map((m, i) => ({ i, name: m.getName(), c: m.getBaseColorFactor(), n: packed.acc[i][3], p: packed.acc[i].slice(0, 3).map((v) => v / Math.max(1, packed.acc[i][3])) })).filter((r) => r.n > 0).sort((a, b) => b.n - a.n);
-  const tot = rows.reduce((s, r) => s + r.n, 0), big = rows.filter((r) => r.n > 0.04 * tot && Math.max(...r.c.slice(0, 3)) > 0.05 && !/glass|pane|sign|door|shrub|metal|iron|roof|tile/.test(r.name));
-  const factor = [0, 1, 2].map((k) => Math.exp(big.reduce((s, r) => s + r.n * Math.log(r.c[k] / Math.max(1e-4, r.p[k])), 0) / Math.max(1, big.reduce((s, r) => s + r.n, 0))));
+  // The photographs' exposure against the build's own colours (light-rig scale): what the build's walls sum to over what the photographs
+  // show there. A sum, not a mean of each material's ratio: on 2026-11-10 one material the build had far too bright (fins in shade) pulled
+  // a mean of ratios to 0.91 and washed a whole building out. Glass, lit rooms, doors, plants and ground are not walls and do not count.
+  const tot = rows.reduce((s, r) => s + r.n, 0), wall = rows.filter((r) => r.n > 0.01 * tot && !/glass|pane|sign|door|lobby|interior|blind|shrub|leaf|agave|plant|bed_|paving|ground|roof|tile/.test(r.name));
+  const factor = [0, 1, 2].map((k) => wall.reduce((s, r) => s + r.n * r.c[k], 0) / Math.max(1e-6, wall.reduce((s, r) => s + r.n * r.p[k], 0)));
   if (spec.factor) factor.splice(0, 3, ...spec.factor);
+  // a plain material takes its photographed colour only when that is near what the build had (0.7 to 1.4): farther off, one of the two is wrong
+  const big = wall.filter((r) => r.n > 0.04 * tot && Math.max(...r.c.slice(0, 3)) > 0.05 && [0, 1, 2].every((k) => { const q = r.p[k] * factor[k] / Math.max(1e-6, r.c[k]); return q > 0.7 && q < 1.4; }));
   for (const r of rows.slice(0, 12)) console.log(`  ${r.name.padEnd(24)} ${String(r.n).padStart(8)} texels  build ${r.c.slice(0, 3).map((v) => v.toFixed(3))}  photo x factor ${r.p.map((v, k) => (v * factor[k]).toFixed(3))}${big.includes(r) ? '  *' : ''}`);
   console.log('factor', factor.map((v) => v.toFixed(3)).join(' '));
   // the colour a material shows where no photograph and no twin saw it: its own mean in the photographs when it was seen enough, else the build's colour
@@ -465,7 +489,7 @@ async function bake(slug, glb, specFile, outDir) {
   fillEmpty(at, used, W, H);
   fs.mkdirSync(outDir, { recursive: true });
   await sharp(Buffer.from(at.buffer), { raw: { width: W, height: H, channels: 3 } }).jpeg({ quality: K.JPEG_Q, mozjpeg: true }).toFile(path.join(outDir, 'albedo.jpg'));
-  const out = { v: 3, stamp: Date.now().toString(36), theta, slab: K.SLAB_M, texel: +(keep.length ? keep.map((R) => R.texel).sort((a, b) => a - b)[keep.length >> 1] : 0).toFixed(5), pad: K.PAD, atlas: [W, H], factor: factor.map((v) => +v.toFixed(4)), colors, ...(exclude ? { exclude } : {}), photographs: photos.length,
+  const out = { v: 3, stamp: Date.now().toString(36), theta, slab: K.SLAB_M, texel: +(keep.length ? keep.map((R) => R.texel).sort((a, b) => a - b)[keep.length >> 1] : 0).toFixed(5), pad: K.PAD, atlas: [W, H], factor: factor.map((v) => +v.toFixed(4)), colors, ...(typeof spec.bias === 'number' ? { bias: spec.bias } : {}), ...(exclude ? { exclude } : {}), photographs: photos.length,
     rects: keep.map((R) => ({ a: R.a, s: R.s, u0: +R.u0.toFixed(3), v0: +R.v0.toFixed(3), u1: +R.u1.toFixed(3), v1: +R.v1.toFixed(3), x: R.x, y: R.y, t: +R.texel.toFixed(6) })) };
   fs.writeFileSync(path.join(outDir, 'skin.json'), JSON.stringify(out));
   const skinned = keep.reduce((s, R) => s + R.tris.length, 0);
