@@ -639,6 +639,7 @@
     "v2-aim-shots.mjs": "shadow-aim before/after on 7 city views in one page with a real GPU; on a software renderer it runs past the 30-minute shard ceiling; run on the Mac or the AWS L4",
     "v2-view-shots.mjs": "before/after pictures of the v2 city views with a real GPU; on a software renderer it runs past the 30-minute shard ceiling; run on the Mac or the AWS L4",
     "v2-moment-shots.mjs": "pictures from a solved owner-photo camera: needs the private photo camera and an output folder as arguments (kept out of git); run on the Mac",
+    "v2-orbit.mjs": "a capture tool, not a check: the camera on an arc round one building, one picture a step; needs an output folder and a building as arguments and a real GPU; run on the Mac",
     "v2-trees-shimmer.mjs": "tree flicker in motion against a supersampled reference; needs a real GPU; on a software renderer it runs past the 30-minute shard ceiling; run on the Mac or the AWS L4",
     "v2-split.mjs": "GPU time of each v2 layer, interleaved; a timing instrument that needs a real GPU and a quiet machine; run on the Mac or the AWS L4",
     "v2-wire-shimmer.mjs": "flicker of the bridge cables in motion against a supersampled reference; needs a real GPU and Python; run on the Mac or the AWS L4",
