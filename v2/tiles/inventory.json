@@ -6708,11 +6708,11 @@
       }
     },
     "t_-3_1": {
-      "hash": "183979cd8a5539e6",
+      "hash": "c955d03bfd851fb0",
       "near": {
-        "bytes": 850936,
+        "bytes": 934524,
         "tris": 81220,
-        "draws": 2
+        "draws": 3
       },
       "far": {
         "bytes": 24388,
