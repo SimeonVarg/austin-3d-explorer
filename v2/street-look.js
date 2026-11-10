@@ -119,6 +119,17 @@ export const TREE_REAL_LOOK = {
   LEAF_LIT_MIX: 0.45,           // 0 = the photograph's middle leaf colour, 1 = its lit leaves
   LEAF_SAT: 1.5,                // x saturation
   LEAF_GAIN: 0.62,             // x the photograph's lit-leaf colour (linear): the app's sun and sky then light it
+  // THE TREE RULE'S MEASURED FIT (2026-11-10). The leaf colour above came from one dark photograph used as a paint, and the leaves were lit
+  // like a matt wall. Measured against the owner's photographs with a wall in the same frame as the light meter (private rules/treefit):
+  //  - under cloud (two Biological Labs cameras) the crowns' brightness was about right, their BLUE about twice too high (grey, not green);
+  //  - in sun (eight Powers photographs) a crown's bright leaves reach about a third of a sunlit limestone wall: far above a matt dark paint.
+  // So LEAF_FIT turns the hue (x the colour per channel, linear) and LEAF_SUN is how much brighter than matt a leaf is in direct sun
+  // (gloss and light passing through the leaf). The City aerial's canopy from straight above was tried as the target and dropped: the aerial
+  // is drawn pale, and a fit to it gave cream trees.
+  LEAF_FIT: [0.78, 0.85, 0.51],
+  LEAF_SUN: 2.0,
+  LEAF_WRAP: 0.7,               // light that goes THROUGH a crown: 0 = a hard lit half and a black half (a painted ball), 1 = half-Lambert all round
+  LEAF_SHADOW: 0.85,            // how much of the sun a shadow takes from leaves (a crown's own far side is never black: leaves pass light)
   TRUNK_GAIN: 0.4,
   LEAF_ROUGHNESS: 0.92,
   SPECULAR: 0.1,                // the leaf and bark specular (three: 1 = the default 4 % mirror; sky-lit dark leaves went silver at 1)
@@ -128,7 +139,7 @@ export const TREE_REAL_LOOK = {
   IMPOSTOR_MIN_LOD: 1.0,        // the far crowns never sample the atlas finer than this mip (log2): the detail is under a pixel there
   ALPHA_CUT: 0.5,              // alpha test (smoothstep over the pixel's own alpha slope when MSAA is on: alpha to coverage)
   SHADE_JITTER: 0.14,           // +- brightness per tree (from the inventory's shade byte)
-  CROWN_STRETCH: [0.78, 1.38],  // the model's crown width may stretch to the inventory's crown radius by this much (x)
+  CROWN_STRETCH: [0.85, 1.75],  // the model's crown width may stretch to the inventory's crown radius by this much (x)
   IMPOSTOR_UP_NORMAL: 0.6,      // how far the far crowns' lighting normal leans toward the sky (0 = faces the camera), when IMPOSTOR_SPHERE < 1
   IMPOSTOR_SPHERE: 1,           // the far crowns lit with their crown's sphere normals, as the mid cards are (1), or the flat normal above (0)
   IMPOSTOR_SHADOW: true,        // the far crowns take the sun's shadow (looked up on their crown's sphere), as the mid cards do
@@ -141,6 +152,8 @@ export const TREE_REAL_LOOK = {
   RECEIVE_SHADOW: true,         // the cards and trunks take the sun's shadow (?treeshadow=0 turns it off for a test)
   SHADOW_PROXY: true,           // one 20-triangle crown per tree casts the sun's shadow (the cards and impostors cast none)
   SHADOW_PROXY_SHRINK: 0.8,
+  // a crown's shadow is dappled, not a solid shape: the proxy lets light through in ground squares of CELL_M, few in its middle, most at its rim
+  SHADOW_DAPPLE: { ON: true, CELL_M: 1.6, HOLES: [0.3, 0.72], EDGE: [0.4, 1.05] },
 };
 
 export const NEAR_LOOK = {

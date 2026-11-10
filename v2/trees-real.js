@@ -16,6 +16,11 @@ const params = new URLSearchParams(location.search);
 const DATA = new URL('./data/trees-real/', import.meta.url).href;
 // tuning from the address bar (the verify sheets use them): ?treegain=0.3 &trunkgain=0.3 &treenear=55,14 &treefar=190,45
 if (params.get('treegain')) L.LEAF_GAIN = +params.get('treegain');
+if (params.get('treefit')) L.LEAF_FIT = params.get('treefit').split(',').map(Number);
+if (params.get('treewrap')) L.LEAF_WRAP = +params.get('treewrap');
+if (params.get('treesun')) L.LEAF_SUN = +params.get('treesun');
+if (params.get('treeshade')) L.LEAF_SHADOW = +params.get('treeshade');
+if (params.get('treestretch')) L.CROWN_STRETCH = params.get('treestretch').split(',').map(Number);
 if (params.get('treelod')) L.ALPHA_LOD = params.get('treelod').split(',').map(Number);
 if (params.get('treeshadow')) L.RECEIVE_SHADOW = params.get('treeshadow') !== '0';
 if (params.get('treemid')) L.MID_CARD_DOWN = +params.get('treemid');
@@ -154,7 +159,7 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
   });
 
   // the leaf tint: the photograph's colour between its middle and its lit leaves (LEAF_LIT_MIX), a touch more saturated (LEAF_SAT: the app's tone map greys dark greens), times LEAF_GAIN
-  const leafTint = (sp) => { const l = manifest.species[sp].leaf, c = new THREE.Color(l.mid).lerp(new THREE.Color(l.sunlit), L.LEAF_LIT_MIX), hsl = {}; c.getHSL(hsl); c.setHSL(hsl.h, Math.min(1, hsl.s * L.LEAF_SAT), hsl.l); return c.multiplyScalar(L.LEAF_GAIN); };
+  const leafTint = (sp) => { const l = manifest.species[sp].leaf, c = new THREE.Color(l.mid).lerp(new THREE.Color(l.sunlit), L.LEAF_LIT_MIX), hsl = {}; c.getHSL(hsl); c.setHSL(hsl.h, Math.min(1, hsl.s * L.LEAF_SAT), hsl.l); c.multiplyScalar(L.LEAF_GAIN); c.r *= L.LEAF_FIT[0]; c.g *= L.LEAF_FIT[1]; c.b *= L.LEAF_FIT[2]; return c; };
   // ── shared materials pieces ──
   const gltf = new GLTFLoader();
   const leafTexes = {};
@@ -199,15 +204,26 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
     sh.fragmentShader = sh.fragmentShader.replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
     material.specularColor *= ${L.SPECULAR.toFixed(4)}; material.specularColorBlended = mix(material.specularColor, diffuseColor.rgb, metalnessFactor); material.specularF90 = ${L.SPECULAR.toFixed(4)};`);
   };
+  // Leaves pass light (the tree rule, 2026-11-10): the sun wraps round the crown (LEAF_WRAP) and a shadow never takes all of it (LEAF_SHADOW).
+  const LIGHTS_LEAF = THREE.ShaderChunk.lights_fragment_begin.replace('? getShadow( directionalShadowMap[ i ]', '? v2LeafShadow( getShadow( directionalShadowMap[ i ]')
+    .replace('vDirectionalShadowCoord[ i ] ) : 1.0;', 'vDirectionalShadowCoord[ i ] ) ) : 1.0;');
+  const leafLight = (sh, lightsChunk = LIGHTS_LEAF) => {
+    if (!LIGHTS_LEAF.includes('v2LeafShadow')) console.warn('[trees] three changed: leaf shadow patch not applied');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+      float v2LeafNL( float x ) { return ${L.LEAF_SUN.toFixed(3)} * mix( saturate( x ), pow( x * 0.5 + 0.5, 2.0 ), ${L.LEAF_WRAP.toFixed(3)} ); }
+      float v2LeafShadow( float s ) { return mix( ${(1 - L.LEAF_SHADOW).toFixed(3)}, 1.0, s ); }`)
+      .replace('#include <lights_physical_pars_fragment>', THREE.ShaderChunk.lights_physical_pars_fragment.replace('vec3 irradiance = dotNL * directLight.color;', 'vec3 irradiance = dotNL * directLight.color;\n\treflectedLight.directDiffuse += ( v2LeafNL( dot( geometryNormal, directLight.direction ) ) - dotNL ) * directLight.color * BRDF_Lambert( material.diffuseContribution );'))
+      .replace('#include <lights_fragment_begin>', lightsChunk);
+  };
   const leafMaterial = (sp, kind, mid = false) => {
     const col = leafTint(sp);
     const m = new THREE.MeshStandardMaterial({ map: (mid ? leafTexesMid : leafTexes)[kind], color: col, vertexColors: true, side: THREE.DoubleSide, alphaTest: L.ALPHA_CUT, alphaToCoverage: msaa, roughness: L.LEAF_ROUGHNESS, metalness: 0 });
     m.onBeforeCompile = (sh) => {
-      fadeShader(sh, false, mid ? 'vMapUv * 512.0' : 'vMapUv * 512.0', mid ? [-99, -98] : undefined); specShader(sh);
+      fadeShader(sh, false, mid ? 'vMapUv * 512.0' : 'vMapUv * 512.0', mid ? [-99, -98] : undefined); specShader(sh); leafLight(sh);
       // the cards' normals are the crown's own (outward + up): do not flip them on the back face
       sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', THREE.ShaderChunk.normal_fragment_begin.replace('normal *= faceDirection;', ''));
     };
-    m.customProgramCacheKey = () => 'v2-treecard' + msaa + mid; return m;
+    m.customProgramCacheKey = () => 'v2-treecard2' + msaa + mid; return m;
   };
   // (Tried 2026-10-25 and dropped: a depth-only pre-pass of the cards, so only the front card of a pixel is lit. The pre-pass alone
   // cost about what it saved, ~50 ms at the South Mall: the cards' cost is their layers of alpha-tested coverage, not their lighting.)
@@ -284,10 +300,11 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
           vec3 upV = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
           normal = normalize(mix(normal, normalize(nS + ${L.IMPOSTOR_UP_BIAS.toFixed(3)} * upV), uSphere));
         }`)
-        .replace('#include <lights_fragment_begin>', THREE.ShaderChunk.lights_fragment_begin.replace('vDirectionalShadowCoord[ i ] ) : 1.0;',
-          `directionalShadowMatrix[ i ] * vec4( v2ImpP + v2ImpN * directionalLightShadow.shadowNormalBias, 1.0 ) ) : 1.0;`));
+        ;
+      leafLight(sh, LIGHTS_LEAF.replace('vDirectionalShadowCoord[ i ] ) ) : 1.0;',
+          `directionalShadowMatrix[ i ] * vec4( v2ImpP + v2ImpN * directionalLightShadow.shadowNormalBias, 1.0 ) ) ) : 1.0;`));
     };
-    m.customProgramCacheKey = () => 'v2-treeimp' + msaa; return m;
+    m.customProgramCacheKey = () => 'v2-treeimp2' + msaa; return m;
   };
 
   // ── per species: the GLB's meshes, one bucket (InstancedMesh pair) per variant and band ──
@@ -341,12 +358,40 @@ export async function installRealTrees({ THREE, scene, group, redraw, rows, grou
   // shadow proxy: one 20-triangle crown per tree stands in for the sun's shadow (drawn into the shadow map only; no colour, no depth)
   let proxy = null;
   if (L.SHADOW_PROXY) {
-    proxy = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }), N);
+    // the same 20 triangles, but a lumpy crown turned its own way per tree: the old proxy drew a row of equal hexagons on the ground
+    const pg = new THREE.IcosahedronGeometry(1, 0); { const pp = pg.attributes.position, seen = new Map();
+      for (let i = 0; i < pp.count; i++) { const k = pp.getX(i).toFixed(3) + pp.getY(i).toFixed(3) + pp.getZ(i).toFixed(3); if (!seen.has(k)) seen.set(k, 0.72 + 0.5 * HASH(seen.size * 7919 + 13)); const f = seen.get(k); pp.setXYZ(i, pp.getX(i) * f, pp.getY(i) * f, pp.getZ(i) * f); } }
+    proxy = new THREE.InstancedMesh(pg, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }), N);
     const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), S = new THREE.Vector3();
     for (let i = 0; i < N; i++) {
       const sc = manifest.species[speciesNames[SP[i]]].variants[VAR[i]];
       const ch = H[i] * 0.62, rr = R[i] * 1.1 * L.SHADOW_PROXY_SHRINK;
-      M.compose(P.set(X[i], H[i] - ch / 2, Z[i]), Q, S.set(rr, ch / 2, rr)); proxy.setMatrixAt(i, M);
+      Q.setFromAxisAngle(P.set(0, 1, 0), YAW[i]); const jx = 0.85 + 0.3 * HASH(i * 31 + 7), jz = 0.85 + 0.3 * HASH(i * 17 + 3);
+      M.compose(P.set(X[i], H[i] - ch / 2, Z[i]), Q, S.set(rr * jx, ch / 2, rr * jz)); proxy.setMatrixAt(i, M);
+    }
+    if (L.SHADOW_DAPPLE.ON && params.get('treedapple') !== '0') {
+      const SD = L.SHADOW_DAPPLE, dm = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+      dm.onBeforeCompile = (sh) => {
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vProxyL; varying vec3 vProxyW;')
+          .replace('#include <begin_vertex>', `#include <begin_vertex>
+          vProxyL = position;
+          #ifdef USE_INSTANCING
+            vProxyW = ( modelMatrix * instanceMatrix * vec4( position, 1.0 ) ).xyz;
+          #else
+            vProxyW = ( modelMatrix * vec4( position, 1.0 ) ).xyz;
+          #endif`);
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vProxyL; varying vec3 vProxyW;\nfloat v2ph( vec2 p ) { return fract( sin( dot( p, vec2( 127.1, 311.7 ) ) ) * 43758.5453 ); }')
+          .replace('void main() {', `void main() {
+          { float edge = smoothstep( ${SD.EDGE[0].toFixed(3)}, ${SD.EDGE[1].toFixed(3)}, length( vProxyL.xz ) );
+            // smooth blobs of light, two sizes (not squares): value noise over the ground
+            vec2 q = vProxyW.xz / ${SD.CELL_M.toFixed(3)}; vec2 qi = floor( q ), qf = fract( q ); qf = qf * qf * ( 3.0 - 2.0 * qf );
+            float n1 = mix( mix( v2ph( qi ), v2ph( qi + vec2( 1.0, 0.0 ) ), qf.x ), mix( v2ph( qi + vec2( 0.0, 1.0 ) ), v2ph( qi + vec2( 1.0, 1.0 ) ), qf.x ), qf.y );
+            vec2 r = q * 2.3 + 17.0; vec2 ri = floor( r ), rf = fract( r ); rf = rf * rf * ( 3.0 - 2.0 * rf );
+            float n2 = mix( mix( v2ph( ri ), v2ph( ri + vec2( 1.0, 0.0 ) ), rf.x ), mix( v2ph( ri + vec2( 0.0, 1.0 ) ), v2ph( ri + vec2( 1.0, 1.0 ) ), rf.x ), rf.y );
+            if ( 0.65 * n1 + 0.35 * n2 < mix( ${SD.HOLES[0].toFixed(3)}, ${SD.HOLES[1].toFixed(3)}, edge ) ) discard; }`);
+      };
+      dm.customProgramCacheKey = () => 'v2-treeproxy-dapple2';
+      proxy.customDepthMaterial = dm;
     }
     proxy.castShadow = params.get("treeproxy") !== "0"; proxy.receiveShadow = false; proxy.frustumCulled = false; proxy.name = 'tree shadow proxy'; proxy.computeBoundingSphere();
     group.add(proxy);
