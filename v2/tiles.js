@@ -90,24 +90,6 @@ function fadeable(material, uniform, ao) {
 // ?photoaniso=N / ?photobias=B override both for every photo material (an A/B in one page load).
 const PQ = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
 const PHOTO_ANISO_Q = PQ.has('photoaniso') ? +PQ.get('photoaniso') : null, PHOTO_BIAS_Q = PQ.has('photobias') ? +PQ.get('photobias') : null;
-// A photo skin (scripts/v2/photo_skin.mjs: a building's surface taken from photographs) rides in its tile at a reduced size. On a desktop
-// the full atlas (v2/skins/<slug>/albedo.jpg) takes its place for the last SKIN_FULL.MAX skinned buildings that loaded (each full atlas is up to 90 MB on the graphics card); the one before
-// those goes back to the tile's own. ?skinfull=0 keeps the tile's own everywhere (the A/B in one page load). Phones never load the full one.
-export const SKIN_FULL = { ON: PQ.get('skinfull') !== '0' && !(typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches), MAX: 2, live: [], pending: 0 };
-function skinFull(material, base, redraw) {
-  const u = material && material.userData;
-  if (!SKIN_FULL.ON || !u || !u.photo_skin || !u.photo_skin_full || u.v2SkinFull || !material.map) return;
-  u.v2SkinFull = true; SKIN_FULL.pending++;      // (a pending full atlas counts as loading in summary(): a capture waits for it)
-  new THREE.TextureLoader().load(base + '../skins/' + u.photo_skin + '/albedo.jpg', (t) => {
-    SKIN_FULL.pending--;
-    const low = material.map; if (!low || !u.v2SkinFull) { t.dispose(); return; }
-    t.flipY = false; t.colorSpace = low.colorSpace; t.wrapS = low.wrapS; t.wrapT = low.wrapT; t.anisotropy = low.anisotropy; t.channel = low.channel;
-    t.offset.copy(low.offset); t.repeat.copy(low.repeat); t.center.copy(low.center); t.rotation = low.rotation; t.matrixAutoUpdate = low.matrixAutoUpdate; t.matrix.copy(low.matrix);
-    material.map = t; u.v2SkinLow = low; SKIN_FULL.live.push(material);
-    while (SKIN_FULL.live.length > SKIN_FULL.MAX) { const m = SKIN_FULL.live.shift(), mu = m.userData; if (mu.v2SkinLow) { m.map.dispose(); m.map = mu.v2SkinLow; mu.v2SkinLow = null; } }
-    redraw();
-  }, undefined, () => { SKIN_FULL.pending--; });
-}
 function photoTextures(material) {
   const u = material && material.userData;
   if (!u || !u.photo_material || u.v2Photo) return;
@@ -272,7 +254,7 @@ export class TileStreamer {
           if (shadowDepth) o.customDepthMaterial = shadowDepth;
           const ao = LOOK.AO.ON && !!o.geometry.attributes._ao && o.geometry.attributes._ao.itemSize === 2;
           if (!ao && o.geometry.attributes._ao) o.geometry.deleteAttribute('_ao');
-          for (const m of Array.isArray(o.material) ? o.material : [o.material]) { photoTextures(m); skinFull(m, url.replace(/[^/]*$/, ''), () => this.onAnimate()); brickMips(m, brickOptIn); coverageFade(m); fadeable(m, fade, ao); }
+          for (const m of Array.isArray(o.material) ? o.material : [o.material]) { photoTextures(m); brickMips(m, brickOptIn); coverageFade(m); fadeable(m, fade, ao); }
         });
         obj.userData.fade = fade;
         this.prepare(obj, s.def, s);   // (s: main.js adds to s.mapIds the plain extrusions this model stands over, covers.js)
@@ -351,7 +333,6 @@ export class TileStreamer {
     }
     // lod1 stays in the summary (always 0) for the verify scripts that print it; planned = the plan ran since the camera last moved
     const cam = this.camera.matrixWorld.elements.join(',');
-    loading += SKIN_FULL.pending;
     return { tiles: this.tiles.size, lod0, lod1: 0, loading, fading, wanting, planned: this.plannedFor === cam, ...this.stats };
   }
 }
@@ -362,8 +343,6 @@ export function disposeObject(root) {
     const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
     for (const m of mats) {
       for (const k in m) { const v = m[k]; if (v && v.isTexture) v.dispose(); }
-      if (m.userData && m.userData.v2SkinLow) { m.userData.v2SkinLow.dispose(); m.userData.v2SkinLow = null; const i = SKIN_FULL.live.indexOf(m); if (i >= 0) SKIN_FULL.live.splice(i, 1); }
-      if (m.userData) m.userData.v2SkinFull = false;
       m.dispose();
     }
   });

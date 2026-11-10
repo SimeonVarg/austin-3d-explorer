@@ -29,7 +29,6 @@ import { makeAppCopy } from './app_copy.mjs';
 import { MESHOPT_LEVEL, QUANT } from './tile_encoding.mjs';
 import { bakeAO } from './ao_bake.mjs';
 import { applyPhotoMaterials, photoMaterialsKey } from './photo_materials.mjs';
-import { applyPhotoSkin, photoSkinKey, skinAO } from './photo_skin.mjs';
 
 // ── PARAMETERS ──────────────────────────────────────────────────────────
 const ORIGIN = { lat: 30.28601, lon: -97.73932 };   // must equal sources.py ORIGIN
@@ -210,7 +209,6 @@ async function buildingDoc(s, lod, idx, part) {
     await doc.transform(unpartition(), flatten(), join({ keepNamed: false }));
   }
   applyPhotoMaterials(doc, s, lod, REPO);     // materials taken from photographs (scripts/v2/photo_materials.json): textures near, their mean far
-  await applyPhotoSkin(doc, s, lod, REPO);    // the photographs' own pixels on every surface they saw (scripts/v2/skins/<slug>/, photo_skin.mjs)
   const root = doc.getRoot(); const buf = root.listBuffers()[0];
   for (const n of root.listNodes()) n.setName(s).setTranslation([sources[s].x, 0, sources[s].z]);   // (every node: a far file that kept a surface of the app copy has two)
   for (const mesh of root.listMeshes()) {
@@ -267,7 +265,7 @@ async function buildTile(t, slugs, lod) {
     await doc.transform(unpartition());
   }
   // near tiles: ambient occlusion per vertex from the tile's own geometry (ao_bake.mjs; the app multiplies it into the sky and bounce light)
-  if (lod === 0) { bakeAO(doc); skinAO(doc); }
+  if (lod === 0) bakeAO(doc);
   doc.getRoot().getAsset().generator = 'flyover scripts/v2/build_tiles.mjs (glTF Transform 4.5.0)';
   doc.getRoot().setExtras({ tile: t, lod, buildings: slugs, building_attribute: '_BUILDING = index into buildings' });
   await doc.transform(meshopt({ encoder: MeshoptEncoder, level: MESHOPT_LEVEL, ...QUANT }));
@@ -281,7 +279,7 @@ async function buildTile(t, slugs, lod) {
 
 const INV = path.join(OUT, 'inventory.json');
 const prevInv = readJSON(INV, { tiles: {} });
-const tileHash = (t) => sha(JSON.stringify([TILER_HASH, MASS_HASH, tiles[t].map((s) => [s, stateOf(s), sources[s].x, sources[s].z, hasMass(s), ...(APP_COPY[s] ? [appKey(s)] : []), ...(photoMaterialsKey(s, REPO) ? [photoMaterialsKey(s, REPO)] : []), ...(photoSkinKey(s, REPO) ? [photoSkinKey(s, REPO)] : [])])])).slice(0, 16);
+const tileHash = (t) => sha(JSON.stringify([TILER_HASH, MASS_HASH, tiles[t].map((s) => [s, stateOf(s), sources[s].x, sources[s].z, hasMass(s), ...(APP_COPY[s] ? [appKey(s)] : []), ...(photoMaterialsKey(s, REPO) ? [photoMaterialsKey(s, REPO)] : [])])])).slice(0, 16);
 const tileInfo = {};
 let rebuilt = 0;
 for (const t of Object.keys(tiles).sort()) {
