@@ -6331,11 +6331,11 @@
       }
     },
     "t_-1_1": {
-      "hash": "fdddcb4e0ddb23f3",
+      "hash": "459dc147385841a1",
       "near": {
-        "bytes": 726012,
+        "bytes": 1324920,
         "tris": 73756,
-        "draws": 2
+        "draws": 4
       },
       "far": {
         "bytes": 42232,
