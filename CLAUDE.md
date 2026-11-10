@@ -194,17 +194,19 @@ memory and is never written here, in any tracked file, or in a commit message.
       work. Never a whole photograph pasted or projected on a wall, never people, faces, plates or screens, never photo
       metadata, file names or the place it was taken from. Free-licence public pictures need their credit in
       `v2/credits.html`; all-rights-reserved pictures may guide a build but are never cut into a texture.
-    - **Photo skin (2026-11-10; this changes "never projected on a wall" in the bullet above).** The owner's reason against a
-      photograph on a wall was the lighting engine (*"Wouldn't work with the lighting engine either"*). On 2026-11-10 that was
-      tested on Hogg Auditorium: a wall that keeps its photograph's pixels as its base colour still takes the app's sun, shade,
-      sunset and night like any other wall (the test is described in pull request #665; the pictures went to the owner). On the same day he gave the main lane the whole
-      method to change (*"you change everything"*, *"correct me"*). So a building may carry a photo skin
-      (`scripts/v2/photo_skin.mjs`): building surfaces only; from the owner's own photographs, taken under cloud where there is a
-      choice (or free-licence pictures with their credit in `v2/credits.html`); trees, sky, people, cars, poles and signs masked
-      out; one flat colour factor so the app's light stays in charge. What does not change: no Street View, Earth or
-      all-rights-reserved pixels; no people, faces, plates or screens; no photo names, cameras or the place a photograph was
-      taken from in the repo. His eye decides as for any change. To take a skin off, delete `v2/skins/<slug>/` and rebuild that
-      building's tile.
+    - **Rules, not photographs (owner, 2026-11-10). The photo skin of that morning is withdrawn.** His words, after he saw
+      photograph pixels in the app: *"I never wanted photos in the render. I wanted behaviors that can emulate those 100% details
+      with rules, that it was never able to get close to do (maybe 50%). Like give a man a fish vs teach a man to fish."* So:
+      - **The app never shows a photograph and never paints one on a wall.** The photo skins of #665 and #666 (Hogg, Rowling, the
+        AT&T entrance) were taken out the same day (#667). "Never a whole photograph pasted or projected on a wall" stands.
+      - **Photographs are the teacher and the test, never the paint.** Measure surfaces from them (colours, sizes, how light
+        behaves), fit a RULE the app follows everywhere, then test the rule on photographs it never saw. Materials taken from
+        photographs as tileable, de-lit textures that react to the app's light are his earlier ask and stay.
+      - **Judge work by its reach.** A rule changes every building, tree or street of its kind at once. One building fixed by hand
+        is a fish. Say which one a piece of work is.
+      - **A number that is true by construction is not proof** (a frame that shows the photograph matches the photograph).
+      - First rule fitted this way: trees (`?trees=real`, `v2/trees-real.js`; leaf colour and sun response measured against his
+        photographs with a wall in the frame as the light meter; branch `mac/v2-tree-rule`, off by default until he has seen it).
 
 ## Disk
 
