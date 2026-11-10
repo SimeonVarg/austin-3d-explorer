@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "encoding": "facet-low-bit-occlusion-7bit",
+  "bytes": 186561,
+  "sourceCommit": "91a41069dde872e3cc0171a9050c915a5653f79f",
+  "sourceHashes": {
+    "js/slopes.js": "b31184576e9f152f87bcb2d8057a4dbda8870804dd843bf36264b57c49e2a7b4",
+    "js/slopes-apartments.js": "17fef6ebe3ded3a019986f0edcc94aa442abc36f72dcb1ed40d265ebed967ba9",
+    "data/campus_buildings.json": "7ead5b84c54789511fbbe2911ed08fce749b8d5a6774d0ede134a3508d9b62fb",
+    "data/apartments/battle-hall.json": "a695c3e9b13fe7d9293f7727d9eabc74697b4ff80bcd2cb9308c36dd63646c9c"
+  },
+  "settings": {
+    "samples": 64,
+    "radius": 3,
+    "bias": 0.02,
+    "strength": 0.8,
+    "maximumOcclusion": 0.8
+  },
+  "targets": [
+    {
+      "id": "Battle Hall",
+      "vertices": 66980,
+      "triangles": 23514,
+      "hashes": {
+        "index": "05594f7591a03c620a4a45d9321acdae48413e718efc840713682d05f9892889",
+        "position": "bf13db60a4bd96c6401a06cff81a200118141cb235a076d0e324187aa7195279",
+        "normal": "31236d79575dec11c2761caa99f093e87f5c12e4666be29e69568e048621a1b6",
+        "aSurface": "e354bcd8efa6aa203ec2ed549aec19ba6dbba6191ed824c785e31b5532325482",
+        "facet": "f0f45ab8ef68017afe3ef47400edc29728daa5d7f6adbed54b0eae7d1e3f32d8"
+      },
+      "sha256": "99142b8b5b99d2f1338ff8c55883ed5e93da7835c72008cd89778b579d19a8d0",
+      "offset": 0,
+      "bytes": 66980
+    },
+    {
+      "id": "Union Building",
+      "vertices": 47377,
+      "triangles": 21025,
+      "hashes": {
+        "index": "cd9394b886b41169cac7a8673d74ae5fa992d390ffd6486c89a7ae83e5dac2e0",
+        "position": "2758d90aa3fddc8b048146003c30bfd7c6a27e65089399267259b2b568f8acea",
+        "normal": "df8d8230762380d2c3b9ae62888169a7eb8f4042cd6c27e94463b610b2ba65ee",
+        "aSurface": "82e1091ab2ba53b56ec3d3581e0c6d1a564299a963a4b77b904f8dca37f0e7a3",
+        "facet": "9a6fe0b09d1f2db509ed8e1376a9dcc6960c61ba386d5b513947433756c9b046"
+      },
+      "sha256": "fde80d023696c6b4d0239c93ea49a70bd2acd1a64003e4d9e152fdd61c6e537c",
+      "offset": 66980,
+      "bytes": 47377
+    },
+    {
+      "id": "Mary E. Gearing Hall",
+      "vertices": 72204,
+      "triangles": 27308,
+      "hashes": {
+        "index": "190ea367a7c1de6e6f9e9b144be609b7966eac94c5ef2fb3cfe28ab176272153",
+        "position": "3c10f5c5c383d87106f20e19a948a0e7a78d18ab81d64e2642c5d5319f39d11c",
+        "normal": "4573c50ec1d43b22c7a849810b395c65dd33d0179b3629444b5065eb90d7e2f5",
+        "aSurface": "e4a6557d274040752f160c0a04b0357a340bd70184443005fc0de861cebb09bb",
+        "facet": "19819f12b3d82f54697eac01c665575b58a1779f8bcc16302544f1301201242d"
+      },
+      "sha256": "be197c1ba9a979ebe7084b4678e57c182d7569b47d753212fb471d99501a8ed6",
+      "offset": 114357,
+      "bytes": 72204
+    }
+  ]
+}
