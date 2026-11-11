@@ -873,7 +873,7 @@ function nightWindowsGLSL(cell, footprint, cover, f) {
   return `
   {
     float v2h = fract(sin(dot(${cell}, vec2(12.9898, 78.233))) * 43758.5453);
-    float v2lit = mix(step(${f(1 - N.LIT_SHARE)}, v2h), ${f(N.LIT_SHARE)}, smoothstep(${f(LOOK.FACADE.FADE_PX[0])}, ${f(LOOK.FACADE.FADE_PX[1])}, ${footprint}));
+    float v2lit = mix(step(${f(1 - N.LIT_SHARE)}, v2h), ${f(N.LIT_SHARE)}, smoothstep(${f(LOOK.FACADE.NIGHT_FADE_PX[0])}, ${f(LOOK.FACADE.NIGHT_FADE_PX[1])}, ${footprint}));
     totalEmissiveRadiance += vec3(${W.map((v) => v.toExponential(4)).join(', ')}) * ${cover} * v2lit;
   }`;
 }
@@ -913,11 +913,24 @@ function facadeShader(sh) {
 varying vec2 vFac;
 // the share of [x - w/2, x + w/2] that lies inside the pulses [a, b] of a pattern with period 1 (an exact box filter)
 float pulseI(float x, float a, float b) { return floor(x) * (b - a) + clamp(fract(x), a, b) - a; }
+${F.TENT ? `// ...and its integral, for a TENT filter (a box filtered once more): the pattern's fine harmonics, the ones that beat with the
+// pixel grid, are cut far harder than by a box, so the windows can stay until a bay is nearly one pixel (LOOK.FACADE.TENT).
+float pulseII(float x, float a, float b) {
+  float n = floor(x), f = x - n, D = b - a;
+  float g = f < a ? 0.0 : (f < b ? 0.5 * (f - a) * (f - a) : 0.5 * D * D + D * (f - b));
+  return D * n * (n - 1.0) * 0.5 + n * (0.5 * D * D + D * (1.0 - b)) + n * D * f + g;
+}
 float pulseF(float x, float w, float a, float b) {
+  // the tent's half width: ${f(F.TENT_NEAR)} pixel where a bay is many pixels (an edge as crisp as the box's), ${f(F.TENT)} pixel where the pattern is fine
+  float h = clamp(w * mix(${f(F.TENT_NEAR)}, ${f(F.TENT)}, smoothstep(${f(F.TENT_FROM[0])}, ${f(F.TENT_FROM[1])}, w)), 1e-3, 1.0);
+  float xm = fract(x) + 1.0;          // (one period up from zero: the integral's numbers stay small)
+  float k = (pulseII(xm + h, a, b) - 2.0 * pulseII(xm, a, b) + pulseII(xm - h, a, b)) / (h * h);
+  return mix(k, b - a, smoothstep(${f(F.FADE_PX[0])}, ${f(F.FADE_PX[1])}, w));
+}` : `float pulseF(float x, float w, float a, float b) {
   w = max(w, 1e-4);
   float k = (pulseI(x + 0.5 * w, a, b) - pulseI(x - 0.5 * w, a, b)) / w;
   return mix(k, b - a, smoothstep(${f(F.FADE_PX[0])}, ${f(F.FADE_PX[1])}, w));
-}`).replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+}`}`).replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
 if (vFac.x >= 0.0) {
   float cls = floor(vFac.x / 1000.0);
   vec2 fc = vec2(vFac.x - cls * 1000.0, vFac.y);
