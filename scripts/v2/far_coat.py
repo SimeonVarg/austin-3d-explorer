@@ -298,14 +298,17 @@ for si, s in enumerate(shells):
     # two terms a far pixel needs, both plain averages over what it covers: the diffuse colour (a mirror pane has none), and how much of
     # it is SMOOTH (mirror glass, polished metal). The smooth part's own mirror colour and roughness are one value a building (below).
     f0 = 0.04 * (1 - metal[:, None]) + col * metal[:, None]
-    q = np.clip((0.6 - rough) / 0.3, 0, 1); q = q * q * (3 - 2 * q)
+    q = np.clip((0.6 - rough) / 0.3, 0, 1); q = q * q * (3 - 2 * q)          # 1 = smooth (mirror glass, polished metal), 0 = rough
     col = col * (1 - metal[:, None])
-    gs = dict(f0=(f0 * q[:, None]).sum(0), r=float((rough * q).sum()), q=float(q.sum()))
-    rough = q
+    f0q = f0 * q[:, None]; spec = f0q @ np.array([0.2126, 0.7152, 0.0722])  # the mirror strength looking straight at it, x the smooth share
+    ins = tex[:, 1] == 1
+    # per shell face: how much of it is smooth, its mirror strength, the mirror's colour and roughness (the face's own glass, not the building's mean)
+    fsum = np.stack([np.bincount(fid[ins], w_[ins], len(F)) for w_ in (q, spec, f0q[:, 0], f0q[:, 1], f0q[:, 2], rough * q)], 1)
+    rough = spec
     # texels a triangle really covers take only inside samples; gutter texels take what they get
     wgt = np.where(tex[:, 1] == 1, 1.0, 1e-3)
     for ch_ in range(3): acc_col[..., ch_] += np.bincount(tex[:, 0], col[:, ch_] * wgt, W * H).reshape(H, W)
-    acc_rm[..., 0] += np.bincount(tex[:, 0], rough * wgt, W * H).reshape(H, W)
+    acc_rm[..., 0] += np.bincount(tex[:, 0], rough * wgt, W * H).reshape(H, W)      # (rough holds the mirror strength now)
     acc_n += np.bincount(tex[:, 0], wgt, W * H).reshape(H, W)
     # each face is lit by the mean normal of what it shows (the real wall or roof under it), not by the shell's own small tilts
     # ...and of those normals the one most of the face shows (a wall with windows: the wall's, the same for every face of that wall)
@@ -324,8 +327,15 @@ for si, s in enumerate(shells):
     pair = F.astype(np.int64) * (int(nid.max()) + 1) + nid[:, None]
     uq, first, inv = np.unique(pair.reshape(-1), return_index=True, return_inverse=True)
     vsel = F.reshape(-1)[first]; nsel = np.repeat(sn, 3, 0)[first].astype(np.float64); nsel /= np.maximum(np.linalg.norm(nsel, axis=1, keepdims=True), 1e-12)
-    gl = np.r_[gs['f0'] / gs['q'], gs['r'] / gs['q']] if gs['q'] > 0 else np.array([0.04, 0.04, 0.04, 1.0])
-    out_meshes.append(dict(V=V[vsel], N=nsel, UV=uvs.astype(np.float32)[vsel], F=inv.reshape(-1, 3), bid=s['bid'], gloss=gl))
+    # per vertex (the faces around it): tint = the mirror's colour over its strength (x 0.5 to fit a byte), the mirror's roughness,
+    # and strength / smooth share (so the shader gets the smooth share back from the texel's strength)
+    Fn = inv.reshape(-1, 3); vs = np.zeros((len(uq), 6))
+    for k in range(3): np.add.at(vs, Fn[:, k], fsum)
+    has = vs[:, 1] > 1e-9
+    tint = np.where(has[:, None], vs[:, 2:5] / np.maximum(vs[:, 1:2], 1e-9), 1.0)
+    gl = np.column_stack([np.clip(tint * 0.5, 0, 1), np.where(has, vs[:, 5] / np.maximum(vs[:, 0], 1e-9), 1.0)])
+    gl2 = np.column_stack([np.where(has, np.clip(vs[:, 1] / np.maximum(vs[:, 0], 1e-9), 0, 1), 1.0), np.zeros(len(uq)), np.zeros(len(uq)), np.ones(len(uq))])
+    out_meshes.append(dict(V=V[vsel], N=nsel, UV=uvs.astype(np.float32)[vsel], F=Fn, bid=s['bid'], gloss=gl, gloss2=gl2))
     log(f'building {s["bid"]}: baked {len(pts)} rays, {100 * deep.mean():.1f} % seen through an opening, {100 * miss2.mean():.1f} % nearest surface')
 have = acc_n > 0
 col = np.zeros((H, W, 3)); rm = np.zeros((H, W, 1)); col[have] = acc_col[have] / acc_n[have][:, None]; rm[have] = acc_rm[have] / acc_n[have][:, None]
@@ -336,28 +346,29 @@ for it in range(8):                                        # fill what is left o
     for arr in (col, rm):
         for c_ in range(arr.shape[2]): arr[..., c_][new] = (ndimage.convolve(arr[..., c_] * have, k, mode='constant') / np.maximum(cnt, 1))[new]
     have = have | new
-# one picture: rgb = the diffuse colour, alpha = 1 - the smooth share (so plain walls are alpha 1 and nothing is lost if alpha is ever multiplied in)
+# one picture: rgb = the diffuse colour, alpha = the mirror strength of the texel (plain walls are alpha 1, so nothing is lost if alpha is ever multiplied in)
 METAL = float(rm[..., 0].mean())
-albedo = Image.fromarray((np.dstack([np.clip(lin2srgb(col), 0, 1), 1 - np.clip(rm[..., 0], 0, 1)]) * 255 + 0.5).astype(np.uint8), 'RGBA')
+albedo = Image.fromarray((np.dstack([np.clip(lin2srgb(col), 0, 1), 1 - np.sqrt(np.clip(rm[..., 0], 0, 1))]) * 255 + 0.5).astype(np.uint8), 'RGBA')   # alpha = 1 - sqrt(mirror strength): fine steps where the strength is small (plain glass is 0.04)
 def webp(im, q): bio = io.BytesIO(); im.save(bio, 'WEBP', quality=q, method=6, exact=True); return bio.getvalue()
 # ── write the skin glb (plain: positions, normals, uv, one material with the two pictures) ─────────────────
 Vall = np.concatenate([m['V'] for m in out_meshes]).astype(np.float32); Nall = np.concatenate([m['N'] for m in out_meshes]).astype(np.float32)
 UVall = np.concatenate([m['UV'] for m in out_meshes]).astype(np.float32); Ball = np.concatenate([np.full(len(m['V']), m['bid'], np.uint16) for m in out_meshes])
-Gall = np.concatenate([np.tile((np.clip(m['gloss'], 0, 1) * 255 + 0.5).astype(np.uint8), (len(m['V']), 1)) for m in out_meshes])   # per vertex: its building's mirror colour (rgb, linear) and roughness (a)
+Gall = np.concatenate([(np.clip(m['gloss'], 0, 1) * 255 + 0.5).astype(np.uint8) for m in out_meshes])
+G2all = np.concatenate([(np.clip(m['gloss2'], 0, 1) * 255 + 0.5).astype(np.uint8) for m in out_meshes])
 offs = np.cumsum([0] + [len(m['V']) for m in out_meshes]); Fall = np.concatenate([m['F'] + offs[i] for i, m in enumerate(out_meshes)]).astype(np.uint32)
-blobs = [Vall.tobytes(), Nall.tobytes(), UVall.tobytes(), Ball.tobytes() + b'\0' * ((4 - Ball.nbytes % 4) % 4), Fall.tobytes(), webp(albedo, int(os.environ.get('WEBP_Q', 80))), Gall.tobytes()]
+blobs = [Vall.tobytes(), Nall.tobytes(), UVall.tobytes(), Ball.tobytes() + b'\0' * ((4 - Ball.nbytes % 4) % 4), Fall.tobytes(), webp(albedo, int(os.environ.get('WEBP_Q', 80))), Gall.tobytes(), G2all.tobytes()]
 views, buf = [], b''
 for bl in blobs:
     views.append(dict(buffer=0, byteOffset=len(buf), byteLength=len(bl))); buf += bl + b'\0' * ((4 - len(bl) % 4) % 4)
 nv = len(Vall)
 g = dict(asset=dict(version='2.0', generator='far_coat.py'), scene=0, scenes=[dict(nodes=[0])], nodes=[dict(mesh=0, name='far')],
     extensionsUsed=['EXT_texture_webp'], extensionsRequired=['EXT_texture_webp'],
-    meshes=[dict(name='far', primitives=[dict(attributes=dict(POSITION=0, NORMAL=1, TEXCOORD_0=2, _BUILDING=3, _GLOSS=5), indices=4, material=0)])],
+    meshes=[dict(name='far', primitives=[dict(attributes=dict(POSITION=0, NORMAL=1, TEXCOORD_0=2, _BUILDING=3, _GLOSS=5, _GLOSS2=6), indices=4, material=0)])],
     materials=[dict(name='far_coat', doubleSided=False, pbrMetallicRoughness=dict(baseColorTexture=dict(index=0), metallicFactor=0, roughnessFactor=1), extras=dict(v2_kind='far', texel_m=TEXEL, err_m=ERR, smooth_share=round(METAL, 4)))],
     textures=[dict(sampler=0, extensions=dict(EXT_texture_webp=dict(source=0)))], samplers=[dict(magFilter=9729, minFilter=9987, wrapS=33071, wrapT=33071)],
     images=[dict(bufferView=5, mimeType='image/webp')],
     accessors=[dict(bufferView=0, componentType=5126, count=nv, type='VEC3', min=Vall.min(0).tolist(), max=Vall.max(0).tolist()), dict(bufferView=1, componentType=5126, count=nv, type='VEC3'),
-               dict(bufferView=2, componentType=5126, count=nv, type='VEC2'), dict(bufferView=3, componentType=5123, count=nv, type='SCALAR'), dict(bufferView=4, componentType=5125, count=int(Fall.size), type='SCALAR'), dict(bufferView=6, componentType=5121, normalized=True, count=nv, type='VEC4')],
+               dict(bufferView=2, componentType=5126, count=nv, type='VEC2'), dict(bufferView=3, componentType=5123, count=nv, type='SCALAR'), dict(bufferView=4, componentType=5125, count=int(Fall.size), type='SCALAR'), dict(bufferView=6, componentType=5121, normalized=True, count=nv, type='VEC4'), dict(bufferView=7, componentType=5121, normalized=True, count=nv, type='VEC4')],
     bufferViews=views, buffers=[dict(byteLength=len(buf))])
 jb = json.dumps(g).encode(); jb += b' ' * ((4 - len(jb) % 4) % 4)
 with open(OUT, 'wb') as f:

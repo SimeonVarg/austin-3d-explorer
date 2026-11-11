@@ -98,14 +98,18 @@ const PQ = new URLSearchParams(typeof location !== 'undefined' ? location.search
 // The far copy. Why it exists: measured 2026-11-11 in the opening flight on the owner's Mac, a frame drew 6 M triangles, most of them
 // smaller than a pixel, at 70 to 100 ms, so the canvas fell to a quarter of its pixels for the whole flight (the shimmer he sees).
 export const FAR = {
-  ON: PQ.get('far') === '1' && !PQ.has('moment'),   // (a far copy has no lit windows: night moments keep the full models)
+  ON: (PQ.get('far') === '1' || PQ.get('fast') === '1') && !PQ.has('moment'),   // ?fast=1 = this + the tree cards + the steady motion resolution (main.js, trees.js); a far copy has no lit windows, so night moments keep the full models
   INDEX: 'tiles/coats.json',  // { tile id: { file, texel_m, triangles } }, written by scripts/v2/far_coat.py
   PX: PQ.has('farpx') ? +PQ.get('farpx') : 1.5,   // the far copy draws where a pixel of the canvas, as it is now, is this many of its texels or more...
   BACK: 0.85,                 // ...and the full model draws again when the pixel is under this x that size (no flipping at the line)
-  ANISOTROPY: 8,              // slanted walls stay sharp
+  ANISOTROPY: PQ.has('faraniso') ? +PQ.get('faraniso') : 8,   // slanted walls stay sharp
+  WALL_ROUGHNESS: PQ.has('farrough') ? +PQ.get('farrough') : 0.9,   // the rough part's roughness (the builds' walls and roofs are 0.85 to 1)
   MIP_BIAS: PQ.has('farbias') ? +PQ.get('farbias') : 0,
   FORCE: PQ.get('farforce') || '',   // 'far' / 'full': every tile draws that copy (a test at one camera)
   SCALE: 0,                   // (a test) not 0: draw as if the canvas's adaptive scale were this
+  // In motion the line is set by ONE scale, not by the scale the canvas has at that moment: the two fed each other (a higher scale drew
+  // more full models, which made frames slower, which lowered the scale again: measured 2026-11-11, 22 canvas resizes in one flight).
+  MOTION_SCALE: 0.5,
 };
 // The far copy's material. Its one picture holds, per texel, the two things a far pixel is made of, both plain averages (so the
 // mip maps filter them correctly): rgb = the diffuse colour, and 1 - alpha = how much of the texel is SMOOTH (mirror glass). The smooth
@@ -118,19 +122,29 @@ function farMaterial(material) {
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 _gloss;\nvarying vec4 vFarGloss;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFarGloss = _gloss;');
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 _gloss;\nattribute vec4 _gloss2;\nvarying vec4 vFarGloss;\nvarying float vFarK;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFarGloss = _gloss;\nvFarK = _gloss2.x;');
     if (FAR.MIP_BIAS) sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', 'texture2D( map, vMapUv, ' + FAR.MIP_BIAS.toFixed(3) + ' )'));
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec4 vFarGloss;')
+    // Two lobes, as the full model has: the rough part keeps its soft sheen of the sky (a big part of how a far wall or roof looks at a
+    // low angle), weighted by its share; the smooth part is added as a true mirror of the sky with the strength the texel holds.
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec4 vFarGloss;\nvarying float vFarK;')
       .replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
+  float v2s = 0.0, v2g = 0.0;
   #ifdef USE_MAP
-  {
-    float v2g = 1.0 - sampledDiffuseColor.a;                 // the smooth share of this texel
-    vec3 v2f0 = vFarGloss.rgb * v2g;
-    material.diffuseContribution = diffuseColor.rgb;
-    material.metalness = 1.0; material.diffuseColor = v2f0;   // (the mirror lobe alone, scaled by the share; no gloss on the wall part)
-    material.specularColor = vec3(0.0); material.specularColorBlended = v2f0; material.specularF90 = v2g;
-    material.roughness = min(max(vFarGloss.a, 0.0525) + geometryRoughness, 1.0);
+    v2s = 1.0 - sampledDiffuseColor.a; v2s *= v2s;            // the mirror strength of this texel, looking straight at it
+    v2g = min(1.0, v2s / max(vFarK, 0.02));                   // the smooth share (strength over the face's strength per share)
+    material.diffuseContribution = diffuseColor.rgb;         // (the picture's colour is already the diffuse part alone)
+    material.metalness = 0.0;
+    material.specularColor = vec3(0.04 * (1.0 - v2g)); material.specularColorBlended = material.specularColor; material.specularF90 = 1.0 - v2g;
+    material.roughness = min(${FAR.WALL_ROUGHNESS.toFixed(3)} + geometryRoughness, 1.0);
+  #endif`)
+      .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+  #if defined( USE_ENVMAP ) && defined( USE_MAP )
+  if (v2s > 0.0005) {                                          // (most texels are plain wall or roof: no second look at the sky for them)
+    float v2nv = saturate(dot(geometryNormal, geometryViewDir));
+    vec3 v2f0 = min(vFarGloss.rgb * 2.0 * v2s, vec3(v2g));
+    vec3 v2F = v2f0 + (vec3(v2g) - v2f0) * pow(1.0 - v2nv, 5.0);
+    reflectedLight.indirectSpecular += v2F * getIBLRadiance(geometryViewDir, geometryNormal, max(vFarGloss.a, 0.0525));
   }
   #endif`);
   };
@@ -295,7 +309,7 @@ export class TileStreamer {
     let changed = false;
     for (const s of this.tiles.values()) {
       if (!s.far) { if (s.full && !s.full.visible) { s.full.visible = true; changed = true; } continue; }
-      const far = !s.full || (FAR.FORCE ? FAR.FORCE === 'far' : s.d > s.line * (FAR.SCALE || AO_SCALE.value) * (s.far.visible && s.full.visible === false ? FAR.BACK : 1));
+      const far = !s.full || (FAR.FORCE ? FAR.FORCE === 'far' : s.d > s.line * (FAR.SCALE || (AO_SCALE.value < 0.999 ? FAR.MOTION_SCALE : 1)) * (s.far.visible && s.full.visible === false ? FAR.BACK : 1));
       if (s.far.visible !== far) { s.far.visible = far; changed = true; }
       if (s.full && s.full.visible === far) { s.full.visible = !far; changed = true; }
     }
