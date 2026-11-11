@@ -39,7 +39,7 @@ async function load(q) {
     const out = { meshes: 0, withAO: 0, aoKey: 0, slope: 0, factor: null, values: 0, dark: 0, all: [] };
     const g = window.__v2.scene.getObjectByName('blender-tiles');
     g.traverse((o) => {
-      if (!o.isMesh) return;
+      if (!o.isMesh || o.material?.userData?.v2Far) return;   // (a far copy, tiles.js FAR, carries no baked AO: only the full models are counted)
       out.meshes++;
       const a = o.geometry.attributes._ao;
       if (a) {

@@ -236,3 +236,14 @@ export const QUALITY = {
     STILL_MS: 200,              // the camera has not moved for this long: draw at full resolution again
   },
 };
+
+// The fast mode (2026-11-11). Three parts that make a moving camera cheaper on a weak GPU, each with its own switch:
+//   far      a far copy of a Blender tile where the full model's detail is smaller than a pixel (tiles.js FAR; ?far=0)
+//   treecards one card for each far round tree crown (trees.js, street-look.js TREE_LOOK.CARDS; ?treecards=0)
+//   adaptup  no step back UP in resolution inside one motion (main.js; ?adaptup=1 brings the step back)
+// Measured in the opening flight on the owner's Mac, on the live site: 8.8 -> 21 to 24 frames a second, the same picture at rest
+// to under 1 of 255 on average. ON for a desktop. OFF for a phone: the far copies are a second set of textures (about 190 MB on
+// the GPU) and a phone's memory is not measured yet. ?fast=0 is the old path everywhere; ?fast=1 forces it on (a phone too).
+export const PHONE_QUERY = '(max-width: 600px), (pointer: coarse)';
+export const FAST = Q.has('fast') ? Q.get('fast') !== '0' : typeof matchMedia === 'function' && !matchMedia(PHONE_QUERY).matches;
+export const fastPart = (name) => (Q.has(name) ? Q.get(name) !== '0' : FAST);
