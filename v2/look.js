@@ -156,7 +156,17 @@ export const LOOK = {
     GLASS_ROUGHNESS: 0.25,
     BAND: 0.07,                 // a slab line at each floor, share of the storey (0 = none)
     BAND_SHADE: 0.82,           // the slab line's colour = the wall x this
-    FADE_PX: [0.22, 0.45],      // footprint (bays or storeys per pixel) over which the pattern fades to its average: gone before a bay is 2 px
+    // The pattern is filtered exactly for the pixel it is drawn in, and fades to its average over this footprint (bays or
+    // storeys per pixel): gone when a bay is about 1.2 pixels. Until 2026-11-11 this was [0.22, 0.45] (gone under 2.2 pixels) with a
+    // box filter, whose fine harmonics beat with the pixel grid sooner. In motion the owner's Mac draws a quarter of the pixels, so
+    // every plain building past about 1 km lost its windows while the camera moved and got them back at the stop. With the tent
+    // filter below the windows stay to about twice the distance, in motion and at rest, and a slow turn of the camera changes the
+    // picture no more than it changes the truth (frame-to-frame change x0.97 to x1.02 of the truth's at three flight moments).
+    FADE_PX: [0.45, 0.85],
+    NIGHT_FADE_PX: [0.22, 0.45], // the lit windows of a night moment keep the old footprint: lit cells are random, and random cells near a pixel in size sparkle
+    TENT: 1,                    // the pattern's filter is a tent of this half width in pixels where the pattern is fine (main.js pulseF); 0 = the old box
+    TENT_NEAR: 0.7,             // ...and of this half width where a bay is many pixels (as soft as the old one-pixel box, no softer)
+    TENT_FROM: [0.08, 0.25],    // the tent widens from TENT_NEAR to TENT over this footprint (bays per pixel)
   },
 
   // ── campus clay tile roofs (v2/clay.js; 2026-10-26) ──────────────────
@@ -205,6 +215,8 @@ if (Q.get('shadowaim') === '0') LOOK.SHADOW_AIM.ON = false;
 if (Q.get('probemirror') === '0') LOOK.PROBE_MIRROR_SKY = false;
 if (Q.get('ao') && Q.get('ao') !== '0') LOOK.AO.STRENGTH = +Q.get('ao');
 if (Q.get('clay') === '0') LOOK.CLAY.ON = false;
+if (Q.has('factent')) LOOK.FACADE.TENT = +Q.get('factent');                                     // (tests) ?factent=1 &facfade=0.45,0.85
+if (Q.get('facfade')) LOOK.FACADE.FADE_PX = Q.get('facfade').split(',').map(Number);
 if (Q.has('claybias')) LOOK.CLAY.MIP_BIAS = +Q.get('claybias');
 if (Q.get('aofar')) LOOK.AO.FAR_PX_M = Q.get('aofar').split(',').map(Number);   // e.g. ?aofar=0.06,0.18,0.35,0.9
 
