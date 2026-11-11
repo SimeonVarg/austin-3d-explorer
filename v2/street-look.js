@@ -90,6 +90,17 @@ export const TREE_LOOK = {
   },
   LIGHTNESS_VARIATION: 0.12,
   HUE_VARIATION: 0.02,
+  // ?treecards=1 (off by default until the owner has looked at it): a round crown farther than FROM_M from the camera is drawn as ONE
+  // small card (2 triangles) on which the pixel shader draws the crown's exact ellipsoid: a truly round edge, the ball's own
+  // normals, its depth and its shadow. The 80-triangle ball is kept only for the crowns near the camera (the under-a-tree look
+  // needs it), and trunks are drawn only to TRUNK_M (past it a trunk is thinner than a pixel). Why: measured 2026-11-11 in the
+  // opening flight on the owner's Mac, the 23,000 crowns and trunks were 2.1 M triangles in EVERY frame, 12 to 38 ms of it.
+  CARDS: {
+    FROM_M: 140,                // the card takes over from the ball here (the ball and the card of one tree never draw together)
+    TRUNK_M: 750,               // trunks nearer than this are drawn
+    REFILL_M: 12,               // the near sets are made again when the camera has moved this far
+    NEAR_MAX: 3072, TRUNK_MAX: 12288,   // most balls / trunks drawn at once
+  },
   TRUNK: '#3a3027',
   TRUNK_TOP: 0.3,               // the trunk rises to (height - TRUNK_TOP x crown height): up into the lifted canopy below (hidden in a whole crown)
   // Standing under a tree (v2/trees.js nearShader). A solid ball's underside sits at eye height right beside the trunk, so a camera
