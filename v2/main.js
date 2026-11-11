@@ -231,6 +231,28 @@ try {
   throw e;
 }
 const DPR = Math.min(devicePixelRatio || 1, PHONE ? QUALITY.MAX_PIXEL_RATIO_PHONE : QUALITY.MAX_PIXEL_RATIO);
+// THE ORDER OF THE OPAQUE DRAWS: nearest first (2026-11-11). three.js orders opaque draws by material, so that it changes state
+// seldom; here nearly every draw has its own material anyway (a tile, a far copy), so that order is by the order of loading: a far
+// wall can be shaded and then covered by a near one. The order matters on the owner's Mac: at four moments of the opening flight,
+// motion state, farthest first cost 10 to 16 ms more than three.js's order; nearest first by the centre of the object's bounding
+// sphere measured 0 to 2.5 ms less than three.js's order (the best of three interleaved rounds in one page; by the sphere's NEAR
+// side it was no better: the big objects all come first). The picture is the same. ?zsort=0 is three.js's own order.
+let zStamp = null;   // (called at the start of every render of the city: scene.onBeforeRender below)
+if (params.get('zsort') !== '0') {
+  const zc = new THREE.Vector3(), zs = new THREE.Sphere(); let zFrame = 0, zMode = +(params.get('zsort') || 2);   // 2 = by the centre of the bounding sphere (the default), 1 = by its near side
+  const nearSide = (item) => {
+    const o = item.object, u = o.userData;
+    if (u.zFrame === zFrame) return u.zKey;
+    const g = item.geometry, sp = o.isInstancedMesh ? (o.boundingSphere || (o.computeBoundingSphere(), o.boundingSphere)) : (g.boundingSphere || (g.computeBoundingSphere(), g.boundingSphere));
+    zs.copy(sp).applyMatrix4(o.matrixWorld);
+    u.zFrame = zFrame; u.zKey = zs.center.distanceTo(zc) - (zMode === 1 ? zs.radius : 0);
+    return u.zKey;
+  };
+  const nearFirst = (a, b) => (a.groupOrder !== b.groupOrder ? a.groupOrder - b.groupOrder : a.renderOrder !== b.renderOrder ? a.renderOrder - b.renderOrder : (nearSide(a) - nearSide(b)) || a.id - b.id);
+  renderer.setOpaqueSort(nearFirst);
+  window.__v2setZSort = (m) => { zMode = m; zFrame += 2; renderer.setOpaqueSort(m ? nearFirst : null); };   // (a test handle: 0 = three.js's own order)
+  zStamp = (cam) => { zFrame++; zc.setFromMatrixPosition(cam.matrixWorld); };
+}
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 // 'standard': Blender's Standard view (exposure, then the sRGB curve) below LOOK.TONE_SHOULDER, and above it the highlight
 // roll-off of Khronos PBR Neutral, WITHOUT Neutral's dark offset (which subtracts the darkest channel from dark colours and turned
@@ -255,6 +277,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 
 const scene = new THREE.Scene();
+if (zStamp) scene.onBeforeRender = (r, sc, cam) => zStamp(cam);   // (the first hook in the chain; ground.js, trees.js and street.js add theirs over it)
 const camera = new THREE.PerspectiveCamera(VIEW.FOV_DEG, 1, VIEW.NEAR_M, VIEW.FAR_M);
 
 // The camera bumps into the buildings and trunks (flycam.js CollisionField: filled from the city worker, the Blender tops, the trees).
