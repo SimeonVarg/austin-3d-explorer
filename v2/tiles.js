@@ -260,7 +260,9 @@ export class TileStreamer {
     if (FAR.ON) {
       try {
         const c = await fetch(new URL(FAR.INDEX, this.base).href, { cache: 'no-cache' }).then((x) => (x.ok ? x.json() : null));
-        for (const [id, v] of Object.entries(c || {})) { const s = this.tiles.get(id); if (s && v && v.file) s.coat = v; }
+        // a far copy is drawn only for the tile it was made from (the manifest's byte count of the full model): a tile rebuilt since
+        // then draws its full model until scripts/v2/far_coat_all.py has run again
+        for (const [id, v] of Object.entries(c || {})) { const s = this.tiles.get(id); if (s && v && v.file && (!v.tile_bytes || !s.def.bytes || v.tile_bytes === s.def.bytes[0])) s.coat = v; else if (s && v) this.stats.staleCoats = (this.stats.staleCoats || 0) + 1; }
       } catch (e) { console.info('[v2 tiles] no far copies:', e.message); }
     }
     return this.manifest;
