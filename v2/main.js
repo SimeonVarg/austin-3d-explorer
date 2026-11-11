@@ -338,7 +338,11 @@ const domeScale = [LOOK.SKY_DOME_GAIN, LOOK.SKY_DOME_GAIN, LOOK.SKY_DOME_GAIN];
 // The visible dome: below the horizon stop it is the horizon (= the haze colour), not the far land the LIGHT sees there, so the hazed
 // ground meets it without a band (the light keeps the far-land stops: walls still get the dark land's bounce).
 const domeStops = STOPS.map((s, i) => (i < 2 ? [s[0], STOPS[2][1]] : s));
-const dome = new THREE.Mesh(new THREE.SphereGeometry(VIEW.FAR_M * 0.8, 48, 24), skyMaterial(domeScale, null, LOOK.SKY_SUN_GLOW * LOOK.SKY_DOME_GAIN, domeStops));
+// Only the part of the dome that can show is drawn: from straight up down to SKY_BELOW_DEG under the level line. The dome is drawn first,
+// over every pixel it covers, and the ground then covers all of it below the horizon: on the owner's Mac that hidden part was most of
+// the sky shader's 5 ms a frame at full resolution (measured 2026-11-11). The picture is the same. ?skyfull=1: the whole ball (an A/B).
+const SKY_BELOW_DEG = 6;
+const dome = new THREE.Mesh(new THREE.SphereGeometry(VIEW.FAR_M * 0.8, 48, 24, 0, Math.PI * 2, 0, params.get('skyfull') === '1' ? Math.PI : THREE.MathUtils.degToRad(90 + SKY_BELOW_DEG)), skyMaterial(domeScale, null, LOOK.SKY_SUN_GLOW * LOOK.SKY_DOME_GAIN, domeStops));
 dome.renderOrder = -10; dome.frustumCulled = false;
 scene.add(dome);
 // fog = the dome's horizon, in the same (pre tone map) units
