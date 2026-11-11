@@ -21,7 +21,6 @@
  * Runs on any renderer. On a page with the far copy off (?far=0, a phone) 2 and 3 pass with nothing to compare.
  */
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
 import { launch, BASE } from './chrome.mjs';
@@ -33,8 +32,8 @@ import { launch, BASE } from './chrome.mjs';
 // Measured 2026-11-11 on the owner's Mac, 1000 x 640: the far copy of that morning (one mixed colour a texel) drifted +4.7 to +8.3
 // (pale towers, window rows washed out); model 3 (bright part and dark part sent to the screen apart) measures about 2 and looks like the truth.
 const FAR_TRUE = { SS: +(process.env.TRUTH_SS || 3), DRIFT: +(process.env.FAR_TRUE_DRIFT || 3.0), SEEN: +(process.env.FAR_TRUE_SEEN || 8.0) };
-const OUT = process.argv[2] || fs.mkdtempSync(path.join(os.tmpdir(), 'v2-full-detail-'));
-fs.mkdirSync(OUT, { recursive: true });
+const OUT = process.argv[2] || '';                         // a folder: the frames are kept there as pictures, for the eye (none without it: a software renderer needs minutes for a screenshot)
+if (OUT) fs.mkdirSync(OUT, { recursive: true });
 
 const browser = await launch(chromium, { maxMs: 1500000 });
 const page = await (await browser.newContext({ viewport: { width: 1000, height: 640 } })).newPage();
@@ -63,6 +62,7 @@ const state = () => page.evaluate(() => {
   return { tiles: out, on: !!(v.FAR && v.FAR.ON), back: v.FAR ? v.FAR.BACK : 1, sum: v.tiles() };
 });
 const shot = async (file) => {
+  if (!OUT) return;
   await page.evaluate(() => new Promise((r) => { window.__v2.redraw(); requestAnimationFrame(() => { window.__v2.redraw(); requestAnimationFrame(() => r()); }); }));
   await page.waitForTimeout(300);
   await page.screenshot({ path: file });   // (README: screenshot twice, trust the second)
@@ -108,6 +108,7 @@ const truer = () => page.evaluate(() => {
 });
 // a picture of a kept frame (or of app minus truth: red = the app is brighter, blue = darker, x8) for the eye, when a check fails
 const save = async (file, key, minus) => {
+  if (!OUT) return;
   const url = await page.evaluate(([key, minus]) => {
     const G = window.__grabs, A = G[key], B = minus ? G[minus] : null, c = document.createElement('canvas'); c.width = A.w; c.height = A.h;
     const x = c.getContext('2d'), im = x.createImageData(A.w, A.h);
@@ -155,7 +156,7 @@ const s = await page.evaluate(() => {
 await browser.close();
 let ok = true;
 const check = (c, msg) => { console.log((c ? 'PASS ' : '*FAIL ') + msg); ok &&= !!c; };
-console.log('tiles', JSON.stringify(s.t), '| pictures in', OUT);
+console.log('tiles', JSON.stringify(s.t), OUT ? '| pictures in ' + OUT : '');
 check(far.length === 0, `no old far file requested (${far.length})`);
 for (const v of views) {
   const farT = v.st.tiles.filter((t) => t[1] === 'far'), near = farT.filter((t) => t[2] !== null && t[2] < v.st.back - 0.01);
