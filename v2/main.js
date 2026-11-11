@@ -934,13 +934,42 @@ function addRibbons(list, order, into) {
 }
 const idKeys = (id) => { id = String(id); return id.length > 8 && /^[0-9a-f]{8}-/.test(id) ? [id, id.slice(0, 8)] : [id]; };
 
+// The plain extrusions arrive as one mesh a map tile (about 145 of them in view from above). On the owner's Mac a draw call costs about
+// as much as 4,000 triangles (measured 2026-11-11: 144 calls for 0.14 M triangles = 6 ms a frame), so the tiles of one CITY_BLOCK_M
+// square are joined into one mesh: the same triangles, about a tenth of the calls. Hiding and fading by map id work as before (each
+// tile's record now points into the joined mesh). ?cityjoin=0: one mesh a tile, as before (an A/B).
+const CITY_BLOCK_M = 900, CITY_JOIN = params.get('cityjoin') !== '0';
 function addBuildings(list) {
+  const groups = new Map();
   for (const t of list) {
+    let k = t.key;
+    if (CITY_JOIN) { let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity; for (let i = 0; i < t.pos.length; i += 3) { const x = t.pos[i], z = t.pos[i + 2]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (z < z0) z0 = z; if (z > z1) z1 = z; } k = Math.floor((x0 + x1) / 2 / CITY_BLOCK_M) + ',' + Math.floor((z0 + z1) / 2 / CITY_BLOCK_M); }
+    (groups.get(k) || groups.set(k, []).get(k)).push(t);
+  }
+  for (const [key, tiles] of groups) {
+    let t = tiles[0];
+    const bases = [0];
+    if (tiles.length > 1) {
+      const nv = tiles.reduce((n, x) => n + x.pos.length / 3, 0), ni = tiles.reduce((n, x) => n + x.idx.length, 0);
+      const J = { pos: new Float32Array(nv * 3), nrm: new tiles[0].nrm.constructor(nv * 3), col: new tiles[0].col.constructor(nv * 3), fac: tiles[0].fac ? new tiles[0].fac.constructor(nv * 2) : null, idx: new Uint32Array(ni) };
+      let v = 0, i = 0; bases.length = 0;
+      for (const x of tiles) {
+        bases.push(v);
+        J.pos.set(x.pos, v * 3); J.nrm.set(x.nrm, v * 3); J.col.set(x.col, v * 3); if (J.fac) J.fac.set(x.fac, v * 2);
+        for (let k = 0; k < x.idx.length; k++) J.idx[i + k] = x.idx[k] + v;
+        v += x.pos.length / 3; i += x.idx.length;
+      }
+      t = J;
+    }
     const m = new THREE.Mesh(geometryOf(t, true), buildingMaterial);
-    m.castShadow = true; m.receiveShadow = true; m.name = 'buildings ' + t.key;
-    const rec = { mesh: m, orig: t.pos.slice(0), ids: t.ids, starts: t.starts, counts: t.counts };
-    t.ids.forEach((id, k) => { for (const key of idKeys(id)) { const l = city.byId.get(key) || []; l.push([rec, k]); city.byId.set(key, l); } });
-    cityGroup.add(m); city.buildings.push(rec);
+    m.castShadow = true; m.receiveShadow = true; m.name = 'buildings ' + (tiles.length > 1 ? 'block ' + key : tiles[0].key);
+    const orig = t.pos.slice(0);
+    tiles.forEach((x, n) => {
+      const rec = { mesh: m, orig, ids: x.ids, starts: bases[n] ? x.starts.map((s0) => s0 + bases[n]) : x.starts, counts: x.counts };
+      x.ids.forEach((id, k) => { for (const key2 of idKeys(id)) { const l = city.byId.get(key2) || []; l.push([rec, k]); city.byId.set(key2, l); } });
+      city.buildings.push(rec);
+    });
+    cityGroup.add(m);
   }
   if (city.hidden.size) setHidden([...city.hidden], true, true);
 }
