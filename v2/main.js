@@ -1353,14 +1353,23 @@ function resize() {
 // settled on is kept for the next motion, so a weak GPU starts the next move already at its scale. On a GPU that holds the target the
 // first decision is "stay", and the canvas never changes.
 const A = QUALITY.ADAPT;
+// ?adaptup=0: a step back UP waits for the next motion (a canvas resize costs 150 to 350 ms on the owner's Mac, measured 2026-11-11)
+const ADAPT_UP_IN_MOTION = params.get('adaptup') !== '0';
 const adapt = {
   on: A.ON && params.get('adapt') !== '0',
   budgetMs: 1000 / (+params.get('adaptfps') || A.TARGET_FPS),
   floor: Math.min(1, Math.max(A.MIN_SCALE, A.MIN_PIXEL_RATIO / DPR)),
   scale: 1,            // the canvas's scale now
-  motionScale: 1,      // the scale motion runs at (learned)
+  motionScale: 1,      // the scale motion runs at (learned; kept on this device between visits, ADAPT_KEEP)
   samples: [], lastDraw: 0, lastMove: 0, changes: 0, movingDraw: false, lastDown: null, learnedFloor: 0, learnedAt: 0,
 };
+// The learned motion scale is kept on this device, so the first motion of a visit (the opening flight) starts at it in one step instead
+// of finding it again in four canvas resizes (each 150 to 350 ms on the owner's Mac, measured 2026-11-11). ?adaptkeep=0: not kept.
+const ADAPT_KEEP = params.get('adaptkeep') !== '0' && params.get('adaptup') === '0';
+const ADAPT_KEY = 'v2-motion-scale-' + DPR;
+if (ADAPT_KEEP) { try { const v = +localStorage.getItem(ADAPT_KEY); if (v >= adapt.floor - 1e-3 && v <= 1) adapt.motionScale = v; } catch (e) {} }
+let adaptKept = adapt.motionScale;
+function keepScale() { if (!ADAPT_KEEP || adapt.motionScale === adaptKept) return; adaptKept = adapt.motionScale; try { localStorage.setItem(ADAPT_KEY, String(adaptKept)); } catch (e) {} }
 function setScale(s) {
   s = THREE.MathUtils.clamp(s, adapt.floor, 1);
   if (Math.abs(s - adapt.scale) < 1e-3) return;
@@ -1373,6 +1382,8 @@ function adaptFrame(now, moved) {
   adapt.movingDraw = false;
   if (!adapt.on || adapt.floor >= 1) return;
   if (moved) {
+    if (adapt.nextUp && now - adapt.lastMove > A.STILL_MS) { adapt.motionScale = adapt.nextUp; adapt.nextUp = 0; }   // a new motion: the step up that waited
+    keepScale();
     adapt.lastMove = now;
     if (adapt.scale !== adapt.motionScale) { setScale(adapt.motionScale); return; }
   } else {
@@ -1392,8 +1403,10 @@ function adaptFrame(now, moved) {
   if (now - adapt.learnedAt > A.RELEARN_MS) adapt.learnedFloor = 0;
   const floor = Math.max(adapt.floor, adapt.learnedFloor);
   if (med > adapt.budgetMs * A.DOWN_AT && adapt.scale > floor + 1e-3) { adapt.lastDown = { scale: adapt.scale, med }; adapt.motionScale = Math.max(floor, adapt.scale * A.STEP); }
-  else if (med < adapt.budgetMs * A.UP_AT && adapt.scale < 1) adapt.motionScale = Math.min(1, adapt.scale / A.STEP);
-  else return;
+  else if (med < adapt.budgetMs * A.UP_AT && adapt.scale < 1) {
+    if (!ADAPT_UP_IN_MOTION) { adapt.nextUp = Math.min(1, adapt.scale / A.STEP); return; }   // (the next motion starts one step sharper; this one is not interrupted by a canvas resize)
+    adapt.motionScale = Math.min(1, adapt.scale / A.STEP);
+  } else return;
   setScale(adapt.motionScale);
 }
 addEventListener('resize', resize);
