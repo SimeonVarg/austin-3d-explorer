@@ -2,7 +2,7 @@
 //   - every tile draws its FULL model (lod0) at every distance: there is no swap to a lesser far copy (owner, 2026-10-18:
 //     "get rid of the rule that converts buildings to bad lesser detailed ones when theyre at a distance"). The manifest's lod1
 //     files and per-tile lod1_m are no longer read;
-//   - ?far=1 (off by default): a tile far enough away draws its FAR COPY instead (FAR below, scripts/v2/far_coat.py): a tight shell of
+//   - the far copy (on with the fast mode, look.js FAST; ?far=0 turns it off): a tile far enough away draws its FAR COPY instead (FAR below, scripts/v2/far_coat.py): a tight shell of
 //     what can be seen of each building from outside, with the full model's own colours laid on it as one picture. Every part
 //     smaller than a texel (frames, rails, fins) is paint on the shell, so the GPU filters it like any texture (mip maps) and it
 //     has nothing left to flicker with; and the tile costs about a tenth of the triangles. It takes over only where one texel is
@@ -18,7 +18,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { brickMipChain, BRICK_MIPS } from './brick-mips.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { LOOK, BRICK_MIPS_SLUGS } from './look.js';
+import { LOOK, BRICK_MIPS_SLUGS, fastPart } from './look.js';
 
 export const TILES = {
   MAX_DECODES: 2,
@@ -98,7 +98,8 @@ const PQ = new URLSearchParams(typeof location !== 'undefined' ? location.search
 // The far copy. Why it exists: measured 2026-11-11 in the opening flight on the owner's Mac, a frame drew 6 M triangles, most of them
 // smaller than a pixel, at 70 to 100 ms, so the canvas fell to a quarter of its pixels for the whole flight (the shimmer he sees).
 export const FAR = {
-  ON: (PQ.get('far') === '1' || PQ.get('fast') === '1') && !PQ.has('moment'),   // ?fast=1 = this + the tree cards + the steady motion resolution (main.js, trees.js); a far copy has no lit windows, so night moments keep the full models
+  ON: fastPart('far') && !PQ.has('moment'),   // part of the fast mode (look.js FAST: on for a desktop; ?far=0 or ?fast=0 turns it off); a far copy has no lit windows, so night moments keep the full models
+  MODEL: 3,                   // how a far copy holds its colours (bright part + dark share, below); a file of another model is not drawn
   INDEX: 'tiles/coats.json',  // { tile id: { file, texel_m, triangles } }, written by scripts/v2/far_coat.py
   PX: PQ.has('farpx') ? +PQ.get('farpx') : 1.5,   // the far copy draws where a pixel of the canvas, as it is now, is this many of its texels or more...
   BACK: 0.85,                 // ...and the full model draws again when the pixel is under this x that size (no flipping at the line)
@@ -111,10 +112,10 @@ export const FAR = {
   // more full models, which made frames slower, which lowered the scale again: measured 2026-11-11, 22 canvas resizes in one flight).
   MOTION_SCALE: 0.5,
 };
-// The far copy's material. Its one picture holds, per texel, the two things a far pixel is made of, both plain averages (so the
-// mip maps filter them correctly): rgb = the diffuse colour, and 1 - alpha = how much of the texel is SMOOTH (mirror glass). The smooth
-// part is drawn as that share of a true mirror with its building's own mirror colour and roughness (vertex attribute _gloss), so a
-// facade whose windows are smaller than a pixel still mirrors the sky as much as the windows did, instead of turning into grey paint.
+// The far copy's material (model 3). Its one picture holds, per texel, the two things a far pixel is made of: rgb = the colour of the
+// texel's BRIGHT part (wall, roof), and 1 - alpha = the share of the texel that is DARK (panes, dark panels). Both are plain averages,
+// so the mip maps filter them exactly. The dark part's own colour and mirror are one value a face (vertex attributes _gloss: mirror
+// strength rgb + mirror roughness; _gloss2: smooth share + the square root of the dark colour), from scripts/v2/far_coat.py.
 function farMaterial(material) {
   if (!material || material.userData.v2Far) return;
   material.userData.v2Far = true;
@@ -122,34 +123,51 @@ function farMaterial(material) {
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 _gloss;\nattribute vec4 _gloss2;\nvarying vec4 vFarGloss;\nvarying float vFarK;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFarGloss = _gloss;\nvFarK = _gloss2.x;');
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 _gloss;\nattribute vec4 _gloss2;\nvarying vec4 vFarGloss;\nvarying vec4 vFarDark;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFarGloss = _gloss;\nvFarDark = _gloss2;');
     if (FAR.MIP_BIAS) sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', 'texture2D( map, vMapUv, ' + FAR.MIP_BIAS.toFixed(3) + ' )'));
-    // Two lobes, as the full model has: the rough part keeps its soft sheen of the sky (a big part of how a far wall or roof looks at a
-    // low angle), weighted by its share; the smooth part is added as a true mirror of the sky with the strength the texel holds.
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec4 vFarGloss;\nvarying float vFarK;')
+    // A texel of the far copy holds two things at once: its BRIGHT part (wall, roof: the picture's colour) and its DARK part (panes,
+    // dark panels: 1 - alpha is its share; its colour and its mirror are one value a face, _gloss / _gloss2). They go to the screen
+    // APART and are mixed there. Why: the screen clips bright light (LOOK.TONE_MAPPING), and a white wall in the sun is over the clip. Lit
+    // as one mixed colour, a texel that is half dark pane was still over the clip and drew white: the window rows washed out of every
+    // pale tower (measured 2026-11-11 against the full models drawn with 9 samples a pixel). The full model's own pixels clip the wall
+    // and the pane each by itself; so does this.
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec4 vFarGloss;\nvarying vec4 vFarDark;')
       .replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
-  float v2s = 0.0, v2g = 0.0;
+  float v2d = 0.0; vec3 v2bright = vec3(0.0), v2mirror = vec3(0.0);
   #ifdef USE_MAP
-    v2s = 1.0 - sampledDiffuseColor.a; v2s *= v2s;            // the mirror strength of this texel, looking straight at it
-    v2g = min(1.0, v2s / max(vFarK, 0.02));                   // the smooth share (strength over the face's strength per share)
-    material.diffuseContribution = diffuseColor.rgb;         // (the picture's colour is already the diffuse part alone)
+    v2d = 1.0 - sampledDiffuseColor.a;                         // the dark share of this texel
+    v2bright = diffuseColor.rgb;                               // the colour of its bright part
+    material.diffuseContribution = vec3(1.0);                  // the light is gathered for a white surface; each part takes its own colour below
     material.metalness = 0.0;
-    material.specularColor = vec3(0.04 * (1.0 - v2g)); material.specularColorBlended = material.specularColor; material.specularF90 = 1.0 - v2g;
-    material.roughness = min(${FAR.WALL_ROUGHNESS.toFixed(3)} + geometryRoughness, 1.0);
+    material.specularColor = vec3(0.04); material.specularColorBlended = material.specularColor; material.specularF90 = 1.0;
+    material.roughness = min(${FAR.WALL_ROUGHNESS.toFixed(3)} + geometryRoughness, 1.0);   // the bright part's soft sheen of the sky
   #endif`)
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
   #if defined( USE_ENVMAP ) && defined( USE_MAP )
-  if (v2s > 0.0005) {                                          // (most texels are plain wall or roof: no second look at the sky for them)
+  if (v2d > 0.002 && vFarDark.x > 0.004) {                     // (most texels are plain wall or roof: no second look at the sky for them)
     float v2nv = saturate(dot(geometryNormal, geometryViewDir));
-    vec3 v2f0 = min(vFarGloss.rgb * 2.0 * v2s, vec3(v2g));
-    vec3 v2F = v2f0 + (vec3(v2g) - v2f0) * pow(1.0 - v2nv, 5.0);
-    reflectedLight.indirectSpecular += v2F * getIBLRadiance(geometryViewDir, geometryNormal, max(vFarGloss.a, 0.0525));
+    vec3 v2F = vFarGloss.rgb + max(vec3(vFarDark.x) - vFarGloss.rgb, 0.0) * pow(1.0 - v2nv, 5.0);   // the dark part's mirror: its strength straight on, its smooth share at a low angle
+    v2mirror = v2F * getIBLRadiance(geometryViewDir, geometryNormal, max(vFarGloss.a, 0.0525));
   }
+  #endif`)
+      .replace('#include <tonemapping_fragment>', `
+  #ifdef USE_MAP
+  { vec3 v2E = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
+    vec3 v2w = v2E * v2bright + reflectedLight.directSpecular + reflectedLight.indirectSpecular;
+    vec3 v2p = v2E * vFarDark.yzw * vFarDark.yzw + v2mirror;   // (the dark colour is stored as its square root: fine steps near black)
+    #if defined( TONE_MAPPING )
+      gl_FragColor.rgb = mix(clamp(toneMapping(v2w), 0.0, 1.0), clamp(toneMapping(v2p), 0.0, 1.0), v2d);
+    #else
+      gl_FragColor.rgb = mix(v2w, v2p, v2d);
+    #endif
+  }
+  #else
+  #include <tonemapping_fragment>
   #endif`);
   };
   const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
-  material.customProgramCacheKey = () => key() + '|v2-far' + FAR.MIP_BIAS;
+  material.customProgramCacheKey = () => key() + '|v2-far3' + FAR.MIP_BIAS;
   material.needsUpdate = true;
 }
 const PHOTO_ANISO_Q = PQ.has('photoaniso') ? +PQ.get('photoaniso') : null, PHOTO_BIAS_Q = PQ.has('photobias') ? +PQ.get('photobias') : null;
@@ -262,7 +280,7 @@ export class TileStreamer {
         const c = await fetch(new URL(FAR.INDEX, this.base).href, { cache: 'no-cache' }).then((x) => (x.ok ? x.json() : null));
         // a far copy is drawn only for the tile it was made from (the manifest's byte count of the full model): a tile rebuilt since
         // then draws its full model until scripts/v2/far_coat_all.py has run again
-        for (const [id, v] of Object.entries(c || {})) { const s = this.tiles.get(id); if (s && v && v.file && (!v.tile_bytes || !s.def.bytes || v.tile_bytes === s.def.bytes[0])) s.coat = v; else if (s && v) this.stats.staleCoats = (this.stats.staleCoats || 0) + 1; }
+        for (const [id, v] of Object.entries(c || {})) { const s = this.tiles.get(id); if (s && v && v.file && v.model === FAR.MODEL && (!v.tile_bytes || !s.def.bytes || v.tile_bytes === s.def.bytes[0])) s.coat = v; else if (s && v) this.stats.staleCoats = (this.stats.staleCoats || 0) + 1; }
       } catch (e) { console.info('[v2 tiles] no far copies:', e.message); }
     }
     return this.manifest;
@@ -447,7 +465,7 @@ export class TileStreamer {
       for (const level of LEVELS) { if (s.jobs[level]) loading++; if (this.wanted(s, level) && !(level === 'far' ? s.far : s.full) && ((s.failed || {})[level] || 0) < TILES.MAX_TRIES) wanting++; }
       if (s.fade) fading++;
     }
-    // lod1 = tiles drawing their far copy now (0 unless ?far=1); planned = the plan ran since the camera last moved
+    // lod1 = tiles drawing their far copy now (0 with ?far=0); planned = the plan ran since the camera last moved
     const cam = this.camera.matrixWorld.elements.join(',');
     return { tiles: this.tiles.size, lod0, lod1, loading, fading, wanting, planned: this.plannedFor === cam, ...this.stats };
   }

@@ -90,7 +90,7 @@ export const TREE_LOOK = {
   },
   LIGHTNESS_VARIATION: 0.12,
   HUE_VARIATION: 0.02,
-  // ?treecards=1 (off by default until the owner has looked at it): a round crown farther than FROM_M from the camera is drawn as ONE
+  // Part of the fast mode (look.js FAST, on for a desktop since 2026-11-11; ?treecards=0 turns it off): a round crown farther than FROM_M from the camera is drawn as ONE
   // small card (2 triangles) on which the pixel shader draws the crown's exact ellipsoid: a truly round edge, the ball's own
   // normals, its depth and its shadow. The 80-triangle ball is kept only for the crowns near the camera (the under-a-tree look
   // needs it), and trunks are drawn only to TRUNK_M (past it a trunk is thinner than a pixel). Why: measured 2026-11-11 in the

@@ -7,9 +7,9 @@
 // Every height here is metres above that plane, as in the tile contract.
 import * as THREE from 'three';
 import { FlyControls, CollisionField, FLY } from './flycam.js';
-import { LOOK, QUALITY } from './look.js';
+import { LOOK, QUALITY, FAST, PHONE_QUERY } from './look.js';
 import { ORIGIN, setOrigin, toLocal, toLonLat } from './geo.js';
-import { TileStreamer, TILES, setAOPixelScale } from './tiles.js';
+import { TileStreamer, TILES, FAR, setAOPixelScale } from './tiles.js';
 import { COVER, objectArrays, outlinesNear } from './covers.js';
 import { MapLite, MarkerLayer, MercatorCoordinate } from './maplite.js';
 import { MapLayers } from './map-layers.js';
@@ -188,7 +188,7 @@ THREE.ShaderChunk.fog_fragment = /* glsl */`
   gl_FragColor.rgb = mix(gl_FragColor.rgb, hazeC, hazeK);
 #endif
 `;
-const PHONE = matchMedia('(max-width: 600px), (pointer: coarse)').matches;
+const PHONE = matchMedia(PHONE_QUERY).matches;
 
 // ── camera and controls (not taste: limits that keep the city usable). The controls are v1's flycam (flycam.js, FLY). ──
 export const VIEW = {
@@ -1353,8 +1353,9 @@ function resize() {
 // settled on is kept for the next motion, so a weak GPU starts the next move already at its scale. On a GPU that holds the target the
 // first decision is "stay", and the canvas never changes.
 const A = QUALITY.ADAPT;
-// ?adaptup=0: a step back UP waits for the next motion (a canvas resize costs 150 to 350 ms on the owner's Mac, measured 2026-11-11)
-const ADAPT_UP_IN_MOTION = params.get('adaptup') !== '0' && params.get('fast') !== '1';   // (?fast=1 = this + the tree cards + the far copies)
+// Fast mode (look.js FAST) or ?adaptup=0: a step back UP waits for the next motion (a canvas resize costs 150 to 350 ms on the
+// owner's Mac, measured 2026-11-11). ?adaptup=1 keeps the step inside a motion.
+const ADAPT_UP_IN_MOTION = params.has('adaptup') ? params.get('adaptup') !== '0' : !FAST;
 const adapt = {
   on: A.ON && params.get('adapt') !== '0',
   budgetMs: 1000 / (+params.get('adaptfps') || A.TARGET_FPS),
@@ -1560,7 +1561,7 @@ import('./finder-boot.js').catch((e) => console.warn('[v2] finder', e.message));
 const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; };
 const pct = (a, p) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * p))] : null; };
 window.__v2 = {
-  THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FLY, fly: () => controls.state(), field, COVER, coverStats, tileStreamer: () => tiles,
+  THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FAR, FLY, fly: () => controls.state(), field, COVER, coverStats, tileStreamer: () => tiles,
   ready: Promise.all([cityReady, tilesReady, routeReady, wires, lamps]),
   tiles: () => tiles && tiles.summary(),
   exactProbe: () => {

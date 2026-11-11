@@ -5,6 +5,7 @@
 // Drawn the way v2 drew the old canopy (a smooth round crown on a trunk, the crown taking TREE_CROWN_SHARE of the height), now with a
 // shape and a colour per species group. One instanced crown mesh per group, one for all trunks.
 import { TREE_LOOK as T } from './street-look.js';
+import { fastPart } from './look.js';
 
 const params = new URLSearchParams(location.search);
 const DATA = new URL('./data/trees/', import.meta.url).href;
@@ -12,7 +13,7 @@ const DATA = new URL('./data/trees/', import.meta.url).href;
 export function installTrees({ THREE, scene, redraw, renderer, phone = false }) {
   if (params.get('trees') === '0') return null;
   const REAL = params.get('trees') === 'real';   // the tree library (trees-real.js) instead of one ball or cone per tree
-  const CARDS = (params.get('treecards') === '1' || params.get('fast') === '1') && !REAL;   // far round crowns as one card each (street-look.js TREE_LOOK.CARDS)
+  const CARDS = fastPart('treecards') && !REAL;   // far round crowns as one card each (street-look.js TREE_LOOK.CARDS)
   const group = new THREE.Group(); group.name = 'trees';
   scene.add(group);
   const stats = { ready: false };
@@ -181,6 +182,7 @@ uniform mat4 projectionMatrix;`)
     const cards = new THREE.InstancedMesh(new THREE.PlaneGeometry(2, 2), cardMaterial(), list.length);
     list.forEach((t, i) => { M.compose(P.set(t[0], t[1], t[2]), Q, S.set(t[3], t[4], t[3])); cards.setMatrixAt(i, M); cards.setColorAt(i, t[5]); });
     cards.customDepthMaterial = cardDepthMaterial();
+    cards.material.shadowSide = THREE.DoubleSide;   // three.js draws the BACK faces of a front-sided mesh into the shadow map; a card turned to the sun has none (found 2026-11-11: no tree had a shadow)
     cards.castShadow = true; cards.receiveShadow = true; cards.frustumCulled = false; cards.name = 'crown cards';
     group.add(cards);
     // the balls near the camera: one mesh, refilled as the camera moves (they do not cast: the cards do, for every crown, so the shadow map never changes with the camera)
