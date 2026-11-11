@@ -328,26 +328,29 @@ for si, s in enumerate(shells):
     col[deep] *= DEEP_K    # (metal and roughness stay: every pane in a tile is a mirror metal, and a pane behind a balcony baked as paint is lit grey by the sun and the sky where the real pane mirrors the dark ground)
     f0 = 0.04 * (1 - metal[:, None]) + col * metal[:, None]
     q = np.clip((0.6 - rough) / 0.3, 0, 1); q = q * q * (3 - 2 * q)          # 1 = smooth (mirror glass, polished metal), 0 = rough
+    pane = (metal > 0.5) & (q > 0.5)                                         # a mirror pane (every pane in a tile is a smooth metal)
     col = col * (1 - metal[:, None])                                         # the diffuse colour (a mirror pane has none)
     f0q = f0 * q[:, None]                                                    # the mirror strength looking straight at it, x how smooth it is
     ins = tex[:, 1] == 1
     # BRIGHT and DARK (model 3). A far texel holds wall and pane together, and the app's screen clips bright light, so the app must
     # send the two to the screen apart (v2/tiles.js farMaterial). Each sample of a face goes to the face's bright part or to its dark
     # part by its diffuse brightness, at the level that parts the face's samples best (Otsu), and only where the face clearly has two
-    # groups. The texel keeps the bright part's mean colour and the dark part's SHARE; the dark part's colour and mirror are one value a face.
-    lum = (col @ LUMA).astype(np.float64); dark = np.zeros(len(lum), bool)
+    # groups. A mirror pane is always of the dark part (a face that is all glass has one group, and it must keep its mirror). The texel
+    # keeps the bright part's mean colour and the dark part's SHARE; the dark part's colour and mirror are one value a face.
+    lum = (col @ LUMA).astype(np.float64); dark = pane.copy()
     order = np.argsort(fid, kind='stable'); fs = fid[order]; cuts = np.r_[0, np.nonzero(fs[1:] != fs[:-1])[0] + 1, len(fs)]
     for a_, b_ in zip(cuts[:-1], cuts[1:]):
-        idx = order[a_:b_]; li = lum[idx]; use = ins[idx] if ins[idx].any() else np.ones(len(idx), bool); lu = li[use]
+        idx = order[a_:b_]; li = lum[idx]; use = (ins[idx] if ins[idx].any() else np.ones(len(idx), bool)) & ~pane[idx]; lu = li[use]   # (the level is found among what is not a pane)
+        if len(lu) < 16: continue
         hi_ = float(lu.max())
-        if hi_ < 1e-4 or len(lu) < 16: continue
+        if hi_ < 1e-4: continue
         h_, edges = np.histogram(lu, bins=48, range=(0.0, hi_)); w0 = np.cumsum(h_); m0 = np.cumsum(h_ * 0.5 * (edges[:-1] + edges[1:]))
         wt, mt = w0[-1], m0[-1]; w1 = wt - w0; ok_ = (w0 > 0) & (w1 > 0)
         if not ok_.any(): continue
         mu0 = m0 / np.maximum(w0, 1); mu1 = (mt - m0) / np.maximum(w1, 1); var = np.where(ok_, w0 * w1 * (mu0 - mu1) ** 2, -1.0)
         k_ = int(np.argmax(var)); share = w0[k_] / wt
         if share < DARK_MIN_SHARE or share > 1 - DARK_MIN_SHARE or mu1[k_] < DARK_RATIO * mu0[k_] + DARK_GAP: continue
-        dark[idx] = li <= edges[k_ + 1]
+        dark[idx] = pane[idx] | (li <= edges[k_ + 1])
     # per shell face, over its dark part: how many samples, its mirror colour, roughness and smooth share, its diffuse colour
     dk = ins & dark
     fsum = np.stack([np.bincount(fid[dk], w_[dk], len(F)) for w_ in (np.ones(len(fid)), f0q[:, 0], f0q[:, 1], f0q[:, 2], rough * q, q, col[:, 0], col[:, 1], col[:, 2])], 1)
