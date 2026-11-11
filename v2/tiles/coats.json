@@ -1,0 +1,1046 @@
+{
+"t_-1_-1": {
+"file": "tiles/t_-1_-1.coat.glb",
+"texel_m": 0.6,
+"triangles": 7696,
+"full": 209992,
+"atlas": [
+679,
+679
+],
+"bytes": 219532,
+"of": "0dbb3324b3458f91"
+},
+"t_-1_-2": {
+"file": "tiles/t_-1_-2.coat.glb",
+"texel_m": 0.6,
+"triangles": 7623,
+"full": 167857,
+"atlas": [
+723,
+723
+],
+"bytes": 269932,
+"of": "357430eb4fd2f448"
+},
+"t_-1_-3": {
+"file": "tiles/t_-1_-3.coat.glb",
+"texel_m": 0.6,
+"triangles": 1772,
+"full": 56677,
+"atlas": [
+387,
+394
+],
+"bytes": 62876,
+"of": "0be1b1d2f33c8e4d"
+},
+"t_-1_-4": {
+"file": "tiles/t_-1_-4.coat.glb",
+"texel_m": 0.6,
+"triangles": 5791,
+"full": 58158,
+"atlas": [
+599,
+600
+],
+"bytes": 228444,
+"of": "376e89028ec9c06b"
+},
+"t_-1_0": {
+"file": "tiles/t_-1_0.coat.glb",
+"texel_m": 0.6,
+"triangles": 5628,
+"full": 133912,
+"atlas": [
+595,
+599
+],
+"bytes": 167368,
+"of": "a55962b19327c371"
+},
+"t_-1_1": {
+"file": "tiles/t_-1_1.coat.glb",
+"texel_m": 0.6,
+"triangles": 6453,
+"full": 73756,
+"atlas": [
+729,
+729
+],
+"bytes": 250080,
+"of": "85b6334d53ebae0a"
+},
+"t_-1_10": {
+"file": "tiles/t_-1_10.coat.glb",
+"texel_m": 0.6,
+"triangles": 10839,
+"full": 36817,
+"atlas": [
+727,
+727
+],
+"bytes": 462756,
+"of": "57f2fccff7c9c4a0"
+},
+"t_-1_2": {
+"file": "tiles/t_-1_2.coat.glb",
+"texel_m": 0.6,
+"triangles": 19219,
+"full": 100709,
+"atlas": [
+901,
+901
+],
+"bytes": 711688,
+"of": "cefdaa806f8e3e38"
+},
+"t_-1_3": {
+"file": "tiles/t_-1_3.coat.glb",
+"texel_m": 0.6,
+"triangles": 735,
+"full": 10342,
+"atlas": [
+269,
+271
+],
+"bytes": 44052,
+"of": "c100f18fc851d054"
+},
+"t_-1_4": {
+"file": "tiles/t_-1_4.coat.glb",
+"texel_m": 0.6,
+"triangles": 825,
+"full": 14064,
+"atlas": [
+184,
+184
+],
+"bytes": 24848,
+"of": "1f1f0229c50d4f3a"
+},
+"t_-1_6": {
+"file": "tiles/t_-1_6.coat.glb",
+"texel_m": 0.6,
+"triangles": 1142,
+"full": 25357,
+"atlas": [
+197,
+198
+],
+"bytes": 40008,
+"of": "f7f26dab796cf1f0"
+},
+"t_-1_7": {
+"file": "tiles/t_-1_7.coat.glb",
+"texel_m": 0.6,
+"triangles": 6926,
+"full": 57331,
+"atlas": [
+595,
+593
+],
+"bytes": 250012,
+"of": "931bf810c723df8f"
+},
+"t_-1_8": {
+"file": "tiles/t_-1_8.coat.glb",
+"texel_m": 0.6,
+"triangles": 3350,
+"full": 10144,
+"atlas": [
+555,
+556
+],
+"bytes": 189692,
+"of": "2814ef7970f13437"
+},
+"t_-2_-1": {
+"file": "tiles/t_-2_-1.coat.glb",
+"texel_m": 0.6,
+"triangles": 7828,
+"full": 174813,
+"atlas": [
+793,
+794
+],
+"bytes": 373720,
+"of": "dadd07d0cc3293d8"
+},
+"t_-2_-2": {
+"file": "tiles/t_-2_-2.coat.glb",
+"texel_m": 0.6,
+"triangles": 8980,
+"full": 88008,
+"atlas": [
+761,
+761
+],
+"bytes": 336612,
+"of": "b686c830ef1c2a57"
+},
+"t_-2_-3": {
+"file": "tiles/t_-2_-3.coat.glb",
+"texel_m": 0.6,
+"triangles": 11704,
+"full": 175090,
+"atlas": [
+840,
+840
+],
+"bytes": 545516,
+"of": "96ad060654e2d7d5"
+},
+"t_-2_-4": {
+"file": "tiles/t_-2_-4.coat.glb",
+"texel_m": 0.6,
+"triangles": 6074,
+"full": 56379,
+"atlas": [
+570,
+571
+],
+"bytes": 190908,
+"of": "a2f9e3b34813c112"
+},
+"t_-2_-5": {
+"file": "tiles/t_-2_-5.coat.glb",
+"texel_m": 0.6,
+"triangles": 1592,
+"full": 22712,
+"atlas": [
+302,
+300
+],
+"bytes": 77168,
+"of": "a09a28ec8d53c9cd"
+},
+"t_-2_0": {
+"file": "tiles/t_-2_0.coat.glb",
+"texel_m": 0.6,
+"triangles": 9267,
+"full": 177792,
+"atlas": [
+920,
+920
+],
+"bytes": 420480,
+"of": "23baec3817b953b2"
+},
+"t_-2_1": {
+"file": "tiles/t_-2_1.coat.glb",
+"texel_m": 0.6,
+"triangles": 6003,
+"full": 64885,
+"atlas": [
+652,
+651
+],
+"bytes": 223236,
+"of": "a187d7cd8588eb27"
+},
+"t_-2_10": {
+"file": "tiles/t_-2_10.coat.glb",
+"texel_m": 0.6,
+"triangles": 11236,
+"full": 30353,
+"atlas": [
+660,
+660
+],
+"bytes": 345496,
+"of": "d050161ca2db1d89"
+},
+"t_-2_2": {
+"file": "tiles/t_-2_2.coat.glb",
+"texel_m": 0.6,
+"triangles": 967,
+"full": 22196,
+"atlas": [
+334,
+312
+],
+"bytes": 41804,
+"of": "ecd36659154c3058"
+},
+"t_-2_3": {
+"file": "tiles/t_-2_3.coat.glb",
+"texel_m": 0.6,
+"triangles": 6018,
+"full": 34562,
+"atlas": [
+593,
+593
+],
+"bytes": 266320,
+"of": "19a100c61da3febc"
+},
+"t_-2_4": {
+"file": "tiles/t_-2_4.coat.glb",
+"texel_m": 0.6,
+"triangles": 1075,
+"full": 16475,
+"atlas": [
+220,
+214
+],
+"bytes": 30568,
+"of": "cfae391d84b1970b"
+},
+"t_-2_5": {
+"file": "tiles/t_-2_5.coat.glb",
+"texel_m": 0.6,
+"triangles": 4376,
+"full": 24862,
+"atlas": [
+452,
+451
+],
+"bytes": 165172,
+"of": "995362e00501126c"
+},
+"t_-2_6": {
+"file": "tiles/t_-2_6.coat.glb",
+"texel_m": 0.6,
+"triangles": 351,
+"full": 17679,
+"atlas": [
+162,
+173
+],
+"bytes": 17716,
+"of": "81d3e5eb6b2e8b3c"
+},
+"t_-2_7": {
+"file": "tiles/t_-2_7.coat.glb",
+"texel_m": 0.6,
+"triangles": 19891,
+"full": 103250,
+"atlas": [
+1123,
+1122
+],
+"bytes": 858156,
+"of": "be3e25c4d1c79295"
+},
+"t_-2_8": {
+"file": "tiles/t_-2_8.coat.glb",
+"texel_m": 0.6,
+"triangles": 5664,
+"full": 26442,
+"atlas": [
+765,
+765
+],
+"bytes": 273236,
+"of": "1beeda1c79d87f3f"
+},
+"t_-2_9": {
+"file": "tiles/t_-2_9.coat.glb",
+"texel_m": 0.6,
+"triangles": 31155,
+"full": 102516,
+"atlas": [
+1414,
+1413
+],
+"bytes": 1599624,
+"of": "1990b486fb3b3dbb"
+},
+"t_-3_-1": {
+"file": "tiles/t_-3_-1.coat.glb",
+"texel_m": 0.6,
+"triangles": 15755,
+"full": 247760,
+"atlas": [
+1075,
+1072
+],
+"bytes": 589452,
+"of": "93b28a02e266b6a2"
+},
+"t_-3_-2": {
+"file": "tiles/t_-3_-2.coat.glb",
+"texel_m": 0.6,
+"triangles": 8750,
+"full": 76806,
+"atlas": [
+743,
+743
+],
+"bytes": 295408,
+"of": "900a447815ccd41e"
+},
+"t_-3_-3": {
+"file": "tiles/t_-3_-3.coat.glb",
+"texel_m": 0.6,
+"triangles": 6487,
+"full": 84916,
+"atlas": [
+606,
+605
+],
+"bytes": 211080,
+"of": "4161ecd961984376"
+},
+"t_-3_-4": {
+"file": "tiles/t_-3_-4.coat.glb",
+"texel_m": 0.6,
+"triangles": 4252,
+"full": 85354,
+"atlas": [
+518,
+518
+],
+"bytes": 150244,
+"of": "0a9fe3b960510b52"
+},
+"t_-3_0": {
+"file": "tiles/t_-3_0.coat.glb",
+"texel_m": 0.6,
+"triangles": 11709,
+"full": 103504,
+"atlas": [
+921,
+921
+],
+"bytes": 429828,
+"of": "d3e5e9507f73083b"
+},
+"t_-3_1": {
+"file": "tiles/t_-3_1.coat.glb",
+"texel_m": 0.6,
+"triangles": 3812,
+"full": 81220,
+"atlas": [
+557,
+556
+],
+"bytes": 122848,
+"of": "644260896477384b"
+},
+"t_-3_12": {
+"file": "tiles/t_-3_12.coat.glb",
+"texel_m": 0.6,
+"triangles": 978,
+"full": 12268,
+"atlas": [
+233,
+232
+],
+"bytes": 31964,
+"of": "22555712231aef1e"
+},
+"t_-3_2": {
+"file": "tiles/t_-3_2.coat.glb",
+"texel_m": 0.6,
+"triangles": 553,
+"full": 3518,
+"atlas": [
+329,
+325
+],
+"bytes": 48676,
+"of": "e89e3cafdb0af772"
+},
+"t_-3_7": {
+"file": "tiles/t_-3_7.coat.glb",
+"texel_m": 0.6,
+"triangles": 730,
+"full": 5989,
+"atlas": [
+303,
+296
+],
+"bytes": 38072,
+"of": "591a5aa7895717a5"
+},
+"t_-3_8": {
+"file": "tiles/t_-3_8.coat.glb",
+"texel_m": 0.6,
+"triangles": 14150,
+"full": 43462,
+"atlas": [
+852,
+852
+],
+"bytes": 536216,
+"of": "8526d478e3456908"
+},
+"t_-3_9": {
+"file": "tiles/t_-3_9.coat.glb",
+"texel_m": 0.6,
+"triangles": 23542,
+"full": 87993,
+"atlas": [
+1097,
+1097
+],
+"bytes": 1029992,
+"of": "7a57ed2c22fc427e"
+},
+"t_-4_-1": {
+"file": "tiles/t_-4_-1.coat.glb",
+"texel_m": 0.6,
+"triangles": 6701,
+"full": 58772,
+"atlas": [
+636,
+637
+],
+"bytes": 235988,
+"of": "dea570e4031f1eb5"
+},
+"t_-4_-2": {
+"file": "tiles/t_-4_-2.coat.glb",
+"texel_m": 0.6,
+"triangles": 18904,
+"full": 168226,
+"atlas": [
+1093,
+1094
+],
+"bytes": 611292,
+"of": "558fb5f0fc12de63"
+},
+"t_-4_-3": {
+"file": "tiles/t_-4_-3.coat.glb",
+"texel_m": 0.6,
+"triangles": 2728,
+"full": 48136,
+"atlas": [
+440,
+442
+],
+"bytes": 85592,
+"of": "4d4683f2e896da4b"
+},
+"t_-4_0": {
+"file": "tiles/t_-4_0.coat.glb",
+"texel_m": 0.6,
+"triangles": 5108,
+"full": 38968,
+"atlas": [
+535,
+535
+],
+"bytes": 163472,
+"of": "1baff8d7a7fac3d1"
+},
+"t_-4_1": {
+"file": "tiles/t_-4_1.coat.glb",
+"texel_m": 0.6,
+"triangles": 677,
+"full": 2778,
+"atlas": [
+261,
+257
+],
+"bytes": 34424,
+"of": "1d6cf3159a56570f"
+},
+"t_-4_8": {
+"file": "tiles/t_-4_8.coat.glb",
+"texel_m": 0.6,
+"triangles": 12793,
+"full": 42400,
+"atlas": [
+961,
+960
+],
+"bytes": 630480,
+"of": "64fc47d1b9256d1b"
+},
+"t_-5_-1": {
+"file": "tiles/t_-5_-1.coat.glb",
+"texel_m": 0.6,
+"triangles": 135,
+"full": 3245,
+"atlas": [
+124,
+121
+],
+"bytes": 7596,
+"of": "0f3d3a1391c53566"
+},
+"t_-5_-2": {
+"file": "tiles/t_-5_-2.coat.glb",
+"texel_m": 0.6,
+"triangles": 3034,
+"full": 21292,
+"atlas": [
+517,
+517
+],
+"bytes": 112084,
+"of": "0d1ae6ee57ca8e57"
+},
+"t_-5_-4": {
+"file": "tiles/t_-5_-4.coat.glb",
+"texel_m": 0.6,
+"triangles": 3617,
+"full": 7483,
+"atlas": [
+435,
+436
+],
+"bytes": 127676,
+"of": "c321a4d5e4bc373e"
+},
+"t_-5_1": {
+"file": "tiles/t_-5_1.coat.glb",
+"texel_m": 0.6,
+"triangles": 1038,
+"full": 11774,
+"atlas": [
+243,
+244
+],
+"bytes": 31128,
+"of": "6c27dba3151d3d8d"
+},
+"t_-5_7": {
+"file": "tiles/t_-5_7.coat.glb",
+"texel_m": 0.6,
+"triangles": 11333,
+"full": 33340,
+"atlas": [
+740,
+741
+],
+"bytes": 604164,
+"of": "7ed47b00b6c26386"
+},
+"t_-5_8": {
+"file": "tiles/t_-5_8.coat.glb",
+"texel_m": 0.6,
+"triangles": 22979,
+"full": 61670,
+"atlas": [
+979,
+978
+],
+"bytes": 951464,
+"of": "83192a27b12822dd"
+},
+"t_-5_9": {
+"file": "tiles/t_-5_9.coat.glb",
+"texel_m": 0.6,
+"triangles": 5188,
+"full": 10452,
+"atlas": [
+553,
+551
+],
+"bytes": 273840,
+"of": "53263ed31bb9aa49"
+},
+"t_0_-1": {
+"file": "tiles/t_0_-1.coat.glb",
+"texel_m": 0.6,
+"triangles": 5913,
+"full": 155632,
+"atlas": [
+685,
+686
+],
+"bytes": 196424,
+"of": "96a1ece4e7eeaaef"
+},
+"t_0_-2": {
+"file": "tiles/t_0_-2.coat.glb",
+"texel_m": 0.6,
+"triangles": 7048,
+"full": 170489,
+"atlas": [
+784,
+782
+],
+"bytes": 222116,
+"of": "9b8388252d40eb1c"
+},
+"t_0_-3": {
+"file": "tiles/t_0_-3.coat.glb",
+"texel_m": 0.6,
+"triangles": 1748,
+"full": 27745,
+"atlas": [
+346,
+345
+],
+"bytes": 57472,
+"of": "2efd344330876283"
+},
+"t_0_-4": {
+"file": "tiles/t_0_-4.coat.glb",
+"texel_m": 0.6,
+"triangles": 2935,
+"full": 33569,
+"atlas": [
+380,
+381
+],
+"bytes": 89320,
+"of": "179ab64e2919a23d"
+},
+"t_0_-5": {
+"file": "tiles/t_0_-5.coat.glb",
+"texel_m": 0.6,
+"triangles": 3123,
+"full": 11143,
+"atlas": [
+374,
+374
+],
+"bytes": 114560,
+"of": "e76a81170c1a6221"
+},
+"t_0_0": {
+"file": "tiles/t_0_0.coat.glb",
+"texel_m": 0.6,
+"triangles": 8466,
+"full": 130927,
+"atlas": [
+744,
+743
+],
+"bytes": 271540,
+"of": "96c45c87f3b19cb0"
+},
+"t_0_1": {
+"file": "tiles/t_0_1.coat.glb",
+"texel_m": 0.6,
+"triangles": 6994,
+"full": 83262,
+"atlas": [
+834,
+837
+],
+"bytes": 257928,
+"of": "eb193fd28ef89864"
+},
+"t_0_10": {
+"file": "tiles/t_0_10.coat.glb",
+"texel_m": 0.6,
+"triangles": 1966,
+"full": 14049,
+"atlas": [
+611,
+612
+],
+"bytes": 134636,
+"of": "7a49f9a7b95b16d8"
+},
+"t_0_2": {
+"file": "tiles/t_0_2.coat.glb",
+"texel_m": 0.6,
+"triangles": 4393,
+"full": 81967,
+"atlas": [
+603,
+603
+],
+"bytes": 183480,
+"of": "e2b9b11c35aec512"
+},
+"t_0_3": {
+"file": "tiles/t_0_3.coat.glb",
+"texel_m": 0.6,
+"triangles": 11925,
+"full": 62898,
+"atlas": [
+632,
+634
+],
+"bytes": 379568,
+"of": "ccd6faa243e3dcd0"
+},
+"t_0_4": {
+"file": "tiles/t_0_4.coat.glb",
+"texel_m": 0.6,
+"triangles": 5453,
+"full": 50521,
+"atlas": [
+521,
+522
+],
+"bytes": 159548,
+"of": "2a4fddc41e8b1b1d"
+},
+"t_0_9": {
+"file": "tiles/t_0_9.coat.glb",
+"texel_m": 0.6,
+"triangles": 4517,
+"full": 29200,
+"atlas": [
+447,
+445
+],
+"bytes": 137724,
+"of": "be9524a48bd76493"
+},
+"t_1_-1": {
+"file": "tiles/t_1_-1.coat.glb",
+"texel_m": 0.6,
+"triangles": 9348,
+"full": 85775,
+"atlas": [
+732,
+730
+],
+"bytes": 309168,
+"of": "a8d221958e180bcb"
+},
+"t_1_-2": {
+"file": "tiles/t_1_-2.coat.glb",
+"texel_m": 0.6,
+"triangles": 9296,
+"full": 83553,
+"atlas": [
+766,
+768
+],
+"bytes": 323916,
+"of": "3523af8a09611c55"
+},
+"t_1_-3": {
+"file": "tiles/t_1_-3.coat.glb",
+"texel_m": 0.6,
+"triangles": 2526,
+"full": 32828,
+"atlas": [
+363,
+363
+],
+"bytes": 84468,
+"of": "47699e02da7ae7d6"
+},
+"t_1_-4": {
+"file": "tiles/t_1_-4.coat.glb",
+"texel_m": 0.6,
+"triangles": 1181,
+"full": 1222,
+"atlas": [
+268,
+268
+],
+"bytes": 43756,
+"of": "1884d36c83fb0b7e"
+},
+"t_1_-5": {
+"file": "tiles/t_1_-5.coat.glb",
+"texel_m": 0.6,
+"triangles": 3633,
+"full": 12307,
+"atlas": [
+407,
+407
+],
+"bytes": 123664,
+"of": "163bed84f0cacad9"
+},
+"t_1_0": {
+"file": "tiles/t_1_0.coat.glb",
+"texel_m": 0.6,
+"triangles": 11992,
+"full": 114149,
+"atlas": [
+855,
+854
+],
+"bytes": 408248,
+"of": "d8dc5ee49e465bbe"
+},
+"t_1_1": {
+"file": "tiles/t_1_1.coat.glb",
+"texel_m": 0.6,
+"triangles": 3510,
+"full": 107256,
+"atlas": [
+564,
+565
+],
+"bytes": 145120,
+"of": "1dacf776f1973eae"
+},
+"t_1_2": {
+"file": "tiles/t_1_2.coat.glb",
+"texel_m": 0.6,
+"triangles": 2381,
+"full": 35263,
+"atlas": [
+415,
+416
+],
+"bytes": 78628,
+"of": "d776ea870aca9a2d"
+},
+"t_1_3": {
+"file": "tiles/t_1_3.coat.glb",
+"texel_m": 0.6,
+"triangles": 13464,
+"full": 78818,
+"atlas": [
+782,
+784
+],
+"bytes": 354352,
+"of": "f43a5e36472d94d2"
+},
+"t_2_-1": {
+"file": "tiles/t_2_-1.coat.glb",
+"texel_m": 0.6,
+"triangles": 2157,
+"full": 37396,
+"atlas": [
+358,
+360
+],
+"bytes": 67288,
+"of": "9684b2628e7ac1ea"
+},
+"t_2_-2": {
+"file": "tiles/t_2_-2.coat.glb",
+"texel_m": 0.6,
+"triangles": 1312,
+"full": 21636,
+"atlas": [
+276,
+276
+],
+"bytes": 43676,
+"of": "032887ff978150b2"
+},
+"t_2_-3": {
+"file": "tiles/t_2_-3.coat.glb",
+"texel_m": 0.6,
+"triangles": 561,
+"full": 2547,
+"atlas": [
+261,
+260
+],
+"bytes": 36028,
+"of": "bc6cfd727abb66fa"
+},
+"t_2_0": {
+"file": "tiles/t_2_0.coat.glb",
+"texel_m": 0.6,
+"triangles": 35136,
+"full": 89439,
+"atlas": [
+1507,
+1505
+],
+"bytes": 1084040,
+"of": "c4c2fbeff5fe2cce"
+},
+"t_2_1": {
+"file": "tiles/t_2_1.coat.glb",
+"texel_m": 0.6,
+"triangles": 1231,
+"full": 2826,
+"atlas": [
+342,
+339
+],
+"bytes": 45708,
+"of": "6cd1a52bdbc3b9cd"
+},
+"t_2_2": {
+"file": "tiles/t_2_2.coat.glb",
+"texel_m": 0.6,
+"triangles": 1459,
+"full": 31882,
+"atlas": [
+358,
+359
+],
+"bytes": 40912,
+"of": "56e344c6a32ef774"
+},
+"t_2_3": {
+"file": "tiles/t_2_3.coat.glb",
+"texel_m": 0.6,
+"triangles": 2244,
+"full": 32466,
+"atlas": [
+401,
+398
+],
+"bytes": 65676,
+"of": "4111fdd3475fada4"
+},
+"t_3_-1": {
+"file": "tiles/t_3_-1.coat.glb",
+"texel_m": 0.6,
+"triangles": 1366,
+"full": 61130,
+"atlas": [
+380,
+379
+],
+"bytes": 49288,
+"of": "09d44860b37196f3"
+},
+"t_3_-2": {
+"file": "tiles/t_3_-2.coat.glb",
+"texel_m": 0.6,
+"triangles": 1477,
+"full": 23370,
+"atlas": [
+320,
+320
+],
+"bytes": 47204,
+"of": "5e9f8fa7709a85a1"
+},
+"t_3_0": {
+"file": "tiles/t_3_0.coat.glb",
+"texel_m": 0.6,
+"triangles": 2424,
+"full": 29287,
+"atlas": [
+402,
+397
+],
+"bytes": 83480,
+"of": "8b2189d66692937b"
+},
+"t_3_2": {
+"file": "tiles/t_3_2.coat.glb",
+"texel_m": 0.6,
+"triangles": 7859,
+"full": 85051,
+"atlas": [
+845,
+845
+],
+"bytes": 331304,
+"of": "7f86fb24a4e52e92"
+},
+"t_3_3": {
+"file": "tiles/t_3_3.coat.glb",
+"texel_m": 0.6,
+"triangles": 388,
+"full": 13795,
+"atlas": [
+127,
+127
+],
+"bytes": 15564,
+"of": "6e00bf6cd640aa12"
+},
+"t_4_-3": {
+"file": "tiles/t_4_-3.coat.glb",
+"texel_m": 0.6,
+"triangles": 665,
+"full": 3334,
+"atlas": [
+326,
+324
+],
+"bytes": 46916,
+"of": "1155588e3c28943f"
+}
+}
