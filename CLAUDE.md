@@ -130,6 +130,13 @@ memory and is never written here, in any tracked file, or in a commit message.
       over the clip in the sun and draws white. Keep the bright part and the dark part apart until after the clip (the
       far copy's "model 3"). And when a shader's picture is wrong, draw each of its terms raw on the screen BEFORE you form
       a theory: an hour went to rays, voids and glass that were all innocent.
+    - **A rule keyed to the pixel is checked at the MOTION resolution too.** (2026-11-11, #673.) On the owner's Mac the
+      canvas runs at a quarter of the pixels while the camera moves. A fade, a filter width or a level-of-detail line that
+      is measured in pixels and was tuned on a still at full size acts at twice the distance in motion: the window fade
+      against moire left every plain building past about 1 km a blank block in the opening flight, for weeks, and no
+      still showed it. Judge such a rule on frames of the recorded flight at the resolution the flight is drawn at, each
+      beside its own truth, and compare the frame-to-frame change with the truth's own (a ratio near 1 = no shimmer
+      added, none blurred away).
     - Cancel the graphics auto-detect probe at the top of any test
       (`window.cancelGraphicsAutoDetect()`). Note it is a correctness measure,
       not a speed one — measured, it costs nothing.
