@@ -119,9 +119,10 @@ float tnNoise(vec3 x) {
         .replace('#include <worldpos_vertex>', 'vec4 worldPosition = vec4(tcW, 1.0);');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 varying vec3 vTcC; varying vec3 vTcS; varying vec3 vTcW;
-uniform mat4 projectionMatrix;
-#if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0
-  uniform mat4 directionalShadowMatrix[ NUM_DIR_LIGHT_SHADOWS ];
+uniform mat4 projectionMatrix;`)
+        .replace('#include <shadowmap_pars_fragment>', `#include <shadowmap_pars_fragment>
+#if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0 && !defined( V2_DSM )
+  uniform mat4 directionalShadowMatrix[ NUM_DIR_LIGHT_SHADOWS ];   // (main.js declares it itself when the ground shade is on: V2_DSM)
 #endif`)
         .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
   vec3 tcRd = normalize(vTcW - cameraPosition);
