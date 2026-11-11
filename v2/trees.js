@@ -12,7 +12,7 @@ const DATA = new URL('./data/trees/', import.meta.url).href;
 export function installTrees({ THREE, scene, redraw, renderer, phone = false }) {
   if (params.get('trees') === '0') return null;
   const REAL = params.get('trees') === 'real';   // the tree library (trees-real.js) instead of one ball or cone per tree
-  const CARDS = params.get('treecards') === '1' && !REAL;   // far round crowns as one card each (street-look.js TREE_LOOK.CARDS)
+  const CARDS = (params.get('treecards') === '1' || params.get('fast') === '1') && !REAL;   // far round crowns as one card each (street-look.js TREE_LOOK.CARDS)
   const group = new THREE.Group(); group.name = 'trees';
   scene.add(group);
   const stats = { ready: false };

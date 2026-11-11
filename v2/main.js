@@ -1354,7 +1354,7 @@ function resize() {
 // first decision is "stay", and the canvas never changes.
 const A = QUALITY.ADAPT;
 // ?adaptup=0: a step back UP waits for the next motion (a canvas resize costs 150 to 350 ms on the owner's Mac, measured 2026-11-11)
-const ADAPT_UP_IN_MOTION = params.get('adaptup') !== '0';
+const ADAPT_UP_IN_MOTION = params.get('adaptup') !== '0' && params.get('fast') !== '1';   // (?fast=1 = this + the tree cards + the far copies)
 const adapt = {
   on: A.ON && params.get('adapt') !== '0',
   budgetMs: 1000 / (+params.get('adaptfps') || A.TARGET_FPS),
@@ -1365,7 +1365,7 @@ const adapt = {
 };
 // The learned motion scale is kept on this device, so the first motion of a visit (the opening flight) starts at it in one step instead
 // of finding it again in four canvas resizes (each 150 to 350 ms on the owner's Mac, measured 2026-11-11). ?adaptkeep=0: not kept.
-const ADAPT_KEEP = params.get('adaptkeep') !== '0' && params.get('adaptup') === '0';
+const ADAPT_KEEP = params.get('adaptkeep') !== '0' && !ADAPT_UP_IN_MOTION;
 const ADAPT_KEY = 'v2-motion-scale-' + DPR;
 if (ADAPT_KEEP) { try { const v = +localStorage.getItem(ADAPT_KEY); if (v >= adapt.floor - 1e-3 && v <= 1) adapt.motionScale = v; } catch (e) {} }
 let adaptKept = adapt.motionScale;
