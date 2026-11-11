@@ -92,6 +92,13 @@ memory and is never written here, in any tracked file, or in a commit message.
    that is yours — make the call, write down why, merge it. Handing back an
    execution decision he already delegated wastes the delegation.
 
+   **A gain with no loss he can see ships as the default, with no question.** (Owner,
+   2026-11-11, after a "keep or no?" text about a faster mode: *"If it's faster why ask me
+   to keep or throw away? ... More input from me for no reason."*) Say the one real
+   downside in one sentence and do it. A question to him is for a taste choice with a
+   visible trade, and it carries its picture. And when he asks what you are working on,
+   the first sentence of the answer is that one thing.
+
 ## Verification
 
 10. **Verify by looking, not by reasoning.** `scripts/verify/README.md` is the
@@ -113,6 +120,16 @@ memory and is never written here, in any tracked file, or in a commit message.
       resolution, so the gates passed and his eye did not agree. Record the real flight first (frame times, pixel ratio,
       triangles for every drawn frame), then draw the recorded cameras again at the recorded resolution. On that Mac the
       cost of a frame is the NUMBER of triangles, not the pixels, and a canvas resize is a stop of 150 to 350 ms.
+    - **A stand-in is checked against the TRUTH, not against a side-by-side.** (2026-11-11.) A far copy, a card, any
+      pre-filtered picture of a model: draw the full model with 3 x 3 samples a pixel, add the samples up as LIGHT (not as
+      display numbers), and score the stand-in against that (`scripts/verify/v2-full-detail.mjs`: brightness drift, and
+      the difference after a 3 x 3 average). In one morning that test found what side-by-sides at one screen density had
+      missed: far copies with pale towers, and tree cards with no shadows (three.js draws the BACK faces of a front-sided
+      mesh into the shadow map). The cause of the pale towers is a rule for every stand-in in this app: **the screen CLIPS
+      bright light, so clip(mix) is not mix(clip).** A texel that holds white wall and dark pane as one mixed colour stays
+      over the clip in the sun and draws white. Keep the bright part and the dark part apart until after the clip (the
+      far copy's "model 3"). And when a shader's picture is wrong, draw each of its terms raw on the screen BEFORE you form
+      a theory: an hour went to rays, voids and glass that were all innocent.
     - Cancel the graphics auto-detect probe at the top of any test
       (`window.cancelGraphicsAutoDetect()`). Note it is a correctness measure,
       not a speed one — measured, it costs nothing.
@@ -263,6 +280,14 @@ memory and is never written here, in any tracked file, or in a commit message.
     - **Do not sit on CI.** Push, keep working, and merge when the checks finish.
     - **Timebox.** A lane that has gone about 90 minutes without a result stops
       and writes down what blocks it.
+    - **The fast mode is the default on a desktop (2026-11-11, #671).** Far copies of the Blender tiles where their
+      detail is smaller than a pixel, one card for each far tree crown, a steady resolution inside one motion
+      (`v2/look.js` FAST; `?fast=0` is the old path; a phone keeps the old path until its memory is measured). The owner's
+      order of 2026-10-18 against "bad lesser detailed" buildings at a distance still holds, as a measured rule: a far
+      copy draws only beyond its own line, and the frame must pass the truth test (rule 10). **After every tile build run
+      `scripts/v2/far_coat_all.py`** (it needs open3d, scikit-image, scipy, xatlas and pillow: `PY=<a python that has
+      them>`). A forgotten run costs only speed: the app does not draw a far copy that is older than its tile or of
+      another model.
 
 ## Lane mail
 
