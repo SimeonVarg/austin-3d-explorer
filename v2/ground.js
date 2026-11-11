@@ -74,18 +74,21 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
   if (near) Object.assign(U, near.uniforms);
   const blank = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1); blank.needsUpdate = true;
   U.gMask.value = blank;
-  function patch(shader) {
+  function patch(shader, array = false) {
     Object.assign(shader.uniforms, U);
+    if (array) shader.uniforms.gAerial = { value: arr.tex };
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec2 vGroundXZ;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGroundXZ = (modelMatrix * vec4(transformed, 1.0)).xz;');
+      .replace('#include <common>', '#include <common>\nvarying vec2 vGroundXZ;' + (array ? '\nattribute float aLayer;\nvarying float vAerLayer;' : ''))
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n' + (array
+        ? 'vGroundXZ = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xz;\nvAerLayer = aLayer;'
+        : 'vGroundXZ = (modelMatrix * vec4(transformed, 1.0)).xz;'));
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
         varying vec2 vGroundXZ;
         uniform vec3 gGain, gWarm, gPaving; uniform float gSat, gSatNear, gLift, gLean; uniform vec2 gDark;
-        uniform sampler2D gMask; uniform vec4 gMaskBox;${near ? GN_DECL : ''}`)
+        uniform sampler2D gMask; uniform vec4 gMaskBox;${array ? '\n        uniform sampler2DArray gAerial; varying float vAerLayer;' : ''}${near ? GN_DECL : ''}`)
       .replace('#include <map_fragment>', `
-        vec3 aer = texture2D(map, vMapUv).rgb;                    // linear (the tiles are sRGB textures)
+        vec3 aer = ${array ? 'texture(gAerial, vec3(vMapUv, floor(vAerLayer + 0.5)))' : 'texture2D(map, vMapUv)'}.rgb;   // linear (the tiles are sRGB textures)
         vec2 muv = (vGroundXZ - gMaskBox.xy) * gMaskBox.zw;
         vec2 mk = (muv.x > 0.0 && muv.y > 0.0 && muv.x < 1.0 && muv.y < 1.0) ? texture2D(gMask, muv).rg : vec2(0.0);
         float lum = dot(aer, vec3(0.2126, 0.7152, 0.0722));
@@ -174,7 +177,63 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
       }).finally(() => { live ? state.liveLoading-- : state.localLoading--; state.lastKey = ''; redraw(); });
     }
   }
+  // ── ONE DRAW FOR EVERY TILE (2026-11-11) ─────────────────────────────
+  // Each tile used to be its own texture, its own material and its own draw: 80 to 145 draws a frame, and on the owner's Mac a draw
+  // with a change of material costs about 40 us, so the photograph took about 5 ms of a 40 ms frame in the opening flight just in
+  // draw calls. Now every tile is a LAYER of one array texture (256 x 256 x CACHE, the same memory as CACHE separate tiles) and the
+  // tiles on screen are the instances of one quad: one draw. The layers' mip maps are made here (2 x 2 means of the light, as the
+  // GPU made them). A phone keeps the old path until its memory is measured (the array is allocated whole, at the start).
+  const gl = renderer.getContext();
+  const ARRAY = !phone && params.get('aerialarray') !== '0' && !!THREE.ExternalTexture && gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS) >= CACHE + 16;
+  let arr = null;
+  function arrayInit() {
+    const layers = CACHE + 16, levels = 9, T = gl.TEXTURE_2D_ARRAY;
+    const glTex = gl.createTexture();
+    renderer.state.bindTexture(T, glTex);
+    gl.texStorage3D(T, levels, gl.SRGB8_ALPHA8, 256, 256, layers);
+    gl.texParameteri(T, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(T, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(T, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(T, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const ext = renderer.extensions.get('EXT_texture_filter_anisotropic');
+    if (ext && ANISO > 1) gl.texParameterf(T, ext.TEXTURE_MAX_ANISOTROPY_EXT, ANISO);
+    const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+    const LIN = new Float32Array(256), ENC = new Uint8Array(4097);
+    for (let i = 0; i < 256; i++) { const c = i / 255; LIN[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+    for (let i = 0; i <= 4096; i++) { const c = i / 4096; ENC[i] = Math.round(255 * (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055)); }
+    const dummy = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1); dummy.needsUpdate = true;   // (so the material has its uv varying)
+    arr = { glTex, tex: new THREE.ExternalTexture(glTex), free: Array.from({ length: layers }, (_, i) => layers - 1 - i), cx: cv.getContext('2d', { willReadFrequently: true }), LIN, ENC };
+    const m = new THREE.MeshStandardMaterial({ map: dummy, roughness: 1, metalness: 0, depthWrite: false });
+    m.onBeforeCompile = (sh) => patch(sh, true);
+    m.customProgramCacheKey = () => (near ? 'v2-aerial-arr-gn' : 'v2-aerial-arr');
+    const geo = quad.clone(); arr.layer = new THREE.InstancedBufferAttribute(new Float32Array(G.MAX_TILES + 64), 1); geo.setAttribute('aLayer', arr.layer);
+    const mesh = new THREE.InstancedMesh(geo, m, G.MAX_TILES + 64);
+    mesh.count = 0; mesh.frustumCulled = false; mesh.receiveShadow = true; mesh.renderOrder = 0.5; mesh.name = 'aerial tiles';
+    mesh.matrixAutoUpdate = false; mesh.updateMatrix();
+    group.add(mesh); arr.mesh = mesh;
+  }
+  function uploadLayer(n, img) {
+    if (!arr.free.length) evict(true);
+    if (!arr.free.length) { n.state = 'none'; if (img.close) img.close(); return; }   // (every layer is on screen: asked for again later)
+    const layer = arr.free.pop(), T = gl.TEXTURE_2D_ARRAY, { cx, LIN, ENC } = arr;
+    cx.drawImage(img, 0, 0, 256, 256);
+    let src = new Uint8Array(cx.getImageData(0, 0, 256, 256).data.buffer), w = 256;
+    renderer.state.bindTexture(T, arr.glTex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+    for (let lv = 0; ; lv++) {
+      gl.texSubImage3D(T, lv, 0, 0, layer, w, w, 1, gl.RGBA, gl.UNSIGNED_BYTE, src);
+      if (w === 1) break;
+      const h = w >> 1, dst = new Uint8Array(h * h * 4);
+      for (let y = 0; y < h; y++) for (let x = 0; x < h; x++) {
+        const a = ((y * 2) * w + x * 2) * 4, b = a + 4, c = a + w * 4, d = c + 4, o = (y * h + x) * 4;
+        for (let k = 0; k < 3; k++) dst[o + k] = ENC[((LIN[src[a + k]] + LIN[src[b + k]] + LIN[src[c + k]] + LIN[src[d + k]]) * 1024 + 0.5) | 0];
+        dst[o + 3] = 255;
+      }
+      src = dst; w = h;
+    }
+    if (img.close) img.close();
+    n.layer = layer; n.mesh = null; n.img = null; n.state = 'ready';
+  }
   function upload(n, img) {
+    if (ARRAY) { if (!arr) arrayInit(); return uploadLayer(n, img); }
     const t = new THREE.Texture(img);
     t.colorSpace = THREE.SRGBColorSpace;
     t.flipY = false;
@@ -185,7 +244,7 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
     t.anisotropy = ANISO;
     t.needsUpdate = true;
     const m = new THREE.MeshStandardMaterial({ map: t, roughness: 1, metalness: 0, depthWrite: false });
-    m.onBeforeCompile = patch;
+    m.onBeforeCompile = (sh) => patch(sh, false);   // (three.js passes the renderer as a second argument: it must not be read as `array`)
     m.customProgramCacheKey = () => (near ? 'v2-aerial-1-gn' : 'v2-aerial-1');
     const mesh = new THREE.Mesh(quad, m);
     mesh.position.set(n.x0, 0, n.z0);
@@ -198,12 +257,13 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
     group.add(mesh);
     n.mesh = mesh; n.img = img; n.state = 'ready';
   }
-  function evict() {
+  function evict(one = false) {
     const ready = [...state.nodes.values()].filter((n) => n.state === 'ready' && !state.shown.has(n) && n.z !== state.levels[0]);
-    const over = ready.length + state.shown.size - CACHE;
+    const over = one ? Math.min(ready.length, 8) : ready.length + state.shown.size - CACHE;
     if (over <= 0) return;
     ready.sort((a, b) => a.used - b.used);
     for (const n of ready.slice(0, over)) {
+      if (ARRAY) { arr.free.push(n.layer); n.layer = -1; n.state = 'none'; continue; }
       group.remove(n.mesh); n.mesh.material.map.dispose(); n.mesh.material.dispose();
       if (n.img && n.img.close) n.img.close();
       n.mesh = null; n.img = null; n.state = 'none';
@@ -256,9 +316,24 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
       }
       if (a) want.add(a);
     }
-    for (const n of state.shown) if (!want.has(n) && n.mesh) n.mesh.visible = false;
     const t = performance.now();
-    for (const n of want) { n.mesh.visible = true; n.used = t; }
+    if (ARRAY) {
+      if (arr) {             // the tiles on screen = the instances of the one quad, coarse levels first (a finer tile draws over its parent)
+        const list = [...want].sort((a, b) => a.z - b.z), im = arr.mesh, e = im.instanceMatrix.array, la = arr.layer.array, max = la.length;
+        let i = 0;
+        for (const n of list) {
+          n.used = t; if (i >= max) continue;
+          const o = i * 16; e.fill(0, o, o + 16); e[o] = n.x1 - n.x0; e[o + 5] = 1; e[o + 10] = n.z1 - n.z0; e[o + 12] = n.x0; e[o + 14] = n.z0; e[o + 15] = 1;
+          la[i++] = n.layer;
+        }
+        im.count = i;
+        im.instanceMatrix.clearUpdateRanges(); im.instanceMatrix.addUpdateRange(0, i * 16); im.instanceMatrix.needsUpdate = true;
+        arr.layer.clearUpdateRanges(); arr.layer.addUpdateRange(0, i); arr.layer.needsUpdate = true;
+      }
+    } else {
+      for (const n of state.shown) if (!want.has(n) && n.mesh) n.mesh.visible = false;
+      for (const n of want) { n.mesh.visible = true; n.used = t; }
+    }
     state.shown = want;
     // queued tiles no longer wanted are dropped from the queue (they are asked for again when they are)
     const sel = new Set(state.selected);

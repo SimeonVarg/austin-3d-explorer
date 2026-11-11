@@ -651,7 +651,10 @@ if (params.get('sun') === '0') sun.intensity = 0;   // diagnosis: the indirect l
 // last one, and any difference redraws the map.
 const SHADOW_CACHE = QUALITY.SHADOW_CACHE && params.get('shadowcache') !== '0';
 sun.shadow.autoUpdate = !SHADOW_CACHE;
-const shadowStats = { redraws: 0, frames: 0, sigMs: 0 };
+const shadowStats = { redraws: 0, frames: 0, sigMs: 0, waited: 0 };
+// the wait between two redraws of the shadow map while the camera moves (the shadow-map wrapper below; ?shadowwait=0 turns it off)
+const SHADOW_WAIT_MS = params.has('shadowwait') ? +params.get('shadowwait') : LOOK.SHADOW_MOVING_MIN_MS;
+let shadowWaits = false, shadowMovingNow = false;
 function casterSignature(root) {
   let a = 0x811c9dc5, b = 0;
   const mix = (v) => { a = Math.imul(a ^ (v | 0), 0x01000193); b = (b + Math.imul(v | 0, 0x9e3779b1)) | 0; };
@@ -711,16 +714,25 @@ function sortCasters(root, cam) {
 }
 if (SHADOW_CACHE) {
   const drawShadows = renderer.shadowMap.render;
-  let lastSig = '';
+  let lastSig = '', lastShadowDraw = -1e9;
   renderer.shadowMap.render = function (lights, s, cam) {
     if (s !== scene) return drawShadows.call(this, lights, s, cam);
     const t = performance.now();
     const sig = casterSignature(scene);
     if (sig !== lastSig) { lastSig = sig; sun.shadow.needsUpdate = true; }
     if (SHADOW_VIEW_CULL && sortCasters(scene, cam)) sun.shadow.needsUpdate = true;
+    // IN MOTION the map is drawn again at most once in SHADOW_WAIT_MS. The sun and the buildings stand still, so a map that is a
+    // quarter of a second old holds the same shadows; all a redraw adds is the strip the box moved over and a tile that came in or
+    // changed its copy. Measured 2026-11-11 in the opening flight on the owner's Mac: the map was drawn again in about every second
+    // frame (the box moves a step every 16 m, the tiles change copy along the way), and one redraw costs 5 to 28 ms of a 35 ms
+    // frame. three.js keeps the old map's own matrix until the next redraw, so the old map stays in its place meanwhile. The
+    // frame the camera stops on is drawn with a fresh map (frame(): shadowWaits).
+    if (shadowWaits) sun.shadow.needsUpdate = true;
+    shadowWaits = false;
+    if (sun.shadow.needsUpdate && !sun.shadow.autoUpdate && shadowMovingNow && t - lastShadowDraw < SHADOW_WAIT_MS) { sun.shadow.needsUpdate = false; shadowWaits = true; shadowStats.waited++; }
     shadowStats.sigMs += performance.now() - t; shadowStats.frames++;
     const redraw = sun.shadow.needsUpdate || sun.shadow.autoUpdate;
-    if (redraw) shadowStats.redraws++;
+    if (redraw) { shadowStats.redraws++; lastShadowDraw = t; }
     if (!redraw || !SHADOW_VIEW_CULL) { needed.length = 0; notNeeded.length = 0; drawShadows.call(this, lights, s, cam); if (redraw) bakeGroundLit(); return; }
     for (const o of notNeeded) o.castShadow = false;
     try { drawShadows.call(this, lights, s, cam); }
@@ -1421,8 +1433,8 @@ function frame(now) {
   const moved = turned || flying || easing;
   const moving = moved || (frameLog.on && frameLog.orbit);   // the verify scripts' timed orbit is camera motion too
   adaptFrame(now, moving);
-  if (!moving && wasMoving && SHADOW_MOVE_MULT > 1) dirty = true;   // the camera stopped: draw the still with the still's shadow box
-  wasMoving = moving;
+  if (!moving && wasMoving && (SHADOW_MOVE_MULT > 1 || shadowWaits)) dirty = true;   // the camera stopped: draw the still with the still's shadow box, and with a fresh shadow map
+  wasMoving = moving; shadowMovingNow = moving;
   if (moved) { markers.update(); if (!easing) map.fire('move'); }
   if (frameLog.on && frameLog.orbit) { orbitStep(); }
   if (tiles) tiles.update(now);

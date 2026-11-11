@@ -49,6 +49,48 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
     return m;
   }
 
+  // THE NEAR SET (2026-11-11). Every kind here fades out by fade.flat[1] / fade.up[1] metres from the camera, but each was one mesh of
+  // all its instances in the city, so every frame sent all of them to the GPU: 0.18 M triangles that drew nothing, 3.5 to 4.5 ms of
+  // a 40 ms frame in the opening flight on the owner's Mac (a triangle of no size costs that GPU about what a visible one does). Now a
+  // mesh holds only the instances inside its own fade distance of the camera; it is filled again each time the camera has moved
+  // S.REFILL_M. From the air, past every fade distance, nothing is sent at all. Same picture.
+  const NEAR = [], CELL = 120, cellKey = (x, z) => Math.floor(x / CELL) * 65536 + Math.floor(z / CELL);
+  const lastFill = new THREE.Vector3(1e9, 0, 0);
+  function fillNear(k, p) {
+    const R = k.gone + S.REFILL_M, R2 = R * R - p.y * p.y, im = k.im, dm = im.instanceMatrix.array, ab = k.up ? im.geometry.attributes.aBase : null;
+    let n = 0;
+    if (R2 > 0) {
+      const r = Math.sqrt(R2), i0 = Math.floor((p.x - r) / CELL), i1 = Math.floor((p.x + r) / CELL), j0 = Math.floor((p.z - r) / CELL), j1 = Math.floor((p.z + r) / CELL);
+      for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+        const cell = k.grid.get(i * 65536 + j); if (!cell) continue;
+        for (const id of cell) {
+          const dx = k.base[id * 3] - p.x, dz = k.base[id * 3 + 2] - p.z;
+          if (dx * dx + dz * dz > R2) continue;
+          dm.set(k.all.subarray(id * 16, id * 16 + 16), n * 16);
+          if (ab) { ab.array[n * 3] = k.base[id * 3]; ab.array[n * 3 + 1] = 0; ab.array[n * 3 + 2] = k.base[id * 3 + 2]; }
+          n++;
+        }
+      }
+    }
+    im.count = n; im.visible = n > 0;
+    if (n) {
+      im.instanceMatrix.clearUpdateRanges(); im.instanceMatrix.addUpdateRange(0, n * 16); im.instanceMatrix.needsUpdate = true;
+      if (ab) { ab.clearUpdateRanges(); ab.addUpdateRange(0, n * 3); ab.needsUpdate = true; }
+      im.boundingSphere.center.copy(p); im.boundingSphere.radius = R + 12;
+    }
+    return n;
+  }
+  const prevBefore = scene.onBeforeRender;
+  scene.onBeforeRender = function (r, sc, cam, target) {
+    prevBefore.call(this, r, sc, cam, target);
+    if (target || !cam.isPerspectiveCamera || !NEAR.length) return;
+    const p = cam.position;
+    if (p.distanceToSquared(lastFill) < S.REFILL_M * S.REFILL_M) return;
+    lastFill.copy(p);
+    let n = 0; for (const k of NEAR) n += fillNear(k, p);
+    stats.near = n;
+  };
+
   const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), SC = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
   // instances of `geo` from rows of [x, z, angle(rad, from +x toward +z), sx, sy, sz, lift]; bases = the model's foot per instance
   function instanced(name, geo, mat, rows, bases, { shadow = false } = {}) {
@@ -61,10 +103,15 @@ export function installStreet({ THREE, scene, redraw, phone = false }) {
       const b = bases ? bases[i] : r; base[i * 3] = b[0]; base[i * 3 + 1] = 0; base[i * 3 + 2] = b[1];
     });
     geo = im.geometry;
-    if (mat.customProgramCacheKey && mat.customProgramCacheKey().startsWith('v2-street-up')) geo.setAttribute('aBase', new THREE.InstancedBufferAttribute(base, 3));
-    im.instanceMatrix.needsUpdate = true;
-    im.computeBoundingSphere();
+    const up = !!(mat.customProgramCacheKey && mat.customProgramCacheKey().startsWith('v2-street-up'));
+    if (up) geo.setAttribute('aBase', new THREE.InstancedBufferAttribute(base.slice(), 3));
     im.castShadow = shadow; im.receiveShadow = true; im.name = name;
+    // Only the instances that can be seen are drawn (NEAR below): the mesh starts empty and is filled round the camera.
+    const grid = new Map();
+    for (let i = 0; i < rows.length; i++) { const k = cellKey(base[i * 3], base[i * 3 + 2]); (grid.get(k) || grid.set(k, []).get(k)).push(i); }
+    NEAR.push({ im, all: im.instanceMatrix.array.slice(), base, grid, up, gone: up ? fade.up[1] : fade.flat[1] });
+    im.count = 0; im.visible = false; im.frustumCulled = false; im.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1);
+    lastFill.x = 1e9;
     group.add(im);
     return im;
   }

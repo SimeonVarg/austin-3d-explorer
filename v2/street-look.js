@@ -42,6 +42,7 @@ export const STREET_LOOK = {
   // ── fades (rule 15: thin things go before they get thinner than a pixel; the aerial carries the same paint beyond) ──
   FADE: { flat: [260, 380], up: [320, 520] },          // metres from the camera: [full, gone]
   FADE_PHONE: { flat: [200, 300], up: [240, 400] },
+  REFILL_M: 30,                 // street.js: the furniture round the camera is chosen again each time the camera has moved this far
   // ── paint and curbs ──
   PAINT: '#a9a8a2',             // road paint as albedo on v2's scale (white paint 0.17 is the builders' wall white; paint reads a step brighter)
   PAINT_LIFT_M: 0.02,
