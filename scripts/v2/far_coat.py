@@ -13,12 +13,13 @@ import xatlas
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO, TILE, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
-TEXEL = float(os.environ.get('TEXEL', 0.3)); VOX = float(os.environ.get('VOX', 0.4)); ERR = float(os.environ.get('ERR', 0.45))
-SS = int(os.environ.get('SS', 3))            # rays per texel side
+TEXEL = float(os.environ.get('TEXEL', 0.6)); VOX = float(os.environ.get('VOX', 0.5)); ERR = float(os.environ.get('ERR', 0.45))
+SS = int(os.environ.get('SS', 6))            # rays per texel side (each moved at random inside its own cell: a regular grid of rays would beat with a regular facade)
+RNG = np.random.default_rng(20261111)
 D_OUT, D_IN = float(os.environ.get('D_OUT', 1.2)), float(os.environ.get('D_IN', 1.0))
 SEE_PX_M = TEXEL * 1.5                       # the pixel size (m) at which the far copy takes over: coverage-fade parts are baked as they look there
 MAX_VOX = 60e6
-N_DIR, VIS_MIN = 96, float(os.environ.get('VIS_MIN', 0.12))   # a point is OUTSIDE when it sees out in this share of the directions
+N_DIR, VIS_MIN = 96, float(os.environ.get('VIS_MIN', 0.025))   # a point is OUTSIDE when it sees out in this share of the directions (an open court seen only from steep above stays open; a room behind a crack does not)
 DEEP_M, DEEP_K = 8.0, 0.35            # seen through an opening, deeper than D_IN: that surface, this much darker
 MAN = json.load(open(os.path.join(REPO, 'v2/tiles/manifest.json')))
 DEF = next(t for t in MAN['tiles'] if t['id'] == TILE)
@@ -232,11 +233,12 @@ for bid in sorted(set(TBID.tolist())):
 atlas = xatlas.Atlas()
 for s in shells: atlas.add_mesh(s['V'].astype(np.float32), s['F'].astype(np.uint32))
 co, po = xatlas.ChartOptions(), xatlas.PackOptions()
+co.max_cost = float(os.environ.get('CHART_COST', 2.0)); co.normal_deviation_weight = float(os.environ.get('CHART_NDW', 2.0))
 po.texels_per_unit = 1.0 / TEXEL; po.padding = 2; po.resolution = 0; po.bilinear = True; po.rotate_charts = True
 atlas.generate(co, po)
 W, H = atlas.width, atlas.height
 log(f'atlas {W} x {H} = {W * H / 1e6:.2f} M texels, {atlas.chart_count} charts, utilization {atlas.utilization}')
-acc_col = np.zeros((H, W, 3), np.float64); acc_rm = np.zeros((H, W, 2), np.float64); acc_n = np.zeros((H, W), np.float64)
+acc_col = np.zeros((H, W, 3), np.float64); acc_rm = np.zeros((H, W, 1), np.float64); acc_n = np.zeros((H, W), np.float64)
 out_meshes = []
 for si, s in enumerate(shells):
     vmap, idx, uvs = atlas[si]
@@ -254,9 +256,9 @@ for si, s in enumerate(shells):
         den = (b_[1] - c[1]) * (a[0] - c[0]) + (c[0] - b_[0]) * (a[1] - c[1])
         if abs(den) < 1e-9: continue
         gx, gy = np.meshgrid(np.arange(x0, x1), np.arange(y0, y1))
-        sx = (gx[..., None, None] + sub[None, None, :, None]).reshape(-1); sy = (gy[..., None, None] + sub[None, None, None, :]).reshape(-1)
-        sx = np.broadcast_to(gx[..., None, None] + sub[None, None, :, None], gx.shape + (SS, SS)).reshape(-1)
-        sy = np.broadcast_to(gy[..., None, None] + sub[None, None, None, :], gy.shape + (SS, SS)).reshape(-1)
+        shp = gx.shape + (SS, SS)
+        sx = (np.broadcast_to(gx[..., None, None] + sub[None, None, :, None], shp) + (RNG.random(shp) - 0.5) / SS).reshape(-1)
+        sy = (np.broadcast_to(gy[..., None, None] + sub[None, None, None, :], shp) + (RNG.random(shp) - 0.5) / SS).reshape(-1)
         l0 = ((b_[1] - c[1]) * (sx - c[0]) + (c[0] - b_[0]) * (sy - c[1])) / den
         l1 = ((c[1] - a[1]) * (sx - c[0]) + (a[0] - c[0]) * (sy - c[1])) / den
         l2 = 1 - l0 - l1
@@ -293,20 +295,40 @@ for si, s in enumerate(shells):
         tri[miss2] = c['primitive_ids'].numpy().astype(np.int64); bary[miss2] = c['primitive_uvs'].numpy()
     col, rough, metal = tri_colour(s['tri_ids'][tri], bary)
     col[deep] *= DEEP_K; rough[deep] = 1.0; metal[deep] = 0.0
+    # two terms a far pixel needs, both plain averages over what it covers: the diffuse colour (a mirror pane has none), and how much of
+    # it is SMOOTH (mirror glass, polished metal). The smooth part's own mirror colour and roughness are one value a building (below).
+    f0 = 0.04 * (1 - metal[:, None]) + col * metal[:, None]
+    q = np.clip((0.6 - rough) / 0.3, 0, 1); q = q * q * (3 - 2 * q)
+    col = col * (1 - metal[:, None])
+    gs = dict(f0=(f0 * q[:, None]).sum(0), r=float((rough * q).sum()), q=float(q.sum()))
+    rough = q
     # texels a triangle really covers take only inside samples; gutter texels take what they get
     wgt = np.where(tex[:, 1] == 1, 1.0, 1e-3)
     for ch_ in range(3): acc_col[..., ch_] += np.bincount(tex[:, 0], col[:, ch_] * wgt, W * H).reshape(H, W)
-    acc_rm[..., 0] += np.bincount(tex[:, 0], rough * wgt, W * H).reshape(H, W); acc_rm[..., 1] += np.bincount(tex[:, 0], metal * wgt, W * H).reshape(H, W)
+    acc_rm[..., 0] += np.bincount(tex[:, 0], rough * wgt, W * H).reshape(H, W)
     acc_n += np.bincount(tex[:, 0], wgt, W * H).reshape(H, W)
     # each face is lit by the mean normal of what it shows (the real wall or roof under it), not by the shell's own small tilts
-    inside = tex[:, 1] == 1
-    bn_ = np.stack([np.bincount(fid[inside], hn[inside, k], len(F)) for k in range(3)], 1)
+    # ...and of those normals the one most of the face shows (a wall with windows: the wall's, the same for every face of that wall)
+    inside = (tex[:, 1] == 1) & hit
+    qn = np.round(hn[inside] * 8).astype(np.int64); qk = (qn[:, 0] + 8) * 289 + (qn[:, 1] + 8) * 17 + (qn[:, 2] + 8)
+    pk = fid[inside] * 4913 + qk
+    upk, inv_pk, cnt = np.unique(pk, return_inverse=True, return_counts=True)
+    sums = np.stack([np.bincount(inv_pk, hn[inside, k], len(upk)) for k in range(3)], 1)
+    uf = upk // 4913; order = np.lexsort((cnt, uf)); lastof = np.r_[uf[order][1:] != uf[order][:-1], True]
+    best = order[lastof]                                   # per face: its most frequent normal bin
+    bn_ = np.zeros((len(F), 3)); bn_[uf[best]] = sums[best]
     bl = np.linalg.norm(bn_, axis=1); good = (bl > 1e-6) & ((bn_ * fnn).sum(1) > 0.5 * bl)
     fnorm = np.where(good[:, None], bn_ / np.maximum(bl[:, None], 1e-12), fnn)
-    out_meshes.append(dict(V=V[F].reshape(-1, 3), N=np.repeat(fnorm, 3, 0), UV=uvs.astype(np.float32)[F].reshape(-1, 2), F=np.arange(len(F) * 3).reshape(-1, 3), bid=s['bid']))
+    # one vertex per (atlas vertex, normal): faces of one wall share a normal (snapped to about 1.5 degrees), so they share vertices
+    sn = np.round(fnorm * 40).astype(np.int64); nid = np.unique(sn, axis=0, return_inverse=True)[1].reshape(-1)
+    pair = F.astype(np.int64) * (int(nid.max()) + 1) + nid[:, None]
+    uq, first, inv = np.unique(pair.reshape(-1), return_index=True, return_inverse=True)
+    vsel = F.reshape(-1)[first]; nsel = np.repeat(sn, 3, 0)[first].astype(np.float64); nsel /= np.maximum(np.linalg.norm(nsel, axis=1, keepdims=True), 1e-12)
+    gl = np.r_[gs['f0'] / gs['q'], gs['r'] / gs['q']] if gs['q'] > 0 else np.array([0.04, 0.04, 0.04, 1.0])
+    out_meshes.append(dict(V=V[vsel], N=nsel, UV=uvs.astype(np.float32)[vsel], F=inv.reshape(-1, 3), bid=s['bid'], gloss=gl))
     log(f'building {s["bid"]}: baked {len(pts)} rays, {100 * deep.mean():.1f} % seen through an opening, {100 * miss2.mean():.1f} % nearest surface')
 have = acc_n > 0
-col = np.zeros((H, W, 3)); rm = np.zeros((H, W, 2)); col[have] = acc_col[have] / acc_n[have][:, None]; rm[have] = acc_rm[have] / acc_n[have][:, None]
+col = np.zeros((H, W, 3)); rm = np.zeros((H, W, 1)); col[have] = acc_col[have] / acc_n[have][:, None]; rm[have] = acc_rm[have] / acc_n[have][:, None]
 for it in range(8):                                        # fill what is left of the gutters from the neighbours
     if have.all(): break
     k = np.ones((3, 3)); cnt = ndimage.convolve(have.astype(float), k, mode='constant')
@@ -314,31 +336,32 @@ for it in range(8):                                        # fill what is left o
     for arr in (col, rm):
         for c_ in range(arr.shape[2]): arr[..., c_][new] = (ndimage.convolve(arr[..., c_] * have, k, mode='constant') / np.maximum(cnt, 1))[new]
     have = have | new
-rgba = np.dstack([np.clip(lin2srgb(col), 0, 1), np.clip(rm[..., 0], 0.03, 1)])
-albedo = Image.fromarray((rgba * 255 + 0.5).astype(np.uint8), 'RGBA')
-METAL = float((rm[..., 1] * (acc_n > 0)).sum() / max((acc_n > 0).sum(), 1))
-def webp(im): bio = io.BytesIO(); im.save(bio, 'WEBP', quality=int(os.environ.get('WEBP_Q', 82)), method=6, exact=True); return bio.getvalue()
+# one picture: rgb = the diffuse colour, alpha = 1 - the smooth share (so plain walls are alpha 1 and nothing is lost if alpha is ever multiplied in)
+METAL = float(rm[..., 0].mean())
+albedo = Image.fromarray((np.dstack([np.clip(lin2srgb(col), 0, 1), 1 - np.clip(rm[..., 0], 0, 1)]) * 255 + 0.5).astype(np.uint8), 'RGBA')
+def webp(im, q): bio = io.BytesIO(); im.save(bio, 'WEBP', quality=q, method=6, exact=True); return bio.getvalue()
 # ── write the skin glb (plain: positions, normals, uv, one material with the two pictures) ─────────────────
 Vall = np.concatenate([m['V'] for m in out_meshes]).astype(np.float32); Nall = np.concatenate([m['N'] for m in out_meshes]).astype(np.float32)
-UVall = np.concatenate([m['UV'] for m in out_meshes]).astype(np.float32); Ball = np.concatenate([np.full(len(m['V']), m['bid'], np.float32) for m in out_meshes])
+UVall = np.concatenate([m['UV'] for m in out_meshes]).astype(np.float32); Ball = np.concatenate([np.full(len(m['V']), m['bid'], np.uint16) for m in out_meshes])
+Gall = np.concatenate([np.tile((np.clip(m['gloss'], 0, 1) * 255 + 0.5).astype(np.uint8), (len(m['V']), 1)) for m in out_meshes])   # per vertex: its building's mirror colour (rgb, linear) and roughness (a)
 offs = np.cumsum([0] + [len(m['V']) for m in out_meshes]); Fall = np.concatenate([m['F'] + offs[i] for i, m in enumerate(out_meshes)]).astype(np.uint32)
-blobs = [Vall.tobytes(), Nall.tobytes(), UVall.tobytes(), Ball.tobytes(), Fall.tobytes(), webp(albedo)]
+blobs = [Vall.tobytes(), Nall.tobytes(), UVall.tobytes(), Ball.tobytes() + b'\0' * ((4 - Ball.nbytes % 4) % 4), Fall.tobytes(), webp(albedo, int(os.environ.get('WEBP_Q', 80))), Gall.tobytes()]
 views, buf = [], b''
 for bl in blobs:
     views.append(dict(buffer=0, byteOffset=len(buf), byteLength=len(bl))); buf += bl + b'\0' * ((4 - len(bl) % 4) % 4)
 nv = len(Vall)
 g = dict(asset=dict(version='2.0', generator='far_coat.py'), scene=0, scenes=[dict(nodes=[0])], nodes=[dict(mesh=0, name='far')],
     extensionsUsed=['EXT_texture_webp'], extensionsRequired=['EXT_texture_webp'],
-    meshes=[dict(name='far', primitives=[dict(attributes=dict(POSITION=0, NORMAL=1, TEXCOORD_0=2, _BUILDING=3), indices=4, material=0)])],
-    materials=[dict(name='far_coat', doubleSided=False, pbrMetallicRoughness=dict(baseColorTexture=dict(index=0), metallicFactor=0, roughnessFactor=1), extras=dict(v2_kind='far', texel_m=TEXEL, err_m=ERR, mean_metal=round(METAL, 4)))],
+    meshes=[dict(name='far', primitives=[dict(attributes=dict(POSITION=0, NORMAL=1, TEXCOORD_0=2, _BUILDING=3, _GLOSS=5), indices=4, material=0)])],
+    materials=[dict(name='far_coat', doubleSided=False, pbrMetallicRoughness=dict(baseColorTexture=dict(index=0), metallicFactor=0, roughnessFactor=1), extras=dict(v2_kind='far', texel_m=TEXEL, err_m=ERR, smooth_share=round(METAL, 4)))],
     textures=[dict(sampler=0, extensions=dict(EXT_texture_webp=dict(source=0)))], samplers=[dict(magFilter=9729, minFilter=9987, wrapS=33071, wrapT=33071)],
     images=[dict(bufferView=5, mimeType='image/webp')],
     accessors=[dict(bufferView=0, componentType=5126, count=nv, type='VEC3', min=Vall.min(0).tolist(), max=Vall.max(0).tolist()), dict(bufferView=1, componentType=5126, count=nv, type='VEC3'),
-               dict(bufferView=2, componentType=5126, count=nv, type='VEC2'), dict(bufferView=3, componentType=5126, count=nv, type='SCALAR'), dict(bufferView=4, componentType=5125, count=int(Fall.size), type='SCALAR')],
+               dict(bufferView=2, componentType=5126, count=nv, type='VEC2'), dict(bufferView=3, componentType=5123, count=nv, type='SCALAR'), dict(bufferView=4, componentType=5125, count=int(Fall.size), type='SCALAR'), dict(bufferView=6, componentType=5121, normalized=True, count=nv, type='VEC4')],
     bufferViews=views, buffers=[dict(byteLength=len(buf))])
 jb = json.dumps(g).encode(); jb += b' ' * ((4 - len(jb) % 4) % 4)
 with open(OUT, 'wb') as f:
     f.write(struct.pack('<4sII', b'glTF', 2, 12 + 8 + len(jb) + 8 + len(buf))); f.write(struct.pack('<I4s', len(jb), b'JSON')); f.write(jb); f.write(struct.pack('<I4s', len(buf), b'BIN\0')); f.write(buf)
 if os.environ.get('KEEP_PNG'): albedo.convert('RGB').save(OUT.replace('.glb', '.albedo.png'))
-log(f'DONE {TILE}: {len(Fall)} triangles (full {len(TRI)}), atlas {W}x{H} = {W * H / 1e6:.2f} M texels, mean metal {METAL:.3f}, file {os.path.getsize(OUT) / 1e6:.2f} MB')
-print('RESULT ' + json.dumps(dict(tile=TILE, full=int(len(TRI)), far=int(len(Fall)), w=int(W), h=int(H), mb=round(os.path.getsize(OUT) / 1e6, 3), metal=round(METAL, 4))))
+log(f'DONE {TILE}: {len(Fall)} triangles (full {len(TRI)}), atlas {W}x{H} = {W * H / 1e6:.2f} M texels, smooth share {METAL:.3f}, file {os.path.getsize(OUT) / 1e6:.2f} MB')
+print('RESULT ' + json.dumps(dict(webp=len(blobs[5]), verts=int(nv), charts=int(atlas.chart_count), tile=TILE, full=int(len(TRI)), far=int(len(Fall)), w=int(W), h=int(H), mb=round(os.path.getsize(OUT) / 1e6, 3), smooth=round(METAL, 4))))

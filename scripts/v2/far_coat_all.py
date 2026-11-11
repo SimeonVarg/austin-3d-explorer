@@ -21,7 +21,7 @@ def one(t):
     p = subprocess.run(['node', os.path.join(HERE, 'far_coat_pack.mjs'), raw, out], capture_output=True, text=True, env=env, cwd=REPO)
     os.remove(raw)
     if p.returncode: return tid, None, p.stderr[-600:]
-    return tid, dict(file=f'tiles/{tid}.coat.glb', texel_m=float(os.environ.get('TEXEL', 0.3)), triangles=res['far'], full=res['full'], atlas=[res['w'], res['h']], bytes=os.path.getsize(out), of=sha), 'built'
+    return tid, dict(file=f'tiles/{tid}.coat.glb', texel_m=float(os.environ.get('TEXEL', 0.6)), triangles=res['far'], full=res['full'], atlas=[res['w'], res['h']], bytes=os.path.getsize(out), of=sha), 'built'
 todo = [t for t in man['tiles'] if t.get('lod0') and (not only or t['id'] in only)]
 with cf.ThreadPoolExecutor(jobs) as ex:
     for tid, entry, note in ex.map(one, todo):

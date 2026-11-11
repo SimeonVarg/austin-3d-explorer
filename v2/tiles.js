@@ -34,6 +34,7 @@ export const TILES = {
 };
 
 const smooth = (k) => k * k * (3 - 2 * k);
+const LEVELS = ['far', 'lod0'];
 
 // The fade: every lit material of a tile mixes its final colour toward the haze colour (main.js fog_fragment's hazeC) by uFade.
 // One uniform per tile, shared by the tile's materials; the program is shared by every tile (customProgramCacheKey).
@@ -99,23 +100,39 @@ const PQ = new URLSearchParams(typeof location !== 'undefined' ? location.search
 export const FAR = {
   ON: PQ.get('far') === '1' && !PQ.has('moment'),   // (a far copy has no lit windows: night moments keep the full models)
   INDEX: 'tiles/coats.json',  // { tile id: { file, texel_m, triangles } }, written by scripts/v2/far_coat.py
-  PX: PQ.has('farpx') ? +PQ.get('farpx') : 1.5,   // the far copy takes over where a FULL-resolution screen pixel is this many of its texels...
-  BACK: 0.85,                 // ...and the full model comes back when the pixel is under this x that size (no flipping at the line)
+  PX: PQ.has('farpx') ? +PQ.get('farpx') : 1.5,   // the far copy draws where a pixel of the canvas, as it is now, is this many of its texels or more...
+  BACK: 0.85,                 // ...and the full model draws again when the pixel is under this x that size (no flipping at the line)
   ANISOTROPY: 8,              // slanted walls stay sharp
   MIP_BIAS: PQ.has('farbias') ? +PQ.get('farbias') : 0,
   FORCE: PQ.get('farforce') || '',   // 'far' / 'full': every tile draws that copy (a test at one camera)
+  SCALE: 0,                   // (a test) not 0: draw as if the canvas's adaptive scale were this
 };
-// The far copy's picture: rgb = the colour, alpha = the roughness (one texture instead of two).
-function farMaterial(material, renderer) {
+// The far copy's material. Its one picture holds, per texel, the two things a far pixel is made of, both plain averages (so the
+// mip maps filter them correctly): rgb = the diffuse colour, and 1 - alpha = how much of the texel is SMOOTH (mirror glass). The smooth
+// part is drawn as that share of a true mirror with its building's own mirror colour and roughness (vertex attribute _gloss), so a
+// facade whose windows are smaller than a pixel still mirrors the sky as much as the windows did, instead of turning into grey paint.
+function farMaterial(material) {
   if (!material || material.userData.v2Far) return;
   material.userData.v2Far = true;
-  material.metalness = +material.userData.mean_metal || 0;
   if (material.map) { material.map.anisotropy = FAR.ANISOTROPY; material.map.needsUpdate = true; }
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 _gloss;\nvarying vec4 vFarGloss;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFarGloss = _gloss;');
     if (FAR.MIP_BIAS) sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', 'texture2D( map, vMapUv, ' + FAR.MIP_BIAS.toFixed(3) + ' )'));
-    sh.fragmentShader = sh.fragmentShader.replace('#include <roughnessmap_fragment>', 'float roughnessFactor = roughness;\n#ifdef USE_MAP\n  roughnessFactor *= sampledDiffuseColor.a;\n#endif');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec4 vFarGloss;')
+      .replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
+  #ifdef USE_MAP
+  {
+    float v2g = 1.0 - sampledDiffuseColor.a;                 // the smooth share of this texel
+    vec3 v2f0 = vFarGloss.rgb * v2g;
+    material.diffuseContribution = diffuseColor.rgb;
+    material.metalness = 1.0; material.diffuseColor = v2f0;   // (the mirror lobe alone, scaled by the share; no gloss on the wall part)
+    material.specularColor = vec3(0.0); material.specularColorBlended = v2f0; material.specularF90 = v2g;
+    material.roughness = min(max(vFarGloss.a, 0.0525) + geometryRoughness, 1.0);
+  }
+  #endif`);
   };
   const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
   material.customProgramCacheKey = () => key() + '|v2-far' + FAR.MIP_BIAS;
@@ -224,7 +241,7 @@ export class TileStreamer {
       if (!t.lod0) continue;                                   // a tile with no full model is not drawn (the extrusions stay)
       const mapIds = [];
       for (const slug of t.buildings || []) { const b = this.manifest.buildings?.[slug]; if (b?.map_ids) mapIds.push(...b.map_ids.map(String)); }
-      this.tiles.set(t.id, { def: t, mapIds, want: null, have: null, obj: null, job: null, fade: null, coat: null });
+      this.tiles.set(t.id, { def: t, mapIds, want: null, have: null, obj: null, full: null, far: null, jobs: { lod0: null, far: null }, fade: null, fadeU: { value: 0 }, coat: null, line: Infinity, d: 0 });
     }
     if (FAR.ON) {
       try {
@@ -235,10 +252,12 @@ export class TileStreamer {
     return this.manifest;
   }
 
-  // Which tiles should be loaded now (want = 'lod0', 'far' or null), from the camera position.
+  // Which copies of which tiles should be in memory now, from the camera position.
+  //   want = 'lod0': the full model (and its far copy too, when it has one: in motion the far copy draws wherever its texel is
+  //                  already smaller than the canvas's coarser pixel); 'far': the far copy only; null: nothing.
   plan() {
     const cam = this.camera.position;
-    // metres per FULL-resolution screen pixel, per metre of distance (the canvas's adaptive scale in motion does not move the line)
+    // metres per FULL-resolution screen pixel, per metre of distance
     const mpp = FAR.ON ? 2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2) / (innerHeight * Math.min(devicePixelRatio || 1, 2)) : 0;
     this.camera.updateMatrixWorld();
     this.m.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
@@ -248,39 +267,65 @@ export class TileStreamer {
       const [x0, z0, x1, z1] = s.def.bounds;
       const dx = Math.max(x0 - cam.x, 0, cam.x - x1), dz = Math.max(z0 - cam.z, 0, cam.z - z1);
       const d = Math.hypot(dx, dz, Math.max(0, cam.y - TILES.TILE_TOP_M));
-      const cur = s.have || s.want;
+      const cur = s.full || s.far || s.want;
       let want = d <= (cur ? TILES.UNLOAD_DISTANCE_M : TILES.LOAD_DISTANCE_M) ? 'lod0' : null;
       if (want && s.coat) {
-        const line = s.coat.texel_m * FAR.PX / mpp;            // the distance where one texel is 1/PX of a pixel
-        if (FAR.FORCE ? FAR.FORCE === 'far' : d > line * (cur === 'far' ? FAR.BACK : 1)) want = 'far';
+        s.line = s.coat.texel_m * FAR.PX / mpp;                // standing still (full resolution), the far copy draws beyond this
+        // the full model is in memory out to the line (and stays until a little past it, so it is not loaded and dropped at the line)
+        if (FAR.FORCE ? FAR.FORCE === 'far' : d > s.line * (s.full || s.jobs.lod0 ? 1 / FAR.BACK : 1)) want = 'far';
       }
       this.box.min.set(x0, 0, z0); this.box.max.set(x1, TILES.TILE_TOP_M, z1);
       s.want = want; s.d = d; s.inView = this.frustum.intersectsBox(this.box);
+      this.note(s);
       order.push(s);
     }
     return order;
   }
+  // have = what main.js's loading screen reads: the copy this tile wants is in ('lod0' / 'far'), or null while it is not
+  note(s) {
+    s.have = s.want === 'lod0' ? (s.full ? 'lod0' : null) : s.want === 'far' ? (s.far ? 'far' : s.full ? 'lod0' : null) : (s.full ? 'lod0' : s.far ? 'far' : null);
+    s.obj = s.full || s.far || null;                           // (main.js: the object its covers and the camera's collision are made from)
+  }
+  wanted(s, level) { return level === 'far' ? !!(s.want && s.coat) : s.want === 'lod0'; }
+
+  // Which copy of each tile DRAWS, every frame (no loading: both are in memory). The far copy draws when the full model is not
+  // there, or when one texel of it is smaller than a pixel of the canvas AS IT IS NOW (FAR.PX): the canvas has fewer pixels in
+  // motion (main.js adaptive resolution, AO_SCALE), so in motion the far copy reaches nearer; standing still the full model is back.
+  show() {
+    let changed = false;
+    for (const s of this.tiles.values()) {
+      if (!s.far) { if (s.full && !s.full.visible) { s.full.visible = true; changed = true; } continue; }
+      const far = !s.full || (FAR.FORCE ? FAR.FORCE === 'far' : s.d > s.line * (FAR.SCALE || AO_SCALE.value) * (s.far.visible && s.full.visible === false ? FAR.BACK : 1));
+      if (s.far.visible !== far) { s.far.visible = far; changed = true; }
+      if (s.full && s.full.visible === far) { s.full.visible = !far; changed = true; }
+    }
+    if (changed) this.onChange(this);
+  }
 
   update(now = performance.now()) {
     if (this.fading.size) this.stepFades(now);
+    if (FAR.ON && this.manifest) this.show();
     if (!this.manifest || now - this.last < TILES.UPDATE_EVERY_MS) return;
     this.last = now;
     const all = this.plan();
     this.plannedFor = this.camera.matrixWorld.elements.join(',');
-    // cancel loads that are no longer wanted
-    for (const s of all) if (s.job && s.job.level !== s.want) { s.job.ctrl.abort(); s.job.stale = true; s.job = null; this.active--; this.stats.aborted++; }
-    // drop what is not wanted
-    for (const s of all) if (!s.want && s.obj) this.drop(s);
-    // queue: in view first, then nearest
-    // (a tile with nothing on screen before one that only changes its copy)
-    const queue = all.filter((s) => s.want && s.have !== s.want && !s.job && (s.failed || 0) < TILES.MAX_TRIES).sort((a, b) => (b.inView - a.inView) || (!!a.obj - !!b.obj) || (a.d - b.d));
-    while (this.active < TILES.MAX_DECODES && queue.length) this.start(queue.shift());
+    for (const s of all) {
+      // cancel loads that are no longer wanted, drop copies that are no longer wanted
+      for (const level of LEVELS) if (s.jobs[level] && !this.wanted(s, level)) { const j = s.jobs[level]; j.ctrl.abort(); j.stale = true; s.jobs[level] = null; this.active--; this.stats.aborted++; }
+      if (!s.want) { if (s.full || s.far) this.drop(s); continue; }
+      if (s.full && s.far && !this.wanted(s, 'lod0')) this.dropFull(s);     // past the line: the far copy alone
+    }
+    // queue: in view first, a tile with nothing on screen before one that only adds a copy, then nearest; the far copy (small) before the full model
+    const queue = [];
+    for (const s of all) for (const level of LEVELS) if (this.wanted(s, level) && !(level === 'far' ? s.far : s.full) && !s.jobs[level] && ((s.failed || {})[level] || 0) < TILES.MAX_TRIES) queue.push({ s, level });
+    queue.sort((a, b) => (b.s.inView - a.s.inView) || (!!(a.s.full || a.s.far) - !!(b.s.full || b.s.far)) || ((a.level === 'far' ? 0 : 1) - (b.level === 'far' ? 0 : 1)) || (a.s.d - b.s.d));
+    while (this.active < TILES.MAX_DECODES && queue.length) { const q = queue.shift(); this.start(q.s, q.level); }
   }
 
-  start(s) {
+  start(s, level) {
     const ctrl = new AbortController();
-    const level = s.want, job = { ctrl, stale: false, level };
-    s.job = job; this.active++;
+    const job = { ctrl, stale: false, level };
+    s.jobs[level] = job; this.active++;
     const url = new URL(level === 'far' ? s.coat.file : s.def.lod0, this.base).href;
     (async () => {
       try {
@@ -292,8 +337,8 @@ export class TileStreamer {
         this.stats.bytes += buf.byteLength;
         if (job.stale) { disposeObject(gltf.scene); this.stats.discarded++; return; }
         const obj = gltf.scene;
-        obj.name = s.def.id;
-        const fade = { value: 0 }, brickOptIn = (s.def.buildings || []).some((b) => BRICK_MIPS_SLUGS.has(b));
+        obj.name = s.def.id + (level === 'far' ? ' far' : '');
+        const fade = s.fadeU, brickOptIn = (s.def.buildings || []).some((b) => BRICK_MIPS_SLUGS.has(b));
         obj.traverse((o) => {
           if (!o.isMesh) return;
           o.castShadow = true; o.receiveShadow = true; o.frustumCulled = true;
@@ -305,34 +350,27 @@ export class TileStreamer {
         obj.userData.fade = fade;
         this.prepare(obj, s.def, s);   // (s: main.js adds to s.mapIds the plain extrusions this model stands over, covers.js)
         this.stats.loaded++;
-        if (s.obj) { this.swap(s, obj, level); return; }
-        s.obj = obj; s.have = level;
-        this.appear(s, performance.now());
+        const first = !s.full && !s.far;
+        if (level === 'far') s.far = obj; else s.full = obj;
+        this.note(s);
+        if (first) { this.appear(s, performance.now()); return; }
+        // the other copy of a tile that is already there: no fade of its own (in the middle of the tile's arrival fade it joins it)
+        obj.visible = false;
+        if (!(s.fade && s.fade.phase === 'out')) { this.group.add(obj); this.show(); this.onAnimate(); }
       } catch (e) {
-        if (e.name !== 'AbortError') { this.stats.failed++; console.warn('[v2 tiles]', s.def.id, e.message); s.failed = (s.failed || 0) + 1; }
+        if (e.name !== 'AbortError') { this.stats.failed++; console.warn('[v2 tiles]', s.def.id, level, e.message); (s.failed ||= {})[level] = (s.failed[level] || 0) + 1; }
       } finally {
-        if (s.job === job) { s.job = null; this.active--; }
+        if (s.jobs[level] === job) { s.jobs[level] = null; this.active--; }
       }
     })();
   }
-
-  // The other copy of a tile that is already drawn has arrived (full <-> far): it takes the place at once. No fade: at the line the
-  // two look the same (that is what the line is for), and a fade through the haze would be the bigger change.
-  swap(s, obj, level) {
-    const old = s.obj;
-    obj.userData.fade.value = old.userData.fade ? old.userData.fade.value : 0;   // (in the middle of an arrival fade: the fade goes on)
-    if (old.parent) { this.group.remove(old); this.group.add(obj); }
-    disposeObject(old);
-    s.obj = obj; s.have = level;
-    this.stats.swapped = (this.stats.swapped || 0) + 1;
-    this.onChange(this);
-  }
+  add(s) { for (const o of [s.full, s.far]) if (o && !o.parent) this.group.add(o); if (FAR.ON) this.show(); }
 
   // A tile has arrived: its extrusions fade out into the haze (OUT_MS), then the model replaces them and fades in (IN_MS).
   appear(s, now) {
     if (this.instant || !(TILES.FADE.OUT_MS + TILES.FADE.IN_MS > 0)) {
-      s.obj.userData.fade.value = 0;
-      this.group.add(s.obj); this.onShow(s.mapIds, s.def); this.onChange(this);
+      s.fadeU.value = 0;
+      this.add(s); this.onShow(s.mapIds, s.def); this.onChange(this);
       return;
     }
     s.fade = { phase: 'out', t0: now };
@@ -343,22 +381,22 @@ export class TileStreamer {
   stepFades(now) {
     for (const s of this.fading) {
       const F = s.fade;
-      if (!F || !s.obj) { this.fading.delete(s); continue; }
+      if (!F || !(s.full || s.far)) { this.fading.delete(s); continue; }
       if (F.phase === 'out') {
         const k = TILES.FADE.OUT_MS > 0 ? Math.min(1, (now - F.t0) / TILES.FADE.OUT_MS) : 1;
         this.onFade(s.mapIds, smooth(k));
         if (k < 1 && !this.instant) continue;
         // swap: the extrusions are fully in the haze; the model takes their place, fully in the haze, and comes out of it
-        s.obj.userData.fade.value = 1;
-        this.group.add(s.obj);
+        s.fadeU.value = 1;
+        this.add(s);
         this.onShow(s.mapIds, s.def);
         this.onFade(s.mapIds, 0);                 // (hidden now; reset so they come back unfaded if the tile is dropped)
         this.onChange(this);
         F.phase = 'in'; F.t0 = now;
       } else {
         const k = TILES.FADE.IN_MS > 0 ? Math.min(1, (now - F.t0) / TILES.FADE.IN_MS) : 1;
-        s.obj.userData.fade.value = this.instant ? 0 : 1 - smooth(k);
-        if (k >= 1 || this.instant) { s.obj.userData.fade.value = 0; s.fade = null; this.fading.delete(s); }
+        s.fadeU.value = this.instant ? 0 : 1 - smooth(k);
+        if (k >= 1 || this.instant) { s.fadeU.value = 0; s.fade = null; this.fading.delete(s); }
       }
     }
     this.onAnimate();
@@ -371,27 +409,29 @@ export class TileStreamer {
     this.instant = was;
   }
 
-  drop(s) {
-    if (s.fade) {
-      if (s.fade.phase === 'out') { this.onFade(s.mapIds, 0); s.fade = null; this.fading.delete(s); disposeObject(s.obj); s.obj = null; s.have = null; this.stats.disposed++; return; }
-      s.fade = null; this.fading.delete(s);
-    }
-    this.group.remove(s.obj);
-    disposeObject(s.obj);
-    s.obj = null; s.have = null;
+  // the full model of a tile whose far copy stays (the camera went past the line): out of memory
+  dropFull(s) {
+    if (s.fade && s.fade.phase === 'out') return;              // (still arriving: leave it, the next plan sees it again)
+    this.group.remove(s.full); disposeObject(s.full); s.full = null;
     this.stats.disposed++;
-    this.onHide(s.mapIds, s.def);
-    this.onChange(this);
+    this.note(s); this.show(); this.onChange(this);
+  }
+  drop(s) {
+    const shown = !(s.fade && s.fade.phase === 'out');
+    if (s.fade) { if (!shown) this.onFade(s.mapIds, 0); s.fade = null; this.fading.delete(s); }
+    for (const o of [s.full, s.far]) if (o) { this.group.remove(o); disposeObject(o); this.stats.disposed++; }
+    s.full = s.far = null; this.note(s);
+    if (shown) { this.onHide(s.mapIds, s.def); this.onChange(this); }
   }
 
   summary() {
     let lod0 = 0, lod1 = 0, loading = 0, fading = 0, wanting = 0;
     for (const s of this.tiles.values()) {
-      if (s.have && !(s.fade && s.fade.phase === 'out')) { if (s.have === 'far') lod1++; else lod0++; }
-      if (s.job) loading++; if (s.fade) fading++;
-      if (s.want && s.have !== s.want && (s.failed || 0) < TILES.MAX_TRIES) wanting++;
+      if ((s.full || s.far) && !(s.fade && s.fade.phase === 'out')) { if (s.far && s.far.visible && s.far.parent) lod1++; else lod0++; }
+      for (const level of LEVELS) { if (s.jobs[level]) loading++; if (this.wanted(s, level) && !(level === 'far' ? s.far : s.full) && ((s.failed || {})[level] || 0) < TILES.MAX_TRIES) wanting++; }
+      if (s.fade) fading++;
     }
-    // lod1 = tiles drawing their far copy (0 unless ?far=1); planned = the plan ran since the camera last moved
+    // lod1 = tiles drawing their far copy now (0 unless ?far=1); planned = the plan ran since the camera last moved
     const cam = this.camera.matrixWorld.elements.join(',');
     return { tiles: this.tiles.size, lod0, lod1, loading, fading, wanting, planned: this.plannedFor === cam, ...this.stats };
   }

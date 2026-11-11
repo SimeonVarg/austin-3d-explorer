@@ -7,7 +7,7 @@ await MeshoptEncoder.ready; await MeshoptDecoder.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
 const [src, dst] = process.argv.slice(2);
 const doc = await io.read(src); doc.setLogger(new Logger(Logger.Verbosity.ERROR));
-await doc.transform(weld(), meshopt({ encoder: MeshoptEncoder, level: 'high', quantizePosition: 16, quantizeNormal: 8, quantizeTexcoord: 14 }));
+await doc.transform(weld(), meshopt({ encoder: MeshoptEncoder, level: 'high', quantizePosition: 14, quantizeNormal: 8, quantizeTexcoord: 12 }));
 await io.write(dst, doc);
 const p = doc.getRoot().listMeshes()[0].listPrimitives()[0];
 console.log(JSON.stringify({ triangles: p.getIndices().getCount() / 3, vertices: p.getAttribute('POSITION').getCount() }));
