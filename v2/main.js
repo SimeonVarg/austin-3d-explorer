@@ -338,7 +338,11 @@ const domeScale = [LOOK.SKY_DOME_GAIN, LOOK.SKY_DOME_GAIN, LOOK.SKY_DOME_GAIN];
 // The visible dome: below the horizon stop it is the horizon (= the haze colour), not the far land the LIGHT sees there, so the hazed
 // ground meets it without a band (the light keeps the far-land stops: walls still get the dark land's bounce).
 const domeStops = STOPS.map((s, i) => (i < 2 ? [s[0], STOPS[2][1]] : s));
-const dome = new THREE.Mesh(new THREE.SphereGeometry(VIEW.FAR_M * 0.8, 48, 24), skyMaterial(domeScale, null, LOOK.SKY_SUN_GLOW * LOOK.SKY_DOME_GAIN, domeStops));
+// Only the part of the dome that can show is drawn: from straight up down to SKY_BELOW_DEG under the level line. The dome is drawn first,
+// over every pixel it covers, and the ground then covers all of it below the horizon: on the owner's Mac that hidden part was most of
+// the sky shader's 5 ms a frame at full resolution (measured 2026-11-11). The picture is the same. ?skyfull=1: the whole ball (an A/B).
+const SKY_BELOW_DEG = 6;
+const dome = new THREE.Mesh(new THREE.SphereGeometry(VIEW.FAR_M * 0.8, 48, 24, 0, Math.PI * 2, 0, params.get('skyfull') === '1' ? Math.PI : THREE.MathUtils.degToRad(90 + SKY_BELOW_DEG)), skyMaterial(domeScale, null, LOOK.SKY_SUN_GLOW * LOOK.SKY_DOME_GAIN, domeStops));
 dome.renderOrder = -10; dome.frustumCulled = false;
 scene.add(dome);
 // fog = the dome's horizon, in the same (pre tone map) units
@@ -930,13 +934,42 @@ function addRibbons(list, order, into) {
 }
 const idKeys = (id) => { id = String(id); return id.length > 8 && /^[0-9a-f]{8}-/.test(id) ? [id, id.slice(0, 8)] : [id]; };
 
+// The plain extrusions arrive as one mesh a map tile (about 145 of them in view from above). On the owner's Mac a draw call costs about
+// as much as 4,000 triangles (measured 2026-11-11: 144 calls for 0.14 M triangles = 6 ms a frame), so the tiles of one CITY_BLOCK_M
+// square are joined into one mesh: the same triangles, about a tenth of the calls. Hiding and fading by map id work as before (each
+// tile's record now points into the joined mesh). ?cityjoin=0: one mesh a tile, as before (an A/B).
+const CITY_BLOCK_M = 900, CITY_JOIN = params.get('cityjoin') !== '0';
 function addBuildings(list) {
+  const groups = new Map();
   for (const t of list) {
+    let k = t.key;
+    if (CITY_JOIN) { let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity; for (let i = 0; i < t.pos.length; i += 3) { const x = t.pos[i], z = t.pos[i + 2]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (z < z0) z0 = z; if (z > z1) z1 = z; } k = Math.floor((x0 + x1) / 2 / CITY_BLOCK_M) + ',' + Math.floor((z0 + z1) / 2 / CITY_BLOCK_M); }
+    (groups.get(k) || groups.set(k, []).get(k)).push(t);
+  }
+  for (const [key, tiles] of groups) {
+    let t = tiles[0];
+    const bases = [0];
+    if (tiles.length > 1) {
+      const nv = tiles.reduce((n, x) => n + x.pos.length / 3, 0), ni = tiles.reduce((n, x) => n + x.idx.length, 0);
+      const J = { pos: new Float32Array(nv * 3), nrm: new tiles[0].nrm.constructor(nv * 3), col: new tiles[0].col.constructor(nv * 3), fac: tiles[0].fac ? new tiles[0].fac.constructor(nv * 2) : null, idx: new Uint32Array(ni) };
+      let v = 0, i = 0; bases.length = 0;
+      for (const x of tiles) {
+        bases.push(v);
+        J.pos.set(x.pos, v * 3); J.nrm.set(x.nrm, v * 3); J.col.set(x.col, v * 3); if (J.fac) J.fac.set(x.fac, v * 2);
+        for (let k = 0; k < x.idx.length; k++) J.idx[i + k] = x.idx[k] + v;
+        v += x.pos.length / 3; i += x.idx.length;
+      }
+      t = J;
+    }
     const m = new THREE.Mesh(geometryOf(t, true), buildingMaterial);
-    m.castShadow = true; m.receiveShadow = true; m.name = 'buildings ' + t.key;
-    const rec = { mesh: m, orig: t.pos.slice(0), ids: t.ids, starts: t.starts, counts: t.counts };
-    t.ids.forEach((id, k) => { for (const key of idKeys(id)) { const l = city.byId.get(key) || []; l.push([rec, k]); city.byId.set(key, l); } });
-    cityGroup.add(m); city.buildings.push(rec);
+    m.castShadow = true; m.receiveShadow = true; m.name = 'buildings ' + (tiles.length > 1 ? 'block ' + key : tiles[0].key);
+    const orig = t.pos.slice(0);
+    tiles.forEach((x, n) => {
+      const rec = { mesh: m, orig, ids: x.ids, starts: bases[n] ? x.starts.map((s0) => s0 + bases[n]) : x.starts, counts: x.counts };
+      x.ids.forEach((id, k) => { for (const key2 of idKeys(id)) { const l = city.byId.get(key2) || []; l.push([rec, k]); city.byId.set(key2, l); } });
+      city.buildings.push(rec);
+    });
+    cityGroup.add(m);
   }
   if (city.hidden.size) setHidden([...city.hidden], true, true);
 }
@@ -1320,14 +1353,23 @@ function resize() {
 // settled on is kept for the next motion, so a weak GPU starts the next move already at its scale. On a GPU that holds the target the
 // first decision is "stay", and the canvas never changes.
 const A = QUALITY.ADAPT;
+// ?adaptup=0: a step back UP waits for the next motion (a canvas resize costs 150 to 350 ms on the owner's Mac, measured 2026-11-11)
+const ADAPT_UP_IN_MOTION = params.get('adaptup') !== '0' && params.get('fast') !== '1';   // (?fast=1 = this + the tree cards + the far copies)
 const adapt = {
   on: A.ON && params.get('adapt') !== '0',
   budgetMs: 1000 / (+params.get('adaptfps') || A.TARGET_FPS),
   floor: Math.min(1, Math.max(A.MIN_SCALE, A.MIN_PIXEL_RATIO / DPR)),
   scale: 1,            // the canvas's scale now
-  motionScale: 1,      // the scale motion runs at (learned)
+  motionScale: 1,      // the scale motion runs at (learned; kept on this device between visits, ADAPT_KEEP)
   samples: [], lastDraw: 0, lastMove: 0, changes: 0, movingDraw: false, lastDown: null, learnedFloor: 0, learnedAt: 0,
 };
+// The learned motion scale is kept on this device, so the first motion of a visit (the opening flight) starts at it in one step instead
+// of finding it again in four canvas resizes (each 150 to 350 ms on the owner's Mac, measured 2026-11-11). ?adaptkeep=0: not kept.
+const ADAPT_KEEP = params.get('adaptkeep') !== '0' && !ADAPT_UP_IN_MOTION;
+const ADAPT_KEY = 'v2-motion-scale-' + DPR;
+if (ADAPT_KEEP) { try { const v = +localStorage.getItem(ADAPT_KEY); if (v >= adapt.floor - 1e-3 && v <= 1) adapt.motionScale = v; } catch (e) {} }
+let adaptKept = adapt.motionScale;
+function keepScale() { if (!ADAPT_KEEP || adapt.motionScale === adaptKept) return; adaptKept = adapt.motionScale; try { localStorage.setItem(ADAPT_KEY, String(adaptKept)); } catch (e) {} }
 function setScale(s) {
   s = THREE.MathUtils.clamp(s, adapt.floor, 1);
   if (Math.abs(s - adapt.scale) < 1e-3) return;
@@ -1340,6 +1382,8 @@ function adaptFrame(now, moved) {
   adapt.movingDraw = false;
   if (!adapt.on || adapt.floor >= 1) return;
   if (moved) {
+    if (adapt.nextUp && now - adapt.lastMove > A.STILL_MS) { adapt.motionScale = adapt.nextUp; adapt.nextUp = 0; }   // a new motion: the step up that waited
+    keepScale();
     adapt.lastMove = now;
     if (adapt.scale !== adapt.motionScale) { setScale(adapt.motionScale); return; }
   } else {
@@ -1359,8 +1403,10 @@ function adaptFrame(now, moved) {
   if (now - adapt.learnedAt > A.RELEARN_MS) adapt.learnedFloor = 0;
   const floor = Math.max(adapt.floor, adapt.learnedFloor);
   if (med > adapt.budgetMs * A.DOWN_AT && adapt.scale > floor + 1e-3) { adapt.lastDown = { scale: adapt.scale, med }; adapt.motionScale = Math.max(floor, adapt.scale * A.STEP); }
-  else if (med < adapt.budgetMs * A.UP_AT && adapt.scale < 1) adapt.motionScale = Math.min(1, adapt.scale / A.STEP);
-  else return;
+  else if (med < adapt.budgetMs * A.UP_AT && adapt.scale < 1) {
+    if (!ADAPT_UP_IN_MOTION) { adapt.nextUp = Math.min(1, adapt.scale / A.STEP); return; }   // (the next motion starts one step sharper; this one is not interrupted by a canvas resize)
+    adapt.motionScale = Math.min(1, adapt.scale / A.STEP);
+  } else return;
   setScale(adapt.motionScale);
 }
 addEventListener('resize', resize);
