@@ -107,6 +107,12 @@ memory and is never written here, in any tracked file, or in a commit message.
       the CPU 4× unless told otherwise; `content-length` counts a cache hit at
       full price; a page-scoped CDP session cannot see MapLibre's worker fetches
       and will under-report a load by 19 MB. Quote the setting with the number.
+    - **Measure motion at the resolution motion really runs at.** (2026-11-11.) In motion the app lowers the canvas resolution
+      to hold its frame rate. On the owner's Mac the opening flight runs at pixel ratio 1.0 (a quarter of the pixels) from
+      2.8 s to its end, at 11 to 20 frames a second. Every shimmer gate before that day measured still views at full
+      resolution, so the gates passed and his eye did not agree. Record the real flight first (frame times, pixel ratio,
+      triangles for every drawn frame), then draw the recorded cameras again at the recorded resolution. On that Mac the
+      cost of a frame is the NUMBER of triangles, not the pixels, and a canvas resize is a stop of 150 to 350 ms.
     - Cancel the graphics auto-detect probe at the top of any test
       (`window.cancelGraphicsAutoDetect()`). Note it is a correctness measure,
       not a speed one — measured, it costs nothing.
