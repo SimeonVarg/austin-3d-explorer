@@ -1,0 +1,20 @@
+{
+ "of": "ed76cc0b977dc0b6",
+ "w": 3072,
+ "h": 1440,
+ "fps": 60,
+ "frames": 757,
+ "ms": 12600,
+ "files": [
+  {
+   "src": "https://github.com/SimeonVarg/austin-3d-explorer/releases/download/film-ed76cc0b/flight.hevc.mp4",
+   "type": "video/mp4; codecs=\"hvc1.1.6.L150.B0\"",
+   "bytes": 31703854
+  },
+  {
+   "src": "https://github.com/SimeonVarg/austin-3d-explorer/releases/download/film-ed76cc0b/flight.mp4",
+   "type": "video/mp4; codecs=\"avc1.640034\"",
+   "bytes": 52471912
+  }
+ ]
+}

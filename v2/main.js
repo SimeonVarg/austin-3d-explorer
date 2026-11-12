@@ -24,6 +24,7 @@ import { glassPrepare, glassState, setGlassReal, setGlassFootprintScale } from '
 import { clayPrepare, clayState, setRoofGlassData } from './clay.js';
 import { installWires } from './wires.js';
 import { installLamps } from './lamps.js';
+import { FILM, filmFits, filmPlan, installFilm } from './film.js';
 
 const params = new URLSearchParams(location.search);
 // exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
@@ -1529,6 +1530,10 @@ function frame(now) {
   }
   if (moved || mapLayers.dirty) { mapLayers.dirty = false; mapLayers.update(); }
   labels.update(now);
+  // While the film plays (film.js) the canvas is under it. The live city goes on LOADING (tiles.update above) but draws nothing:
+  // on the owner's Mac each live frame under the film held the film up (measured 2026-11-12: 234 of 757 film frames dropped,
+  // one gap of 1.3 s). What changed stays marked (`dirty`), and is drawn under the film's last frame when the film has ended.
+  if (filmPlaying) return;
   if (!(moved || dirty || steadySoft || frameLog.on)) {
     // nothing changed: one more frame of the clean still, until it is complete
     if (rest && rest.more() && now - restFrom >= REST.WAIT_MS) { rest.render(); frames++; }
@@ -1571,6 +1576,22 @@ window.slopesApartments = {
 };
 window.CityLighting = { get stats() { return { draws: frames > 0 ? 1 : 0, failures: [] }; } };
 
+const INTRO_EASE = [(t) => 0.5 - 0.5 * Math.cos(Math.PI * t), (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)];
+// The flight's pose at a time (ms from its start): the same poses, lengths and easings as the live legs below, worked out
+// the way maplite's easeTo does it (each leg starts from the camera's own reading of the pose before it). The film (film.js)
+// is drawn at these poses, and a person who takes the camera during the film gets the live camera at the film's pose.
+function introPoseAt() {
+  const w = (d) => ((d % 360) + 540) % 360 - 180, ll = (c) => ({ lng: c[0], lat: c[1] }), keep = map.pose();
+  map.setPose(INTRO.start); const f1 = map.pose();
+  const t1 = { center: ll(INTRO.crest.center), zoom: INTRO.crest.zoom, pitch: INTRO.crest.pitch, bearing: f1.bearing + w(INTRO.crest.bearing - f1.bearing) };
+  map.setPose({ ...t1, center: [t1.center.lng, t1.center.lat] }); const f2 = map.pose();
+  const t2 = { center: ll(INTRO.end.center), zoom: INTRO.end.zoom, pitch: INTRO.end.pitch, bearing: f2.bearing + w(INTRO.end.bearing - f2.bearing) };
+  map.setPose({ ...keep, center: [keep.center.lng, keep.center.lat] });
+  const legs = [{ from: f1, to: t1, ms: INTRO.leg1Ms, ease: INTRO_EASE[0] }, { from: f2, to: t2, ms: INTRO.leg2Ms, ease: INTRO_EASE[1] }];
+  return (ms) => { let L = legs[0], k = ms / L.ms; if (ms > L.ms) { L = legs[1]; k = Math.min(1, (ms - legs[0].ms) / L.ms); }
+    const e = L.ease(Math.max(0, k)), lerp = (a, b) => a + (b - a) * e;
+    return { center: [lerp(L.from.center.lng, L.to.center.lng), lerp(L.from.center.lat, L.to.center.lat)], zoom: lerp(L.from.zoom, L.to.zoom), pitch: lerp(L.from.pitch, L.to.pitch), bearing: lerp(L.from.bearing, L.to.bearing) }; };
+}
 function primeIntro() {
   const F = introFlight.flight = { state: 'primed', leg: 0, cancelledBy: null };
   map.jumpTo(INTRO.start);
@@ -1578,8 +1599,8 @@ function primeIntro() {
   controls.addEventListener('start', () => cancel('input'));
   const leg = (n) => {
     F.leg = n;
-    if (n === 1) map.easeTo({ ...INTRO.crest, duration: INTRO.leg1Ms, essential: true, easing: (t) => 0.5 - 0.5 * Math.cos(Math.PI * t) }, { introLeg: 1 });
-    else map.easeTo({ ...INTRO.end, duration: INTRO.leg2Ms, essential: true, easing: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2) }, { introLeg: 2 });
+    if (n === 1) map.easeTo({ ...INTRO.crest, duration: INTRO.leg1Ms, essential: true, easing: INTRO_EASE[0] }, { introLeg: 1 });
+    else map.easeTo({ ...INTRO.end, duration: INTRO.leg2Ms, essential: true, easing: INTRO_EASE[1] }, { introLeg: 2 });
   };
   map.on('moveend', (e) => {
     if (F.state !== 'flying' || e.introLeg !== F.leg) return;
@@ -1603,13 +1624,55 @@ function skipIntro() {
   if (intro) intro.cancel('skipped');
   const veil = $('veil'); if (veil) veil.remove();
 }
+// The opening flight as a film (film.js): the film plays over the canvas, the live city loads for the flight's END under it,
+// and the film fades out when it has ended and the live picture under its last frame is complete.
+let film = null, filmPlaying = false;
+// The film's camera in THIS window. A pose's zoom means metres per pixel at the centre, so maplite puts the camera farther
+// away in a taller window. The film was drawn in a window FILM.H high and is shown at this window's height: the same camera
+// here is the pose with a lower zoom, by log2(FILM.H / this height). (Without it the live city under the film's last frame was
+// 10 % nearer than the film in a 1300 px window: seen 2026-11-12.)
+const filmPose = (p) => ({ ...p, zoom: p.zoom - Math.log2(FILM.H / Math.max(1, canvas.clientHeight)) });
+function playFilm() {
+  const F = introFlight.flight, poseAt = introPoseAt();
+  F.state = 'film';
+  liftVeil('film');                                           // (the live flight does not start: its state is not 'primed')
+  filmPlaying = true;
+  film.play().catch(() => { filmPlaying = false; film.end(0, 'failed'); F.state = 'done'; dirty = true; });   // (a browser that will not play it: the live city at the flight's end)
+  let over = false;
+  const done = (ms, state) => { if (over) return; over = true; filmPlaying = false; film.end(ms, state); dirty = true; };
+  controls.addEventListener('start', () => {                  // a person takes the camera: the live camera at the film's pose, now
+    if (over) return;
+    map.jumpTo(filmPose(poseAt(Math.min(film.timeMs(), INTRO.leg1Ms + INTRO.leg2Ms))));
+    F.state = 'cancelled'; F.cancelledBy = 'input'; done(FILM.CUT_MS, 'cancelled');
+  });
+  film.el.addEventListener('ended', () => {
+    const t0 = performance.now(); filmPlaying = false; dirty = true;   // the live city draws again, under the film's last frame
+    const wait = setInterval(() => {
+      if (over) { clearInterval(wait); return; }
+      const g = window.__v2ground ? window.__v2ground.stats() : null;
+      const live = map.tilesLoaded() && (!tiles || tiles.active === 0) && (!g || (g.missing === 0 && g.loading === 0 && g.waitingUpload === 0)) && (!rest || !rest.more());
+      if (live || performance.now() - t0 >= FILM.HOLD_MS) { clearInterval(wait); if (F.state === 'film') F.state = 'done'; film.stats.heldMs = Math.round(performance.now() - t0); done(FILM.FADE_MS, 'done'); }
+    }, 100);
+  });
+}
 if (INTRO.on) {
   intro = primeIntro();
+  let filmOK = null, filmAsked = FILM.ON && FAST && filmFits();
+  if (filmAsked) {
+    map.jumpTo(filmPose(INTRO.end));                          // the live city loads for the END of the flight from the first moment
+    filmPlan().then((have) => { if (!filmAsked) return; if (!have || !filmFits()) { filmOK = false; return; }   // (is there a film of THIS city?)
+      film = installFilm(); film.ready.then((ok) => { filmOK = ok; }); });
+  }
+  const noFilm = () => { filmAsked = false; if (film) { film.end(0, 'failed'); film = null; } map.jumpTo(INTRO.start); };   // back to the live flight
   const t0 = performance.now();
   let inViewAt = 0;
   const gate = setInterval(() => {
     const ms = performance.now() - t0;
     if (!$('veil')) { clearInterval(gate); return; }
+    if (filmAsked) {
+      if (film && filmOK && ms >= INTRO.minVeilMs) { clearInterval(gate); playFilm(); return; }
+      if (filmOK === false || ms >= FILM.WAIT_MS) noFilm(); else return;
+    }
     const inView = map.tilesLoaded() && frames > 0 && ms >= INTRO.minVeilMs;
     if (inView && !inViewAt) inViewAt = ms;
     // ...and, for at most restWaitMs more, until the tiles around the view and the photograph on the ground are in too: what still
@@ -1703,7 +1766,7 @@ window.__v2 = {
     const r = applyMoment(MOMENT); dirty = true; return r;
   },
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
-  intro: () => introFlight.flight && { ...introFlight.flight },
+  intro: () => introFlight.flight && { ...introFlight.flight }, FILM, film: () => film && { ...film.stats, t: film.timeMs() }, introPoseAt, filmPose,
   labels: () => ({ items: labels.items.length, shown: labels.shown, merged: labels.merged || 0, occluded: labels.occludedN || 0, selected: labels.selected?.name || null }),
   pick: (x, y) => labels.pick(x, y), openCard: (name) => { const it = labels.items.find((i) => i.name === name); if (it) labels.open(it); return !!it; }, requestRoute, drawRoute, redraw: () => { dirty = true; },
   pickApartment: (name) => { const i = apartments.findIndex((a) => a.name === name); if (i >= 0) { aptSel.value = String(i); return update(true); } },

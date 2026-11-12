@@ -24,6 +24,12 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #101b23; fon
 
 /* map markers (pins, labels): placed by maplite.js from lng/lat */
 #markers { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+/* the opening flight as a film (film.js): over the canvas and the names, under the loading screen and the controls. Its height is
+   the view's height and its sides are cut (the film is wider than the window), which is the live camera's framing. */
+#film { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; z-index: 3; pointer-events: none; background: transparent; }
+#markers { transition: opacity .45s linear; }
+body.film-on #markers { opacity: 0; transition: none; }
+body.film-on #markers > * { pointer-events: none; }
 #markers > * { position: absolute; left: 0; top: 0; pointer-events: auto; will-change: transform; }
 /* a finder pin that touches a better-ranked one (maplite.js MarkerLayer.declutter) */
 #markers > .v2-covered { opacity: 0; pointer-events: none; transition: opacity .15s ease-out; }
