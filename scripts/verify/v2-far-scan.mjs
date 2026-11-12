@@ -13,8 +13,12 @@
  *   err     mean |far - full| of 255 (two single frames: about 5 to 7 is the full model's own fine detail against a filtered copy)
  *   bright  the signed brightness change
  *   over30  the share of pixels that differ by more than 30 of 255
- * A far copy passes with err <= 9.0, over30 < 8 % and |bright| <= 5 (the limits of 2026-11-12: 62 of 87 passed, and the 25 that
- * failed are "off" in coats.json with their numbers under "scan"). Run it from two sides (azimuth 200 and 20) and take the worse.
+ *   patch   the worst PATCH: the largest change of the MEAN colour (any of red, green, blue) of a 12 x 12 pixel block. The three
+ *           numbers above are means over a whole tile, and a tile can hold 20 buildings: one wall of one tower drawn blue where
+ *           the full model is grey passed all three (found by eye on 2026-11-12). A block mean does not see edges that sit a
+ *           pixel apart or fine detail that the copy filters; it sees a wall of the wrong colour.
+ * A far copy passes with err <= 9.0, over30 < 8 %, |bright| <= 5 and patch <= 45 (the limits of 2026-11-12; those that fail are
+ * "off" in coats.json with their numbers under "scan"). Run it from two sides (azimuth 200 and 20) and take the worse.
  * To scan a far copy that is off (after a new bake), take its "off" line out first. It fails (exit 1) when a far copy in use does not pass. Pictures of every tile (full | far) go to <out dir>.
  *
  * Instrument: the owner's screen first: VW=2560 VH=1300 DPR=1 (the defaults). A real GPU (it would take very long without one).
@@ -51,23 +55,31 @@ for (const id of ids.filter((i) => !only || only.split(',').includes(i))) {
     for (let i = 0, p = 0; i < W * H; i++, p += 4) { const la = 0.299 * A[p] + 0.587 * A[p + 1] + 0.114 * A[p + 2], lb = 0.299 * B[p] + 0.587 * B[p + 1] + 0.114 * B[p + 2];
       if (Math.abs(A[p] - N[p]) + Math.abs(A[p + 1] - N[p + 1]) + Math.abs(A[p + 2] - N[p + 2]) < 6) continue;
       n++; e += Math.abs(la - lb); sg += lb - la; if (Math.abs(la - lb) > 30) big++; const x = i % W, y = H - 1 - ((i / W) | 0); if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    // the worst patch: a P x P block whose mean colour moved (summed-area tables of far - full over the tile's box)
+    const P = 12, bw = x1 - x0 + 1, bh = y1 - y0 + 1; let patch = 0;
+    if (n && bw >= P && bh >= P) { const T = [0, 1, 2].map(() => new Float64Array((bw + 1) * (bh + 1)));
+      for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) { const p = ((H - 1 - (y0 + y)) * W + x0 + x) * 4, q = (y + 1) * (bw + 1) + x + 1;
+        for (let c = 0; c < 3; c++) T[c][q] = B[p + c] - A[p + c] + T[c][q - 1] + T[c][q - bw - 1] - T[c][q - bw - 2]; }
+      for (let y = 0; y + P <= bh; y++) for (let x = 0; x + P <= bw; x++) { const a = y * (bw + 1) + x, b = a + P * (bw + 1);
+        for (let c = 0; c < 3; c++) { const m = Math.abs(T[c][b + P] - T[c][b] - T[c][a + P] + T[c][a]); if (m > patch) patch = m; } }
+      patch /= P * P; }
     s.full.visible = true; s.far.visible = false; window.__keep = { A, B, W, H }; t.show = hook;
-    return { n, err: n ? e / n : 0, signed: n ? sg / n : 0, big: n ? big / n : 0, box: [x0, y0, x1, y1] }; }, id);
+    return { n, err: n ? e / n : 0, signed: n ? sg / n : 0, big: n ? big / n : 0, patch, box: [x0, y0, x1, y1] }; }, id);
   rows.push({ id, ...cam, ...r });
   // the two pictures of this tile's box, side by side (kept only for the worst, below)
   const url = await page.evaluate((box) => { const { A, B, W, H } = window.__keep, [x0, y0, x1, y1] = box, w = Math.min(700, x1 - x0 + 1), h = Math.min(500, y1 - y0 + 1); if (w < 4 || h < 4) return null;
     const cv = document.createElement('canvas'); cv.width = w * 2 + 8; cv.height = h; const cx = cv.getContext('2d'), put = (S, ox) => { const im = cx.createImageData(w, h); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const sp = ((H - 1 - (y0 + y)) * W + x0 + x) * 4, dp = (y * w + x) * 4; im.data[dp] = S[sp]; im.data[dp + 1] = S[sp + 1]; im.data[dp + 2] = S[sp + 2]; im.data[dp + 3] = 255; } cx.putImageData(im, ox, 0); };
     put(A, 0); put(B, w + 8); return cv.toDataURL('image/png'); }, r.box);
   if (url) fs.writeFileSync(`${out}/${id}.png`, Buffer.from(url.split(',')[1], 'base64'));
-  console.log(`${id.padEnd(8)} err ${r.err.toFixed(1).padStart(5)}  brightness ${r.signed >= 0 ? '+' : ''}${r.signed.toFixed(1).padStart(5)}  pixels over 30 off: ${(100 * r.big).toFixed(0).padStart(3)} %  (${r.n} px, line ${cam.line} m)  ${cam.b.join(', ').slice(0, 70)}`);
+  console.log(`${id.padEnd(8)} err ${r.err.toFixed(1).padStart(5)}  brightness ${r.signed >= 0 ? '+' : ''}${r.signed.toFixed(1).padStart(5)}  pixels over 30 off: ${(100 * r.big).toFixed(0).padStart(3)} %  worst patch ${r.patch.toFixed(0).padStart(3)}  (${r.n} px, line ${cam.line} m)  ${cam.b.join(', ').slice(0, 70)}`);
 }
 await browser.close();
 rows.sort((a, b) => b.err - a.err);
 fs.writeFileSync(`${out}/scan.json`, JSON.stringify(rows));
-const LIM = { ERR: 9.0, OVER30: 0.08, BRIGHT: 5 };
+const LIM = { ERR: 9.0, OVER30: 0.08, BRIGHT: 5, PATCH: 45 };
 const off = await (async () => { try { return JSON.parse(fs.readFileSync(new URL('../../v2/tiles/coats.json', import.meta.url), 'utf8')); } catch (e) { return {}; } })();
-const failing = rows.filter((r) => !(off[r.id] && off[r.id].off) && (r.err > LIM.ERR || r.big >= LIM.OVER30 || Math.abs(r.signed) > LIM.BRIGHT));
-console.log('\nWORST FIRST:'); for (const r of rows.slice(0, 15)) console.log(`${r.id.padEnd(8)} err ${r.err.toFixed(1)}  brightness ${r.signed.toFixed(1)}  over 30: ${(100 * r.big).toFixed(0)} %  ${r.b.join(', ').slice(0, 80)}`);
+const failing = rows.filter((r) => !(off[r.id] && off[r.id].off) && (r.err > LIM.ERR || r.big >= LIM.OVER30 || Math.abs(r.signed) > LIM.BRIGHT || r.patch > LIM.PATCH));
+console.log('\nWORST FIRST:'); for (const r of rows.slice(0, 15)) console.log(`${r.id.padEnd(8)} err ${r.err.toFixed(1)}  brightness ${r.signed.toFixed(1)}  over 30: ${(100 * r.big).toFixed(0)} %  patch ${r.patch.toFixed(0)}  ${r.b.join(', ').slice(0, 80)}`);
 const e = rows.map((r) => r.err).sort((a, b) => a - b); console.log(`tiles ${rows.length}; error median ${e[e.length >> 1].toFixed(1)}, 90 % under ${e[Math.floor(e.length * 0.9)].toFixed(1)}, worst ${e[e.length - 1].toFixed(1)}`);
-console.log(failing.length ? `*FAIL ${failing.length} far cop${failing.length > 1 ? 'ies' : 'y'} in use do not look like their full models: ${failing.map((r) => r.id).join(', ')}` : 'PASS every far copy in use looks like its full model (limits: err ' + LIM.ERR + ', over30 ' + LIM.OVER30 * 100 + ' %, bright ' + LIM.BRIGHT + ')');
+console.log(failing.length ? `*FAIL ${failing.length} far cop${failing.length > 1 ? 'ies' : 'y'} in use do not look like their full models: ${failing.map((r) => r.id).join(', ')}` : 'PASS every far copy in use looks like its full model (limits: err ' + LIM.ERR + ', over30 ' + LIM.OVER30 * 100 + ' %, bright ' + LIM.BRIGHT + ', patch ' + LIM.PATCH + ')');
 process.exit(failing.length ? 1 : 0);

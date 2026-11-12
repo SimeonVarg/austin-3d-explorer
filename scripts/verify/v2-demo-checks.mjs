@@ -7,7 +7,8 @@
  *   names   - for every name on screen (.v2-label.on): overlap with another name (rectangles, 1 px slack); a near-duplicate name
  *             (same words after normalising, or one name's words all inside the other's, both within DUP_M metres); a name whose
  *             building is HIDDEN: a ray from the camera to the name's point hits a building (plain extrusion or Blender model,
- *             three.js Raycaster on the real meshes) more than OWN_M metres (map distance) from the name's building.
+ *             three.js Raycaster on the real meshes) more than OWN_M metres (map distance) from the name's building. A plain
+ *             extrusion inside a Blender tile that is still loading is a stand-in and does not count (printed as behindStandIns).
  *   pins    - in the finder: visible number pins overlapping each other, and a visible pin overlapping a visible name.
  *
  *   VERIFY_GL=hardware VERIFY_URL=http://127.0.0.1:8131 node scripts/verify/v2-demo-checks.mjs [--q "cover=0"] [--shots DIR] [--tag before] [view ...]
@@ -132,14 +133,23 @@ for (const v of VIEWS) {
     }
     const roots = [V.scene.getObjectByName('city'), V.scene.getObjectByName('blender-tiles')].filter(Boolean);
     const meshes = []; for (const r of roots) r.traverse((o) => { if (o.isMesh && !o.isInstancedMesh && (o.parent?.name !== 'city' || /^buildings /.test(o.name))) meshes.push(o); });
-    const ray = new THREE.Raycaster(), hidden = [];
+    // A plain extrusion that stands where a Blender tile is still LOADING (wanted, and neither of its copies is in yet) is a
+    // stand-in that goes away when the tile arrives: it does not count as the building that hides a name. (On GitHub's software
+    // renderer the page does not finish loading inside this check's wait; a tile with no far copy then has nothing in, and its
+    // stand-ins hid a name behind them: 2026-11-12, when the far copy of the tile south of the Tower was switched off.)
+    const TS = V.tileStreamer ? V.tileStreamer() : null;
+    const pending = TS ? [...TS.tiles.values()].filter((s) => s.want && !s.full && !s.far).map((s) => s.def.bounds) : [];
+    const standIn = (h) => /^buildings /.test(h.object.name) && pending.some(([x0, z0, x1, z1]) => h.point.x >= x0 && h.point.x <= x1 && h.point.z >= z0 && h.point.z <= z1);
+    const ray = new THREE.Raycaster(), hidden = []; let waiting = 0;
     for (const a of L) {
       const p = new THREE.Vector3(a.it.x, a.it.y, a.it.z), o = camera.position.clone(), d = p.clone().sub(o), dist = d.length();
       ray.set(o, d.normalize()); ray.far = dist - 1;
-      const h = ray.intersectObjects(meshes, false).find((h) => Math.hypot(h.point.x - a.it.x, h.point.z - a.it.z) > LIM.OWN_M);
+      const hits = ray.intersectObjects(meshes, false).filter((h) => Math.hypot(h.point.x - a.it.x, h.point.z - a.it.z) > LIM.OWN_M);
+      const h = hits.find((h) => !standIn(h));
       if (h) hidden.push({ name: a.text, by: h.object.name, at: [Math.round(h.point.x), Math.round(h.point.y), Math.round(h.point.z)] });
+      else if (hits.length) waiting++;
     }
-    res.names = { shown: L.length, overlaps: overlaps.length, dups: dups.length, hidden: hidden.length, overlapList: overlaps.slice(0, 12), dupList: dups.slice(0, 12), hiddenList: hidden.slice(0, 12) };
+    res.names = { shown: L.length, overlaps: overlaps.length, dups: dups.length, hidden: hidden.length, behindStandIns: waiting, tilesPending: pending.length, overlapList: overlaps.slice(0, 12), dupList: dups.slice(0, 12), hiddenList: hidden.slice(0, 12) };
     // ── pins ──
     const pins = [...document.querySelectorAll('.fd-pinwrap')].filter((w) => w.isConnected && getComputedStyle(w).visibility !== 'hidden' && getComputedStyle(w).display !== 'none' && +getComputedStyle(w).opacity > 0.05)
       .map((w) => ({ n: w.textContent.trim(), r: (w.querySelector('.fd-pin') || w).getBoundingClientRect() }))

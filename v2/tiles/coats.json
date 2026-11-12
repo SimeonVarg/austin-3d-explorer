@@ -8,14 +8,15 @@
 679,
 679
 ],
-"bytes": 333056,
+"bytes": 319356,
 "tile_bytes": 2714168,
 "model": 3,
-"of": "565940adc91b03da",
+"of": "3d73416310d90d93",
 "scan": {
-"err": 7.3,
-"bright": 1.3,
-"over30": 5
+"err": 7.2,
+"bright": 1.7,
+"over30": 5,
+"patch": 22
 }
 },
 "t_-1_-2": {
@@ -27,14 +28,15 @@
 723,
 723
 ],
-"bytes": 350956,
+"bytes": 339316,
 "tile_bytes": 1796096,
 "model": 3,
-"of": "cfb3ce2ed9cfeb09",
+"of": "aee407854adc69be",
 "scan": {
-"err": 6.6,
-"bright": 2.5,
-"over30": 5
+"err": 6.5,
+"bright": 2.9,
+"over30": 5,
+"patch": 30
 }
 },
 "t_-1_-3": {
@@ -46,14 +48,15 @@
 387,
 394
 ],
-"bytes": 86488,
+"bytes": 83544,
 "tile_bytes": 607420,
 "model": 3,
-"of": "1948f61b71a4ca2a",
+"of": "ba2ad05c4cacf2be",
 "scan": {
-"err": 6.5,
-"bright": 2.1,
-"over30": 4
+"err": 6.4,
+"bright": 2.4,
+"over30": 4,
+"patch": 15
 }
 },
 "t_-1_-4": {
@@ -65,14 +68,15 @@
 599,
 600
 ],
-"bytes": 298544,
+"bytes": 293004,
 "tile_bytes": 662452,
 "model": 3,
-"of": "85e427faf85bf942",
+"of": "bdc804ecb06b116c",
 "scan": {
-"err": 7.5,
-"bright": 3.0,
-"over30": 7
+"err": 7.4,
+"bright": 3.6,
+"over30": 7,
+"patch": 20
 }
 },
 "t_-1_0": {
@@ -84,14 +88,15 @@
 595,
 599
 ],
-"bytes": 238076,
+"bytes": 227728,
 "tile_bytes": 1438900,
 "model": 3,
-"of": "44fb2fb809098a9c",
+"of": "da52dd0030905539",
 "scan": {
-"err": 6.7,
-"bright": 0.6,
-"over30": 4
+"err": 6.6,
+"bright": 1.2,
+"over30": 4,
+"patch": 18
 }
 },
 "t_-1_1": {
@@ -103,15 +108,17 @@
 729,
 729
 ],
-"bytes": 289948,
+"bytes": 282184,
 "tile_bytes": 726012,
 "model": 3,
-"of": "7736ccef94a9dc65",
+"of": "f0df24ac1a606655",
 "scan": {
-"err": 7.2,
-"bright": 2.6,
-"over30": 6
-}
+"err": 7.1,
+"bright": 3.0,
+"over30": 6,
+"patch": 47
+},
+"off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
 "t_-1_10": {
 "file": "tiles/t_-1_10.coat.glb",
@@ -122,14 +129,15 @@
 727,
 727
 ],
-"bytes": 545032,
+"bytes": 538452,
 "tile_bytes": 453648,
 "model": 3,
-"of": "fed0b5e772074263",
+"of": "ce2ffd47497016f5",
 "scan": {
 "err": 10.7,
-"bright": 2.8,
-"over30": 7
+"bright": 3.4,
+"over30": 7,
+"patch": 37
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -142,14 +150,15 @@
 901,
 901
 ],
-"bytes": 932764,
+"bytes": 886068,
 "tile_bytes": 1095216,
 "model": 3,
-"of": "0b5d358f632a1031",
+"of": "82cb28246cabc0e3",
 "scan": {
-"err": 9.7,
-"bright": -1.0,
-"over30": 9
+"err": 9.6,
+"bright": 1.7,
+"over30": 9,
+"patch": 36
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -162,14 +171,15 @@
 269,
 271
 ],
-"bytes": 48704,
+"bytes": 48520,
 "tile_bytes": 90952,
 "model": 3,
-"of": "c1e80961667f0954",
+"of": "36a7d4879343dcf6",
 "scan": {
-"err": 5.1,
-"bright": 2.1,
-"over30": 3
+"err": 5.2,
+"bright": 2.3,
+"over30": 3,
+"patch": 6
 }
 },
 "t_-1_4": {
@@ -181,14 +191,15 @@
 184,
 184
 ],
-"bytes": 31204,
+"bytes": 30700,
 "tile_bytes": 170072,
 "model": 3,
-"of": "2c558fd7ab4d8040",
+"of": "419944dc3512f918",
 "scan": {
 "err": 5.8,
-"bright": 3.1,
-"over30": 3
+"bright": 3.0,
+"over30": 3,
+"patch": 13
 }
 },
 "t_-1_6": {
@@ -200,14 +211,15 @@
 197,
 198
 ],
-"bytes": 52548,
+"bytes": 51720,
 "tile_bytes": 323968,
 "model": 3,
-"of": "d8a7aa9ae46c4c5b",
+"of": "fadb87fa45202cf8",
 "scan": {
-"err": 15.5,
-"bright": 7.0,
-"over30": 16
+"err": 15.6,
+"bright": 7.6,
+"over30": 16,
+"patch": 23
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -220,14 +232,15 @@
 595,
 593
 ],
-"bytes": 283896,
+"bytes": 274080,
 "tile_bytes": 663084,
 "model": 3,
-"of": "265ab1f652b4dd94",
+"of": "16267df39763ed2e",
 "scan": {
 "err": 14.1,
-"bright": -7.4,
-"over30": 17
+"bright": -7.2,
+"over30": 17,
+"patch": 53
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -240,14 +253,15 @@
 555,
 556
 ],
-"bytes": 181892,
+"bytes": 180176,
 "tile_bytes": 73212,
 "model": 3,
-"of": "1ce163002bb4b297",
+"of": "9d35bbba06c8c355",
 "scan": {
-"err": 5.1,
-"bright": 0.7,
-"over30": 3
+"err": 4.4,
+"bright": 1.9,
+"over30": 2,
+"patch": 12
 }
 },
 "t_-2_-1": {
@@ -259,16 +273,16 @@
 793,
 794
 ],
-"bytes": 444428,
+"bytes": 439100,
 "tile_bytes": 1586028,
 "model": 3,
-"of": "e0d1e911fa5fef05",
+"of": "4ad73758c7eb0749",
 "scan": {
-"err": 9.0,
-"bright": 2.1,
-"over30": 9
-},
-"off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
+"err": 8.1,
+"bright": 3.5,
+"over30": 7,
+"patch": 37
+}
 },
 "t_-2_-2": {
 "file": "tiles/t_-2_-2.coat.glb",
@@ -279,14 +293,15 @@
 761,
 761
 ],
-"bytes": 444820,
+"bytes": 433480,
 "tile_bytes": 972988,
 "model": 3,
-"of": "93a0567043618076",
+"of": "537c08717dae4579",
 "scan": {
-"err": 8.1,
-"bright": 2.4,
-"over30": 5
+"err": 7.7,
+"bright": 3.2,
+"over30": 4,
+"patch": 19
 }
 },
 "t_-2_-3": {
@@ -298,14 +313,15 @@
 840,
 840
 ],
-"bytes": 706568,
+"bytes": 706456,
 "tile_bytes": 1752224,
 "model": 3,
-"of": "bc6724104caa36cb",
+"of": "a01dd52e7e75778d",
 "scan": {
-"err": 8.5,
-"bright": 3.7,
-"over30": 8
+"err": 8.4,
+"bright": 3.9,
+"over30": 8,
+"patch": 24
 }
 },
 "t_-2_-4": {
@@ -317,14 +333,15 @@
 570,
 571
 ],
-"bytes": 299972,
+"bytes": 286464,
 "tile_bytes": 623604,
 "model": 3,
-"of": "a7dab42979099dd5",
+"of": "5f9181cc861d3b4c",
 "scan": {
-"err": 8.1,
-"bright": 1.6,
-"over30": 5
+"err": 7.7,
+"bright": 2.5,
+"over30": 5,
+"patch": 16
 }
 },
 "t_-2_-5": {
@@ -336,14 +353,15 @@
 302,
 300
 ],
-"bytes": 106444,
+"bytes": 107080,
 "tile_bytes": 282912,
 "model": 3,
-"of": "a8d198b46ae72d31",
+"of": "cde196679e51cdd1",
 "scan": {
 "err": 9.6,
-"bright": 3.8,
-"over30": 8
+"bright": 4.2,
+"over30": 8,
+"patch": 16
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -356,16 +374,16 @@
 920,
 920
 ],
-"bytes": 468016,
+"bytes": 455720,
 "tile_bytes": 1839740,
 "model": 3,
-"of": "f21ddfe97e67e2e5",
+"of": "658eab31a079aa3f",
 "scan": {
-"err": 9.2,
-"bright": 3.7,
-"over30": 8
-},
-"off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
+"err": 8.8,
+"bright": 4.4,
+"over30": 7,
+"patch": 21
+}
 },
 "t_-2_1": {
 "file": "tiles/t_-2_1.coat.glb",
@@ -376,14 +394,15 @@
 652,
 651
 ],
-"bytes": 308328,
+"bytes": 305752,
 "tile_bytes": 547920,
 "model": 3,
-"of": "0f9059d579c8df1b",
+"of": "5f7a53f2263f28e1",
 "scan": {
-"err": 7.8,
-"bright": 2.3,
-"over30": 5
+"err": 7.6,
+"bright": 2.7,
+"over30": 5,
+"patch": 18
 }
 },
 "t_-2_10": {
@@ -395,14 +414,15 @@
 660,
 660
 ],
-"bytes": 408088,
+"bytes": 381120,
 "tile_bytes": 356444,
 "model": 3,
-"of": "a21f7ecdc1414d09",
+"of": "c60ea66d11e779a5",
 "scan": {
-"err": 10.6,
-"bright": -0.2,
-"over30": 8
+"err": 9.8,
+"bright": 1.8,
+"over30": 7,
+"patch": 57
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -415,14 +435,15 @@
 334,
 312
 ],
-"bytes": 52560,
+"bytes": 51600,
 "tile_bytes": 234040,
 "model": 3,
-"of": "ad16b0f9db623803",
+"of": "2cea6b5b671143b1",
 "scan": {
-"err": 5.9,
-"bright": 3.6,
-"over30": 5
+"err": 5.8,
+"bright": 3.7,
+"over30": 5,
+"patch": 23
 }
 },
 "t_-2_3": {
@@ -434,14 +455,15 @@
 593,
 593
 ],
-"bytes": 290724,
+"bytes": 278288,
 "tile_bytes": 290788,
 "model": 3,
-"of": "caa7f9166f55dc8f",
+"of": "b430a696fe348960",
 "scan": {
-"err": 19.0,
-"bright": -5.2,
-"over30": 26
+"err": 13.1,
+"bright": 2.7,
+"over30": 13,
+"patch": 35
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -454,14 +476,15 @@
 220,
 214
 ],
-"bytes": 32596,
+"bytes": 31396,
 "tile_bytes": 207752,
 "model": 3,
-"of": "8eb1fdc5f67ffd05",
+"of": "423d58574614371f",
 "scan": {
-"err": 9.5,
-"bright": 5.3,
-"over30": 9
+"err": 9.7,
+"bright": 5.9,
+"over30": 10,
+"patch": 18
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -474,16 +497,16 @@
 452,
 451
 ],
-"bytes": 201152,
+"bytes": 191072,
 "tile_bytes": 290892,
 "model": 3,
-"of": "4ac2153ab6d5af58",
+"of": "3d24d1ed27d75d31",
 "scan": {
-"err": 10.2,
-"bright": -4.0,
-"over30": 8
-},
-"off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
+"err": 7.9,
+"bright": -2.0,
+"over30": 5,
+"patch": 18
+}
 },
 "t_-2_6": {
 "file": "tiles/t_-2_6.coat.glb",
@@ -494,14 +517,15 @@
 162,
 173
 ],
-"bytes": 22364,
+"bytes": 21264,
 "tile_bytes": 198848,
 "model": 3,
-"of": "576f31723a3f0501",
+"of": "33752c65baa8ca75",
 "scan": {
-"err": 8.0,
-"bright": 1.1,
-"over30": 4
+"err": 7.9,
+"bright": 1.6,
+"over30": 4,
+"patch": 10
 }
 },
 "t_-2_7": {
@@ -513,16 +537,16 @@
 1123,
 1122
 ],
-"bytes": 915152,
+"bytes": 868036,
 "tile_bytes": 1139352,
 "model": 3,
-"of": "b79c1f330fc86ec9",
+"of": "58b06f014e7076ea",
 "scan": {
-"err": 8.5,
-"bright": -0.9,
-"over30": 8
-},
-"off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
+"err": 7.1,
+"bright": 2.7,
+"over30": 5,
+"patch": 17
+}
 },
 "t_-2_8": {
 "file": "tiles/t_-2_8.coat.glb",
@@ -533,14 +557,15 @@
 765,
 765
 ],
-"bytes": 269956,
+"bytes": 257936,
 "tile_bytes": 229628,
 "model": 3,
-"of": "f77a20b5c93c495c",
+"of": "8882e190649c4e7d",
 "scan": {
-"err": 8.6,
-"bright": 4.4,
-"over30": 8
+"err": 8.5,
+"bright": 4.7,
+"over30": 8,
+"patch": 34
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -553,14 +578,15 @@
 1414,
 1413
 ],
-"bytes": 1632420,
+"bytes": 1574688,
 "tile_bytes": 961904,
 "model": 3,
-"of": "af24fb19bc190c8e",
+"of": "a45e1cff81476ea9",
 "scan": {
-"err": 8.5,
-"bright": 2.1,
-"over30": 4
+"err": 8.1,
+"bright": 3.1,
+"over30": 4,
+"patch": 33
 }
 },
 "t_-3_-1": {
@@ -572,14 +598,15 @@
 1075,
 1072
 ],
-"bytes": 772872,
+"bytes": 761188,
 "tile_bytes": 2303844,
 "model": 3,
-"of": "862d9243968358fa",
+"of": "fae20955d585e072",
 "scan": {
-"err": 9.0,
-"bright": 2.4,
-"over30": 7
+"err": 8.7,
+"bright": 3.0,
+"over30": 7,
+"patch": 21
 }
 },
 "t_-3_-2": {
@@ -591,14 +618,15 @@
 743,
 743
 ],
-"bytes": 407968,
+"bytes": 387208,
 "tile_bytes": 811952,
 "model": 3,
-"of": "ec948ddbb71c37aa",
+"of": "d9877d78f1705196",
 "scan": {
-"err": 8.7,
-"bright": 1.8,
-"over30": 6
+"err": 8.4,
+"bright": 2.9,
+"over30": 6,
+"patch": 15
 }
 },
 "t_-3_-3": {
@@ -610,14 +638,15 @@
 606,
 605
 ],
-"bytes": 291612,
+"bytes": 278460,
 "tile_bytes": 909588,
 "model": 3,
-"of": "fd11a1d2194d9a3c",
+"of": "53e56f67d44f5a35",
 "scan": {
-"err": 8.5,
-"bright": 3.5,
-"over30": 7
+"err": 8.3,
+"bright": 3.9,
+"over30": 6,
+"patch": 18
 }
 },
 "t_-3_-4": {
@@ -629,14 +658,15 @@
 518,
 518
 ],
-"bytes": 200828,
+"bytes": 189816,
 "tile_bytes": 874332,
 "model": 3,
-"of": "fec966b70b07f49d",
+"of": "b9c4b2a1bfda78e1",
 "scan": {
-"err": 8.8,
-"bright": 3.2,
-"over30": 7
+"err": 8.7,
+"bright": 4.0,
+"over30": 7,
+"patch": 24
 }
 },
 "t_-3_0": {
@@ -648,14 +678,15 @@
 921,
 921
 ],
-"bytes": 584440,
+"bytes": 564404,
 "tile_bytes": 1152492,
 "model": 3,
-"of": "aa5948ca1200f8cf",
+"of": "969cd252b8ed1730",
 "scan": {
-"err": 9.4,
-"bright": 1.5,
-"over30": 9
+"err": 8.6,
+"bright": 2.4,
+"over30": 7,
+"patch": 64
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -668,14 +699,15 @@
 557,
 556
 ],
-"bytes": 184804,
+"bytes": 174264,
 "tile_bytes": 850936,
 "model": 3,
-"of": "6c8b10853ab34445",
+"of": "c241686d11994a77",
 "scan": {
-"err": 7.6,
-"bright": 1.9,
-"over30": 6
+"err": 6.8,
+"bright": 3.4,
+"over30": 4,
+"patch": 16
 }
 },
 "t_-3_12": {
@@ -687,14 +719,15 @@
 233,
 232
 ],
-"bytes": 39512,
+"bytes": 37236,
 "tile_bytes": 138136,
 "model": 3,
-"of": "e489b123502f55f8",
+"of": "a85b30f6253966d2",
 "scan": {
-"err": 7.8,
-"bright": 2.2,
-"over30": 6
+"err": 7.4,
+"bright": 2.7,
+"over30": 5,
+"patch": 14
 }
 },
 "t_-3_2": {
@@ -706,14 +739,15 @@
 329,
 325
 ],
-"bytes": 47528,
+"bytes": 45180,
 "tile_bytes": 192412,
 "model": 3,
-"of": "0a3db4f7fc3f3060",
+"of": "ee34cbb3c38487bd",
 "scan": {
 "err": 6.5,
-"bright": 3.3,
-"over30": 5
+"bright": 3.7,
+"over30": 5,
+"patch": 16
 }
 },
 "t_-3_7": {
@@ -725,14 +759,15 @@
 303,
 296
 ],
-"bytes": 37336,
+"bytes": 36500,
 "tile_bytes": 55156,
 "model": 3,
-"of": "e6a0c48cf2e962b9",
+"of": "aad32dd3ae948876",
 "scan": {
-"err": 5.6,
-"bright": 2.2,
-"over30": 3
+"err": 5.4,
+"bright": 2.5,
+"over30": 3,
+"patch": 13
 }
 },
 "t_-3_8": {
@@ -744,14 +779,15 @@
 852,
 852
 ],
-"bytes": 539880,
+"bytes": 528448,
 "tile_bytes": 437000,
 "model": 3,
-"of": "dc9945d06ddff342",
+"of": "7ed09478ee4b58e6",
 "scan": {
-"err": 7.7,
-"bright": 1.9,
-"over30": 4
+"err": 7.9,
+"bright": 2.4,
+"over30": 5,
+"patch": 27
 }
 },
 "t_-3_9": {
@@ -763,14 +799,15 @@
 1097,
 1097
 ],
-"bytes": 1104660,
+"bytes": 1084488,
 "tile_bytes": 985692,
 "model": 3,
-"of": "c6409f9b195c34d0",
+"of": "0f126c31dfb9241f",
 "scan": {
-"err": 7.3,
-"bright": -2.6,
-"over30": 5
+"err": 6.3,
+"bright": 2.0,
+"over30": 3,
+"patch": 18
 }
 },
 "t_-4_-1": {
@@ -782,14 +819,15 @@
 636,
 637
 ],
-"bytes": 339984,
+"bytes": 330088,
 "tile_bytes": 681364,
 "model": 3,
-"of": "36de4d21fc6b0713",
+"of": "877e64b030b6134e",
 "scan": {
-"err": 8.6,
-"bright": 1.5,
-"over30": 6
+"err": 8.5,
+"bright": 2.5,
+"over30": 5,
+"patch": 14
 }
 },
 "t_-4_-2": {
@@ -801,14 +839,15 @@
 1093,
 1094
 ],
-"bytes": 892832,
+"bytes": 860612,
 "tile_bytes": 1721672,
 "model": 3,
-"of": "9f2b66ed82969b55",
+"of": "af3e1b84dbf986d2",
 "scan": {
-"err": 8.9,
-"bright": 1.9,
-"over30": 7
+"err": 8.5,
+"bright": 2.8,
+"over30": 7,
+"patch": 26
 }
 },
 "t_-4_-3": {
@@ -820,14 +859,15 @@
 440,
 442
 ],
-"bytes": 130752,
+"bytes": 126340,
 "tile_bytes": 460888,
 "model": 3,
-"of": "a81f109c4898e3bb",
+"of": "2f1b21792cbe1ff7",
 "scan": {
-"err": 5.4,
-"bright": 2.2,
-"over30": 3
+"err": 5.3,
+"bright": 2.9,
+"over30": 3,
+"patch": 14
 }
 },
 "t_-4_0": {
@@ -839,14 +879,15 @@
 535,
 535
 ],
-"bytes": 251520,
+"bytes": 240348,
 "tile_bytes": 449928,
 "model": 3,
-"of": "d7114cce2bf0405c",
+"of": "797b9a84b9fcf2a3",
 "scan": {
-"err": 7.8,
-"bright": 2.7,
-"over30": 5
+"err": 7.7,
+"bright": 3.6,
+"over30": 5,
+"patch": 18
 }
 },
 "t_-4_1": {
@@ -858,14 +899,15 @@
 261,
 257
 ],
-"bytes": 46568,
+"bytes": 42148,
 "tile_bytes": 206604,
 "model": 3,
-"of": "119d2963d8229972",
+"of": "765633b6edb37088",
 "scan": {
-"err": 7.1,
-"bright": 3.7,
-"over30": 5
+"err": 7.2,
+"bright": 4.5,
+"over30": 5,
+"patch": 15
 }
 },
 "t_-4_8": {
@@ -877,14 +919,15 @@
 961,
 960
 ],
-"bytes": 646688,
+"bytes": 620552,
 "tile_bytes": 394024,
 "model": 3,
-"of": "dca86091aeeded6d",
+"of": "4909ba138481aeb9",
 "scan": {
-"err": 9.3,
-"bright": 1.7,
-"over30": 6
+"err": 6.6,
+"bright": 2.8,
+"over30": 6,
+"patch": 63
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -897,14 +940,15 @@
 124,
 121
 ],
-"bytes": 8860,
+"bytes": 8792,
 "tile_bytes": 46136,
 "model": 3,
-"of": "3e7f62489057a08a",
+"of": "25030d3b179c71c7",
 "scan": {
-"err": 5.5,
-"bright": 2.5,
-"over30": 5
+"err": 5.3,
+"bright": 3.1,
+"over30": 5,
+"patch": 17
 }
 },
 "t_-5_-2": {
@@ -916,16 +960,16 @@
 517,
 517
 ],
-"bytes": 155624,
+"bytes": 152096,
 "tile_bytes": 223976,
 "model": 3,
-"of": "951c7c0eb2ddb7dc",
+"of": "88e24b96ddd0c28b",
 "scan": {
-"err": 9.2,
-"bright": -1.4,
-"over30": 8
-},
-"off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
+"err": 7.6,
+"bright": 0.8,
+"over30": 6,
+"patch": 24
+}
 },
 "t_-5_-4": {
 "file": "tiles/t_-5_-4.coat.glb",
@@ -936,14 +980,15 @@
 435,
 436
 ],
-"bytes": 185856,
+"bytes": 176232,
 "tile_bytes": 281812,
 "model": 3,
-"of": "6dce2aeb31119e11",
+"of": "5645e7a59682fb2a",
 "scan": {
-"err": 8.7,
-"bright": 2.7,
-"over30": 5
+"err": 8.9,
+"bright": 4.1,
+"over30": 6,
+"patch": 11
 }
 },
 "t_-5_1": {
@@ -955,14 +1000,15 @@
 243,
 244
 ],
-"bytes": 36444,
+"bytes": 34488,
 "tile_bytes": 160756,
 "model": 3,
-"of": "db5ded12ae2e013c",
+"of": "1869d5b6cb4427e0",
 "scan": {
-"err": 3.8,
-"bright": 2.0,
-"over30": 1
+"err": 3.9,
+"bright": 2.5,
+"over30": 1,
+"patch": 6
 }
 },
 "t_-5_7": {
@@ -974,14 +1020,15 @@
 740,
 741
 ],
-"bytes": 667608,
+"bytes": 637440,
 "tile_bytes": 343636,
 "model": 3,
-"of": "6fbe0ce0c7b474a9",
+"of": "b7d67c493c378947",
 "scan": {
-"err": 9.6,
-"bright": 0.4,
-"over30": 10
+"err": 9.1,
+"bright": 1.8,
+"over30": 10,
+"patch": 19
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -994,14 +1041,15 @@
 979,
 978
 ],
-"bytes": 1112692,
+"bytes": 1070176,
 "tile_bytes": 697324,
 "model": 3,
-"of": "9973e284bfb99a03",
+"of": "b6cc0992f8c53e6b",
 "scan": {
-"err": 11.1,
-"bright": -1.8,
-"over30": 8
+"err": 11.3,
+"bright": 1.7,
+"over30": 9,
+"patch": 78
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -1014,14 +1062,15 @@
 553,
 551
 ],
-"bytes": 247596,
+"bytes": 244260,
 "tile_bytes": 83936,
 "model": 3,
-"of": "3010dc0459935ed0",
+"of": "e8768177bc157dd0",
 "scan": {
 "err": 5.0,
-"bright": 3.0,
-"over30": 4
+"bright": 3.2,
+"over30": 4,
+"patch": 16
 }
 },
 "t_0_-1": {
@@ -1033,14 +1082,15 @@
 685,
 686
 ],
-"bytes": 272352,
+"bytes": 263448,
 "tile_bytes": 1873140,
 "model": 3,
-"of": "bf58bbe14e0d9196",
+"of": "9f3a8fa8dbc3b2f4",
 "scan": {
-"err": 6.1,
-"bright": 1.5,
-"over30": 4
+"err": 6.0,
+"bright": 1.8,
+"over30": 4,
+"patch": 38
 }
 },
 "t_0_-2": {
@@ -1052,14 +1102,15 @@
 784,
 782
 ],
-"bytes": 323236,
+"bytes": 312096,
 "tile_bytes": 2259736,
 "model": 3,
-"of": "670e68a25939e61a",
+"of": "cd34e5e6bc1a0d93",
 "scan": {
-"err": 5.9,
-"bright": 1.4,
-"over30": 3
+"err": 5.6,
+"bright": 1.8,
+"over30": 3,
+"patch": 20
 }
 },
 "t_0_-3": {
@@ -1071,14 +1122,15 @@
 346,
 345
 ],
-"bytes": 78048,
+"bytes": 72708,
 "tile_bytes": 227804,
 "model": 3,
-"of": "bef8e1e39312ee47",
+"of": "7c694d18bfe8abb8",
 "scan": {
-"err": 7.9,
-"bright": 1.8,
-"over30": 5
+"err": 7.8,
+"bright": 2.2,
+"over30": 5,
+"patch": 13
 }
 },
 "t_0_-4": {
@@ -1090,16 +1142,16 @@
 380,
 381
 ],
-"bytes": 133388,
+"bytes": 126200,
 "tile_bytes": 390736,
 "model": 3,
-"of": "572e8fda90ca804a",
+"of": "143360db8395706b",
 "scan": {
-"err": 9.4,
-"bright": 2.6,
-"over30": 7
-},
-"off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
+"err": 8.7,
+"bright": 3.9,
+"over30": 6,
+"patch": 14
+}
 },
 "t_0_-5": {
 "file": "tiles/t_0_-5.coat.glb",
@@ -1110,14 +1162,15 @@
 374,
 374
 ],
-"bytes": 155532,
+"bytes": 148372,
 "tile_bytes": 139448,
 "model": 3,
-"of": "72f81824efcdd0c4",
+"of": "24785f78e0dbd2ae",
 "scan": {
 "err": 8.0,
-"bright": 2.5,
-"over30": 7
+"bright": 2.8,
+"over30": 7,
+"patch": 15
 }
 },
 "t_0_0": {
@@ -1129,14 +1182,15 @@
 744,
 743
 ],
-"bytes": 365892,
+"bytes": 352320,
 "tile_bytes": 1673500,
 "model": 3,
-"of": "30f544e328b9f766",
+"of": "d5e3e51c386c71d3",
 "scan": {
-"err": 8.2,
-"bright": 1.5,
-"over30": 5
+"err": 7.6,
+"bright": 2.6,
+"over30": 4,
+"patch": 23
 }
 },
 "t_0_1": {
@@ -1148,14 +1202,15 @@
 834,
 837
 ],
-"bytes": 374716,
+"bytes": 355272,
 "tile_bytes": 816384,
 "model": 3,
-"of": "34950277f83ff920",
+"of": "e7353d39415032f1",
 "scan": {
-"err": 6.0,
-"bright": 0.6,
-"over30": 4
+"err": 5.5,
+"bright": 1.3,
+"over30": 3,
+"patch": 27
 }
 },
 "t_0_10": {
@@ -1167,14 +1222,15 @@
 611,
 612
 ],
-"bytes": 138600,
+"bytes": 134708,
 "tile_bytes": 114680,
 "model": 3,
-"of": "6908e97a36acbc89",
+"of": "1afb7898e979a9d1",
 "scan": {
-"err": 4.0,
-"bright": 0.7,
-"over30": 1
+"err": 3.4,
+"bright": 0.9,
+"over30": 1,
+"patch": 13
 }
 },
 "t_0_2": {
@@ -1186,14 +1242,15 @@
 603,
 603
 ],
-"bytes": 226684,
+"bytes": 221776,
 "tile_bytes": 748844,
 "model": 3,
-"of": "28d50f4e330a251f",
+"of": "54c93992681cff40",
 "scan": {
 "err": 5.0,
-"bright": 1.3,
-"over30": 3
+"bright": 1.7,
+"over30": 2,
+"patch": 16
 }
 },
 "t_0_3": {
@@ -1205,14 +1262,15 @@
 632,
 634
 ],
-"bytes": 412884,
+"bytes": 401016,
 "tile_bytes": 723344,
 "model": 3,
-"of": "530cca9d770248a1",
+"of": "2ad9058c4621cfe0",
 "scan": {
 "err": 6.9,
-"bright": 1.9,
-"over30": 4
+"bright": 2.1,
+"over30": 4,
+"patch": 17
 }
 },
 "t_0_4": {
@@ -1224,14 +1282,15 @@
 521,
 522
 ],
-"bytes": 184688,
+"bytes": 176680,
 "tile_bytes": 538044,
 "model": 3,
-"of": "6d1380a9d053049d",
+"of": "465264d3f7e9168a",
 "scan": {
-"err": 6.8,
-"bright": 1.6,
-"over30": 5
+"err": 6.7,
+"bright": 2.0,
+"over30": 5,
+"patch": 19
 }
 },
 "t_0_9": {
@@ -1243,14 +1302,15 @@
 447,
 445
 ],
-"bytes": 147796,
+"bytes": 142120,
 "tile_bytes": 387868,
 "model": 3,
-"of": "18c39ccc59386c04",
+"of": "a7b4b6d5e9de6546",
 "scan": {
-"err": 9.0,
-"bright": 2.8,
-"over30": 6
+"err": 8.8,
+"bright": 3.2,
+"over30": 6,
+"patch": 17
 }
 },
 "t_1_-1": {
@@ -1262,14 +1322,15 @@
 732,
 730
 ],
-"bytes": 388508,
+"bytes": 373224,
 "tile_bytes": 1160584,
 "model": 3,
-"of": "621639584eb070ff",
+"of": "608eabb15792dca7",
 "scan": {
-"err": 7.8,
-"bright": 3.0,
-"over30": 4
+"err": 7.7,
+"bright": 3.4,
+"over30": 4,
+"patch": 24
 }
 },
 "t_1_-2": {
@@ -1281,15 +1342,17 @@
 766,
 768
 ],
-"bytes": 412532,
+"bytes": 399320,
 "tile_bytes": 928052,
 "model": 3,
-"of": "760aa129029661a8",
+"of": "9717afc234fe5a69",
 "scan": {
-"err": 7.9,
-"bright": 1.8,
-"over30": 6
-}
+"err": 7.8,
+"bright": 2.2,
+"over30": 6,
+"patch": 54
+},
+"off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
 "t_1_-3": {
 "file": "tiles/t_1_-3.coat.glb",
@@ -1300,14 +1363,15 @@
 363,
 363
 ],
-"bytes": 116108,
+"bytes": 114912,
 "tile_bytes": 358816,
 "model": 3,
-"of": "0c8e3e943e077240",
+"of": "690bed122220fc8c",
 "scan": {
-"err": 6.6,
-"bright": 1.5,
-"over30": 4
+"err": 6.2,
+"bright": 2.6,
+"over30": 4,
+"patch": 15
 }
 },
 "t_1_-4": {
@@ -1319,16 +1383,16 @@
 268,
 268
 ],
-"bytes": 60004,
+"bytes": 56920,
 "tile_bytes": 22636,
 "model": 3,
-"of": "ba638fe8246c031d",
+"of": "bb17d93dc907b654",
 "scan": {
-"err": 9.3,
-"bright": -4.8,
-"over30": 8
-},
-"off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
+"err": 4.9,
+"bright": 2.4,
+"over30": 3,
+"patch": 7
+}
 },
 "t_1_-5": {
 "file": "tiles/t_1_-5.coat.glb",
@@ -1339,16 +1403,16 @@
 407,
 407
 ],
-"bytes": 189920,
+"bytes": 186648,
 "tile_bytes": 157488,
 "model": 3,
-"of": "893489937cfbeea7",
+"of": "d6727e4bddd61475",
 "scan": {
-"err": 9.0,
-"bright": -1.7,
-"over30": 4
-},
-"off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
+"err": 8.8,
+"bright": 1.4,
+"over30": 4,
+"patch": 7
+}
 },
 "t_1_0": {
 "file": "tiles/t_1_0.coat.glb",
@@ -1359,14 +1423,15 @@
 855,
 854
 ],
-"bytes": 481348,
+"bytes": 461912,
 "tile_bytes": 1249932,
 "model": 3,
-"of": "28d5c84893c8265a",
+"of": "9b3268ba65afe367",
 "scan": {
-"err": 6.1,
-"bright": 1.9,
-"over30": 4
+"err": 6.0,
+"bright": 2.3,
+"over30": 4,
+"patch": 19
 }
 },
 "t_1_1": {
@@ -1378,14 +1443,15 @@
 564,
 565
 ],
-"bytes": 193900,
+"bytes": 181992,
 "tile_bytes": 1034720,
 "model": 3,
-"of": "435fa85dd9fd6b93",
+"of": "ca2ab4a1bce4bdcd",
 "scan": {
-"err": 7.2,
-"bright": 1.2,
-"over30": 4
+"err": 7.1,
+"bright": 1.6,
+"over30": 4,
+"patch": 22
 }
 },
 "t_1_2": {
@@ -1397,14 +1463,15 @@
 415,
 416
 ],
-"bytes": 95308,
+"bytes": 96488,
 "tile_bytes": 407396,
 "model": 3,
-"of": "4a18271f7aaa4156",
+"of": "135bbf68c0046ca1",
 "scan": {
 "err": 6.1,
-"bright": 3.3,
-"over30": 5
+"bright": 3.9,
+"over30": 5,
+"patch": 27
 }
 },
 "t_1_3": {
@@ -1416,14 +1483,15 @@
 782,
 784
 ],
-"bytes": 484476,
+"bytes": 470652,
 "tile_bytes": 956996,
 "model": 3,
-"of": "08d8be0153c2e293",
+"of": "907d40461d5f7e38",
 "scan": {
-"err": 5.8,
-"bright": 1.9,
-"over30": 3
+"err": 5.6,
+"bright": 2.3,
+"over30": 3,
+"patch": 17
 }
 },
 "t_2_-1": {
@@ -1435,14 +1503,15 @@
 358,
 360
 ],
-"bytes": 80824,
+"bytes": 76652,
 "tile_bytes": 329916,
 "model": 3,
-"of": "59964b6a65a58d23",
+"of": "a6220c7199b56513",
 "scan": {
-"err": 6.6,
-"bright": 3.2,
-"over30": 5
+"err": 6.7,
+"bright": 3.5,
+"over30": 5,
+"patch": 15
 }
 },
 "t_2_-2": {
@@ -1454,14 +1523,15 @@
 276,
 276
 ],
-"bytes": 58376,
+"bytes": 56132,
 "tile_bytes": 240000,
 "model": 3,
-"of": "25e196a0563c5db2",
+"of": "4dc242f2258414b5",
 "scan": {
 "err": 7.6,
-"bright": 2.0,
-"over30": 6
+"bright": 2.4,
+"over30": 6,
+"patch": 18
 }
 },
 "t_2_-3": {
@@ -1473,14 +1543,15 @@
 261,
 260
 ],
-"bytes": 41536,
+"bytes": 40276,
 "tile_bytes": 202676,
 "model": 3,
-"of": "90b450d6d53cfb6b",
+"of": "04a3baabdb9e81ee",
 "scan": {
-"err": 6.9,
-"bright": 4.0,
-"over30": 5
+"err": 7.0,
+"bright": 4.5,
+"over30": 5,
+"patch": 13
 }
 },
 "t_2_0": {
@@ -1492,14 +1563,15 @@
 1507,
 1505
 ],
-"bytes": 1499344,
+"bytes": 1400296,
 "tile_bytes": 968404,
 "model": 3,
-"of": "e49add7b37b0c4bc",
+"of": "59fda5e5423acf29",
 "scan": {
-"err": 12.7,
-"bright": 6.4,
-"over30": 14
+"err": 12.2,
+"bright": 7.2,
+"over30": 13,
+"patch": 92
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -1512,14 +1584,15 @@
 342,
 339
 ],
-"bytes": 64500,
+"bytes": 59604,
 "tile_bytes": 39960,
 "model": 3,
-"of": "002b78803000aab2",
+"of": "2245f6ea44267d2d",
 "scan": {
-"err": 15.6,
-"bright": -10.6,
-"over30": 16
+"err": 11.8,
+"bright": -7.6,
+"over30": 9,
+"patch": 32
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -1532,14 +1605,15 @@
 358,
 359
 ],
-"bytes": 58104,
+"bytes": 55464,
 "tile_bytes": 322524,
 "model": 3,
-"of": "06c099e590b2ee8b",
+"of": "8232a99c144c62ae",
 "scan": {
 "err": 7.0,
-"bright": 4.1,
-"over30": 4
+"bright": 4.4,
+"over30": 4,
+"patch": 21
 }
 },
 "t_2_3": {
@@ -1551,14 +1625,15 @@
 401,
 398
 ],
-"bytes": 80336,
+"bytes": 76520,
 "tile_bytes": 382228,
 "model": 3,
-"of": "a4175a8150853c52",
+"of": "f5b88ad506aaeb1e",
 "scan": {
-"err": 7.3,
-"bright": 1.9,
-"over30": 4
+"err": 7.2,
+"bright": 2.5,
+"over30": 4,
+"patch": 26
 }
 },
 "t_3_-1": {
@@ -1570,14 +1645,15 @@
 380,
 379
 ],
-"bytes": 66652,
+"bytes": 65640,
 "tile_bytes": 457532,
 "model": 3,
-"of": "7f24c09c4fad01ec",
+"of": "5a3f2efd4071ecb8",
 "scan": {
-"err": 6.0,
-"bright": 2.7,
-"over30": 5
+"err": 5.8,
+"bright": 2.9,
+"over30": 5,
+"patch": 26
 }
 },
 "t_3_-2": {
@@ -1589,14 +1665,15 @@
 320,
 320
 ],
-"bytes": 62996,
+"bytes": 60048,
 "tile_bytes": 300140,
 "model": 3,
-"of": "edd9803135099fe1",
+"of": "59413fab029c3728",
 "scan": {
 "err": 7.3,
-"bright": 5.0,
-"over30": 5
+"bright": 5.4,
+"over30": 5,
+"patch": 29
 },
 "off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
@@ -1609,14 +1686,15 @@
 402,
 397
 ],
-"bytes": 104400,
+"bytes": 102848,
 "tile_bytes": 249420,
 "model": 3,
-"of": "ab3404bbec822aa8",
+"of": "e5ce9f57451c1378",
 "scan": {
-"err": 3.5,
-"bright": 1.2,
-"over30": 3
+"err": 3.3,
+"bright": 1.5,
+"over30": 3,
+"patch": 15
 }
 },
 "t_3_2": {
@@ -1628,16 +1706,16 @@
 845,
 845
 ],
-"bytes": 432448,
+"bytes": 409260,
 "tile_bytes": 787984,
 "model": 3,
-"of": "ea64eb272e54bc5b",
+"of": "3dfb0c3a7d57114a",
 "scan": {
-"err": 21.0,
-"bright": -17.7,
-"over30": 18
-},
-"off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
+"err": 4.1,
+"bright": 1.6,
+"over30": 2,
+"patch": 15
+}
 },
 "t_3_3": {
 "file": "tiles/t_3_3.coat.glb",
@@ -1648,15 +1726,17 @@
 127,
 127
 ],
-"bytes": 18548,
+"bytes": 17416,
 "tile_bytes": 167936,
 "model": 3,
-"of": "53f472410d6a7fe8",
+"of": "e12b8a0f6a836713",
 "scan": {
-"err": 8.6,
-"bright": 4.4,
-"over30": 5
-}
+"err": 8.3,
+"bright": 5.3,
+"over30": 5,
+"patch": 9
+},
+"off": "2026-11-12: this far copy does not look like its full model (scan at 2560 x 1300, 1x, two sides)"
 },
 "t_4_-3": {
 "file": "tiles/t_4_-3.coat.glb",
@@ -1667,14 +1747,15 @@
 326,
 324
 ],
-"bytes": 51304,
+"bytes": 49160,
 "tile_bytes": 212900,
 "model": 3,
-"of": "858435ae722a3edf",
+"of": "2a84d2a8a4a44bd0",
 "scan": {
-"err": 7.8,
-"bright": 4.0,
-"over30": 7
+"err": 7.6,
+"bright": 4.6,
+"over30": 7,
+"patch": 24
 }
 }
 }

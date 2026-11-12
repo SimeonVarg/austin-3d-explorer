@@ -21,6 +21,9 @@ SEE_PX_M = TEXEL * 1.5                       # the pixel size (m) at which the f
 MAX_VOX = 60e6
 N_DIR, VIS_MIN = 96, float(os.environ.get('VIS_MIN', 0.025))   # a point is OUTSIDE when it sees out in this share of the directions (an open court seen only from steep above stays open; a room behind a crack does not)
 DEEP_M, DEEP_K = 8.0, float(os.environ.get('DEEP_K', 0.35))   # seen through an opening, deeper than D_IN: that surface, this much darker
+CLOSE_M = float(os.environ.get('CLOSE_M', 0.75))   # a sample this near to a surface of the model that faces its way shows that surface (the shell may sit under it)
+OPEN_M, OPEN_FROM, OPEN_TO = 30.0, 0.35, 0.75   # ...unless the point is in the open: it sees out (no surface within OPEN_M) in this share of the directions on its own side (from: as dark as DEEP_K; to: not darker at all)
+_g = (1 + 5 ** 0.5) / 2; OPEN_DIRS = np.array([[np.cos(2 * np.pi * i / _g) * np.sqrt(1 - z * z), z, np.sin(2 * np.pi * i / _g) * np.sqrt(1 - z * z)] for i, z in enumerate(np.linspace(-0.97, 0.97, 48))], np.float32)
 LUMA = np.array([0.2126, 0.7152, 0.0722])
 DARK_MIN_SHARE, DARK_RATIO, DARK_GAP = 0.01, 2.0, 0.03   # a face has a dark part only if it is 1 to 99 % of the face and the bright part's mean is over RATIO x the dark part's + GAP
 MODEL = 3                             # how the colours are held (v2/tiles.js FAR.MODEL)
@@ -288,12 +291,42 @@ for si, s in enumerate(shells):
         tri[hit] = r['primitive_ids'].numpy().astype(np.int64)[hit]; bary[hit] = r['primitive_uvs'].numpy()[hit]
         hn = r['primitive_normals'].numpy(); hn = np.where(((hn * dvec).sum(1) > 0)[:, None], -hn, hn); hn[~hit] = 0
         miss = tri < 0
-        deep = np.zeros(len(pts), bool)
+        # A sample whose ray found nothing may simply lie UNDER the surface it belongs to. The shell is a loose skin (it may sit up to
+        # the collapse error inside the model), and the ray starts only half way to the next shell surface in front: where two shell
+        # layers lie close, the ray started below a roof and fell through the hall under it, and the roof was painted as "a cap
+        # over a void", dark: the shards on the Moody Center's roof (2026-11-12; 25 % of that building's rays). So first: is a
+        # surface of the model, facing the same way, within CLOSE_M of the sample? Then the sample shows that surface.
+        if miss.any():
+            mi = np.nonzero(miss)[0]
+            c = s['sc'].compute_closest_points(o3d.core.Tensor(pts[mi].astype(np.float32)))
+            cp = c['points'].numpy(); cn = c['primitive_normals'].numpy()
+            near = (np.linalg.norm(cp - pts[mi], axis=1) <= CLOSE_M) & (np.abs((cn * nrm[mi]).sum(1)) > 0.5)
+            tri[mi[near]] = c['primitive_ids'].numpy().astype(np.int64)[near]; bary[mi[near]] = c['primitive_uvs'].numpy()[near]
+            hit[mi[near]] = True; hn[mi[near]] = np.where(((cn[near] * nrm[mi[near]]).sum(1) < 0)[:, None], -cn[near], cn[near])
+            miss = tri < 0
+        deep = np.zeros(len(pts), bool); shade = np.ones(len(pts), np.float32)
         if miss.any():                                         # through an opening: the first surface further in, darker
             mi = np.nonzero(miss)[0]
-            r = s['sc'].cast_rays(o3d.core.Tensor(np.concatenate([(pts[mi] - nrm[mi] * D_IN).astype(np.float32), dvec[mi]], 1)))
+            o2 = (pts[mi] - nrm[mi] * D_IN).astype(np.float32)
+            r = s['sc'].cast_rays(o3d.core.Tensor(np.concatenate([o2, dvec[mi]], 1)))
             th = r['t_hit'].numpy(); ok = np.isfinite(th) & (th <= DEEP_M)
             tri[mi[ok]] = r['primitive_ids'].numpy().astype(np.int64)[ok]; bary[mi[ok]] = r['primitive_uvs'].numpy()[ok]; deep[mi[ok]] = True
+            # ...darker only as far as it IS shut in. The shell is a loose skin: over a dished roof its big triangles float more
+            # than D_IN above the roof, and every such triangle was painted as "seen through an opening": the black shards on the
+            # Moody Center's white roof (2026-11-12). A point in a recess sees little of the sky; a point under a floating
+            # triangle sees all of it. So: the share of directions (over the surface's own side) in which the point sees out.
+            if ok.any():
+                ph = (o2[ok] + dvec[mi[ok]] * th[ok][:, None]).astype(np.float32)
+                hn2 = r['primitive_normals'].numpy()[ok]; hn2 = np.where(((hn2 * dvec[mi[ok]]).sum(1) > 0)[:, None], -hn2, hn2).astype(np.float32)
+                seen = np.zeros(len(ph)); tried = np.zeros(len(ph))
+                for dk in OPEN_DIRS:
+                    use = (hn2 @ dk) > 0.25
+                    if not use.any(): continue
+                    t2 = s['sc'].cast_rays(o3d.core.Tensor(np.concatenate([ph[use] + hn2[use] * 0.05, np.broadcast_to(dk, (int(use.sum()), 3))], 1).astype(np.float32)))['t_hit'].numpy()
+                    seen[use] += ~(np.isfinite(t2) & (t2 <= OPEN_M)); tried[use] += 1
+                openness = seen / np.maximum(tried, 1)
+                k = np.clip((openness - OPEN_FROM) / (OPEN_TO - OPEN_FROM), 0, 1)
+                shade[mi[ok]] = DEEP_K + (1 - DEEP_K) * k
         miss2 = tri < 0
         if miss2.any():                                        # a cap over a void (a light well, a slot between wings): what stands at the far end of the ray, or else
             mi = np.nonzero(miss2)[0]                          # the nearest surface; both in the void's shade (the cap itself is flat and would take the full sun and sky)
@@ -305,8 +338,8 @@ for si, s in enumerate(shells):
                 c = s['sc'].compute_closest_points(o3d.core.Tensor(pts[rest].astype(np.float32)))
                 tri[rest] = c['primitive_ids'].numpy().astype(np.int64); bary[rest] = c['primitive_uvs'].numpy()
             deep[mi] = True
-        return tri, bary, hit, hn, deep, miss2
-    tri, bary, hit, hn, deep, miss2 = look(nrm)
+        return tri, bary, hit, hn, deep, miss2, shade
+    tri, bary, hit, hn, deep, miss2, shade = look(nrm)
     # each face is lit by the mean normal of what it shows (the real wall or roof under it), not by the shell's own small tilts
     # ...and of those normals the one most of the face shows (a wall with windows: the wall's, the same for every face of that wall)
     inside = (tex[:, 1] == 1) & hit
@@ -323,9 +356,9 @@ for si, s in enumerate(shells):
     # balcony fronts, so its triangles tilt (measured on a tower with a frame grid: a wall of dark panes baked as a blank white wall,
     # because the tilted rays met the sides of the frames). Looking square at the wall under the face gets the panes back.
     tilt = np.degrees(np.arccos(np.clip((fnorm[fid] * nrm).sum(1), -1, 1)))
-    tri, bary, hit, hn, deep, miss2 = look(fnorm[fid])
+    tri, bary, hit, hn, deep, miss2, shade = look(fnorm[fid])
     col, rough, metal = tri_colour(s['tri_ids'][tri], bary)
-    col[deep] *= DEEP_K    # (metal and roughness stay: every pane in a tile is a mirror metal, and a pane behind a balcony baked as paint is lit grey by the sun and the sky where the real pane mirrors the dark ground)
+    col[deep] *= np.where(miss2[deep], DEEP_K, shade[deep])[:, None]    # (metal and roughness stay: every pane in a tile is a mirror metal, and a pane behind a balcony baked as paint is lit grey by the sun and the sky where the real pane mirrors the dark ground)
     f0 = 0.04 * (1 - metal[:, None]) + col * metal[:, None]
     q = np.clip((0.6 - rough) / 0.3, 0, 1); q = q * q * (3 - 2 * q)          # 1 = smooth (mirror glass, polished metal), 0 = rough
     pane = (metal > 0.5) & (q > 0.5)                                         # a mirror pane (every pane in a tile is a smooth metal)
