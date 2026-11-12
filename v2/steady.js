@@ -45,12 +45,17 @@ export const STEADY = {
   SLOPE: 1.5,         // ...and this many small pixels of the surface's own slope (a ground seen flat changes depth fast from pixel to pixel)
   JITTER: 16,         // length of the shift sequence in motion
   SPREAD: 1,          // 1: inside its quarter of the small pixel the sample moves from run to run (smooth edges); 0: always the quarter's middle
-  REST_FRAMES: 12,    // shifted full-size frames added after the camera stops (a running mean)
-  REST_KEPT: 3.0,     // the kept picture counts as this many frames when that mean begins
-  // The content changed with the camera at rest (a tile came in, a route was drawn): the next SETTLE frames each take REST_BLEND
-  // of the kept picture's place (what was there fades out to under 2 %, and edges stay smooth meanwhile: no frame is shown alone);
-  // then the running mean. While tiles stream in after the opening flight this runs without a break.
-  SETTLE: 8, REST_BLEND: 0.4,
+  // AT REST the picture must not flicker (rule 15). One shifted full-size frame alone is a jagged picture, far from the mean of
+  // many; mixed in at a large share it makes the still shimmer while it settles (measured 2026-11-11: 1.5 to 2.6 of 255 from
+  // frame to frame at a share of 0.4, with a still camera). So a rest frame gets a SMALL share: 1 / (1 + what the kept picture
+  // is worth in frames: REST_KEPT after a motion, more with each rest frame), for REST_FRAMES frames; the picture then changes
+  // by under 0.5 of 255 a frame and less with each.
+  REST_FRAMES: 24,    // shifted full-size frames added after the camera stops
+  REST_KEPT: 12,      // the kept picture counts as this many frames in that mean
+  // ...except in a pixel whose CONTENT changed (a tile came in, a route was drawn): there the kept value lies outside all that
+  // the new frame holds in the 3 x 3 pixels around it (give or take REST_PAD: a share of their range, and a fixed step of the
+  // display value). Such a pixel takes REST_BLEND of each new frame, and SETTLE more frames are drawn after the change.
+  REST_BLEND: 0.4, SETTLE: 8, REST_PAD: [0.125, 0.02],
   FAR_M: 6.0e4,       // depths are kept up to this many metres (a half-float's range)
   BLIT: 1,            // the kept picture goes to the canvas by a framebuffer copy (0: by a drawn pass)
   RULES_FULL: 1,      // 1: the small frame's pixel-size rules and mip levels act as for the full-size pixel; 0: as for its own pixel; between: between
@@ -106,13 +111,13 @@ export function installSteady({ THREE, renderer, scene, camera }) {
 
   const resolveMat = pass({
     tNow: { value: null }, tRange: { value: null }, tHist: { value: null },
-    uCarry: { value: new THREE.Matrix4() }, uRow: { value: new THREE.Vector4() }, uHitBox: { value: 0.25 }, uSlope: { value: 1 }, uFast: { value: new THREE.Vector2() }, uGrown: { value: new THREE.Vector2() }, uLoose: { value: new THREE.Vector2() },
+    uCarry: { value: new THREE.Matrix4() }, uRow: { value: new THREE.Vector4() }, uHitBox: { value: 0.25 }, uSlope: { value: 1 }, uFast: { value: new THREE.Vector2() }, uGrown: { value: new THREE.Vector2() }, uLoose: { value: new THREE.Vector2() }, uRest: { value: new THREE.Vector3(-1, 0, 0) },
     uJitter: { value: new THREE.Vector2() }, uSmall: { value: new THREE.Vector2() }, uFull: { value: new THREE.Vector2() },
     uFirst: { value: 1 }, uHit: { value: 0 }, uMiss: { value: 0 }, uKernel: { value: 0 }, uTol: { value: 0 }, uFar: { value: 0 }, uDebug: { value: 0 }, uCubic: { value: 0.5 },
   }, `
     precision highp float;
     uniform sampler2D tNow, tRange, tHist; uniform mat4 uCarry; uniform vec4 uRow;
-    uniform vec2 uJitter, uSmall, uFull; uniform float uFirst, uHit, uMiss, uKernel, uTol, uFar, uDebug, uCubic, uHitBox, uSlope; uniform vec2 uFast, uGrown, uLoose; varying vec2 vUv;
+    uniform vec2 uJitter, uSmall, uFull; uniform float uFirst, uHit, uMiss, uKernel, uTol, uFar, uDebug, uCubic, uHitBox, uSlope; uniform vec2 uFast, uGrown, uLoose; uniform vec3 uRest; varying vec2 vUv;
     // the kept picture between its pixels: Catmull-Rom from five taps (the four corner taps of the nine are left out). It gives
     // the colour held to the range of the five (no ringing that could feed on itself), and in .a the kept depth near the centre
     vec4 kept(vec2 uv) {
@@ -173,6 +178,17 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       float loose = max(smoothstep(uFast.x, uFast.y, moved), 1.0 - smoothstep(uGrown.x, uGrown.y, grown));
       float near = exp(-uKernel * dot(f, f));
       float share = (hit || abs(own - rng.b) <= rng.b * uTol) ? mix(mix(uMiss, uHit, near), mix(uLoose.y, uLoose.x, near), loose) : 0.0;
+      // at rest: did this pixel's content change? Then the kept value lies outside all that the new frame holds around the pixel
+      // (a shifted sample of an edge or of a fine pattern that did NOT change always has the kept mean inside that range)
+      if (uRest.x >= 0.0 && ok > 0.5) {
+        vec3 lo = cNew, hi = cNew; ivec2 top = ivec2(uSmall) - 1;
+        for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+          if (i == 0 && j == 0) continue;
+          vec3 t = texelFetch(tNow, clamp(ip + ivec2(i, j), ivec2(0), top), 0).rgb; lo = min(lo, t); hi = max(hi, t);
+        }
+        vec3 pad = (hi - lo) * uRest.y + uRest.z;
+        if (any(lessThan(h.rgb, lo - pad)) || any(greaterThan(h.rgb, hi + pad))) share = uRest.x;
+      }
       // samples are added up as LIGHT (display value squared), the kept picture holds display values
       vec3 outc = ok > 0.5 ? sqrt(mix(h.rgb * h.rgb, cNew * cNew, share)) : texture2D(tNow, uvN).rgb;
       if (uDebug > 1.5) outc = vec3(clamp(bad * 5.0, 0.0, 1.0), clamp(tol * 5.0, 0.0, 1.0), abs(own - rng.b) > rng.b * uTol ? 1.0 : 0.0);   // (tests: red = how badly the kept depth fits (1 = 20 %), green = the room it has, blue = another surface than the sample's)
@@ -186,7 +202,7 @@ export function installSteady({ THREE, renderer, scene, camera }) {
   const mesh = new THREE.Mesh(tri, rangeMat); mesh.frustumCulled = false; oscene.add(mesh);
 
   let blitBroken = false;
-  let small = null, range = null, hist = [null, null], cur = 0, first = true, frame = 0, rest = 0, settle = 0, restShift = 0, wasMoving = true;
+  let small = null, range = null, hist = [null, null], cur = 0, first = true, frame = 0, rest = 0, settle = 0, restShift = 0, worth = 0, wasMoving = true;
   const prevVP = new THREE.Matrix4(), vp = new THREE.Matrix4(), inv = new THREE.Matrix4(), size = new THREE.Vector2();
   const stats = { frames: 0, resets: 0, small: [0, 0], full: [0, 0], rest: 0 };
   function targets(w, h, W, H) {
@@ -221,9 +237,9 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       const W = size.x, H = size.y, w = Math.max(8, Math.round(W * scale)), h = Math.max(8, Math.round(H * scale));
       targets(w, h, W, H);
       if (moving) { rest = 0; settle = 0; }
-      else if (hard) { rest = 0; settle = STEADY.SETTLE; stats.resets++; }
-      else if (wasMoving) rest = 0;
-      const blend = !moving && settle > 0, alone = first;   // (alone: there is no kept picture yet)
+      else { if (hard) { settle = STEADY.SETTLE; stats.resets++; } if (wasMoving) { rest = 0; worth = STEADY.REST_KEPT; } }
+      const alone = first;   // (there is no kept picture yet)
+      if (alone) worth = 0;   // (worth: how many rest frames the kept picture counts as: REST_KEPT after a motion, the frames so far after a start from nothing)
       wasMoving = moving;
       // the hooks that follow the camera (the aerial's tiles, the near sets) run for a draw to the screen only: give them their turn
       scene.onBeforeRender(renderer, scene, camera, null);
@@ -255,8 +271,9 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       u.tNow.value = small.texture; u.tRange.value = range.texture; u.tHist.value = hist[cur].texture;
       u.uCarry.value.multiplyMatrices(first || !moving ? vp : prevVP, inv); u.uRow.value.set(e[3], e[7], e[11], e[15]); u.uHitBox.value = 0.5 * w / W;
       u.uJitter.value.set(jit[0], jit[1]); u.uSmall.value.set(w, h); u.uFull.value.set(W, H); u.uFirst.value = first ? 1 : 0;
-      const still = blend ? STEADY.REST_BLEND : 1 / (rest + 1 + (alone ? 0 : STEADY.REST_KEPT));
+      const still = 1 / (worth + 1);
       u.uHit.value = moving ? STEADY.HIT : still; u.uMiss.value = moving ? STEADY.MISS : still; u.uKernel.value = STEADY.KERNEL;
+      u.uRest.value.set(moving ? -1 : STEADY.REST_BLEND, STEADY.REST_PAD[0], STEADY.REST_PAD[1]);
       u.uTol.value = STEADY.TOL; u.uSlope.value = STEADY.SLOPE; u.uFast.value.fromArray(moving ? STEADY.FAST_PX : [1e6, 2e6]); u.uGrown.value.fromArray(moving ? STEADY.GROWN : [-2, -1]); u.uLoose.value.set(STEADY.HIT_FAST, STEADY.MISS_FAST); u.uFar.value = STEADY.FAR_M; u.uCubic.value = STEADY.CUBIC; u.uDebug.value = STEADY.DEBUG || 0;
       if (stop >= 3) { mesh.material = resolveMat; renderer.setRenderTarget(hist[next]); renderer.render(oscene, ocam); }
       if (stop < 4) renderer.setRenderTarget(null);
@@ -272,7 +289,7 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       if (stop >= 4 && (!STEADY.BLIT || blitBroken)) { showMat.uniforms.tHist.value = hist[next].texture; mesh.material = showMat; renderer.setRenderTarget(null); renderer.render(oscene, ocam); }
       renderer.info.autoReset = auto;
       cur = next; first = false; prevVP.copy(vp); stats.frames++;
-      if (!moving) { if (blend) settle--; else rest++; stats.rest = rest; stats.settle = settle; }
+      if (!moving) { if (rest < STEADY.REST_FRAMES) rest++; if (settle > 0) settle--; worth = Math.min(worth + 1, STEADY.REST_KEPT + STEADY.REST_FRAMES); stats.rest = rest; stats.settle = settle; }
     },
   };
   return api;
