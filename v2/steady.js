@@ -132,7 +132,7 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       return vec3(q.xy / q.w * 0.5 + 0.5, q.w * viewDepth);
     }
     // how badly the kept depth d disagrees with the depth e a surface would have had (a share of e)
-    float miss(float d, float e) { e = min(e, uFar); return abs(d - e) / e; }
+    float miss(float d, float e) { e = clamp(e, 1.0, uFar); return abs(d - e) / e; }   // (kept depths are held to 1 .. uFar, see the last line of main)
     void main() {
       // this full-size pixel's centre in the small, shifted frame, and the small sample nearest to it
       vec2 uvN = vUv + uJitter, sp = uvN * uSmall;
@@ -177,7 +177,9 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       vec3 outc = ok > 0.5 ? sqrt(mix(h.rgb * h.rgb, cNew * cNew, share)) : texture2D(tNow, uvN).rgb;
       if (uDebug > 1.5) outc = vec3(clamp(bad * 5.0, 0.0, 1.0), clamp(tol * 5.0, 0.0, 1.0), abs(own - rng.b) > rng.b * uTol ? 1.0 : 0.0);   // (tests: red = how badly the kept depth fits (1 = 20 %), green = the room it has, blue = another surface than the sample's)
       else if (uDebug > 0.5) outc = mix(outc, vec3(1.0, 0.0, 0.0), 0.6 * (1.0 - ok));
-      gl_FragColor = vec4(outc, min(ok > 0.5 && !hit ? own : rng.b, uFar));
+      // .a = this pixel's depth, never under 1: the kept picture is copied to the canvas as it is, and the canvas reads .a as
+      // its alpha (a wall half a metre from the eye must not make the page see-through)
+      gl_FragColor = vec4(outc, clamp(ok > 0.5 && !hit ? own : rng.b, 1.0, uFar));
     }`);
   const showMat = pass({ tHist: { value: null } },
     'precision highp float; uniform sampler2D tHist; void main() { gl_FragColor = vec4(texelFetch(tHist, ivec2(gl_FragCoord.xy), 0).rgb, 1.0); }');
