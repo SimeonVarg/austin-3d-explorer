@@ -120,6 +120,13 @@ memory and is never written here, in any tracked file, or in a commit message.
       resolution, so the gates passed and his eye did not agree. Record the real flight first (frame times, pixel ratio,
       triangles for every drawn frame), then draw the recorded cameras again at the recorded resolution. (That day's note
       "the cost of a frame is the number of triangles" was WRONG, see the next point.)
+    - **The first setting of every instrument is the owner's own screen: a 2560 x 1300 window at device pixel ratio 1.**
+      (2026-11-12.) Three days of flight numbers, four pull requests and two messages to him were taken at 1440 x 900 and
+      ratio 2, a screen he does not use. At ratio 1 the adaptive resolution has a floor of 1, so the app is a different app
+      there: the steady picture (#674) made his motion picture SOFTER, and loading the flight's tiles ahead (#676) made his
+      second leg slower, while both measured as gains at ratio 2. A second screen kind is a second run, never the only one;
+      every number is written with its screen size. And a number that says "equal" is not a look: open the frames at true
+      pixel size, at his size, before a claim.
     - **Before a speed job, measure the cheapest possible frame.** (2026-11-11, #674.) One flat material at the canvas's
       full size, no multisampling, took 10 to 12 ms on the owner's Mac; the real materials took 52 to 58 ms; the canvas's
       own multisampling was 10 ms of a 32 ms frame. So the triangles were never the cost, and no cut of triangles could
@@ -296,7 +303,9 @@ memory and is never written here, in any tracked file, or in a commit message.
     - **Do not sit on CI.** Push, keep working, and merge when the checks finish.
     - **Timebox.** A lane that has gone about 90 minutes without a result stops
       and writes down what blocks it.
-    - **The steady picture is how the owner's Mac draws (2026-11-11, #674; `v2/steady.js`).** On a GPU that cannot hold the
+    - **The steady picture is for a screen with 2 canvas pixels per CSS pixel. It is NOT how the owner's screen draws**
+      (corrected 2026-11-12, #677: his monitor has one canvas pixel per CSS pixel, the canvas never shrinks there, and the
+      steady picture made motion softer; it is off at that ratio). (2026-11-11, #674; `v2/steady.js`.) On a GPU that cannot hold the
       full size in motion the city is drawn small and shifted, and each small frame is added into a KEPT full-size picture
       at the place its points really are (the world stands still: depth and the two cameras give the place). Full size in
       motion, the same frame rate, no canvas resize. What every lane must know: (1) on that path the canvas has NO
