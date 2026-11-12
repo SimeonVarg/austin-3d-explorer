@@ -50,8 +50,11 @@ export const STEADY = {
   // frame to frame at a share of 0.4, with a still camera). So a rest frame gets a SMALL share: 1 / (1 + what the kept picture
   // is worth in frames: REST_KEPT after a motion, more with each rest frame), for REST_FRAMES frames; the picture then changes
   // by under 0.5 of 255 a frame and less with each.
-  REST_FRAMES: 24,    // shifted full-size frames added after the camera stops
-  REST_KEPT: 12,      // the kept picture counts as this many frames in that mean
+  // the shifts of the rest frames span this share of a pixel (1 = the whole pixel: the softest; less = sharper, edges less smooth).
+  // 0.6 gives the still the sharpness the multisampled still had before (1.05 against 1.06 of a 16-sample truth's; 1.0 gives 1.01)
+  REST_SPREAD: 0.6,
+  REST_FRAMES: 30,    // shifted full-size frames added after the camera stops
+  REST_KEPT: 10,      // the kept picture counts as this many frames in that mean
   // ...except in a pixel whose CONTENT changed (a tile came in, a route was drawn): there the kept value lies outside all that
   // the new frame holds in the 3 x 3 pixels around it (give or take REST_PAD: a share of their range, and a fixed step of the
   // display value). Such a pixel takes REST_BLEND of each new frame, and SETTLE more frames are drawn after the change.
@@ -251,7 +254,7 @@ export function installSteady({ THREE, renderer, scene, camera }) {
         const k = frame % STEADY.JITTER, qd = QUARTERS[frame % 4], sub = (k >> 2) + 1;
         jx = (qd[0] + (STEADY.SPREAD ? halton(sub, 2) : 0.5)) * 0.5 - 0.5; jy = (qd[1] + (STEADY.SPREAD ? halton(sub, 3) : 0.5)) * 0.5 - 0.5;
       }
-      else if (!alone) { restShift = restShift % 64 + 1; jx = halton(restShift, 2) - 0.5; jy = halton(restShift, 3) - 0.5; }   // (a still that starts from nothing starts unshifted)
+      else if (!alone) { restShift = restShift % 64 + 1; jx = (halton(restShift, 2) - 0.5) * STEADY.REST_SPREAD; jy = (halton(restShift, 3) - 0.5) * STEADY.REST_SPREAD; }   // (a still that starts from nothing starts unshifted)
       camera.updateMatrixWorld();
       vp.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);      // the camera without the shift
       inv.copy(vp).invert();

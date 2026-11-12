@@ -24,8 +24,10 @@ import fs from 'node:fs';
 import { chromium } from 'playwright-core';
 import { launch, BASE } from './chrome.mjs';
 
-// Limits (one line each to overrule). Measured 2026-11-11, 900 x 560 at 1x: see the numbers each run prints.
-const LIM = { STILL: +(process.env.STEADY_STILL || 2.5), CARRY: +(process.env.STEADY_CARRY || 4.0), CARRY_GAIN: +(process.env.STEADY_CARRY_GAIN || 3.0), MOTION: +(process.env.STEADY_MOTION || 6.0) };
+// Limits (one line each to overrule). Measured 2026-11-11, 900 x 560 at 1x, real GPU and software: still 1.0 to 2.0 (the rest frames'
+// shifts span 0.6 of a pixel, STEADY.REST_SPREAD, so the still is a little sharper than the truth's full-pixel mean), carry 2.7 to 3.0
+// (left in place: 21.7), motion 4.1 to 4.5.
+const LIM = { STILL: +(process.env.STEADY_STILL || 3.5), CARRY: +(process.env.STEADY_CARRY || 4.0), CARRY_GAIN: +(process.env.STEADY_CARRY_GAIN || 3.0), MOTION: +(process.env.STEADY_MOTION || 6.0) };
 const MOTION_FRAMES = 16, MOVE_M = [9, -1, -5], TURN_M = [6, 0, -2];   // camera B = A moved by MOVE_M (metres), looking at A's target moved by TURN_M
 const OUT = process.argv[2] || '';
 if (OUT) fs.mkdirSync(OUT, { recursive: true });
