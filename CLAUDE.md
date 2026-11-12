@@ -118,8 +118,17 @@ memory and is never written here, in any tracked file, or in a commit message.
       to hold its frame rate. On the owner's Mac the opening flight runs at pixel ratio 1.0 (a quarter of the pixels) from
       2.8 s to its end, at 11 to 20 frames a second. Every shimmer gate before that day measured still views at full
       resolution, so the gates passed and his eye did not agree. Record the real flight first (frame times, pixel ratio,
-      triangles for every drawn frame), then draw the recorded cameras again at the recorded resolution. On that Mac the
-      cost of a frame is the NUMBER of triangles, not the pixels, and a canvas resize is a stop of 150 to 350 ms.
+      triangles for every drawn frame), then draw the recorded cameras again at the recorded resolution. (That day's note
+      "the cost of a frame is the number of triangles" was WRONG, see the next point.)
+    - **Before a speed job, measure the cheapest possible frame.** (2026-11-11, #674.) One flat material at the canvas's
+      full size, no multisampling, took 10 to 12 ms on the owner's Mac; the real materials took 52 to 58 ms; the canvas's
+      own multisampling was 10 ms of a 32 ms frame. So the triangles were never the cost, and no cut of triangles could
+      have reached full size in motion. Two days of far copies and tree cards were aimed by a wrong sentence. One page load
+      (`scene.overrideMaterial`, a target with 0 and with 4 samples, three sizes) would have shown it on day one.
+    - **Test ONE step before you score a run.** (2026-11-11.) A score of 34 moving frames said "a bit better" for hours
+      while half the picture was carried wrongly. A test of one step (a still at camera A, one frame at camera B that
+      takes nothing new, against a still at B) named the fault in one run: the ground had no depth. And judge a frame at
+      TRUE pixel size: twice that night a 960-pixel copy of a 2880-pixel frame said "the shadows are gone", and it was blur.
     - **A stand-in is checked against the TRUTH, not against a side-by-side.** (2026-11-11.) A far copy, a card, any
       pre-filtered picture of a model: draw the full model with 3 x 3 samples a pixel, add the samples up as LIGHT (not as
       display numbers), and score the stand-in against that (`scripts/verify/v2-full-detail.mjs`: brightness drift, and
@@ -287,6 +296,15 @@ memory and is never written here, in any tracked file, or in a commit message.
     - **Do not sit on CI.** Push, keep working, and merge when the checks finish.
     - **Timebox.** A lane that has gone about 90 minutes without a result stops
       and writes down what blocks it.
+    - **The steady picture is how the owner's Mac draws (2026-11-11, #674; `v2/steady.js`).** On a GPU that cannot hold the
+      full size in motion the city is drawn small and shifted, and each small frame is added into a KEPT full-size picture
+      at the place its points really are (the world stands still: depth and the two cameras give the place). Full size in
+      motion, the same frame rate, no canvas resize. What every lane must know: (1) on that path the canvas has NO
+      multisampling, so a tool that draws frames itself opens the page with `steady=0`; (2) the carry needs a DEPTH for
+      everything that is drawn: a new layer with `depthWrite: false` that does not lie on the ground plane y = 0 will be
+      carried wrongly (run `scripts/verify/v2-steady.mjs`); (3) a rule in a shader that reads the pixel's size must read
+      it through `fwidth` / `dFdx` / `dFdy` (they are scaled to the full-size pixel in the small frame) or through the
+      render target's size, never through the canvas's size.
     - **The fast mode is the default on a desktop (2026-11-11, #671).** Far copies of the Blender tiles where their
       detail is smaller than a pixel, one card for each far tree crown, a steady resolution inside one motion
       (`v2/look.js` FAST; `?fast=0` is the old path; a phone keeps the old path until its memory is measured). The owner's
