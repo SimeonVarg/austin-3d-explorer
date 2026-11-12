@@ -308,6 +308,11 @@ memory and is never written here, in any tracked file, or in a commit message.
     - **Do not sit on CI.** Push, keep working, and merge when the checks finish.
     - **Timebox.** A lane that has gone about 90 minutes without a result stops
       and writes down what blocks it.
+    - **The clean still (2026-11-12, #680; `v2/rest.js`).** On the multisampled path the app adds up 16 shifted frames when the
+      camera rests. For a tool this means: a person's page keeps drawing for about a second after a stop and its still is
+      then the mean of 64 samples a pixel, but a page under a test driver has it OFF (so every check reads the plain still,
+      as before). A tool that must see what a person sees opens the page with `?rest=1` and waits until
+      `__v2.rest().more()` is false.
     - **The steady picture is for a screen with 2 canvas pixels per CSS pixel. It is NOT how the owner's screen draws**
       (corrected 2026-11-12, #677: his monitor has one canvas pixel per CSS pixel, the canvas never shrinks there, and the
       steady picture made motion softer; it is off at that ratio). (2026-11-11, #674; `v2/steady.js`.) On a GPU that cannot hold the
