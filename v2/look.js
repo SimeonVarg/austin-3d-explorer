@@ -226,7 +226,8 @@ export const QUALITY = {
   MAX_PIXEL_RATIO_PHONE: 2,
   MSAA: true,
   // A first visit takes the steady picture (main.js STEADY_ON, steady.js) when the GPU's name matches this: graphics built into an
-  // Intel processor cannot hold the full size in motion (the owner's Mac: Iris Plus 655). After a visit the measured motion scale decides.
+  // Intel processor cannot hold the full size in motion on a screen with 2 canvas pixels per CSS pixel (measured on the owner's
+  // Mac, Iris Plus 655, at 1440 x 900 and 2x). After a visit the measured motion scale decides. Never at 1x: see main.js.
   STEADY_GPU: /Intel/i,
   // The sun's shadow map is drawn again only when it can change: the light box moved a step, or a shadow caster was added,
   // removed, shown, hidden or reshaped (main.js casterSignature). Same picture; ?shadowcache=0 redraws it on every frame.
