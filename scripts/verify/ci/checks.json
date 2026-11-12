@@ -35,10 +35,6 @@
       "est_s": 300,
       "timeout_s": 1500
     },
-    "v2-film.mjs": {
-      "est_s": 300,
-      "timeout_s": 1500
-    },
     "analytics-check.mjs": {
       "est_s": 60
     },
@@ -642,6 +638,7 @@
   },
   "_laptop_only": "Timing. Frame times on a shared cloud CPU with a software rasteriser measure the runner, not the code (README: 'right for pixel assertions and useless for timing'). These stay on a quiet laptop.",
   "laptop_only": {
+    "v2-film.mjs": "the opening film's hand-over (v2/film.js): three page loads with the opening on. On a real GPU it takes 1 minute. On a software renderer each page is busy for minutes before its first frames are done (14 minutes for the three on a laptop, measured 2026-11-12, with the small test tile set): over this suite's budget on GitHub's machines. Run it on the Mac after any change to v2/film.js or to the opening in v2/main.js.",
     "v2-tree-near.mjs": "walk under a tree: near-crown pop and flicker, old vs new crowns; needs a real GPU and its walk arguments; run on the Mac",
     "graphics-parity.mjs": "hardware GL: cold production graphics comparison with explicit source/query arms, exact pixels and repeat-noise control",
     "v2-frame.mjs": "timing of the v2 app (/v2/): needs a real GPU (it fails on a software renderer); run on the AWS L4 one check at a time (scripts/aws-gpu)",

@@ -1670,8 +1670,11 @@ if (INTRO.on) {
     const ms = performance.now() - t0;
     if (!$('veil')) { clearInterval(gate); return; }
     if (filmAsked) {
-      if (film && filmOK && ms >= INTRO.minVeilMs) { clearInterval(gate); playFilm(); return; }
-      if (filmOK === false || ms >= FILM.WAIT_MS) noFilm(); else return;
+      // (the film element's own state counts too: on a page that was busy for long, this timer can run before the element's
+      // "ready" event has been handed over, and a film that is ready must not be dropped for being late)
+      const ready = film && (filmOK || (filmOK === null && film.el.readyState >= 4));
+      if (ready && ms >= INTRO.minVeilMs) { clearInterval(gate); playFilm(); return; }
+      if (filmOK === false || (!ready && ms >= FILM.WAIT_MS)) noFilm(); else return;
     }
     const inView = map.tilesLoaded() && frames > 0 && ms >= INTRO.minVeilMs;
     if (inView && !inViewAt) inViewAt = ms;

@@ -2,7 +2,7 @@
  * v2-film.mjs - the opening flight as a film (v2/film.js, behind ?film=1): the film plays over the canvas while the live city
  * loads for the flight's END under it, then the film goes away and the live city is there.
  *
- *   VERIFY_URL=http://127.0.0.1:8099 node scripts/verify/v2-film.mjs
+ *   VERIFY_GL=hardware VERIFY_URL=http://127.0.0.1:8099 node scripts/verify/v2-film.mjs      (a real GPU: 1 minute; it is not in the CI run, see ci/checks.json)
  *
  * Why: the film replaces the live opening flight on the screens it is made for. If its hand-over breaks, a person is left with
  * a frozen picture over a city that does not answer, or with no opening at all. This check runs the three ways it can go, with a
@@ -18,6 +18,8 @@
  * Any renderer. THE PAGE REPORTS ITS OWN STATE (four times a second, through a binding) and the check reads those reports; it
  * does not ask the page. On GitHub's software renderer a page that draws the live flight can be busy for minutes at a time and
  * does not answer a question, but what it reported before is there. ?filmwait= gives the page time to get the clip's first frame.
+ * The page is opened with the small test tile set (?tiles=test): the film's hand-over does not depend on which buildings load,
+ * and with the whole city a software renderer needs ten minutes a page.
  */
 import { chromium } from 'playwright-core';
 import { launch, BASE } from './chrome.mjs';
@@ -36,7 +38,7 @@ const open = async (q, more = '') => {
     window.__filmReport(JSON.stringify({ intro: v.intro().state, by: v.intro().cancelledBy, film: v.film() && v.film().state, el: !!f, t: f ? f.currentTime : -1, names: mk && +getComputedStyle(mk).opacity < 0.05 ? 'hidden' : 'visible',
       toStart: m(p.center, I.start.center), toEnd: m(p.center, I.end.center), easing: v.map.isEasing(), free })); }, 250); });
   // (not "load": a film element holds the page's load event back until its first frame is in, and on a software renderer that is late)
-  await page.goto(`${base}/v2/?adapt=0&steady=0&film=1&filmsrc=${encodeURIComponent(q)}${more}`, { waitUntil: 'commit', timeout: 180000 });
+  await page.goto(`${base}/v2/?adapt=0&steady=0&tiles=test&film=1&filmsrc=${encodeURIComponent(q)}${more}`, { waitUntil: 'commit', timeout: 180000 });
   // wait until the page has reported a state that `want` accepts (or `ms` have gone by); the report, or null
   const until = async (want, ms) => { const t0 = Date.now(); for (;;) { const r = log.find(want); if (r) return r; if (Date.now() - t0 > ms) return null; await sleep(200); } };
   const last = () => log[log.length - 1] || {};
@@ -74,7 +76,7 @@ const show = (r) => (r ? `flight "${r.intro}", film "${r.film}"` : 'no such repo
 
 // 3. the film cannot be played
 { const { page, errs, until, last } = await open('./film/not-there.mp4');
-  const a = await until((r) => !r.el && r.film === null && r.toStart < r.toEnd, 300000);
+  const a = await until((r) => !r.el && r.film === null && r.toStart < r.toEnd, 600000);
   ok(!!a && ['primed', 'flying', 'done'].includes(a.intro), `3. with no film the flight is live as before: ${show(a || last())}, film on the page ${a ? a.el : last().el}, the camera is back on the flight's own path (${a ? a.toStart.toFixed(0) : '?'} m from the start, ${a ? a.toEnd.toFixed(0) : '?'} m from the end)`);
   ok(errs.length === 0, `3. no page errors (${errs.length}${errs.length ? ': ' + errs[0] : ''})`);
   await Promise.race([page.context().close().catch(() => {}), sleep(15000)]); }
