@@ -252,7 +252,14 @@ const steadyLearned = (() => { try { const v = localStorage.getItem('v2-motion-s
 const steadyProbe = (() => { try { const g = document.createElement('canvas').getContext('webgl2'); if (!g) return { can: false, gpu: '' };
   const can = !!(g.getExtension('EXT_color_buffer_float') || g.getExtension('EXT_color_buffer_half_float')), dbg = g.getExtension('WEBGL_debug_renderer_info');
   const gpu = String(dbg ? g.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER) || ''); const l = g.getExtension('WEBGL_lose_context'); if (l) l.loseContext(); return { can, gpu }; } catch (e) { return { can: false, gpu: '' }; } })();
-const STEADY_ON = steadyProbe.can && (params.has('steady') ? params.get('steady') !== '0' : FAST && (steadyLearned == null ? QUALITY.STEADY_GPU.test(steadyProbe.gpu) : steadyLearned));
+// NOT on a screen with one canvas pixel per CSS pixel (the owner's monitor: 2560 x 1440 at 1x). There the canvas never shrinks in
+// motion (QUALITY.ADAPT.MIN_PIXEL_RATIO), so the steady picture has nothing to give back: it only replaces a multisampled
+// full-size frame by a jittered one mixed over frames. Measured 2026-11-12 at 2560 x 1300 and 1x, against a 16-sample truth
+// (error / sharpness / shimmer): multisampled 1.63 / 1.07 / 1.61 in the slow part of the flight and 1.44 / 1.06 / 2.41 in the
+// fast part; steady 2.03 / 0.93 / 1.78 and 2.16 / 0.93 / 3.47, with a smear on fast ground, for 10 % more frames a second.
+// It had been on there since #674 (2026-11-11): every number for #674 was taken at 1440 x 900 and 2x, a screen he does not use.
+const STEADY_SHRINKS = Math.max(QUALITY.ADAPT.MIN_SCALE, QUALITY.ADAPT.MIN_PIXEL_RATIO / DPR) < 0.999;
+const STEADY_ON = steadyProbe.can && (params.has('steady') ? params.get('steady') !== '0' : FAST && STEADY_SHRINKS && (steadyLearned == null ? QUALITY.STEADY_GPU.test(steadyProbe.gpu) : steadyLearned));
 try {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: QUALITY.MSAA && !STEADY_ON, powerPreference: 'high-performance',
     reversedDepthBuffer: params.get('revdepth') !== '0' });
