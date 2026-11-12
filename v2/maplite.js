@@ -78,12 +78,22 @@ export class MapLite {
     const c = center ? lngLatOf(center) : cur.center;
     const z = zoom ?? cur.zoom, p = THREE.MathUtils.clamp(pitch ?? cur.pitch, 0, this.limits.maxPitch ?? 85), b = bearing ?? cur.bearing;
     const [x, zz] = toLocal(c.lng, c.lat);
-    const d = THREE.MathUtils.clamp(this.distanceFor(z, c.lat), this.limits.minDistance ?? 1, this.limits.maxDistance ?? 1e9);
-    const pr = p * D2R, a = -b * D2R;
     this.controls.target.set(x, 0, zz);
-    this.camera.position.set(x + d * Math.sin(pr) * Math.sin(a), d * Math.cos(pr), zz + d * Math.sin(pr) * Math.cos(a));
+    this.camera.position.copy(this.eyeOf({ center: c, zoom: z, pitch: p, bearing: b }));
     this.camera.lookAt(this.controls.target);
     this.redraw();
+  }
+  // where the camera is at a pose (the camera does not move)
+  eyeOf({ center, zoom, pitch, bearing }) {
+    const c = lngLatOf(center), [x, zz] = toLocal(c.lng, c.lat);
+    const d = THREE.MathUtils.clamp(this.distanceFor(zoom, c.lat), this.limits.minDistance ?? 1, this.limits.maxDistance ?? 1e9);
+    const pr = THREE.MathUtils.clamp(pitch, 0, this.limits.maxPitch ?? 85) * D2R, a = -bearing * D2R;
+    return new THREE.Vector3(x + d * Math.sin(pr) * Math.sin(a), d * Math.cos(pr), zz + d * Math.sin(pr) * Math.cos(a));
+  }
+  // the pose a share e of the way from one pose to another, as easeTo() moves (the short way round for the bearing)
+  poseBetween(from, to, e) {
+    const f = lngLatOf(from.center), t = lngLatOf(to.center), lerp = (a, b) => a + (b - a) * e;
+    return { center: { lng: lerp(f.lng, t.lng), lat: lerp(f.lat, t.lat) }, zoom: lerp(from.zoom, to.zoom), pitch: lerp(from.pitch, to.pitch), bearing: from.bearing + wrap180(to.bearing - from.bearing) * e };
   }
   jumpTo(o, data) { this.stop(); this.setPose(o); this.fire('move', data); this.fire('moveend', data); return this; }
   easeTo(o, data = {}) {

@@ -20,8 +20,11 @@ import { brickMipChain, BRICK_MIPS } from './brick-mips.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { LOOK, BRICK_MIPS_SLUGS, fastPart } from './look.js';
 
+const PQ = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
 export const TILES = {
   MAX_DECODES: 2,
+  PARK: PQ.get('park') !== '0',   // while a flight holds them, tiles that only a place ahead wants wait out of the scene (start()); ?park=0: they show at once
+  RUSH_DECODES: PQ.has('rush') ? +PQ.get('rush') : 10,  // ...and this many while the loading screen is up (main.js sets rush): nothing is on screen that a slow frame could spoil
   LOAD_DISTANCE_M: 2600,       // tiles nearer than this are wanted
   UNLOAD_DISTANCE_M: 3200,     // tiles beyond this are dropped (must be > LOAD_DISTANCE_M)
   TILE_TOP_M: 160,             // assumed top of a tile, for the in-view test
@@ -95,7 +98,6 @@ function fadeable(material, uniform, ao) {
 // wall measured softer than the truth (v2-shimmer "soft" +0.02, PR #562). Anisotropy narrows the footprint on slanted walls; a small
 // negative mip bias (-0.15) takes the mip level back to about a texel per pixel. Measured: soft <= 0 again, shimmer not above main's.
 // ?photoaniso=N / ?photobias=B override both for every photo material (an A/B in one page load).
-const PQ = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
 // The far copy. Why it exists: measured 2026-11-11 in the opening flight on the owner's Mac, a frame drew 6 M triangles, most of them
 // smaller than a pixel, at 70 to 100 ms, so the canvas fell to a quarter of its pixels for the whole flight (the shimmer he sees).
 export const FAR = {
@@ -243,9 +245,10 @@ const shadowDepth = LOOK.SHADOW_SLOPE_BIAS > 0
   ? new THREE.MeshDepthMaterial({ polygonOffset: true, polygonOffsetFactor: LOOK.SHADOW_SLOPE_BIAS, polygonOffsetUnits: 0 }) : null;
 
 export class TileStreamer {
-  constructor({ scene, camera, manifestUrl, onShow, onHide, onChange, onFade, onAnimate, prepare }) {
+  constructor({ scene, camera, manifestUrl, onShow, onHide, onChange, onFade, onAnimate, prepare, warm }) {
     this.scene = scene; this.camera = camera; this.url = manifestUrl;
     this.prepare = prepare || (() => {});
+    this.warm = warm || (() => {});   // (a copy that arrives hidden is put on the GPU at once, see start())
     this.onShow = onShow || (() => {}); this.onHide = onHide || (() => {}); this.onChange = onChange || (() => {});
     this.onFade = onFade || (() => {});          // (mapIds, k): the plain extrusions of these ids at k of the way into the haze
     this.onAnimate = onAnimate || (() => {});    // a fade moved: draw a frame
@@ -262,6 +265,13 @@ export class TileStreamer {
     this.frustum = new THREE.Frustum(); this.m = new THREE.Matrix4(); this.box = new THREE.Box3();
     this.instant = false;            // true: tiles appear at once (pictures, the verify scripts' settled views)
     this.far = FAR;                  // (the verify scripts turn FORCE inside the page: one load, both copies)
+    // A flight whose path is known (main.js: the opening flight). ahead = the places the camera WILL be: [{ p: Vector3, rest }];
+    // their tiles are wanted now, so they load before the camera gets there and not under it (rest: the camera stops there, so
+    // the full models that draw at rest are wanted too). cruise = the camera is on that flight now: a full model is then only
+    // LOADED where it would draw in motion (the far copy draws from FAR.MOTION_SCALE x the line outward).
+    // Measured 2026-11-12 on the owner's Mac: the second leg of the opening flight wanted 76 copies at once and loaded them under
+    // the moving camera: 20 frames of 60 to 200 ms in 5 s, at 60 m a frame.
+    this.ahead = []; this.cruise = false; this.rush = false; this.hold = false;
   }
 
   async load() {
@@ -274,7 +284,7 @@ export class TileStreamer {
       if (!t.lod0) continue;                                   // a tile with no full model is not drawn (the extrusions stay)
       const mapIds = [];
       for (const slug of t.buildings || []) { const b = this.manifest.buildings?.[slug]; if (b?.map_ids) mapIds.push(...b.map_ids.map(String)); }
-      this.tiles.set(t.id, { def: t, mapIds, want: null, have: null, obj: null, full: null, far: null, jobs: { lod0: null, far: null }, fade: null, fadeU: { value: 0 }, coat: null, line: Infinity, d: 0 });
+      this.tiles.set(t.id, { def: t, mapIds, want: null, here: null, aheadOnly: false, parked: false, have: null, obj: null, full: null, far: null, jobs: { lod0: null, far: null }, fade: null, fadeU: { value: 0 }, coat: null, line: Infinity, d: 0 });
     }
     if (FAR.ON) {
       try {
@@ -300,15 +310,20 @@ export class TileStreamer {
     const order = [];
     for (const s of this.tiles.values()) {
       const [x0, z0, x1, z1] = s.def.bounds;
-      const dx = Math.max(x0 - cam.x, 0, cam.x - x1), dz = Math.max(z0 - cam.z, 0, cam.z - z1);
-      const d = Math.hypot(dx, dz, Math.max(0, cam.y - TILES.TILE_TOP_M));
+      const dist = (p) => Math.hypot(Math.max(x0 - p.x, 0, p.x - x1), Math.max(z0 - p.z, 0, p.z - z1), Math.max(0, p.y - TILES.TILE_TOP_M));
+      const d = dist(cam);
       const cur = s.full || s.far || s.want;
-      let want = d <= (cur ? TILES.UNLOAD_DISTANCE_M : TILES.LOAD_DISTANCE_M) ? 'lod0' : null;
-      if (want && s.coat) {
-        s.line = s.coat.texel_m * FAR.PX / mpp;                // standing still (full resolution), the far copy draws beyond this
-        // the full model is in memory out to the line (and stays until a little past it, so it is not loaded and dropped at the line)
-        if (FAR.FORCE ? FAR.FORCE === 'far' : d > s.line * (s.full || s.jobs.lod0 ? 1 / FAR.BACK : 1)) want = 'far';
-      }
+      const reach = cur ? TILES.UNLOAD_DISTANCE_M : TILES.LOAD_DISTANCE_M, hasFull = !!(s.full || s.jobs.lod0);
+      if (s.coat) s.line = s.coat.texel_m * FAR.PX / mpp;      // standing still (full resolution), the far copy draws beyond this
+      // what a camera at distance dd wants of this tile. The full model is in memory out to the line (and stays until a little
+      // past it, so it is not loaded and dropped at the line); a camera that only passes (moving) does not start a full model
+      // that would not draw in motion
+      const wish = (dd, moving) => dd > reach ? null
+        : s.coat && (FAR.FORCE ? FAR.FORCE === 'far' : dd > s.line * (hasFull ? 1 / FAR.BACK : moving ? FAR.MOTION_SCALE : 1)) ? 'far' : 'lod0';
+      const here = wish(d, this.cruise);
+      let want = here;
+      for (const a of this.ahead) { if (want === 'lod0') break; const w = wish(dist(a.p), !a.rest); if (w === 'lod0' || (w && !want)) want = w; }
+      s.here = here; s.aheadOnly = !!want && !here;            // (main.js: the loading screen does not wait for what only a place ahead wants)
       this.box.min.set(x0, 0, z0); this.box.max.set(x1, TILES.TILE_TOP_M, z1);
       s.want = want; s.d = d; s.inView = this.frustum.intersectsBox(this.box);
       this.note(s);
@@ -316,9 +331,11 @@ export class TileStreamer {
     }
     return order;
   }
-  // have = what main.js's loading screen reads: the copy this tile wants is in ('lod0' / 'far'), or null while it is not
+  // have = what main.js's loading screen reads: the copy this tile wants HERE is in ('lod0' / 'far'), or null while it is not
+  // (a copy that only a place ahead wants is not waited for)
   note(s) {
-    s.have = s.want === 'lod0' ? (s.full ? 'lod0' : null) : s.want === 'far' ? (s.far ? 'far' : s.full ? 'lod0' : null) : (s.full ? 'lod0' : s.far ? 'far' : null);
+    const w = s.here || s.want;
+    s.have = w === 'lod0' ? (s.full ? 'lod0' : null) : w === 'far' ? (s.far ? 'far' : s.full ? 'lod0' : null) : (s.full ? 'lod0' : s.far ? 'far' : null);
     s.obj = s.full || s.far || null;                           // (main.js: the object its covers and the camera's collision are made from)
   }
   wanted(s, level) { return level === 'far' ? !!(s.want && s.coat) : s.want === 'lod0'; }
@@ -329,6 +346,7 @@ export class TileStreamer {
   show() {
     let changed = false;
     for (const s of this.tiles.values()) {
+      if (s.parked) continue;
       if (!s.far) { if (s.full && !s.full.visible) { s.full.visible = true; changed = true; } continue; }
       const far = !s.full || (FAR.FORCE ? FAR.FORCE === 'far' : s.d > s.line * (FAR.SCALE || (MOTION.scale < 0.999 ? FAR.MOTION_SCALE : 1)) * (s.far.visible && s.full.visible === false ? FAR.BACK : 1));
       if (s.far.visible !== far) { s.far.visible = far; changed = true; }
@@ -345,16 +363,19 @@ export class TileStreamer {
     const all = this.plan();
     this.plannedFor = this.camera.matrixWorld.elements.join(',');
     for (const s of all) {
+      if (s.parked && (s.here || !this.hold) && (s.full || s.far)) { s.parked = false; this.appear(s, now); }   // the hold is over (or the camera has come to it): the parked tile arrives
       // cancel loads that are no longer wanted, drop copies that are no longer wanted
       for (const level of LEVELS) if (s.jobs[level] && !this.wanted(s, level)) { const j = s.jobs[level]; j.ctrl.abort(); j.stale = true; s.jobs[level] = null; this.active--; this.stats.aborted++; }
       if (!s.want) { if (s.full || s.far) this.drop(s); continue; }
       if (s.full && s.far && !this.wanted(s, 'lod0')) this.dropFull(s);     // past the line: the far copy alone
     }
-    // queue: in view first, a tile with nothing on screen before one that only adds a copy, then nearest; the far copy (small) before the full model
+    // queue: what the camera wants here before what a place ahead wants; then in view first, a tile with nothing on screen before one
+    // that only adds a copy, then nearest; the far copy (small) before the full model
     const queue = [];
     for (const s of all) for (const level of LEVELS) if (this.wanted(s, level) && !(level === 'far' ? s.far : s.full) && !s.jobs[level] && ((s.failed || {})[level] || 0) < TILES.MAX_TRIES) queue.push({ s, level });
-    queue.sort((a, b) => (b.s.inView - a.s.inView) || (!!(a.s.full || a.s.far) - !!(b.s.full || b.s.far)) || ((a.level === 'far' ? 0 : 1) - (b.level === 'far' ? 0 : 1)) || (a.s.d - b.s.d));
-    while (this.active < TILES.MAX_DECODES && queue.length) { const q = queue.shift(); this.start(q.s, q.level); }
+    const forHere = (q) => (q.level === 'far' ? !!(q.s.here && q.s.coat) : q.s.here === 'lod0');
+    queue.sort((a, b) => (forHere(b) - forHere(a)) || (b.s.inView - a.s.inView) || (!!(a.s.full || a.s.far) - !!(b.s.full || b.s.far)) || ((a.level === 'far' ? 0 : 1) - (b.level === 'far' ? 0 : 1)) || (a.s.d - b.s.d));
+    while (this.active < (this.rush ? TILES.RUSH_DECODES : TILES.MAX_DECODES) && queue.length) { const q = queue.shift(); this.start(q.s, q.level); }
   }
 
   start(s, level) {
@@ -388,10 +409,20 @@ export class TileStreamer {
         const first = !s.full && !s.far;
         if (level === 'far') s.far = obj; else s.full = obj;
         this.note(s);
+        // While the flight HOLDS them (this.hold: main.js, the first leg), a tile that only a place AHEAD wants is parked: in
+        // memory and on the GPU, not in the scene. The city looks as it did (plain extrusions where the camera has not come
+        // near yet) and nothing more is drawn: far copies of tiles 3 to 5 km away cost 3 ms a frame for a few pixels each
+        // (measured 2026-11-12). When the hold ends (update()), all of them arrive as any tile does, with nothing left to load.
+        // (Parked until the CAMERA wants each one was tried: 40 arrivals spread over the fast leg cost more than they saved.)
+        if (TILES.PARK && this.hold && (s.parked || (first && !s.here))) { s.parked = true; obj.visible = false; this.group.add(obj); this.warm(obj); this.group.remove(obj); return; }
         if (first) { this.appear(s, performance.now()); return; }
         // the other copy of a tile that is already there: no fade of its own (in the middle of the tile's arrival fade it joins it)
         obj.visible = false;
         if (!(s.fade && s.fade.phase === 'out')) { this.group.add(obj); this.show(); this.onAnimate(); }
+        // A copy that stays hidden for now (a full model behind its far copy) would go to the GPU on the frame that first draws
+        // it: with the tiles of a flight loaded ahead, that was ONE frame of 500 ms at the stop (92 textures, 114 geometries,
+        // 5 shader programs; measured 2026-11-12). So it goes there now, one copy at a time.
+        if (obj.parent && !obj.visible) this.warm(obj);
       } catch (e) {
         if (e.name !== 'AbortError') { this.stats.failed++; console.warn('[v2 tiles]', s.def.id, level, e.message); (s.failed ||= {})[level] = (s.failed[level] || 0) + 1; }
       } finally {
@@ -452,7 +483,8 @@ export class TileStreamer {
     this.note(s); this.show(); this.onChange(this);
   }
   drop(s) {
-    const shown = !(s.fade && s.fade.phase === 'out');
+    const shown = !s.parked && !(s.fade && s.fade.phase === 'out');
+    s.parked = false;
     if (s.fade) { if (!shown) this.onFade(s.mapIds, 0); s.fade = null; this.fading.delete(s); }
     for (const o of [s.full, s.far]) if (o) { this.group.remove(o); disposeObject(o); this.stats.disposed++; }
     s.full = s.far = null; this.note(s);
@@ -462,7 +494,7 @@ export class TileStreamer {
   summary() {
     let lod0 = 0, lod1 = 0, loading = 0, fading = 0, wanting = 0;
     for (const s of this.tiles.values()) {
-      if ((s.full || s.far) && !(s.fade && s.fade.phase === 'out')) { if (s.far && s.far.visible && s.far.parent) lod1++; else lod0++; }
+      if ((s.full || s.far) && !s.parked && !(s.fade && s.fade.phase === 'out')) { if (s.far && s.far.visible && s.far.parent) lod1++; else lod0++; }
       for (const level of LEVELS) { if (s.jobs[level]) loading++; if (this.wanted(s, level) && !(level === 'far' ? s.far : s.full) && ((s.failed || {})[level] || 0) < TILES.MAX_TRIES) wanting++; }
       if (s.fade) fading++;
     }

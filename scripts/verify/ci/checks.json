@@ -31,6 +31,10 @@
       "est_s": 400,
       "timeout_s": 1500
     },
+    "v2-tiles-ahead.mjs": {
+      "est_s": 120,
+      "timeout_s": 900
+    },
     "analytics-check.mjs": {
       "est_s": 60
     },

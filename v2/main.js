@@ -228,6 +228,12 @@ export const INTRO = {
   end:   { center: [-97.7365, 30.2900], zoom: 16.45, pitch: 74, bearing: 202 },
   leg1Ms: 6000,      // the rise out of downtown, decelerating into the crest
   leg2Ms: 6600,      // the run north into campus, the bank, and the long settle
+  // The tiles of the places the flight WILL pass load ahead of it, behind the loading screen (tiles.js ahead, rush; ?ahead=0: they
+  // load under the camera, as before 2026-11-12): shares of the way along each leg; the last one of the second leg is where the
+  // camera stops. Part of the fast mode (look.js FAST): on a phone the far copies are off, so "ahead" would be every full model
+  // of the path in memory at once.
+  lookAhead: params.has('ahead') ? params.get('ahead') !== '0' : FAST, ahead1: [1], ahead2: [0.2, 0.4, 0.6, 0.8, 1],
+  aheadWaitMs: 6000, // the loading screen waits this much longer, at most, for those tiles (?aheadwait=N)
   minVeilMs: 2500,   // the loading screen stays at least this long, so it is seen, not flashed (v2 loads in a few seconds)
   maxVeilMs: 30000,  // and lifts by this time whatever is still loading
   liftMs: 1150,      // the fade (style.css #veil transition)
@@ -1145,11 +1151,33 @@ const cityReady = new Promise((resolve) => {
 // ── Blender tiles ──────────────────────────────────────────────────────
 const manifestUrl = new URL(params.get('tiles') === 'test' ? './test-tiles/manifest.json' : (params.get('manifest') || './tiles/manifest.json'), import.meta.url).href;
 let tiles = null;
+// Put a hidden object's geometry, textures and shader programs on the GPU now (tiles.js: a copy that arrives hidden). It is drawn
+// once, alone, into a tiny target, with the scene's own lights (the same programs as on the screen): the object and the lights
+// are also on layer 1, and this camera sees layer 1 only. The sun's shadow map is not touched.
+const warmTarget = new THREE.WebGLRenderTarget(4, 4, { depthBuffer: true }), warmCamera = new THREE.PerspectiveCamera();
+let warmReady = false;
+function warmOnGpu(obj) {
+  if (!renderer || params.get('warm') === '0') return;
+  // (the target is named a screen in the output colour space AFTER its storage is made, as steady.js does: the shader programs
+  // then are the very ones the screen uses; a plain target would compile a second set of them, measured: up to 2.7 s a tile)
+  if (!warmReady) { const t = renderer.getRenderTarget(); renderer.setRenderTarget(warmTarget); renderer.setRenderTarget(t); warmTarget.isXRRenderTarget = true; warmTarget.texture.colorSpace = renderer.outputColorSpace; warmReady = true; }
+  scene.traverse((o) => { if (o.isLight) o.layers.enable(1); });
+  const was = obj.visible, sm = renderer.shadowMap, auto = sm.autoUpdate, need = sm.needsUpdate, culled = [];
+  obj.visible = true;
+  obj.traverse((o) => { o.layers.enable(1); if (o.isMesh && o.frustumCulled) { o.frustumCulled = false; culled.push(o); } });
+  sm.autoUpdate = false; sm.needsUpdate = false;
+  warmCamera.copy(camera, false); warmCamera.layers.set(1);
+  const target = renderer.getRenderTarget();
+  try { renderer.setRenderTarget(warmTarget); renderer.render(scene, warmCamera); }
+  finally { renderer.setRenderTarget(target); sm.autoUpdate = auto; sm.needsUpdate = need; obj.visible = was; for (const o of culled) o.frustumCulled = true; }
+}
+const introFlight = window.__intro = { flight: null }, NO_AHEAD = [];   // (the opening flight, below: its state, and the places ahead of it)
 const tilesReady = (async () => {
   try {
     const t = new TileStreamer({ scene, camera, manifestUrl,
       onShow: (ids) => setHidden(ids, true), onHide: (ids) => setHidden(ids, false), onFade: fadeBuildings,
       // the camera's collision tops from the model (#529), and the plain blocks the model stands over (covers.js)
+      warm: warmOnGpu,
       prepare: (obj, def, s) => { exactPrepare(obj, def); glassPrepare(obj); clayPrepare(obj, def, renderer); nightGlass(obj); if (field.ready) field.addTile(obj, def, t.manifest.buildings || {}); coverOf(obj, def, s); },
       onChange: () => { dirty = true; sun.shadow.needsUpdate = true; labels.occGen = (labels.occGen || 0) + 1; labels.dirty = true; }, onAnimate: () => { dirty = true; } });
     if (params.get('fade') === '0') t.instant = true;
@@ -1506,7 +1534,15 @@ function frame(now) {
   wasMoving = moving; shadowMovingNow = moving;
   if (moved) { markers.update(); if (!easing) map.fire('move'); }
   if (frameLog.on && frameLog.orbit) { orbitStep(); }
-  if (tiles) tiles.update(now);
+  if (tiles) {
+    const F = introFlight.flight;
+    if (F) {   // (no opening flight, ?intro=0: the three stay as they are; scripts/verify/v2-tiles-ahead.mjs sets them itself)
+      const on = INTRO.lookAhead && (F.state === 'primed' || F.state === 'flying');
+      tiles.ahead = on ? F.ahead : NO_AHEAD; tiles.cruise = on && F.state === 'flying'; tiles.rush = INTRO.lookAhead && F.state === 'primed';
+      tiles.hold = on && F.leg < 2;   // (the tiles ahead stay out of the scene until the second leg starts: tiles.js start())
+    }
+    tiles.update(now);
+  }
   if (moved || mapLayers.dirty) { mapLayers.dirty = false; mapLayers.update(); }
   labels.update(now);
   if (!(moved || dirty || steadySoft || frameLog.on)) return;
@@ -1534,22 +1570,28 @@ function orbitStep() {
 // ── the loading screen (js/loader.js, the old app's, unchanged) and the opening flight ──────────────────────
 // The loading card reads "the map" through these few names (loader.js readings()): the streets and plain city are in, the
 // Blender buildings in view are standing (counted per building), the light is drawn. Every number is v2's own, measured.
-const inViewTiles = () => tiles ? [...tiles.tiles.values()].filter((s) => s.want && s.inView) : [];
+const inViewTiles = () => tiles ? [...tiles.tiles.values()].filter((s) => s.want && s.inView && !s.aheadOnly) : [];   // (not the tiles that only a place ahead on the flight wants: the screen does not wait for those)
 const tilesSettled = () => !!tiles && !!tiles.last && inViewTiles().every((s) => s.have);
 let cityDone = false;
 cityReady.then(() => { cityDone = true; });
 map.tilesLoaded = () => cityDone && tilesSettled();
+// (the card's count of buildings takes in the tiles the flight loads ahead: its number keeps rising while the screen waits for them)
+const aheadTile = (s) => s.aheadOnly || (s.want === 'lod0' && s.here !== 'lod0'), inHand = (s) => (s.want === 'lod0' ? !!s.full : !!(s.far || s.full));
+const cardTiles = () => tiles ? [...tiles.tiles.values()].filter((s) => s.want && (aheadTile(s) || s.inView)) : [];
 window.slopesApartments = {
-  data: { get buildings() { return { length: inViewTiles().reduce((n, s) => n + (s.def.buildings || []).length, 0) }; } },
-  count: { get names() { return { length: inViewTiles().reduce((n, s) => n + (s.have ? (s.def.buildings || []).length : 0), 0) }; } },
+  data: { get buildings() { return { length: cardTiles().reduce((n, s) => n + (s.def.buildings || []).length, 0) }; } },
+  count: { get names() { return { length: cardTiles().reduce((n, s) => n + ((aheadTile(s) ? inHand(s) : s.have) ? (s.def.buildings || []).length : 0), 0) }; } },
   readyToReveal: () => true,
 };
 window.CityLighting = { get stats() { return { draws: frames > 0 ? 1 : 0, failures: [] }; } };
 
-const introFlight = window.__intro = { flight: null };
 function primeIntro() {
   const F = introFlight.flight = { state: 'primed', leg: 0, cancelledBy: null };
   map.jumpTo(INTRO.start);
+  // The flight's path is known, so its tiles load BEFORE the camera gets to them (tiles.js ahead): while the loading screen is
+  // still up and in the slow first leg, not under the fast second leg. The last place is where the camera stops.
+  F.ahead = [...INTRO.ahead1.map((e) => map.poseBetween(INTRO.start, INTRO.crest, e)), ...INTRO.ahead2.map((e) => map.poseBetween(INTRO.crest, INTRO.end, e))]
+    .map((pose, i, all) => ({ p: map.eyeOf(pose), rest: i === all.length - 1 }));
   const cancel = (why) => { if (F.state === 'done' || F.state === 'cancelled') return; F.state = 'cancelled'; F.cancelledBy = why; map.stop(); };
   controls.addEventListener('start', () => cancel('input'));
   const leg = (n) => {
@@ -1581,11 +1623,16 @@ function skipIntro() {
 }
 if (INTRO.on) {
   intro = primeIntro();
-  const t0 = performance.now();
+  const t0 = performance.now(), aheadWaitMs = params.has('aheadwait') ? +params.get('aheadwait') : INTRO.aheadWaitMs;
+  let hereAt = 0;
   const gate = setInterval(() => {
     const ms = performance.now() - t0;
     if (!$('veil')) { clearInterval(gate); return; }
-    if ((map.tilesLoaded() && frames > 0 && ms >= INTRO.minVeilMs) || ms >= INTRO.maxVeilMs) { clearInterval(gate); liftVeil(ms >= INTRO.maxVeilMs ? 'ceiling' : 'ready'); }
+    const here = map.tilesLoaded() && frames > 0 && ms >= INTRO.minVeilMs;
+    if (here && !hereAt) hereAt = ms;
+    // ...and for the tiles of the places ahead on the flight, but no longer than aheadWaitMs more
+    const ahead = !INTRO.lookAhead || !tiles || [...tiles.tiles.values()].every((s) => !s.want || inHand(s)) || ms - hereAt >= aheadWaitMs;
+    if ((here && ahead) || ms >= INTRO.maxVeilMs) { clearInterval(gate); timings.aheadWait = hereAt ? ms - hereAt : 0; liftVeil(ms >= INTRO.maxVeilMs ? 'ceiling' : 'ready'); }
   }, 200);
 } else skipIntro();
 
