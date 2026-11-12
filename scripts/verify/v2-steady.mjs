@@ -69,7 +69,7 @@ const r = on.steady ? await page.evaluate(async ({ MOTION_FRAMES, MOVE_M, TURN_M
   out.still = diff(stillA, truthA);
   // carry: the kept picture of A, moved to B, taking nothing new
   pose(A); still(); pose(B);
-  { const h = S.HIT, m = S.MISS, f = S.HIT_FAST, g = S.MISS_FAST; S.HIT = S.MISS = S.HIT_FAST = S.MISS_FAST = 0; real(0.5, true, false); S.HIT = h; S.MISS = m; S.HIT_FAST = f; S.MISS_FAST = g; }
+  { const h = S.HIT, m = S.MISS, f = S.FAST_SHARE; S.HIT = S.MISS = S.FAST_SHARE = 0; real(0.5, true, false); S.HIT = h; S.MISS = m; S.FAST_SHARE = f; }
   const carried = luma(read()); shot('carried_A_to_B');
   const truthB = truth();
   out.carry = diff(carried, truthB); out.uncarried = diff(stillA, truthB);

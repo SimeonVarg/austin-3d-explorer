@@ -23,7 +23,15 @@
 // there is no clamp of colours and no ghost of a moving thing. Three things were learned the first night (2026-11-11), each from
 // a picture that was wrong, and each is a rule here: the ground needs a depth (above); a pixel beside an edge must find its OWN
 // surface, not take the nearest sample's (the ground around every tree smeared); and where the picture moves fast or a wall
-// grows on the screen the kept picture cannot gather detail, so there the new frame counts for more (FAST_PX, GROWN).
+// grows on the screen the kept picture cannot gather detail (FAST_PX, GROWN).
+//
+// The fast part of the opening flight taught three more (2026-11-12). There the camera moves 40 to 80 m a FRAME: the view of a
+// surface changes so much in a few frames that a kept picture older than that is of little worth, and each carry reads it
+// between its pixels (thin lines go pale). (1) Giving the new sample more weight in its own pixel than around it then drew a
+// dot pattern on every fine thing (hit pixels fresh, the rest pale) and stair steps on every edge: so in fast parts the small
+// frame is read smoothly and mixed in evenly (FAST_SHARE); the shifts from frame to frame still smooth the edges. It is softer
+// than a slow part, and clean. (2) The depth test must be tight (TOL), and for that (3) each pixel needs its OWN depth, not the
+// nearest sample's (see the resolve pass).
 //
 // The small frame is drawn into a target that three.js treats as a screen (tone mapping, sRGB), so every material patch in the
 // app behaves as on the canvas and the target holds display values. The kept picture holds display values too, but each new
@@ -35,13 +43,13 @@
 export const STEADY = {
   HIT: 0.40,          // motion: the share of a new sample in the full-size pixel it lies in the middle of
   MISS: 0.0,          // motion: its share in a full-size pixel it is far from
-  FAST_PX: [8, 24],   // motion: a point that moved this many full-size pixels since the last frame (from, to) goes over to...
-  HIT_FAST: 0.7,      // ...this share of a new sample in its own pixel...
-  MISS_FAST: 0.25,    // ...and this share in a pixel it is far from
+  FAST_PX: [8, 24],   // motion: where a point moved this many full-size pixels since the last frame (from, to), the picture goes over to...
+  FAST_SHARE: 0.6,    // ...the small frame read SMOOTHLY at the pixel's own place, mixed in at this share in every pixel alike
   GROWN: [0.6, 0.9],  // the same where the kept picture is stretched: one kept pixel for this share of a pixel (to, from) or less
   KERNEL: 8.0,        // how fast the share falls with the distance to the sample (exponent a small pixel squared)
   CUBIC: 0.75,        // how sharp the kept picture is read between its pixels (0.5 = Catmull-Rom; more = sharper, with more overshoot)
-  TOL: 0.02,          // a kept sample is good when its depth is the depth its surface had, give or take this share...
+  TOL: 0.005,         // a kept sample is good when its depth is the depth its surface had, give or take this share (it was 0.02: at the
+                      // flight's speed a crown and the ground behind it are nearer than that, and every crown left a trail)...
   SLOPE: 1.5,         // ...and this many small pixels of the surface's own slope (a ground seen flat changes depth fast from pixel to pixel)
   JITTER: 16,         // length of the shift sequence in motion
   SPREAD: 1,          // 1: inside its quarter of the small pixel the sample moves from run to run (smooth edges); 0: always the quarter's middle
@@ -78,25 +86,22 @@ export function installSteady({ THREE, renderer, scene, camera }) {
   const ocam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), oscene = new THREE.Scene();
   const pass = (uniforms, fragmentShader) => new THREE.ShaderMaterial({ depthTest: false, depthWrite: false, toneMapped: false, uniforms, vertexShader: VS, fragmentShader });
 
-  // range: view depth (metres along the camera's axis) of each small pixel, and the least and the most among it and its 8 neighbours
+  // range: for each small pixel the least and the most view depth (metres along the camera's axis) among it and its 8
+  // neighbours, and its own surface's slope
   const rangeMat = pass({ tDepth: { value: null }, uRow: { value: new THREE.Vector4() }, uSmall: { value: new THREE.Vector2() }, uReversed: { value: reversed ? 1 : 0 }, uFar: { value: STEADY.FAR_M },
-    uInv: { value: new THREE.Matrix4() }, uCamY: { value: 0 }, uShift: { value: new THREE.Vector2() } }, `
+    uGround: { value: new THREE.Vector3() }, uFarW: { value: 1 }, uShift: { value: new THREE.Vector2() } }, `
     precision highp float;
-    uniform sampler2D tDepth; uniform vec4 uRow; uniform vec2 uSmall, uShift; uniform float uReversed, uFar, uCamY; uniform mat4 uInv;
+    uniform sampler2D tDepth; uniform vec4 uRow; uniform vec3 uGround; uniform vec2 uSmall, uShift; uniform float uReversed, uFar, uFarW;
     float viewDepth(ivec2 p) {
       float d = texelFetch(tDepth, p, 0).r;
-      vec2 ndc = (vec2(p) + 0.5) / uSmall * 2.0 - 1.0;
-      float z = mix(d * 2.0 - 1.0, d, uReversed), w = 1.0 / max(dot(uRow, vec4(ndc, z, 1.0)), 1e-9);
       // Nothing wrote a depth here: the sky, or the GROUND. The ground and all that lies flat on it (the aerial photograph, the
       // streets, the markings) are drawn as layers with no depth of their own. The world's ground is the plane y = 0, so its
-      // depth is known: where this pixel's line of sight goes down, it meets the ground at the share camY / (camY - farY) of the
-      // way to the far plane, and depth along the camera's axis grows evenly along a line of sight.
+      // depth is known: 1 / depth of the plane changes evenly over the screen (uGround, see render()).
       if (d == 1.0 - uReversed) {
-        vec4 far = uInv * vec4(ndc - uShift, z, 1.0);
-        float fy = far.y / far.w;
-        if (fy < 0.0) w *= uCamY / (uCamY - fy);
+        float ig = dot(uGround, vec3((vec2(p) + 0.5) / uSmall * 2.0 - 1.0 - uShift, 1.0));
+        return ig * uFarW > 1.0 ? 1.0 / ig : uFarW;
       }
-      return w;
+      return 1.0 / max(dot(uRow.zw, vec2(mix(d * 2.0 - 1.0, d, uReversed), 1.0)), 1e-9);
     }
     void main() {
       ivec2 p = ivec2(gl_FragCoord.xy), hi = ivec2(uSmall) - 1;
@@ -107,20 +112,26 @@ export function installSteady({ THREE, renderer, scene, camera }) {
         if (j == 0) { if (i < 0) l = v; else r = v; }
         if (i == 0) { if (j < 0) d = v; else u = v; }
       }
-      // the surface's own slope: its depth change over one small pixel, on the smoother side of each axis (the other side may be an edge)
-      float slope = min(abs(c - l), abs(c - r)) + min(abs(c - u), abs(c - d));
-      gl_FragColor = vec4(min(vec3(mn, mx, c), vec3(uFar)), slope / c);
+      // the surface's own slope, as the change of 1 / depth over one small pixel along each axis (a share of 1 / depth). Across a
+      // flat surface 1 / depth changes EVENLY over the screen, so with this the depth of any point inside the small pixel is known
+      // exactly (the resolve pass needs that: at the flight's speed a depth 0.1 % off puts a kept sample a quarter pixel off).
+      // The smoother side of each axis is taken: the other side may be an edge.
+      float ic = 1.0 / c;
+      vec2 a = vec2(1.0 / r - ic, 1.0 / u - ic), b = vec2(ic - 1.0 / l, ic - 1.0 / d);
+      vec2 g = mix(a, b, step(abs(b), abs(a))) * c;
+      gl_FragColor = vec4(min(vec2(mn, mx), vec2(uFar)), g);
     }`);
 
   const resolveMat = pass({
-    tNow: { value: null }, tRange: { value: null }, tHist: { value: null },
-    uCarry: { value: new THREE.Matrix4() }, uRow: { value: new THREE.Vector4() }, uHitBox: { value: 0.25 }, uSlope: { value: 1 }, uFast: { value: new THREE.Vector2() }, uGrown: { value: new THREE.Vector2() }, uLoose: { value: new THREE.Vector2() }, uRest: { value: new THREE.Vector3(-1, 0, 0) },
+    tNow: { value: null }, tRange: { value: null }, tHist: { value: null }, tDepth: { value: null },
+    uGround: { value: new THREE.Vector3() }, uFarW: { value: 1 }, uReversed: { value: reversed ? 1 : 0 },
+    uCarry: { value: new THREE.Matrix4() }, uRow: { value: new THREE.Vector4() }, uHitBox: { value: 0.25 }, uSlope: { value: 1 }, uFast: { value: new THREE.Vector2() }, uGrown: { value: new THREE.Vector2() }, uFastShare: { value: 0 }, uRest: { value: new THREE.Vector3(-1, 0, 0) },
     uJitter: { value: new THREE.Vector2() }, uSmall: { value: new THREE.Vector2() }, uFull: { value: new THREE.Vector2() },
     uFirst: { value: 1 }, uHit: { value: 0 }, uMiss: { value: 0 }, uKernel: { value: 0 }, uTol: { value: 0 }, uFar: { value: 0 }, uDebug: { value: 0 }, uCubic: { value: 0.5 },
   }, `
     precision highp float;
-    uniform sampler2D tNow, tRange, tHist; uniform mat4 uCarry; uniform vec4 uRow;
-    uniform vec2 uJitter, uSmall, uFull; uniform float uFirst, uHit, uMiss, uKernel, uTol, uFar, uDebug, uCubic, uHitBox, uSlope; uniform vec2 uFast, uGrown, uLoose; uniform vec3 uRest; varying vec2 vUv;
+    uniform sampler2D tNow, tRange, tHist, tDepth; uniform mat4 uCarry; uniform vec4 uRow; uniform vec3 uGround; uniform float uFarW, uReversed;
+    uniform vec2 uJitter, uSmall, uFull; uniform float uFirst, uHit, uMiss, uKernel, uTol, uFar, uDebug, uCubic, uHitBox, uSlope; uniform vec2 uFast, uGrown; uniform float uFastShare; uniform vec3 uRest; varying vec2 vUv;
     // the kept picture between its pixels: Catmull-Rom from five taps (the four corner taps of the nine are left out). It gives
     // the colour held to the range of the five (no ringing that could feed on itself), and in .a the kept depth near the centre
     vec4 kept(vec2 uv) {
@@ -147,17 +158,36 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       ivec2 ip = ivec2(clamp(sp, vec2(0.5), uSmall - 0.5));
       vec2 f = sp - (vec2(ip) + 0.5);
       vec3 cNew = texelFetch(tNow, ip, 0).rgb;                   // a display value
-      vec4 rng = texelFetch(tRange, ip, 0);                     // least, most, own view depth of the sample and its 8 neighbours; a = the surface's slope (share of its depth a small pixel)
+      vec4 rng = texelFetch(tRange, ip, 0);                     // least and most view depth of the sample and its 8 neighbours; ba = its surface's slope (see the range pass)
       bool hit = max(abs(f.x), abs(f.y)) < uHitBox;             // the sample lies inside this full-size pixel
+      // THIS pixel's own depth, exactly. The flight moves the camera 40 to 80 m a frame: a point 900 m away then moves 240
+      // full-size pixels against the far ground, so a depth that is 0.1 % wrong puts the kept sample a quarter of a pixel off,
+      // each frame another way, and the kept picture goes pale and dotted (measured 2026-11-12: that was the whole fault of the
+      // fast part of the flight). So the depth is not the nearest sample's. Where nothing wrote a depth the pixel shows the
+      // ground or the sky, and the ground is the plane y = 0: its depth along this pixel's own line of sight is known. Elsewhere
+      // it is the sample's depth carried along the sample's surface to this pixel's centre (1 / depth changes evenly over the
+      // screen on a flat surface), from the depth buffer itself: a half-float copy of a depth is only good to 0.05 %.
+      float dRaw = texelFetch(tDepth, ip, 0).r, sample0, mine;
+      vec2 ndc = vUv * 2.0 - 1.0;
+      if (dRaw == 1.0 - uReversed) {
+        float ig = dot(uGround, vec3(ndc, 1.0));
+        mine = ig * uFarW > 1.0 ? 1.0 / ig : uFarW;
+        sample0 = mine;
+      } else {
+        float iw = max(dot(uRow.zw, vec2(mix(dRaw * 2.0 - 1.0, dRaw, uReversed), 1.0)), 1e-9);
+        sample0 = 1.0 / iw;
+        mine = clamp(1.0 / max(iw * (1.0 + dot(rng.ba, f)), 1e-9), rng.r, rng.g);
+      }
+      mine = min(mine, uFar); sample0 = min(sample0, uFar);
       // WHICH surface does this pixel show, and is the kept picture of it still good? The pixel asks the kept picture: under the
-      // sample's depth, was there a surface of that depth at the place this point comes from? If yes, that kept pixel shows the
+      // sample's surface, was there a surface of that depth at the place this point comes from? If yes, that kept pixel shows the
       // same surface: it is good. If not (next to an edge the nearest sample can be of the other surface: a crown beside the
       // ground under it), the same question for the farthest and the nearest depth among the sample's neighbours. A depth that
       // fits names this pixel's surface. No depth fits where something came into view: there the kept picture is dropped.
       // (Before, a kept depth anywhere between the neighbours' depths counted as good: at speed that left a trail of every
       // building on the ground it uncovered. And the nearest sample's depth alone smeared the ground around every tree.)
-      vec4 q0 = uCarry * vec4(vUv * 2.0 - 1.0, 0.0, 1.0);
-      float own = rng.b, tol = uTol + uSlope * rng.a;
+      vec4 q0 = uCarry * vec4(ndc, 0.0, 1.0);
+      float own = mine, tol = uTol + uSlope * (abs(rng.b) + abs(rng.a));
       vec3 p = past(q0, own);
       // how far this point moved on the screen since the last frame (full-size pixels), and whether the kept picture is being
       // stretched here (a wall that turns toward the camera grows on the screen: one kept pixel must fill several)
@@ -165,7 +195,7 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       float moved = length(was - vUv * uFull), grown = min(length(dFdx(was)), length(dFdy(was)));
       vec4 h = kept(p.xy);
       float bad = miss(h.a, p.z);
-      if (bad > tol && rng.g - rng.r > rng.b * uTol) {
+      if (bad > tol && rng.g - rng.r > sample0 * uTol) {
         vec3 pf = past(q0, rng.g), pn = past(q0, rng.r);
         float bf = miss(texture2D(tHist, pf.xy).a, pf.z), bn = miss(texture2D(tHist, pn.xy).a, pn.z);
         if (bf < bad || bn < bad) {
@@ -176,11 +206,12 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       float ok = (p.z > 0.0 && p.x > 0.0 && p.y > 0.0 && p.x < 1.0 && p.y < 1.0 && bad <= tol) ? 1.0 - uFirst : 0.0;
       // the new sample is mixed in where it lies (always: on an edge that is what smooths it), and in the pixels around it only
       // when they show the same surface
-      // Where the picture moves fast, or the kept picture is stretched, it cannot gather detail: there the new frame counts
-      // for more, and a sample also feeds the pixels around it (a smooth small picture, as the canvas showed in motion before).
+      // Where the picture moves fast, or the kept picture is stretched, it cannot gather detail. There the small frame is read
+      // smoothly at this pixel's own place and mixed in at one share in every pixel (see the top of the file).
       float loose = max(smoothstep(uFast.x, uFast.y, moved), 1.0 - smoothstep(uGrown.x, uGrown.y, grown));
       float near = exp(-uKernel * dot(f, f));
-      float share = (hit || abs(own - rng.b) <= rng.b * uTol) ? mix(mix(uMiss, uHit, near), mix(uLoose.y, uLoose.x, near), loose) : 0.0;
+      float share = (hit || own == mine) ? mix(uMiss, uHit, near) : 0.0;
+      vec3 cSoft = (loose > 0.0 || ok < 0.5) ? textureLod(tNow, uvN, 0.0).rgb : cNew;
       // at rest: did this pixel's content change? Then the kept value lies outside all that the new frame holds around the pixel
       // (a shifted sample of an edge or of a fine pattern that did NOT change always has the kept mean inside that range)
       if (uRest.x >= 0.0 && ok > 0.5) {
@@ -193,12 +224,13 @@ export function installSteady({ THREE, renderer, scene, camera }) {
         if (any(lessThan(h.rgb, lo - pad)) || any(greaterThan(h.rgb, hi + pad))) share = uRest.x;
       }
       // samples are added up as LIGHT (display value squared), the kept picture holds display values
-      vec3 outc = ok > 0.5 ? sqrt(mix(h.rgb * h.rgb, cNew * cNew, share)) : texture2D(tNow, uvN).rgb;
-      if (uDebug > 1.5) outc = vec3(clamp(bad * 5.0, 0.0, 1.0), clamp(tol * 5.0, 0.0, 1.0), abs(own - rng.b) > rng.b * uTol ? 1.0 : 0.0);   // (tests: red = how badly the kept depth fits (1 = 20 %), green = the room it has, blue = another surface than the sample's)
+      vec3 cIn = mix(cNew, cSoft, loose);
+      vec3 outc = ok > 0.5 ? sqrt(mix(h.rgb * h.rgb, cIn * cIn, mix(share, uFastShare, loose))) : cSoft;
+      if (uDebug > 1.5) outc = vec3(clamp(bad * 5.0, 0.0, 1.0), clamp(tol * 5.0, 0.0, 1.0), own != mine ? 1.0 : 0.0);   // (tests: red = how badly the kept depth fits (1 = 20 %), green = the room it has, blue = another surface than the sample's)
       else if (uDebug > 0.5) outc = mix(outc, vec3(1.0, 0.0, 0.0), 0.6 * (1.0 - ok));
       // .a = this pixel's depth, never under 1: the kept picture is copied to the canvas as it is, and the canvas reads .a as
       // its alpha (a wall half a metre from the eye must not make the page see-through)
-      gl_FragColor = vec4(outc, clamp(ok > 0.5 && !hit ? own : rng.b, 1.0, uFar));
+      gl_FragColor = vec4(outc, clamp(ok > 0.5 && !hit ? own : mine, 1.0, uFar));
     }`);
   const showMat = pass({ tHist: { value: null } },
     'precision highp float; uniform sampler2D tHist; void main() { gl_FragColor = vec4(texelFetch(tHist, ivec2(gl_FragCoord.xy), 0).rgb, 1.0); }');
@@ -206,7 +238,7 @@ export function installSteady({ THREE, renderer, scene, camera }) {
 
   let blitBroken = false;
   let small = null, range = null, hist = [null, null], cur = 0, first = true, frame = 0, rest = 0, settle = 0, restShift = 0, worth = 0, wasMoving = true;
-  const prevVP = new THREE.Matrix4(), vp = new THREE.Matrix4(), inv = new THREE.Matrix4(), size = new THREE.Vector2();
+  const prevVP = new THREE.Matrix4(), vp = new THREE.Matrix4(), inv = new THREE.Matrix4(), size = new THREE.Vector2(), ground = new THREE.Vector3();
   const stats = { frames: 0, resets: 0, small: [0, 0], full: [0, 0], rest: 0 };
   function targets(w, h, W, H) {
     if (!small || small.width !== w || small.height !== h) {
@@ -259,6 +291,10 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       vp.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);      // the camera without the shift
       inv.copy(vp).invert();
       const e = inv.elements, auto = renderer.info.autoReset;
+      // the ground plane y = 0 as 1 / (view depth) over the screen: a point on the line of sight through (x, y) (-1 .. 1), w metres
+      // along the camera's axis, is eye + w (forward + x tanX right + y tanY up); its height is 0 where 1 / w = ground . (x, y, 1)
+      { const m = camera.matrixWorld.elements, pm = camera.projectionMatrix.elements, cy = m[13];
+        if (cy > 1e-3) ground.set(-m[1] / pm[0] / cy, -m[5] / pm[5] / cy, m[9] / cy); else ground.set(0, 0, 0); }
       renderer.info.autoReset = false; renderer.info.reset();                         // (one frame's counts = all its passes)
       camera.setViewOffset(w, h, jx, jy, w, h); camera.updateProjectionMatrix();
       PX.d = STEADY.RULES_FULL * (w / W - 1);
@@ -268,16 +304,17 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       const jit = [-jx / w, jy / h], stop = STEADY.STOP_AFTER || 9;   // (STOP_AFTER: a test's knob, to time the passes one by one)
       let u = rangeMat.uniforms;
       u.tDepth.value = small.depthTexture; u.uRow.value.set(e[3], e[7], e[11], e[15]); u.uSmall.value.set(w, h); u.uFar.value = STEADY.FAR_M;
-      u.uInv.value.copy(inv); u.uCamY.value = camera.matrixWorld.elements[13]; u.uShift.value.set(2 * jit[0], 2 * jit[1]);   // (the small frame is shifted: its pixel p looks along the unshifted camera's direction (p - shift))
+      u.uGround.value.copy(ground); u.uFarW.value = camera.far; u.uShift.value.set(2 * jit[0], 2 * jit[1]);   // (the small frame is shifted: its pixel p looks along the unshifted camera's direction (p - shift))
       if (stop >= 2) { mesh.material = rangeMat; renderer.setRenderTarget(range); renderer.render(oscene, ocam); }
       const next = 1 - cur; u = resolveMat.uniforms;
-      u.tNow.value = small.texture; u.tRange.value = range.texture; u.tHist.value = hist[cur].texture;
+      u.tNow.value = small.texture; u.tRange.value = range.texture; u.tHist.value = hist[cur].texture; u.tDepth.value = small.depthTexture;
+      u.uGround.value.copy(ground); u.uFarW.value = camera.far;
       u.uCarry.value.multiplyMatrices(first || !moving ? vp : prevVP, inv); u.uRow.value.set(e[3], e[7], e[11], e[15]); u.uHitBox.value = 0.5 * w / W;
       u.uJitter.value.set(jit[0], jit[1]); u.uSmall.value.set(w, h); u.uFull.value.set(W, H); u.uFirst.value = first ? 1 : 0;
       const still = 1 / (worth + 1);
       u.uHit.value = moving ? STEADY.HIT : still; u.uMiss.value = moving ? STEADY.MISS : still; u.uKernel.value = STEADY.KERNEL;
       u.uRest.value.set(moving ? -1 : STEADY.REST_BLEND, STEADY.REST_PAD[0], STEADY.REST_PAD[1]);
-      u.uTol.value = STEADY.TOL; u.uSlope.value = STEADY.SLOPE; u.uFast.value.fromArray(moving ? STEADY.FAST_PX : [1e6, 2e6]); u.uGrown.value.fromArray(moving ? STEADY.GROWN : [-2, -1]); u.uLoose.value.set(STEADY.HIT_FAST, STEADY.MISS_FAST); u.uFar.value = STEADY.FAR_M; u.uCubic.value = STEADY.CUBIC; u.uDebug.value = STEADY.DEBUG || 0;
+      u.uTol.value = STEADY.TOL; u.uSlope.value = STEADY.SLOPE; u.uFast.value.fromArray(moving ? STEADY.FAST_PX : [1e6, 2e6]); u.uGrown.value.fromArray(moving ? STEADY.GROWN : [-2, -1]); u.uFastShare.value = STEADY.FAST_SHARE; u.uFar.value = STEADY.FAR_M; u.uCubic.value = STEADY.CUBIC; u.uDebug.value = STEADY.DEBUG || 0;
       if (stop >= 3) { mesh.material = resolveMat; renderer.setRenderTarget(hist[next]); renderer.render(oscene, ocam); }
       if (stop < 4) renderer.setRenderTarget(null);
       else if (STEADY.BLIT && !blitBroken) {
