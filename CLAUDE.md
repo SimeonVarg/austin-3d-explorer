@@ -127,6 +127,11 @@ memory and is never written here, in any tracked file, or in a commit message.
       second leg slower, while both measured as gains at ratio 2. A second screen kind is a second run, never the only one;
       every number is written with its screen size. And a number that says "equal" is not a look: open the frames at true
       pixel size, at his size, before a claim.
+    - **A copy that stands in for a model is tested per OBJECT, never by a whole-frame average.** (2026-11-12, #679.) The
+      far copies went live after a test that said "under 1 of 255 on average". One building drawn as a dark blotched block,
+      black shards on one roof and a green field gone pale are nothing in such an average. The test of a stand-in (a far
+      copy, a card for a tree, a simpler mesh) draws each object both ways from where the stand-in is used, measures over
+      that object's own pixels, and a person looks at the worst ones (`scripts/verify/v2-far-scan.mjs`).
     - **Before a speed job, measure the cheapest possible frame.** (2026-11-11, #674.) One flat material at the canvas's
       full size, no multisampling, took 10 to 12 ms on the owner's Mac; the real materials took 52 to 58 ms; the canvas's
       own multisampling was 10 ms of a 32 ms frame. So the triangles were never the cost, and no cut of triangles could
@@ -303,6 +308,11 @@ memory and is never written here, in any tracked file, or in a commit message.
     - **Do not sit on CI.** Push, keep working, and merge when the checks finish.
     - **Timebox.** A lane that has gone about 90 minutes without a result stops
       and writes down what blocks it.
+    - **The clean still (2026-11-12, #680; `v2/rest.js`).** On the multisampled path the app adds up 16 shifted frames when the
+      camera rests. For a tool this means: a person's page keeps drawing for about a second after a stop and its still is
+      then the mean of 64 samples a pixel, but a page under a test driver has it OFF (so every check reads the plain still,
+      as before). A tool that must see what a person sees opens the page with `?rest=1` and waits until
+      `__v2.rest().more()` is false.
     - **The steady picture is for a screen with 2 canvas pixels per CSS pixel. It is NOT how the owner's screen draws**
       (corrected 2026-11-12, #677: his monitor has one canvas pixel per CSS pixel, the canvas never shrinks there, and the
       steady picture made motion softer; it is off at that ratio). (2026-11-11, #674; `v2/steady.js`.) On a GPU that cannot hold the

@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { FlyControls, CollisionField, FLY } from './flycam.js';
 import { LOOK, QUALITY, FAST, PHONE_QUERY } from './look.js';
 import { installSteady, STEADY, PX } from './steady.js';
+import { installRest, REST } from './rest.js';
 import { ORIGIN, setOrigin, toLocal, toLonLat } from './geo.js';
 import { TileStreamer, TILES, FAR, setAOPixelScale } from './tiles.js';
 import { COVER, objectArrays, outlinesNear } from './covers.js';
@@ -1459,6 +1460,12 @@ let adaptKept = adapt.motionScale;
 function keepScale() { if (!ADAPT_KEEP || adapt.motionScale === adaptKept) return; adaptKept = adapt.motionScale; try { localStorage.setItem(ADAPT_KEY, String(adaptKept)); } catch (e) {} }
 // the steady picture (steady.js) and "draw one more frame of it" (a frame it asks for itself, or a change of the small frame's size)
 const steady = STEADY_ON ? installSteady({ THREE, renderer, scene, camera }) : null;
+// The clean still (rest.js): on the multisampled path, when the camera rests, shifted frames are added up into a mean of many
+// samples a pixel. Fast mode only (a phone keeps its memory and its battery). Not under a test driver: the verify scripts read
+// stills at moments of their own (?rest=1 turns it on there, ?rest=0 off everywhere).
+const REST_ON = !STEADY_ON && (params.has('rest') ? params.get('rest') !== '0' : FAST && !navigator.webdriver);
+const rest = REST_ON ? installRest({ THREE, renderer, scene, camera }) : null;
+let restFrom = 0;   // when the camera and the content last changed
 let steadySoft = false;
 function setScale(s) {
   s = THREE.MathUtils.clamp(s, adapt.floor, 1);
@@ -1522,7 +1529,12 @@ function frame(now) {
   }
   if (moved || mapLayers.dirty) { mapLayers.dirty = false; mapLayers.update(); }
   labels.update(now);
-  if (!(moved || dirty || steadySoft || frameLog.on)) return;
+  if (!(moved || dirty || steadySoft || frameLog.on)) {
+    // nothing changed: one more frame of the clean still, until it is complete
+    if (rest && rest.more() && now - restFrom >= REST.WAIT_MS) { rest.render(); frames++; }
+    return;
+  }
+  if (rest) { rest.reset(); restFrom = now; }
   const changed = dirty && !moving;   // (the content changed with the camera at rest: the steady picture starts its still again)
   dirty = false; steadySoft = false;
   followShadow(moving);
@@ -1663,7 +1675,7 @@ import('./finder-boot.js').catch((e) => console.warn('[v2] finder', e.message));
 const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; };
 const pct = (a, p) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * p))] : null; };
 window.__v2 = {
-  THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FAR, STEADY, steady: () => steady, FLY, fly: () => controls.state(), field, COVER, coverStats, tileStreamer: () => tiles,
+  THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FAR, STEADY, steady: () => steady, REST, rest: () => rest, FLY, fly: () => controls.state(), field, COVER, coverStats, tileStreamer: () => tiles,
   ready: Promise.all([cityReady, tilesReady, routeReady, wires, lamps]),
   tiles: () => tiles && tiles.summary(),
   exactProbe: () => {
