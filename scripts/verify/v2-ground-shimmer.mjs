@@ -28,7 +28,7 @@ const browser = await launch(chromium, { args: HW_ARGS, maxMs: 1800000 });
 const ctx = await browser.newContext({ viewport: { width: 800, height: 500 }, deviceScaleFactor: 2 });
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.log('page error:', e.message));
-await page.goto(`${BASE.replace(/\/$/, '')}/${process.env.V2_DIR || 'v2'}/?intro=0`, { waitUntil: 'load', timeout: 120000 });
+await page.goto(`${BASE.replace(/\/$/, '')}/${process.env.V2_DIR || 'v2'}/?intro=0&steady=0`, { waitUntil: 'load', timeout: 120000 });
 await page.waitForFunction(() => window.__v2 && window.__v2.ready && window.__v2groundNear, null, { timeout: 120000 });
 await page.evaluate(() => window.__v2.ready);
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());

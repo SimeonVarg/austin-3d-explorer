@@ -8,23 +8,29 @@
 // picture of the last frame EXACTLY, from its depth and the two cameras. So:
 //
 //   scene, drawn SMALL, shifted by a different part of a pixel each frame (no multisampling)
-//     -> range (small): for each small pixel the nearest and the farthest depth among it and its neighbours
-//     -> resolve (full size): where was this point one frame ago? take the kept picture there; mix the new small sample in,
-//        most where the sample lies inside this full-size pixel
-//     -> show: the kept picture, on the canvas
+//     -> range (small): for each small pixel its depth, the nearest and the farthest depth among it and its neighbours, and its
+//        surface's slope. The GROUND gets its depth here: no ground layer of the app writes depth, and the ground is the plane y = 0
+//     -> resolve (full size): which surface does this pixel show, and where was that point one frame ago? Take the kept picture
+//        there; mix the new small sample in, most where the sample lies inside this full-size pixel
+//     -> the kept picture is copied to the canvas
 //
 // After a few frames every full-size pixel has been sampled at several places inside itself: more detail than one small frame
 // holds, and smooth edges without multisampling. When the camera stops, the same loop adds a few shifted FULL-size frames and
 // the still converges to a supersampled picture, with no canvas resize (a resize was a stop of 150 to 350 ms).
 //
-// What makes the kept picture "still good" at a pixel is depth, not colour: a kept sample is used when its depth is one that is
-// in view near that pixel now (so the two sides of an edge both stay good and the edge keeps its smoothness). It is dropped
-// where something new came into view. Nothing else moves in this world, so there is no clamp of colours and no ghost of a
-// moving thing.
+// What makes the kept picture "still good" at a pixel is depth, not colour: a kept sample is used when its depth is the depth
+// this pixel's surface had one frame ago. It is dropped where something came into view. Nothing else moves in this world, so
+// there is no clamp of colours and no ghost of a moving thing. Three things were learned the first night (2026-11-11), each from
+// a picture that was wrong, and each is a rule here: the ground needs a depth (above); a pixel beside an edge must find its OWN
+// surface, not take the nearest sample's (the ground around every tree smeared); and where the picture moves fast or a wall
+// grows on the screen the kept picture cannot gather detail, so there the new frame counts for more (FAST_PX, GROWN).
 //
 // The small frame is drawn into a target that three.js treats as a screen (tone mapping, sRGB), so every material patch in the
-// app behaves as on the canvas and the target holds display values. The kept picture holds LIGHT (display value squared), so
-// samples are added up as light: the screen clips bright light, and clip(mix) is not mix(clip) (CLAUDE.md rule 10).
+// app behaves as on the canvas and the target holds display values. The kept picture holds display values too, but each new
+// sample is mixed in as LIGHT (display value squared): the screen clips bright light, and clip(mix) is not mix(clip) (CLAUDE.md
+// rule 10). In the small frame every pixel-size rule and mip level acts as for the FULL-size pixel (PX, main.js v2PxD): without
+// that the small frames hold no fine detail to add up (measured: no window rows, sharpness 0.81 of the truth's against 0.93).
+// The check is scripts/verify/v2-steady.mjs (the carry test found two of the three faults above).
 // Every value in STEADY is a tuning or taste value (rule 11).
 export const STEADY = {
   HIT: 0.40,          // motion: the share of a new sample in the full-size pixel it lies in the middle of
@@ -39,8 +45,12 @@ export const STEADY = {
   SLOPE: 1.5,         // ...and this many small pixels of the surface's own slope (a ground seen flat changes depth fast from pixel to pixel)
   JITTER: 16,         // length of the shift sequence in motion
   SPREAD: 1,          // 1: inside its quarter of the small pixel the sample moves from run to run (smooth edges); 0: always the quarter's middle
-  REST_FRAMES: 12,    // shifted full-size frames added after the camera stops
-  REST_KEPT: 1.0,     // the kept picture counts as this many frames when the rest begins
+  REST_FRAMES: 12,    // shifted full-size frames added after the camera stops (a running mean)
+  REST_KEPT: 3.0,     // the kept picture counts as this many frames when that mean begins
+  // The content changed with the camera at rest (a tile came in, a route was drawn): the next SETTLE frames each take REST_BLEND
+  // of the kept picture's place (what was there fades out to under 2 %, and edges stay smooth meanwhile: no frame is shown alone);
+  // then the running mean. While tiles stream in after the opening flight this runs without a break.
+  SETTLE: 8, REST_BLEND: 0.4,
   FAR_M: 6.0e4,       // depths are kept up to this many metres (a half-float's range)
   BLIT: 1,            // the kept picture goes to the canvas by a framebuffer copy (0: by a drawn pass)
   RULES_FULL: 1,      // 1: the small frame's pixel-size rules and mip levels act as for the full-size pixel; 0: as for its own pixel; between: between
@@ -174,7 +184,7 @@ export function installSteady({ THREE, renderer, scene, camera }) {
   const mesh = new THREE.Mesh(tri, rangeMat); mesh.frustumCulled = false; oscene.add(mesh);
 
   let blitBroken = false;
-  let small = null, range = null, hist = [null, null], cur = 0, first = true, frame = 0, rest = 0, restKept = STEADY.REST_KEPT, wasMoving = true;
+  let small = null, range = null, hist = [null, null], cur = 0, first = true, frame = 0, rest = 0, settle = 0, restShift = 0, wasMoving = true;
   const prevVP = new THREE.Matrix4(), vp = new THREE.Matrix4(), inv = new THREE.Matrix4(), size = new THREE.Vector2();
   const stats = { frames: 0, resets: 0, small: [0, 0], full: [0, 0], rest: 0 };
   function targets(w, h, W, H) {
@@ -197,10 +207,10 @@ export function installSteady({ THREE, renderer, scene, camera }) {
   }
   const api = {
     stats,
-    // the next frame starts the kept picture again from nothing (the content changed while the camera stood still)
-    reset() { if (!first) stats.resets++; first = true; },
+    // the next frame starts the kept picture again from nothing
+    reset() { first = true; rest = 0; settle = 0; },
     // true while the still is not yet converged: the caller draws another frame
-    more() { return !wasMoving && rest < STEADY.REST_FRAMES; },
+    more() { return !wasMoving && (settle > 0 || rest < STEADY.REST_FRAMES); },
     target() { return small; },
     // one frame. scale = the small frame's size as a share of the canvas's (linear); moving = the camera moves (or the small
     // frame is still below full size); hard = the content changed with the camera at rest: start the still again
@@ -208,8 +218,10 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       renderer.getDrawingBufferSize(size);
       const W = size.x, H = size.y, w = Math.max(8, Math.round(W * scale)), h = Math.max(8, Math.round(H * scale));
       targets(w, h, W, H);
-      if (hard && !moving) { first = true; stats.resets++; }
-      if (moving) { rest = 0; restKept = STEADY.REST_KEPT; } else if (first || wasMoving) { rest = 0; restKept = first ? 0 : STEADY.REST_KEPT; }
+      if (moving) { rest = 0; settle = 0; }
+      else if (hard) { rest = 0; settle = STEADY.SETTLE; stats.resets++; }
+      else if (wasMoving) rest = 0;
+      const blend = !moving && settle > 0, alone = first;   // (alone: there is no kept picture yet)
       wasMoving = moving;
       // the hooks that follow the camera (the aerial's tiles, the near sets) run for a draw to the screen only: give them their turn
       scene.onBeforeRender(renderer, scene, camera, null);
@@ -221,7 +233,7 @@ export function installSteady({ THREE, renderer, scene, camera }) {
         const k = frame % STEADY.JITTER, qd = QUARTERS[frame % 4], sub = (k >> 2) + 1;
         jx = (qd[0] + (STEADY.SPREAD ? halton(sub, 2) : 0.5)) * 0.5 - 0.5; jy = (qd[1] + (STEADY.SPREAD ? halton(sub, 3) : 0.5)) * 0.5 - 0.5;
       }
-      else if (!(first && rest === 0)) { jx = halton(rest + 1, 2) - 0.5; jy = halton(rest + 1, 3) - 0.5; }   // (a still that starts from nothing starts unshifted)
+      else if (!alone) { restShift = restShift % 64 + 1; jx = halton(restShift, 2) - 0.5; jy = halton(restShift, 3) - 0.5; }   // (a still that starts from nothing starts unshifted)
       camera.updateMatrixWorld();
       vp.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);      // the camera without the shift
       inv.copy(vp).invert();
@@ -241,7 +253,7 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       u.tNow.value = small.texture; u.tRange.value = range.texture; u.tHist.value = hist[cur].texture;
       u.uCarry.value.multiplyMatrices(first || !moving ? vp : prevVP, inv); u.uRow.value.set(e[3], e[7], e[11], e[15]); u.uHitBox.value = 0.5 * w / W;
       u.uJitter.value.set(jit[0], jit[1]); u.uSmall.value.set(w, h); u.uFull.value.set(W, H); u.uFirst.value = first ? 1 : 0;
-      const still = 1 / (rest + 1 + restKept);
+      const still = blend ? STEADY.REST_BLEND : 1 / (rest + 1 + (alone ? 0 : STEADY.REST_KEPT));
       u.uHit.value = moving ? STEADY.HIT : still; u.uMiss.value = moving ? STEADY.MISS : still; u.uKernel.value = STEADY.KERNEL;
       u.uTol.value = STEADY.TOL; u.uSlope.value = STEADY.SLOPE; u.uFast.value.fromArray(moving ? STEADY.FAST_PX : [1e6, 2e6]); u.uGrown.value.fromArray(moving ? STEADY.GROWN : [-2, -1]); u.uLoose.value.set(STEADY.HIT_FAST, STEADY.MISS_FAST); u.uFar.value = STEADY.FAR_M; u.uCubic.value = STEADY.CUBIC; u.uDebug.value = STEADY.DEBUG || 0;
       if (stop >= 3) { mesh.material = resolveMat; renderer.setRenderTarget(hist[next]); renderer.render(oscene, ocam); }
@@ -258,7 +270,7 @@ export function installSteady({ THREE, renderer, scene, camera }) {
       if (stop >= 4 && (!STEADY.BLIT || blitBroken)) { showMat.uniforms.tHist.value = hist[next].texture; mesh.material = showMat; renderer.setRenderTarget(null); renderer.render(oscene, ocam); }
       renderer.info.autoReset = auto;
       cur = next; first = false; prevVP.copy(vp); stats.frames++;
-      if (!moving) { rest++; stats.rest = rest; }
+      if (!moving) { if (blend) settle--; else rest++; stats.rest = rest; stats.settle = settle; }
     },
   };
   return api;

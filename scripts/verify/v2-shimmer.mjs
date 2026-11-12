@@ -65,7 +65,7 @@ for (const variant of VARIANTS) {
   const ctx = await browser.newContext({ viewport: { width: 800, height: 500 }, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log('page error:', e.message));
-  await page.goto(`${BASE.replace(/\/$/, '')}/${variant.dir}/?intro=0${variant.q ? '&' + variant.q : ''}`, { waitUntil: 'load', timeout: 120000 });
+  await page.goto(`${BASE.replace(/\/$/, '')}/${variant.dir}/?intro=0&steady=0${variant.q ? '&' + variant.q : ''}`, { waitUntil: 'load', timeout: 120000 });
   await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 120000 });
   await page.evaluate(() => window.__v2.ready);
   if (!renderer) renderer = await page.evaluate(() => { const g = window.__v2.renderer.getContext(); const e = g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER); });

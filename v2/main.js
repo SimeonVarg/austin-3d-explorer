@@ -240,9 +240,19 @@ const status = (msg, done = false) => { statusEl.textContent = msg; statusEl.cla
 // ── renderer ───────────────────────────────────────────────────────────
 const canvas = $('view');
 let renderer;
+const DPR = Math.min(devicePixelRatio || 1, PHONE ? QUALITY.MAX_PIXEL_RATIO_PHONE : QUALITY.MAX_PIXEL_RATIO);
 // The steady picture (steady.js): a full-size picture is kept and small shifted frames are added into it. It smooths edges over
-// frames, so the canvas has no multisampling of its own (on the owner's Mac that alone is 10 ms of a 32 ms motion frame). ?steady=1
-const STEADY_ON = params.get('steady') === '1';
+// frames, so the canvas has no multisampling of its own (on the owner's Mac that alone is 10 ms of a 32 ms motion frame), and the
+// canvas never changes size. It is for a GPU that CANNOT hold the full size in motion: a device that learned a motion scale
+// under 1 on an earlier visit (ADAPT_KEEP, below), or, on a first visit, a GPU of the kind the owner's Mac has (QUALITY.STEADY_GPU:
+// graphics built into an Intel processor). A GPU that holds the full size draws every frame at full size with multisampling,
+// which is better still, and stays on that path; so does a phone (fast mode is off there). ?steady=1 / ?steady=0 force it.
+// It needs a colour target of half floats.
+const steadyLearned = (() => { try { const v = localStorage.getItem('v2-motion-scale-' + DPR); return v == null ? null : +v > 0 && +v < 0.999; } catch (e) { return null; } })();
+const steadyProbe = (() => { try { const g = document.createElement('canvas').getContext('webgl2'); if (!g) return { can: false, gpu: '' };
+  const can = !!(g.getExtension('EXT_color_buffer_float') || g.getExtension('EXT_color_buffer_half_float')), dbg = g.getExtension('WEBGL_debug_renderer_info');
+  const gpu = String(dbg ? g.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER) || ''); const l = g.getExtension('WEBGL_lose_context'); if (l) l.loseContext(); return { can, gpu }; } catch (e) { return { can: false, gpu: '' }; } })();
+const STEADY_ON = steadyProbe.can && (params.has('steady') ? params.get('steady') !== '0' : FAST && (steadyLearned == null ? QUALITY.STEADY_GPU.test(steadyProbe.gpu) : steadyLearned));
 try {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: QUALITY.MSAA && !STEADY_ON, powerPreference: 'high-performance',
     reversedDepthBuffer: params.get('revdepth') !== '0' });
@@ -250,7 +260,6 @@ try {
   status('This map needs WebGL 2, which this browser does not offer.');
   throw e;
 }
-const DPR = Math.min(devicePixelRatio || 1, PHONE ? QUALITY.MAX_PIXEL_RATIO_PHONE : QUALITY.MAX_PIXEL_RATIO);
 // THE ORDER OF THE OPAQUE DRAWS: nearest first (2026-11-11). three.js orders opaque draws by material, so that it changes state
 // seldom; here nearly every draw has its own material anyway (a tile, a far copy), so that order is by the order of loading: a far
 // wall can be shaded and then covered by a near one. The order matters on the owner's Mac: at four moments of the opening flight,
@@ -1669,7 +1678,7 @@ window.__v2 = {
   pickApartment: (name) => { const i = apartments.findIndex((a) => a.name === name); if (i >= 0) { aptSel.value = String(i); return update(true); } },
   pickBuilding: (code) => { const i = buildings.findIndex((b) => b.code === code); if (i >= 0) { clsSel.value = String(i); return update(true); } },
   info: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures,
-    dpr: renderer.getPixelRatio(), size: [renderer.domElement.width, renderer.domElement.height], reversedDepth: renderer.capabilities.reversedDepthBuffer, frames,
+    dpr: renderer.getPixelRatio(), size: [renderer.domElement.width, renderer.domElement.height], reversedDepth: renderer.capabilities.reversedDepthBuffer, frames, steady: steady ? { ...steady.stats } : null,
     shadow: { cache: SHADOW_CACHE, ...shadowStats, extent: shadowExtent, aim: LOOK.SHADOW_AIM.ON && shadowFocus() === shadowAim.p, aimMs: +shadowAim.ms.toFixed(3) }, adapt: { on: adapt.on, floor: adapt.floor, learnedFloor: adapt.learnedFloor, scale: adapt.scale, motionScale: adapt.motionScale, changes: adapt.changes } }),
   async measure(ms = 4000, degPerFrame = 0.15) {
     Object.assign(frameLog, { on: true, orbit: degPerFrame > 0, degPerFrame, dts: [], cpu: [], scales: [], last: 0 });

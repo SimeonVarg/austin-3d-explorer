@@ -8,7 +8,7 @@ const browser = await launch(chromium, { gl: process.env.VERIFY_GL || 'hardware'
 for (const [tag, dpr] of [['native', 1], ['truth', +ssS]]) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: dpr });
   const page = await ctx.newPage();
-  await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0&fade=0&adapt=0${query}`, { waitUntil: 'load', timeout: 180000 });
+  await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0&steady=0&fade=0&adapt=0${query}`, { waitUntil: 'load', timeout: 180000 });
   await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 180000 });
   await page.evaluate(() => { window.cancelGraphicsAutoDetect?.(); });
   await page.addStyleTag({ content: 'body > *:not(canvas) { visibility: hidden !important; } canvas { visibility: visible !important; }' });
