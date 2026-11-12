@@ -19,6 +19,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { brickMipChain, BRICK_MIPS } from './brick-mips.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { LOOK, BRICK_MIPS_SLUGS, fastPart } from './look.js';
+import { THIN, THIN_PIX, thinBars, thinMaterial, thinStats } from './thin.js';
 
 export const TILES = {
   MAX_DECODES: 2,
@@ -294,6 +295,7 @@ export class TileStreamer {
     const cam = this.camera.position;
     // metres per FULL-resolution screen pixel, per metre of distance
     const mpp = FAR.ON ? 2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2) / (innerHeight * Math.min(devicePixelRatio || 1, 2)) : 0;
+    THIN_PIX.value = THIN.PX * 2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2) / (innerHeight * Math.min(devicePixelRatio || 1, 2));
     this.camera.updateMatrixWorld();
     this.m.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
     this.frustum.setFromProjectionMatrix(this.m);
@@ -381,6 +383,7 @@ export class TileStreamer {
           const ao = LOOK.AO.ON && !!o.geometry.attributes._ao && o.geometry.attributes._ao.itemSize === 2;
           if (!ao && o.geometry.attributes._ao) o.geometry.deleteAttribute('_ao');
           for (const m of Array.isArray(o.material) ? o.material : [o.material]) { if (level === 'far') farMaterial(m); photoTextures(m); brickMips(m, brickOptIn); coverageFade(m); fadeable(m, fade, ao); }
+          if (THIN.ON && level !== 'far' && !Array.isArray(o.material) && !o.material.transparent && thinBars(o)) o.material = [o.material, thinMaterial(o.material)];
         });
         obj.userData.fade = fade;
         this.prepare(obj, s.def, s);   // (s: main.js adds to s.mapIds the plain extrusions this model stands over, covers.js)
@@ -468,7 +471,7 @@ export class TileStreamer {
     }
     // lod1 = tiles drawing their far copy now (0 with ?far=0); planned = the plan ran since the camera last moved
     const cam = this.camera.matrixWorld.elements.join(',');
-    return { tiles: this.tiles.size, lod0, lod1, loading, fading, wanting, planned: this.plannedFor === cam, ...this.stats };
+    return { tiles: this.tiles.size, lod0, lod1, loading, fading, wanting, planned: this.plannedFor === cam, ...this.stats, ...(THIN.ON ? { thin: { ...thinStats, ms: Math.round(thinStats.ms) } } : {}) };
   }
 }
 
