@@ -88,7 +88,7 @@ export function installGround({ THREE, scene, camera, renderer, city, redraw, ph
         uniform vec3 gGain, gWarm, gPaving; uniform float gSat, gSatNear, gLift, gLean; uniform vec2 gDark;
         uniform sampler2D gMask; uniform vec4 gMaskBox;${array ? '\n        uniform sampler2DArray gAerial; varying float vAerLayer;' : ''}${near ? GN_DECL : ''}`)
       .replace('#include <map_fragment>', `
-        vec3 aer = ${array ? 'texture(gAerial, vec3(vMapUv, floor(vAerLayer + 0.5)))' : 'texture2D(map, vMapUv)'}.rgb;   // linear (the tiles are sRGB textures)
+        vec3 aer = ${array ? 'texture(gAerial, vec3(vMapUv, floor(vAerLayer + 0.5)), v2LodBias)' : 'texture2D(map, vMapUv, v2LodBias)'}.rgb;   // linear (the tiles are sRGB textures)
         vec2 muv = (vGroundXZ - gMaskBox.xy) * gMaskBox.zw;
         vec2 mk = (muv.x > 0.0 && muv.y > 0.0 && muv.x < 1.0 && muv.y < 1.0) ? texture2D(gMask, muv).rg : vec2(0.0);
         float lum = dot(aer, vec3(0.2126, 0.7152, 0.0722));

@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { FlyControls, CollisionField, FLY } from './flycam.js';
 import { LOOK, QUALITY, FAST, PHONE_QUERY } from './look.js';
+import { installSteady, STEADY, PX } from './steady.js';
 import { ORIGIN, setOrigin, toLocal, toLonLat } from './geo.js';
 import { TileStreamer, TILES, FAR, setAOPixelScale } from './tiles.js';
 import { COVER, objectArrays, outlinesNear } from './covers.js';
@@ -83,6 +84,20 @@ const GROUND_SHADE = (MOMENT && LOOK.MOMENT.GROUND_SHADE && params.get('groundsh
 // depth test done once per shadow-map redraw, at the ground's own depth for every texel (the ground point under a shadow-map texel is
 // fixed), averaged over LOOK.MOMENT.GROUND_LIT_DOWN^2 texels of the shadow map into one texel of a map that many times smaller: the
 // taps then read a small, cached map in the same coordinates. ?groundlit=0: the taps read the shadow map as before (A/B).
+// The pixel that every pixel-size rule measures by (steady.js PX). In the steady picture's small frame a screen pixel is two
+// full-size pixels wide; a rule that fades or filters by "how much of the world one pixel covers" (fwidth and its two parts), and
+// every texture's mip level, must act as for the FULL-size pixel there, or the small frames hold no fine detail to add up
+// (measured 2026-11-11: with the rules at the small pixel the kept picture reached a sharpness of 0.81 of the truth's and no
+// window rows). v2PxD = (that scale) - 1, so a material that never gets the uniform set (0) is unchanged.
+for (const id of Object.keys(THREE.ShaderLib)) if (THREE.ShaderLib[id].uniforms) THREE.ShaderLib[id].uniforms.v2PxD = { value: 0 };
+THREE.ShaderChunk.common += `
+uniform float v2PxD;
+#define fwidth(x) (fwidth(x) * (1.0 + v2PxD))
+#define dFdx(x) (dFdx(x) * (1.0 + v2PxD))
+#define dFdy(x) (dFdy(x) * (1.0 + v2PxD))
+#define v2LodBias log2(1.0 + v2PxD)
+`;
+THREE.ShaderChunk.map_fragment = THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', 'texture2D( map, vMapUv, v2LodBias )');
 const GROUND_LIT = GROUND_SHADE && params.get('groundlit') !== '0';
 const groundLit = { rt: null, white: null, bake: null, bakes: 0 };
 if (GROUND_LIT) {
@@ -90,12 +105,14 @@ if (GROUND_LIT) {
   // the uniform must be in every lit material's own uniforms when its program is made (three copies them from ShaderLib); each material
   // then gets the baked map just before it draws (Material.onBeforeRender, below)
   for (const id of ['standard', 'physical', 'lambert', 'phong', 'toon']) if (THREE.ShaderLib[id]) THREE.ShaderLib[id].uniforms.v2GroundLit = { value: groundLit.white };
-  THREE.Material.prototype.onBeforeRender = function (r) {
-    if (!groundLit.rt) return;
-    const u = r.properties.get(this).uniforms;
-    if (u && u.v2GroundLit && u.v2GroundLit.value !== groundLit.rt.texture) u.v2GroundLit.value = groundLit.rt.texture;
-  };
 }
+// every material, just before it draws: the pixel scale of this frame, and the baked ground light
+THREE.Material.prototype.onBeforeRender = function (r) {
+  const u = r.properties.get(this).uniforms;
+  if (!u) return;
+  if (u.v2PxD) u.v2PxD.value = PX.d;
+  if (groundLit.rt && u.v2GroundLit && u.v2GroundLit.value !== groundLit.rt.texture) u.v2GroundLit.value = groundLit.rt.texture;
+};
 if (GROUND_SHADE) {
   THREE.ShaderChunk.shadowmap_pars_fragment += `
 #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0 && defined( SHADOWMAP_TYPE_PCF )
@@ -223,8 +240,11 @@ const status = (msg, done = false) => { statusEl.textContent = msg; statusEl.cla
 // ── renderer ───────────────────────────────────────────────────────────
 const canvas = $('view');
 let renderer;
+// The steady picture (steady.js): a full-size picture is kept and small shifted frames are added into it. It smooths edges over
+// frames, so the canvas has no multisampling of its own (on the owner's Mac that alone is 10 ms of a 32 ms motion frame). ?steady=1
+const STEADY_ON = params.get('steady') === '1';
 try {
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: QUALITY.MSAA, powerPreference: 'high-performance',
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: QUALITY.MSAA && !STEADY_ON, powerPreference: 'high-performance',
     reversedDepthBuffer: params.get('revdepth') !== '0' });
 } catch (e) {
   status('This map needs WebGL 2, which this browser does not offer.');
@@ -1388,8 +1408,8 @@ let dirty = true, frames = 0, wasMoving = false;
 const frameLog = { on: false, dts: [], cpu: [], scales: [], last: 0 };
 function resize() {
   const w = innerWidth, h = innerHeight;
-  renderer.setDrawingBufferSize(w, h, DPR * adapt.scale);   // = setPixelRatio + setSize(w, h, false), with one canvas resize
-  setAOPixelScale(adapt.scale);   // (the AO's near/far steps follow the full-resolution pixel)
+  renderer.setDrawingBufferSize(w, h, DPR * (steady ? 1 : adapt.scale));   // = setPixelRatio + setSize(w, h, false), with one canvas resize (the steady picture's canvas keeps its full size: the small frame is a target of its own)
+  setAOPixelScale(adapt.scale, steady ? 1 : adapt.scale);   // (the AO's near/far steps follow the full-resolution pixel; in the steady picture every rule does, by v2PxD)
   camera.aspect = w / h; camera.updateProjectionMatrix();
   dirty = true;
 }
@@ -1419,10 +1439,14 @@ const ADAPT_KEY = 'v2-motion-scale-' + DPR;
 if (ADAPT_KEEP) { try { const v = +localStorage.getItem(ADAPT_KEY); if (v >= adapt.floor - 1e-3 && v <= 1) adapt.motionScale = v; } catch (e) {} }
 let adaptKept = adapt.motionScale;
 function keepScale() { if (!ADAPT_KEEP || adapt.motionScale === adaptKept) return; adaptKept = adapt.motionScale; try { localStorage.setItem(ADAPT_KEY, String(adaptKept)); } catch (e) {} }
+// the steady picture (steady.js) and "draw one more frame of it" (a frame it asks for itself, or a change of the small frame's size)
+const steady = STEADY_ON ? installSteady({ THREE, renderer, scene, camera }) : null;
+let steadySoft = false;
 function setScale(s) {
   s = THREE.MathUtils.clamp(s, adapt.floor, 1);
   if (Math.abs(s - adapt.scale) < 1e-3) return;
   adapt.scale = s; adapt.samples = []; adapt.changes++;
+  if (steady) { setAOPixelScale(s, 1); steadySoft = true; return; }   // (no canvas resize: only the small frame's target changes)
   resize();
 }
 // at the top of every rAF: `moved` = the camera moves in this frame
@@ -1469,19 +1493,21 @@ function frame(now) {
   const moved = turned || flying || easing;
   const moving = moved || (frameLog.on && frameLog.orbit);   // the verify scripts' timed orbit is camera motion too
   adaptFrame(now, moving);
-  if (!moving && wasMoving && (SHADOW_MOVE_MULT > 1 || shadowWaits)) dirty = true;   // the camera stopped: draw the still with the still's shadow box, and with a fresh shadow map
+  if (!moving && wasMoving && (steady || SHADOW_MOVE_MULT > 1 || shadowWaits)) { if (steady) steadySoft = true; else dirty = true; }   // the camera stopped: draw the still with the still's shadow box, and with a fresh shadow map
   wasMoving = moving; shadowMovingNow = moving;
   if (moved) { markers.update(); if (!easing) map.fire('move'); }
   if (frameLog.on && frameLog.orbit) { orbitStep(); }
   if (tiles) tiles.update(now);
   if (moved || mapLayers.dirty) { mapLayers.dirty = false; mapLayers.update(); }
   labels.update(now);
-  if (!(moved || dirty || frameLog.on)) return;
-  dirty = false;
+  if (!(moved || dirty || steadySoft || frameLog.on)) return;
+  const changed = dirty && !moving;   // (the content changed with the camera at rest: the steady picture starts its still again)
+  dirty = false; steadySoft = false;
   followShadow(moving);
   dome.position.copy(camera.position);
   const t0 = performance.now();
-  renderer.render(scene, camera);
+  if (steady) { steady.render(adapt.scale, moving || adapt.scale < 1, changed); if (steady.more()) steadySoft = true; }
+  else renderer.render(scene, camera);
   adapt.lastDraw = now; adapt.movingDraw = moving;
   if (!frames) { try { window.loaderSceneReady?.(); } catch (e) {} }
   if (frameLog.on) { frameLog.cpu.push(performance.now() - t0); frameLog.scales.push(adapt.scale); if (frameLog.last) frameLog.dts.push(now - frameLog.last); frameLog.last = now; }
@@ -1609,7 +1635,7 @@ import('./finder-boot.js').catch((e) => console.warn('[v2] finder', e.message));
 const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; };
 const pct = (a, p) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * p))] : null; };
 window.__v2 = {
-  THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FAR, FLY, fly: () => controls.state(), field, COVER, coverStats, tileStreamer: () => tiles,
+  THREE, scene, camera, controls, renderer, city, LOOK, VIEW, TILES, FAR, STEADY, steady: () => steady, FLY, fly: () => controls.state(), field, COVER, coverStats, tileStreamer: () => tiles,
   ready: Promise.all([cityReady, tilesReady, routeReady, wires, lamps]),
   tiles: () => tiles && tiles.summary(),
   exactProbe: () => {

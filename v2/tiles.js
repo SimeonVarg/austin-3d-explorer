@@ -45,8 +45,9 @@ const AO_STRENGTH = { value: LOOK.AO.STRENGTH };
 const AO_FAR = { value: new THREE.Vector4(...LOOK.AO.FAR_PX_M) };
 // the canvas's adaptive scale (main.js, in motion only): the AO steps are chosen by the FULL-resolution pixel, so they do not move when
 // the canvas drops to fewer pixels in motion and comes back when it stops
-const AO_SCALE = { value: 1 };
-export function setAOPixelScale(s) { AO_SCALE.value = s; }
+const AO_SCALE = { value: 1 }, MOTION = { scale: 1 };
+// s = the scale motion draws at (1 = standing still); shader = what the pixel-size rules below multiply their pixel by
+export function setAOPixelScale(s, shader = s) { MOTION.scale = s; AO_SCALE.value = shader; }
 const AO_SHOW = typeof location !== 'undefined' && new URLSearchParams(location.search).get('aoshow') === '1';   // diagnosis: draw the baked AO itself
 function fadeable(material, uniform, ao) {
   if (!material || material.userData.v2Fade) return;
@@ -125,7 +126,7 @@ function farMaterial(material) {
     if (prev) prev(sh, r);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 _gloss;\nattribute vec4 _gloss2;\nvarying vec4 vFarGloss;\nvarying vec4 vFarDark;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFarGloss = _gloss;\nvFarDark = _gloss2;');
-    if (FAR.MIP_BIAS) sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', 'texture2D( map, vMapUv, ' + FAR.MIP_BIAS.toFixed(3) + ' )'));
+    if (FAR.MIP_BIAS) sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv, v2LodBias )', 'texture2D( map, vMapUv, v2LodBias + ' + FAR.MIP_BIAS.toFixed(3) + ' )'));
     // A texel of the far copy holds two things at once: its BRIGHT part (wall, roof: the picture's colour) and its DARK part (panes,
     // dark panels: 1 - alpha is its share; its colour and its mirror are one value a face, _gloss / _gloss2). They go to the screen
     // APART and are mixed there. Why: the screen clips bright light (LOOK.TONE_MAPPING), and a white wall in the sun is over the clip. Lit
@@ -182,7 +183,7 @@ function photoTextures(material) {
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
     sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>',
-      THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', 'texture2D( map, vMapUv, ' + bias.toFixed(3) + ' )'));
+      THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv, v2LodBias )', 'texture2D( map, vMapUv, v2LodBias + ' + bias.toFixed(3) + ' )'));
   };
   const key = material.customProgramCacheKey ? material.customProgramCacheKey.bind(material) : () => '';
   material.customProgramCacheKey = () => key() + '|v2-pbias' + bias;
@@ -329,7 +330,7 @@ export class TileStreamer {
     let changed = false;
     for (const s of this.tiles.values()) {
       if (!s.far) { if (s.full && !s.full.visible) { s.full.visible = true; changed = true; } continue; }
-      const far = !s.full || (FAR.FORCE ? FAR.FORCE === 'far' : s.d > s.line * (FAR.SCALE || (AO_SCALE.value < 0.999 ? FAR.MOTION_SCALE : 1)) * (s.far.visible && s.full.visible === false ? FAR.BACK : 1));
+      const far = !s.full || (FAR.FORCE ? FAR.FORCE === 'far' : s.d > s.line * (FAR.SCALE || (MOTION.scale < 0.999 ? FAR.MOTION_SCALE : 1)) * (s.far.visible && s.full.visible === false ? FAR.BACK : 1));
       if (s.far.visible !== far) { s.far.visible = far; changed = true; }
       if (s.full && s.full.visible === far) { s.full.visible = !far; changed = true; }
     }

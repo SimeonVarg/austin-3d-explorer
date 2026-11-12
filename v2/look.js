@@ -224,7 +224,7 @@ if (Q.get('aofar')) LOOK.AO.FAR_PX_M = Q.get('aofar').split(',').map(Number);   
 export const QUALITY = {
   MAX_PIXEL_RATIO: 2,           // desktop
   MAX_PIXEL_RATIO_PHONE: 2,
-  MSAA: true,
+  MSAA: Q.get('msaa') !== '0',   // (test) ?msaa=0 = a canvas with no multisampling
   // The sun's shadow map is drawn again only when it can change: the light box moved a step, or a shadow caster was added,
   // removed, shown, hidden or reshaped (main.js casterSignature). Same picture; ?shadowcache=0 redraws it on every frame.
   SHADOW_CACHE: true,
