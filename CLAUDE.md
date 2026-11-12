@@ -132,6 +132,9 @@ memory and is never written here, in any tracked file, or in a commit message.
       black shards on one roof and a green field gone pale are nothing in such an average. The test of a stand-in (a far
       copy, a card for a tree, a simpler mesh) draws each object both ways from where the stand-in is used, measures over
       that object's own pixels, and a person looks at the worst ones (`scripts/verify/v2-far-scan.mjs`).
+      **And a tile mean is still an average (2026-11-12, #681):** a tile holds up to 20 buildings, and one tower wall drawn blue
+      where the full model is grey passed the tile's three numbers. The scan has a fourth, the worst 12 x 12 pixel patch (limit 45).
+      When a mean passes, look at the worst small patch before you believe it.
     - **Before a speed job, measure the cheapest possible frame.** (2026-11-11, #674.) One flat material at the canvas's
       full size, no multisampling, took 10 to 12 ms on the owner's Mac; the real materials took 52 to 58 ms; the canvas's
       own multisampling was 10 ms of a 32 ms frame. So the triangles were never the cost, and no cut of triangles could
