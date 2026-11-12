@@ -114,6 +114,12 @@ export const FAR = {
   // In motion the line is set by ONE scale, not by the scale the canvas has at that moment: the two fed each other (a higher scale drew
   // more full models, which made frames slower, which lowered the scale again: measured 2026-11-11, 22 canvas resizes in one flight).
   MOTION_SCALE: 0.5,
+  // On a flight whose path is known (cruise), a tile that crosses the screen faster than this (full-size pixels a second) draws
+  // its far copy from MOTION_SCALE x the line too, whatever the canvas's scale. A screen with one canvas pixel per CSS pixel
+  // (the owner's monitor: 2560 x 1440 at 1x) never lowers its scale, so there the rule above never acted: measured 2026-11-12
+  // at 2560 x 1300 and 1x, the second leg of the opening flight drew 2 to 2.9 M triangles and its median frame was 47 ms.
+  // At that speed the steady picture is soft anyway (steady.js FAST_PX). 0 = off.
+  FAST_PX_S: PQ.has('farfast') ? +PQ.get('farfast') : 700,
 };
 // The far copy's material (model 3). Its one picture holds, per texel, the two things a far pixel is made of: rgb = the colour of the
 // texel's BRIGHT part (wall, roof), and 1 - alpha = the share of the texel that is DARK (panes, dark panels). Both are plain averages,
@@ -272,6 +278,7 @@ export class TileStreamer {
     // Measured 2026-11-12 on the owner's Mac: the second leg of the opening flight wanted 76 copies at once and loaded them under
     // the moving camera: 20 frames of 60 to 200 ms in 5 s, at 60 m a frame.
     this.ahead = []; this.cruise = false; this.rush = false; this.hold = false;
+    this.speed = 0; this.camAt = new THREE.Vector3(); this.speedAt = 0; this.mpp = 0;
   }
 
   async load() {
@@ -304,6 +311,7 @@ export class TileStreamer {
     const cam = this.camera.position;
     // metres per FULL-resolution screen pixel, per metre of distance
     const mpp = FAR.ON ? 2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2) / (innerHeight * Math.min(devicePixelRatio || 1, 2)) : 0;
+    this.mpp = mpp;
     this.camera.updateMatrixWorld();
     this.m.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
     this.frustum.setFromProjectionMatrix(this.m);
@@ -345,10 +353,12 @@ export class TileStreamer {
   // motion (main.js adaptive resolution, AO_SCALE), so in motion the far copy reaches nearer; standing still the full model is back.
   show() {
     let changed = false;
+    // (on a flight: tiles nearer than this cross the screen faster than FAR.FAST_PX_S)
+    const fastAt = this.cruise && FAR.FAST_PX_S > 0 && this.mpp ? this.speed / (FAR.FAST_PX_S * this.mpp) : 0;
     for (const s of this.tiles.values()) {
       if (s.parked) continue;
       if (!s.far) { if (s.full && !s.full.visible) { s.full.visible = true; changed = true; } continue; }
-      const far = !s.full || (FAR.FORCE ? FAR.FORCE === 'far' : s.d > s.line * (FAR.SCALE || (MOTION.scale < 0.999 ? FAR.MOTION_SCALE : 1)) * (s.far.visible && s.full.visible === false ? FAR.BACK : 1));
+      const far = !s.full || (FAR.FORCE ? FAR.FORCE === 'far' : s.d > s.line * (FAR.SCALE || (MOTION.scale < 0.999 || s.d < fastAt ? FAR.MOTION_SCALE : 1)) * (s.far.visible && s.full.visible === false ? FAR.BACK : 1));
       if (s.far.visible !== far) { s.far.visible = far; changed = true; }
       if (s.full && s.full.visible === far) { s.full.visible = !far; changed = true; }
     }
@@ -356,6 +366,10 @@ export class TileStreamer {
   }
 
   update(now = performance.now()) {
+    // the camera's speed (m/s), held up a little so one slow frame does not flip the far copies of a flight
+    { const c = this.camera.position, dt = (now - (this.speedAt || now)) / 1000;
+      if (dt > 0 && dt < 0.5) this.speed = Math.max(c.distanceTo(this.camAt) / dt, this.speed * 0.9); else if (dt >= 0.5) this.speed = 0;
+      this.camAt.copy(c); this.speedAt = now; }
     if (this.fading.size) this.stepFades(now);
     if (FAR.ON && this.manifest) this.show();
     if (!this.manifest || now - this.last < TILES.UPDATE_EVERY_MS) return;
