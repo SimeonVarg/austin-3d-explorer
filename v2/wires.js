@@ -87,7 +87,7 @@ export async function installWires(scene, renderer, url = './data/wires.json') {
       const mine = segs.filter((s) => s[7] === ki); if (!mine.length) return;
       const mesh = new THREE.Mesh(geometry(mine), material(kind, uRes));
       mesh.name = `wires ${build} ${kind.name}`; mesh.frustumCulled = false; mesh.receiveShadow = true; mesh.renderOrder = 2;
-      mesh.onBeforeRender = (r) => { r.getDrawingBufferSize(size); uRes.value.copy(size); };
+      mesh.onBeforeRender = (r) => { const rt = r.getRenderTarget(); if (rt) uRes.value.set(rt.width, rt.height); else { r.getDrawingBufferSize(size); uRes.value.copy(size); } };
       group.add(mesh); segments += mine.length;
     });
   }

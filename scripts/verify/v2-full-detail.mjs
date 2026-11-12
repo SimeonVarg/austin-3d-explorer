@@ -39,7 +39,7 @@ const browser = await launch(chromium, { maxMs: 1500000 });
 const page = await (await browser.newContext({ viewport: { width: 1000, height: 640 } })).newPage();
 const errs = []; page.on('pageerror', (e) => errs.push(e.message));
 const far = []; page.on('request', (r) => { if (/\.far\.glb(\?|$)/.test(r.url())) far.push(r.url()); });
-await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0${process.env.V2_QUERY ? '&' + process.env.V2_QUERY : ''}`, { waitUntil: 'load', timeout: 180000 });
+await page.goto(`${BASE.replace(/\/$/, '')}/v2/?intro=0&steady=0${process.env.V2_QUERY ? '&' + process.env.V2_QUERY : ''}`, { waitUntil: 'load', timeout: 180000 });
 await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 600000 });
 await page.evaluate(() => window.__v2.ready);
 let sawFade = 0;

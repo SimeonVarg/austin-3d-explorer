@@ -62,7 +62,7 @@ for (let rep = 0; rep < REPS; rep++) for (const arm of rep % 2 ? [...ARMS].rever
   const page = await ctx.newPage();
   const errs = []; page.on('pageerror', (e) => errs.push(e.message));
   if (arm.cpu > 1) { const c = await ctx.newCDPSession(page); await c.send('Emulation.setCPUThrottlingRate', { rate: arm.cpu }); }
-  await page.goto(`${BASE.replace(/\/$/, '')}/${variant.dir}/?intro=0&adapt=0${variant.q ? '&' + variant.q : ''}`, { waitUntil: 'load', timeout: 180000 });
+  await page.goto(`${BASE.replace(/\/$/, '')}/${variant.dir}/?intro=0&steady=0&adapt=0${variant.q ? '&' + variant.q : ''}`, { waitUntil: 'load', timeout: 180000 });
   await page.waitForFunction(() => window.__v2 && window.__v2.ready, null, { timeout: 180000 });
   await page.evaluate(() => window.__v2.ready);
   if (!renderer) renderer = await page.evaluate(() => { const g = window.__v2.renderer.getContext(); const e = g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : ''; });

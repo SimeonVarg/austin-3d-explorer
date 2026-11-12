@@ -27,6 +27,10 @@
       "est_s": 300,
       "timeout_s": 1200
     },
+    "v2-steady.mjs": {
+      "est_s": 400,
+      "timeout_s": 1500
+    },
     "analytics-check.mjs": {
       "est_s": 60
     },

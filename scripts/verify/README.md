@@ -1875,3 +1875,42 @@ Traps this check cost time:
 - **A per-half translation cannot measure a small rotation** (it gave 2.9 degrees for 5). Bank is found by a
   rigid-rotation search instead.
 - **This check needs a GPU.** It asks for hardware GL itself and is listed in `ci/checks.json`.
+
+## The v2 steady picture: `v2-steady.mjs`, and when a check must say `steady=0` (added November 11 2026)
+
+`v2/steady.js` is how the v2 app draws on a GPU that cannot hold the full size in motion (the owner's Mac). The canvas keeps a
+full-size picture. While the camera moves, the city is drawn SMALL (a quarter of the pixels, each frame shifted by a part of a
+pixel, no multisampling) and each small frame is added into the kept picture at the place its points really are: the world
+stands still, so that place comes from the depth and the two cameras. At rest the same loop adds shifted full-size frames until
+the still has converged. The canvas never changes size.
+
+**What this changes for a check.**
+
+- **A fresh browser profile on the Mac takes the steady path** (the GPU's name matches `QUALITY.STEADY_GPU`). GitHub's machines
+  (a software renderer) do not, and neither does a phone. `?steady=1` / `?steady=0` force it either way.
+- **On the steady path the canvas has NO multisampling.** A check that draws a frame itself (`renderer.render(scene, camera)`,
+  then `readPixels` or `toDataURL`) gets a frame with jagged edges there, and its numbers move. Such a check opens the page with
+  `steady=0` and measures the old path, as it always did: `v2-full-detail`, `v2-shimmer`, `v2-ground-shimmer`, `v2-sky-shimmer`,
+  `v2-trees-shimmer`, `v2-glass-shimmer`, `v2-wire-shimmer`, `v2-tree-near`, `v2-frame`, `v2-cost`, `v2-split`, `v2-exact`.
+  A new tool that draws frames itself does the same.
+- **A still is not done in one frame.** After the camera stops or the content changes, the steady path draws about 20 frames
+  (8 that blend the change in, 12 of a running mean). A screenshot of the app's own picture is taken when
+  `__v2.info().steady` reads `settle: 0, rest: 12`.
+- **The old path is unchanged**: with `steady=0` a motion frame is equal to main's to the last pixel (measured 2026-11-11).
+
+**`v2-steady.mjs`** holds the parts that make the steady picture true, in one page: the still against a 16-sample truth; the
+CARRY (a still at camera A, then one motion frame at camera B that takes nothing new: the kept picture alone must lie on the
+truth at B); 16 motion frames against the truth; and that the page stops drawing when the still is done. The carry test is the
+one that found the two faults of the first night: no ground layer of the app writes depth, so half the picture was carried with
+the wrong parallax (the ground's depth is now the plane y = 0); and a kept depth "anywhere between the neighbours' depths" left
+a trail of every building on the ground it uncovered.
+
+**Four traps of the night this was built.**
+
+1. **Set the camera and draw in ONE `page.evaluate`.** Between two calls the app's own loop runs (tiles change, controls act),
+   and a run of frames no longer shows what you think it shows.
+2. **A `readPixels` of the canvas costs 3 to 4 ms by itself** on the Mac (5.2 M pixels). Do not time a pass with it; read one
+   pixel of the pass's own target instead.
+3. **A thumbnail lies.** Twice a 960-pixel copy of a 2880-pixel frame said "the shadows are gone"; at true size it was blur.
+   Judge a frame at true pixel size (rule 14 of CLAUDE.md says the same for photographs).
+4. **`cv2.phaseCorrelate` changes its inputs.** Take the difference first, or give it copies.
