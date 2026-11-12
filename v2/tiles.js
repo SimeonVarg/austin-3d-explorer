@@ -286,7 +286,10 @@ export class TileStreamer {
         const c = await fetch(new URL(FAR.INDEX, this.base).href, { cache: 'no-cache' }).then((x) => (x.ok ? x.json() : null));
         // a far copy is drawn only for the tile it was made from (the manifest's byte count of the full model): a tile rebuilt since
         // then draws its full model until scripts/v2/far_coat_all.py has run again
-        for (const [id, v] of Object.entries(c || {})) { const s = this.tiles.get(id); if (s && v && v.file && v.model === FAR.MODEL && (!v.tile_bytes || !s.def.bytes || v.tile_bytes === s.def.bytes[0])) s.coat = v; else if (s && v) this.stats.staleCoats = (this.stats.staleCoats || 0) + 1; }
+        // ...and only when it is not switched OFF in the index ("off": a far copy that does not look like its full model; the scan
+        // of 2026-11-12 compared every one with its full model from both sides: 25 of 87 failed, with black shards on a roof, a green
+        // field gone pale, a dark tower gone light. Its numbers are kept beside it as "scan": err, bright, over30).
+        for (const [id, v] of Object.entries(c || {})) { const s = this.tiles.get(id); if (s && v && v.file && !v.off && v.model === FAR.MODEL && (!v.tile_bytes || !s.def.bytes || v.tile_bytes === s.def.bytes[0])) s.coat = v; else if (s && v) this.stats.staleCoats = (this.stats.staleCoats || 0) + 1; }
       } catch (e) { console.info('[v2 tiles] no far copies:', e.message); }
     }
     return this.manifest;
