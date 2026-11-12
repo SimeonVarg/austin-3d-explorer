@@ -8,7 +8,7 @@
 //     has nothing left to flicker with; and the tile costs about a tenth of the triangles. It takes over only where one texel is
 //     already smaller than a screen pixel, and the full model comes back before that;
 //   - the nearest tiles in view load first, then the nearest out of view; tiles beyond LOAD_DISTANCE_M are not loaded;
-//   - at most MAX_DECODES loads (fetch + meshopt decode + parse) run at once;
+//   - at most MAX_DECODES loads (fetch + meshopt decode + parse) run at once (RUSH_DECODES behind the loading screen);
 //   - a load whose tile is no longer wanted is aborted, or thrown away the moment it finishes;
 //   - a tile that arrives FADES in instead of popping (FADE): the plain extrusions it replaces first fade into the haze, then
 //     the model takes their place and fades out of the haze (both opaque, no sorting, no dither: see setFade / the haze mix);
@@ -20,8 +20,13 @@ import { brickMipChain, BRICK_MIPS } from './brick-mips.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { LOOK, BRICK_MIPS_SLUGS, fastPart } from './look.js';
 
+const PQ = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
 export const TILES = {
   MAX_DECODES: 2,
+  // ...and this many while the loading screen is up (main.js sets rush): nothing is on screen that a slow frame could spoil.
+  // Measured 2026-11-12 on the owner's Mac at his monitor's size (2560 x 1300, 1x): the opening flight starts 4.8 s after the
+  // page opens instead of 7.5 s. ?rush=2: as before.
+  RUSH_DECODES: PQ.has('rush') ? +PQ.get('rush') : 10,
   LOAD_DISTANCE_M: 2600,       // tiles nearer than this are wanted
   UNLOAD_DISTANCE_M: 3200,     // tiles beyond this are dropped (must be > LOAD_DISTANCE_M)
   TILE_TOP_M: 160,             // assumed top of a tile, for the in-view test
@@ -95,7 +100,6 @@ function fadeable(material, uniform, ao) {
 // wall measured softer than the truth (v2-shimmer "soft" +0.02, PR #562). Anisotropy narrows the footprint on slanted walls; a small
 // negative mip bias (-0.15) takes the mip level back to about a texel per pixel. Measured: soft <= 0 again, shimmer not above main's.
 // ?photoaniso=N / ?photobias=B override both for every photo material (an A/B in one page load).
-const PQ = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
 // The far copy. Why it exists: measured 2026-11-11 in the opening flight on the owner's Mac, a frame drew 6 M triangles, most of them
 // smaller than a pixel, at 70 to 100 ms, so the canvas fell to a quarter of its pixels for the whole flight (the shimmer he sees).
 export const FAR = {
@@ -262,6 +266,7 @@ export class TileStreamer {
     this.frustum = new THREE.Frustum(); this.m = new THREE.Matrix4(); this.box = new THREE.Box3();
     this.instant = false;            // true: tiles appear at once (pictures, the verify scripts' settled views)
     this.far = FAR;                  // (the verify scripts turn FORCE inside the page: one load, both copies)
+    this.rush = false;               // main.js: the loading screen is up (TILES.RUSH_DECODES)
   }
 
   async load() {
@@ -354,7 +359,7 @@ export class TileStreamer {
     const queue = [];
     for (const s of all) for (const level of LEVELS) if (this.wanted(s, level) && !(level === 'far' ? s.far : s.full) && !s.jobs[level] && ((s.failed || {})[level] || 0) < TILES.MAX_TRIES) queue.push({ s, level });
     queue.sort((a, b) => (b.s.inView - a.s.inView) || (!!(a.s.full || a.s.far) - !!(b.s.full || b.s.far)) || ((a.level === 'far' ? 0 : 1) - (b.level === 'far' ? 0 : 1)) || (a.s.d - b.s.d));
-    while (this.active < TILES.MAX_DECODES && queue.length) { const q = queue.shift(); this.start(q.s, q.level); }
+    while (this.active < (this.rush ? TILES.RUSH_DECODES : TILES.MAX_DECODES) && queue.length) { const q = queue.shift(); this.start(q.s, q.level); }
   }
 
   start(s, level) {

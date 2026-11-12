@@ -228,6 +228,7 @@ export const INTRO = {
   end:   { center: [-97.7365, 30.2900], zoom: 16.45, pitch: 74, bearing: 202 },
   leg1Ms: 6000,      // the rise out of downtown, decelerating into the crest
   leg2Ms: 6600,      // the run north into campus, the bank, and the long settle
+  restWaitMs: 1500,  // the loading screen waits this much longer, at most, for the tiles that are wanted but not in view
   minVeilMs: 2500,   // the loading screen stays at least this long, so it is seen, not flashed (v2 loads in a few seconds)
   maxVeilMs: 30000,  // and lifts by this time whatever is still loading
   liftMs: 1150,      // the fade (style.css #veil transition)
@@ -1152,6 +1153,7 @@ const cityReady = new Promise((resolve) => {
 // ── Blender tiles ──────────────────────────────────────────────────────
 const manifestUrl = new URL(params.get('tiles') === 'test' ? './test-tiles/manifest.json' : (params.get('manifest') || './tiles/manifest.json'), import.meta.url).href;
 let tiles = null;
+const introFlight = window.__intro = { flight: null };   // (the opening flight, below: its state)
 const tilesReady = (async () => {
   try {
     const t = new TileStreamer({ scene, camera, manifestUrl,
@@ -1513,7 +1515,11 @@ function frame(now) {
   wasMoving = moving; shadowMovingNow = moving;
   if (moved) { markers.update(); if (!easing) map.fire('move'); }
   if (frameLog.on && frameLog.orbit) { orbitStep(); }
-  if (tiles) tiles.update(now);
+  if (tiles) {
+    // behind the loading screen the tiles load many at once (tiles.js RUSH_DECODES). Fast mode only: a phone keeps its small peak of memory
+    tiles.rush = FAST && !!introFlight.flight && introFlight.flight.state === 'primed';
+    tiles.update(now);
+  }
   if (moved || mapLayers.dirty) { mapLayers.dirty = false; mapLayers.update(); }
   labels.update(now);
   if (!(moved || dirty || steadySoft || frameLog.on)) return;
@@ -1553,7 +1559,6 @@ window.slopesApartments = {
 };
 window.CityLighting = { get stats() { return { draws: frames > 0 ? 1 : 0, failures: [] }; } };
 
-const introFlight = window.__intro = { flight: null };
 function primeIntro() {
   const F = introFlight.flight = { state: 'primed', leg: 0, cancelledBy: null };
   map.jumpTo(INTRO.start);
@@ -1589,10 +1594,17 @@ function skipIntro() {
 if (INTRO.on) {
   intro = primeIntro();
   const t0 = performance.now();
+  let inViewAt = 0;
   const gate = setInterval(() => {
     const ms = performance.now() - t0;
     if (!$('veil')) { clearInterval(gate); return; }
-    if ((map.tilesLoaded() && frames > 0 && ms >= INTRO.minVeilMs) || ms >= INTRO.maxVeilMs) { clearInterval(gate); liftVeil(ms >= INTRO.maxVeilMs ? 'ceiling' : 'ready'); }
+    const inView = map.tilesLoaded() && frames > 0 && ms >= INTRO.minVeilMs;
+    if (inView && !inViewAt) inViewAt = ms;
+    // ...and, for at most restWaitMs more, until the tiles around the view and the photograph on the ground are in too: what still
+    // loads under the first second of the flight makes it stutter (52 to 57 ms a frame against 43, measured 2026-11-12)
+    const g = window.__v2ground ? window.__v2ground.stats() : null;   // (the aerial photograph's tiles of this view: ground.js)
+    const rest = ((!tiles || tiles.active === 0) && (!g || (g.missing === 0 && g.loading === 0 && g.waitingUpload === 0))) || ms - inViewAt >= INTRO.restWaitMs;
+    if ((inView && rest) || ms >= INTRO.maxVeilMs) { clearInterval(gate); liftVeil(ms >= INTRO.maxVeilMs ? 'ceiling' : 'ready'); }
   }, 200);
 } else skipIntro();
 
