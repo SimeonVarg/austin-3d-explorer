@@ -20,6 +20,11 @@
 // The display runs at the screen's rate whatever the city costs. Between two key pictures the picture is the SAME picture
 // moved, so a thin part does not flicker from frame to frame.
 //
+// A SLOW MOVE GETS MORE SAMPLES. The display does not wait for a key picture, so in a slow move (where a thin part's flicker
+// is seen) a key picture is drawn up to four times, shifted by parts of a pixel, at one camera, and added up (GLIDE.PASSES).
+// Owner's Mac, a very slow orbit: the pixels that jump by over 8 of 255 from one display frame to the next fall from 2.45 %
+// (today's page) to 0.23 % (a 64-sample truth: 0.24 %), at the same sharpness.
+//
 // At rest the clean still (rest.js) takes over as before. The canvas has no multisampling of its own here: the key picture
 // has, and the shown picture is a filtered copy of it.
 const Q = new URLSearchParams(location.search);
@@ -45,19 +50,26 @@ export const GLIDE = {
   OVER_Y: num('glideovery', 0.05),   // ...higher by this share on each side: what a turn brings into view is already drawn
   LEAD: num('glidelead', 1),         // the key picture is drawn for the camera this share of the way to its showing time (0 = for the camera of now)
   SAMPLES: 4,                        // multisampling of the key picture
+  // MORE SAMPLES A KEY PICTURE. The display does not wait for a key picture, so a key picture may take longer: it is drawn
+  // PASSES times, each time shifted by another part of a pixel, at the SAME camera, and the passes are added up as light
+  // (as the clean still does). Nothing is moved or read between pixels, so nothing softens: a thin part is a whole, faint
+  // line in the key picture itself. The price: key pictures come PASSES times less often (the move in the show pass is larger).
+  // HOW MANY follows the camera's speed over the screen: a slow move is where a thin part's flicker is seen, and where a key
+  // picture stays good for long; a fast move needs fresh key pictures. Measured 2026-11-13 (owner's Mac, 1200 x 1195, a very
+  // slow orbit; pixels that jump by over 8 of 255 from one display frame to the next): today's page 2.06 %, one pass 1.29 %,
+  // two 0.61 %, four 0.25 % (a 64-sample truth: 0.14 %), at the same sharpness.
+  PASSES: num('glidepasses', 4),     // the most passes a key picture (1 = always one)
+  PASS_PX: [40, 150],                // under PASS_PX[0] pixels a second over the screen: all the passes; under PASS_PX[1]: two; faster: one
   UPLOADS_X: num('glideuploads', 3),  // the hooks that follow the camera run once a KEY PICTURE, not once a display frame: what they send to the
                                      // graphics card a call (the photograph on the ground's tiles) is this many times more (main.js)
-  // KEY PICTURES ARE ADDED UP. Each key picture is drawn shifted by a part of a pixel (a different part each time). The picture
-  // that is shown is the mean of the new key picture and the mean so far, the mean so far moved to the new key picture's
-  // camera (each of its pixels by its own depth) and kept only where it shows the same surface (its depth there agrees).
-  // So a part thinner than a pixel is a whole, faint line WHILE THE CAMERA MOVES: the mean of up to ADD_MAX + 1 pictures.
-  // MEASURED 2026-11-12 (owner's Mac, stepped clips against a 64-sample truth): with the camera STILL the mean is 0.5 of 255 from
-  // the truth (one key picture: 1.6) at 0.93 of its sharpness: it works. In a MOVE it does not pay yet: the mean so far is read
-  // between its pixels once a key picture, and that softens it each time (slow orbit: sharpness 0.40 with ADD_MAX 8, 0.69 with
-  // 1; error 2.75 and 1.86 against 1.71 with no adding). So it is OFF by default; at rest rest.js does this job. To make it pay
-  // in a move the mean needs a finer grid than the screen (2 x 2), so that reading between its pixels costs half as much.
+  // A TRIAL THAT DID NOT PAY, kept behind ?glideadd=1: key pictures of DIFFERENT cameras added up. The mean so far is moved
+  // to the new key picture's camera (each pixel by its depth) and mixed with the new key picture. With the camera still it
+  // works (0.5 of 255 from the truth). In a move the mean is read between its pixels once a key picture, and that softens it
+  // each time: slow orbit, error / sharpness against a 64-sample truth (no adding: 1.71 / 1.20): on the screen's own grid 2.75
+  // / 0.40 (a mean of 8) and 1.86 / 0.69 (a mean of 1); on a 1.5 x finer grid (GRID) 3.42 / 0.68 and 2.52 / 0.75 (a mean of
+  // 3, the sharp read). What DOES pay is PASSES above: more samples at ONE camera, nothing moved. (2026-11-12 and 11-13.)
   ADD: num('glideadd', 0),           // 1 = add up; 0 = each key picture alone
-  GRID: num('glidegrid', 1.5),
+  GRID: num('glidegrid', 1),         // (the trial) the mean's grid is this many times finer than the screen's, each way
   ADD_R: num('glideaddr', 0.34), ADD_FLOOR: num('glideaddfloor', 0.03),   // a new sample counts fully AT a grid point and ADD_FLOOR at ADD_R pixels from it and beyond
   FINE_SHOW: num('glidefineshow', 0),   // how the mean is read for the screen: 0 = one smooth read, 1 = the pixel's four quarter points, 2 = the sharp filter       // the mean's grid is this many times finer than the screen's (each way): moving the mean then costs less sharpness
   ADD_MAX: num('glideaddmax', 8),    // the mean so far counts as at most this many pictures (more = calmer, and softer in a move)
@@ -163,6 +175,12 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
       }
       gl_FragColor = vec4((mean * n + now * wn) / (n + wn), n + wn);
     }` });
+  // one more pass of a key picture into its mean (light)
+  const passMat = new THREE.ShaderMaterial({ depthTest: false, depthWrite: false, toneMapped: false, vertexShader: VS,
+    uniforms: { tNew: { value: null }, tAcc: { value: null }, uShare: { value: 1 } },
+    fragmentShader: `precision highp float; uniform sampler2D tNew, tAcc; uniform float uShare;
+      vec3 lin(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
+      void main() { ivec2 p = ivec2(gl_FragCoord.xy); gl_FragColor = vec4(mix(texelFetch(tAcc, p, 0).rgb, lin(texelFetch(tNew, p, 0).rgb), uShare), 1.0); }` });
   const mesh = new THREE.Mesh(tri, showMat); mesh.frustumCulled = false; oscene.add(mesh);
   const size = new THREE.Vector2(), kcam = camera.clone(), vp = new THREE.Matrix4(), inv = new THREE.Matrix4(), tr = new THREE.Matrix4(), v3 = new THREE.Vector3();
   const key = { eye: new THREE.Vector3(), row: new THREE.Vector4(), ground: new THREE.Vector3(), R: new THREE.Vector3(), U: new THREE.Vector3(), F: new THREE.Vector3(), far: 1, have: false,
@@ -170,6 +188,7 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
   const old = { row: new THREE.Vector4(), ground: new THREE.Vector3(), far: 1, vp: new THREE.Matrix4() };   // the key picture before: for the adding pass
   const halton = (i, b) => { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; };
   let acc = [null, null], accCur = 0, accHave = false, jx = 0, jy = 0, keyN = 0;
+  let pacc = [null, null], pCur = 0, pass = 0, pShown = -1, keyPasses = 1, shownMany = false;       // the passes of a key picture: their mean (two, in turn); the one that is shown
   const stats = { stalls: [], late: 0, keys: 0, slices: 0, shows: 0, size: [0, 0], keyMs: 0, keySlices: 0, draws: 0, modelMs: 0 };
 
   // ── the key picture's own framebuffers (plain WebGL: three.js resolves a multisampled target after EVERY draw of the scene, a
@@ -214,6 +233,14 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
       stats.fbo = stats.fbo && gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
       a.tc = new THREE.ExternalTexture(a.c); return a; });
     accHave = false;
+    if (pacc[0]) for (const a of pacc) { gl.deleteFramebuffer(a.fbo); gl.deleteTexture(a.c); a.tc.dispose(); }
+    pacc = [0, 1, 2].map(() => { const a = { fbo: gl.createFramebuffer(), c: gl.createTexture() };
+      renderer.state.bindTexture(gl.TEXTURE_2D, a.c); gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, W, H);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); renderer.state.unbindTexture();
+      bind(gl.FRAMEBUFFER, a.fbo); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, a.c, 0);
+      a.tc = new THREE.ExternalTexture(a.c); return a; });
+    pShown = -1; pass = 0;
     // back to the screen, and three.js told so. (NOT renderer.resetState(): that also switches the renderer's reversed depth
     // off for good, and every depth after it is read the wrong way round: found 2026-11-12, the moved picture was far off.)
     bind(gl.FRAMEBUFFER, null); renderer.setRenderTarget(null);
@@ -252,7 +279,7 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
   let slice = -1, bounds = [], wantKey = true, contentStale = false, keyT0 = 0, keyDraws = 0, misses = 0, drew = null, lastSlice = -1, lastCpu = 0;
   const learned = new WeakMap(), gain = GLIDE.GAIN;                // a thing -> how many times dearer than the model says
   // the camera's motion, a display frame to the next (for the key picture's lead)
-  const mo = { t: 0, dt: 0, pos: new THREE.Vector3(), quat: new THREE.Quaternion(), vel: new THREE.Vector3(), have: false };
+  const mo = { t: 0, dt: 0, pos: new THREE.Vector3(), quat: new THREE.Quaternion(), vel: new THREE.Vector3(), have: false, px: 1e9 };
   // the display frame to hold (ms): a whole number of the SCREEN'S own frames. The screen's frame time is measured once, at the
   // start, with frames that draw nothing (later every frame carries a slice, and its time says how long the work took, not
   // how fast the screen is): the shortest gap of 90.
@@ -261,6 +288,8 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
     const probe = (t) => { if (last && t - last > 3) best = Math.min(best, t - last); last = t;
       if (++n < 90) requestAnimationFrame(probe); else if (best < 50) { frameMs = best * Math.max(1, Math.ceil(GLIDE.FRAME_MIN_MS / best - 0.02)); stats.screenMs = best; stats.frameMs = frameMs; } };
     requestAnimationFrame(probe); }
+  // the passes a key picture may have at the camera's present speed over the screen (pixels a second)
+  const passesFor = () => { const mx = Math.max(1, Math.round(GLIDE.PASSES)); return mx < 2 ? 1 : mo.px < GLIDE.PASS_PX[0] ? mx : mo.px < GLIDE.PASS_PX[1] ? Math.min(2, mx) : 1; };
   const samePose = () => key.pos.distanceToSquared(camera.position) < 1e-8 && Math.abs(key.quat.dot(camera.quaternion)) > 1 - 1e-10;
   function startKey(now) {
     camera.updateMatrixWorld();
@@ -271,13 +300,14 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
     kcam.clearViewOffset(); kcam.updateProjectionMatrix(); kcam.updateMatrixWorld();
     if (atKeyStart) atKeyStart(kcam);                                 // (the shadow box and the sky's dome follow the key picture's camera, once a key picture)
     keyN++; jx = GLIDE.ADD ? halton(keyN % 64 + 1, 2) - 0.5 : 0; jy = GLIDE.ADD ? halton(keyN % 64 + 1, 3) - 0.5 : 0;   // (a part of a pixel, another one each key picture)
+    pass = 0; keyPasses = passesFor(); if (keyPasses > 1) { jx = 0; jy = 0; }   // (the first pass of a key picture is not shifted: its depth is the key picture's)
     slice = 0; wantKey = false; contentStale = false; keyT0 = now; stats.draws = 0; stats.lead = lead;
   }
   function drawSlice(now) {
-    const first = slice === 0, auto = renderer.autoClear, hook = scene.onBeforeRender;
+    const first = slice === 0 && pass === 0, auto = renderer.autoClear, hook = scene.onBeforeRender;
     renderer.setRenderTarget(null);
     redirect = ms.fbo; bind(gl.FRAMEBUFFER, ms.fbo);
-    renderer.autoClear = first;                                       // the first slice clears the picture; the rest draw on
+    renderer.autoClear = slice === 0;                                 // a pass's first slice clears the picture; the rest draw on
     if (first) win = { first: true, k: 0, acc: 0, budget: key.have ? GLIDE.SLICE_MS * GLIDE.FIRST : Infinity, stop: -1, w: [], objs: [] };
     else { win = { first: false, k: 0, from: bounds[slice], to: bounds[slice + 1], objs: [] }; scene.onBeforeRender = noHook; }   // (the hooks that follow the camera ran with the first slice)
     // The scene is drawn with the app's OWN camera, put at the key picture's pose for the length of the draw: the hooks that
@@ -288,7 +318,7 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
     // (the key picture's NUMBERS are those of the view without its shift: the mean lives on one fixed grid, and a shifted
     // picture added to it as it is IS the finer sampling. Taking the shift out by reading the mean between its pixels blurred
     // the mean a little more with every key picture: sharpness 0.25 of the truth's, measured 2026-11-12.)
-    if (first) { camera.setViewOffset(ms.SW, ms.SH, -(ms.W - ms.SW) / 2, -(ms.H - ms.SH) / 2, ms.W, ms.H); camera.updateProjectionMatrix(); keyProj.copy(camera.projectionMatrix); }
+    if (first) { camera.setViewOffset(ms.SW, ms.SH, -(ms.W - ms.SW) / 2, -(ms.H - ms.SH) / 2, ms.W, ms.H); camera.updateProjectionMatrix(); keyProj.copy(camera.projectionMatrix); camera.clearViewOffset(); }
     camera.setViewOffset(ms.SW, ms.SH, -(ms.W - ms.SW) / 2 + jx, -(ms.H - ms.SH) / 2 + jy, ms.W, ms.H); camera.updateProjectionMatrix();
     renderer.getViewport(liveVp); renderer.setViewport(keyVp);
     const c0 = performance.now(); lastSlice = slice;
@@ -307,14 +337,34 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
     }
     drew = key.have ? win.objs : null;                               // (what this display frame's slice drew: judged when the next frame comes)
     win = null; slice++; stats.slices++;
-    if (slice >= bounds.length - 1) finishKey(now);
+    if (slice >= bounds.length - 1) { if (keyPasses > 1) endPass(now); else finishKey(now); }
   }
-  function finishKey(now) {
-    stats.keySlices = slice; slice = -1;
-    // the complete picture, resolved once: colour and depth
-    bind(gl.READ_FRAMEBUFFER, ms.fbo); bind(gl.DRAW_FRAMEBUFFER, res[1 - cur].fbo);
-    gl.blitFramebuffer(0, 0, ms.W, ms.H, 0, 0, ms.W, ms.H, gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT, gl.NEAREST);
+  // a pass of a key picture is complete: into the key picture's mean; after the last pass the key picture is complete
+  function endPass(now) {
+    stats.keySlices = slice;
+    bind(gl.READ_FRAMEBUFFER, ms.fbo); bind(gl.DRAW_FRAMEBUFFER, res[1 - cur].fbo);                 // (the depth is the first pass's)
+    gl.blitFramebuffer(0, 0, ms.W, ms.H, 0, 0, ms.W, ms.H, gl.COLOR_BUFFER_BIT | (pass === 0 ? gl.DEPTH_BUFFER_BIT : 0), gl.NEAREST);
     bind(gl.READ_FRAMEBUFFER, null); bind(gl.DRAW_FRAMEBUFFER, null);
+    // the mean is built in the two targets that are NOT the shown one
+    const free = [0, 1, 2].filter((i) => i !== pShown), from = pass === 0 ? free[0] : pCur, to = free.find((i) => i !== from);
+    const u = passMat.uniforms; u.tNew.value = res[1 - cur].tc; u.tAcc.value = pacc[from].tc; u.uShare.value = 1 / (pass + 1);
+    passMat.uniformsNeedUpdate = true; mesh.material = passMat;
+    const auto = renderer.autoClear; renderer.autoClear = false;
+    renderer.setRenderTarget(null); renderer.getViewport(liveVp); renderer.setViewport(keyVp);
+    redirect = pacc[to].fbo; bind(gl.FRAMEBUFFER, redirect);
+    try { renderer.render(oscene, ocam); } finally { redirect = null; bind(gl.FRAMEBUFFER, null); renderer.setViewport(liveVp); renderer.autoClear = auto; }
+    pCur = to; pass++;
+    if (pass < Math.min(keyPasses, passesFor())) { slice = 0; jx = halton(pass, 2) - 0.5; jy = halton(pass, 3) - 0.5; return; }   // the next pass, shifted (not when the camera has sped up meanwhile)
+    pShown = pCur; finishKey(now, true);
+  }
+  function finishKey(now, resolved = false) {
+    stats.keySlices = slice; slice = -1; shownMany = resolved; stats.passes = resolved ? pass : 1;
+    // the complete picture, resolved once: colour and depth
+    if (!resolved) {
+      bind(gl.READ_FRAMEBUFFER, ms.fbo); bind(gl.DRAW_FRAMEBUFFER, res[1 - cur].fbo);
+      gl.blitFramebuffer(0, 0, ms.W, ms.H, 0, 0, ms.W, ms.H, gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT, gl.NEAREST);
+      bind(gl.READ_FRAMEBUFFER, null); bind(gl.DRAW_FRAMEBUFFER, null);
+    }
     cur = 1 - cur;
     // where each pixel of this key picture is in the world: its camera, kept (the one before goes to `old`)
     old.row.copy(key.row); old.ground.copy(key.ground); old.far = key.far; old.vp.copy(key.vp);
@@ -351,8 +401,9 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
     vp.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     const u = showMat.uniforms, r = res[cur];
     u.uNowFromKey.value.multiplyMatrices(vp, tr.makeTranslation(key.eye.x, key.eye.y, key.eye.z));
-    const mean = GLIDE.ADD && accHave;
-    u.tKey.value = mean ? acc[accCur].tc : r.tc; u.uLight.value = mean ? 1 : 0; u.uFineShow.value = GLIDE.FINE_SHOW; if (mean) u.uCol.value.set(ms.FW, ms.FH); else u.uCol.value.set(ms.W, ms.H); u.tKeyDepth.value = r.td; u.uRow.value.copy(key.row); u.uGround.value.copy(key.ground);
+    const mean = GLIDE.ADD && accHave, many = shownMany && pShown >= 0;
+    u.tKey.value = many ? pacc[pShown].tc : mean ? acc[accCur].tc : r.tc; u.uLight.value = many || mean ? 1 : 0; u.uFineShow.value = many ? 2 : GLIDE.FINE_SHOW;
+    if (mean && !many) u.uCol.value.set(ms.FW, ms.FH); else u.uCol.value.set(ms.W, ms.H); u.tKeyDepth.value = r.td; u.uRow.value.copy(key.row); u.uGround.value.copy(key.ground);
     u.uKR.value.copy(key.R); u.uKU.value.copy(key.U); u.uKF.value.copy(key.F); u.uFarW.value = key.far; u.uFull.value.set(ms.W, ms.H); u.uOver.value.set(ms.ox, ms.oy); u.uCubic.value = GLIDE.CUBIC; u.uSteps.value = GLIDE.STEPS;
     showMat.uniformsNeedUpdate = true;                              // (three.js does not send a material's uniforms again when the same material draws twice in a row)
     mesh.material = showMat; renderer.setRenderTarget(null); renderer.render(oscene, ocam);
@@ -375,7 +426,11 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
       // the camera's speed (metres a ms) and its turn since the last display frame
       camera.updateMatrixWorld();
       const dt = now - mo.t;
-      if (mo.have && dt > 0 && dt < 100) { v3.copy(camera.position).sub(mo.pos).multiplyScalar(1 / dt); mo.vel.lerp(v3, 0.5); mo.dt = dt; } else { mo.vel.set(0, 0, 0); mo.dt = 0; }
+      if (mo.have && dt > 0 && dt < 100) { v3.copy(camera.position).sub(mo.pos).multiplyScalar(1 / dt); mo.vel.lerp(v3, 0.5); mo.dt = dt;
+        // its speed over the screen, pixels a second: its turn, and its travel against its height
+        const f = (ms.SH / 2) / Math.tan(camera.fov * Math.PI / 360), turn = 2 * Math.acos(Math.min(1, Math.abs(mo.quat.dot(camera.quaternion))));
+        const px = (turn / dt * 1000 + v3.length() * 1000 / Math.max(30, camera.position.y)) * f; mo.px = mo.px > 1e8 ? px : mo.px + (px - mo.px) * 0.3;
+      } else { mo.vel.set(0, 0, 0); mo.dt = 0; }
       const late = mo.have && dt > 1.25 * frameMs;
       if (late) { stats.late++; misses++; }
       if (mo.have && dt > 100) { stats.stalls.push({ ms: Math.round(dt), slice: lastSlice, cpu: Math.round(lastCpu), programs: renderer.info.programs ? renderer.info.programs.length : 0, tex: renderer.info.memory.textures, geo: renderer.info.memory.geometries }); if (stats.stalls.length > 12) stats.stalls.shift(); }
