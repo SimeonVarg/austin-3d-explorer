@@ -35,6 +35,10 @@
       "est_s": 300,
       "timeout_s": 1500
     },
+    "v2-glide.mjs": {
+      "est_s": 400,
+      "timeout_s": 1500
+    },
     "analytics-check.mjs": {
       "est_s": 60
     },

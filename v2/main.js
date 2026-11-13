@@ -1788,7 +1788,7 @@ window.__v2 = {
     const r = applyMoment(MOMENT); dirty = true; return r;
   },
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
-  intro: () => introFlight.flight && { ...introFlight.flight }, FILM, film: () => film && { ...film.stats, t: film.timeMs() }, introPoseAt, filmPose, GLIDE, glide: () => glide && { ...glide.stats, busy: glide.busy() }, glideBench: (n) => glide && glide.bench(n), glideDebug: () => glide && glide.debug(),
+  intro: () => introFlight.flight && { ...introFlight.flight }, FILM, film: () => film && { ...film.stats, t: film.timeMs() }, introPoseAt, filmPose, GLIDE, glide: () => glide && { ...glide.stats, busy: glide.busy() }, glideBench: (n) => glide && glide.bench(n),
   labels: () => ({ items: labels.items.length, shown: labels.shown, merged: labels.merged || 0, occluded: labels.occludedN || 0, selected: labels.selected?.name || null }),
   pick: (x, y) => labels.pick(x, y), openCard: (name) => { const it = labels.items.find((i) => i.name === name); if (it) labels.open(it); return !!it; }, requestRoute, drawRoute, redraw: () => { dirty = true; },
   pickApartment: (name) => { const i = apartments.findIndex((a) => a.name === name); if (i >= 0) { aptSel.value = String(i); return update(true); } },
