@@ -311,6 +311,12 @@ memory and is never written here, in any tracked file, or in a commit message.
     - **Do not sit on CI.** Push, keep working, and merge when the checks finish.
     - **Timebox.** A lane that has gone about 90 minutes without a result stops
       and writes down what blocks it.
+    - **The opening film (2026-11-12, #682; `v2/film.js`, `?film=1`).** A film of the opening flight, made by this renderer. It is
+      of ONE city: `v2/film/film.json` holds a hash of `v2/tiles/manifest.json` + `v2/tiles/coats.json`, and the page plays the
+      film only when the hash is the city's. A pull request that changes either file switches the film off until someone makes
+      it again on a real GPU (`scripts/verify/v2-film-frames.mjs`, then `scripts/v2/film_encode.sh`; the two video files are
+      assets of a release, never in the repository). After a change to `v2/film.js` or to the opening in `v2/main.js`, run
+      `scripts/verify/v2-film.mjs` on the Mac (it is not in the CI run).
     - **The clean still (2026-11-12, #680; `v2/rest.js`).** On the multisampled path the app adds up 16 shifted frames when the
       camera rests. For a tool this means: a person's page keeps drawing for about a second after a stop and its still is
       then the mean of 64 samples a pixel, but a page under a test driver has it OFF (so every check reads the plain still,
