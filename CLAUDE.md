@@ -311,6 +311,14 @@ memory and is never written here, in any tracked file, or in a commit message.
     - **Do not sit on CI.** Push, keep working, and merge when the checks finish.
     - **Timebox.** A lane that has gone about 90 minutes without a result stops
       and writes down what blocks it.
+    - **Glide (2026-11-12, #683; `v2/glide.js`, `?glide=1`).** The city is drawn into a framebuffer of glide's own, behind
+      three.js's back, in slices of the frame's draw calls; the screen shows the last complete picture moved to the camera.
+      For anyone who touches it or the frame loop: (1) NEVER call `renderer.resetState()`: it switches reversed depth off for
+      good and every depth is then read the wrong way round. (2) A hook that follows the camera tests `cam === camera`: a
+      picture drawn with another camera object loses the ground photograph and the lamps. (3) A thing that changes the list of
+      draw calls (a tile that comes or goes) may only do so BETWEEN two key pictures (`glide.drawing()`). (4) A new layer that
+      draws to the screen by itself is not in the key picture: add it to the scene. (5) Cut work by draw calls, not by strips
+      of the screen: on the owner's GPU half a frame's cost is its triangles. Its check: `scripts/verify/v2-glide.mjs`.
     - **The opening film (2026-11-12, #682; `v2/film.js`, `?film=1`).** A film of the opening flight, made by this renderer. It is
       of ONE city: `v2/film/film.json` holds a hash of `v2/tiles/manifest.json` + `v2/tiles/coats.json`, and the page plays the
       film only when the hash is the city's. A pull request that changes either file switches the film off until someone makes
