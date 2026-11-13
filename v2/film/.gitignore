@@ -1,0 +1,2 @@
+# the film files are not kept in the repository (v2/film.js): film.json says where they are
+*.mp4
