@@ -27,7 +27,10 @@ const num = (k, d) => (Q.has(k) && isFinite(+Q.get(k)) ? +Q.get(k) : d);
 export const GLIDE = {
   ON: Q.get('glide') === '1',
   SLICE_MS: num('glideslice', 9),    // the time one slice of a key picture may take (ms of GPU work, by the cost model below)
-  FPS: num('glidefps', 60),          // the display rate to hold: a display frame later than 1.25 x its time is a miss
+  FPS: num('glidefps', 0),           // the display rate to hold (a display frame later than 1.25 x its time is a miss). 0 = found from
+                                     // the screen: the fastest rate whose frame is FRAME_MIN_MS or longer and a whole number of the
+                                     // screen's own frames (60 Hz: 60; 144 Hz: 72; 120 Hz: 60; 75 Hz: 75)
+  FRAME_MIN_MS: 13,                  // (a display frame needs the show pass, about 4 ms on the owner's Mac, and one slice)
   GAIN: num('glidegain', 0.2),       // the cost model's scale (model ms -> real ms; measured on the owner's Mac: about 0.2)
   // The model is rough, so each thing's cost is LEARNED while running: when the display frame after a slice comes late, the
   // things that slice drew count LEARN_UP times more from then on (they move into slices of their own); when it comes in time
@@ -238,6 +241,14 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
   const learned = new WeakMap(), gain = GLIDE.GAIN;                // a thing -> how many times dearer than the model says
   // the camera's motion, a display frame to the next (for the key picture's lead)
   const mo = { t: 0, dt: 0, pos: new THREE.Vector3(), quat: new THREE.Quaternion(), vel: new THREE.Vector3(), have: false };
+  // the display frame to hold (ms): a whole number of the SCREEN'S own frames. The screen's frame time is measured once, at the
+  // start, with frames that draw nothing (later every frame carries a slice, and its time says how long the work took, not
+  // how fast the screen is): the shortest gap of 90.
+  let frameMs = GLIDE.FPS ? 1000 / GLIDE.FPS : 1000 / 60;
+  if (!GLIDE.FPS) { let n = 0, last = 0, best = Infinity;
+    const probe = (t) => { if (last && t - last > 3) best = Math.min(best, t - last); last = t;
+      if (++n < 90) requestAnimationFrame(probe); else if (best < 50) { frameMs = best * Math.max(1, Math.ceil(GLIDE.FRAME_MIN_MS / best - 0.02)); stats.screenMs = best; stats.frameMs = frameMs; } };
+    requestAnimationFrame(probe); }
   const samePose = () => key.pos.distanceToSquared(camera.position) < 1e-8 && Math.abs(key.quat.dot(camera.quaternion)) > 1 - 1e-10;
   function startKey(now) {
     camera.updateMatrixWorld();
@@ -352,11 +363,11 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
       camera.updateMatrixWorld();
       const dt = now - mo.t;
       if (mo.have && dt > 0 && dt < 100) { v3.copy(camera.position).sub(mo.pos).multiplyScalar(1 / dt); mo.vel.lerp(v3, 0.5); mo.dt = dt; } else { mo.vel.set(0, 0, 0); mo.dt = 0; }
-      const late = mo.have && dt > 1250 / GLIDE.FPS;
+      const late = mo.have && dt > 1.25 * frameMs;
       if (late) { stats.late++; misses++; }
       if (mo.have && dt > 100) { stats.stalls.push({ ms: Math.round(dt), slice: lastSlice, cpu: Math.round(lastCpu), programs: renderer.info.programs ? renderer.info.programs.length : 0, tex: renderer.info.memory.textures, geo: renderer.info.memory.geometries }); if (stats.stalls.length > 12) stats.stalls.shift(); }
       if (drew && GLIDE.LEARN && mo.have && dt < GLIDE.LEARN_LATE_MS) {   // the slice the last display frame drew: too long, or short enough
-        const f = late ? GLIDE.LEARN_UP : dt < 1050 / GLIDE.FPS ? GLIDE.LEARN_DOWN : 1;
+        const f = late ? GLIDE.LEARN_UP : dt < 1.05 * frameMs ? GLIDE.LEARN_DOWN : 1;
         if (f !== 1) for (const o of drew) learned.set(o, Math.min(GLIDE.LEARN_MAX, Math.max(GLIDE.LEARN_MIN, (learned.get(o) || 1) * f)));
       }
       drew = null;
