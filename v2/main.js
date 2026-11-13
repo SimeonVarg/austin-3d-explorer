@@ -25,6 +25,8 @@ import { clayPrepare, clayState, setRoofGlassData } from './clay.js';
 import { installWires } from './wires.js';
 import { installLamps } from './lamps.js';
 import { FILM, filmFits, filmPlan, installFilm } from './film.js';
+import { GLIDE, installGlide } from './glide.js';
+import { GROUND_LOOK } from './street-look.js';
 
 const params = new URLSearchParams(location.search);
 // exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
@@ -262,9 +264,9 @@ const steadyProbe = (() => { try { const g = document.createElement('canvas').ge
 // fast part; steady 2.03 / 0.93 / 1.78 and 2.16 / 0.93 / 3.47, with a smear on fast ground, for 10 % more frames a second.
 // It had been on there since #674 (2026-11-11): every number for #674 was taken at 1440 x 900 and 2x, a screen he does not use.
 const STEADY_SHRINKS = Math.max(QUALITY.ADAPT.MIN_SCALE, QUALITY.ADAPT.MIN_PIXEL_RATIO / DPR) < 0.999;
-const STEADY_ON = steadyProbe.can && (params.has('steady') ? params.get('steady') !== '0' : FAST && STEADY_SHRINKS && (steadyLearned == null ? QUALITY.STEADY_GPU.test(steadyProbe.gpu) : steadyLearned));
+const STEADY_ON = !GLIDE.ON && steadyProbe.can && (params.has('steady') ? params.get('steady') !== '0' : FAST && STEADY_SHRINKS && (steadyLearned == null ? QUALITY.STEADY_GPU.test(steadyProbe.gpu) : steadyLearned));
 try {
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: QUALITY.MSAA && !STEADY_ON, powerPreference: 'high-performance',
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: QUALITY.MSAA && !STEADY_ON && !GLIDE.ON, powerPreference: 'high-performance',
     reversedDepthBuffer: params.get('revdepth') !== '0' });
 } catch (e) {
   status('This map needs WebGL 2, which this browser does not offer.');
@@ -1467,6 +1469,10 @@ const steady = STEADY_ON ? installSteady({ THREE, renderer, scene, camera }) : n
 const REST_ON = !STEADY_ON && (params.has('rest') ? params.get('rest') !== '0' : FAST && !navigator.webdriver);
 const rest = REST_ON ? installRest({ THREE, renderer, scene, camera }) : null;
 let restFrom = 0;   // when the camera and the content last changed
+// The screen never shows a raw frame (glide.js, ?glide=1): key pictures are drawn off screen in strips, and every display frame
+// shows the last complete one moved to the present camera.
+if (GLIDE.ON) GROUND_LOOK.UPLOADS_PER_FRAME = Math.round(GROUND_LOOK.UPLOADS_PER_FRAME * GLIDE.UPLOADS_X);   // (glide.js UPLOADS_X)
+const glide = GLIDE.ON ? installGlide({ THREE, renderer, scene, camera, atKeyStart: (k) => { followShadow(true); dome.position.copy(k.position); } }) : null;
 let steadySoft = false;
 function setScale(s) {
   s = THREE.MathUtils.clamp(s, adapt.floor, 1);
@@ -1526,7 +1532,7 @@ function frame(now) {
   if (tiles) {
     // behind the loading screen the tiles load many at once (tiles.js RUSH_DECODES). Fast mode only: a phone keeps its small peak of memory
     tiles.rush = FAST && !!introFlight.flight && introFlight.flight.state === 'primed';
-    tiles.update(now);
+    if (!glide || !glide.drawing() || filmPlaying) tiles.update(now);   // (glide: a tile comes and goes between two key pictures, never inside one)
   }
   if (moved || mapLayers.dirty) { mapLayers.dirty = false; mapLayers.update(); }
   labels.update(now);
@@ -1534,6 +1540,21 @@ function frame(now) {
   // on the owner's Mac each live frame under the film held the film up (measured 2026-11-12: 234 of 757 film frames dropped,
   // one gap of 1.3 s). What changed stays marked (`dirty`), and is drawn under the film's last frame when the film has ended.
   if (filmPlaying) return;
+  if (glide) {
+    if (!(moved || dirty || glide.busy() || frameLog.on)) {
+      if (rest && rest.more() && now - restFrom >= REST.WAIT_MS) { rest.render(); frames++; }
+      return;
+    }
+    if (rest) { rest.reset(); restFrom = now; }
+    const stale = moved || dirty; dirty = false;
+    const t0 = performance.now();
+    glide.frame(stale, moved, now);
+    adapt.lastDraw = now; adapt.movingDraw = moving;
+    if (!frames) { try { window.loaderSceneReady?.(); } catch (e) {} }
+    if (frameLog.on) { frameLog.cpu.push(performance.now() - t0); frameLog.scales.push(adapt.scale); if (frameLog.last) frameLog.dts.push(now - frameLog.last); frameLog.last = now; }
+    frames++;
+    return;
+  }
   if (!(moved || dirty || steadySoft || frameLog.on)) {
     // nothing changed: one more frame of the clean still, until it is complete
     if (rest && rest.more() && now - restFrom >= REST.WAIT_MS) { rest.render(); frames++; }
@@ -1636,7 +1657,7 @@ function playFilm() {
   const F = introFlight.flight, poseAt = introPoseAt();
   F.state = 'film';
   liftVeil('film');                                           // (the live flight does not start: its state is not 'primed')
-  filmPlaying = true;
+  filmPlaying = true; if (glide) glide.drop();                // (glide: no key picture is half drawn while the film plays)
   film.play().catch(() => { filmPlaying = false; film.end(0, 'failed'); F.state = 'done'; dirty = true; });   // (a browser that will not play it: the live city at the flight's end)
   let over = false;
   const done = (ms, state) => { if (over) return; over = true; filmPlaying = false; film.end(ms, state); dirty = true; };
@@ -1769,7 +1790,7 @@ window.__v2 = {
     const r = applyMoment(MOMENT); dirty = true; return r;
   },
   setHidden, placeCamera: (p) => { skipIntro(); placeCamera(p); }, flyTo, map, INTRO, skipIntro,
-  intro: () => introFlight.flight && { ...introFlight.flight }, FILM, film: () => film && { ...film.stats, t: film.timeMs() }, introPoseAt, filmPose,
+  intro: () => introFlight.flight && { ...introFlight.flight }, FILM, film: () => film && { ...film.stats, t: film.timeMs() }, introPoseAt, filmPose, GLIDE, glide: () => glide && { ...glide.stats, busy: glide.busy() }, glideBench: (n) => glide && glide.bench(n),
   labels: () => ({ items: labels.items.length, shown: labels.shown, merged: labels.merged || 0, occluded: labels.occludedN || 0, selected: labels.selected?.name || null }),
   pick: (x, y) => labels.pick(x, y), openCard: (name) => { const it = labels.items.find((i) => i.name === name); if (it) labels.open(it); return !!it; }, requestRoute, drawRoute, redraw: () => { dirty = true; },
   pickApartment: (name) => { const i = apartments.findIndex((a) => a.name === name); if (i >= 0) { aptSel.value = String(i); return update(true); } },

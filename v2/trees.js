@@ -41,7 +41,7 @@ export function installTrees({ THREE, scene, redraw, renderer, phone = false }) 
   // fixed on the crown's own unlifted surface, so the clusters ride with it and never swim); edge = smoothstep over the pixel's own
   // slope, alpha to coverage with MSAA. Crowns away from the camera skip all of it (open = 0, lift = 0): the same picture as before.
   const N = T.NEAR, f = (v) => Number(v).toFixed(4);
-  const msaa = !!(renderer && renderer.getContext && renderer.getContext().getContextAttributes().antialias);
+  const msaa = !!(renderer && renderer.getContext && renderer.getContext().getContextAttributes().antialias) || new URLSearchParams(location.search).get('glide') === '1';   // (glide.js: the picture is drawn into a multisampled target of its own)
   const nearU = { uTreeNear: { value: params.get('treenear0') === '1' ? 0 : 1 } };   // 0 = the old solid crowns (A/B in one page load)
   function nearShader(mat) {
     mat.alphaToCoverage = msaa;

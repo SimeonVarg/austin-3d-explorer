@@ -135,7 +135,7 @@ const imageOf = (url) => new Promise((res, rej) => { const i = new Image(); i.on
 export async function installRealTrees({ THREE, scene, group, redraw, rows, groups, phone = false, renderer }) {
   const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
   const manifest = await fetch(DATA + 'manifest.json').then((r) => r.json());
-  const msaa = !!(renderer && renderer.capabilities && renderer.getContext().getContextAttributes().antialias);
+  const msaa = !!(renderer && renderer.capabilities && renderer.getContext().getContextAttributes().antialias) || new URLSearchParams(location.search).get('glide') === '1';   // (glide.js: the picture is drawn into a multisampled target of its own)
   const aniso = renderer ? Math.min(8, renderer.capabilities.getMaxAnisotropy()) : 4;
   let [D1, W1] = phone ? L.NEAR_TO_MID_M_PHONE : L.NEAR_TO_MID_M, [D2, W2] = phone ? L.MID_TO_FAR_M_PHONE : L.MID_TO_FAR_M;
 
