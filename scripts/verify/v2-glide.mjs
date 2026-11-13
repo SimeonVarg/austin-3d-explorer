@@ -16,6 +16,8 @@
  *      there must be near a fresh key picture from there (under MOVED of 255), and far nearer than the unmoved picture is
  *      (under SHARE of that distance). A wrong depth, a wrong camera or a pass that does not update fails this.
  *   3. IT RUNS: a timed orbit makes key pictures, each in more than one slice, and no page error.
+ *   3b. A SLOW MOVE GETS MORE SAMPLES: in a very slow orbit a key picture has two or more passes, in a fast one it has one.
+ *      (A real GPU only.)
  *   4. AT REST THE CLEAN STILL TAKES OVER (rest.js): after a move the key picture settles, the still completes, and then the
  *      page draws nothing. (A real GPU only.)
  * Parts 1 to 3 run on any renderer. It does not measure speed (a real GPU only: scripts/verify has no speed check for it yet).
@@ -68,6 +70,12 @@ const g0 = await page.evaluate(() => window.__v2.glide());
 await page.evaluate((ms) => window.__v2.measure(ms, 0.15), REAL ? 6000 : 30000);
 const g1 = await page.evaluate(() => window.__v2.glide());
 ok(g1.keys > g0.keys && g1.keySlices >= 1, `3. a timed orbit makes key pictures (${g1.keys - g0.keys}), the last in ${g1.keySlices} slice${g1.keySlices > 1 ? 's' : ''}`);
+// 3b. a slow move gets more passes a key picture, a fast one gets one (a real GPU only: the speed is read from the clock)
+if (REAL) {
+  await page.evaluate(() => window.__v2.measure(5000, 0.004)); const slow = await page.evaluate(() => window.__v2.glide().passes);
+  await page.evaluate(() => window.__v2.measure(3000, 0.3)); const fast = await page.evaluate(() => window.__v2.glide().passes);
+  ok(slow >= 2 && fast === 1, `3b. a slow move gets more samples: a key picture of ${slow} passes in a very slow orbit, of ${fast} in a fast one`);
+}
 // 4. at rest the clean still takes over, and then the page draws nothing (a real GPU only: on a software renderer a late
 // piece of the city starts the still again for minutes)
 if (REAL) {
