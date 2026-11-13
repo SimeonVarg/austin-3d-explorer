@@ -26,6 +26,7 @@ import { installWires } from './wires.js';
 import { installLamps } from './lamps.js';
 import { FILM, filmFits, filmPlan, installFilm } from './film.js';
 import { GLIDE, installGlide } from './glide.js';
+import { GROUND_LOOK } from './street-look.js';
 
 const params = new URLSearchParams(location.search);
 // exact-photo pilot: put the sun where it stood in a photograph (?sunaz=242.4&sunel=20.2); absent = the app's own sun
@@ -1470,6 +1471,7 @@ const rest = REST_ON ? installRest({ THREE, renderer, scene, camera }) : null;
 let restFrom = 0;   // when the camera and the content last changed
 // The screen never shows a raw frame (glide.js, ?glide=1): key pictures are drawn off screen in strips, and every display frame
 // shows the last complete one moved to the present camera.
+if (GLIDE.ON) GROUND_LOOK.UPLOADS_PER_FRAME = Math.round(GROUND_LOOK.UPLOADS_PER_FRAME * GLIDE.UPLOADS_X);   // (glide.js UPLOADS_X)
 const glide = GLIDE.ON ? installGlide({ THREE, renderer, scene, camera, atKeyStart: (k) => { followShadow(true); dome.position.copy(k.position); } }) : null;
 let steadySoft = false;
 function setScale(s) {
@@ -1530,7 +1532,7 @@ function frame(now) {
   if (tiles) {
     // behind the loading screen the tiles load many at once (tiles.js RUSH_DECODES). Fast mode only: a phone keeps its small peak of memory
     tiles.rush = FAST && !!introFlight.flight && introFlight.flight.state === 'primed';
-    if (!glide || !glide.drawing()) tiles.update(now);   // (glide: a tile comes and goes between two key pictures, never inside one)
+    if (!glide || !glide.drawing() || filmPlaying) tiles.update(now);   // (glide: a tile comes and goes between two key pictures, never inside one)
   }
   if (moved || mapLayers.dirty) { mapLayers.dirty = false; mapLayers.update(); }
   labels.update(now);
@@ -1655,7 +1657,7 @@ function playFilm() {
   const F = introFlight.flight, poseAt = introPoseAt();
   F.state = 'film';
   liftVeil('film');                                           // (the live flight does not start: its state is not 'primed')
-  filmPlaying = true;
+  filmPlaying = true; if (glide) glide.drop();                // (glide: no key picture is half drawn while the film plays)
   film.play().catch(() => { filmPlaying = false; film.end(0, 'failed'); F.state = 'done'; dirty = true; });   // (a browser that will not play it: the live city at the flight's end)
   let over = false;
   const done = (ms, state) => { if (over) return; over = true; filmPlaying = false; film.end(ms, state); dirty = true; };

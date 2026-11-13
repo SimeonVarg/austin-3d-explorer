@@ -42,6 +42,8 @@ export const GLIDE = {
   OVER_Y: num('glideovery', 0.05),   // ...higher by this share on each side: what a turn brings into view is already drawn
   LEAD: num('glidelead', 1),         // the key picture is drawn for the camera this share of the way to its showing time (0 = for the camera of now)
   SAMPLES: 4,                        // multisampling of the key picture
+  UPLOADS_X: num('glideuploads', 3),  // the hooks that follow the camera run once a KEY PICTURE, not once a display frame: what they send to the
+                                     // graphics card a call (the photograph on the ground's tiles) is this many times more (main.js)
   // KEY PICTURES ARE ADDED UP. Each key picture is drawn shifted by a part of a pixel (a different part each time). The picture
   // that is shown is the mean of the new key picture and the mean so far, the mean so far moved to the new key picture's
   // camera (each of its pixels by its own depth) and kept only where it shows the same surface (its depth there agrees).
@@ -335,6 +337,8 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
   return {
     stats, GLIDE,
     drawing: () => slice >= 0,
+    // give up the key picture that is being drawn (the film starts: nothing is drawn for a while, and tiles may come and go)
+    drop() { slice = -1; win = null; wantKey = true; drew = null; },
     // (a test) the cost of showing the key picture: n shows, then a wait for the GPU; ms a show
     bench(n = 30) { const px = new Uint8Array(4), W = ms.W, H = ms.H; renderer.setRenderTarget(null); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
       const t0 = performance.now(); for (let i = 0; i < n; i++) show(W, H); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return (performance.now() - t0) / n; },
