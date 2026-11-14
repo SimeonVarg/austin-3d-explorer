@@ -21,6 +21,7 @@ page.on('pageerror', e => console.log('  [pageerror] ' + e.message));
 
 await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
+await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
 await page.waitForTimeout(6000);
 
 /** Fly for `ms` and count how many 16.7 ms frame slots were missed. */

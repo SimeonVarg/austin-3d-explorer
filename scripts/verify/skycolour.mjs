@@ -18,6 +18,7 @@ page.on('pageerror', e => console.log('  [pageerror] ' + e.message));
 
 await page.goto(`${BASE}/_harness.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
+await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
 await page.waitForTimeout(5000);
 
 function hsl(r, g, b) {
