@@ -54,12 +54,20 @@ export const GLIDE = {
   // PASSES times, each time shifted by another part of a pixel, at the SAME camera, and the passes are added up as light
   // (as the clean still does). Nothing is moved or read between pixels, so nothing softens: a thin part is a whole, faint
   // line in the key picture itself. The price: key pictures come PASSES times less often (the move in the show pass is larger).
-  // HOW MANY follows the camera's speed over the screen: a slow move is where a thin part's flicker is seen, and where a key
-  // picture stays good for long; a fast move needs fresh key pictures. Measured 2026-11-13 (owner's Mac, 1200 x 1195, a very
-  // slow orbit; pixels that jump by over 8 of 255 from one display frame to the next): today's page 2.06 %, one pass 1.29 %,
-  // two 0.61 %, four 0.25 % (a 64-sample truth: 0.14 %), at the same sharpness.
+  // HOW MANY follows the camera's speed over the screen: the picture may travel TRAVEL_PX pixels over the screen while one key
+  // picture is drawn, and no more (then the key picture is too old when it is shown: the move in the show pass is too large).
+  // So a slow move gets all the passes, a fast one gets one, and a small window (its passes are short) gets more than a big one.
+  // Measured 2026-11-13 and 11-14 (owner's Mac, stepped orbits against a 64-sample truth). The flicker the eye sees = the
+  // pixels that jump by over 8 of 255 from one display frame to the next, MORE than the truth's own (the move itself):
+  //   1200 x 1195    0.24 deg/s   1.2 deg/s   3 deg/s   6 deg/s   12 deg/s   24 deg/s
+  //   today's page     +1.92        +3.37      +2.72     +2.12     +1.76      +1.19   (% of the pixels)
+  //   one pass         +1.15        +1.81      +2.17     +2.29     +1.83      +1.48
+  //   two passes       +0.47        +0.85      +1.04     +1.53     +1.44      +1.07
+  //   four passes      +0.11        -0.15      +0.08     +0.73     +0.67      +0.49
+  // and the picture's error against the truth must not grow: at 9 deg/s it is 1.63 (one pass), 1.62 (two, 52 px of travel a key
+  // picture), 2.04 (four, 103 px) at 1200 x 1195; 1.71, 1.80 (94 px), 7.09 (187 px) at 2560 x 1300. Hence 80 pixels.
   PASSES: num('glidepasses', 4),     // the most passes a key picture (1 = always one)
-  PASS_PX: [40, 150],                // under PASS_PX[0] pixels a second over the screen: all the passes; under PASS_PX[1]: two; faster: one
+  TRAVEL_PX: num('glidetravel', 80), // the picture's travel over the screen during one key picture, at most (pixels)
   UPLOADS_X: num('glideuploads', 3),  // the hooks that follow the camera run once a KEY PICTURE, not once a display frame: what they send to the
                                      // graphics card a call (the photograph on the ground's tiles) is this many times more (main.js)
   // A TRIAL THAT DID NOT PAY, kept behind ?glideadd=1: key pictures of DIFFERENT cameras added up. The mean so far is moved
@@ -188,7 +196,7 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
   const old = { row: new THREE.Vector4(), ground: new THREE.Vector3(), far: 1, vp: new THREE.Matrix4() };   // the key picture before: for the adding pass
   const halton = (i, b) => { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; };
   let acc = [null, null], accCur = 0, accHave = false, jx = 0, jy = 0, keyN = 0;
-  let pacc = [null, null], pCur = 0, pass = 0, pShown = -1, keyPasses = 1, shownMany = false;       // the passes of a key picture: their mean (two, in turn); the one that is shown
+  let pacc = [null, null], pCur = 0, pass = 0, pShown = -1, keyPasses = 1, shownMany = false, passT0 = 0;       // the passes of a key picture: their mean (two, in turn); the one that is shown
   const stats = { stalls: [], late: 0, keys: 0, slices: 0, shows: 0, size: [0, 0], keyMs: 0, keySlices: 0, draws: 0, modelMs: 0 };
 
   // ── the key picture's own framebuffers (plain WebGL: three.js resolves a multisampled target after EVERY draw of the scene, a
@@ -289,7 +297,9 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
       if (++n < 90) requestAnimationFrame(probe); else if (best < 50) { frameMs = best * Math.max(1, Math.ceil(GLIDE.FRAME_MIN_MS / best - 0.02)); stats.screenMs = best; stats.frameMs = frameMs; } };
     requestAnimationFrame(probe); }
   // the passes a key picture may have at the camera's present speed over the screen (pixels a second)
-  const passesFor = () => { const mx = Math.max(1, Math.round(GLIDE.PASSES)); return mx < 2 ? 1 : mo.px < GLIDE.PASS_PX[0] ? mx : mo.px < GLIDE.PASS_PX[1] ? Math.min(2, mx) : 1; };
+  let passMs = 100;                                                  // how long one pass takes (learned)
+  const passesFor = () => { const mx = Math.max(1, Math.round(GLIDE.PASSES)); if (mx < 2 || mo.px > 1e8) return 1;
+    return Math.max(1, Math.min(mx, Math.floor(GLIDE.TRAVEL_PX / Math.max(1e-3, mo.px * passMs / 1000)))); };
   const samePose = () => key.pos.distanceToSquared(camera.position) < 1e-8 && Math.abs(key.quat.dot(camera.quaternion)) > 1 - 1e-10;
   function startKey(now) {
     camera.updateMatrixWorld();
@@ -301,7 +311,7 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
     if (atKeyStart) atKeyStart(kcam);                                 // (the shadow box and the sky's dome follow the key picture's camera, once a key picture)
     keyN++; jx = GLIDE.ADD ? halton(keyN % 64 + 1, 2) - 0.5 : 0; jy = GLIDE.ADD ? halton(keyN % 64 + 1, 3) - 0.5 : 0;   // (a part of a pixel, another one each key picture)
     pass = 0; keyPasses = passesFor(); if (keyPasses > 1) { jx = 0; jy = 0; }   // (the first pass of a key picture is not shifted: its depth is the key picture's)
-    slice = 0; wantKey = false; contentStale = false; keyT0 = now; stats.draws = 0; stats.lead = lead;
+    slice = 0; wantKey = false; contentStale = false; keyT0 = now; passT0 = now; stats.draws = 0; stats.lead = lead;
   }
   function drawSlice(now) {
     const first = slice === 0 && pass === 0, auto = renderer.autoClear, hook = scene.onBeforeRender;
@@ -353,7 +363,7 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
     renderer.setRenderTarget(null); renderer.getViewport(liveVp); renderer.setViewport(keyVp);
     redirect = pacc[to].fbo; bind(gl.FRAMEBUFFER, redirect);
     try { renderer.render(oscene, ocam); } finally { redirect = null; bind(gl.FRAMEBUFFER, null); renderer.setViewport(liveVp); renderer.autoClear = auto; }
-    pCur = to; pass++;
+    pCur = to; pass++; passMs += ((now - passT0) - passMs) * 0.3; passT0 = now;
     if (pass < Math.min(keyPasses, passesFor())) { slice = 0; jx = halton(pass, 2) - 0.5; jy = halton(pass, 3) - 0.5; return; }   // the next pass, shifted (not when the camera has sped up meanwhile)
     pShown = pCur; finishKey(now, true);
   }
@@ -392,7 +402,7 @@ export function installGlide({ THREE, renderer, scene, camera, atKeyStart }) {
       accCur = 1 - accCur; accHave = true;
     }
     key.pos.copy(kcam.position); key.quat.copy(kcam.quaternion); key.have = true;
-    stats.keys++; stats.keyMs = now - keyT0; stats.keyDraws = keyDraws;
+    stats.keys++; stats.keyMs = now - keyT0; stats.keyDraws = keyDraws; if (!resolved) passMs += ((now - passT0) - passMs) * 0.3; stats.passMs = passMs;
     stats.gain = gain; stats.misses = misses; misses = 0;
     if (contentStale || !samePose()) wantKey = true;                 // the camera or the city went on while this one was drawn
   }
