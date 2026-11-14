@@ -73,7 +73,7 @@ ok(g1.keys > g0.keys && g1.keySlices >= 1, `3. a timed orbit makes key pictures 
 // 3b. a slow move gets more passes a key picture, a fast one gets one (a real GPU only: the speed is read from the clock)
 if (REAL) {
   await page.evaluate(() => window.__v2.measure(5000, 0.004)); const slow = await page.evaluate(() => window.__v2.glide().passes);
-  await page.evaluate(() => window.__v2.measure(3000, 0.3)); const fast = await page.evaluate(() => window.__v2.glide().passes);
+  await page.evaluate(() => window.__v2.measure(3000, 1.5)); const fast = await page.evaluate(() => window.__v2.glide().passes);   // (90 degrees a second: the picture travels over 80 pixels in one pass)
   ok(slow >= 2 && fast === 1, `3b. a slow move gets more samples: a key picture of ${slow} passes in a very slow orbit, of ${fast} in a fast one`);
 }
 // 4. at rest the clean still takes over, and then the page draws nothing (a real GPU only: on a software renderer a late
