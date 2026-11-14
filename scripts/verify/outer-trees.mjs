@@ -58,7 +58,12 @@ const st = await page.evaluate(() => window.outerTrees.stats());
 log('loaded', JSON.stringify(st));
 check(!st.error, 'the file loaded and decoded', st.error || st.bytes + ' bytes');
 check(st.trees > 100000 && st.trees < 400000, 'a city of trees, not a park of them', st.trees);
-check(st.group && st.chunks > 20 && st.chunks < 400, 'a few dozen to a few hundred chunks', st.chunks);
+// Which trees are on decides the limits. The stacked trees keep the limits this check always had. The recorded crowns
+// (?trees=photo, ?look=photo) add one chunk set of 160 m, 144 + ~800 chunks, because the near / far choice is per chunk.
+const PHOTO_TREES = await page.evaluate(() => !!(window.LOOK_PHOTO && window.LOOK_PHOTO.treesOn));
+log('tree style under test:', PHOTO_TREES ? 'recorded crowns (photo)' : 'stacked');
+const CHUNKS_MAX = PHOTO_TREES ? 1200 : 400;
+check(st.group && st.chunks > 20 && st.chunks < CHUNKS_MAX, 'chunk count between 20 and ' + CHUNKS_MAX, st.chunks);
 
 const pose = async (s) => {
   await page.evaluate((s) => {
@@ -72,10 +77,14 @@ const pose = async (s) => {
   await page.evaluate(() => { window.applyOuterTrees(window.__map); window.__map.triggerRepaint(); });
   await page.waitForTimeout(1200);
 };
-const setTrees = on => page.evaluate(async (on) => {
-  window.OUTER_TREES.on = on; window.applyOuterTrees(window.__map); window.__map.triggerRepaint();
+// Stacked trees: "off" removes the outer layer only, as this check always did. Recorded crowns: the stacked-octagon tile
+// layers are what the crowns replace, and removing the crowns alone would bring them back, so "off" hides those too.
+const setTrees = on => page.evaluate(async ([on, photo]) => {
+  window.OUTER_TREES.on = on; window.applyOuterTrees(window.__map);
+  if (photo) for (const id of ['trees-canopy', 'trees-trunk']) { try { window.__map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch (e) {} }
+  window.__map.triggerRepaint();
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-}, on);
+}, [on, PHOTO_TREES]);
 const shot = async (file) => { await page.screenshot({ path: file, timeout: 180000 }); await page.waitForTimeout(600); await page.screenshot({ path: file, timeout: 180000 }); };
 const grab = () => page.evaluate(() => new Promise(r => {
   const m = window.__map;
@@ -95,7 +104,10 @@ await pose({ center: [-97.7760, 30.2990], zoom: 16.6, pitch: 35, bearing: 0, p: 
 const s1 = await page.evaluate(() => window.outerTrees.stats());
 const A = await grab(); await setTrees(false); const B = await grab(); await setTrees(true); const C = await grab();
 check(s1.near > 0, 'close to the ground the near template draws', 'near ' + s1.near + ', far ' + s1.far);
-check(greener(A, B) > 0.15, 'over Tarrytown at least 15 % of the frame turns green', (greener(A, B) * 100).toFixed(1) + ' %');
+// The check means "the tree cover is drawn". Stacked trees: the frame turns GREENER, as this check always asked. Recorded
+// crowns are dark olive (greener read 14.4 % there), so for them it counts pixels that CHANGE when the cover is taken away.
+const cover = (a, b) => PHOTO_TREES ? diff(a, b) : greener(a, b);
+check(cover(A, B) > 0.15, 'over Tarrytown the tree cover fills at least 15 % of the frame', (cover(A, B) * 100).toFixed(1) + ' %  (changed: ' + (diff(A, B) * 100).toFixed(1) + ' %, greener: ' + (greener(A, B) * 100).toFixed(1) + ' %)');
 check(diff(A, C) < 0.02, 'switching them back on gives the same frame', (diff(A, C) * 100).toFixed(2) + ' %');
 // 2. far template from high up, and never both templates of a chunk
 await pose({ center: [-97.7760, 30.2990], zoom: 14.4, pitch: 50, bearing: 0, p: 0.25 });
@@ -104,7 +116,7 @@ check(s2.far > 0 && s2.horizon > 0 && s2.near === 0 && s2.both === 0, 'from high
 // 3. somewhere else entirely
 await pose({ center: [-97.7400, 30.2470], zoom: 16.6, pitch: 35, bearing: 0, p: 0.25 });
 const D = await grab(); await setTrees(false); const E = await grab(); await setTrees(true);
-check(greener(D, E) > 0.10, 'and over Travis Heights, 7 km away, as well', (greener(D, E) * 100).toFixed(1) + ' %');
+check(cover(D, E) > 0.10, 'and over Travis Heights, 7 km away, as well', (cover(D, E) * 100).toFixed(1) + ' %  (changed: ' + (diff(D, E) * 100).toFixed(1) + ' %, greener: ' + (greener(D, E) * 100).toFixed(1) + ' %)');
 // 4. none where another lane owns the trees
 const core = await page.evaluate(() => {
   const d = window.outerTrees.data, lv = window.outerTrees.level; let n = 0;

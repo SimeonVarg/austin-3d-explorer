@@ -100,6 +100,7 @@
   <script src="js/mobile.js"></script>
   <script>/* HARNESS: expose the map instance + keep the drawing buffer so we can pixel-sample our own output */ window.__HARNESS = true; (function(){ var RealMap = maplibregl.Map; function HookedMap(opts){ opts = opts || {}; opts.canvasContextAttributes = Object.assign({}, opts.canvasContextAttributes, { preserveDrawingBuffer: true }); var m = Reflect.construct(RealMap, [opts]); window.__map = m; return m; } HookedMap.prototype = RealMap.prototype; Object.setPrototypeOf(HookedMap, RealMap); maplibregl.Map = HookedMap; })();</script>
   <!-- First, and before anything that can block: it owns the load screen. -->
+  <script src="js/look-photo.js"></script>
   <script src="js/loader.js"></script>
   <script src="js/explore.js"></script>
   <script src="js/graphics.js"></script>

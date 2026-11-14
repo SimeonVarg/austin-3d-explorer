@@ -697,6 +697,10 @@
       bikelane:'#12151d', biketrack:'#171a23', bikegreen:'#131a15',
     },
   };
+  // ?look=photo (js/look-photo.js): the surface tones the photographs measure. Night is left as it is.
+  if (window.LOOK_PHOTO && window.LOOK_PHOTO.roadsOn) {
+    for (const k of ['day', 'golden']) Object.assign(SURF[k], (window.LOOK_PHOTO.ground || {})[k] || {});
+  }
   // Material classes are reviewed; these day/golden/night colours are inferred
   // palette choices, not sampled photo colours. Dimensions/joints are inference.
   const DETAIL_MATERIAL = window.GROUND_DETAIL_MATERIAL = {
