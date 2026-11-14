@@ -45,7 +45,9 @@ const diff = (page, a, b) => page.evaluate(async ([a, b]) => { const load = asyn
 const shot = async (page, name) => { const b = await page.screenshot(); if (OUT) fs.writeFileSync(`${OUT}/${name}.png`, b); return b; };
 
 // ONE page for all parts (a software renderer needs minutes to open a page): glide with the clean still held back
-const page = await open('&rest=1&glide=1');
+// (on a software renderer one pass a key picture: parts 1 to 3 do not need more, and four passes take four times as long there;
+// the passes have their own part, 3b, on a real GPU)
+const page = await open('&rest=1&glide=1' + (REAL ? '' : '&glidepasses=1'));
 await page.evaluate(() => { window.__v2.REST.WAIT_MS = 1e12; });
 const on = await page.evaluate(() => ({ glide: !!window.__v2.glide(), fbo: window.__v2.glide() && window.__v2.glide().fbo, steady: !!(window.__v2.steady && window.__v2.steady()), msaa: window.__v2.renderer.getContext().getContextAttributes().antialias }));
 ok(on.glide && on.fbo && !on.steady && !on.msaa, `glide is on, its framebuffers are complete, the steady picture is off and the canvas has no multisampling of its own (${JSON.stringify(on)})`);
@@ -67,7 +69,7 @@ const dm = await diff(page, moved, fresh), du = await diff(page, G200, fresh);
 ok(dm < LIM.MOVED && dm < du * LIM.SHARE, `2. the move is right: the held picture moved 1 degree on is ${dm.toFixed(2)} of 255 from a fresh one there (limit ${LIM.MOVED}); the unmoved picture is ${du.toFixed(2)} from it (the moved one must be under ${(LIM.SHARE * 100).toFixed(0)} % of that: ${(100 * dm / du).toFixed(0)} %)`);
 // 3. it runs
 const g0 = await page.evaluate(() => window.__v2.glide());
-await page.evaluate((ms) => window.__v2.measure(ms, 0.15), REAL ? 6000 : 30000);
+await page.evaluate((ms) => window.__v2.measure(ms, 0.15), REAL ? 6000 : 20000);
 const g1 = await page.evaluate(() => window.__v2.glide());
 ok(g1.keys > g0.keys && g1.keySlices >= 1, `3. a timed orbit makes key pictures (${g1.keys - g0.keys}), the last in ${g1.keySlices} slice${g1.keySlices > 1 ? 's' : ''}`);
 // 3b. a slow move gets more passes a key picture, a fast one gets one (a real GPU only: the speed is read from the clock)
